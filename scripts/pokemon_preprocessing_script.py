@@ -5,8 +5,8 @@ from PIL import Image
 import numpy as np
 
 # 設定資料夾路徑與輸出檔名
-IMAGE_DIR = "./Images & Descriptions of All 1025 Pokemon/images"  # 請確保此資料夾內包含 1.png ~ 1025.png
-OUTPUT_JSON = "pokemon_data.json"
+IMAGE_DIR = "./assets/images/pokemon"  # 請確保此資料夾內包含 1.png ~ 1025.png
+OUTPUT_JSON = "../assets/data/pokemon_data.json"
 
 def classify_color(h, s, v):
     """

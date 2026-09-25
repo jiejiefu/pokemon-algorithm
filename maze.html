@@ -156,7 +156,7 @@
             statusText.innerText = `正在載入 # ${randomId} 寶可夢大圖...`;
 
             const img = new Image();
-            const imagesPath = 'Images & Descriptions of All 1025 Pokemon/images/';
+            const imagesPath = 'assets/images/pokemon/';
             img.src = `${imagesPath}${randomId}.png`;
             img.onload = () => {
                 // 使用隱藏的 Canvas 讀取圖片顏色
