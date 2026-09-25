@@ -60,7 +60,7 @@ Each entry now includes:
   "capture_rate": 45, "base_happiness": 70, "genus": "Seed Pokémon",
   "evolution_chain_id": 1,
   "rgb": [...], "hsv": [...], "hue": ..., "sat": ..., "val": ...,
-  "descriptions": { "en_long": "...", "en_short": "...", "en_flavor": "...", "zh": "從出生時候開始..." }
+  "descriptions": { "en_long": "...", "en_short": "...", "en_flavor": "...", "zh": "從出生時候開始...", "zh_text2": "從出生的時候開始背上就背著一顆種子..." }
 }
 ```
 
@@ -90,8 +90,9 @@ Each entry now includes:
 4. **GitHub Pages**: Ensure repo settings → Pages → Source: "Deploy from branch" / root folder
 5. **Asset paths**: All HTML files reference `assets/images/pokemon/`, `assets/js/shared.js`, `assets/data/pokemon_data.json`
 6. **Virtualenv required**: Python scripts need `.venv` with pandas, openpyxl, httpx, lxml, beautifulsoup4
-7. **Chinese descriptions**: 994/1025 scraped; 31 missing (wiki.52poke.com blocks some). Run scraper again to retry.
+7. **Chinese descriptions**: 1025/1025 have text1 (primary), 1025/1025 have text2 (secondary) from tw.portal-pokemon.com. Scraper handles both single-escaped and double-escaped Next.js streaming formats.
 8. **Detail page URL**: `detail.html?id=25` — uses query param for dynamic rendering
+9. **text2 fallback**: If tw.portal-pokemon.com doesn't have text2, it's left empty (no wiki.52poke.com fallback)
 
 ## Adding New Algorithms
 1. Add `function* newAlgoSteps(arr)` in `assets/js/sorting-algorithms.js` (yield per visual step)

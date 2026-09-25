@@ -981,7 +981,11 @@
       let html = '';
       
       if (desc.zh) {
-        html += `<span class="lang-label">繁體中文描述</span><p>${escapeHtml(desc.zh)}</p>`;
+        html += `<span class="lang-label">繁體中文描述 (主要)</span><p>${escapeHtml(desc.zh)}</p>`;
+      }
+      
+      if (desc.zh_text2) {
+        html += `<span class="lang-label">繁體中文描述 (副)</span><p>${escapeHtml(desc.zh_text2)}</p>`;
       }
       
       if (desc.en_long) {
