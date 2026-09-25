@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">寶可夢詳細資料 — 1025 寶可夢演算法實驗室</title>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--bg-primary);
+    }
+    
+    .header-detail {
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-bottom: 2px solid var(--accent-gold);
+    }
+    
+    .detail-container {
+      flex: 1;
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    
+    /* Pokémon Header */
+    .pokemon-header {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid rgba(255,221,0,0.1);
+    }
+    
+    .pokemon-sprite {
+      flex-shrink: 0;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,221,0,0.1);
+    }
+    
+    .pokemon-sprite img {
+      width: 140px;
+      height: 140px;
+      image-rendering: crisp-edges;
+    }
+    
+    .pokemon-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .pokemon-id-name {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    
+    .pokemon-id {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      background: rgba(255,221,0,0.15);
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+    }
+    
+    .pokemon-name-en {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+    
+    .pokemon-name-ja {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-left: 8px;
+    }
+    
+    .pokemon-names-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    
+    .name-badge {
+      background: rgba(255,255,255,0.05);
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+    }
+    
+    .name-badge .lang { color: var(--text-muted); }
+    .name-badge .value { color: var(--text-primary); font-weight: 500; }
+    
+    .pokemon-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.03);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+    }
+    
+    .meta-label { color: var(--text-muted); }
+    .meta-value { font-weight: 500; }
+    
+    .type-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .type-badge {
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    /* Tabs */
+    .detail-tabs {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    
+    .tab-nav {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,221,0,0.1);
+      overflow-x: auto;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+      position: relative;
+    }
+    
+    .tab-btn:hover {
+      color: var(--accent-gold);
+      background: rgba(255,221,0,0.05);
+    }
+    
+    .tab-btn.active {
+      color: var(--accent-gold);
+    }
+    
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-gold);
+    }
+    
+    .tab-panel {
+      display: none;
+      padding: 24px;
+    }
+    
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,221,0,0.1);
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--accent-gold);
+    }
+    
+    .stat-bar-container {
+      margin-top: 12px;
+    }
+    
+    .stat-bar-bg {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .stat-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gold), #ffcb05);
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+    
+    .stat-total {
+      grid-column: 1 / -1;
+      text-align: right;
+      font-size: 14px;
+      color: var(--accent-gold);
+      font-weight: bold;
+    }
+    
+    /* Radar Chart Canvas */
+    .radar-container {
+      max-width: 400px;
+      margin: 0 auto 24px;
+    }
+    
+    /* Evolution Chain */
+    .evolution-chain {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 24px;
+    }
+    
+    .evo-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .evo-sprite {
+      width: 100px;
+      height: 100px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(255,221,0,0.2);
+      transition: all var(--transition-med);
+    }
+    
+    .evo-sprite:hover {
+      border-color: var(--accent-gold);
+      transform: scale(1.05);
+    }
+    
+    .evo-sprite img {
+      width: 80px;
+      height: 80px;
+      image-rendering: crisp-edges;
+    }
+    
+    .evo-name {
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      color: var(--text-primary);
+    }
+    
+    .evo-id {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    .evo-arrow {
+      color: var(--accent-gold);
+      font-size: 24px;
+      animation: pulse 2s infinite;
+    }
+    
+    .evo-method {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 120px;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    /* Type Effectiveness */
+    .type-effectiveness {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    
+    .eff-group {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      border: 1px solid rgba(255,221,0,0.1);
+    }
+    
+    .eff-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .eff-types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .eff-type {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      color: #fff;
+      font-weight: 500;
+    }
+    
+    /* Description Panel */
+    .description-content {
+      line-height: 1.8;
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+    
+    .description-content h4 {
+      color: var(--accent-gold);
+      margin: 20px 0 10px;
+      font-size: 16px;
+    }
+    
+    .description-content p {
+      margin: 10px 0;
+    }
+    
+    .description-content .lang-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    /* Loading */
+    .detail-loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--accent-gold);
+    }
+    
+    .detail-error {
+      text-align: center;
+      padding: 60px 20px;
+      color: #ff6b6b;
+    }
+    
+    .detail-error a {
+      color: var(--accent-gold);
+      text-decoration: none;
+    }
+    
+    .detail-error a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .pokemon-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      
+      .pokemon-id-name {
+        justify-content: center;
+      }
+      
+      .pokemon-names-row {
+        justify-content: center;
+      }
+      
+      .pokemon-meta {
+        justify-content: center;
+      }
+      
+      .type-badges {
+        justify-content: center;
+      }
+      
+      .tab-btn {
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-detail">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1000px;margin:0 auto;">
+      <div class="header-title" style="font-size:18px;">📖 寶可夢圖鑑詳細資料</div>
+      <a href="index.html" class="btn btn-nav">⬅ 返回大廳</a>
+    </div>
+  </header>
+
+  <main class="detail-container">
+    <div id="detail-loading" class="detail-loading">
+      載入寶可夢資料中...
+    </div>
+    
+    <div id="detail-error" class="detail-error" style="display:none;">
+      <h3>找不到此寶可夢</h3>
+      <p>可能是編號錯誤或資料尚未載入</p>
+      <a href="index.html">返回大廳</a>
+    </div>
+    
+    <div id="detail-content" style="display:none;">
+      <!-- Pokémon Header -->
+      <section class="pokemon-header" aria-labelledby="pokemon-name">
+        <div class="pokemon-sprite">
+          <img id="pokemon-sprite" src="" alt="" loading="eager">
+        </div>
+        
+        <div class="pokemon-info">
+          <div class="pokemon-id-name">
+            <span id="pokemon-id" class="pokemon-id">#0001</span>
+            <h1 id="pokemon-name-en" class="pokemon-name-en">Bulbasaur</h1>
+            <span id="pokemon-name-ja" class="pokemon-name-ja">フシギダネ</span>
+          </div>
+          
+          <div class="pokemon-names-row" id="pokemon-names-row">
+            <!-- Populated by JS -->
+          </div>
+          
+          <div class="pokemon-meta">
+            <div class="meta-item">
+              <span class="meta-label">屬性：</span>
+              <div class="type-badges" id="type-badges"></div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">分類：</span>
+              <span class="meta-value" id="pokemon-genus">Seed Pokémon</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">世代：</span>
+              <span class="meta-value" id="pokemon-generation">第 1 世代</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">身高/體重：</span>
+              <span class="meta-value" id="pokemon-hw">0.7 m / 6.9 kg</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">顏色：</span>
+              <span class="meta-value" id="pokemon-color">Green</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">捕獲率：</span>
+              <span class="meta-value" id="pokemon-capture">45</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Tabs -->
+      <section class="detail-tabs">
+        <nav class="tab-nav" role="tablist">
+          <button class="tab-btn active" role="tab" data-tab="base" aria-selected="true">基礎資料</button>
+          <button class="tab-btn" role="tab" data-tab="stats" aria-selected="false">能力數值</button>
+          <button class="tab-btn" role="tab" data-tab="evolution" aria-selected="false">進化鏈</button>
+          <button class="tab-btn" role="tab" data-tab="type" aria-selected="false">屬性相剋</button>
+          <button class="tab-btn" role="tab" data-tab="description" aria-selected="false">圖鑑描述</button>
+        </nav>
+        
+        <!-- Tab: 基礎資料 -->
+        <div class="tab-panel active" role="tabpanel" data-tab="base">
+          <div class="stats-grid" id="base-stats-grid">
+            <!-- Populated by JS -->
+          </div>
+          
+          <div style="margin-top:24px;">
+            <h4 style="color:var(--accent-gold);margin-bottom:12px;">特性</h4>
+            <div id="abilities-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          
+          <div style="margin-top:24px;">
+            <h4 style="color:var(--accent-gold);margin-bottom:12px;">蛋群組</h4>
+            <div id="egg-groups" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          
+          <div style="margin-top:24px;">
+            <h4 style="color:var(--accent-gold);margin-bottom:12px;">其他資訊</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:14px;color:var(--text-secondary);" id="other-info"></div>
+          </div>
+        </div>
+        
+        <!-- Tab: 能力數值 -->
+        <div class="tab-panel" role="tabpanel" data-tab="stats">
+          <div class="radar-container">
+            <canvas id="radar-chart" width="400" height="400"></canvas>
+          </div>
+          
+          <div class="stats-grid" id="detailed-stats-grid">
+            <!-- Populated by JS -->
+          </div>
+          
+          <div class="stat-total" id="stat-total">總和: 318</div>
+        </div>
+        
+        <!-- Tab: 進化鏈 -->
+        <div class="tab-panel" role="tabpanel" data-tab="evolution">
+          <div class="evolution-chain" id="evolution-chain">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <!-- Tab: 屬性相剋 -->
+        <div class="tab-panel" role="tabpanel" data-tab="type">
+          <div class="type-effectiveness" id="type-effectiveness">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <!-- Tab: 圖鑑描述 -->
+        <div class="tab-panel" role="tabpanel" data-tab="description">
+          <div class="description-content" id="description-content">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { loadPokemonData, TYPE_EN_ZH, ASSETS } from './assets/js/shared.js';
+    
+    // Type effectiveness matrix (simplified Gen 9)
+    const TYPE_EFFECTIVENESS = {
+      "Normal": { weak: ["Fighting"], resist: [], immune: ["Ghost"] },
+      "Fire": { weak: ["Water", "Ground", "Rock"], resist: ["Fire", "Grass", "Ice", "Bug", "Steel", "Fairy"], immune: [] },
+      "Water": { weak: ["Electric", "Grass"], resist: ["Fire", "Water", "Ice", "Steel"], immune: [] },
+      "Electric": { weak: ["Ground"], resist: ["Electric", "Flying", "Steel"], immune: [] },
+      "Grass": { weak: ["Fire", "Ice", "Poison", "Flying", "Bug"], resist: ["Water", "Electric", "Grass", "Ground"], immune: [] },
+      "Ice": { weak: ["Fire", "Fighting", "Rock", "Steel"], resist: ["Ice"], immune: [] },
+      "Fighting": { weak: ["Flying", "Psychic", "Fairy"], resist: ["Bug", "Rock", "Dark"], immune: [] },
+      "Poison": { weak: ["Ground", "Psychic"], resist: ["Grass", "Fighting", "Poison", "Bug", "Fairy"], immune: [] },
+      "Ground": { weak: ["Water", "Grass", "Ice"], resist: ["Poison", "Rock"], immune: ["Electric"] },
+      "Flying": { weak: ["Electric", "Ice", "Rock"], resist: ["Grass", "Fighting", "Bug"], immune: ["Ground"] },
+      "Psychic": { weak: ["Bug", "Ghost", "Dark"], resist: ["Fighting", "Psychic"], immune: [] },
+      "Bug": { weak: ["Fire", "Flying", "Rock"], resist: ["Grass", "Fighting", "Ground"], immune: [] },
+      "Rock": { weak: ["Water", "Grass", "Fighting", "Ground", "Steel"], resist: ["Normal", "Fire", "Poison", "Flying"], immune: [] },
+      "Ghost": { weak: ["Ghost", "Dark"], resist: ["Poison", "Bug"], immune: ["Normal", "Fighting"] },
+      "Dragon": { weak: ["Ice", "Dragon", "Fairy"], resist: ["Fire", "Water", "Electric", "Grass"], immune: [] },
+      "Dark": { weak: ["Fighting", "Bug", "Fairy"], resist: ["Ghost", "Dark"], immune: ["Psychic"] },
+      "Steel": { weak: ["Fire", "Fighting", "Ground"], resist: ["Normal", "Grass", "Ice", "Flying", "Psychic", "Bug", "Rock", "Dragon", "Steel", "Fairy"], immune: ["Poison"] },
+      "Fairy": { weak: ["Poison", "Steel"], resist: ["Fighting", "Bug", "Dark"], immune: ["Dragon"] }
+    };
+    
+    const TYPE_COLORS = {
+      "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Electric": "#F8D030",
+      "Grass": "#78C850", "Ice": "#98D8D8", "Fighting": "#C03028", "Poison": "#A040A0",
+      "Ground": "#E0C068", "Flying": "#A890F0", "Psychic": "#F85888", "Bug": "#A8B820",
+      "Rock": "#B8A038", "Ghost": "#705898", "Dragon": "#7038F8", "Dark": "#705848",
+      "Steel": "#B8B8D0", "Fairy": "#EE99AC"
+    };
+    
+    // Stat labels
+    const STAT_LABELS = {
+      hp: 'HP', attack: '攻擊', defense: '防禦',
+      sp_attack: '特攻', sp_defense: '特防', speed: '速度'
+    };
+    
+    let pokemonData = [];
+    let currentPokemon = null;
+    
+    async function init() {
+      try {
+        pokemonData = await loadPokemonData();
+        
+        // Get ID from URL
+        const params = new URLSearchParams(window.location.search);
+        const id = parseInt(params.get('id') || '1');
+        
+        currentPokemon = pokemonData.find(p => p.id === id);
+        
+        if (!currentPokemon) {
+          showError();
+          return;
+        }
+        
+        renderDetail();
+        document.title = `${currentPokemon.names.zh} (#${String(id).padStart(4, '0')}) — 寶可夢圖鑑`;
+        document.getElementById('page-title').textContent = `${currentPokemon.names.zh} 詳細資料`;
+        
+      } catch (error) {
+        console.error(error);
+        showError();
+      }
+    }
+    
+    function showError() {
+      document.getElementById('detail-loading').style.display = 'none';
+      document.getElementById('detail-error').style.display = 'block';
+    }
+    
+    function renderDetail() {
+      const p = currentPokemon;
+      
+      // Hide loading, show content
+      document.getElementById('detail-loading').style.display = 'none';
+      document.getElementById('detail-content').style.display = 'block';
+      
+      // Sprite
+      document.getElementById('pokemon-sprite').src = `${ASSETS.images}${p.filename}`;
+      document.getElementById('pokemon-sprite').alt = p.names.en;
+      
+      // ID & Names
+      document.getElementById('pokemon-id').textContent = `#${String(p.id).padStart(4, '0')}`;
+      document.getElementById('pokemon-name-en').textContent = p.names.en;
+      document.getElementById('pokemon-name-ja').textContent = p.names.ja;
+      
+      // Multi-language names row
+      const namesRow = document.getElementById('pokemon-names-row');
+      const nameEntries = [
+        { lang: '繁體', key: 'zh_HK' },
+        { lang: '簡體', key: 'zh' },
+        { lang: '日文', key: 'ja' },
+        { lang: '英文', key: 'en' },
+        { lang: '法文', key: 'fr' },
+        { lang: '德文', key: 'de' },
+        { lang: '西班牙', key: 'es' },
+        { lang: '義大利', key: 'it' },
+        { lang: '韓文', key: 'ko' }
+      ];
+      namesRow.innerHTML = nameEntries
+        .filter(e => p.names[e.key])
+        .map(e => `<span class="name-badge"><span class="lang">${e.lang}</span><span class="value">${p.names[e.key]}</span></span>`)
+        .join('');
+      
+      // Type badges
+      const typeBadges = document.getElementById('type-badges');
+      typeBadges.innerHTML = p.types.map((t, i) => {
+        const zh = p.types_zh[i] || TYPE_EN_ZH[t] || t;
+        const color = TYPE_COLORS[t] || '#777';
+        return `<span class="type-badge" style="background:${color}">${zh}</span>`;
+      }).join('');
+      
+      // Genus
+      document.getElementById('pokemon-genus').textContent = p.genus || '—';
+      
+      // Generation
+      document.getElementById('pokemon-generation').textContent = `第 ${p.generation} 世代`;
+      
+      // Height/Weight
+      document.getElementById('pokemon-hw').textContent = `${p.height_m} m / ${p.weight_kg} kg`;
+      
+      // Color
+      document.getElementById('pokemon-color').textContent = p.color;
+      
+      // Capture rate
+      document.getElementById('pokemon-capture').textContent = p.capture_rate;
+      
+      // Initialize tabs
+      initTabs();
+      
+      // Render all panels
+      renderBaseTab();
+      renderStatsTab();
+      renderEvolutionTab();
+      renderTypeTab();
+      renderDescriptionTab();
+    }
+    
+    function initTabs() {
+      const btns = document.querySelectorAll('.tab-btn');
+      const panels = document.querySelectorAll('.tab-panel');
+      
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          
+          btns.forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+          });
+          panels.forEach(p => p.classList.remove('active'));
+          
+          btn.classList.add('active');
+          btn.setAttribute('aria-selected', 'true');
+          document.querySelector(`.tab-panel[data-tab="${tab}"]`).classList.add('active');
+        });
+      });
+    }
+    
+    function renderBaseTab() {
+      const p = currentPokemon;
+      
+      // Base stats grid
+      const grid = document.getElementById('base-stats-grid');
+      grid.innerHTML = Object.entries(p.stats).map(([key, val]) => {
+        if (key === 'total') return '';
+        const maxStat = 255;
+        const pct = Math.min(100, (val / maxStat) * 100);
+        return `
+          <div class="stat-card">
+            <div class="stat-label">${STAT_LABELS[key] || key}</div>
+            <div class="stat-value">${val}</div>
+            <div class="stat-bar-container">
+              <div class="stat-bar-bg"><div class="stat-bar" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+        `;
+      }).join('') + `
+        <div class="stat-total">總和: ${p.stats.total}</div>
+      `;
+      
+      // Abilities
+      const abilitiesList = document.getElementById('abilities-list');
+      abilitiesList.innerHTML = p.abilities.map((a, i) => {
+        const isHidden = a === p.hidden_ability;
+        return `<span class="type-badge" style="background:#666;font-size:12px;padding:4px 10px;">${a}${isHidden ? ' (隱藏)' : ''}</span>`;
+      }).join('');
+      
+      // Egg groups
+      document.getElementById('egg-groups').innerHTML = p.egg_groups.map(g => 
+        `<span class="type-badge" style="background:#888;font-size:12px;">${g}</span>`
+      ).join('');
+      
+      // Other info
+      document.getElementById('other-info').innerHTML = `
+        <div><strong>棲息地：</strong>${p.habitat || '—'}</div>
+        <div><strong>成長速度：</strong>${p.growth_rate || '—'}</div>
+        <div><strong>基礎親密度：</strong>${p.base_happiness}</div>
+        <div><strong>體型：</strong>${p.shape || '—'}</div>
+        <div><strong>進化鏈 ID：</strong>${p.evolution_chain_id}</div>
+      `.trim();
+    }
+    
+    function renderStatsTab() {
+      const p = currentPokemon;
+      
+      // Detailed stats with radar chart
+      const grid = document.getElementById('detailed-stats-grid');
+      grid.innerHTML = Object.entries(p.stats).map(([key, val]) => {
+        if (key === 'total') return '';
+        const maxStat = 255;
+        const pct = Math.min(100, (val / maxStat) * 100);
+        return `
+          <div class="stat-card">
+            <div class="stat-label">${STAT_LABELS[key] || key}</div>
+            <div class="stat-value">${val}</div>
+            <div class="stat-bar-container">
+              <div class="stat-bar-bg"><div class="stat-bar" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('stat-total').textContent = `總和: ${p.stats.total}`;
+      
+      // Radar chart
+      drawRadarChart(p.stats);
+    }
+    
+    function drawRadarChart(stats) {
+      const canvas = document.getElementById('radar-chart');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 150;
+      const statKeys = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed'];
+      const numStats = statKeys.length;
+      
+      // Draw grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      
+      for (let level = 1; level <= 5; level++) {
+        const r = radius * (level / 5);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      // Draw axes
+      ctx.strokeStyle = 'rgba(255,221,0,0.3)';
+      statKeys.forEach((key, i) => {
+        const angle = (i / numStats) * Math.PI * 2 - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        
+        // Label
+        const labelX = centerX + Math.cos(angle) * (radius + 25);
+        const labelY = centerY + Math.sin(angle) * (radius + 25);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(STAT_LABELS[key], labelX, labelY);
+      });
+      
+      // Draw stats polygon
+      const maxStat = 200;
+      ctx.beginPath();
+      statKeys.forEach((key, i) => {
+        const val = Math.min(stats[key] || 0, maxStat);
+        const r = radius * (val / maxStat);
+        const angle = (i / numStats) * Math.PI * 2 - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * r;
+        const y = centerY + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      
+      // Fill
+      ctx.fillStyle = 'rgba(255, 221, 0, 0.3)';
+      ctx.fill();
+      
+      // Stroke
+      ctx.strokeStyle = 'rgba(255, 221, 0, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Center point
+      ctx.fillStyle = '#ffde00';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    function renderEvolutionTab() {
+      // Simplified: show current Pokémon and note about evolution chain
+      const container = document.getElementById('evolution-chain');
+      const p = currentPokemon;
+      
+      container.innerHTML = `
+        <div class="evo-stage">
+          <div class="evo-sprite">
+            <img src="${ASSETS.images}${p.filename}" alt="${p.names.en}" loading="lazy">
+          </div>
+          <div class="evo-name">${p.names.zh} (${p.names.en})</div>
+          <div class="evo-id">#${String(p.id).padStart(4, '0')}</div>
+        </div>
+        <div style="text-align:center;color:var(--text-muted);margin-top:16px;">
+          <p>完整進化鏈資料需查詢外部 API (PokeAPI evolution-chain/${p.evolution_chain_id})</p>
+          <p>當前寶可夢：${p.names.zh} (ID: ${p.id})</p>
+        </div>
+      `;
+    }
+    
+    function renderTypeTab() {
+      const p = currentPokemon;
+      const container = document.getElementById('type-effectiveness');
+      
+      // Calculate combined effectiveness
+      const combined = calculateCombinedEffectiveness(p.types);
+      
+      const categories = [
+        { key: 'weak', title: '弱點 (2×)', color: '#ff6b6b' },
+        { key: 'resist', title: '抗性 (½×)', color: '#4ecdc4' },
+        { key: 'immune', title: '免疫 (0×)', color: '#ffde00' }
+      ];
+      
+      container.innerHTML = categories.map(cat => {
+        const types = combined[cat.key];
+        if (!types.length) return '';
+        return `
+          <div class="eff-group">
+            <div class="eff-title" style="color:${cat.color}">${cat.title}</div>
+            <div class="eff-types">
+              ${types.map(t => `<span class="eff-type" style="background:${TYPE_COLORS[t] || '#777'}">${TYPE_EN_ZH[t] || t}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function calculateCombinedEffectiveness(types) {
+      const result = { weak: new Set(), resist: new Set(), immune: new Set() };
+      
+      types.forEach(type => {
+        const eff = TYPE_EFFECTIVENESS[type];
+        if (!eff) return;
+        
+        eff.weak.forEach(t => result.weak.add(t));
+        eff.resist.forEach(t => result.resist.add(t));
+        eff.immune.forEach(t => result.immune.add(t));
+      });
+      
+      // Remove duplicates: immune overrides weak/resist, resist overrides weak
+      result.weak.forEach(t => {
+        if (result.resist.has(t)) result.resist.delete(t);
+        if (result.immune.has(t)) result.immune.delete(t);
+      });
+      result.resist.forEach(t => {
+        if (result.immune.has(t)) result.immune.delete(t);
+      });
+      
+      return {
+        weak: Array.from(result.weak),
+        resist: Array.from(result.resist),
+        immune: Array.from(result.immune)
+      };
+    }
+    
+    function renderDescriptionTab() {
+      const p = currentPokemon;
+      const container = document.getElementById('description-content');
+      
+      const desc = p.descriptions || {};
+      
+      let html = '';
+      
+      if (desc.zh) {
+        html += `<span class="lang-label">繁體中文描述</span><p>${escapeHtml(desc.zh)}</p>`;
+      }
+      
+      if (desc.en_long) {
+        html += `<span class="lang-label">英文詳細描述</span><p>${escapeHtml(desc.en_long)}</p>`;
+      }
+      
+      if (desc.en_flavor) {
+        html += `<span class="lang-label">圖鑑風味文字</span><p>${escapeHtml(desc.en_flavor)}</p>`;
+      }
+      
+      if (desc.en_short) {
+        html += `<span class="lang-label">英文簡短描述</span><p>${escapeHtml(desc.en_short)}</p>`;
+      }
+      
+      if (!html) {
+        html = '<p style="color:var(--text-muted);text-align:center;padding:40px;">暫無描述資料</p>';
+      }
+      
+      container.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    init();
+  </script>
+</body>
+</html>

@@ -3,6 +3,24 @@
  * Common functions for loading data, creating cards, etc.
  */
 
+// Type EN → ZH mapping
+export const TYPE_EN_ZH = {
+  "Normal": "一般", "Fire": "火", "Water": "水", "Electric": "電",
+  "Grass": "草", "Ice": "冰", "Fighting": "格鬥", "Poison": "毒",
+  "Ground": "地面", "Flying": "飛行", "Psychic": "超能力", "Bug": "蟲",
+  "Rock": "岩石", "Ghost": "幽靈", "Dragon": "龍", "Dark": "惡",
+  "Steel": "鋼", "Fairy": "妖精"
+};
+
+// Type colors
+export const TYPE_COLORS = {
+  "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Electric": "#F8D030",
+  "Grass": "#78C850", "Ice": "#98D8D8", "Fighting": "#C03028", "Poison": "#A040A0",
+  "Ground": "#E0C068", "Flying": "#A890F0", "Psychic": "#F85888", "Bug": "#A8B820",
+  "Rock": "#B8A038", "Ghost": "#705898", "Dragon": "#7038F8", "Dark": "#705848",
+  "Steel": "#B8B8D0", "Fairy": "#EE99AC"
+};
+
 // Color badge mapping (used by pokedex cards)
 export const BADGE_COLORS = {
   "Red": "#d32f2f",
@@ -47,19 +65,38 @@ export function formatPokemonId(id) {
 /**
  * Create a Pokédex card DOM element
  * @param {Object} pokemon - Pokémon data object
+ * @param {Object} options - { onClick, showTypes }
  * @returns {HTMLElement}
  */
-export function createPokemonCard(pokemon) {
+export function createPokemonCard(pokemon, options = {}) {
   const formattedId = formatPokemonId(pokemon.id);
-  const group = pokemon.color_group || "White/Gray";
+  const group = pokemon.color || pokemon.color_group || "White/Gray";
   const badgeColor = BADGE_COLORS[group] || "#9e9e9e";
+  const { onClick, showTypes = true } = options;
 
   const card = document.createElement('div');
   card.className = 'card';
+  card.style.cursor = onClick ? 'pointer' : 'default';
+  
+  // Types HTML
+  let typesHtml = '';
+  if (showTypes && pokemon.types) {
+    typesHtml = `<div class="card-types" style="display:flex;gap:4px;justify-content:center;margin-top:8px;flex-wrap:wrap;">${pokemon.types.map((t, i) => {
+      const zh = pokemon.types_zh?.[i] || TYPE_EN_ZH[t] || t;
+      const color = TYPE_COLORS[t] || '#777';
+      return `<span class="type-badge" style="background:${color};font-size:10px;padding:2px 8px;border-radius:10px;">${zh}</span>`;
+    }).join('')}</div>`;
+  }
+  
+  if (onClick) {
+    card.addEventListener('click', () => onClick(pokemon.id));
+  }
+
   card.innerHTML = `
     <img src="${ASSETS.images}${pokemon.filename}" alt="Pokemon ${formattedId}" loading="lazy">
     <div class="card-id">#${formattedId}</div>
-    <div class="card-title">Pokemon ${pokemon.id}</div>
+    <div class="card-title">${pokemon.names?.zh || `Pokemon ${pokemon.id}`}</div>
+    ${typesHtml}
     <span class="color-badge" style="background-color: ${badgeColor};">${group}</span>
   `;
   return card;

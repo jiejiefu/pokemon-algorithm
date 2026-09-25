@@ -5,6 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1025 全國寶可夢圖鑑</title>
   <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    .search-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+      background: var(--bg-controls);
+    }
+    .search-input,
+    .search-select {
+      padding: 10px 15px;
+      border-radius: var(--radius-pill);
+      border: 1px solid #444;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 16px;
+      outline: none;
+      transition: border-color var(--transition-fast);
+    }
+    .search-input:focus,
+    .search-select:focus {
+      border-color: var(--accent-yellow);
+    }
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      max-width: 400px;
+    }
+    .search-select {
+      min-width: 140px;
+    }
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.02);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .filter-select {
+      padding: 8px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid #444;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .filter-select:focus {
+      border-color: var(--accent-yellow);
+      outline: none;
+    }
+    .results-info {
+      padding: 12px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: var(--bg-controls);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+  </style>
 </head>
 <body>
   <header class="header header-dex">
@@ -17,35 +83,75 @@
   </header>
 
   <div class="search-controls">
-    <input type="number" id="searchInput" class="search-input" placeholder="輸入編號 (e.g. 25)..." oninput="filterPokedex()">
-    <select id="colorFilter" class="search-select" onchange="filterPokedex()">
-      <option value="all">所有顏色 (All Colors)</option>
-      <option value="Red">紅色 (Red)</option>
-      <option value="Blue">藍色 (Blue)</option>
-      <option value="Green">綠色 (Green)</option>
-      <option value="Yellow">黃色 (Yellow)</option>
-      <option value="Purple">紫色 (Purple)</option>
-      <option value="Pink">粉色 (Pink)</option>
-      <option value="Brown">棕色 (Brown)</option>
-      <option value="Black">黑色 (Black)</option>
-      <option value="White/Gray">灰白 (White/Gray)</option>
-    </select>
+    <input type="text" id="searchInput" class="search-input" 
+           placeholder="搜尋編號、中文、英文、日文名稱..." 
+           list="pokemon-suggestions" autocomplete="off">
+    <datalist id="pokemon-suggestions"></datalist>
   </div>
+
+  <div class="filter-group">
+    <select id="typeFilter" class="filter-select">
+      <option value="all">所有屬性</option>
+    </select>
+    <select id="colorFilter" class="filter-select">
+      <option value="all">所有顏色</option>
+      <option value="red">紅色</option>
+      <option value="blue">藍色</option>
+      <option value="green">綠色</option>
+      <option value="yellow">黃色</option>
+      <option value="purple">紫色</option>
+      <option value="pink">粉色</option>
+      <option value="brown">棕色</option>
+      <option value="black">黑色</option>
+      <option value="white">白色</option>
+      <option value="gray">灰色</option>
+    </select>
+    <select id="genFilter" class="filter-select">
+      <option value="all">所有世代</option>
+      <option value="1">第 1 世代 (關都)</option>
+      <option value="2">第 2 世代 (城都)</option>
+      <option value="3">第 3 世代 (豐緣)</option>
+      <option value="4">第 4 世代 (神奧)</option>
+      <option value="5">第 5 世代 (合眾)</option>
+      <option value="6">第 6 世代 (卡洛斯)</option>
+      <option value="7">第 7 世代 (阿羅拉)</option>
+      <option value="8">第 8 世代 (伽勒爾)</option>
+      <option value="9">第 9 世代 (帕底亞)</option>
+    </select>
+    <button id="clearFilters" class="filter-select" style="background:var(--accent-gold);color:#222;border:none;font-weight:bold;">清除篩選</button>
+  </div>
+
+  <div class="results-info" id="resultsInfo">載入中...</div>
 
   <div id="loading" class="loading-text">讀取圖鑑資料中...</div>
   <div id="pokedex-grid" class="pokedex-grid"></div>
 
   <script type="module">
-    import { loadPokemonData, renderPokemonGrid, BADGE_COLORS } from './assets/js/shared.js';
+    import { loadPokemonData, createPokemonCard, TYPE_EN_ZH } from './assets/js/shared.js';
 
     const grid = document.getElementById('pokedex-grid');
     const loading = document.getElementById('loading');
+    const searchInput = document.getElementById('searchInput');
+    const datalist = document.getElementById('pokemon-suggestions');
+    const typeFilter = document.getElementById('typeFilter');
+    const colorFilter = document.getElementById('colorFilter');
+    const genFilter = document.getElementById('genFilter');
+    const clearBtn = document.getElementById('clearFilters');
+    const resultsInfo = document.getElementById('resultsInfo');
+    
     let allPokemonData = [];
 
     async function fetchPokedex() {
       try {
         allPokemonData = await loadPokemonData();
         loading.style.display = 'none';
+        
+        // Populate datalist for autocomplete
+        populateDatalist();
+        
+        // Populate type filter
+        populateTypeFilter();
+        
         renderGrid(allPokemonData);
       } catch (error) {
         loading.innerText = '載入失敗，請確認是否使用 Local Server 開啟。';
@@ -53,40 +159,125 @@
       }
     }
 
+    function populateDatalist() {
+      datalist.innerHTML = '';
+      allPokemonData.forEach(p => {
+        const names = [
+          String(p.id),
+          p.names?.zh,
+          p.names?.zh_HK,
+          p.names?.en,
+          p.names?.ja
+        ].filter(Boolean);
+        
+        names.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          datalist.appendChild(option);
+        });
+      });
+    }
+
+    function populateTypeFilter() {
+      // Get all unique types from data
+      const typeSet = new Set();
+      allPokemonData.forEach(p => {
+        if (p.types) p.types.forEach(t => typeSet.add(t));
+      });
+      
+      const sortedTypes = Array.from(typeSet).sort();
+      
+      sortedTypes.forEach(t => {
+        const zh = TYPE_EN_ZH[t] || t;
+        const option = document.createElement('option');
+        option.value = t;
+        option.textContent = `${zh} (${t})`;
+        typeFilter.appendChild(option);
+      });
+    }
+
     function renderGrid(dataArray) {
       grid.innerHTML = '';
       const fragment = document.createDocumentFragment();
       
       dataArray.forEach(pokemon => {
-        const formattedId = String(pokemon.id).padStart(4, '0');
-        const group = pokemon.color_group || "White/Gray";
-        const badgeColor = BADGE_COLORS[group] || "#9e9e9e";
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <img src="assets/images/pokemon/${pokemon.filename}" alt="Pokemon ${formattedId}" loading="lazy">
-          <div class="card-id">#${formattedId}</div>
-          <div class="card-title">Pokemon ${pokemon.id}</div>
-          <span class="color-badge" style="background-color: ${badgeColor};">${group}</span>
-        `;
-        fragment.appendChild(card);
+        fragment.appendChild(createPokemonCard(pokemon, {
+          onClick: (id) => window.location.href = `detail.html?id=${id}`,
+          showTypes: true
+        }));
       });
+      
       grid.appendChild(fragment);
+      updateResultsInfo(dataArray.length);
+    }
+
+    function updateResultsInfo(count) {
+      resultsInfo.textContent = `顯示 ${count} / ${allPokemonData.length} 隻寶可夢`;
     }
 
     function filterPokedex() {
-      const searchText = document.getElementById('searchInput').value;
-      const selectedColor = document.getElementById('colorFilter').value;
+      const searchText = searchInput.value.toLowerCase().trim();
+      const selectedType = typeFilter.value;
+      const selectedColor = colorFilter.value;
+      const selectedGen = genFilter.value;
 
       const filteredData = allPokemonData.filter(pokemon => {
-        const matchId = searchText === '' || String(pokemon.id).includes(searchText);
-        const matchColor = selectedColor === 'all' || pokemon.color_group === selectedColor;
-        return matchId && matchColor;
+        // Search match
+        let matchSearch = true;
+        if (searchText) {
+          const idMatch = String(pokemon.id).includes(searchText);
+          const zhMatch = pokemon.names?.zh?.toLowerCase().includes(searchText);
+          const zhHKMatch = pokemon.names?.zh_HK?.toLowerCase().includes(searchText);
+          const enMatch = pokemon.names?.en?.toLowerCase().includes(searchText);
+          const jaMatch = pokemon.names?.ja?.includes(searchText);
+          matchSearch = idMatch || zhMatch || zhHKMatch || enMatch || jaMatch;
+        }
+
+        // Type match
+        let matchType = true;
+        if (selectedType !== 'all' && pokemon.types) {
+          matchType = pokemon.types.includes(selectedType);
+        }
+
+        // Color match (using PokeAPI color)
+        let matchColor = true;
+        if (selectedColor !== 'all') {
+          matchColor = pokemon.color?.toLowerCase() === selectedColor;
+        }
+
+        // Generation match
+        let matchGen = true;
+        if (selectedGen !== 'all') {
+          matchGen = pokemon.generation == parseInt(selectedGen);
+        }
+
+        return matchSearch && matchType && matchColor && matchGen;
       });
 
       renderGrid(filteredData);
     }
+
+    function clearFilters() {
+      searchInput.value = '';
+      typeFilter.value = 'all';
+      colorFilter.value = 'all';
+      genFilter.value = 'all';
+      renderGrid(allPokemonData);
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', filterPokedex);
+    typeFilter.addEventListener('change', filterPokedex);
+    colorFilter.addEventListener('change', filterPokedex);
+    genFilter.addEventListener('change', filterPokedex);
+    clearBtn.addEventListener('click', clearFilters);
+
+    // Allow Enter key on search to focus first result
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && searchInput.value) {
+        // Optionally navigate to first match
+      }
+    });
 
     window.onload = fetchPokedex;
   </script>

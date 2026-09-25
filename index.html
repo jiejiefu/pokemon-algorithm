@@ -140,14 +140,23 @@
   </footer>
 
   <script type="module">
-    import { loadPokemonData, renderPokemonGrid } from './assets/js/shared.js';
+    import { loadPokemonData, createPokemonCard } from './assets/js/shared.js';
 
     const grid = document.getElementById('pokedex-grid');
 
     async function init() {
       try {
         const data = await loadPokemonData();
-        renderPokemonGrid(grid, data);
+        const fragment = document.createDocumentFragment();
+        
+        data.forEach(pokemon => {
+          fragment.appendChild(createPokemonCard(pokemon, {
+            onClick: (id) => window.location.href = `detail.html?id=${id}`,
+            showTypes: true
+          }));
+        });
+        
+        grid.appendChild(fragment);
       } catch (error) {
         grid.innerHTML = '<p style="text-align:center;color:#ff6b6b;padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
         console.error(error);
