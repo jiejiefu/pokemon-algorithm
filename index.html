@@ -140,7 +140,7 @@
   </footer>
 
   <script type="module">
-    import { loadPokemonData, createPokemonCard } from './assets/js/shared.js';
+    import { loadPokemonData, createPokemonCard, pokemonDetailUrl } from './assets/js/shared.js';
 
     const grid = document.getElementById('pokedex-grid');
 
@@ -151,7 +151,7 @@
         
         data.forEach(pokemon => {
           fragment.appendChild(createPokemonCard(pokemon, {
-            onClick: (id) => window.location.href = `detail.html?id=${id}`,
+            onClick: (id) => window.location.href = pokemonDetailUrl(data.find(pokemon => pokemon.id === id)),
             showTypes: true
           }));
         });

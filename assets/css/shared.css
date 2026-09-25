@@ -18,7 +18,7 @@
   --accent-green: #4caf50;
   --accent-green-hover: #66bb6a;
   --shadow-card: 0 4px 8px rgba(0,0,0,0.4);
-  --shadow-card-hover: 0 10px 20px rgba(255, 203, 5, 0.4);
+  --shadow-card-hover: 0 10px 22px rgba(0, 0, 0, 0.55);
   --shadow-header: 0 4px 15px rgba(0,0,0,0.6);
   --radius-sm: 12px;
   --radius-md: 15px;
@@ -162,7 +162,9 @@ body {
 
 .card:hover {
   transform: translateY(-10px);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-card-hover),
+              0 0 14px rgba(var(--card-accent-rgb, 255, 221, 0), 0.55),
+              0 0 40px rgba(var(--card-accent-rgb, 255, 221, 0), 0.35);
 }
 
 .card img {

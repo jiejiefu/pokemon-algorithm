@@ -127,7 +127,7 @@
   <div id="pokedex-grid" class="pokedex-grid"></div>
 
   <script type="module">
-    import { loadPokemonData, createPokemonCard, TYPE_EN_ZH } from './assets/js/shared.js';
+    import { loadPokemonData, createPokemonCard, pokemonDetailUrl, TYPE_EN_ZH } from './assets/js/shared.js';
 
     const grid = document.getElementById('pokedex-grid');
     const loading = document.getElementById('loading');
@@ -202,7 +202,7 @@
       
       dataArray.forEach(pokemon => {
         fragment.appendChild(createPokemonCard(pokemon, {
-          onClick: (id) => window.location.href = `detail.html?id=${id}`,
+          onClick: (id) => window.location.href = pokemonDetailUrl(dataArray.find(pokemon => pokemon.id === id)),
           showTypes: true
         }));
       });

@@ -62,6 +62,29 @@ export function formatPokemonId(id) {
   return String(id).padStart(4, '0');
 }
 
+export function pokemonSlug(pokemon) {
+  const name = pokemon?.names?.en || pokemon?.name_en || String(pokemon?.id || '');
+  return name
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function pokemonDetailPath(pokemon) {
+  return `detail/${pokemonSlug(pokemon)}`;
+}
+
+export function pokemonDetailUrl(pokemon) {
+  return `detail.html?slug=${encodeURIComponent(pokemonSlug(pokemon))}`;
+}
+
+export function getReadableTextColor(rgb) {
+  const [r, g, b] = rgb;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#111111' : '#ffffff';
+}
+
 /**
  * Create a Pokédex card DOM element
  * @param {Object} pokemon - Pokémon data object
@@ -70,13 +93,14 @@ export function formatPokemonId(id) {
  */
 export function createPokemonCard(pokemon, options = {}) {
   const formattedId = formatPokemonId(pokemon.id);
-  const group = pokemon.color || pokemon.color_group || "White/Gray";
-  const badgeColor = BADGE_COLORS[group] || "#9e9e9e";
   const { onClick, showTypes = true } = options;
 
   const card = document.createElement('div');
   card.className = 'card';
   card.style.cursor = onClick ? 'pointer' : 'default';
+  if (Array.isArray(pokemon.rgb) && pokemon.rgb.length === 3) {
+    card.style.setProperty('--card-accent-rgb', pokemon.rgb.join(', '));
+  }
 
   // Types HTML
   let typesHtml = '';
@@ -97,7 +121,6 @@ export function createPokemonCard(pokemon, options = {}) {
     <div class="card-id">#${formattedId}</div>
     <div class="card-title">${pokemon.names?.zh || `Pokemon ${pokemon.id}`}</div>
     ${typesHtml}
-    <span class="color-badge" style="background-color: ${badgeColor};">${group}</span>
   `;
   return card;
 }
@@ -317,7 +340,7 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
 
     html += `
       <div class="evolution-stage ${currentClass}">
-        <a href="detail.html?id=${pokemon.id}" class="evolution-link">
+        <a href="${pokemonDetailUrl(pokemon)}" class="evolution-link">
           <img class="evolution-sprite" src="${ASSETS.images}${pokemon.filename}" alt="${pokemon.name_zh}" loading="lazy">
           <span class="evolution-name">${pokemon.name_zh}</span>
           ${pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : ''}
@@ -337,7 +360,7 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
         const isCurrent = p.id === currentPokemonId;
         html += `
           <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
-            <a href="detail.html?id=${p.id}" class="evolution-link">
+            <a href="${pokemonDetailUrl(p)}" class="evolution-link">
               <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
               <span class="evolution-name">${p.name_zh}</span>
             </a>
@@ -357,7 +380,7 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
           const isCurrent = p.id === currentPokemonId;
           html += `
             <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
-              <a href="detail.html?id=${p.id}" class="evolution-link">
+              <a href="${pokemonDetailUrl(p)}" class="evolution-link">
                 <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
                 <span class="evolution-name">${p.name_zh}</span>
               </a>

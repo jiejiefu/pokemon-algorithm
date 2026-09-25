@@ -126,8 +126,15 @@
       border-radius: var(--radius-pill);
     }
     
-    .meta-label { color: var(--text-muted); }
-    .meta-value { font-weight: 500; }
+     .meta-label { color: var(--text-muted); }
+     .meta-value { font-weight: 500; }
+     .color-badge {
+       display: inline-block;
+       padding: 3px 10px;
+       border-radius: var(--radius-pill);
+       font-size: 12px;
+       font-weight: 700;
+     }
     
     .type-badges {
       display: flex;
@@ -512,7 +519,7 @@
             </div>
             <div class="meta-item">
               <span class="meta-label">顏色：</span>
-              <span class="meta-value" id="pokemon-color">Green</span>
+              <span class="meta-value color-badge" id="pokemon-color">Green</span>
             </div>
             <div class="meta-item">
               <span class="meta-label">捕獲率：</span>
@@ -598,7 +605,7 @@
   </main>
 
   <script type="module">
-    import { loadPokemonData, TYPE_EN_ZH, ASSETS, loadEvolutionChain, renderEvolutionChain } from './assets/js/shared.js';
+    import { loadPokemonData, TYPE_EN_ZH, ASSETS, pokemonSlug, pokemonDetailPath, getReadableTextColor, loadEvolutionChain, renderEvolutionChain } from './assets/js/shared.js';
     
     // Type effectiveness matrix (simplified Gen 9)
     const TYPE_EFFECTIVENESS = {
@@ -643,19 +650,28 @@
       try {
         pokemonData = await loadPokemonData();
         
-        // Get ID from URL
-        const params = new URLSearchParams(window.location.search);
-        const id = parseInt(params.get('id') || '1');
-        
-        currentPokemon = pokemonData.find(p => p.id === id);
+         // Get ID or slug from URL
+         const params = new URLSearchParams(window.location.search);
+         const idParam = params.get('id');
+         const slugParam = params.get('slug') || decodeURIComponent(window.location.pathname.match(/\/detail\/([^/]+)\/?$/)?.[1] || '');
+         const id = idParam ? parseInt(idParam) : null;
+
+         currentPokemon = id
+           ? pokemonData.find(p => p.id === id)
+           : slugParam
+             ? pokemonData.find(p => pokemonSlug(p) === slugParam)
+             : pokemonData[0];
         
         if (!currentPokemon) {
           showError();
           return;
         }
         
-        renderDetail();
-        document.title = `${currentPokemon.names.zh} (#${String(id).padStart(4, '0')}) — 寶可夢圖鑑`;
+         renderDetail();
+         if (params.get('from404') === '1') {
+           history.replaceState(null, '', pokemonDetailPath(currentPokemon));
+         }
+         document.title = `${currentPokemon.names.zh} (#${String(currentPokemon.id).padStart(4, '0')}) — 寶可夢圖鑑`;
         document.getElementById('page-title').textContent = `${currentPokemon.names.zh} 詳細資料`;
         
       } catch (error) {
@@ -720,8 +736,13 @@
       // Height/Weight
       document.getElementById('pokemon-hw').textContent = `${p.height_m} m / ${p.weight_kg} kg`;
       
-      // Color
-      document.getElementById('pokemon-color').textContent = p.color;
+       // Color
+       const colorBadge = document.getElementById('pokemon-color');
+       colorBadge.textContent = p.color;
+       if (Array.isArray(p.rgb) && p.rgb.length === 3) {
+         colorBadge.style.backgroundColor = `rgb(${p.rgb.join(', ')})`;
+         colorBadge.style.color = getReadableTextColor(p.rgb);
+       }
       
       // Capture rate
       document.getElementById('pokemon-capture').textContent = p.capture_rate;

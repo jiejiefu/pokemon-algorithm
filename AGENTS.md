@@ -6,7 +6,8 @@ Static HTML/JS/CSS site (GitHub Pages ready) visualizing algorithms with 1025 Po
 - **sorting.html** — Sorting lab: 6 algorithms (Bubble, Selection, Insertion, Quick, Merge, Heap) with animated Canvas grid
 - **maze.html** — Pathfinding: BFS/DFS on pixelated Pokémon sprites (40×40 grid, recursive backtracker)
 - **pokedex.html** — Searchable/filterable Pokédex with fuzzy autocomplete, type/color/gen filters
-- **detail.html** — Pokémon detail page (id query): sprites, multilingual names, stats radar, evolution, type effectiveness, descriptions
+- **detail.html** — Pokémon detail page (slug or id query): sprites, multilingual names, RGB color badge, stats radar, evolution, type effectiveness, descriptions
+- **404.html** — GitHub Pages fallback: rewrites `/detail/<slug>` to `detail.html?slug=...&from404=1`
 
 ## Critical Runtime Requirement
 **Must serve via HTTP server** — `file://` fails due to CORS on `fetch('pokemon_data.json')` and image loads.
@@ -19,21 +20,26 @@ Static HTML/JS/CSS site (GitHub Pages ready) visualizing algorithms with 1025 Po
 ├── sorting.html            # Sorting visualization (6 algorithms)
 ├── maze.html               # BFS/DFS maze on Pokémon sprites
 ├── pokedex.html            # Full searchable Pokédex (fuzzy + filters)
-├── detail.html             # Pokémon detail page (?id=25)
+├── detail.html             # Pokémon detail page (?slug=bulbasaur or ?id=1)
+├── 404.html                # Clean-URL fallback for /detail/<slug>
 ├── assets/
 │   ├── css/
 │   │   └── shared.css      # Shared styles (buttons, cards, grid, tabs, radar)
 │   ├── js/
-│   │   ├── shared.js       # Shared utils: loadPokemonData, createPokemonCard, TYPE_EN_ZH, radar, etc.
+│   │   ├── shared.js       # Shared utils: loadPokemonData, createPokemonCard, TYPE_EN_ZH, slug helpers, radar, etc.
 │   │   └── sorting-algorithms.js  # 6 sorting algorithms as generators
 │   ├── data/
-│   │   ├── pokemon_data.json     # 1025 enhanced entries (names, types, stats, descriptions...)
-│   │   └── descriptions_zh.json  # Lazy-loaded Chinese descriptions (994/1025)
+│   │   ├── pokemon_data.json     # 1025 enhanced entries (names, types, stats, rgb, descriptions...)
+│   │   ├── evolution_chains.json # 541 chains, 127 localized Mega/Gmax forms
+│   │   └── descriptions_zh.json  # Lazy-loaded Chinese descriptions (1025/1025)
 │   └── images/
-│       └── pokemon/              # 1.png … 1025.png (sprites)
+│       └── pokemon/              # 1.png … 1025.png + 320 variant sprites (10001+)
 ├── scripts/
 │   ├── enhance_pokemon_data.py   # Phase 1: merge CSV/XLSX → enhanced JSON
 │   ├── scrape_zh_descriptions.py # Phase 2: scrape Chinese descriptions (httpx + BS4)
+│   ├── fix_pokemon_names.py      # Scrape official names from tw.portal-pokemon.com (h1) → JSON + XLSX
+│   ├── extract_evolution_chains.py # Build evolution_chains.json from CSV
+│   ├── download_variant_sprites.py # Download variant artwork from PokeAPI
 │   └── pokemon_preprocessing_script.py  # RGB/HSV computation from images
 └── data-sources/             # Raw CSV/XLSX (not used at runtime)
     ├── legacy-pokemon-data/  # Original captions CSVs
@@ -48,7 +54,7 @@ Each entry now includes:
 {
   "id": 1,
   "filename": "1.png",
-  "names": { "en": "Bulbasaur", "ja": "フシギダネ", "zh": "妙蛙种子", "zh_HK": "妙蛙種子", "fr": "...", "de": "...", "es": "...", "it": "...", "ko": "..." },
+  "names": { "en": "Bulbasaur", "ja": "フシギダネ", "zh": "妙蛙種子", "zh_HK": "妙蛙种子", "fr": "...", "de": "...", "es": "...", "it": "...", "ko": "..." },
   "types": ["Grass", "Poison"],
   "types_zh": ["草", "毒"],
   "stats": { "hp": 45, "attack": 49, "defense": 49, "sp_attack": 65, "sp_defense": 65, "speed": 45, "total": 318 },
@@ -64,11 +70,15 @@ Each entry now includes:
 }
 ```
 
+**Language mapping:** `names.zh` holds the official Traditional Chinese name scraped from `tw.portal-pokemon.com`; `names.zh_HK` is the Simplified conversion produced by `opencc` (`tw2s.json`).
+
 ## Key Technical Patterns
 - **Generator-based animation**: `sorting-algorithms.js` exports `function* algoSteps(arr)` yielding per frame; `sorting.html` drives via `requestAnimationFrame` calling `.next()`
 - **Lerp smoothing**: `PokemonNode.update()` interpolates `x/y → targetX/targetY` at 0.15 speed
 - **Canvas grid**: 40 cols × 26 rows (1025 Pokémon), 28px padding
 - **Color**: Official PokeAPI color (green/blue/red/yellow/purple/pink/brown/black/white/gray) — replaces computed `color_group`
+- **RGB card glow**: `createPokemonCard()` sets `--card-accent-rgb` from `pokemon.rgb`; `shared.css` renders a neutral drop shadow plus a two-layer RGB glow (14px @ 0.55, 40px @ 0.35) on `.card:hover`
+- **Slug routing**: `pokemonSlug()` normalizes `names.en`; `pokemonDetailUrl()` returns the Live-Server-safe `detail.html?slug=<slug>`, `pokemonDetailPath()` returns the clean `detail/<slug>` used only for `history.replaceState`
 - **Radar chart**: Canvas-based stats visualization in detail page
 - **Type effectiveness**: Computed client-side from dual-type combination
 - **ES Modules**: All JS uses `type="module"` with relative imports from `assets/js/shared.js`
@@ -79,7 +89,10 @@ Each entry now includes:
 |------|---------|
 | Run locally | `npx serve` (or Live Server in VS Code) |
 | Enhance JSON data | `source .venv/bin/activate && python scripts/enhance_pokemon_data.py` |
+| Fix Chinese names | `source .venv/bin/activate && python scripts/fix_pokemon_names.py` |
 | Scrape Chinese descriptions | `source .venv/bin/activate && python scripts/scrape_zh_descriptions.py` (≈10 min) |
+| Rebuild evolution chains | `python scripts/extract_evolution_chains.py` |
+| Download variant sprites | `python scripts/download_variant_sprites.py` |
 | Regenerate color data | `python scripts/pokemon_preprocessing_script.py` (requires Pillow, numpy) |
 | Deploy to GitHub Pages | Push to `main` branch; enable Pages from root folder |
 
@@ -89,10 +102,11 @@ Each entry now includes:
 3. **Generator exhaustion**: `sortGenerator = null` resets; `yield` frequency controls animation speed (insertion sort yields every 5 inserts)
 4. **GitHub Pages**: Ensure repo settings → Pages → Source: "Deploy from branch" / root folder
 5. **Asset paths**: All HTML files reference `assets/images/pokemon/`, `assets/js/shared.js`, `assets/data/pokemon_data.json`
-6. **Virtualenv required**: Python scripts need `.venv` with pandas, openpyxl, httpx, lxml, beautifulsoup4
+6. **Virtualenv required**: Python scripts need `.venv` with pandas, openpyxl, httpx, lxml, beautifulsoup4. The interpreter used for this repo is `../.venv/bin/python` (i.e. `Visual_Studio_Code/.venv`), not a project-local `.venv`
 7. **Chinese descriptions**: 1025/1025 have text1 (primary), 1025/1025 have text2 (secondary) from tw.portal-pokemon.com. Scraper handles both single-escaped and double-escaped Next.js streaming formats.
-8. **Detail page URL**: `detail.html?id=25` — uses query param for dynamic rendering
+8. **Detail page URL**: `detail.html?slug=bulbasaur` is the internal link format (works on Live Server, `python -m http.server`, and GitHub Pages). The legacy `detail.html?id=25` form still works. Clean URLs (`/detail/bulbasaur`) are only resolvable on GitHub Pages, where `404.html` redirects to `?slug=...&from404=1` and `detail.html` restores the clean path with `history.replaceState`. VS Code Live Server returns `Cannot GET /detail/bulbasaur` for direct clean-URL visits — always navigate via the `?slug=` form during local development.
 9. **text2 fallback**: If tw.portal-pokemon.com doesn't have text2, it's left empty (no wiki.52poke.com fallback)
+10. **No color badge on cards**: `createPokemonCard()` renders types only; the color is expressed solely through the RGB hover glow. The color badge exists only on the detail page (`.color-badge`, background from `pokemon.rgb`, text color from `getReadableTextColor()`).
 
 ## Adding New Algorithms
 1. Add `function* newAlgoSteps(arr)` in `assets/js/sorting-algorithms.js` (yield per visual step)
@@ -124,3 +138,11 @@ python scripts/pokemon_preprocessing_script.py
 ```
 Reads: `assets/images/pokemon/1.png`... 
 Writes: `assets/data/pokemon_data.json` (updates rgb/hsv/hue/sat/val only)
+
+### Phase 4: Fix official Chinese names
+```bash
+source ../.venv/bin/activate
+python scripts/fix_pokemon_names.py
+```
+Reads: `https://tw.portal-pokemon.com/play/pokedex/{id:04d}/` (`<h1>`), existing `pokemon_data.json` + `International List of Pokémon Names.xlsx`
+Writes: `names.zh` (Traditional, official), `names.zh_HK` (Simplified via `opencc` `tw2s.json`) in both JSON and XLSX

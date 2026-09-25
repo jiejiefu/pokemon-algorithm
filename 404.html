@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>寶可夢詳細資料</title>
+</head>
+<body>
+  <script>
+    const match = window.location.pathname.match(/\/detail\/([^/]+)\/?$/);
+    if (match) {
+      const target = window.location.pathname.replace(/\/detail\/[^/]*\/?$/, '/detail.html');
+      location.replace(`${target}?slug=${encodeURIComponent(decodeURIComponent(match[1]))}&from404=1`);
+    } else {
+      location.replace('./');
+    }
+  </script>
+</body>
+</html>
