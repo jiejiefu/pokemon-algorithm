@@ -581,6 +581,12 @@
           </div>
         </div>
         
+        <!-- Tab: 進化鏈 -->
+        <div class="tab-panel" role="tabpanel" data-tab="evolution">
+          <div class="evolution-chain-container" id="evolution-chain">
+            <!-- Populated by JS -->
+          </div>
+        </div>
         <!-- Tab: 圖鑑描述 -->
         <div class="tab-panel" role="tabpanel" data-tab="description">
           <div class="description-content" id="description-content">
@@ -592,7 +598,7 @@
   </main>
 
   <script type="module">
-    import { loadPokemonData, TYPE_EN_ZH, ASSETS } from './assets/js/shared.js';
+    import { loadPokemonData, TYPE_EN_ZH, ASSETS, loadEvolutionChain, renderEvolutionChain } from './assets/js/shared.js';
     
     // Type effectiveness matrix (simplified Gen 9)
     const TYPE_EFFECTIVENESS = {
@@ -898,23 +904,16 @@
     }
     
     function renderEvolutionTab() {
-      // Simplified: show current Pokémon and note about evolution chain
       const container = document.getElementById('evolution-chain');
       const p = currentPokemon;
       
-      container.innerHTML = `
-        <div class="evo-stage">
-          <div class="evo-sprite">
-            <img src="${ASSETS.images}${p.filename}" alt="${p.names.en}" loading="lazy">
-          </div>
-          <div class="evo-name">${p.names.zh} (${p.names.en})</div>
-          <div class="evo-id">#${String(p.id).padStart(4, '0')}</div>
-        </div>
-        <div style="text-align:center;color:var(--text-muted);margin-top:16px;">
-          <p>完整進化鏈資料需查詢外部 API (PokeAPI evolution-chain/${p.evolution_chain_id})</p>
-          <p>當前寶可夢：${p.names.zh} (ID: ${p.id})</p>
-        </div>
-      `;
+      // Load evolution chain data
+      loadEvolutionChain(p.evolution_chain_id).then(chainData => {
+        renderEvolutionChain(container, chainData, p.id);
+      }).catch(err => {
+        console.error('Failed to load evolution chain:', err);
+        container.innerHTML = '<p class="detail-error">無法載入進化鏈數據</p>';
+      });
     }
     
     function renderTypeTab() {

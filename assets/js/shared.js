@@ -77,7 +77,7 @@ export function createPokemonCard(pokemon, options = {}) {
   const card = document.createElement('div');
   card.className = 'card';
   card.style.cursor = onClick ? 'pointer' : 'default';
-  
+
   // Types HTML
   let typesHtml = '';
   if (showTypes && pokemon.types) {
@@ -87,7 +87,7 @@ export function createPokemonCard(pokemon, options = {}) {
       return `<span class="type-badge" style="background:${color};font-size:10px;padding:2px 8px;border-radius:10px;">${zh}</span>`;
     }).join('')}</div>`;
   }
-  
+
   if (onClick) {
     card.addEventListener('click', () => onClick(pokemon.id));
   }
@@ -110,11 +110,11 @@ export function createPokemonCard(pokemon, options = {}) {
 export function renderPokemonGrid(gridEl, pokemonArray) {
   gridEl.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  
+
   pokemonArray.forEach(pokemon => {
     fragment.appendChild(createPokemonCard(pokemon));
   });
-  
+
   gridEl.appendChild(fragment);
 }
 
@@ -227,9 +227,9 @@ export async function loadAllPokemonNodes(jsonData, canvasWidth, canvasHeight) {
     const data = jsonData[i];
     const img = new Image();
     img.src = `${imagesPath}${data.filename}`;
-    
+
     const node = new PokemonNode(data, img, canvasWidth, canvasHeight);
-    
+
     await new Promise(resolve => {
       img.onload = () => {
         loadedCount++;
@@ -241,10 +241,10 @@ export async function loadAllPokemonNodes(jsonData, canvasWidth, canvasHeight) {
         resolve();
       };
     });
-    
+
     pokemons.push(node);
   }
-  
+
   return pokemons;
 }
 
@@ -252,15 +252,15 @@ export async function loadAllPokemonNodes(jsonData, canvasWidth, canvasHeight) {
  * Color grouping centers for visual clustering
  */
 export const COLOR_CENTERS = {
-  "Red": {x: 200, y: 220}, 
-  "Orange": {x: 400, y: 220}, 
-  "Yellow": {x: 600, y: 220}, 
-  "Green": {x: 800, y: 220}, 
+  "Red": {x: 200, y: 220},
+  "Orange": {x: 400, y: 220},
+  "Yellow": {x: 600, y: 220},
+  "Green": {x: 800, y: 220},
   "Blue": {x: 1000, y: 220},
-  "Purple": {x: 300, y: 550}, 
-  "Pink": {x: 500, y: 550}, 
-  "Brown": {x: 700, y: 550}, 
-  "Black": {x: 350, y: 700}, 
+  "Purple": {x: 300, y: 550},
+  "Pink": {x: 500, y: 550},
+  "Brown": {x: 700, y: 550},
+  "Black": {x: 350, y: 700},
   "White/Gray": {x: 850, y: 700}
 };
 
@@ -280,12 +280,93 @@ export function groupByColor(pokemons) {
 }
 
 /**
- * Shuffle array in place (Fisher-Yates)
- * @param {Array} arr
+ * Load evolution chain data
+ * @param {number} chainId - Evolution chain ID
+ * @returns {Promise<Object|null>} Evolution chain data
  */
-export function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+export async function loadEvolutionChain(chainId) {
+  if (!window._evolutionChains) {
+    const response = await fetch('assets/data/evolution_chains.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load evolution chains: ${response.status}`);
+    }
+    window._evolutionChains = await response.json();
+  }
+  return window._evolutionChains[String(chainId)] || null;
+}
+
+/**
+ * Render evolution chain
+ * @param {HTMLElement} container - Container element
+ * @param {Object} chainData - Evolution chain data
+ * @param {number} currentPokemonId - Current Pokémon ID
+ */
+export function renderEvolutionChain(container, chainData, currentPokemonId) {
+  if (!chainData) {
+    container.innerHTML = '<p class="detail-error">暫無進化鏈數據</p>';
+    return;
+  }
+
+  let html = '<div class="evolution-chain">';
+
+  // Main line
+  chainData.main_line.forEach((pokemon, i) => {
+    const isCurrent = pokemon.id === currentPokemonId;
+    const formBadge = pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : '';
+    const currentClass = isCurrent ? 'evolution-current' : '';
+
+    html += `
+      <div class="evolution-stage ${currentClass}">
+        <a href="detail.html?id=${pokemon.id}" class="evolution-link">
+          <img class="evolution-sprite" src="${ASSETS.images}${pokemon.filename}" alt="${pokemon.name_zh}" loading="lazy">
+          <span class="evolution-name">${pokemon.name_zh}</span>
+          ${pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : ''}
+        </a>
+      </div>
+    `;
+  });
+
+  // Variants
+  if (chainData.variants) {
+    Object.entries(chainData.variants).forEach(([region, pokemons]) => {
+      if (!pokemons.length) return;
+      html += `<div class="evolution-variant-group">
+        <div class="evolution-variant-label">${region.toUpperCase()} 形態</div>
+        <div class="evolution-chain">`;
+      pokemons.forEach(p => {
+        const isCurrent = p.id === currentPokemonId;
+        html += `
+          <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
+            <a href="detail.html?id=${p.id}" class="evolution-link">
+              <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
+              <span class="evolution-name">${p.name_zh}</span>
+            </a>
+          </div>`;
+      });
+      html += '</div></div>';
+    });
+
+    // Special forms (mega, gmax, primal already in main_line)
+    if (chainData.special_forms) {
+      Object.entries(chainData.special_forms).forEach(([form, pokemons]) => {
+        if (!pokemons.length) return;
+        html += `<div class="evolution-variant-group">
+          <div class="evolution-variant-label">${form.toUpperCase()} 形態</div>
+          <div class="evolution-chain">`;
+        pokemons.forEach(p => {
+          const isCurrent = p.id === currentPokemonId;
+          html += `
+            <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
+              <a href="detail.html?id=${p.id}" class="evolution-link">
+                <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
+                <span class="evolution-name">${p.name_zh}</span>
+              </a>
+            </div>`;
+        });
+        html += '</div></div>';
+      });
+    }
+
+    container.innerHTML = html;
   }
 }
