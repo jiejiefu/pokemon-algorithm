@@ -172,7 +172,7 @@
         // 載入 JSON 資料
         async function fetchPokedex() {
             try {
-                const response = await fetch('pokemon_data.json');
+                const response = await fetch('assets/data/pokemon_data.json');
                 allPokemonData = await response.json();
                 
                 loading.style.display = 'none';

@@ -190,7 +190,7 @@
         // 載入 JSON 資料與 1025 張圖檔
         async function loadAllData() {
             try {
-                const response = await fetch('pokemon_data.json');
+                const response = await fetch('assets/data/pokemon_data.json');
                 const jsonData = await response.json();
                 const imagesPath = 'assets/images/pokemon/';
 
