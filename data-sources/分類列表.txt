@@ -1,0 +1,1172 @@
+
+主選單
+
+神奇宝贝百科
+在神奇宝贝百科搜尋
+搜尋
+建立帳號
+登入
+乘風踏波，新作來襲！【前往官網】
+目次 隱藏
+（首段）
+分類列表
+名字
+細節
+參見
+導航
+分類
+
+頁面
+討論
+
+繁體
+閱讀
+切換譯名
+檢視原始碼
+檢視歷史
+
+工具
+外觀 隱藏
+文字
+
+小
+
+標準
+
+大
+寬度
+
+標準
+
+寬
+201!.gif這篇文章講述的是寶可夢的分類。如果您在尋找招式的分類，請移步招式#招式分類。
+
+分類（日文︰分類，英文︰Category）是在寶可夢圖鑑中，對寶可夢的生物特性的一種描述。分類並不等同於寶可夢種類，可能有多種寶可夢具有相同的分類。
+
+分類列表
+全國編號	寶可夢	中文	日文	英文
+000		蛋	？？？？？寶可夢	？？？？？ポケモン	????? Pokémon
+001		妙蛙種子	種子寶可夢	たねポケモン	Seed Pokémon
+002		妙蛙草	種子寶可夢	たねポケモン	Seed Pokémon
+003		妙蛙花	種子寶可夢	たねポケモン	Seed Pokémon
+004		小火龍	蜥蜴寶可夢	とかげポケモン	Lizard Pokémon
+005		火恐龍	火焰寶可夢	かえんポケモン	Flame Pokémon
+006		噴火龍	火焰寶可夢	かえんポケモン	Flame Pokémon
+007		傑尼龜	小龜寶可夢	かめのこポケモン	Tiny Turtle Pokémon
+008		卡咪龜	龜寶可夢	かめポケモン	Turtle Pokémon
+009		水箭龜	甲殼寶可夢	こうらポケモン	Shellfish Pokémon
+010		綠毛蟲	蟲寶寶寶可夢	いもむしポケモン	Worm Pokémon
+011		鐵甲蛹	蛹寶可夢	さなぎポケモン	Cocoon Pokémon
+012		巴大蝶	蝴蝶寶可夢	ちょうちょポケモン	Butterfly Pokémon
+013		獨角蟲	毛毛蟲寶可夢	けむしポケモン	Hairy Bug Pokémon
+014		鐵殼蛹	蛹寶可夢	さなぎポケモン	Cocoon Pokémon
+015		大針蜂	毒蜂寶可夢	どくばちポケモン	Poison Bee Pokémon
+016		波波	小鳥寶可夢	ことりポケモン	Tiny Bird Pokémon
+017		比比鳥	鳥寶可夢	とりポケモン	Bird Pokémon
+018		大比鳥	鳥寶可夢	とりポケモン	Bird Pokémon
+019		小拉達	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+020		拉達	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+021		烈雀	小鳥寶可夢	ことりポケモン	Tiny Bird Pokémon
+022		大嘴雀	鳥嘴寶可夢	くちばしポケモン	Beak Pokémon
+023		阿柏蛇	蛇寶可夢	へびポケモン	Snake Pokémon
+024		阿柏怪	眼鏡蛇寶可夢	コブラポケモン	Cobra Pokémon
+025		皮卡丘	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+026		雷丘	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+027		穿山鼠	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+028		穿山王	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+029		尼多蘭	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+030		尼多娜	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+031		尼多后	鑽錐寶可夢	ドリルポケモン	Drill Pokémon
+032		尼多朗	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+033		尼多力諾	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+034		尼多王	鑽錐寶可夢	ドリルポケモン	Drill Pokémon
+035		皮皮	妖精寶可夢	ようせいポケモン	Fairy Pokémon
+036		皮可西	妖精寶可夢	ようせいポケモン	Fairy Pokémon
+037		六尾	狐狸寶可夢	きつねポケモン	Fox Pokémon
+038		九尾	狐狸寶可夢	きつねポケモン	Fox Pokémon
+039		胖丁	氣球寶可夢	ふうせんポケモン	Balloon Pokémon
+040		胖可丁	氣球寶可夢	ふうせんポケモン	Balloon Pokémon
+041		超音蝠	蝙蝠寶可夢	こうもりポケモン	Bat Pokémon
+042		大嘴蝠	蝙蝠寶可夢	こうもりポケモン	Bat Pokémon
+043		走路草	雜草寶可夢	ざっそうポケモン	Weed Pokémon
+044		臭臭花	雜草寶可夢	ざっそうポケモン	Weed Pokémon
+045		霸王花	花寶可夢	フラワーポケモン	Flower Pokémon
+046		派拉斯	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+047		派拉斯特	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+048		毛球	昆蟲寶可夢	こんちゅうポケモン	Insect Pokémon
+049		摩魯蛾	毒蛾寶可夢	どくがポケモン	Poison Moth Pokémon
+050		地鼠	鼴鼠寶可夢	もぐらポケモン	Mole Pokémon
+051		三地鼠	鼴鼠寶可夢	もぐらポケモン	Mole Pokémon
+052		喵喵	妖怪貓寶可夢	ばけねこポケモン	Scratch Cat Pokémon
+053		貓老大	暹羅貓寶可夢	シャムネコポケモン	Classy Cat Pokémon
+054		可達鴨	鴨寶可夢	あひるポケモン	Duck Pokémon
+055		哥達鴨	鴨寶可夢	あひるポケモン	Duck Pokémon
+056		猴怪	豬猴寶可夢	ぶたざるポケモン	Pig Monkey Pokémon
+057		火爆猴	豬猴寶可夢	ぶたざるポケモン	Pig Monkey Pokémon
+058		卡蒂狗	小狗寶可夢	こいぬポケモン	Puppy Pokémon
+058		卡蒂狗
+洗翠的樣子	放哨寶可夢	みはりポケモン	Scout Pokémon
+059		風速狗	傳說寶可夢	でんせつポケモン	Legendary Pokémon
+060		蚊香蝌蚪	蝌蚪寶可夢	おたまポケモン	Tadpole Pokémon
+061		蚊香君	蝌蚪寶可夢	おたまポケモン	Tadpole Pokémon
+062		蚊香泳士	蝌蚪寶可夢	おたまポケモン	Tadpole Pokémon
+063		凱西	念力寶可夢	ねんりきポケモン	Psi Pokémon
+064		勇基拉	念力寶可夢	ねんりきポケモン	Psi Pokémon
+065		胡地	念力寶可夢	ねんりきポケモン	Psi Pokémon
+066		腕力	怪力寶可夢	かいりきポケモン	Superpower Pokémon
+067		豪力	怪力寶可夢	かいりきポケモン	Superpower Pokémon
+068		怪力	怪力寶可夢	かいりきポケモン	Superpower Pokémon
+069		喇叭芽	花寶可夢	フラワーポケモン	Flower Pokémon
+070		口呆花	捕蠅寶可夢	ハエとりポケモン	Flycatcher Pokémon
+071		大食花	捕蠅寶可夢	ハエとりポケモン	Flycatcher Pokémon
+072		瑪瑙水母	水母寶可夢	くらげポケモン	Jellyfish Pokémon
+073		毒刺水母	水母寶可夢	くらげポケモン	Jellyfish Pokémon
+074		小拳石	岩石寶可夢	がんせきポケモン	Rock Pokémon
+075		隆隆石	岩石寶可夢	がんせきポケモン	Rock Pokémon
+076		隆隆岩	重量級寶可夢	メガトンポケモン	Megaton Pokémon
+077		小火馬	火馬寶可夢	ひのうまポケモン	Fire Horse Pokémon
+077		小火馬
+伽勒爾的樣子	一角寶可夢	いっかくポケモン	Unique Horn Pokémon
+078		烈焰馬	火馬寶可夢	ひのうまポケモン	Fire Horse Pokémon
+078		烈焰馬
+伽勒爾的樣子	一角寶可夢	いっかくポケモン	Unique Horn Pokémon
+079		呆呆獸	憨憨寶可夢	まぬけポケモン	Dopey Pokémon
+080		呆殼獸	寄居蟹寶可夢	やどかりポケモン	Hermit Crab Pokémon
+081		小磁怪	磁鐵寶可夢	じしゃくポケモン	Magnet Pokémon
+082		三合一磁怪	磁鐵寶可夢	じしゃくポケモン	Magnet Pokémon
+083		大蔥鴨	黃嘴鴨寶可夢	かるがもポケモン	Wild Duck Pokémon
+084		嘟嘟	兩頭鳥寶可夢	ふたごどりポケモン	Twin Bird Pokémon
+085		嘟嘟利	三頭鳥寶可夢	みつごどりポケモン	Triple Bird Pokémon
+086		小海獅	海獅寶可夢	あしかポケモン	Sea Lion Pokémon
+087		白海獅	海獅寶可夢	あしかポケモン	Sea Lion Pokémon
+088		臭泥	污泥寶可夢	ヘドロポケモン	Sludge Pokémon
+089		臭臭泥	污泥寶可夢	ヘドロポケモン	Sludge Pokémon
+090		大舌貝	雙殼貝寶可夢	２まいがいポケモン	Bivalve Pokémon
+091		刺甲貝	雙殼貝寶可夢	２まいがいポケモン	Bivalve Pokémon
+092		鬼斯	氣體狀寶可夢	ガスじょうポケモン	Gas Pokémon
+093		鬼斯通	氣體狀寶可夢	ガスじょうポケモン	Gas Pokémon
+094		耿鬼	影子寶可夢	シャドーポケモン	Shadow Pokémon
+095		大岩蛇	岩蛇寶可夢	いわへびポケモン	Rock Snake Pokémon
+096		催眠貘	催眠寶可夢	さいみんポケモン	Hypnosis Pokémon
+097		引夢貘人	催眠寶可夢	さいみんポケモン	Hypnosis Pokémon
+098		大鉗蟹	清水蟹寶可夢	さわがにポケモン	River Crab Pokémon
+099		巨鉗蟹	鉗子寶可夢	はさみポケモン	Pincer Pokémon
+100		霹靂電球	球寶可夢	ボールポケモン	Ball Pokémon
+100		霹靂電球
+洗翠的樣子	丸寶可夢	きゅうたいポケモン	Sphere Pokémon​
+101		頑皮雷彈	球寶可夢	ボールポケモン	Ball Pokémon
+101		頑皮雷彈
+洗翠的樣子	丸寶可夢	きゅうたいポケモン	Sphere Pokémon​
+102		蛋蛋	蛋寶可夢	たまごポケモン	Egg Pokémon
+103		椰蛋樹	椰子寶可夢	やしのみポケモン	Coconut Pokémon
+104		卡拉卡拉	孤獨寶可夢	こどくポケモン	Lonely Pokémon
+105		嘎啦嘎啦	愛骨寶可夢	ほねずきポケモン	Bone Keeper Pokémon
+106		飛腿郎	踢腿寶可夢	キックポケモン	Kicking Pokémon
+107		快拳郎	拳擊寶可夢	パンチポケモン	Punching Pokémon
+108		大舌頭	舔舔寶可夢	なめまわしポケモン	Licking Pokémon
+109		瓦斯彈	毒氣寶可夢	どくガスポケモン	Poison Gas Pokémon
+110		雙彈瓦斯	毒氣寶可夢	どくガスポケモン	Poison Gas Pokémon
+111		獨角犀牛	尖尖寶可夢	とげとげポケモン	Spikes Pokémon
+112		鑽角犀獸	鑽錐寶可夢	ドリルポケモン	Drill Pokémon
+113		吉利蛋	蛋寶可夢	たまごポケモン	Egg Pokémon
+114		蔓藤怪	藤蔓狀寶可夢	ツルじょうポケモン	Vine Pokémon
+115		袋獸	親子寶可夢	おやこポケモン	Parent Pokémon
+116		墨海馬	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+117		海刺龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+118		角金魚	金魚寶可夢	きんぎょポケモン	Goldfish Pokémon
+119		金魚王	金魚寶可夢	きんぎょポケモン	Goldfish Pokémon
+120		海星星	星形寶可夢	ほしがたポケモン	Star Shape Pokémon
+121		寶石海星	謎寶可夢	なぞのポケモン	Mysterious Pokémon
+122		魔牆人偶	屏障寶可夢	バリアーポケモン	Barrier Pokémon
+122		魔牆人偶
+伽勒爾的樣子	舞蹈寶可夢	ダンスポケモン	Dance Pokémon
+123		飛天螳螂	螳螂寶可夢	かまきりポケモン	Mantis Pokémon
+124		迷唇姐	人形寶可夢	ひとがたポケモン	Human Shape Pokémon
+125		電擊獸	電擊寶可夢	でんげきポケモン	Electric Pokémon
+126		鴨嘴火獸	吐火寶可夢	ひふきポケモン	Spitfire Pokémon
+127		凱羅斯	鍬形蟲寶可夢	くわがたポケモン	Stag Beetle Pokémon
+128		肯泰羅	暴牛寶可夢	あばれうしポケモン	Wild Bull Pokémon
+129		鯉魚王	魚寶可夢	さかなポケモン	Fish Pokémon
+130		暴鯉龍	凶惡寶可夢	きょうあくポケモン	Atrocious Pokémon
+131		拉普拉斯	乘載寶可夢	のりものポケモン	Transport Pokémon
+132		百變怪	變身寶可夢	へんしんポケモン	Transform Pokémon
+133		伊布	進化寶可夢	しんかポケモン	Evolution Pokémon
+134		水伊布	吐泡寶可夢	あわはきポケモン	Bubble Jet Pokémon
+135		雷伊布	雷寶可夢	かみなりポケモン	Lightning Pokémon
+136		火伊布	火寶可夢	ほのおポケモン	Flame Pokémon
+137		多邊獸	虛擬寶可夢	バーチャルポケモン	Virtual Pokémon
+138		菊石獸	漩渦寶可夢	うずまきポケモン	Spiral Pokémon
+139		多刺菊石獸	漩渦寶可夢	うずまきポケモン	Spiral Pokémon
+140		化石盔	甲殼寶可夢	こうらポケモン	Shellfish Pokémon
+141		鐮刀盔	甲殼寶可夢	こうらポケモン	Shellfish Pokémon
+142		化石翼龍	化石寶可夢	かせきポケモン	Fossil Pokémon
+143		卡比獸	瞌睡寶可夢	いねむりポケモン	Sleeping Pokémon
+144		急凍鳥	冰凍寶可夢	れいとうポケモン	Freeze Pokémon
+144		急凍鳥
+伽勒爾的樣子	冷酷寶可夢	れいこくポケモン	Cruel Pokémon
+145		閃電鳥	電擊寶可夢	でんげきポケモン	Electric Pokémon
+145		閃電鳥
+伽勒爾的樣子	健腳寶可夢	けんきゃくポケモン	Strong Legs Pokémon
+146		火焰鳥	火焰寶可夢	かえんポケモン	Flame Pokémon
+146		火焰鳥
+伽勒爾的樣子	邪惡寶可夢	じゃあくポケモン	Malevolent Pokémon
+147		迷你龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+148		哈克龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+149		快龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+150		超夢	基因寶可夢	いでんしポケモン	Genetic Pokémon
+151		夢幻	新種寶可夢	しんしゅポケモン	New Species Pokémon
+152		菊草葉	葉子寶可夢	はっぱポケモン	Leaf Pokémon
+153		月桂葉	葉子寶可夢	はっぱポケモン	Leaf Pokémon
+154		大竺葵	芳草寶可夢	ハーブポケモン	Herb Pokémon
+155		火球鼠	火鼠寶可夢	ひねずみポケモン	Fire Mouse Pokémon
+156		火岩鼠	火山寶可夢	かざんポケモン	Volcano Pokémon
+157		火爆獸	火山寶可夢	かざんポケモン	Volcano Pokémon
+157		火爆獸
+洗翠的樣子	磷火寶可夢	おにびポケモン	Ghost Flame Pokémon
+158		小鋸鱷	大顎寶可夢	おおあごポケモン	Big Jaw Pokémon
+159		藍鱷	大顎寶可夢	おおあごポケモン	Big Jaw Pokémon
+160		大力鱷	大顎寶可夢	おおあごポケモン	Big Jaw Pokémon
+160		大力鱷
+超級進化	雙顎寶可夢	にじゅうあごポケモン	Double Jaw Pokémon
+161		尾立	放哨寶可夢	みはりポケモン	Scout Pokémon
+162		大尾立	長軀幹寶可夢	どうながポケモン	Long Body Pokémon
+163		咕咕	貓頭鷹寶可夢	ふくろうポケモン	Owl Pokémon
+164		貓頭夜鷹	貓頭鷹寶可夢	ふくろうポケモン	Owl Pokémon
+165		芭瓢蟲	五星寶可夢	いつつぼしポケモン	Five Star Pokémon
+166		安瓢蟲	五星寶可夢	いつつぼしポケモン	Five Star Pokémon
+167		圓絲蛛	吐絲寶可夢	いとはきポケモン	String Spit Pokémon
+168		阿利多斯	長腿寶可夢	あしながポケモン	Long Leg Pokémon
+169		叉字蝠	蝙蝠寶可夢	こうもりポケモン	Bat Pokémon
+170		燈籠魚	琵琶魚寶可夢	あんこうポケモン	Angler Pokémon
+171		電燈怪	燈寶可夢	ライトポケモン	Light Pokémon
+172		皮丘	小鼠寶可夢	こねずみポケモン	Tiny Mouse Pokémon
+173		皮寶寶	星形寶可夢	ほしがたポケモン	Star Shape Pokémon
+174		寶寶丁	氣球寶可夢	ふうせんポケモン	Balloon Pokémon
+175		波克比	針球寶可夢	はりたまポケモン	Spike Ball Pokémon
+176		波克基古	幸福寶可夢	しあわせポケモン	Happiness Pokémon
+177		天然雀	小鳥寶可夢	ことりポケモン	Tiny Bird Pokémon
+178		天然鳥	神秘寶可夢	せいれいポケモン	Mystic Pokémon
+179		咩利羊	綿毛寶可夢	わたげポケモン	Wool Pokémon
+180		茸茸羊	綿毛寶可夢	わたげポケモン	Wool Pokémon
+181		電龍	燈寶可夢	ライトポケモン	Light Pokémon
+182		美麗花	花寶可夢	フラワーポケモン	Flower Pokémon
+183		瑪力露	水鼠寶可夢	みずねずみポケモン	Aqua Mouse Pokémon
+184		瑪力露麗	水兔寶可夢	みずうさぎポケモン	Aqua Rabbit Pokémon
+185		樹才怪	模仿寶可夢	まねポケモン	Imitation Pokémon
+186		蚊香蛙皇	蛙寶可夢	かえるポケモン	Frog Pokémon
+187		毽子草	棉草寶可夢	わたくさポケモン	Cottonweed Pokémon
+188		毽子花	棉草寶可夢	わたくさポケモン	Cottonweed Pokémon
+189		毽子棉	棉草寶可夢	わたくさポケモン	Cottonweed Pokémon
+190		長尾怪手	長尾寶可夢	おながポケモン	Long Tail Pokémon
+191		向日種子	種子寶可夢	たねポケモン	Seed Pokémon
+192		向日花怪	太陽寶可夢	たいようポケモン	Sun Pokémon
+193		蜻蜻蜓	薄翼寶可夢	うすばねポケモン	Clear Wing Pokémon
+194		烏波	水魚寶可夢	みずうおポケモン	Water Fish Pokémon
+194		烏波
+帕底亞的樣子	毒魚寶可夢	どくうおポケモン	Poison Fish Pokémon
+195		沼王	水魚寶可夢	みずうおポケモン	Water Fish Pokémon
+196		太陽伊布	太陽寶可夢	たいようポケモン	Sun Pokémon
+197		月亮伊布	月光寶可夢	げっこうポケモン	Moonlight Pokémon
+198		黑暗鴉	黑暗寶可夢	くらやみポケモン	Darkness Pokémon
+199		呆呆王	王者寶可夢	おうじゃポケモン	Royal Pokémon
+199		呆呆王
+伽勒爾的樣子	咒術師寶可夢	じゅじゅつしポケモン	Hexpert Pokémon
+200		夢妖	夜啼寶可夢	よなきポケモン	Screech Pokémon
+201		未知圖騰	象徵寶可夢	シンボルポケモン	Symbol Pokémon
+202		果然翁	忍耐寶可夢	がまんポケモン	Patient Pokémon
+203		麒麟奇	長頸寶可夢	くびながポケモン	Long Neck Pokémon
+204		榛果球	蓑衣蟲寶可夢	みのむしポケモン	Bagworm Pokémon
+205		佛烈托斯	蓑衣蟲寶可夢	みのむしポケモン	Bagworm Pokémon
+206		土龍弟弟	地蛇寶可夢	つちへびポケモン	Land Snake Pokémon
+207		天蠍	飛蠍寶可夢	とびさそりポケモン	Fly Scorpion Pokémon
+208		大鋼蛇	鐵蛇寶可夢	てつへびポケモン	Iron Snake Pokémon
+209		布魯	妖精寶可夢	ようせいポケモン	Fairy Pokémon
+210		布魯皇	妖精寶可夢	ようせいポケモン	Fairy Pokémon
+211		千針魚	氣球寶可夢	ふうせんポケモン	Balloon Pokémon
+212		巨鉗螳螂	鉗子寶可夢	はさみポケモン	Pincer Pokémon
+213		壺壺	發酵寶可夢	はっこうポケモン	Mold Pokémon
+214		赫拉克羅斯	獨角寶可夢	１ぽんヅノポケモン	Single Horn Pokémon
+215		狃拉	鉤爪寶可夢	かぎづめポケモン	Sharp Claw Pokémon
+216		熊寶寶	小熊寶可夢	こぐまポケモン	Little Bear Pokémon
+217		圈圈熊	冬眠寶可夢	とうみんポケモン	Hibernator Pokémon
+218		熔岩蟲	熔岩寶可夢	ようがんポケモン	Lava Pokémon
+219		熔岩蝸牛	熔岩寶可夢	ようがんポケモン	Lava Pokémon
+220		小山豬	小豬寶可夢	いのぶたポケモン	Pig Pokémon
+221		長毛豬	野豬寶可夢	いのししポケモン	Swine Pokémon
+222		太陽珊瑚	珊瑚寶可夢	さんごポケモン	Coral Pokémon
+223		鐵炮魚	噴射寶可夢	ふんしゃポケモン	Jet Pokémon
+224		章魚桶	噴射寶可夢	ふんしゃポケモン	Jet Pokémon
+225		信使鳥	搬運寶可夢	はこびやポケモン	Delivery Pokémon
+226		巨翅飛魚	風箏寶可夢	カイトポケモン	Kite Pokémon
+227		盔甲鳥	鋼甲鳥寶可夢	よろいどりポケモン	Armor Bird Pokémon
+228		戴魯比	陰暗寶可夢	ダークポケモン	Dark Pokémon
+229		黑魯加	陰暗寶可夢	ダークポケモン	Dark Pokémon
+230		刺龍王	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+231		小小象	長鼻寶可夢	ながはなポケモン	Long Nose Pokémon
+232		頓甲	鎧甲寶可夢	よろいポケモン	Armor Pokémon
+233		多邊獸2型	虛擬寶可夢	バーチャルポケモン	Virtual Pokémon
+234		驚角鹿	大角寶可夢	おおツノポケモン	Big Horn Pokémon
+235		圖圖犬	畫畫寶可夢	えかきポケモン	Painter Pokémon
+236		無畏小子	打鬥寶可夢	けんかポケモン	Scuffle Pokémon
+237		戰舞郎	倒立寶可夢	さかだちポケモン	Handstand Pokémon
+238		迷唇娃	親吻寶可夢	くちづけポケモン	Kiss Pokémon
+239		電擊怪	電氣寶可夢	でんきポケモン	Electric Pokémon
+240		鴨嘴寶寶	火種寶可夢	ひだねポケモン	Live Coal Pokémon
+241		大奶罐	乳牛寶可夢	ちちうしポケモン	Milk Cow Pokémon
+242		幸福蛋	幸福寶可夢	しあわせポケモン	Happiness Pokémon
+243		雷公	天雷寶可夢	いかずちポケモン	Thunder Pokémon
+244		炎帝	火山寶可夢	かざんポケモン	Volcano Pokémon
+245		水君	極光寶可夢	オーロラポケモン	Aurora Pokémon
+246		幼基拉斯	岩石膚寶可夢	いわはだポケモン	Rock Skin Pokémon
+247		沙基拉斯	子彈寶可夢	だんがんポケモン	Hard Shell Pokémon
+248		班基拉斯	鎧甲寶可夢	よろいポケモン	Armor Pokémon
+249		洛奇亞	潛水寶可夢	せんすいポケモン	Diving Pokémon
+250		鳳王	虹色寶可夢	にじいろポケモン	Rainbow Pokémon
+251		時拉比	時空穿越寶可夢	ときわたりポケモン	Time Travel Pokémon
+252		木守宮	林蜥寶可夢	もりトカゲポケモン	Wood Gecko Pokémon
+253		森林蜥蜴	林蜥寶可夢	もりトカゲポケモン	Wood Gecko Pokémon
+254		蜥蜴王	密林寶可夢	みつりんポケモン	Forest Pokémon
+255		火稚雞	雛雞寶可夢	ひよこポケモン	Chick Pokémon
+256		力壯雞	幼雞寶可夢	わかどりポケモン	Young Fowl Pokémon
+257		火焰雞	猛火寶可夢	もうかポケモン	Blaze Pokémon
+258		水躍魚	沼魚寶可夢	ぬまうおポケモン	Mud Fish Pokémon
+259		沼躍魚	沼魚寶可夢	ぬまうおポケモン	Mud Fish Pokémon
+260		巨沼怪	沼魚寶可夢	ぬまうおポケモン	Mud Fish Pokémon
+261		土狼犬	緊咬寶可夢	かみつきポケモン	Bite Pokémon
+262		大狼犬	緊咬寶可夢	かみつきポケモン	Bite Pokémon
+263		蛇紋熊	豆貍寶可夢	まめだぬきポケモン	Tiny Raccoon Pokémon
+264		直衝熊	猛衝寶可夢	とっしんポケモン	Rushing Pokémon
+265		刺尾蟲	蟲寶寶寶可夢	いもむしポケモン	Worm Pokémon
+266		甲殼繭	蛹寶可夢	さなぎポケモン	Cocoon Pokémon
+267		狩獵鳳蝶	蝴蝶寶可夢	ちょうちょポケモン	Butterfly Pokémon
+268		盾甲繭	蛹寶可夢	さなぎポケモン	Cocoon Pokémon
+269		毒粉蛾	毒蛾寶可夢	どくがポケモン	Poison Moth Pokémon
+270		蓮葉童子	浮萍寶可夢	うきくさポケモン	Water Weed Pokémon
+271		蓮帽小童	爽朗寶可夢	ようきポケモン	Jolly Pokémon
+272		樂天河童	樂天寶可夢	のうてんきポケモン	Carefree Pokémon
+273		橡實果	橡實寶可夢	どんぐりポケモン	Acorn Pokémon
+274		長鼻葉	捉弄寶可夢	いじわるポケモン	Wily Pokémon
+275		狡猾天狗	邪惡寶可夢	よこしまポケモン	Wicked Pokémon
+276		傲骨燕	幼燕寶可夢	こツバメポケモン	Tiny Swallow Pokémon
+277		大王燕	燕子寶可夢	ツバメポケモン	Swallow Pokémon
+278		長翅鷗	海鷗寶可夢	うみねこポケモン	Seagull Pokémon
+279		大嘴鷗	水鳥寶可夢	みずどりポケモン	Water Bird Pokémon
+280		拉魯拉絲	心情寶可夢	きもちポケモン	Feeling Pokémon
+281		奇魯莉安	感情寶可夢	かんじょうポケモン	Emotion Pokémon
+282		沙奈朵	包容寶可夢	ほうようポケモン	Embrace Pokémon
+283		溜溜糖球	水黽寶可夢	あめんぼポケモン	Pond Skater Pokémon
+284		雨翅蛾	眼珠寶可夢	めだまポケモン	Eyeball Pokémon
+285		蘑蘑菇	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+286		斗笠菇	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+287		懶人獺	懶人寶可夢	なまけものポケモン	Slacker Pokémon
+288		過動猿	暴猿寶可夢	あばれザルポケモン	Wild Monkey Pokémon
+289		請假王	怕麻煩寶可夢	ものぐさポケモン	Lazy Pokémon
+290		土居忍士	入門寶可夢	したづみポケモン	Trainee Pokémon
+291		鐵面忍者	忍者寶可夢	しのびポケモン	Ninja Pokémon
+292		脫殼忍者	空殼寶可夢	ぬけがらポケモン	Shed Pokémon
+293		咕妞妞	細語寶可夢	ささやきポケモン	Whisper Pokémon
+294		吼爆彈	大聲寶可夢	おおごえポケモン	Big Voice Pokémon
+295		爆音怪	噪音寶可夢	そうおんポケモン	Loud Noise Pokémon
+296		幕下力士	毅力寶可夢	こんじょうポケモン	Guts Pokémon
+297		鐵掌力士	猛推寶可夢	つっぱりポケモン	Arm Thrust Pokémon
+298		露力麗	水珠寶可夢	みずたまポケモン	Polka Dot Pokémon
+299		朝北鼻	羅盤寶可夢	コンパスポケモン	Compass Pokémon
+300		向尾喵	小貓寶可夢	こねこポケモン	Kitten Pokémon
+301		優雅貓	清高寶可夢	おすましポケモン	Prim Pokémon
+302		勾魂眼	黑暗寶可夢	くらやみポケモン	Darkness Pokémon
+303		大嘴娃	欺騙寶可夢	あざむきポケモン	Deceiver Pokémon
+304		可可多拉	鐵鎧寶可夢	てつヨロイポケモン	Iron Armor Pokémon
+305		可多拉	鐵鎧寶可夢	てつヨロイポケモン	Iron Armor Pokémon
+306		波士可多拉	鐵鎧寶可夢	てつヨロイポケモン	Iron Armor Pokémon
+307		瑪沙那	冥想寶可夢	めいそうポケモン	Meditate Pokémon
+308		恰雷姆	冥想寶可夢	めいそうポケモン	Meditate Pokémon
+309		落雷獸	閃電寶可夢	いなずまポケモン	Lightning Pokémon
+310		雷電獸	放電寶可夢	ほうでんポケモン	Discharge Pokémon
+311		正電拍拍	加油寶可夢	おうえんポケモン	Cheering Pokémon
+312		負電拍拍	加油寶可夢	おうえんポケモン	Cheering Pokémon
+313		電螢蟲	螢火蟲寶可夢	ほたるポケモン	Firefly Pokémon
+314		甜甜螢	螢火蟲寶可夢	ほたるポケモン	Firefly Pokémon
+315		毒薔薇	荊棘寶可夢	いばらポケモン	Thorn Pokémon
+316		溶食獸	胃袋寶可夢	いぶくろポケモン	Stomach Pokémon
+317		吞食獸	毒袋寶可夢	どくぶくろポケモン	Poison Bag Pokémon
+318		利牙魚	凶猛寶可夢	どうもうポケモン	Savage Pokémon
+319		巨牙鯊	凶暴寶可夢	きょうぼうポケモン	Brutal Pokémon
+320		吼吼鯨	球鯨寶可夢	たまくじらポケモン	Ball Whale Pokémon
+321		吼鯨王	浮鯨寶可夢	うきくじらポケモン	Float Whale Pokémon
+322		呆火駝	遲鈍寶可夢	どんかんポケモン	Numb Pokémon
+323		噴火駝	噴火寶可夢	ふんかポケモン	Eruption Pokémon
+324		煤炭龜	煤炭寶可夢	せきたんポケモン	Coal Pokémon
+325		跳跳豬	彈跳寶可夢	とびはねポケモン	Bounce Pokémon
+326		噗噗豬	操縱寶可夢	あやつりポケモン	Manipulate Pokémon
+327		晃晃斑	斑點熊貓寶可夢	ぶちパンダポケモン	Spot Panda Pokémon
+328		大顎蟻	蟻獅寶可夢	ありじごくポケモン	Ant Pit Pokémon
+329		超音波幼蟲	震動寶可夢	しんどうポケモン	Vibration Pokémon
+330		沙漠蜻蜓	神秘寶可夢	せいれいポケモン	Mystic Pokémon
+331		刺球仙人掌	仙人掌寶可夢	サボテンポケモン	Cactus Pokémon
+332		夢歌仙人掌	稻草人寶可夢	カカシぐさポケモン	Scarecrow Pokémon
+333		青綿鳥	綿鳥寶可夢	わたどりポケモン	Cotton Bird Pokémon
+334		七夕青鳥	哼唱寶可夢	ハミングポケモン	Humming Pokémon
+335		貓鼬斬	貓鼬寶可夢	ネコイタチポケモン	Cat Ferret Pokémon
+336		飯匙蛇	牙蛇寶可夢	キバへびポケモン	Fang Snake Pokémon
+337		月石	隕石寶可夢	いんせきポケモン	Meteorite Pokémon
+338		太陽岩	隕石寶可夢	いんせきポケモン	Meteorite Pokémon
+339		泥泥鰍	鬚魚寶可夢	ひげうおポケモン	Whiskers Pokémon
+340		鯰魚王	鬚魚寶可夢	ひげうおポケモン	Whiskers Pokémon
+341		龍蝦小兵	無賴寶可夢	ごろつきポケモン	Ruffian Pokémon
+342		鐵螯龍蝦	流氓寶可夢	ならずものポケモン	Rogue Pokémon
+343		天秤偶	泥偶寶可夢	どぐうポケモン	Clay Doll Pokémon
+344		念力土偶	泥偶寶可夢	どぐうポケモン	Clay Doll Pokémon
+345		觸手百合	海百合寶可夢	ウミユリポケモン	Sea Lily Pokémon
+346		搖籃百合	藤壺寶可夢	いわつぼポケモン	Barnacle Pokémon
+347		太古羽蟲	古蝦寶可夢	むかしエビポケモン	Old Shrimp Pokémon
+348		太古盔甲	甲胄寶可夢	かっちゅうポケモン	Plate Pokémon
+349		醜醜魚	魚寶可夢	さかなポケモン	Fish Pokémon
+350		美納斯	慈愛寶可夢	いつくしみポケモン	Tender Pokémon
+351		飄浮泡泡	天氣寶可夢	てんきポケモン	Weather Pokémon
+352		變隱龍	變色寶可夢	いろへんげポケモン	Color Swap Pokémon
+353		怨影娃娃	人偶寶可夢	にんぎょうポケモン	Puppet Pokémon
+354		詛咒娃娃	布偶寶可夢	ぬいぐるみポケモン	Marionette Pokémon
+355		夜巡靈	渡魂寶可夢	おむかえポケモン	Requiem Pokémon
+356		彷徨夜靈	招手寶可夢	てまねきポケモン	Beckon Pokémon
+357		熱帶龍	水果寶可夢	フルーツポケモン	Fruit Pokémon
+358		風鈴鈴	風鈴寶可夢	ふうりんポケモン	Wind Chime Pokémon
+359		阿勃梭魯	災禍寶可夢	わざわいポケモン	Disaster Pokémon
+360		小果然	開朗寶可夢	ほがらかポケモン	Bright Pokémon
+361		雪童子	雪笠寶可夢	ゆきかさポケモン	Snow Hat Pokémon
+362		冰鬼護	臉面寶可夢	がんめんポケモン	Face Pokémon
+363		海豹球	拍手寶可夢	てたたきポケモン	Clap Pokémon
+364		海魔獅	滾球寶可夢	たままわしポケモン	Ball Roll Pokémon
+365		帝牙海獅	破冰寶可夢	こおりわりポケモン	Ice Break Pokémon
+366		珍珠貝	雙殼貝寶可夢	２まいがいポケモン	Bivalve Pokémon
+367		獵斑魚	深海寶可夢	しんかいポケモン	Deep Sea Pokémon
+368		櫻花魚	南海寶可夢	なんかいポケモン	South Sea Pokémon
+369		古空棘魚	長壽寶可夢	ちょうじゅポケモン	Longevity Pokémon
+370		愛心魚	相隨寶可夢	ランデブーポケモン	Rendezvous Pokémon
+371		寶貝龍	堅硬腦袋寶可夢	いしあたまポケモン	Rock Head Pokémon
+372		甲殼龍	耐力寶可夢	にんたいポケモン	Endurance Pokémon
+373		暴飛龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+374		鐵啞鈴	鐵球寶可夢	てっきゅうポケモン	Iron Ball Pokémon
+375		金屬怪	鐵爪寶可夢	てつツメポケモン	Iron Claw Pokémon
+376		巨金怪	鐵足寶可夢	てつあしポケモン	Iron Leg Pokémon
+377		雷吉洛克	岩山寶可夢	いわやまポケモン	Rock Peak Pokémon
+378		雷吉艾斯	冰山寶可夢	ひょうざんポケモン	Iceberg Pokémon
+379		雷吉斯奇魯	黑金寶可夢	くろがねポケモン	Iron Pokémon
+380		拉帝亞斯	無限寶可夢	むげんポケモン	Eon Pokémon
+381		拉帝歐斯	無限寶可夢	むげんポケモン	Eon Pokémon
+382		蓋歐卡	海底寶可夢	かいていポケモン	Sea Basin Pokémon
+383		固拉多	大陸寶可夢	たいりくポケモン	Continent Pokémon
+384		烈空坐	天空寶可夢	てんくうポケモン	Sky High Pokémon
+385		基拉祈	祈願寶可夢	ねがいごとポケモン	Wish Pokémon
+386		代歐奇希斯	ＤＮＡ寶可夢	ＤＮＡポケモン	DNA Pokémon
+387		草苗龜	嫩葉寶可夢	わかばポケモン	Tiny Leaf Pokémon
+388		樹林龜	樹叢寶可夢	こだちポケモン	Grove Pokémon
+389		土台龜	大陸寶可夢	たいりくポケモン	Continent Pokémon
+390		小火焰猴	小猴寶可夢	こざるポケモン	Chimp Pokémon
+391		猛火猴	頑皮寶可夢	やんちゃポケモン	Playful Pokémon
+392		烈焰猴	火焰寶可夢	かえんポケモン	Flame Pokémon
+393		波加曼	企鵝寶可夢	ペンギンポケモン	Penguin Pokémon
+394		波皇子	企鵝寶可夢	ペンギンポケモン	Penguin Pokémon
+395		帝王拿波	皇帝寶可夢	こうていポケモン	Emperor Pokémon
+396		姆克兒	椋鳥寶可夢	むくどりポケモン	Starling Pokémon
+397		姆克鳥	椋鳥寶可夢	むくどりポケモン	Starling Pokémon
+398		姆克鷹	猛禽寶可夢	もうきんポケモン	Predator Pokémon
+399		大牙狸	圓鼠寶可夢	まるねずみポケモン	Plump Mouse Pokémon
+400		大尾狸	河狸寶可夢	ビーバーポケモン	Beaver Pokémon
+401		圓法師	蟋蟀寶可夢	こおろぎポケモン	Cricket Pokémon
+402		音箱蟀	蟋蟀寶可夢	こおろぎポケモン	Cricket Pokémon
+403		小貓怪	閃光寶可夢	せんこうポケモン	Flash Pokémon
+404		勒克貓	電光寶可夢	でんこうポケモン	Spark Pokémon
+405		倫琴貓	目光寶可夢	がんこうポケモン	Gleam Eyes Pokémon
+406		含羞苞	花苞寶可夢	つぼみポケモン	Bud Pokémon
+407		羅絲雷朵	花束寶可夢	ブーケポケモン	Bouquet Pokémon
+408		頭蓋龍	頭錘寶可夢	ずつきポケモン	Head Butt Pokémon
+409		戰槌龍	頭錘寶可夢	ずつきポケモン	Head Butt Pokémon
+410		盾甲龍	護盾寶可夢	シールドポケモン	Shield Pokémon
+411		護城龍	護盾寶可夢	シールドポケモン	Shield Pokémon
+412		結草兒	蓑衣蟲寶可夢	みのむしポケモン	Bagworm Pokémon
+413		結草貴婦	蓑衣蟲寶可夢	みのむしポケモン	Bagworm Pokémon
+414		紳士蛾	蓑衣蛾寶可夢	ミノガポケモン	Moth Pokémon
+415		三蜜蜂	幼蜂寶可夢	はちのこポケモン	Tiny Bee Pokémon
+416		蜂女王	蜂巢寶可夢	はちのすポケモン	Beehive Pokémon
+417		帕奇利茲	電松鼠寶可夢	でんきりすポケモン	EleSquirrel Pokémon
+418		泳圈鼬	海鼬寶可夢	うみイタチポケモン	Sea Weasel Pokémon
+419		浮潛鼬	海鼬寶可夢	うみイタチポケモン	Sea Weasel Pokémon
+420		櫻花寶	櫻桃寶可夢	さくらんぼポケモン	Cherry Pokémon
+421		櫻花兒	櫻花寶可夢	サクラポケモン	Blossom Pokémon
+422		無殼海兔	海兔寶可夢	ウミウシポケモン	Sea Slug Pokémon
+423		海兔獸	海兔寶可夢	ウミウシポケモン	Sea Slug Pokémon
+424		雙尾怪手	長尾寶可夢	おながポケモン	Long Tail Pokémon
+425		飄飄球	氣球寶可夢	ふうせんポケモン	Balloon Pokémon
+426		隨風球	熱氣球寶可夢	ききゅうポケモン	Blimp Pokémon
+427		捲捲耳	兔子寶可夢	うさぎポケモン	Rabbit Pokémon
+428		長耳兔	兔子寶可夢	うさぎポケモン	Rabbit Pokémon
+429		夢妖魔	魔法寶可夢	マジカルポケモン	Magical Pokémon
+430		烏鴉頭頭	大頭目寶可夢	おおボスポケモン	Big Boss Pokémon
+431		魅力喵	裝乖寶可夢	ねこかぶりポケモン	Catty Pokémon
+432		東施喵	虎斑貓寶可夢	とらねこポケモン	Tiger Cat Pokémon
+433		鈴鐺響	鈴鐺寶可夢	すずポケモン	Bell Pokémon
+434		臭鼬噗	臭鼬寶可夢	スカンクポケモン	Skunk Pokémon
+435		坦克臭鼬	臭鼬寶可夢	スカンクポケモン	Skunk Pokémon
+436		銅鏡怪	青銅寶可夢	せいどうポケモン	Bronze Pokémon
+437		青銅鐘	銅鐘寶可夢	どうたくポケモン	Bronze Bell Pokémon
+438		盆才怪	盆栽寶可夢	ぼんさいポケモン	Bonsai Pokémon
+439		魔尼尼	默劇寶可夢	マイムポケモン	Mime Pokémon
+440		小福蛋	家家酒寶可夢	ままごとポケモン	Playhouse Pokémon
+441		聒噪鳥	音符寶可夢	おんぷポケモン	Music Note Pokémon
+442		花岩怪	封印寶可夢	ふういんポケモン	Forbidden Pokémon
+443		圓陸鯊	陸鯊寶可夢	りくザメポケモン	Land Shark Pokémon
+444		尖牙陸鯊	洞穴寶可夢	ほらあなポケモン	Cave Pokémon
+445		烈咬陸鯊	音速寶可夢	マッハポケモン	Mach Pokémon
+446		小卡比獸	大胃王寶可夢	おおぐいポケモン	Big Eater Pokémon
+447		利歐路	波紋寶可夢	はもんポケモン	Emanation Pokémon
+448		路卡利歐	波導寶可夢	はどうポケモン	Aura Pokémon
+449		沙河馬	河馬寶可夢	カバポケモン	Hippo Pokémon
+450		河馬獸	重量寶可夢	じゅうりょうポケモン	Heavyweight Pokémon
+451		鉗尾蠍	蠍子寶可夢	さそりポケモン	Scorpion Pokémon
+452		龍王蠍	蠍怪寶可夢	ばけさそりポケモン	Ogre Scorpion Pokémon
+453		不良蛙	毒擊寶可夢	どくづきポケモン	Toxic Mouth Pokémon
+454		毒骷蛙	毒擊寶可夢	どくづきポケモン	Toxic Mouth Pokémon
+455		尖牙籠	捕蟲寶可夢	むしとりポケモン	Bug Catcher Pokémon
+456		螢光魚	飛翅魚寶可夢	はねうおポケモン	Wing Fish Pokémon
+457		霓虹魚	霓虹寶可夢	ネオンポケモン	Neon Pokémon
+458		小球飛魚	風箏寶可夢	カイトポケモン	Kite Pokémon
+459		雪笠怪	樹冰寶可夢	じゅひょうポケモン	Frost Tree Pokémon
+460		暴雪王	樹冰寶可夢	じゅひょうポケモン	Frost Tree Pokémon
+461		瑪狃拉	鉤爪寶可夢	かぎづめポケモン	Sharp Claw Pokémon
+462		自爆磁怪	磁場寶可夢	じばポケモン	Magnet Area Pokémon
+463		大舌舔	舔舔寶可夢	なめまわしポケモン	Licking Pokémon
+464		超甲狂犀	鑽錐寶可夢	ドリルポケモン	Drill Pokémon
+465		巨蔓藤	藤蔓狀寶可夢	ツルじょうポケモン	Vine Pokémon
+466		電擊魔獸	雷電寶可夢	らいでんポケモン	Thunderbolt Pokémon
+467		鴨嘴炎獸	爆炎寶可夢	ばくえんポケモン	Blast Pokémon
+468		波克基斯	祝福寶可夢	しゅくふくポケモン	Jubilee Pokémon
+469		遠古巨蜓	勾蜓寶可夢	オニトンボポケモン	Ogre Darner Pokémon
+470		葉伊布	新綠寶可夢	しんりょくポケモン	Verdant Pokémon
+471		冰伊布	新雪寶可夢	しんせつポケモン	Fresh Snow Pokémon
+472		天蠍王	牙蠍寶可夢	キバさそりポケモン	Fang Scorpion Pokémon
+473		象牙豬	雙牙寶可夢	２ほんキバポケモン	Twin Tusk Pokémon
+474		多邊獸乙型	虛擬寶可夢	バーチャルポケモン	Virtual Pokémon
+475		艾路雷朵	利刃寶可夢	やいばポケモン	Blade Pokémon
+476		大朝北鼻	羅盤寶可夢	コンパスポケモン	Compass Pokémon
+477		黑夜魔靈	抓握寶可夢	てづかみポケモン	Gripper Pokémon
+478		雪妖女	雪國寶可夢	ゆきぐにポケモン	Snow Land Pokémon
+479		洛托姆	等離子寶可夢	プラズマポケモン	Plasma Pokémon
+480		由克希	知識寶可夢	ちしきポケモン	Knowledge Pokémon
+481		艾姆利多	感情寶可夢	かんじょうポケモン	Emotion Pokémon
+482		亞克諾姆	意志寶可夢	いしポケモン	Willpower Pokémon
+483		帝牙盧卡	時間寶可夢	じかんポケモン	Temporal Pokémon
+484		帕路奇亞	空間寶可夢	くうかんポケモン	Spatial Pokémon
+485		席多藍恩	火山口寶可夢	かこうポケモン	Lava Dome Pokémon
+486		雷吉奇卡斯	巨大寶可夢	きょだいポケモン	Colossal Pokémon
+487		騎拉帝納	反抗寶可夢	はんこつポケモン	Renegade Pokémon
+488		克雷色利亞	新月寶可夢	みかづきポケモン	Lunar Pokémon
+489		霏歐納	海洋寶可夢	かいようポケモン	Sea Drifter Pokémon
+490		瑪納霏	洄游寶可夢	かいゆうポケモン	Seafaring Pokémon
+491		達克萊伊	暗黑寶可夢	あんこくポケモン	Pitch-Black Pokémon
+492		謝米	感謝寶可夢	かんしゃポケモン	Gratitude Pokémon
+493		阿爾宙斯	創造寶可夢	そうぞうポケモン	Alpha Pokémon
+494		比克提尼	勝利寶可夢	しょうりポケモン	Victory Pokémon
+495		藤藤蛇	草蛇寶可夢	くさへびポケモン	Grass Snake Pokémon
+496		青藤蛇	草蛇寶可夢	くさへびポケモン	Grass Snake Pokémon
+497		君主蛇	皇家寶可夢	ロイヤルポケモン	Regal Pokémon
+498		暖暖豬	火豬寶可夢	ひぶたポケモン	Fire Pig Pokémon
+499		炒炒豬	火豬寶可夢	ひぶたポケモン	Fire Pig Pokémon
+500		炎武王	大火豬寶可夢	おおひぶたポケモン	Mega Fire Pig Pokémon
+501		水水獺	海獺寶可夢	ラッコポケモン	Sea Otter Pokémon
+502		雙刃丸	修行寶可夢	しゅぎょうポケモン	Discipline Pokémon
+503		大劍鬼	威嚴寶可夢	かんろくポケモン	Formidable Pokémon
+504		探探鼠	放哨寶可夢	みはりポケモン	Scout Pokémon
+505		步哨鼠	警戒寶可夢	けいかいポケモン	Lookout Pokémon
+506		小約克	小狗寶可夢	こいぬポケモン	Puppy Pokémon
+507		哈約克	忠犬寶可夢	ちゅうけんポケモン	Loyal Dog Pokémon
+508		長毛狗	寬大寶可夢	かんだいポケモン	Big-Hearted Pokémon
+509		扒手貓	壞心眼寶可夢	しょうわるポケモン	Devious Pokémon
+510		酷豹	冷酷寶可夢	れいこくポケモン	Cruel Pokémon
+511		花椰猴	草猴寶可夢	くさざるポケモン	Grass Monkey Pokémon
+512		花椰猿	刺猴寶可夢	とげざるポケモン	Thorn Monkey Pokémon
+513		爆香猴	高溫寶可夢	こうおんポケモン	High Temp Pokémon
+514		爆香猿	火花寶可夢	ひのこポケモン	Ember Pokémon
+515		冷水猴	潑水寶可夢	みずかけポケモン	Spray Pokémon
+516		冷水猿	放水寶可夢	ほうすいポケモン	Geyser Pokémon
+517		食夢夢	食夢寶可夢	ゆめくいポケモン	Dream Eater Pokémon
+518		夢夢蝕	半夢半醒寶可夢	ゆめうつつポケモン	Drowsing Pokémon
+519		豆豆鴿	小鴿寶可夢	こばとポケモン	Tiny Pigeon Pokémon
+520		咕咕鴿	野鴿寶可夢	のばとポケモン	Wild Pigeon Pokémon
+521		高傲雉雞	自尊心寶可夢	プライドポケモン	Proud Pokémon
+522		斑斑馬	帶電寶可夢	たいでんポケモン	Electrified Pokémon
+523		雷電斑馬	雷電寶可夢	らいでんポケモン	Thunderbolt Pokémon
+524		石丸子	地幔寶可夢	マントルポケモン	Mantle Pokémon
+525		地幔岩	礦石寶可夢	こうせきポケモン	Ore Pokémon
+526		龐岩怪	高壓寶可夢	こうあつポケモン	Compressed Pokémon
+527		滾滾蝙蝠	蝙蝠寶可夢	こうもりポケモン	Bat Pokémon
+528		心蝙蝠	求愛寶可夢	きゅうあいポケモン	Courting Pokémon
+529		螺釘地鼠	鼴鼠寶可夢	もぐらポケモン	Mole Pokémon
+530		龍頭地鼠	地底寶可夢	ちていポケモン	Subterrene Pokémon
+531		差不多娃娃	聽力寶可夢	ヒヤリングポケモン	Hearing Pokémon
+532		搬運小匠	筋骨寶可夢	きんこつポケモン	Muscular Pokémon
+533		鐵骨土人	筋骨寶可夢	きんこつポケモン	Muscular Pokémon
+534		修建老匠	筋骨寶可夢	きんこつポケモン	Muscular Pokémon
+535		圓蝌蚪	蝌蚪寶可夢	おたまポケモン	Tadpole Pokémon
+536		藍蟾蜍	震動寶可夢	しんどうポケモン	Vibration Pokémon
+537		蟾蜍王	震動寶可夢	しんどうポケモン	Vibration Pokémon
+538		投摔鬼	柔道寶可夢	じゅうどうポケモン	Judo Pokémon
+539		打擊鬼	空手道寶可夢	からてポケモン	Karate Pokémon
+540		蟲寶包	裁縫寶可夢	さいほうポケモン	Sewing Pokémon
+541		寶包繭	足不出葉寶可夢	はごもりポケモン	Leaf-Wrapped Pokémon
+542		保母蟲	育兒寶可夢	こそだてポケモン	Nurturing Pokémon
+543		百足蜈蚣	蜈蚣寶可夢	ムカデポケモン	Centipede Pokémon
+544		車輪毬	繭蜈蚣寶可夢	まゆムカデポケモン	Curlipede Pokémon
+545		蜈蚣王	巨蜈蚣寶可夢	メガムカデポケモン	Megapede Pokémon
+546		木棉球	棉球寶可夢	わたたまポケモン	Cotton Puff Pokémon
+547		風妖精	風隱寶可夢	かぜかくれポケモン	Windveiled Pokémon
+548		百合根娃娃	根莖寶可夢	ねっこポケモン	Bulb Pokémon
+549		裙兒小姐	花飾寶可夢	はなかざりポケモン	Flowering Pokémon
+549		裙兒小姐
+洗翠的樣子	旋轉寶可夢	スピンポケモン	Spinning Pokémon
+550		野蠻鱸魚	粗暴寶可夢	らんぼうポケモン	Hostile Pokémon
+550		野蠻鱸魚
+白條紋的樣子	溫厚寶可夢	おんこうポケモン	Mellow Pokémon
+551		黑眼鱷	沙漠鱷魚寶可夢	さばくワニポケモン	Desert Croc Pokémon
+552		混混鱷	沙漠鱷魚寶可夢	さばくワニポケモン	Desert Croc Pokémon
+553		流氓鱷	威嚇寶可夢	いかくポケモン	Intimidation Pokémon
+554		火紅不倒翁	不倒翁寶可夢	だるまポケモン	Zen Charm Pokémon
+555		達摩狒狒	爆燃寶可夢	えんじょうポケモン	Blazing Pokémon
+555		達摩狒狒
+伽勒爾的樣子	不倒翁寶可夢	だるまポケモン	Zen Charm Pokémon
+556		沙鈴仙人掌	仙人掌寶可夢	サボテンポケモン	Cactus Pokémon
+557		石居蟹	石居寶可夢	いしやどポケモン	Rock Inn Pokémon
+558		岩殿居蟹	岩居寶可夢	いわやどポケモン	Stone Home Pokémon
+559		滑滑小子	蛻皮寶可夢	だっぴポケモン	Shedding Pokémon
+560		頭巾混混	惡黨寶可夢	あくとうポケモン	Hoodlum Pokémon
+561		象徵鳥	似鳥寶可夢	とりもどきポケモン	Avianoid Pokémon
+562		哭哭面具	魂寶可夢	たましいポケモン	Spirit Pokémon
+563		迭失棺	棺木寶可夢	かんおけポケモン	Coffin Pokémon
+564		原蓋海龜	古代龜寶可夢	こだいがめポケモン	Prototurtle Pokémon
+565		肋骨海龜	古代龜寶可夢	こだいがめポケモン	Prototurtle Pokémon
+566		始祖小鳥	遠古鳥寶可夢	さいこどりポケモン	First Bird Pokémon
+567		始祖大鳥	遠古鳥寶可夢	さいこどりポケモン	First Bird Pokémon
+568		破破袋	垃圾袋寶可夢	ゴミぶくろポケモン	Trash Bag Pokémon
+569		灰塵山	垃圾場寶可夢	ゴミすてばポケモン	Trash Heap Pokémon
+570		索羅亞	惡狐寶可夢	わるぎつねポケモン	Tricky Fox Pokémon
+570		索羅亞
+洗翠的樣子	怨狐寶可夢	うらみぎつねポケモン	Spiteful Fox Pokémon
+571		索羅亞克	妖狐寶可夢	ばけぎつねポケモン	Illusion Fox Pokémon
+571		索羅亞克
+洗翠的樣子	咒狐寶可夢	のろいぎつねポケモン	Baneful Fox Pokémon
+572		泡沫栗鼠	栗鼠寶可夢	チンチラポケモン	Chinchilla Pokémon
+573		奇諾栗鼠	圍巾寶可夢	スカーフポケモン	Scarf Pokémon
+574		哥德寶寶	凝視寶可夢	ぎょうしポケモン	Fixation Pokémon
+575		哥德小童	操縱寶可夢	あやつりポケモン	Manipulate Pokémon
+576		哥德小姐	天體寶可夢	てんたいポケモン	Astral Body Pokémon
+577		單卵細胞球	細胞寶可夢	さいぼうポケモン	Cell Pokémon
+578		雙卵細胞球	分割寶可夢	ぶんかつポケモン	Mitosis Pokémon
+579		人造細胞卵	增幅寶可夢	ぞうふくポケモン	Multiplying Pokémon
+580		鴨寶寶	水鳥寶可夢	みずどりポケモン	Water Bird Pokémon
+581		舞天鵝	白鳥寶可夢	しらとりポケモン	White Bird Pokémon
+582		迷你冰	新雪寶可夢	しんせつポケモン	Fresh Snow Pokémon
+583		多多冰	冰雪寶可夢	ひょうせつポケモン	Icy Snow Pokémon
+584		雙倍多多冰	暴風雪寶可夢	ブリザードポケモン	Snowstorm Pokémon
+585		四季鹿	季節寶可夢	きせつポケモン	Season Pokémon
+586		萌芽鹿	季節寶可夢	きせつポケモン	Season Pokémon
+587		電飛鼠	飛鼠寶可夢	モモンガポケモン	Sky Squirrel Pokémon
+588		蓋蓋蟲	啃咬寶可夢	かぶりつきポケモン	Clamping Pokémon
+589		騎士蝸牛	騎兵寶可夢	きへいポケモン	Cavalry Pokémon
+590		哎呀球菇	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+591		敗露球菇	蘑菇寶可夢	きのこポケモン	Mushroom Pokémon
+592		輕飄飄	漂浮寶可夢	ふゆうポケモン	Floating Pokémon
+593		胖嘟嘟	漂浮寶可夢	ふゆうポケモン	Floating Pokémon
+594		保母曼波	看護寶可夢	かいほうポケモン	Caring Pokémon
+595		電電蟲	吸附寶可夢	くっつきポケモン	Attaching Pokémon
+596		電蜘蛛	電蜘蛛寶可夢	でんきグモポケモン	EleSpider Pokémon
+597		種子鐵球	刺果寶可夢	とげのみポケモン	Thorn Seed Pokémon
+598		堅果啞鈴	刺球寶可夢	とげだまポケモン	Thorn Pod Pokémon
+599		齒輪兒	齒輪寶可夢	はぐるまポケモン	Gear Pokémon
+600		齒輪組	齒輪寶可夢	はぐるまポケモン	Gear Pokémon
+601		齒輪怪	齒輪寶可夢	はぐるまポケモン	Gear Pokémon
+602		麻麻小魚	電魚寶可夢	でんきうおポケモン	EleFish Pokémon
+603		麻麻鰻	電魚寶可夢	でんきうおポケモン	EleFish Pokémon
+604		麻麻鰻魚王	電魚寶可夢	でんきうおポケモン	EleFish Pokémon
+605		小灰怪	腦寶可夢	ブレインポケモン	Cerebral Pokémon
+606		大宇怪	腦寶可夢	ブレインポケモン	Cerebral Pokémon
+607		燭光靈	蠟燭寶可夢	ろうそくポケモン	Candle Pokémon
+608		燈火幽靈	油燈寶可夢	ランプポケモン	Lamp Pokémon
+609		水晶燈火靈	引誘寶可夢	いざないポケモン	Luring Pokémon
+610		牙牙	牙寶可夢	キバポケモン	Tusk Pokémon
+611		斧牙龍	顎斧寶可夢	あごオノポケモン	Axe Jaw Pokémon
+612		雙斧戰龍	顎斧寶可夢	あごオノポケモン	Axe Jaw Pokémon
+613		噴嚏熊	結冰寶可夢	ひょうけつポケモン	Chill Pokémon
+614		凍原熊	凍結寶可夢	とうけつポケモン	Freezing Pokémon
+615		幾何雪花	結晶寶可夢	けっしょうポケモン	Crystallizing Pokémon
+616		小嘴蝸	蝸牛寶可夢	マイマイポケモン	Snail Pokémon
+617		敏捷蟲	脫殼寶可夢	からぬけポケモン	Shell Out Pokémon
+618		泥巴魚	陷阱寶可夢	トラップポケモン	Trap Pokémon
+619		功夫鼬	武術寶可夢	ぶじゅつポケモン	Martial Arts Pokémon
+620		師父鼬	武術寶可夢	ぶじゅつポケモン	Martial Arts Pokémon
+621		赤面龍	洞穴寶可夢	ほらあなポケモン	Cave Pokémon
+622		泥偶小人	魔像寶可夢	ゴーレムポケモン	Automaton Pokémon
+623		泥偶巨人	魔像寶可夢	ゴーレムポケモン	Automaton Pokémon
+624		駒刀小兵	利器寶可夢	はものポケモン	Sharp Blade Pokémon
+625		劈斬司令	刀刃寶可夢	とうじんポケモン	Sword Blade Pokémon
+626		爆炸頭水牛	頭錘牛寶可夢	ずつきうしポケモン	Bash Buffalo Pokémon
+627		毛頭小鷹	雛鷹寶可夢	ヒナわしポケモン	Eaglet Pokémon
+628		勇士雄鷹	勇猛寶可夢	ゆうもうポケモン	Valiant Pokémon
+628		勇士雄鷹
+洗翠的樣子	戰吼寶可夢	おたけびポケモン	Battle Cry Pokémon
+629		禿鷹丫頭	尿布寶可夢	おむつポケモン	Diapered Pokémon
+630		禿鷹娜	骨鷹寶可夢	ほねわしポケモン	Bone Vulture Pokémon
+631		熔蟻獸	食蟻獸寶可夢	アリクイポケモン	Anteater Pokémon
+632		鐵蟻	鐵蟻寶可夢	てつアリポケモン	Iron Ant Pokémon
+633		單首龍	粗魯寶可夢	そぼうポケモン	Irate Pokémon
+634		雙首暴龍	粗暴寶可夢	らんぼうポケモン	Hostile Pokémon
+635		三首惡龍	凶暴寶可夢	きょうぼうポケモン	Brutal Pokémon
+636		燃燒蟲	火炬寶可夢	たいまつポケモン	Torch Pokémon
+637		火神蛾	太陽寶可夢	たいようポケモン	Sun Pokémon
+638		勾帕路翁	鐵心寶可夢	てっしんポケモン	Iron Will Pokémon
+639		代拉基翁	岩窟寶可夢	がんくつポケモン	Cavern Pokémon
+640		畢力吉翁	草原寶可夢	そうげんポケモン	Grassland Pokémon
+641		龍捲雲	旋風寶可夢	せんぷうポケモン	Cyclone Pokémon
+642		雷電雲	雷擊寶可夢	らいげきポケモン	Bolt Strike Pokémon
+643		萊希拉姆	白陽寶可夢	はくようポケモン	Vast White Pokémon
+644		捷克羅姆	黑陰寶可夢	こくいんポケモン	Deep Black Pokémon
+645		土地雲	豐饒寶可夢	ほうじょうポケモン	Abundance Pokémon
+646		酋雷姆	境界寶可夢	きょうかいポケモン	Boundary Pokémon
+647		凱路迪歐	幼馬寶可夢	わかごまポケモン	Colt Pokémon
+648		美洛耶塔	旋律寶可夢	せんりつポケモン	Melody Pokémon
+649		蓋諾賽克特	古生代寶可夢	こせいだいポケモン	Paleozoic Pokémon
+650		哈力栗	刺栗寶可夢	いがぐりポケモン	Spiny Nut Pokémon
+651		胖胖哈力	刺鎧寶可夢	とげよろいポケモン	Spiny Armor Pokémon
+652		布里卡隆	刺鎧寶可夢	とげよろいポケモン	Spiny Armor Pokémon
+653		火狐狸	狐狸寶可夢	キツネポケモン	Fox Pokémon
+654		長尾火狐	狐狸寶可夢	キツネポケモン	Fox Pokémon
+655		妖火紅狐	狐狸寶可夢	キツネポケモン	Fox Pokémon
+656		呱呱泡蛙	泡蛙寶可夢	あわがえるポケモン	Bubble Frog Pokémon
+657		呱頭蛙	泡蛙寶可夢	あわがえるポケモン	Bubble Frog Pokémon
+658		甲賀忍蛙	忍者寶可夢	しのびポケモン	Ninja Pokémon
+659		掘掘兔	挖洞寶可夢	あなほりポケモン	Digging Pokémon
+660		掘地兔	挖洞寶可夢	あなほりポケモン	Digging Pokémon
+661		小箭雀	知更鳥寶可夢	コマドリポケモン	Tiny Robin Pokémon
+662		火箭雀	火花寶可夢	ひのこポケモン	Ember Pokémon
+663		烈箭鷹	烈火寶可夢	れっかポケモン	Scorching Pokémon
+664		粉蝶蟲	噴粉寶可夢	こなふきポケモン	Scatterdust Pokémon
+665		粉蝶蛹	噴粉寶可夢	こなふきポケモン	Scatterdust Pokémon
+666		彩粉蝶	鱗粉寶可夢	りんぷんポケモン	Scale Pokémon
+667		小獅獅	幼獅寶可夢	わかじしポケモン	Lion Cub Pokémon
+668		火炎獅	王者寶可夢	おうじゃポケモン	Royal Pokémon
+669		花蓓蓓	單朵寶可夢	いちりんポケモン	Single Bloom Pokémon
+670		花葉蒂	單朵寶可夢	いちりんポケモン	Single Bloom Pokémon
+671		花潔夫人	花園寶可夢	ガーデンポケモン	Garden Pokémon
+672		坐騎小羊	坐騎寶可夢	ライドポケモン	Mount Pokémon
+673		坐騎山羊	坐騎寶可夢	ライドポケモン	Mount Pokémon
+674		頑皮熊貓	頑皮寶可夢	やんちゃポケモン	Playful Pokémon
+675		霸道熊貓	惡顏寶可夢	こわもてポケモン	Daunting Pokémon
+676		多麗米亞	貴賓犬寶可夢	プードルポケモン	Poodle Pokémon
+677		妙喵	自制寶可夢	じせいポケモン	Restraint Pokémon
+678		超能妙喵	抑制寶可夢	よくせいポケモン	Constraint Pokémon
+679		獨劍鞘	刀劍寶可夢	とうけんポケモン	Sword Pokémon
+680		雙劍鞘	刀劍寶可夢	とうけんポケモン	Sword Pokémon
+681		堅盾劍怪	王劍寶可夢	おうけんポケモン	Royal Sword Pokémon
+682		粉香香	香水寶可夢	こうすいポケモン	Perfume Pokémon
+683		芳香精	芳香寶可夢	ほうこうポケモン	Fragrance Pokémon
+684		綿綿泡芙	棉花糖寶可夢	わたあめポケモン	Cotton Candy Pokémon
+685		胖甜妮	泡沫奶油寶可夢	ホイップポケモン	Meringue Pokémon
+686		好啦魷	回轉寶可夢	かいてんポケモン	Revolving Pokémon
+687		烏賊王	倒轉寶可夢	ぎゃくてんポケモン	Overturning Pokémon
+688		龜腳腳	雙手寶可夢	ふたてポケモン	Two-Handed Pokémon
+689		龜足巨鎧	集合寶可夢	しゅうごうポケモン	Collective Pokémon
+690		垃垃藻	似草寶可夢	クサモドキポケモン	Mock Kelp Pokémon
+691		毒藻龍	似草寶可夢	クサモドキポケモン	Mock Kelp Pokémon
+692		鐵臂槍蝦	水槍寶可夢	みずでっぽうポケモン	Water Gun Pokémon
+693		鋼炮臂蝦	發射器寶可夢	ランチャーポケモン	Howitzer Pokémon
+694		傘電蜥	發電寶可夢	はつでんポケモン	Generator Pokémon
+695		光電傘蜥	發電寶可夢	はつでんポケモン	Generator Pokémon
+696		寶寶暴龍	幼君寶可夢	ようくんポケモン	Royal Heir Pokémon
+697		怪顎龍	暴君寶可夢	ぼうくんポケモン	Despot Pokémon
+698		冰雪龍	凍原寶可夢	ツンドラポケモン	Tundra Pokémon
+699		冰雪巨龍	凍原寶可夢	ツンドラポケモン	Tundra Pokémon
+700		仙子伊布	連結寶可夢	むすびつきポケモン	Intertwining Pokémon
+701		摔角鷹人	摔角寶可夢	レスリングポケモン	Wrestling Pokémon
+702		咚咚鼠	天線寶可夢	アンテナポケモン	Antenna Pokémon
+703		小碎鑽	寶石寶可夢	ほうせきポケモン	Jewel Pokémon
+704		黏黏寶	軟體生物寶可夢	なんたいポケモン	Soft Tissue Pokémon
+705		黏美兒	軟體生物寶可夢	なんたいポケモン	Soft Tissue Pokémon
+705		黏美兒
+洗翠的樣子	蝸牛寶可夢	マイマイポケモン	Snail Pokémon
+706		黏美龍	龍寶可夢	ドラゴンポケモン	Dragon Pokémon
+706		黏美龍
+洗翠的樣子	窩殼寶可夢	からこもりポケモン	Shell Bunker Pokémon
+707		鑰圈兒	鑰匙串寶可夢	かぎたばポケモン	Key Ring Pokémon
+708		小木靈	樹樁寶可夢	きりかぶポケモン	Stump Pokémon
+709		朽木妖	老樹寶可夢	ろうぼくポケモン	Elder Tree Pokémon
+710		南瓜精	南瓜寶可夢	かぼちゃポケモン	Pumpkin Pokémon
+711		南瓜怪人	南瓜寶可夢	かぼちゃポケモン	Pumpkin Pokémon
+712		冰寶	冰塊寶可夢	ひょうかいポケモン	Ice Chunk Pokémon
+713		冰岩怪	冰山寶可夢	ひょうざんポケモン	Iceberg Pokémon
+714		嗡蝠	音波寶可夢	おんぱポケモン	Sound Wave Pokémon
+715		音波龍	音波寶可夢	おんぱポケモン	Sound Wave Pokémon
+716		哲爾尼亞斯	生命寶可夢	せいめいポケモン	Life Pokémon
+717		伊裴爾塔爾	破壞寶可夢	はかいポケモン	Destruction Pokémon
+718		基格爾德	秩序寶可夢	ちつじょポケモン	Order Pokémon
+719		蒂安希	寶石寶可夢	ほうせきポケモン	Jewel Pokémon
+720		胡帕
+懲戒胡帕	頑童寶可夢	いたずらポケモン	Mischief Pokémon
+720		胡帕
+解放胡帕	魔神寶可夢	まじんポケモン	Djinn Pokémon
+721		波爾凱尼恩	蒸汽寶可夢	スチームポケモン	Steam Pokémon
+722		木木梟	草羽寶可夢	くさばねポケモン	Grass Quill Pokémon
+723		投羽梟	刃羽寶可夢	はばねポケモン	Blade Quill Pokémon
+724		狙射樹梟	箭羽寶可夢	やばねポケモン	Arrow Quill Pokémon
+725		火斑喵	火貓寶可夢	ひねこポケモン	Fire Cat Pokémon
+726		炎熱喵	火貓寶可夢	ひねこポケモン	Fire Cat Pokémon
+727		熾焰咆哮虎	反派寶可夢	ヒールポケモン	Heel Pokémon
+728		球球海獅	海獅寶可夢	あしかポケモン	Sea Lion Pokémon
+729		花漾海獅	偶像寶可夢	アイドルポケモン	Pop Star Pokémon
+730		西獅海壬	獨唱者寶可夢	ソリストポケモン	Soloist Pokémon
+731		小篤兒	啄木鳥寶可夢	きつつきポケモン	Woodpecker Pokémon
+732		喇叭啄鳥	喇叭喙寶可夢	ラッパぐちポケモン	Bugle Beak Pokémon
+733		銃嘴大鳥	銃炮寶可夢	おおづつポケモン	Cannon Pokémon
+734		貓鼬少	巡迴寶可夢	うろつきポケモン	Loitering Pokémon
+735		貓鼬探長	監視寶可夢	はりこみポケモン	Stakeout Pokémon
+736		強顎雞母蟲	幼蟲寶可夢	ようちゅうポケモン	Larva Pokémon
+737		蟲電寶	蓄電池寶可夢	バッテリーポケモン	Battery Pokémon
+738		鍬農炮蟲	鍬形蟲寶可夢	くわがたポケモン	Stag Beetle Pokémon
+739		好勝蟹	拳鬥寶可夢	けんとうポケモン	Boxing Pokémon
+740		好勝毛蟹	毛蟹寶可夢	けがにポケモン	Woolly Crab Pokémon
+741		花舞鳥	舞蹈寶可夢	ダンスポケモン	Dancing Pokémon
+742		萌虻	蜂虻寶可夢	ツリアブポケモン	Bee Fly Pokémon
+743		蝶結萌虻	蜂虻寶可夢	ツリアブポケモン	Bee Fly Pokémon
+744		岩狗狗	小狗寶可夢	こいぬポケモン	Puppy Pokémon
+745		鬃岩狼人	狼寶可夢	オオカミポケモン	Wolf Pokémon
+746		弱丁魚	小魚寶可夢	こざかなポケモン	Small Fry Pokémon
+747		好壞星	非星寶可夢	ヒトデナシポケモン	Brutal Star Pokémon
+748		超壞星	非星寶可夢	ヒトデナシポケモン	Brutal Star Pokémon
+749		泥驢仔	驢寶可夢	うさぎうまポケモン	Donkey Pokémon
+750		重泥挽馬	挽馬寶可夢	ばんばポケモン	Draft Horse Pokémon
+751		滴蛛	水泡寶可夢	すいほうポケモン	Water Bubble Pokémon
+752		滴蛛霸	水泡寶可夢	すいほうポケモン	Water Bubble Pokémon
+753		偽螳草	鐮草寶可夢	かまくさポケモン	Sickle Grass Pokémon
+754		蘭螳花	花鐮寶可夢	はなかまポケモン	Bloom Sickle Pokémon
+755		睡睡菇	發光寶可夢	はっこうポケモン	Illuminating Pokémon
+756		燈罩夜菇	發光寶可夢	はっこうポケモン	Illuminating Pokémon
+757		夜盜火蜥	毒蜥寶可夢	どくトカゲポケモン	Toxic Lizard Pokémon
+758		焰后蜥	毒蜥寶可夢	どくトカゲポケモン	Toxic Lizard Pokémon
+759		童偶熊	抓狂寶可夢	じたばたポケモン	Flailing Pokémon
+760		穿著熊	強臂寶可夢	ごうわんポケモン	Strong Arm Pokémon
+761		甜竹竹	水果寶可夢	フルーツポケモン	Fruit Pokémon
+762		甜舞妮	水果寶可夢	フルーツポケモン	Fruit Pokémon
+763		甜冷美后	水果寶可夢	フルーツポケモン	Fruit Pokémon
+764		花療環環	摘花寶可夢	はなつみポケモン	Posy Picker Pokémon
+765		智揮猩	賢者寶可夢	けんじゃポケモン	Sage Pokémon
+766		投擲猴	配合寶可夢	れんけいポケモン	Teamwork Pokémon
+767		膽小蟲	疾行寶可夢	そうこうポケモン	Turn Tail Pokémon
+768		具甲武者	裝甲寶可夢	そうこうポケモン	Hard Scale Pokémon
+769		沙丘娃	沙丘寶可夢	すなやまポケモン	Sand Heap Pokémon
+770		噬沙堡爺	沙堡寶可夢	すなのしろポケモン	Sand Castle Pokémon
+771		拳海參	海參寶可夢	なまこポケモン	Sea Cucumber Pokémon
+772		屬性：空	人工寶可夢	じんこうポケモン	Synthetic Pokémon
+773		銀伴戰獸	人工寶可夢	じんこうポケモン	Synthetic Pokémon
+774		小隕星	流星寶可夢	ながれぼしポケモン	Meteor Pokémon
+775		樹枕尾熊	半夢半醒寶可夢	ゆめうつつポケモン	Drowsing Pokémon
+776		爆焰龜獸	爆炸龜寶可夢	ばくはつがめポケモン	Blast Turtle Pokémon
+777		托戈德瑪爾	蜷縮寶可夢	まるまりポケモン	Roly-Poly Pokémon
+778		謎擬丘	畫皮寶可夢	ばけのかわポケモン	Disguise Pokémon
+779		磨牙彩皮魚	磨牙寶可夢	はぎしりポケモン	Gnash Teeth Pokémon
+780		老翁龍	悠遊寶可夢	ゆうゆうポケモン	Placid Pokémon
+781		破破舵輪	碎藻寶可夢	もくずポケモン	Sea Creeper Pokémon
+782		心鱗寶	鱗片寶可夢	うろこポケモン	Scaly Pokémon
+783		鱗甲龍	鱗片寶可夢	うろこポケモン	Scaly Pokémon
+784		杖尾鱗甲龍	鱗片寶可夢	うろこポケモン	Scaly Pokémon
+785		卡璞・鳴鳴	土地神寶可夢	とちがみポケモン	Land Spirit Pokémon
+786		卡璞・蝶蝶	土地神寶可夢	とちがみポケモン	Land Spirit Pokémon
+787		卡璞・哞哞	土地神寶可夢	とちがみポケモン	Land Spirit Pokémon
+788		卡璞・鰭鰭	土地神寶可夢	とちがみポケモン	Land Spirit Pokémon
+789		科斯莫古	星雲寶可夢	せいうんポケモン	Nebula Pokémon
+790		科斯莫姆	原始星寶可夢	げんしせいポケモン	Protostar Pokémon
+791		索爾迦雷歐	日輪寶可夢	にちりんポケモン	Sunne Pokémon
+792		露奈雅拉	月輪寶可夢	がちりんポケモン	Moone Pokémon
+793		虛吾伊德	寄生寶可夢	きせいポケモン	Parasite Pokémon
+794		爆肌蚊	膨脹寶可夢	ぼうちょうポケモン	Swollen Pokémon
+795		費洛美螂	美艷寶可夢	えんびポケモン	Lissome Pokémon
+796		電束木	燈飾寶可夢	でんしょくポケモン	Glowing Pokémon
+797		鐵火輝夜	發射寶可夢	うちあげポケモン	Launch Pokémon
+798		紙御劍	拔刀寶可夢	ばっとうポケモン	Drawn Sword Pokémon
+799		惡食大王	異食寶可夢	あくじきポケモン	Junkivore Pokémon
+800		奈克洛茲瑪	稜鏡寶可夢	プリズムポケモン	Prism Pokémon
+801		瑪機雅娜	人造寶可夢	じんぞうポケモン	Artificial Pokémon
+802		瑪夏多	棲影寶可夢	かげすみポケモン	Gloomdweller Pokémon
+803		毒貝比	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+804		四顎針龍	毒針寶可夢	どくばりポケモン	Poison Pin Pokémon
+805		壘磊石	石墻寶可夢	いしがきポケモン	Rampart Pokémon
+806		砰頭小丑	煙火寶可夢	はなびポケモン	Fireworks Pokémon
+807		捷拉奧拉	奔雷寶可夢	じんらいポケモン	Thunderclap Pokémon
+808		美錄坦	螺帽寶可夢	ナットポケモン	Hex Nut Pokémon
+809		美錄梅塔	螺帽寶可夢	ナットポケモン	Hex Nut Pokémon
+810		敲音猴	小猴寶可夢	こざるポケモン	Chimp Pokémon
+811		啪咚猴	節拍寶可夢	ビートポケモン	Beat Pokémon
+812		轟擂金剛猩	鼓手寶可夢	ドラマーポケモン	Drummer Pokémon
+813		炎兔兒	兔子寶可夢	うさぎポケモン	Rabbit Pokémon
+814		騰蹴小將	兔子寶可夢	うさぎポケモン	Rabbit Pokémon
+815		閃焰王牌	前鋒寶可夢	ストライカーポケモン	Striker Pokémon
+816		淚眼蜥	水蜥寶可夢	みずとかげポケモン	Water Lizard Pokémon
+817		變澀蜥	水蜥寶可夢	みずとかげポケモン	Water Lizard Pokémon
+818		千面避役	特工寶可夢	エージェントポケモン	Secret Agent Pokémon
+819		貪心栗鼠	貪吃寶可夢	ほおばりポケモン	Cheeky Pokémon
+820		藏飽栗鼠	貪慾寶可夢	よくばりポケモン	Greedy Pokémon
+821		稚山雀	小鳥寶可夢	ことりポケモン	Tiny Bird Pokémon
+822		藍鴉	烏鴉寶可夢	カラスポケモン	Raven Pokémon
+823		鋼鎧鴉	烏鴉寶可夢	カラスポケモン	Raven Pokémon
+824		索偵蟲	幼蟲寶可夢	ようちゅうポケモン	Larva Pokémon
+825		天罩蟲	天線罩寶可夢	レドームポケモン	Radome Pokémon
+826		以歐路普	七星寶可夢	ななほしポケモン	Seven Spot Pokémon
+827		狡小狐	狐狸寶可夢	きつねポケモン	Fox Pokémon
+828		猾大狐	狐狸寶可夢	きつねポケモン	Fox Pokémon
+829		幼棉棉	花飾寶可夢	はなかざりポケモン	Flowering Pokémon
+830		白蓬蓬	棉飾寶可夢	わたかざりポケモン	Cotton Bloom Pokémon
+831		毛辮羊	綿羊寶可夢	ひつじポケモン	Sheep Pokémon
+832		毛毛角羊	綿羊寶可夢	ひつじポケモン	Sheep Pokémon
+833		咬咬龜	咬住寶可夢	くいつきポケモン	Snapping Pokémon
+834		暴噬龜	緊咬寶可夢	かみつきポケモン	Bite Pokémon
+835		來電汪	小狗寶可夢	こいぬポケモン	Puppy Pokémon
+836		逐電犬	狗寶可夢	いぬポケモン	Dog Pokémon
+837		小炭仔	煤炭寶可夢	せきたんポケモン	Coal Pokémon
+838		大炭車	煤炭寶可夢	せきたんポケモン	Coal Pokémon
+839		巨炭山	煤炭寶可夢	せきたんポケモン	Coal Pokémon
+840		啃果蟲	蘋果居寶可夢	りんごぐらしポケモン	Apple Core Pokémon
+841		蘋裹龍	蘋果翅寶可夢	りんごはねポケモン	Apple Wing Pokémon
+842		豐蜜龍	蘋果汁寶可夢	りんごじるポケモン	Apple Nectar Pokémon
+843		沙包蛇	沙蛇寶可夢	すなへびポケモン	Sand Snake Pokémon
+844		沙螺蟒	沙蛇寶可夢	すなへびポケモン	Sand Snake Pokémon
+845		古月鳥	一口吞寶可夢	うのみポケモン	Gulp Pokémon
+846		刺梭魚	突擊寶可夢	とつげきポケモン	Rush Pokémon
+847		戽斗尖梭	穿刺寶可夢	くしざしポケモン	Skewer Pokémon
+848		電音嬰	嬰兒寶可夢	あかごポケモン	Baby Pokémon
+849		顫弦蠑螈	龐克寶可夢	パンクポケモン	Punk Pokémon
+850		燒火蚣	發熱寶可夢	はつねつポケモン	Radiator Pokémon
+851		焚焰蚣	發熱寶可夢	はつねつポケモン	Radiator Pokémon
+852		拳拳蛸	纏人寶可夢	だだっこポケモン	Tantrum Pokémon
+853		八爪武師	柔術寶可夢	じゅうじゅつポケモン	Jujitsu Pokémon
+854		來悲茶	紅茶寶可夢	こうちゃポケモン	Black Tea Pokémon
+855		怖思壺	紅茶寶可夢	こうちゃポケモン	Black Tea Pokémon
+856		迷布莉姆	寧靜寶可夢	おだやかポケモン	Calm Pokémon
+857		提布莉姆	肅靜寶可夢	せいしゅくポケモン	Serene Pokémon
+858		布莉姆溫	寂靜寶可夢	せいじゃくポケモン	Silent Pokémon
+859		搗蛋小妖	捉弄寶可夢	いじわるポケモン	Wily Pokémon
+860		詐唬魔	壞心眼寶可夢	しょうわるポケモン	Devious Pokémon
+861		長毛巨魔	健美寶可夢	ビルドアップポケモン	Bulk Up Pokémon
+862		堵攔熊	停止寶可夢	ていしポケモン	Blocking Pokémon
+863		喵頭目	維京寶可夢	バイキングポケモン	Viking Pokémon
+864		魔靈珊瑚	珊瑚寶可夢	さんごポケモン	Coral Pokémon
+865		蔥遊兵	黃嘴鴨寶可夢	かるがもポケモン	Wild Duck Pokémon
+866		踏冰人偶	喜劇演員寶可夢	コメディアンポケモン	Comedian Pokémon
+867		迭失板	怨念寶可夢	おんねんポケモン	Grudge Pokémon
+868		小仙奶	鮮奶油寶可夢	クリームポケモン	Cream Pokémon
+869		霜奶仙	鮮奶油寶可夢	クリームポケモン	Cream Pokémon
+870		列陣兵	陣形寶可夢	じんけいポケモン	Formation Pokémon
+871		啪嚓海膽	海膽寶可夢	うにポケモン	Sea Urchin Pokémon
+872		雪吞蟲	蟲寶寶寶可夢	いもむしポケモン	Worm Pokémon
+873		雪絨蛾	冰蛾寶可夢	こおりがポケモン	Frost Moth Pokémon
+874		巨石丁	巨石寶可夢	きょせきポケモン	Big Rock Pokémon
+875		冰砌鵝	企鵝寶可夢	ペンギンポケモン	Penguin Pokémon
+876		愛管侍	感情寶可夢	かんじょうポケモン	Emotion Pokémon
+877		莫魯貝可	雙面寶可夢	にめんポケモン	Two-Sided Pokémon
+878		銅象	像銅寶可夢	どうぞうポケモン	Copperderm Pokémon
+879		大王銅象	像銅寶可夢	どうぞうポケモン	Copperderm Pokémon
+880		雷鳥龍	化石寶可夢	かせきポケモン	Fossil Pokémon
+881		雷鳥海獸	化石寶可夢	かせきポケモン	Fossil Pokémon
+882		鰓魚龍	化石寶可夢	かせきポケモン	Fossil Pokémon
+883		鰓魚海獸	化石寶可夢	かせきポケモン	Fossil Pokémon
+884		鋁鋼龍	合金寶可夢	ごうきんポケモン	Alloy Pokémon
+885		多龍梅西亞	哀怨寶可夢	うらめしポケモン	Lingering Pokémon
+886		多龍奇	保母寶可夢	せわやくポケモン	Caretaker Pokémon
+887		多龍巴魯托	隱形寶可夢	ステルスポケモン	Stealth Pokémon
+888		蒼響	強者寶可夢	つわものポケモン	Warrior Pokémon
+889		藏瑪然特	強者寶可夢	つわものポケモン	Warrior Pokémon
+890		無極汰那	超極巨寶可夢	キョダイポケモン	Gigantic Pokémon
+891		熊徒弟	拳法寶可夢	けんぽうポケモン	Wushu Pokémon
+892		武道熊師	拳法寶可夢	けんぽうポケモン	Wushu Pokémon
+893		薩戮德	惡猿寶可夢	わるざるポケモン	Rogue Monkey Pokémon
+894		雷吉艾勒奇	電子寶可夢	エレクトロンポケモン	Electron Pokémon
+895		雷吉鐸拉戈	龍玉寶可夢	りゅうぎょくポケモン	Dragon Orb Pokémon
+896		雪暴馬	野馬寶可夢	あばれうまポケモン	Wild Horse Pokémon
+897		靈幽馬	駿馬寶可夢	しゅんばポケモン	Swift Horse Pokémon
+898		蕾冠王	國王寶可夢	キングポケモン	King Pokémon
+898		蕾冠王
+騎白馬的樣子	帝皇寶可夢	エンペラーポケモン	High King Pokémon
+898		蕾冠王
+騎黑馬的樣子	帝皇寶可夢	エンペラーポケモン	High King Pokémon
+899		詭角鹿	大角寶可夢	おおツノポケモン	Big Horn Pokémon
+900		劈斧螳螂	斧鉞寶可夢	まさかりポケモン	Axe Pokémon
+901		月月熊	泥炭寶可夢	でいたんポケモン	Peat Pokémon
+902		幽尾玄魚	大魚寶可夢	おおうおポケモン	Big Fish Pokémon
+903		大狃拉	攀崖寶可夢	クライミングポケモン	Free Climb Pokémon
+904		萬針魚	劍山寶可夢	けんざんポケモン	Pin Cluster Pokémon
+905		眷戀雲	愛憎寶可夢	あいぞうポケモン	Love-Hate Pokémon
+906		新葉喵	草貓寶可夢	くさねこポケモン	Grass Cat Pokémon
+907		蒂蕾喵	草貓寶可夢	くさねこポケモン	Grass Cat Pokémon
+908		魔幻假面喵	魔術師寶可夢	マジシャンポケモン	Magician Pokémon
+909		呆火鱷	火鱷寶可夢	ほのおワニポケモン	Fire Croc Pokémon
+910		炙燙鱷	火鱷寶可夢	ほのおワニポケモン	Fire Croc Pokémon
+911		骨紋巨聲鱷	歌手寶可夢	シンガーポケモン	Singer Pokémon
+912		潤水鴨	小鴨寶可夢	こがもポケモン	Duckling Pokémon
+913		湧躍鴨	習藝寶可夢	レッスンポケモン	Practicing Pokémon
+914		狂歡浪舞鴨	舞者寶可夢	ダンサーポケモン	Dancer Pokémon
+915		愛吃豚	豬寶可夢	ぶたポケモン	Hog Pokémon
+916		飄香豚	豬寶可夢	ぶたポケモン	Hog Pokémon
+917		團珠蛛	線球寶可夢	いとだまポケモン	String Ball Pokémon
+918		操陷蛛	陷阱寶可夢	トラップポケモン	Trap Pokémon
+919		豆蟋蟀	蝗蟲寶可夢	バッタポケモン	Grasshopper Pokémon
+920		烈腿蝗	蝗蟲寶可夢	バッタポケモン	Grasshopper Pokémon
+921		布撥	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+922		布土撥	鼠寶可夢	ねずみポケモン	Mouse Pokémon
+923		巴布土撥	押掌寶可夢	てあてポケモン	Hands-On Pokémon
+924		一對鼠	成對寶可夢	カップルポケモン	Couple Pokémon
+925		一家鼠	家族寶可夢	ファミリーポケモン	Family Pokémon
+926		狗仔包	小狗寶可夢	こいぬポケモン	Puppy Pokémon
+927		麻花犬	狗寶可夢	いぬポケモン	Dog Pokémon
+928		迷你芙	橄欖寶可夢	オリーブポケモン	Olive Pokémon
+929		奧利紐	橄欖寶可夢	オリーブポケモン	Olive Pokémon
+930		奧利瓦	橄欖寶可夢	オリーブポケモン	Olive Pokémon
+931		怒鸚哥	鸚鵡寶可夢	インコポケモン	Parrot Pokémon
+932		鹽石寶	岩鹽寶可夢	がんえんポケモン	Rock Salt Pokémon
+933		鹽石壘	岩鹽寶可夢	がんえんポケモン	Rock Salt Pokémon
+934		鹽石巨靈	岩鹽寶可夢	がんえんポケモン	Rock Salt Pokémon
+935		炭小侍	小火星寶可夢	ひのこポケモン	Fire Child Pokémon
+936		紅蓮鎧騎	火戰士寶可夢	ひのせんしポケモン	Fire Warrior Pokémon
+937		蒼炎刃鬼	火劍士寶可夢	ひのけんしポケモン	Fire Blades Pokémon
+938		光蚪仔	電蝌蚪寶可夢	でんきおたまポケモン	EleTadpole Pokémon
+939		電肚蛙	電蛙寶可夢	でんきがえるポケモン	EleFrog Pokémon
+940		電海燕	海燕寶可夢	うみつばめポケモン	Storm Petrel Pokémon
+941		大電海燕	軍艦鳥寶可夢	ぐんかんどりポケモン	Frigatebird Pokémon
+942		偶叫獒	小輩寶可夢	わかぞうポケモン	Rascal Pokémon
+943		獒教父	大佬寶可夢	おやぶんポケモン	Boss Pokémon
+944		滋汁鼴	毒鼠寶可夢	どくねずみポケモン	Toxic Mouse Pokémon
+945		塗標客	毒猴寶可夢	どくざるポケモン	Toxic Monkey Pokémon
+946		納噬草	滾草寶可夢	ころがりぐさポケモン	Tumbleweed Pokémon
+947		怖納噬草	滾草寶可夢	ころがりぐさポケモン	Tumbleweed Pokémon
+948		原野水母	木耳寶可夢	きくらげポケモン	Woodear Pokémon
+949		陸地水母	木耳寶可夢	きくらげポケモン	Woodear Pokémon
+950		毛崖蟹	埋伏寶可夢	まちぶせポケモン	Ambush Pokémon
+951		熱辣娃	熱辣寶可夢	ハバネロポケモン	Spicy Pepper Pokémon
+952		狠辣椒	熱辣寶可夢	ハバネロポケモン	Spicy Pepper Pokémon
+953		蟲滾泥	滾動寶可夢	ころがしポケモン	Rolling Pokémon
+954		蟲甲聖	滾動寶可夢	ころがしポケモン	Rolling Pokémon
+955		飄飄雛	褶邊寶可夢	フリルポケモン	Frill Pokémon
+956		超能豔鴕	鴕鳥寶可夢	ダチョウポケモン	Ostrich Pokémon
+957		小鍛匠	錘鍊寶可夢	かなうちポケモン	Metalsmith Pokémon
+958		巧鍛匠	錘子寶可夢	ハンマーポケモン	Hammer Pokémon
+959		巨鍛匠	錘子寶可夢	ハンマーポケモン	Hammer Pokémon
+960		海地鼠	糯鰻寶可夢	あなごポケモン	Garden Eel Pokémon
+961		三海地鼠	糯鰻寶可夢	あなごポケモン	Garden Eel Pokémon
+962		下石鳥	掉東西寶可夢	おとしものポケモン	Item Drop Pokémon
+963		波普海豚	海豚寶可夢	イルカポケモン	Dolphin Pokémon
+964		海豚俠	海豚寶可夢	イルカポケモン	Dolphin Pokémon
+964		海豚俠
+全能形態	英雄寶可夢	ヒーローポケモン	Hero Pokémon
+965		噗隆隆	單汽缸寶可夢	たんきとうポケモン	Single-Cyl Pokémon
+966		普隆隆姆	多汽缸寶可夢	たきとうポケモン	Multi-Cyl Pokémon
+967		摩托蜥	坐騎寶可夢	ライドポケモン	Mount Pokémon
+968		拖拖蚓	蚯蚓寶可夢	ミミズポケモン	Earthworm Pokémon
+969		晶光芽	礦石寶可夢	こうせきポケモン	Ore Pokémon
+970		晶光花	礦石寶可夢	こうせきポケモン	Ore Pokémon
+971		墓仔狗	鬼犬寶可夢	おばけいぬポケモン	Ghost Dog Pokémon
+972		墓揚犬	鬼犬寶可夢	おばけいぬポケモン	Ghost Dog Pokémon
+973		纏紅鶴	同步寶可夢	シンクロポケモン	Synchronize Pokémon
+974		走鯨	陸鯨寶可夢	りくくじらポケモン	Terra Whale Pokémon
+975		浩大鯨	陸鯨寶可夢	りくくじらポケモン	Terra Whale Pokémon
+976		輕身鱈	卸除寶可夢	きりはなしポケモン	Jettison Pokémon
+977		吃吼霸	大鯰寶可夢	おおなまずポケモン	Big Catfish Pokémon
+978		米立龍	擬態寶可夢	ぎたいポケモン	Mimicry Pokémon
+979		棄世猴	憤怒猴寶可夢	ふんどざるポケモン	Rage Monkey Pokémon
+980		土王	刺魚寶可夢	とげうおポケモン	Spiny Fish Pokémon
+981		奇麒麟	長頸寶可夢	くびながポケモン	Long Neck Pokémon
+982		土龍節節	地蛇寶可夢	つちへびポケモン	Land Snake Pokémon
+983		仆刀將軍	大刀寶可夢	だいとうポケモン	Big Blade Pokémon
+984		雄偉牙	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+985		吼叫尾	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+986		猛惡菇	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+987		振翼髮	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+988		爬地翅	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+989		沙鐵皮	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+990		鐵轍跡	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+991		鐵包袱	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+992		鐵臂膀	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+993		鐵脖頸	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+994		鐵毒蛾	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+995		鐵荊棘	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+996		涼脊龍	冰鰭寶可夢	こおりビレポケモン	Ice Fin Pokémon
+997		凍脊龍	冰鰭寶可夢	こおりビレポケモン	Ice Fin Pokémon
+998		戟脊龍	冰龍寶可夢	ひょうりゅうポケモン	Ice Dragon Pokémon
+999		索財靈 寶箱形態	寶箱寶可夢	たからばこポケモン	Coin Chest Pokémon
+999		索財靈 徒步形態	尋寶寶可夢	たからばこポケモン	Coin Hunter Pokémon
+1000		賽富豪	寶者寶可夢	たからものポケモン	Coin Entity Pokémon
+1001		古簡蝸	災厄寶可夢	さいやくポケモン	Ruinous Pokémon
+1002		古劍豹	災厄寶可夢	さいやくポケモン	Ruinous Pokémon
+1003		古鼎鹿	災厄寶可夢	さいやくポケモン	Ruinous Pokémon
+1004		古玉魚	災厄寶可夢	さいやくポケモン	Ruinous Pokémon
+1005		轟鳴月	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1006		鐵武者	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1007		故勒頓	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1008		密勒頓	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1009		波盪水	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1010		鐵斑葉	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1011		裹蜜蟲	糖蘋果寶可夢	りんごあめポケモン	Candy Apple Pokémon
+1012		斯魔茶	抹茶寶可夢	まっちゃポケモン	Matcha Pokémon
+1013		來悲粗茶	抹茶寶可夢	まっちゃポケモン	Matcha Pokémon
+1014		夠讚狗	隨從寶可夢	けらいポケモン	Retainer Pokémon
+1015		願增猿	隨從寶可夢	けらいポケモン	Retainer Pokémon
+1016		吉雉雞	隨從寶可夢	けらいポケモン	Retainer Pokémon
+1017		厄詭椪	面具寶可夢	おめんポケモン	Mask Pokémon
+1018		鋁鋼橋龍	合金寶可夢	ごうきんポケモン	Alloy Pokémon
+1019		蜜集大蛇	蘋果大蛇寶可夢	りんごオロチポケモン	Apple Hydra Pokémon
+1020		破空焰	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1021		猛雷鼓	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1022		鐵磐岩	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1023		鐵頭殼	悖謬寶可夢	パラドックスポケモン	Paradox Pokémon
+1024		太樂巴戈斯	太晶寶可夢	テラスタルポケモン	Tera Pokémon
+1025		桃歹郎	支配寶可夢	しはいポケモン	Subjugation Pokémon
+名字
+語言	名字
+日文	分類 Bunrui
+中文	任天堂	分類
+分类
+台灣	屬性
+英文	Category
+Species
+法文	Catégorie
+Espèces
+德文	Kategorie
+Species
+義大利文	Categoria
+Specie
+西班牙文	Categoría
+Especie
+韓文	분류 Bullyu
+顯示更多 [▼ | ▲]
+細節
+多邊獸是唯一分類改變的寶可夢：在《紅／綠》中其為「假想寶可夢」，從《藍》起改為「虛擬寶可夢」。
+參見
+分類列表（在其他語言中）
+導航
+寶可夢列表
+按全國圖鑑編號	全國圖鑑（簡單版 • 所有形態） • 旁支系列 • 其他語言
+按地區圖鑑編號	關都 • 城都 • 豐緣 • 神奧 • 合眾（新） • 卡洛斯 • 阿羅拉（新） • 伽勒爾（鎧島 • 王冠雪原）
+洗翠 • 帕底亞 （北上 • 藍莓） • 密阿雷 （異次元） • 所有地區圖鑑中‎
+按捕獵游標瀏覽器編號	菲蕾 • 阿爾米亞 • 奧卜利比亞
+其他旁支系列遊戲	彈珠臺 紅寶石‧藍寶石 • 計步器 • 信長的野望 • 寶可公園手冊 • 消消樂 • 繪圖方塊 • 戰棋大師 • 寶可拳
+探險尋寶 • GO • 寶可繽紛趣（翻新前） • New 隨樂拍 • 大集結 • Sleep • Pokopia • Champions
+集換式卡牌遊戲相關	DPBP • 卡牌先行 • 未卡牌化雙屬性 • 未卡牌化形態變化 • 屬性不符
+按特徵	身高 • 體重 • 分類 • 顏色 • 體形 • 腳印 • 性別比例 • 性別差異 • 形態變化 • 超級進化
+唯一屬性 • 特性 • 捕獲率 • 初始友好度/親密度 • 蛋群 • 孵化周期 • 可學會的招式
+持有物 • 同行圖標 • 調色板 • 場所 • 體能 • 呼喚率 • 很少說話 • 設定變更
+按種族值	第一世代 • 第二至第五世代 • 第六世代 • 第七世代 • 第八世代 • 第九世代 • 最終形態
+按獲得方式與來源	第一世代 • 第二世代 • 第三世代 • 第四世代 • 第五世代 • 第六世代 • 第七世代 • 第八世代 • 第九世代
+旁支系列 • 與HOME相連作品 • 按來源標記 • 按精靈球種類 • 版本限定 • 所有遊戲中 • 互斥 • 永久錯過
+按獲得經驗值和基礎點數	第一世代 • 第二世代 • 第三世代 • 第四世代 • 第五世代 • 第六世代 • 第七世代 • 第八世代 • 第九世代
+按進化	進化家族 • 沒有進化 • 分支進化 • 跨世代進化 • 進化等級
+按內部編號	第一世代 • 第二世代 • 第三世代 • 第四世代 • 第五世代 • 第六世代 • 第七世代 • 第八世代 • 第九世代
+按中文排序方式	繁體（寶可夢名字第一個字的筆畫） • 簡體（寶可夢名字的首字母）
+	這個頁面屬於神奇寶貝百科遊戲工程，歡迎加入遊戲工程。		
+分類：​寶可夢列表術語寶可夢相關術語寶可夢（按寶可夢分類分類）
+此頁面最後編輯於2026年8月24日 (星期一) 08:35。
+內容基於 姓名標示-非商業性-相同方式分享 3.0 許可協議。（詳情見 版權聲明）
+隱私權政策關於神奇宝贝百科免責聲明
+署名-非商业性使用-相同方式共享 3.0Powered by MediaWiki
