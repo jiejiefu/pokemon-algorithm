@@ -10,8 +10,8 @@
       "es": "Bulbasaur",
       "it": "Bulbasaur",
       "ko": "이상해씨",
-      "zh": "妙蛙种子",
-      "zh_HK": "妙蛙種子"
+      "zh": "妙蛙種子",
+      "zh_HK": "妙蛙种子"
     },
     "types": [
       "Grass",
@@ -241,8 +241,8 @@
       "es": "Charmander",
       "it": "Charmander",
       "ko": "파이리",
-      "zh": "小火龙",
-      "zh_HK": "小火龍"
+      "zh": "小火龍",
+      "zh_HK": "小火龙"
     },
     "types": [
       "Fire"
@@ -316,8 +316,8 @@
       "es": "Charmeleon",
       "it": "Charmeleon",
       "ko": "리자드",
-      "zh": "火恐龙",
-      "zh_HK": "火恐龍"
+      "zh": "火恐龍",
+      "zh_HK": "火恐龙"
     },
     "types": [
       "Fire"
@@ -391,8 +391,8 @@
       "es": "Charizard",
       "it": "Charizard",
       "ko": "리자몽",
-      "zh": "喷火龙",
-      "zh_HK": "噴火龍"
+      "zh": "噴火龍",
+      "zh_HK": "喷火龙"
     },
     "types": [
       "Fire",
@@ -468,8 +468,8 @@
       "es": "Squirtle",
       "it": "Squirtle",
       "ko": "꼬부기",
-      "zh": "杰尼龟",
-      "zh_HK": "傑尼龜"
+      "zh": "傑尼龜",
+      "zh_HK": "杰尼龟"
     },
     "types": [
       "Water"
@@ -543,8 +543,8 @@
       "es": "Wartortle",
       "it": "Wartortle",
       "ko": "어니부기",
-      "zh": "卡咪龟",
-      "zh_HK": "卡咪龜"
+      "zh": "卡咪龜",
+      "zh_HK": "卡咪龟"
     },
     "types": [
       "Water"
@@ -618,8 +618,8 @@
       "es": "Blastoise",
       "it": "Blastoise",
       "ko": "거북왕",
-      "zh": "水箭龟",
-      "zh_HK": "水箭龜"
+      "zh": "水箭龜",
+      "zh_HK": "水箭龟"
     },
     "types": [
       "Water"
@@ -693,8 +693,8 @@
       "es": "Caterpie",
       "it": "Caterpie",
       "ko": "캐터피",
-      "zh": "绿毛虫",
-      "zh_HK": "綠毛蟲"
+      "zh": "綠毛蟲",
+      "zh_HK": "绿毛虫"
     },
     "types": [
       "Bug"
@@ -767,8 +767,8 @@
       "es": "Metapod",
       "it": "Metapod",
       "ko": "단데기",
-      "zh": "铁甲蛹",
-      "zh_HK": "鐵甲蛹"
+      "zh": "鐵甲蛹",
+      "zh_HK": "铁甲蛹"
     },
     "types": [
       "Bug"
@@ -916,8 +916,8 @@
       "es": "Weedle",
       "it": "Weedle",
       "ko": "뿔충이",
-      "zh": "独角虫",
-      "zh_HK": "獨角蟲"
+      "zh": "獨角蟲",
+      "zh_HK": "独角虫"
     },
     "types": [
       "Bug",
@@ -992,8 +992,8 @@
       "es": "Kakuna",
       "it": "Kakuna",
       "ko": "딱충이",
-      "zh": "独角虫",
-      "zh_HK": "獨角蟲"
+      "zh": "鐵殼蛹",
+      "zh_HK": "铁壳蛹"
     },
     "types": [
       "Bug",
@@ -1067,7 +1067,7 @@
       "es": "Beedrill",
       "it": "Beedrill",
       "ko": "독침붕",
-      "zh": "大针蜂",
+      "zh": "大針蜂",
       "zh_HK": "大针蜂"
     },
     "types": [
@@ -1220,8 +1220,8 @@
       "es": "Pidgeotto",
       "it": "Pidgeotto",
       "ko": "피죤",
-      "zh": "比比鸟",
-      "zh_HK": "比比鳥"
+      "zh": "比比鳥",
+      "zh_HK": "比比鸟"
     },
     "types": [
       "Normal",
@@ -1297,8 +1297,8 @@
       "es": "Pidgeot",
       "it": "Pidgeot",
       "ko": "피죤투",
-      "zh": "大比鸟",
-      "zh_HK": "大比鳥"
+      "zh": "大比鳥",
+      "zh_HK": "大比鸟"
     },
     "types": [
       "Normal",
@@ -1374,8 +1374,8 @@
       "es": "Rattata",
       "it": "Rattata",
       "ko": "꼬렛",
-      "zh": "小拉达",
-      "zh_HK": "小拉達"
+      "zh": "小拉達",
+      "zh_HK": "小拉达"
     },
     "types": [
       "Normal"
@@ -1449,8 +1449,8 @@
       "es": "Raticate",
       "it": "Raticate",
       "ko": "레트라",
-      "zh": "拉达",
-      "zh_HK": "拉達"
+      "zh": "拉達",
+      "zh_HK": "拉达"
     },
     "types": [
       "Normal"
@@ -2126,8 +2126,8 @@
       "es": "Nidoran♀",
       "it": "Nidoran♀",
       "ko": "니드런♀",
-      "zh": "尼多兰",
-      "zh_HK": "尼多蘭"
+      "zh": "尼多蘭",
+      "zh_HK": "尼多兰"
     },
     "types": [
       "Poison"
@@ -2430,8 +2430,8 @@
       "es": "Nidorino",
       "it": "Nidorino",
       "ko": "니드리노",
-      "zh": "尼多力诺",
-      "zh_HK": "尼多力諾"
+      "zh": "尼多力諾",
+      "zh_HK": "尼多力诺"
     },
     "types": [
       "Poison"
@@ -3649,8 +3649,8 @@
       "es": "Venomoth",
       "it": "Venomoth",
       "ko": "도나리",
-      "zh": "摩鲁蛾",
-      "zh_HK": "摩魯蛾"
+      "zh": "摩魯蛾",
+      "zh_HK": "摩鲁蛾"
     },
     "types": [
       "Bug",
@@ -3952,7 +3952,7 @@
       "it": "Persian",
       "ko": "페르시온",
       "zh": "貓老大",
-      "zh_HK": "貓老大"
+      "zh_HK": "猫老大"
     },
     "types": [
       "Normal"
@@ -4026,8 +4026,8 @@
       "es": "Psyduck",
       "it": "Psyduck",
       "ko": "고라파덕",
-      "zh": "可达鸭",
-      "zh_HK": "可達鴨"
+      "zh": "可達鴨",
+      "zh_HK": "可达鸭"
     },
     "types": [
       "Water"
@@ -4102,8 +4102,8 @@
       "es": "Golduck",
       "it": "Golduck",
       "ko": "골덕",
-      "zh": "哥达鸭",
-      "zh_HK": "哥達鴨"
+      "zh": "哥達鴨",
+      "zh_HK": "哥达鸭"
     },
     "types": [
       "Water"
@@ -4403,8 +4403,8 @@
       "es": "Arcanine",
       "it": "Arcanine",
       "ko": "윈디",
-      "zh": "风速狗",
-      "zh_HK": "風速狗"
+      "zh": "風速狗",
+      "zh_HK": "风速狗"
     },
     "types": [
       "Fire"
@@ -4705,8 +4705,8 @@
       "es": "Abra",
       "it": "Abra",
       "ko": "캐이시",
-      "zh": "凯西",
-      "zh_HK": "凱西"
+      "zh": "凱西",
+      "zh_HK": "凯西"
     },
     "types": [
       "Psychic"
@@ -5383,8 +5383,8 @@
       "es": "Tentacool",
       "it": "Tentacool",
       "ko": "왕눈해",
-      "zh": "玛瑙水母",
-      "zh_HK": "瑪瑙水母"
+      "zh": "瑪瑙水母",
+      "zh_HK": "玛瑙水母"
     },
     "types": [
       "Water",
@@ -5768,8 +5768,8 @@
       "es": "Ponyta",
       "it": "Ponyta",
       "ko": "포니타",
-      "zh": "小火马",
-      "zh_HK": "小火馬"
+      "zh": "小火馬",
+      "zh_HK": "小火马"
     },
     "types": [
       "Fire"
@@ -5843,8 +5843,8 @@
       "es": "Rapidash",
       "it": "Rapidash",
       "ko": "날쌩마",
-      "zh": "烈焰马",
-      "zh_HK": "烈焰馬"
+      "zh": "烈焰馬",
+      "zh_HK": "烈焰马"
     },
     "types": [
       "Fire"
@@ -5918,8 +5918,8 @@
       "es": "Slowpoke",
       "it": "Slowpoke",
       "ko": "야돈",
-      "zh": "呆呆兽",
-      "zh_HK": "呆呆獸"
+      "zh": "呆呆獸",
+      "zh_HK": "呆呆兽"
     },
     "types": [
       "Water",
@@ -5996,8 +5996,8 @@
       "es": "Slowbro",
       "it": "Slowbro",
       "ko": "야도란",
-      "zh": "呆壳兽",
-      "zh_HK": "呆殼獸"
+      "zh": "呆殼獸",
+      "zh_HK": "呆壳兽"
     },
     "types": [
       "Water",
@@ -6228,8 +6228,8 @@
       "es": "Farfetch'd",
       "it": "Farfetch'd",
       "ko": "파오리",
-      "zh": "大葱鸭",
-      "zh_HK": "大蔥鴨"
+      "zh": "大蔥鴨",
+      "zh_HK": "大葱鸭"
     },
     "types": [
       "Normal",
@@ -6460,8 +6460,8 @@
       "es": "Seel",
       "it": "Seel",
       "ko": "쥬쥬",
-      "zh": "小海狮",
-      "zh_HK": "小海獅"
+      "zh": "小海獅",
+      "zh_HK": "小海狮"
     },
     "types": [
       "Water"
@@ -6536,8 +6536,8 @@
       "es": "Dewgong",
       "it": "Dewgong",
       "ko": "쥬레곤",
-      "zh": "白海狮",
-      "zh_HK": "白海獅"
+      "zh": "白海獅",
+      "zh_HK": "白海狮"
     },
     "types": [
       "Water",
@@ -6764,8 +6764,8 @@
       "es": "Shellder",
       "it": "Shellder",
       "ko": "셀러",
-      "zh": "大舌贝",
-      "zh_HK": "大舌貝"
+      "zh": "大舌貝",
+      "zh_HK": "大舌贝"
     },
     "types": [
       "Water"
@@ -6839,8 +6839,8 @@
       "es": "Cloyster",
       "it": "Cloyster",
       "ko": "파르셀",
-      "zh": "刺甲贝",
-      "zh_HK": "刺甲貝"
+      "zh": "刺甲貝",
+      "zh_HK": "刺甲贝"
     },
     "types": [
       "Water",
@@ -7293,8 +7293,8 @@
       "es": "Hypno",
       "it": "Hypno",
       "ko": "슬리퍼",
-      "zh": "引梦貘人",
-      "zh_HK": "引夢貘人"
+      "zh": "引夢貘人",
+      "zh_HK": "引梦貘人"
     },
     "types": [
       "Psychic"
@@ -7368,8 +7368,8 @@
       "es": "Krabby",
       "it": "Krabby",
       "ko": "크랩",
-      "zh": "大钳蟹",
-      "zh_HK": "大鉗蟹"
+      "zh": "大鉗蟹",
+      "zh_HK": "大钳蟹"
     },
     "types": [
       "Water"
@@ -7443,8 +7443,8 @@
       "es": "Kingler",
       "it": "Kingler",
       "ko": "킹크랩",
-      "zh": "巨钳蟹",
-      "zh_HK": "巨鉗蟹"
+      "zh": "巨鉗蟹",
+      "zh_HK": "巨钳蟹"
     },
     "types": [
       "Water"
@@ -7518,8 +7518,8 @@
       "es": "Voltorb",
       "it": "Voltorb",
       "ko": "찌리리공",
-      "zh": "霹雳电球",
-      "zh_HK": "霹靂電球"
+      "zh": "霹靂電球",
+      "zh_HK": "霹雳电球"
     },
     "types": [
       "Electric"
@@ -7593,8 +7593,8 @@
       "es": "Electrode",
       "it": "Electrode",
       "ko": "붐볼",
-      "zh": "顽皮雷弹",
-      "zh_HK": "頑皮雷彈"
+      "zh": "頑皮雷彈",
+      "zh_HK": "顽皮雷弹"
     },
     "types": [
       "Electric"
@@ -7744,8 +7744,8 @@
       "es": "Exeggutor",
       "it": "Exeggutor",
       "ko": "나시",
-      "zh": "椰蛋树",
-      "zh_HK": "椰蛋樹"
+      "zh": "椰蛋樹",
+      "zh_HK": "椰蛋树"
     },
     "types": [
       "Grass",
@@ -7970,8 +7970,8 @@
       "es": "Hitmonlee",
       "it": "Hitmonlee",
       "ko": "시라소몬",
-      "zh": "飞腿郎",
-      "zh_HK": "飛腿郎"
+      "zh": "飛腿郎",
+      "zh_HK": "飞腿郎"
     },
     "types": [
       "Fighting"
@@ -8120,8 +8120,8 @@
       "es": "Lickitung",
       "it": "Lickitung",
       "ko": "내루미",
-      "zh": "大舌头",
-      "zh_HK": "大舌頭"
+      "zh": "大舌頭",
+      "zh_HK": "大舌头"
     },
     "types": [
       "Normal"
@@ -8195,8 +8195,8 @@
       "es": "Koffing",
       "it": "Koffing",
       "ko": "또가스",
-      "zh": "瓦斯弹",
-      "zh_HK": "瓦斯彈"
+      "zh": "瓦斯彈",
+      "zh_HK": "瓦斯弹"
     },
     "types": [
       "Poison"
@@ -8270,8 +8270,8 @@
       "es": "Weezing",
       "it": "Weezing",
       "ko": "또도가스",
-      "zh": "双弹瓦斯",
-      "zh_HK": "雙彈瓦斯"
+      "zh": "雙彈瓦斯",
+      "zh_HK": "双弹瓦斯"
     },
     "types": [
       "Poison"
@@ -8345,8 +8345,8 @@
       "es": "Rhyhorn",
       "it": "Rhyhorn",
       "ko": "뿔카노",
-      "zh": "独角犀牛",
-      "zh_HK": "獨角犀牛"
+      "zh": "獨角犀牛",
+      "zh_HK": "独角犀牛"
     },
     "types": [
       "Ground",
@@ -8423,8 +8423,8 @@
       "es": "Rhydon",
       "it": "Rhydon",
       "ko": "코뿌리",
-      "zh": "钻角犀兽",
-      "zh_HK": "鑽角犀獸"
+      "zh": "鑽角犀獸",
+      "zh_HK": "钻角犀兽"
     },
     "types": [
       "Ground",
@@ -8651,8 +8651,8 @@
       "es": "Kangaskhan",
       "it": "Kangaskhan",
       "ko": "캥카",
-      "zh": "袋兽",
-      "zh_HK": "袋獸"
+      "zh": "袋獸",
+      "zh_HK": "袋兽"
     },
     "types": [
       "Normal"
@@ -8726,8 +8726,8 @@
       "es": "Horsea",
       "it": "Horsea",
       "ko": "쏘드라",
-      "zh": "墨海马",
-      "zh_HK": "墨海馬"
+      "zh": "墨海馬",
+      "zh_HK": "墨海马"
     },
     "types": [
       "Water"
@@ -8802,8 +8802,8 @@
       "es": "Seadra",
       "it": "Seadra",
       "ko": "시드라",
-      "zh": "海刺龙",
-      "zh_HK": "海刺龍"
+      "zh": "海刺龍",
+      "zh_HK": "海刺龙"
     },
     "types": [
       "Water"
@@ -8878,8 +8878,8 @@
       "es": "Goldeen",
       "it": "Goldeen",
       "ko": "콘치",
-      "zh": "角金鱼",
-      "zh_HK": "角金魚"
+      "zh": "角金魚",
+      "zh_HK": "角金鱼"
     },
     "types": [
       "Water"
@@ -8953,8 +8953,8 @@
       "es": "Seaking",
       "it": "Seaking",
       "ko": "왕콘치",
-      "zh": "金鱼王",
-      "zh_HK": "金魚王"
+      "zh": "金魚王",
+      "zh_HK": "金鱼王"
     },
     "types": [
       "Water"
@@ -9103,8 +9103,8 @@
       "es": "Starmie",
       "it": "Starmie",
       "ko": "아쿠스타",
-      "zh": "宝石海星",
-      "zh_HK": "寶石海星"
+      "zh": "寶石海星",
+      "zh_HK": "宝石海星"
     },
     "types": [
       "Water",
@@ -9180,8 +9180,8 @@
       "es": "Mr. Mime",
       "it": "Mr. Mime",
       "ko": "마임맨",
-      "zh": "魔墙人偶",
-      "zh_HK": "魔牆人偶"
+      "zh": "魔牆人偶",
+      "zh_HK": "魔墙人偶"
     },
     "types": [
       "Psychic",
@@ -9257,8 +9257,8 @@
       "es": "Scyther",
       "it": "Scyther",
       "ko": "스라크",
-      "zh": "飞天螳螂",
-      "zh_HK": "飛天螳螂"
+      "zh": "飛天螳螂",
+      "zh_HK": "飞天螳螂"
     },
     "types": [
       "Bug",
@@ -9411,8 +9411,8 @@
       "es": "Electabuzz",
       "it": "Electabuzz",
       "ko": "에레브",
-      "zh": "电击兽",
-      "zh_HK": "電擊獸"
+      "zh": "電擊獸",
+      "zh_HK": "电击兽"
     },
     "types": [
       "Electric"
@@ -9485,8 +9485,8 @@
       "es": "Magmar",
       "it": "Magmar",
       "ko": "마그마",
-      "zh": "鸭嘴火兽",
-      "zh_HK": "鴨嘴火獸"
+      "zh": "鴨嘴火獸",
+      "zh_HK": "鸭嘴火兽"
     },
     "types": [
       "Fire"
@@ -9559,8 +9559,8 @@
       "es": "Pinsir",
       "it": "Pinsir",
       "ko": "쁘사이저",
-      "zh": "凯罗斯",
-      "zh_HK": "凱羅斯"
+      "zh": "凱羅斯",
+      "zh_HK": "凯罗斯"
     },
     "types": [
       "Bug"
@@ -9634,8 +9634,8 @@
       "es": "Tauros",
       "it": "Tauros",
       "ko": "켄타로스",
-      "zh": "肯泰罗",
-      "zh_HK": "肯泰羅"
+      "zh": "肯泰羅",
+      "zh_HK": "肯泰罗"
     },
     "types": [
       "Normal"
@@ -9709,8 +9709,8 @@
       "es": "Magikarp",
       "it": "Magikarp",
       "ko": "잉어킹",
-      "zh": "鲤鱼王",
-      "zh_HK": "鯉魚王"
+      "zh": "鯉魚王",
+      "zh_HK": "鲤鱼王"
     },
     "types": [
       "Water"
@@ -9784,8 +9784,8 @@
       "es": "Gyarados",
       "it": "Gyarados",
       "ko": "갸라도스",
-      "zh": "暴鲤龙",
-      "zh_HK": "暴鯉龍"
+      "zh": "暴鯉龍",
+      "zh_HK": "暴鲤龙"
     },
     "types": [
       "Water",
@@ -9939,8 +9939,8 @@
       "es": "Ditto",
       "it": "Ditto",
       "ko": "메타몽",
-      "zh": "百变怪",
-      "zh_HK": "百變怪"
+      "zh": "百變怪",
+      "zh_HK": "百变怪"
     },
     "types": [
       "Normal"
@@ -10310,8 +10310,8 @@
       "es": "Porygon",
       "it": "Porygon",
       "ko": "폴리곤",
-      "zh": "多边兽",
-      "zh_HK": "多邊獸"
+      "zh": "多邊獸",
+      "zh_HK": "多边兽"
     },
     "types": [
       "Normal"
@@ -10385,8 +10385,8 @@
       "es": "Omanyte",
       "it": "Omanyte",
       "ko": "암나이트",
-      "zh": "菊石兽",
-      "zh_HK": "菊石獸"
+      "zh": "菊石獸",
+      "zh_HK": "菊石兽"
     },
     "types": [
       "Rock",
@@ -10463,8 +10463,8 @@
       "es": "Omastar",
       "it": "Omastar",
       "ko": "암스타",
-      "zh": "多刺菊石兽",
-      "zh_HK": "多刺菊石獸"
+      "zh": "多刺菊石獸",
+      "zh_HK": "多刺菊石兽"
     },
     "types": [
       "Rock",
@@ -10619,8 +10619,8 @@
       "es": "Kabutops",
       "it": "Kabutops",
       "ko": "투구푸스",
-      "zh": "镰刀盔",
-      "zh_HK": "鐮刀盔"
+      "zh": "鐮刀盔",
+      "zh_HK": "镰刀盔"
     },
     "types": [
       "Rock",
@@ -10697,8 +10697,8 @@
       "es": "Aerodactyl",
       "it": "Aerodactyl",
       "ko": "프테라",
-      "zh": "化石翼龙",
-      "zh_HK": "化石翼龍"
+      "zh": "化石翼龍",
+      "zh_HK": "化石翼龙"
     },
     "types": [
       "Rock",
@@ -10774,8 +10774,8 @@
       "es": "Snorlax",
       "it": "Snorlax",
       "ko": "잠만보",
-      "zh": "卡比兽",
-      "zh_HK": "卡比獸"
+      "zh": "卡比獸",
+      "zh_HK": "卡比兽"
     },
     "types": [
       "Normal"
@@ -10849,8 +10849,8 @@
       "es": "Articuno",
       "it": "Articuno",
       "ko": "프리져",
-      "zh": "急冻鸟",
-      "zh_HK": "急凍鳥"
+      "zh": "急凍鳥",
+      "zh_HK": "急冻鸟"
     },
     "types": [
       "Ice",
@@ -10925,8 +10925,8 @@
       "es": "Zapdos",
       "it": "Zapdos",
       "ko": "썬더",
-      "zh": "闪电鸟",
-      "zh_HK": "閃電鳥"
+      "zh": "閃電鳥",
+      "zh_HK": "闪电鸟"
     },
     "types": [
       "Electric",
@@ -11001,8 +11001,8 @@
       "es": "Moltres",
       "it": "Moltres",
       "ko": "파이어",
-      "zh": "火焰鸟",
-      "zh_HK": "火焰鳥"
+      "zh": "火焰鳥",
+      "zh_HK": "火焰鸟"
     },
     "types": [
       "Fire",
@@ -11077,8 +11077,8 @@
       "es": "Dratini",
       "it": "Dratini",
       "ko": "미뇽",
-      "zh": "迷你龙",
-      "zh_HK": "迷你龍"
+      "zh": "迷你龍",
+      "zh_HK": "迷你龙"
     },
     "types": [
       "Dragon"
@@ -11152,8 +11152,8 @@
       "es": "Dragonair",
       "it": "Dragonair",
       "ko": "신뇽",
-      "zh": "哈克龙",
-      "zh_HK": "哈克龍"
+      "zh": "哈克龍",
+      "zh_HK": "哈克龙"
     },
     "types": [
       "Dragon"
@@ -11227,8 +11227,8 @@
       "es": "Dragonite",
       "it": "Dragonite",
       "ko": "망나뇽",
-      "zh": "快龙",
-      "zh_HK": "快龍"
+      "zh": "快龍",
+      "zh_HK": "快龙"
     },
     "types": [
       "Dragon",
@@ -11304,8 +11304,8 @@
       "es": "Mewtwo",
       "it": "Mewtwo",
       "ko": "뮤츠",
-      "zh": "超梦",
-      "zh_HK": "超夢"
+      "zh": "超夢",
+      "zh_HK": "超梦"
     },
     "types": [
       "Psychic"
@@ -11378,8 +11378,8 @@
       "es": "Mew",
       "it": "Mew",
       "ko": "뮤",
-      "zh": "梦幻",
-      "zh_HK": "夢幻"
+      "zh": "夢幻",
+      "zh_HK": "梦幻"
     },
     "types": [
       "Psychic"
@@ -11451,8 +11451,8 @@
       "es": "Chikorita",
       "it": "Chikorita",
       "ko": "치코리타",
-      "zh": "菊草叶",
-      "zh_HK": "菊草葉"
+      "zh": "菊草葉",
+      "zh_HK": "菊草叶"
     },
     "types": [
       "Grass"
@@ -11526,8 +11526,8 @@
       "es": "Bayleef",
       "it": "Bayleef",
       "ko": "베이리프",
-      "zh": "月桂叶",
-      "zh_HK": "月桂葉"
+      "zh": "月桂葉",
+      "zh_HK": "月桂叶"
     },
     "types": [
       "Grass"
@@ -11824,8 +11824,8 @@
       "es": "Typhlosion",
       "it": "Typhlosion",
       "ko": "블레이범",
-      "zh": "火爆兽",
-      "zh_HK": "火爆獸"
+      "zh": "火爆獸",
+      "zh_HK": "火爆兽"
     },
     "types": [
       "Fire"
@@ -11898,8 +11898,8 @@
       "es": "Totodile",
       "it": "Totodile",
       "ko": "리아코",
-      "zh": "小锯鳄",
-      "zh_HK": "小鋸鱷"
+      "zh": "小鋸鱷",
+      "zh_HK": "小锯鳄"
     },
     "types": [
       "Water"
@@ -11973,8 +11973,8 @@
       "es": "Croconaw",
       "it": "Croconaw",
       "ko": "엘리게이",
-      "zh": "蓝鳄",
-      "zh_HK": "藍鱷"
+      "zh": "藍鱷",
+      "zh_HK": "蓝鳄"
     },
     "types": [
       "Water"
@@ -12048,8 +12048,8 @@
       "es": "Feraligatr",
       "it": "Feraligatr",
       "ko": "장크로다일",
-      "zh": "大力鳄",
-      "zh_HK": "大力鱷"
+      "zh": "大力鱷",
+      "zh_HK": "大力鳄"
     },
     "types": [
       "Water"
@@ -12350,8 +12350,8 @@
       "es": "Noctowl",
       "it": "Noctowl",
       "ko": "야부엉",
-      "zh": "猫头夜鹰",
-      "zh_HK": "貓頭夜鷹"
+      "zh": "貓頭夜鷹",
+      "zh_HK": "猫头夜鹰"
     },
     "types": [
       "Normal",
@@ -12427,8 +12427,8 @@
       "es": "Ledyba",
       "it": "Ledyba",
       "ko": "레디바",
-      "zh": "芭瓢虫",
-      "zh_HK": "芭瓢蟲"
+      "zh": "芭瓢蟲",
+      "zh_HK": "芭瓢虫"
     },
     "types": [
       "Bug",
@@ -12504,8 +12504,8 @@
       "es": "Ledian",
       "it": "Ledian",
       "ko": "레디안",
-      "zh": "安瓢虫",
-      "zh_HK": "安瓢蟲"
+      "zh": "安瓢蟲",
+      "zh_HK": "安瓢虫"
     },
     "types": [
       "Bug",
@@ -12581,8 +12581,8 @@
       "es": "Spinarak",
       "it": "Spinarak",
       "ko": "페이검",
-      "zh": "圆丝蛛",
-      "zh_HK": "圓絲蛛"
+      "zh": "圓絲蛛",
+      "zh_HK": "圆丝蛛"
     },
     "types": [
       "Bug",
@@ -12811,8 +12811,8 @@
       "es": "Chinchou",
       "it": "Chinchou",
       "ko": "초라기",
-      "zh": "灯笼鱼",
-      "zh_HK": "燈籠魚"
+      "zh": "燈籠魚",
+      "zh_HK": "灯笼鱼"
     },
     "types": [
       "Water",
@@ -12888,8 +12888,8 @@
       "es": "Lanturn",
       "it": "Lanturn",
       "ko": "랜턴",
-      "zh": "电灯怪",
-      "zh_HK": "電燈怪"
+      "zh": "電燈怪",
+      "zh_HK": "电灯怪"
     },
     "types": [
       "Water",
@@ -13039,8 +13039,8 @@
       "es": "Cleffa",
       "it": "Cleffa",
       "ko": "삐",
-      "zh": "皮宝宝",
-      "zh_HK": "皮寶寶"
+      "zh": "皮寶寶",
+      "zh_HK": "皮宝宝"
     },
     "types": [
       "Fairy"
@@ -13114,8 +13114,8 @@
       "es": "Igglybuff",
       "it": "Igglybuff",
       "ko": "푸푸린",
-      "zh": "宝宝丁",
-      "zh_HK": "寶寶丁"
+      "zh": "寶寶丁",
+      "zh_HK": "宝宝丁"
     },
     "types": [
       "Normal",
@@ -13421,8 +13421,8 @@
       "es": "Xatu",
       "it": "Xatu",
       "ko": "네이티오",
-      "zh": "天然鸟",
-      "zh_HK": "天然鳥"
+      "zh": "天然鳥",
+      "zh_HK": "天然鸟"
     },
     "types": [
       "Psychic",
@@ -13648,8 +13648,8 @@
       "es": "Ampharos",
       "it": "Ampharos",
       "ko": "전룡",
-      "zh": "电龙",
-      "zh_HK": "電龍"
+      "zh": "電龍",
+      "zh_HK": "电龙"
     },
     "types": [
       "Electric"
@@ -13723,8 +13723,8 @@
       "es": "Bellossom",
       "it": "Bellossom",
       "ko": "아르코",
-      "zh": "美丽花",
-      "zh_HK": "美麗花"
+      "zh": "美麗花",
+      "zh_HK": "美丽花"
     },
     "types": [
       "Grass"
@@ -13797,8 +13797,8 @@
       "es": "Marill",
       "it": "Marill",
       "ko": "마릴",
-      "zh": "玛力露",
-      "zh_HK": "瑪力露"
+      "zh": "瑪力露",
+      "zh_HK": "玛力露"
     },
     "types": [
       "Water",
@@ -13875,8 +13875,8 @@
       "es": "Azumarill",
       "it": "Azumarill",
       "ko": "마릴리",
-      "zh": "玛力露丽",
-      "zh_HK": "瑪力露麗"
+      "zh": "瑪力露麗",
+      "zh_HK": "玛力露丽"
     },
     "types": [
       "Water",
@@ -13953,8 +13953,8 @@
       "es": "Sudowoodo",
       "it": "Sudowoodo",
       "ko": "꼬지모",
-      "zh": "树才怪",
-      "zh_HK": "樹才怪"
+      "zh": "樹才怪",
+      "zh_HK": "树才怪"
     },
     "types": [
       "Rock"
@@ -14337,8 +14337,8 @@
       "es": "Aipom",
       "it": "Aipom",
       "ko": "에이팜",
-      "zh": "长尾怪手",
-      "zh_HK": "長尾怪手"
+      "zh": "長尾怪手",
+      "zh_HK": "长尾怪手"
     },
     "types": [
       "Normal"
@@ -14412,8 +14412,8 @@
       "es": "Sunkern",
       "it": "Sunkern",
       "ko": "해너츠",
-      "zh": "向日种子",
-      "zh_HK": "向日種子"
+      "zh": "向日種子",
+      "zh_HK": "向日种子"
     },
     "types": [
       "Grass"
@@ -14639,8 +14639,8 @@
       "es": "Wooper",
       "it": "Wooper",
       "ko": "우파",
-      "zh": "乌波",
-      "zh_HK": "烏波"
+      "zh": "烏波",
+      "zh_HK": "乌波"
     },
     "types": [
       "Water",
@@ -14795,8 +14795,8 @@
       "es": "Espeon",
       "it": "Espeon",
       "ko": "에브이",
-      "zh": "太阳伊布",
-      "zh_HK": "太陽伊布"
+      "zh": "太陽伊布",
+      "zh_HK": "太阳伊布"
     },
     "types": [
       "Psychic"
@@ -14943,8 +14943,8 @@
       "es": "Murkrow",
       "it": "Murkrow",
       "ko": "니로우",
-      "zh": "黑暗鸦",
-      "zh_HK": "黑暗鴉"
+      "zh": "黑暗鴉",
+      "zh_HK": "黑暗鸦"
     },
     "types": [
       "Dark",
@@ -15098,8 +15098,8 @@
       "es": "Misdreavus",
       "it": "Misdreavus",
       "ko": "무우마",
-      "zh": "梦妖",
-      "zh_HK": "夢妖"
+      "zh": "夢妖",
+      "zh_HK": "梦妖"
     },
     "types": [
       "Ghost"
@@ -15171,8 +15171,8 @@
       "es": "Unown",
       "it": "Unown",
       "ko": "안농",
-      "zh": "未知图腾",
-      "zh_HK": "未知圖騰"
+      "zh": "未知圖騰",
+      "zh_HK": "未知图腾"
     },
     "types": [
       "Psychic"
@@ -15545,8 +15545,8 @@
       "es": "Dunsparce",
       "it": "Dunsparce",
       "ko": "노고치",
-      "zh": "土龙弟弟",
-      "zh_HK": "土龍弟弟"
+      "zh": "土龍弟弟",
+      "zh_HK": "土龙弟弟"
     },
     "types": [
       "Normal"
@@ -15620,8 +15620,8 @@
       "es": "Gligar",
       "it": "Gligar",
       "ko": "글라이거",
-      "zh": "天蝎",
-      "zh_HK": "天蠍"
+      "zh": "天蠍",
+      "zh_HK": "天蝎"
     },
     "types": [
       "Ground",
@@ -15697,8 +15697,8 @@
       "es": "Steelix",
       "it": "Steelix",
       "ko": "강철톤",
-      "zh": "大钢蛇",
-      "zh_HK": "大鋼蛇"
+      "zh": "大鋼蛇",
+      "zh_HK": "大钢蛇"
     },
     "types": [
       "Steel",
@@ -15774,8 +15774,8 @@
       "es": "Snubbull",
       "it": "Snubbull",
       "ko": "블루",
-      "zh": "布鲁",
-      "zh_HK": "布魯"
+      "zh": "布魯",
+      "zh_HK": "布鲁"
     },
     "types": [
       "Fairy"
@@ -15850,8 +15850,8 @@
       "es": "Granbull",
       "it": "Granbull",
       "ko": "그랑블루",
-      "zh": "布鲁皇",
-      "zh_HK": "布魯皇"
+      "zh": "布魯皇",
+      "zh_HK": "布鲁皇"
     },
     "types": [
       "Fairy"
@@ -15926,8 +15926,8 @@
       "es": "Qwilfish",
       "it": "Qwilfish",
       "ko": "침바루",
-      "zh": "千针鱼",
-      "zh_HK": "千針魚"
+      "zh": "千針魚",
+      "zh_HK": "千针鱼"
     },
     "types": [
       "Water",
@@ -16003,8 +16003,8 @@
       "es": "Scizor",
       "it": "Scizor",
       "ko": "핫삼나",
-      "zh": "巨钳螳螂",
-      "zh_HK": "巨鉗螳螂"
+      "zh": "巨鉗螳螂",
+      "zh_HK": "巨钳螳螂"
     },
     "types": [
       "Bug",
@@ -16080,8 +16080,8 @@
       "es": "Shuckle",
       "it": "Shuckle",
       "ko": "단단지",
-      "zh": "壶壶",
-      "zh_HK": "壺壺"
+      "zh": "壺壺",
+      "zh_HK": "壶壶"
     },
     "types": [
       "Bug",
@@ -16157,8 +16157,8 @@
       "es": "Heracross",
       "it": "Heracross",
       "ko": "헤라크로스",
-      "zh": "赫拉克罗斯",
-      "zh_HK": "赫拉克羅斯"
+      "zh": "赫拉克羅斯",
+      "zh_HK": "赫拉克罗斯"
     },
     "types": [
       "Bug",
@@ -16311,8 +16311,8 @@
       "es": "Teddiursa",
       "it": "Teddiursa",
       "ko": "깜지곰",
-      "zh": "熊宝宝",
-      "zh_HK": "熊寶寶"
+      "zh": "熊寶寶",
+      "zh_HK": "熊宝宝"
     },
     "types": [
       "Normal"
@@ -16461,8 +16461,8 @@
       "es": "Slugma",
       "it": "Slugma",
       "ko": "마그마그",
-      "zh": "熔岩虫",
-      "zh_HK": "熔岩蟲"
+      "zh": "熔岩蟲",
+      "zh_HK": "熔岩虫"
     },
     "types": [
       "Fire"
@@ -16536,8 +16536,8 @@
       "es": "Magcargo",
       "it": "Magcargo",
       "ko": "마그카르고",
-      "zh": "熔岩蜗牛",
-      "zh_HK": "熔岩蝸牛"
+      "zh": "熔岩蝸牛",
+      "zh_HK": "熔岩蜗牛"
     },
     "types": [
       "Fire",
@@ -16613,8 +16613,8 @@
       "es": "Swinub",
       "it": "Swinub",
       "ko": "꾸꾸리",
-      "zh": "小山猪",
-      "zh_HK": "小山豬"
+      "zh": "小山豬",
+      "zh_HK": "小山猪"
     },
     "types": [
       "Ice",
@@ -16690,8 +16690,8 @@
       "es": "Piloswine",
       "it": "Piloswine",
       "ko": "메꾸리",
-      "zh": "长毛猪",
-      "zh_HK": "長毛豬"
+      "zh": "長毛豬",
+      "zh_HK": "长毛猪"
     },
     "types": [
       "Ice",
@@ -16767,8 +16767,8 @@
       "es": "Corsola",
       "it": "Corsola",
       "ko": "코산호",
-      "zh": "太阳珊瑚",
-      "zh_HK": "太陽珊瑚"
+      "zh": "太陽珊瑚",
+      "zh_HK": "太阳珊瑚"
     },
     "types": [
       "Water",
@@ -16845,8 +16845,8 @@
       "es": "Remoraid",
       "it": "Remoraid",
       "ko": "총어",
-      "zh": "铁炮鱼",
-      "zh_HK": "鐵炮魚"
+      "zh": "鐵炮魚",
+      "zh_HK": "铁炮鱼"
     },
     "types": [
       "Water"
@@ -16921,8 +16921,8 @@
       "es": "Octillery",
       "it": "Octillery",
       "ko": "대포무노",
-      "zh": "章鱼桶",
-      "zh_HK": "章魚桶"
+      "zh": "章魚桶",
+      "zh_HK": "章鱼桶"
     },
     "types": [
       "Water"
@@ -16997,8 +16997,8 @@
       "es": "Delibird",
       "it": "Delibird",
       "ko": "딜리버드",
-      "zh": "信使鸟",
-      "zh_HK": "信使鳥"
+      "zh": "信使鳥",
+      "zh_HK": "信使鸟"
     },
     "types": [
       "Ice",
@@ -17075,8 +17075,8 @@
       "es": "Mantine",
       "it": "Mantine",
       "ko": "만타인",
-      "zh": "巨翅飞鱼",
-      "zh_HK": "巨翅飛魚"
+      "zh": "巨翅飛魚",
+      "zh_HK": "巨翅飞鱼"
     },
     "types": [
       "Water",
@@ -17152,8 +17152,8 @@
       "es": "Skarmory",
       "it": "Skarmory",
       "ko": "무장조",
-      "zh": "盔甲鸟",
-      "zh_HK": "盔甲鳥"
+      "zh": "盔甲鳥",
+      "zh_HK": "盔甲鸟"
     },
     "types": [
       "Steel",
@@ -17229,8 +17229,8 @@
       "es": "Houndoor",
       "it": "Houndoor",
       "ko": "델빌",
-      "zh": "戴鲁比",
-      "zh_HK": "戴魯比"
+      "zh": "戴魯比",
+      "zh_HK": "戴鲁比"
     },
     "types": [
       "Dark",
@@ -17306,8 +17306,8 @@
       "es": "Houndoom",
       "it": "Houndoom",
       "ko": "헬가",
-      "zh": "黑鲁加",
-      "zh_HK": "黑魯加"
+      "zh": "黑魯加",
+      "zh_HK": "黑鲁加"
     },
     "types": [
       "Dark",
@@ -17383,8 +17383,8 @@
       "es": "Kingdra",
       "it": "Kingdra",
       "ko": "킹드라",
-      "zh": "刺龙王",
-      "zh_HK": "刺龍王"
+      "zh": "刺龍王",
+      "zh_HK": "刺龙王"
     },
     "types": [
       "Water",
@@ -17535,8 +17535,8 @@
       "es": "Donphan",
       "it": "Donphan",
       "ko": "코리갑",
-      "zh": "顿甲",
-      "zh_HK": "頓甲"
+      "zh": "頓甲",
+      "zh_HK": "顿甲"
     },
     "types": [
       "Ground"
@@ -17609,8 +17609,8 @@
       "es": "Porygon2",
       "it": "Porygon2",
       "ko": "폴리곤２",
-      "zh": "多边兽２型",
-      "zh_HK": "多邊獸Ⅱ"
+      "zh": "多邊獸Ⅱ",
+      "zh_HK": "多边兽Ⅱ"
     },
     "types": [
       "Normal"
@@ -17684,8 +17684,8 @@
       "es": "Stantler",
       "it": "Stantler",
       "ko": "노라키",
-      "zh": "惊角鹿",
-      "zh_HK": "驚角鹿"
+      "zh": "驚角鹿",
+      "zh_HK": "惊角鹿"
     },
     "types": [
       "Normal"
@@ -17759,8 +17759,8 @@
       "es": "Smeargle",
       "it": "Smeargle",
       "ko": "루브도",
-      "zh": "图图犬",
-      "zh_HK": "圖圖犬"
+      "zh": "圖圖犬",
+      "zh_HK": "图图犬"
     },
     "types": [
       "Normal"
@@ -17834,8 +17834,8 @@
       "es": "Tyrogue",
       "it": "Tyrogue",
       "ko": "배루키",
-      "zh": "无畏小子",
-      "zh_HK": "無畏小子"
+      "zh": "無畏小子",
+      "zh_HK": "无畏小子"
     },
     "types": [
       "Fighting"
@@ -17909,8 +17909,8 @@
       "es": "Hitmontop",
       "it": "Hitmontop",
       "ko": "카포에라",
-      "zh": "战舞郎",
-      "zh_HK": "戰舞郎"
+      "zh": "戰舞郎",
+      "zh_HK": "战舞郎"
     },
     "types": [
       "Fighting"
@@ -18061,8 +18061,8 @@
       "es": "Elekid",
       "it": "Elekid",
       "ko": "에레키드",
-      "zh": "电击怪",
-      "zh_HK": "電擊怪"
+      "zh": "電擊怪",
+      "zh_HK": "电击怪"
     },
     "types": [
       "Electric"
@@ -18135,8 +18135,8 @@
       "es": "Magby",
       "it": "Magby",
       "ko": "마그비",
-      "zh": "鸭嘴宝宝",
-      "zh_HK": "鴨嘴寶寶"
+      "zh": "鴨嘴寶寶",
+      "zh_HK": "鸭嘴宝宝"
     },
     "types": [
       "Fire"
@@ -18808,8 +18808,8 @@
       "es": "Lugia",
       "it": "Lugia",
       "ko": "루기아",
-      "zh": "洛奇亚",
-      "zh_HK": "洛奇亞"
+      "zh": "洛奇亞",
+      "zh_HK": "洛奇亚"
     },
     "types": [
       "Psychic",
@@ -18884,8 +18884,8 @@
       "es": "Ho-Oh",
       "it": "Ho-Oh",
       "ko": "칠색조",
-      "zh": "凤王",
-      "zh_HK": "鳳王"
+      "zh": "鳳王",
+      "zh_HK": "凤王"
     },
     "types": [
       "Fire",
@@ -18960,8 +18960,8 @@
       "es": "Celebi",
       "it": "Celebi",
       "ko": "세레비",
-      "zh": "时拉比",
-      "zh_HK": "時拉比"
+      "zh": "時拉比",
+      "zh_HK": "时拉比"
     },
     "types": [
       "Psychic",
@@ -19035,8 +19035,8 @@
       "es": "Treecko",
       "it": "Treecko",
       "ko": "나무지기",
-      "zh": "木守宫",
-      "zh_HK": "木守宮"
+      "zh": "木守宮",
+      "zh_HK": "木守宫"
     },
     "types": [
       "Grass"
@@ -19260,8 +19260,8 @@
       "es": "Torchic",
       "it": "Torchic",
       "ko": "아차모",
-      "zh": "火稚鸡",
-      "zh_HK": "火稚雞"
+      "zh": "火稚雞",
+      "zh_HK": "火稚鸡"
     },
     "types": [
       "Fire"
@@ -19334,8 +19334,8 @@
       "es": "Combusken",
       "it": "Combusken",
       "ko": "영치코",
-      "zh": "力壮鸡",
-      "zh_HK": "力壯雞"
+      "zh": "力壯雞",
+      "zh_HK": "力壮鸡"
     },
     "types": [
       "Fire",
@@ -19410,8 +19410,8 @@
       "es": "Blaziken",
       "it": "Blaziken",
       "ko": "번치코",
-      "zh": "火焰鸡",
-      "zh_HK": "火焰雞"
+      "zh": "火焰雞",
+      "zh_HK": "火焰鸡"
     },
     "types": [
       "Fire",
@@ -19486,8 +19486,8 @@
       "es": "Mudkip",
       "it": "Mudkip",
       "ko": "물짱이",
-      "zh": "水跃鱼",
-      "zh_HK": "水躍魚"
+      "zh": "水躍魚",
+      "zh_HK": "水跃鱼"
     },
     "types": [
       "Water"
@@ -19561,8 +19561,8 @@
       "es": "Marshtomp",
       "it": "Marshtomp",
       "ko": "늪짱이",
-      "zh": "沼跃鱼",
-      "zh_HK": "沼躍魚"
+      "zh": "沼躍魚",
+      "zh_HK": "沼跃鱼"
     },
     "types": [
       "Water",
@@ -19865,8 +19865,8 @@
       "es": "Zigzagoon",
       "it": "Zigzagoon",
       "ko": "지그제구리",
-      "zh": "蛇纹熊",
-      "zh_HK": "蛇紋熊"
+      "zh": "蛇紋熊",
+      "zh_HK": "蛇纹熊"
     },
     "types": [
       "Normal"
@@ -19940,8 +19940,8 @@
       "es": "Linoone",
       "it": "Linoone",
       "ko": "직구리",
-      "zh": "直冲熊",
-      "zh_HK": "直衝熊"
+      "zh": "直衝熊",
+      "zh_HK": "直冲熊"
     },
     "types": [
       "Normal"
@@ -20015,8 +20015,8 @@
       "es": "Wurmple",
       "it": "Wurmple",
       "ko": "개무소",
-      "zh": "刺尾虫",
-      "zh_HK": "刺尾蟲"
+      "zh": "刺尾蟲",
+      "zh_HK": "刺尾虫"
     },
     "types": [
       "Bug"
@@ -20089,8 +20089,8 @@
       "es": "Silcoon",
       "it": "Silcoon",
       "ko": "실쿤",
-      "zh": "甲壳茧",
-      "zh_HK": "甲殼繭"
+      "zh": "甲殼繭",
+      "zh_HK": "甲壳茧"
     },
     "types": [
       "Bug"
@@ -20162,8 +20162,8 @@
       "es": "Beautifly",
       "it": "Beautifly",
       "ko": "뷰티플라이",
-      "zh": "狩猎凤蝶",
-      "zh_HK": "狩獵鳳蝶"
+      "zh": "狩獵鳳蝶",
+      "zh_HK": "狩猎凤蝶"
     },
     "types": [
       "Bug",
@@ -20238,8 +20238,8 @@
       "es": "Cascoon",
       "it": "Cascoon",
       "ko": "카스쿤",
-      "zh": "盾甲茧",
-      "zh_HK": "盾甲繭"
+      "zh": "盾甲繭",
+      "zh_HK": "盾甲茧"
     },
     "types": [
       "Bug"
@@ -20387,8 +20387,8 @@
       "es": "Lotad",
       "it": "Lotad",
       "ko": "연꽃몬",
-      "zh": "莲叶童子",
-      "zh_HK": "蓮葉童子"
+      "zh": "蓮葉童子",
+      "zh_HK": "莲叶童子"
     },
     "types": [
       "Water",
@@ -20465,8 +20465,8 @@
       "es": "Lombre",
       "it": "Lombre",
       "ko": "로토스",
-      "zh": "莲帽小童",
-      "zh_HK": "蓮帽小童"
+      "zh": "蓮帽小童",
+      "zh_HK": "莲帽小童"
     },
     "types": [
       "Water",
@@ -20543,8 +20543,8 @@
       "es": "Ludicolo",
       "it": "Ludicolo",
       "ko": "로파파",
-      "zh": "乐天河童",
-      "zh_HK": "樂天河童"
+      "zh": "樂天河童",
+      "zh_HK": "乐天河童"
     },
     "types": [
       "Water",
@@ -20621,8 +20621,8 @@
       "es": "Seedot",
       "it": "Seedot",
       "ko": "도토링",
-      "zh": "橡实果",
-      "zh_HK": "橡實果"
+      "zh": "橡實果",
+      "zh_HK": "橡实果"
     },
     "types": [
       "Grass"
@@ -20697,8 +20697,8 @@
       "es": "Nuzleaf",
       "it": "Nuzleaf",
       "ko": "잎새코",
-      "zh": "长鼻叶",
-      "zh_HK": "長鼻葉"
+      "zh": "長鼻葉",
+      "zh_HK": "长鼻叶"
     },
     "types": [
       "Grass",
@@ -21005,8 +21005,8 @@
       "es": "Wingull",
       "it": "Wingull",
       "ko": "갈모매",
-      "zh": "长翅鸥",
-      "zh_HK": "長翅鷗"
+      "zh": "長翅鷗",
+      "zh_HK": "长翅鸥"
     },
     "types": [
       "Water",
@@ -21083,8 +21083,8 @@
       "es": "Pelipper",
       "it": "Pelipper",
       "ko": "패리퍼",
-      "zh": "大嘴鸥",
-      "zh_HK": "大嘴鷗"
+      "zh": "大嘴鷗",
+      "zh_HK": "大嘴鸥"
     },
     "types": [
       "Water",
@@ -21161,8 +21161,8 @@
       "es": "Ralts",
       "it": "Ralts",
       "ko": "랄토스",
-      "zh": "拉鲁拉丝",
-      "zh_HK": "拉魯拉絲"
+      "zh": "拉魯拉絲",
+      "zh_HK": "拉鲁拉丝"
     },
     "types": [
       "Psychic",
@@ -21239,8 +21239,8 @@
       "es": "Kirlia",
       "it": "Kirlia",
       "ko": "킬리아",
-      "zh": "奇鲁莉安",
-      "zh_HK": "奇魯莉安"
+      "zh": "奇魯莉安",
+      "zh_HK": "奇鲁莉安"
     },
     "types": [
       "Psychic",
@@ -21703,8 +21703,8 @@
       "es": "Slakoth",
       "it": "Slakoth",
       "ko": "게을로",
-      "zh": "懒人獭",
-      "zh_HK": "懶人獺"
+      "zh": "懶人獺",
+      "zh_HK": "懒人獭"
     },
     "types": [
       "Normal"
@@ -21776,8 +21776,8 @@
       "es": "Vigoroth",
       "it": "Vigoroth",
       "ko": "발바로",
-      "zh": "过动猿",
-      "zh_HK": "過動猿"
+      "zh": "過動猿",
+      "zh_HK": "过动猿"
     },
     "types": [
       "Normal"
@@ -21849,8 +21849,8 @@
       "es": "Slaking",
       "it": "Slaking",
       "ko": "게을킹",
-      "zh": "请假王",
-      "zh_HK": "請假王"
+      "zh": "請假王",
+      "zh_HK": "请假王"
     },
     "types": [
       "Normal"
@@ -21998,8 +21998,8 @@
       "es": "Ninjask",
       "it": "Ninjask",
       "ko": "아이스크",
-      "zh": "铁面忍者",
-      "zh_HK": "鐵面忍者"
+      "zh": "鐵面忍者",
+      "zh_HK": "铁面忍者"
     },
     "types": [
       "Bug",
@@ -22074,8 +22074,8 @@
       "es": "Shedinja",
       "it": "Shedinja",
       "ko": "껍질몬",
-      "zh": "脱壳忍者",
-      "zh_HK": "脫殼忍者"
+      "zh": "脫殼忍者",
+      "zh_HK": "脱壳忍者"
     },
     "types": [
       "Bug",
@@ -22224,8 +22224,8 @@
       "es": "Loudred",
       "it": "Loudred",
       "ko": "노공룡",
-      "zh": "吼爆弹",
-      "zh_HK": "吼爆彈"
+      "zh": "吼爆彈",
+      "zh_HK": "吼爆弹"
     },
     "types": [
       "Normal"
@@ -22449,8 +22449,8 @@
       "es": "Hariyama",
       "it": "Hariyama",
       "ko": "하리뭉",
-      "zh": "铁掌力士",
-      "zh_HK": "鐵掌力士"
+      "zh": "鐵掌力士",
+      "zh_HK": "铁掌力士"
     },
     "types": [
       "Fighting"
@@ -22524,8 +22524,8 @@
       "es": "Azurill",
       "it": "Azurill",
       "ko": "루리리",
-      "zh": "露力丽",
-      "zh_HK": "露力麗"
+      "zh": "露力麗",
+      "zh_HK": "露力丽"
     },
     "types": [
       "Normal",
@@ -22752,8 +22752,8 @@
       "es": "Delcatty",
       "it": "Delcatty",
       "ko": "델케티",
-      "zh": "优雅猫",
-      "zh_HK": "優雅貓"
+      "zh": "優雅貓",
+      "zh_HK": "优雅猫"
     },
     "types": [
       "Normal"
@@ -23214,8 +23214,8 @@
       "es": "Meditite",
       "it": "Meditite",
       "ko": "요가랑",
-      "zh": "玛沙那",
-      "zh_HK": "瑪沙那"
+      "zh": "瑪沙那",
+      "zh_HK": "玛沙那"
     },
     "types": [
       "Fighting",
@@ -23366,8 +23366,8 @@
       "es": "Electrike",
       "it": "Electrike",
       "ko": "썬더라이",
-      "zh": "落雷兽",
-      "zh_HK": "落雷獸"
+      "zh": "落雷獸",
+      "zh_HK": "落雷兽"
     },
     "types": [
       "Electric"
@@ -23441,8 +23441,8 @@
       "es": "Manectric",
       "it": "Manectric",
       "ko": "썬더볼트",
-      "zh": "雷电兽",
-      "zh_HK": "雷電獸"
+      "zh": "雷電獸",
+      "zh_HK": "雷电兽"
     },
     "types": [
       "Electric"
@@ -23516,8 +23516,8 @@
       "es": "Plusle",
       "it": "Plusle",
       "ko": "플러시",
-      "zh": "正电拍拍",
-      "zh_HK": "正電拍拍"
+      "zh": "正電拍拍",
+      "zh_HK": "正电拍拍"
     },
     "types": [
       "Electric"
@@ -23590,8 +23590,8 @@
       "es": "Minum",
       "it": "Minum",
       "ko": "마이농",
-      "zh": "负电拍拍",
-      "zh_HK": "負電拍拍"
+      "zh": "負電拍拍",
+      "zh_HK": "负电拍拍"
     },
     "types": [
       "Electric"
@@ -23664,8 +23664,8 @@
       "es": "Volbeat",
       "it": "Volbeat",
       "ko": "볼비트",
-      "zh": "电萤虫",
-      "zh_HK": "電螢蟲"
+      "zh": "電螢蟲",
+      "zh_HK": "电萤虫"
     },
     "types": [
       "Bug"
@@ -23740,8 +23740,8 @@
       "es": "Illumise",
       "it": "Illumise",
       "ko": "네오비트",
-      "zh": "甜甜萤",
-      "zh_HK": "甜甜螢"
+      "zh": "甜甜螢",
+      "zh_HK": "甜甜萤"
     },
     "types": [
       "Bug"
@@ -23816,8 +23816,8 @@
       "es": "Roselia",
       "it": "Roselia",
       "ko": "로젤리아",
-      "zh": "毒蔷薇",
-      "zh_HK": "毒薔薇"
+      "zh": "毒薔薇",
+      "zh_HK": "毒蔷薇"
     },
     "types": [
       "Grass",
@@ -23894,8 +23894,8 @@
       "es": "Gulpin",
       "it": "Gulpin",
       "ko": "꼴깍몬",
-      "zh": "溶食兽",
-      "zh_HK": "溶食獸"
+      "zh": "溶食獸",
+      "zh_HK": "溶食兽"
     },
     "types": [
       "Poison"
@@ -23969,8 +23969,8 @@
       "es": "Swalot",
       "it": "Swalot",
       "ko": "꿀꺽몬",
-      "zh": "吞食兽",
-      "zh_HK": "吞食獸"
+      "zh": "吞食獸",
+      "zh_HK": "吞食兽"
     },
     "types": [
       "Poison"
@@ -24044,8 +24044,8 @@
       "es": "Carvanha",
       "it": "Carvanha",
       "ko": "샤프니아",
-      "zh": "吞食兽",
-      "zh_HK": "吞食獸"
+      "zh": "利牙魚",
+      "zh_HK": "利牙鱼"
     },
     "types": [
       "Water",
@@ -24120,8 +24120,8 @@
       "es": "Sharpedo",
       "it": "Sharpedo",
       "ko": "샤크니아",
-      "zh": "巨牙鲨",
-      "zh_HK": "巨牙鯊"
+      "zh": "巨牙鯊",
+      "zh_HK": "巨牙鲨"
     },
     "types": [
       "Water",
@@ -24196,8 +24196,8 @@
       "es": "Wailmer",
       "it": "Wailmer",
       "ko": "고래왕자",
-      "zh": "吼吼鲸",
-      "zh_HK": "吼吼鯨"
+      "zh": "吼吼鯨",
+      "zh_HK": "吼吼鲸"
     },
     "types": [
       "Water"
@@ -24272,8 +24272,8 @@
       "es": "Wailord",
       "it": "Wailord",
       "ko": "고래왕자",
-      "zh": "吼鲸王",
-      "zh_HK": "吼鯨王"
+      "zh": "吼鯨王",
+      "zh_HK": "吼鲸王"
     },
     "types": [
       "Water"
@@ -24348,8 +24348,8 @@
       "es": "Numel",
       "it": "Numel",
       "ko": "둔타",
-      "zh": "呆火驼",
-      "zh_HK": "呆火駝"
+      "zh": "呆火駝",
+      "zh_HK": "呆火驼"
     },
     "types": [
       "Fire",
@@ -24425,8 +24425,8 @@
       "es": "Camerupt",
       "it": "Camerupt",
       "ko": "폭타",
-      "zh": "喷火驼",
-      "zh_HK": "噴火駝"
+      "zh": "噴火駝",
+      "zh_HK": "喷火驼"
     },
     "types": [
       "Fire",
@@ -24502,8 +24502,8 @@
       "es": "Torkoal",
       "it": "Torkoal",
       "ko": "코터스",
-      "zh": "煤炭龟",
-      "zh_HK": "煤炭龜"
+      "zh": "煤炭龜",
+      "zh_HK": "煤炭龟"
     },
     "types": [
       "Fire"
@@ -24577,8 +24577,8 @@
       "es": "Spoink",
       "it": "Spoink",
       "ko": "피그점프",
-      "zh": "跳跳猪",
-      "zh_HK": "跳跳豬"
+      "zh": "跳跳豬",
+      "zh_HK": "跳跳猪"
     },
     "types": [
       "Psychic"
@@ -24652,8 +24652,8 @@
       "es": "Grumpig",
       "it": "Grumpig",
       "ko": "피그킹",
-      "zh": "噗噗猪",
-      "zh_HK": "噗噗豬"
+      "zh": "噗噗豬",
+      "zh_HK": "噗噗猪"
     },
     "types": [
       "Psychic"
@@ -24803,8 +24803,8 @@
       "es": "Trapinch",
       "it": "Trapinch",
       "ko": "톱치",
-      "zh": "大颚蚁",
-      "zh_HK": "大顎蟻"
+      "zh": "大顎蟻",
+      "zh_HK": "大腭蚁"
     },
     "types": [
       "Ground"
@@ -24879,8 +24879,8 @@
       "es": "Vibrava",
       "it": "Vibrava",
       "ko": "비브라바",
-      "zh": "超音波幼虫",
-      "zh_HK": "超音波幼蟲"
+      "zh": "超音波幼蟲",
+      "zh_HK": "超音波幼虫"
     },
     "types": [
       "Ground",
@@ -25106,8 +25106,8 @@
       "es": "Cacturne",
       "it": "Cacturne",
       "ko": "밤선인",
-      "zh": "梦歌仙人掌",
-      "zh_HK": "夢歌仙人掌"
+      "zh": "夢歌仙人掌",
+      "zh_HK": "梦歌仙人掌"
     },
     "types": [
       "Grass",
@@ -25183,8 +25183,8 @@
       "es": "Swablu",
       "it": "Swablu",
       "ko": "파비코",
-      "zh": "青绵鸟",
-      "zh_HK": "青綿鳥"
+      "zh": "青綿鳥",
+      "zh_HK": "青绵鸟"
     },
     "types": [
       "Normal",
@@ -25260,8 +25260,8 @@
       "es": "Altaria",
       "it": "Altaria",
       "ko": "파비코리",
-      "zh": "七夕青鸟",
-      "zh_HK": "七夕青鳥"
+      "zh": "七夕青鳥",
+      "zh_HK": "七夕青鸟"
     },
     "types": [
       "Dragon",
@@ -25337,8 +25337,8 @@
       "es": "Zangoose",
       "it": "Zangoose",
       "ko": "쟝고",
-      "zh": "猫鼬斩",
-      "zh_HK": "貓鼬斬"
+      "zh": "貓鼬斬",
+      "zh_HK": "猫鼬斩"
     },
     "types": [
       "Normal"
@@ -25412,7 +25412,7 @@
       "it": "Seviper",
       "ko": "세비퍼",
       "zh": "飯匙蛇",
-      "zh_HK": "飯匙蛇"
+      "zh_HK": "饭匙蛇"
     },
     "types": [
       "Poison"
@@ -25561,8 +25561,8 @@
       "es": "Solrock",
       "it": "Solrock",
       "ko": "솔록",
-      "zh": "太阳岩",
-      "zh_HK": "太陽岩"
+      "zh": "太陽岩",
+      "zh_HK": "太阳岩"
     },
     "types": [
       "Rock",
@@ -25636,8 +25636,8 @@
       "es": "Barboach",
       "it": "Barboach",
       "ko": "미꾸리",
-      "zh": "泥泥鳅",
-      "zh_HK": "泥泥鰍"
+      "zh": "泥泥鰍",
+      "zh_HK": "泥泥鳅"
     },
     "types": [
       "Water",
@@ -25713,8 +25713,8 @@
       "es": "Whiscash",
       "it": "Whiscash",
       "ko": "메깅",
-      "zh": "鲶鱼王",
-      "zh_HK": "鯰魚王"
+      "zh": "鯰魚王",
+      "zh_HK": "鲇鱼王"
     },
     "types": [
       "Water",
@@ -25790,8 +25790,8 @@
       "es": "Corphish",
       "it": "Corphish",
       "ko": "가재군",
-      "zh": "龙虾小兵",
-      "zh_HK": "龍蝦小兵"
+      "zh": "龍蝦小兵",
+      "zh_HK": "龙虾小兵"
     },
     "types": [
       "Water"
@@ -25866,8 +25866,8 @@
       "es": "Crawdaunt",
       "it": "Crawdaunt",
       "ko": "가재장군",
-      "zh": "铁螯龙虾",
-      "zh_HK": "鐵螯龍蝦"
+      "zh": "鐵螯龍蝦",
+      "zh_HK": "铁螯龙虾"
     },
     "types": [
       "Water",
@@ -26094,8 +26094,8 @@
       "es": "Lileep",
       "it": "Lileep",
       "ko": "릴링",
-      "zh": "触手百合",
-      "zh_HK": "觸手百合"
+      "zh": "觸手百合",
+      "zh_HK": "触手百合"
     },
     "types": [
       "Rock",
@@ -26170,8 +26170,8 @@
       "es": "Cradily",
       "it": "Cradily",
       "ko": "릴리요",
-      "zh": "摇篮百合",
-      "zh_HK": "搖籃百合"
+      "zh": "搖籃百合",
+      "zh_HK": "摇篮百合"
     },
     "types": [
       "Rock",
@@ -26246,8 +26246,8 @@
       "es": "Anorith",
       "it": "Anorith",
       "ko": "아노딥스",
-      "zh": "太古羽虫",
-      "zh_HK": "太古羽蟲"
+      "zh": "太古羽蟲",
+      "zh_HK": "太古羽虫"
     },
     "types": [
       "Rock",
@@ -26398,8 +26398,8 @@
       "es": "Feebas",
       "it": "Feebas",
       "ko": "빈티나",
-      "zh": "丑丑鱼",
-      "zh_HK": "醜醜魚"
+      "zh": "醜醜魚",
+      "zh_HK": "丑丑鱼"
     },
     "types": [
       "Water"
@@ -26474,8 +26474,8 @@
       "es": "Milotic",
       "it": "Milotic",
       "ko": "밀로틱",
-      "zh": "美纳斯",
-      "zh_HK": "美納斯"
+      "zh": "美納斯",
+      "zh_HK": "美纳斯"
     },
     "types": [
       "Water"
@@ -26550,8 +26550,8 @@
       "es": "Castform",
       "it": "Castform",
       "ko": "캐스퐁",
-      "zh": "飘浮泡泡",
-      "zh_HK": "飄浮泡泡"
+      "zh": "飄浮泡泡",
+      "zh_HK": "飘浮泡泡"
     },
     "types": [
       "Normal"
@@ -26624,8 +26624,8 @@
       "es": "Kecleon",
       "it": "Kecleon",
       "ko": "켈리몬",
-      "zh": "变隐龙",
-      "zh_HK": "變隱龍"
+      "zh": "變隱龍",
+      "zh_HK": "变隐龙"
     },
     "types": [
       "Normal"
@@ -26773,8 +26773,8 @@
       "es": "Banette",
       "it": "Banette",
       "ko": "다크펫",
-      "zh": "诅咒娃娃",
-      "zh_HK": "詛咒娃娃"
+      "zh": "詛咒娃娃",
+      "zh_HK": "诅咒娃娃"
     },
     "types": [
       "Ghost"
@@ -26848,8 +26848,8 @@
       "es": "Duskull",
       "it": "Duskull",
       "ko": "해골몽",
-      "zh": "夜巡灵",
-      "zh_HK": "夜巡靈"
+      "zh": "夜巡靈",
+      "zh_HK": "夜巡灵"
     },
     "types": [
       "Ghost"
@@ -26922,8 +26922,8 @@
       "es": "Dusclops",
       "it": "Dusclops",
       "ko": "미라몽",
-      "zh": "彷徨夜灵",
-      "zh_HK": "彷徨夜靈"
+      "zh": "彷徨夜靈",
+      "zh_HK": "彷徨夜灵"
     },
     "types": [
       "Ghost"
@@ -26996,8 +26996,8 @@
       "es": "Tropius",
       "it": "Tropius",
       "ko": "트로피우스",
-      "zh": "热带龙",
-      "zh_HK": "熱帶龍"
+      "zh": "熱帶龍",
+      "zh_HK": "热带龙"
     },
     "types": [
       "Grass",
@@ -27074,8 +27074,8 @@
       "es": "Chimecho",
       "it": "Chimecho",
       "ko": "치렁",
-      "zh": "风铃铃",
-      "zh_HK": "風鈴鈴"
+      "zh": "風鈴鈴",
+      "zh_HK": "风铃铃"
     },
     "types": [
       "Psychic"
@@ -27147,8 +27147,8 @@
       "es": "Absol",
       "it": "Absol",
       "ko": "앱솔",
-      "zh": "阿勃梭鲁",
-      "zh_HK": "阿勃梭魯"
+      "zh": "阿勃梭魯",
+      "zh_HK": "阿勃梭鲁"
     },
     "types": [
       "Dark"
@@ -27372,8 +27372,8 @@
       "es": "Glalie",
       "it": "Glalie",
       "ko": "얼음귀신",
-      "zh": "冰鬼护",
-      "zh_HK": "冰鬼護"
+      "zh": "冰鬼護",
+      "zh_HK": "冰鬼护"
     },
     "types": [
       "Ice"
@@ -27526,8 +27526,8 @@
       "es": "Sealeo",
       "it": "Sealeo",
       "ko": "씨레오",
-      "zh": "海魔狮",
-      "zh_HK": "海魔獅"
+      "zh": "海魔獅",
+      "zh_HK": "海魔狮"
     },
     "types": [
       "Ice",
@@ -27604,8 +27604,8 @@
       "es": "Walrein",
       "it": "Walrein",
       "ko": "씨카이저",
-      "zh": "帝牙海狮",
-      "zh_HK": "帝牙海獅"
+      "zh": "帝牙海獅",
+      "zh_HK": "帝牙海狮"
     },
     "types": [
       "Ice",
@@ -27683,7 +27683,7 @@
       "it": "Clamperl",
       "ko": "진주몽",
       "zh": "珍珠貝",
-      "zh_HK": "珍珠貝"
+      "zh_HK": "珍珠贝"
     },
     "types": [
       "Water"
@@ -27756,8 +27756,8 @@
       "es": "Huntail",
       "it": "Huntail",
       "ko": "헌테일",
-      "zh": "猎斑鱼",
-      "zh_HK": "獵斑魚"
+      "zh": "獵斑魚",
+      "zh_HK": "猎斑鱼"
     },
     "types": [
       "Water"
@@ -27830,8 +27830,8 @@
       "es": "Gorebyss",
       "it": "Gorebyss",
       "ko": "분홍장이",
-      "zh": "樱花鱼",
-      "zh_HK": "櫻花魚"
+      "zh": "櫻花魚",
+      "zh_HK": "樱花鱼"
     },
     "types": [
       "Water"
@@ -27904,8 +27904,8 @@
       "es": "Relicanth",
       "it": "Relicanth",
       "ko": "시라칸",
-      "zh": "古空棘鱼",
-      "zh_HK": "古空棘魚"
+      "zh": "古空棘魚",
+      "zh_HK": "古空棘鱼"
     },
     "types": [
       "Water",
@@ -27982,8 +27982,8 @@
       "es": "Luvdisc",
       "it": "Luvdisc",
       "ko": "사랑동이",
-      "zh": "爱心鱼",
-      "zh_HK": "愛心魚"
+      "zh": "愛心魚",
+      "zh_HK": "爱心鱼"
     },
     "types": [
       "Water"
@@ -28056,8 +28056,8 @@
       "es": "Bagon",
       "it": "Bagon",
       "ko": "아공이",
-      "zh": "宝贝龙",
-      "zh_HK": "寶貝龍"
+      "zh": "寶貝龍",
+      "zh_HK": "宝贝龙"
     },
     "types": [
       "Dragon"
@@ -28130,8 +28130,8 @@
       "es": "Shelgon",
       "it": "Shelgon",
       "ko": "쉘곤",
-      "zh": "甲壳龙",
-      "zh_HK": "甲殼龍"
+      "zh": "甲殼龍",
+      "zh_HK": "甲壳龙"
     },
     "types": [
       "Dragon"
@@ -28204,8 +28204,8 @@
       "es": "Salamence",
       "it": "Salamence",
       "ko": "보만다",
-      "zh": "暴飞龙",
-      "zh_HK": "暴飛龍"
+      "zh": "暴飛龍",
+      "zh_HK": "暴飞龙"
     },
     "types": [
       "Dragon",
@@ -28280,8 +28280,8 @@
       "es": "Beldum",
       "it": "Beldum",
       "ko": "메탕",
-      "zh": "铁哑铃",
-      "zh_HK": "鐵啞鈴"
+      "zh": "鐵啞鈴",
+      "zh_HK": "铁哑铃"
     },
     "types": [
       "Steel",
@@ -28356,8 +28356,8 @@
       "es": "Metang",
       "it": "Metang",
       "ko": "메탕구",
-      "zh": "金属怪",
-      "zh_HK": "金屬怪"
+      "zh": "金屬怪",
+      "zh_HK": "金属怪"
     },
     "types": [
       "Steel",
@@ -28656,8 +28656,8 @@
       "es": "Registeel",
       "it": "Registeel",
       "ko": "레지스틸",
-      "zh": "雷吉斯奇鲁",
-      "zh_HK": "雷吉斯奇魯"
+      "zh": "雷吉斯奇魯",
+      "zh_HK": "雷吉斯奇鲁"
     },
     "types": [
       "Steel"
@@ -28730,8 +28730,8 @@
       "es": "Latias",
       "it": "Latias",
       "ko": "라티아스",
-      "zh": "拉帝亚斯",
-      "zh_HK": "拉帝亞斯"
+      "zh": "拉帝亞斯",
+      "zh_HK": "拉帝亚斯"
     },
     "types": [
       "Dragon",
@@ -28805,8 +28805,8 @@
       "es": "Latios",
       "it": "Latios",
       "ko": "라티오스",
-      "zh": "拉帝欧斯",
-      "zh_HK": "拉帝歐斯"
+      "zh": "拉帝歐斯",
+      "zh_HK": "拉帝欧斯"
     },
     "types": [
       "Dragon",
@@ -28880,8 +28880,8 @@
       "es": "Kyogre",
       "it": "Kyogre",
       "ko": "가이오가",
-      "zh": "盖欧卡",
-      "zh_HK": "蓋歐卡"
+      "zh": "蓋歐卡",
+      "zh_HK": "盖欧卡"
     },
     "types": [
       "Water"
@@ -29176,8 +29176,8 @@
       "es": "Deoxys",
       "it": "Deoxys",
       "ko": "테오키스",
-      "zh": "代欧奇希斯",
-      "zh_HK": "代歐奇希斯"
+      "zh": "代歐奇希斯",
+      "zh_HK": "代欧奇希斯"
     },
     "types": [
       "Psychic"
@@ -29249,8 +29249,8 @@
       "es": "Turtwig",
       "it": "Turtwig",
       "ko": "모부기",
-      "zh": "草苗龟",
-      "zh_HK": "草苗龜"
+      "zh": "草苗龜",
+      "zh_HK": "草苗龟"
     },
     "types": [
       "Grass"
@@ -29324,8 +29324,8 @@
       "es": "Grotle",
       "it": "Grotle",
       "ko": "수풀부기",
-      "zh": "树林龟",
-      "zh_HK": "樹林龜"
+      "zh": "樹林龜",
+      "zh_HK": "树林龟"
     },
     "types": [
       "Grass"
@@ -29399,8 +29399,8 @@
       "es": "Torterra",
       "it": "Torterra",
       "ko": "토대부기",
-      "zh": "土台龟",
-      "zh_HK": "土台龜"
+      "zh": "土台龜",
+      "zh_HK": "土台龟"
     },
     "types": [
       "Grass",
@@ -29932,8 +29932,8 @@
       "es": "Starly",
       "it": "Starly",
       "ko": "찌르꼬",
-      "zh": "姆克儿",
-      "zh_HK": "姆克兒"
+      "zh": "姆克兒",
+      "zh_HK": "姆克儿"
     },
     "types": [
       "Normal",
@@ -30008,8 +30008,8 @@
       "es": "Staravia",
       "it": "Staravia",
       "ko": "찌르버드",
-      "zh": "姆克鸟",
-      "zh_HK": "姆克鳥"
+      "zh": "姆克鳥",
+      "zh_HK": "姆克鸟"
     },
     "types": [
       "Normal",
@@ -30084,8 +30084,8 @@
       "es": "Staraptor",
       "it": "Staraptor",
       "ko": "찌르호크",
-      "zh": "姆克鹰",
-      "zh_HK": "姆克鷹"
+      "zh": "姆克鷹",
+      "zh_HK": "姆克鹰"
     },
     "types": [
       "Normal",
@@ -30314,8 +30314,8 @@
       "es": "Kricketot",
       "it": "Kricketot",
       "ko": "귀뚤뚜기",
-      "zh": "圆法师",
-      "zh_HK": "圓法師"
+      "zh": "圓法師",
+      "zh_HK": "圆法师"
     },
     "types": [
       "Bug"
@@ -30462,8 +30462,8 @@
       "es": "Shinx",
       "it": "Shinx",
       "ko": "꼬링크",
-      "zh": "小猫怪",
-      "zh_HK": "小貓怪"
+      "zh": "小貓怪",
+      "zh_HK": "小猫怪"
     },
     "types": [
       "Electric"
@@ -30537,8 +30537,8 @@
       "es": "Luxio",
       "it": "Luxio",
       "ko": "럭시오",
-      "zh": "勒克猫",
-      "zh_HK": "勒克貓"
+      "zh": "勒克貓",
+      "zh_HK": "勒克猫"
     },
     "types": [
       "Electric"
@@ -30612,8 +30612,8 @@
       "es": "Luxray",
       "it": "Luxray",
       "ko": "렌트라",
-      "zh": "伦琴猫",
-      "zh_HK": "倫琴貓"
+      "zh": "倫琴貓",
+      "zh_HK": "伦琴猫"
     },
     "types": [
       "Electric"
@@ -30764,8 +30764,8 @@
       "es": "Roserade",
       "it": "Roserade",
       "ko": "로즈레이드",
-      "zh": "罗丝雷朵",
-      "zh_HK": "羅絲雷朵"
+      "zh": "羅絲雷朵",
+      "zh_HK": "罗丝雷朵"
     },
     "types": [
       "Grass",
@@ -30842,8 +30842,8 @@
       "es": "Cranidos",
       "it": "Cranidos",
       "ko": "두개도스",
-      "zh": "头盖龙",
-      "zh_HK": "頭蓋龍"
+      "zh": "頭蓋龍",
+      "zh_HK": "头盖龙"
     },
     "types": [
       "Rock"
@@ -30916,8 +30916,8 @@
       "es": "Rampardos",
       "it": "Rampardos",
       "ko": "램펄드",
-      "zh": "战槌龙",
-      "zh_HK": "戰槌龍"
+      "zh": "戰槌龍",
+      "zh_HK": "战槌龙"
     },
     "types": [
       "Rock"
@@ -30990,8 +30990,8 @@
       "es": "Shieldon",
       "it": "Shieldon",
       "ko": "방패톱스",
-      "zh": "盾甲龙",
-      "zh_HK": "盾甲龍"
+      "zh": "盾甲龍",
+      "zh_HK": "盾甲龙"
     },
     "types": [
       "Rock",
@@ -31066,8 +31066,8 @@
       "es": "Bastiodon",
       "it": "Bastiodon",
       "ko": "바리톱스",
-      "zh": "护城龙",
-      "zh_HK": "護城龍"
+      "zh": "護城龍",
+      "zh_HK": "护城龙"
     },
     "types": [
       "Rock",
@@ -31142,8 +31142,8 @@
       "es": "Burmy",
       "it": "Burmy",
       "ko": "도롱충이",
-      "zh": "结草儿",
-      "zh_HK": "結草兒"
+      "zh": "結草兒",
+      "zh_HK": "结草儿"
     },
     "types": [
       "Bug"
@@ -31216,8 +31216,8 @@
       "es": "Wormadam",
       "it": "Wormadam",
       "ko": "도롱마담",
-      "zh": "结草贵妇",
-      "zh_HK": "結草貴婦"
+      "zh": "結草貴婦",
+      "zh_HK": "结草贵妇"
     },
     "types": [
       "Bug",
@@ -31292,8 +31292,8 @@
       "es": "Mothim",
       "it": "Mothim",
       "ko": "나메일",
-      "zh": "绅士蛾",
-      "zh_HK": "紳士蛾"
+      "zh": "紳士蛾",
+      "zh_HK": "绅士蛾"
     },
     "types": [
       "Bug",
@@ -31521,7 +31521,7 @@
       "it": "Pachirisu",
       "ko": "파치리스",
       "zh": "帕奇利茲",
-      "zh_HK": "帕奇利茲"
+      "zh_HK": "帕奇利兹"
     },
     "types": [
       "Electric"
@@ -31671,8 +31671,8 @@
       "es": "Floatzel",
       "it": "Floatzel",
       "ko": "플로젤",
-      "zh": "浮潜鼬",
-      "zh_HK": "浮潛鼬"
+      "zh": "浮潛鼬",
+      "zh_HK": "浮潜鼬"
     },
     "types": [
       "Water"
@@ -31746,8 +31746,8 @@
       "es": "Cherubi",
       "it": "Cherubi",
       "ko": "체리버",
-      "zh": "樱花宝",
-      "zh_HK": "櫻花寶"
+      "zh": "櫻花寶",
+      "zh_HK": "樱花宝"
     },
     "types": [
       "Grass"
@@ -31820,8 +31820,8 @@
       "es": "Cherrim",
       "it": "Cherrim",
       "ko": "체리꼬",
-      "zh": "樱花儿",
-      "zh_HK": "櫻花兒"
+      "zh": "櫻花兒",
+      "zh_HK": "樱花儿"
     },
     "types": [
       "Grass"
@@ -31894,8 +31894,8 @@
       "es": "Shellos",
       "it": "Shellos",
       "ko": "깝질무",
-      "zh": "无壳海兔",
-      "zh_HK": "無殼海兔"
+      "zh": "無殼海兔",
+      "zh_HK": "无壳海兔"
     },
     "types": [
       "Water"
@@ -31970,8 +31970,8 @@
       "es": "Gastrodon",
       "it": "Gastrodon",
       "ko": "트리토돈",
-      "zh": "海兔兽",
-      "zh_HK": "海兔獸"
+      "zh": "海兔獸",
+      "zh_HK": "海兔兽"
     },
     "types": [
       "Water",
@@ -32048,8 +32048,8 @@
       "es": "Ambipom",
       "it": "Ambipom",
       "ko": "겟핸보숭",
-      "zh": "双尾怪手",
-      "zh_HK": "雙尾怪手"
+      "zh": "雙尾怪手",
+      "zh_HK": "双尾怪手"
     },
     "types": [
       "Normal"
@@ -32123,8 +32123,8 @@
       "es": "Drifloon",
       "it": "Drifloon",
       "ko": "흔들풍손",
-      "zh": "飘飘球",
-      "zh_HK": "飄飄球"
+      "zh": "飄飄球",
+      "zh_HK": "飘飘球"
     },
     "types": [
       "Ghost",
@@ -32200,8 +32200,8 @@
       "es": "Drifblim",
       "it": "Drifblim",
       "ko": "둥실라이드",
-      "zh": "随风球",
-      "zh_HK": "隨風球"
+      "zh": "隨風球",
+      "zh_HK": "随风球"
     },
     "types": [
       "Ghost",
@@ -32277,8 +32277,8 @@
       "es": "Buneary",
       "it": "Buneary",
       "ko": "이어롤",
-      "zh": "卷卷耳",
-      "zh_HK": "捲捲耳"
+      "zh": "捲捲耳",
+      "zh_HK": "卷卷耳"
     },
     "types": [
       "Normal"
@@ -32353,8 +32353,8 @@
       "es": "Lopunny",
       "it": "Lopunny",
       "ko": "이어롭",
-      "zh": "长耳兔",
-      "zh_HK": "長耳兔"
+      "zh": "長耳兔",
+      "zh_HK": "长耳兔"
     },
     "types": [
       "Normal"
@@ -32429,8 +32429,8 @@
       "es": "Mismagius",
       "it": "Mismagius",
       "ko": "무우마직",
-      "zh": "梦妖魔",
-      "zh_HK": "夢妖魔"
+      "zh": "夢妖魔",
+      "zh_HK": "梦妖魔"
     },
     "types": [
       "Ghost"
@@ -32502,8 +32502,8 @@
       "es": "Honchkrow",
       "it": "Honchkrow",
       "ko": "돈크로우",
-      "zh": "乌鸦头头",
-      "zh_HK": "烏鴉頭頭"
+      "zh": "烏鴉頭頭",
+      "zh_HK": "乌鸦头头"
     },
     "types": [
       "Dark",
@@ -32654,8 +32654,8 @@
       "es": "Purugly",
       "it": "Purugly",
       "ko": "몬냥이",
-      "zh": "东施喵",
-      "zh_HK": "東施喵"
+      "zh": "東施喵",
+      "zh_HK": "东施喵"
     },
     "types": [
       "Normal"
@@ -32729,8 +32729,8 @@
       "es": "Chingling",
       "it": "Chingling",
       "ko": "랑딸랑",
-      "zh": "铃铛响",
-      "zh_HK": "鈴鐺響"
+      "zh": "鈴鐺響",
+      "zh_HK": "铃铛响"
     },
     "types": [
       "Psychic"
@@ -32956,8 +32956,8 @@
       "es": "Bronzor",
       "it": "Bronzor",
       "ko": "동미러",
-      "zh": "铜镜怪",
-      "zh_HK": "銅鏡怪"
+      "zh": "銅鏡怪",
+      "zh_HK": "铜镜怪"
     },
     "types": [
       "Steel",
@@ -33033,8 +33033,8 @@
       "es": "Bronzong",
       "it": "Bronzong",
       "ko": "동탁군",
-      "zh": "青铜钟",
-      "zh_HK": "青銅鐘"
+      "zh": "青銅鐘",
+      "zh_HK": "青铜钟"
     },
     "types": [
       "Steel",
@@ -33337,8 +33337,8 @@
       "es": "Chatot",
       "it": "Chatot",
       "ko": "페라페",
-      "zh": "聒噪鸟",
-      "zh_HK": "聒噪鳥"
+      "zh": "聒噪鳥",
+      "zh_HK": "聒噪鸟"
     },
     "types": [
       "Normal",
@@ -33490,8 +33490,8 @@
       "es": "Gible",
       "it": "Gible",
       "ko": "딥상어동",
-      "zh": "圆陆鲨",
-      "zh_HK": "圓陸鯊"
+      "zh": "圓陸鯊",
+      "zh_HK": "圆陆鲨"
     },
     "types": [
       "Dragon",
@@ -33567,8 +33567,8 @@
       "es": "Gabite",
       "it": "Gabite",
       "ko": "한바이트",
-      "zh": "尖牙陆鲨",
-      "zh_HK": "尖牙陸鯊"
+      "zh": "尖牙陸鯊",
+      "zh_HK": "尖牙陆鲨"
     },
     "types": [
       "Dragon",
@@ -33644,8 +33644,8 @@
       "es": "Garchomp",
       "it": "Garchomp",
       "ko": "한카리아스",
-      "zh": "烈咬陆鲨",
-      "zh_HK": "烈咬陸鯊"
+      "zh": "烈咬陸鯊",
+      "zh_HK": "烈咬陆鲨"
     },
     "types": [
       "Dragon",
@@ -33721,8 +33721,8 @@
       "es": "Munchlax",
       "it": "Munchlax",
       "ko": "먹고자",
-      "zh": "小卡比兽",
-      "zh_HK": "小卡比獸"
+      "zh": "小卡比獸",
+      "zh_HK": "小卡比兽"
     },
     "types": [
       "Normal"
@@ -33796,8 +33796,8 @@
       "es": "Riolu",
       "it": "Riolu",
       "ko": "리오르",
-      "zh": "利欧路",
-      "zh_HK": "利歐路"
+      "zh": "利歐路",
+      "zh_HK": "利欧路"
     },
     "types": [
       "Fighting"
@@ -33871,8 +33871,8 @@
       "es": "Lucario",
       "it": "Lucario",
       "ko": "루카리오",
-      "zh": "路卡利欧",
-      "zh_HK": "路卡利歐"
+      "zh": "路卡利歐",
+      "zh_HK": "路卡利欧"
     },
     "types": [
       "Fighting",
@@ -33949,8 +33949,8 @@
       "es": "Hippopotas",
       "it": "Hippopotas",
       "ko": "히포포타스",
-      "zh": "沙河马",
-      "zh_HK": "沙河馬"
+      "zh": "沙河馬",
+      "zh_HK": "沙河马"
     },
     "types": [
       "Ground"
@@ -34023,8 +34023,8 @@
       "es": "Hippowdon",
       "it": "Hippowdon",
       "ko": "하마돈",
-      "zh": "河马兽",
-      "zh_HK": "河馬獸"
+      "zh": "河馬獸",
+      "zh_HK": "河马兽"
     },
     "types": [
       "Ground"
@@ -34097,8 +34097,8 @@
       "es": "Skorupi",
       "it": "Skorupi",
       "ko": "스콜피",
-      "zh": "钳尾蝎",
-      "zh_HK": "鉗尾蠍"
+      "zh": "鉗尾蠍",
+      "zh_HK": "钳尾蝎"
     },
     "types": [
       "Poison",
@@ -34175,8 +34175,8 @@
       "es": "Drapion",
       "it": "Drapion",
       "ko": "드래피온",
-      "zh": "龙王蝎",
-      "zh_HK": "龍王蠍"
+      "zh": "龍王蠍",
+      "zh_HK": "龙王蝎"
     },
     "types": [
       "Poison",
@@ -34407,8 +34407,8 @@
       "es": "Carnivine",
       "it": "Carnivine",
       "ko": "무스틈니",
-      "zh": "尖牙笼",
-      "zh_HK": "尖牙籠"
+      "zh": "尖牙籠",
+      "zh_HK": "尖牙笼"
     },
     "types": [
       "Grass"
@@ -34480,8 +34480,8 @@
       "es": "Finneon",
       "it": "Finneon",
       "ko": "형광어",
-      "zh": "萤光鱼",
-      "zh_HK": "螢光魚"
+      "zh": "螢光魚",
+      "zh_HK": "萤光鱼"
     },
     "types": [
       "Water"
@@ -34555,8 +34555,8 @@
       "es": "Lumineon",
       "it": "Lumineon",
       "ko": "네오라이트",
-      "zh": "霓虹鱼",
-      "zh_HK": "霓虹魚"
+      "zh": "霓虹魚",
+      "zh_HK": "霓虹鱼"
     },
     "types": [
       "Water"
@@ -34630,8 +34630,8 @@
       "es": "Mantyke",
       "it": "Mantyke",
       "ko": "타만타",
-      "zh": "小球飞鱼",
-      "zh_HK": "小球飛魚"
+      "zh": "小球飛魚",
+      "zh_HK": "小球飞鱼"
     },
     "types": [
       "Water",
@@ -34861,8 +34861,8 @@
       "es": "Weavile",
       "it": "Weavile",
       "ko": "포푸니라",
-      "zh": "玛狃拉",
-      "zh_HK": "瑪狃拉"
+      "zh": "瑪狃拉",
+      "zh_HK": "玛狃拉"
     },
     "types": [
       "Dark",
@@ -35242,8 +35242,8 @@
       "es": "Electivire",
       "it": "Electivire",
       "ko": "에레키블",
-      "zh": "电击魔兽",
-      "zh_HK": "電擊魔獸"
+      "zh": "電擊魔獸",
+      "zh_HK": "电击魔兽"
     },
     "types": [
       "Electric"
@@ -35316,8 +35316,8 @@
       "es": "Magmortar",
       "it": "Magmortar",
       "ko": "마그마번",
-      "zh": "鸭嘴炎兽",
-      "zh_HK": "鴨嘴炎獸"
+      "zh": "鴨嘴炎獸",
+      "zh_HK": "鸭嘴炎兽"
     },
     "types": [
       "Fire"
@@ -35468,8 +35468,8 @@
       "es": "Yanmega",
       "it": "Yanmega",
       "ko": "메가자리",
-      "zh": "远古巨蜓",
-      "zh_HK": "遠古巨蜓"
+      "zh": "遠古巨蜓",
+      "zh_HK": "远古巨蜓"
     },
     "types": [
       "Bug",
@@ -35545,8 +35545,8 @@
       "es": "Leafeon",
       "it": "Leafeon",
       "ko": "리피아",
-      "zh": "叶伊布",
-      "zh_HK": "葉伊布"
+      "zh": "葉伊布",
+      "zh_HK": "叶伊布"
     },
     "types": [
       "Grass"
@@ -35693,8 +35693,8 @@
       "es": "Gliscor",
       "it": "Gliscor",
       "ko": "글라이온",
-      "zh": "天蝎王",
-      "zh_HK": "天蠍王"
+      "zh": "天蠍王",
+      "zh_HK": "天蝎王"
     },
     "types": [
       "Ground",
@@ -35770,8 +35770,8 @@
       "es": "Mamoswine",
       "it": "Mamoswine",
       "ko": "맘모꾸리",
-      "zh": "象牙猪",
-      "zh_HK": "象牙豬"
+      "zh": "象牙豬",
+      "zh_HK": "象牙猪"
     },
     "types": [
       "Ice",
@@ -35847,8 +35847,8 @@
       "es": "Porygon-Z",
       "it": "Porygon-Z",
       "ko": "폴리곤Ｚ",
-      "zh": "多边兽乙型",
-      "zh_HK": "多邊獸Ｚ"
+      "zh": "多邊獸Ｚ",
+      "zh_HK": "多边兽Ｚ"
     },
     "types": [
       "Normal"
@@ -36077,8 +36077,8 @@
       "es": "Dusknoir",
       "it": "Dusknoir",
       "ko": "야느와르몽",
-      "zh": "黑夜魔灵",
-      "zh_HK": "黑夜魔靈"
+      "zh": "黑夜魔靈",
+      "zh_HK": "黑夜魔灵"
     },
     "types": [
       "Ghost"
@@ -36449,8 +36449,8 @@
       "es": "Azelf",
       "it": "Azelf",
       "ko": "아그놈",
-      "zh": "亚克诺姆",
-      "zh_HK": "亞克諾姆"
+      "zh": "亞克諾姆",
+      "zh_HK": "亚克诺姆"
     },
     "types": [
       "Psychic"
@@ -36522,8 +36522,8 @@
       "es": "Dialga",
       "it": "Dialga",
       "ko": "디아루가",
-      "zh": "帝牙卢卡",
-      "zh_HK": "帝牙盧卡"
+      "zh": "帝牙盧卡",
+      "zh_HK": "帝牙卢卡"
     },
     "types": [
       "Steel",
@@ -36598,8 +36598,8 @@
       "es": "Palkia",
       "it": "Palkia",
       "ko": "펄기아",
-      "zh": "帕路奇亚",
-      "zh_HK": "帕路奇亞"
+      "zh": "帕路奇亞",
+      "zh_HK": "帕路奇亚"
     },
     "types": [
       "Water",
@@ -36674,8 +36674,8 @@
       "es": "Heatran",
       "it": "Heatran",
       "ko": "히드런",
-      "zh": "席多蓝恩",
-      "zh_HK": "席多藍恩"
+      "zh": "席多藍恩",
+      "zh_HK": "席多蓝恩"
     },
     "types": [
       "Fire",
@@ -36823,8 +36823,8 @@
       "es": "Giratina",
       "it": "Giratina",
       "ko": "기라티나",
-      "zh": "骑拉帝纳",
-      "zh_HK": "騎拉帝納"
+      "zh": "騎拉帝納",
+      "zh_HK": "骑拉帝纳"
     },
     "types": [
       "Ghost",
@@ -36899,8 +36899,8 @@
       "es": "Cresselia",
       "it": "Cresselia",
       "ko": "크레세리아",
-      "zh": "克雷色利亚",
-      "zh_HK": "克雷色利亞"
+      "zh": "克雷色利亞",
+      "zh_HK": "克雷色利亚"
     },
     "types": [
       "Psychic"
@@ -36972,8 +36972,8 @@
       "es": "Phione",
       "it": "Phione",
       "ko": "피오네",
-      "zh": "霏欧纳",
-      "zh_HK": "霏歐納"
+      "zh": "霏歐納",
+      "zh_HK": "霏欧纳"
     },
     "types": [
       "Water"
@@ -37046,8 +37046,8 @@
       "es": "Manaphy",
       "it": "Manaphy",
       "ko": "마나피",
-      "zh": "玛纳霏",
-      "zh_HK": "瑪納霏"
+      "zh": "瑪納霏",
+      "zh_HK": "玛纳霏"
     },
     "types": [
       "Water"
@@ -37120,8 +37120,8 @@
       "es": "Darkrai",
       "it": "Darkrai",
       "ko": "다크라이",
-      "zh": "达克莱伊",
-      "zh_HK": "達克萊伊"
+      "zh": "達克萊伊",
+      "zh_HK": "达克莱伊"
     },
     "types": [
       "Dark"
@@ -37193,8 +37193,8 @@
       "es": "Shaymin",
       "it": "Shaymin",
       "ko": "쉐이미",
-      "zh": "谢米",
-      "zh_HK": "謝米"
+      "zh": "謝米",
+      "zh_HK": "谢米"
     },
     "types": [
       "Grass"
@@ -37266,8 +37266,8 @@
       "es": "Arceus",
       "it": "Arceus",
       "ko": "아르세우스",
-      "zh": "阿尔宙斯",
-      "zh_HK": "阿爾宙斯"
+      "zh": "阿爾宙斯",
+      "zh_HK": "阿尔宙斯"
     },
     "types": [
       "Normal"
@@ -37639,8 +37639,8 @@
       "es": "Tepig",
       "it": "Tepig",
       "ko": "뚜꾸리",
-      "zh": "暖暖猪",
-      "zh_HK": "暖暖豬"
+      "zh": "暖暖豬",
+      "zh_HK": "暖暖猪"
     },
     "types": [
       "Fire"
@@ -37713,8 +37713,8 @@
       "es": "Pignite",
       "it": "Pignite",
       "ko": "챠오꿀",
-      "zh": "炒炒猪",
-      "zh_HK": "炒炒豬"
+      "zh": "炒炒豬",
+      "zh_HK": "炒炒猪"
     },
     "types": [
       "Fire",
@@ -37866,7 +37866,7 @@
       "it": "Oshawott",
       "ko": "수댕이",
       "zh": "水水獺",
-      "zh_HK": "水水獺"
+      "zh_HK": "水水獭"
     },
     "types": [
       "Water"
@@ -37939,8 +37939,8 @@
       "es": "Dewott",
       "it": "Dewott",
       "ko": "쌍검자비",
-      "zh": "双刃丸",
-      "zh_HK": "雙刃丸"
+      "zh": "雙刃丸",
+      "zh_HK": "双刃丸"
     },
     "types": [
       "Water"
@@ -38013,8 +38013,8 @@
       "es": "Samurott",
       "it": "Samurott",
       "ko": "대검귀",
-      "zh": "大剑鬼",
-      "zh_HK": "大劍鬼"
+      "zh": "大劍鬼",
+      "zh_HK": "大剑鬼"
     },
     "types": [
       "Water"
@@ -38237,8 +38237,8 @@
       "es": "Lillipup",
       "it": "Lillipup",
       "ko": "요테리",
-      "zh": "小约克",
-      "zh_HK": "小約克"
+      "zh": "小約克",
+      "zh_HK": "小约克"
     },
     "types": [
       "Normal"
@@ -38312,8 +38312,8 @@
       "es": "Herdier",
       "it": "Herdier",
       "ko": "하데리어",
-      "zh": "哈约克",
-      "zh_HK": "哈約克"
+      "zh": "哈約克",
+      "zh_HK": "哈约克"
     },
     "types": [
       "Normal"
@@ -38387,8 +38387,8 @@
       "es": "Stoutland",
       "it": "Stoutland",
       "ko": "바랜드",
-      "zh": "长毛狗",
-      "zh_HK": "長毛狗"
+      "zh": "長毛狗",
+      "zh_HK": "长毛狗"
     },
     "types": [
       "Normal"
@@ -38462,8 +38462,8 @@
       "es": "Purrloin",
       "it": "Purrloin",
       "ko": "쌔비냥",
-      "zh": "扒手猫",
-      "zh_HK": "扒手貓"
+      "zh": "扒手貓",
+      "zh_HK": "扒手猫"
     },
     "types": [
       "Dark"
@@ -39056,8 +39056,8 @@
       "es": "Munna",
       "it": "Munna",
       "ko": "몽나",
-      "zh": "食梦梦",
-      "zh_HK": "食夢夢"
+      "zh": "食夢夢",
+      "zh_HK": "食梦梦"
     },
     "types": [
       "Psychic"
@@ -39131,8 +39131,8 @@
       "es": "Musharna",
       "it": "Musharna",
       "ko": "몽얌나",
-      "zh": "梦梦蚀",
-      "zh_HK": "夢夢蝕"
+      "zh": "夢夢蝕",
+      "zh_HK": "梦梦蚀"
     },
     "types": [
       "Psychic"
@@ -39206,8 +39206,8 @@
       "es": "Pidove",
       "it": "Pidove",
       "ko": "콩둘기",
-      "zh": "豆豆鸽",
-      "zh_HK": "豆豆鴿"
+      "zh": "豆豆鴿",
+      "zh_HK": "豆豆鸽"
     },
     "types": [
       "Normal",
@@ -39283,8 +39283,8 @@
       "es": "Tranquill",
       "it": "Tranquill",
       "ko": "유토브",
-      "zh": "咕咕鸽",
-      "zh_HK": "咕咕鴿"
+      "zh": "咕咕鴿",
+      "zh_HK": "咕咕鸽"
     },
     "types": [
       "Normal",
@@ -39360,8 +39360,8 @@
       "es": "Unfezant",
       "it": "Unfezant",
       "ko": "켄호로우",
-      "zh": "高傲雉鸡",
-      "zh_HK": "高傲雉雞"
+      "zh": "高傲雉雞",
+      "zh_HK": "高傲雉鸡"
     },
     "types": [
       "Normal",
@@ -39437,8 +39437,8 @@
       "es": "Blitzle",
       "it": "Blitzle",
       "ko": "줄뮤마",
-      "zh": "斑斑马",
-      "zh_HK": "斑斑馬"
+      "zh": "斑斑馬",
+      "zh_HK": "斑斑马"
     },
     "types": [
       "Electric"
@@ -39512,8 +39512,8 @@
       "es": "Zebstrika",
       "it": "Zebstrika",
       "ko": "제브라이카",
-      "zh": "雷电斑马",
-      "zh_HK": "雷電斑馬"
+      "zh": "雷電斑馬",
+      "zh_HK": "雷电斑马"
     },
     "types": [
       "Electric"
@@ -39737,8 +39737,8 @@
       "es": "Gigalith",
       "it": "Gigalith",
       "ko": "기가이어스",
-      "zh": "庞岩怪",
-      "zh_HK": "龐岩怪"
+      "zh": "龐岩怪",
+      "zh_HK": "庞岩怪"
     },
     "types": [
       "Rock"
@@ -39812,8 +39812,8 @@
       "es": "Woobat",
       "it": "Woobat",
       "ko": "또르박쥐",
-      "zh": "滚滚蝙蝠",
-      "zh_HK": "滾滾蝙蝠"
+      "zh": "滾滾蝙蝠",
+      "zh_HK": "滚滚蝙蝠"
     },
     "types": [
       "Psychic",
@@ -39968,8 +39968,8 @@
       "es": "Drilbur",
       "it": "Drilbur",
       "ko": "두더류",
-      "zh": "螺钉地鼠",
-      "zh_HK": "螺釘地鼠"
+      "zh": "螺釘地鼠",
+      "zh_HK": "螺钉地鼠"
     },
     "types": [
       "Ground"
@@ -40043,8 +40043,8 @@
       "es": "Excadrill",
       "it": "Excadrill",
       "ko": "몰드류",
-      "zh": "龙头地鼠",
-      "zh_HK": "龍頭地鼠"
+      "zh": "龍頭地鼠",
+      "zh_HK": "龙头地鼠"
     },
     "types": [
       "Ground",
@@ -40195,8 +40195,8 @@
       "es": "Timburr",
       "it": "Timburr",
       "ko": "으랏차",
-      "zh": "搬运小匠",
-      "zh_HK": "搬運小匠"
+      "zh": "搬運小匠",
+      "zh_HK": "搬运小匠"
     },
     "types": [
       "Fighting"
@@ -40270,8 +40270,8 @@
       "es": "Gurdurr",
       "it": "Gurdurr",
       "ko": "토쇠골",
-      "zh": "铁骨土人",
-      "zh_HK": "鐵骨土人"
+      "zh": "鐵骨土人",
+      "zh_HK": "铁骨土人"
     },
     "types": [
       "Fighting"
@@ -40420,8 +40420,8 @@
       "es": "Tympole",
       "it": "Tympole",
       "ko": "동챙이",
-      "zh": "圆蝌蚪",
-      "zh_HK": "圓蝌蚪"
+      "zh": "圓蝌蚪",
+      "zh_HK": "圆蝌蚪"
     },
     "types": [
       "Water"
@@ -40495,8 +40495,8 @@
       "es": "Palpitoad",
       "it": "Palpitoad",
       "ko": "두까비",
-      "zh": "蓝蟾蜍",
-      "zh_HK": "藍蟾蜍"
+      "zh": "藍蟾蜍",
+      "zh_HK": "蓝蟾蜍"
     },
     "types": [
       "Water",
@@ -40724,8 +40724,8 @@
       "es": "Sawk",
       "it": "Sawk",
       "ko": "타격귀",
-      "zh": "打击鬼",
-      "zh_HK": "打擊鬼"
+      "zh": "打擊鬼",
+      "zh_HK": "打击鬼"
     },
     "types": [
       "Fighting"
@@ -40799,8 +40799,8 @@
       "es": "Sewaddle",
       "it": "Sewaddle",
       "ko": "두르보",
-      "zh": "虫宝包",
-      "zh_HK": "蟲寶包"
+      "zh": "蟲寶包",
+      "zh_HK": "虫宝包"
     },
     "types": [
       "Bug",
@@ -40876,8 +40876,8 @@
       "es": "Swadloon",
       "it": "Swadloon",
       "ko": "두르쿤",
-      "zh": "宝包茧",
-      "zh_HK": "寶包繭"
+      "zh": "寶包繭",
+      "zh_HK": "宝包茧"
     },
     "types": [
       "Bug",
@@ -40953,8 +40953,8 @@
       "es": "Leavanny",
       "it": "Leavanny",
       "ko": "모아머",
-      "zh": "保母虫",
-      "zh_HK": "保母蟲"
+      "zh": "保母蟲",
+      "zh_HK": "保母虫"
     },
     "types": [
       "Bug",
@@ -41107,8 +41107,8 @@
       "es": "Whirlipede",
       "it": "Whirlipede",
       "ko": "휠구",
-      "zh": "车轮毬",
-      "zh_HK": "車輪毬"
+      "zh": "車輪毬",
+      "zh_HK": "车轮毬"
     },
     "types": [
       "Bug",
@@ -41339,8 +41339,8 @@
       "es": "Whimsicott",
       "it": "Whimsicott",
       "ko": "엘풍",
-      "zh": "风妖精",
-      "zh_HK": "風妖精"
+      "zh": "風妖精",
+      "zh_HK": "风妖精"
     },
     "types": [
       "Grass",
@@ -41492,8 +41492,8 @@
       "es": "Lilligant",
       "it": "Lilligant",
       "ko": "드레디어",
-      "zh": "裙儿小姐",
-      "zh_HK": "裙兒小姐"
+      "zh": "裙兒小姐",
+      "zh_HK": "裙儿小姐"
     },
     "types": [
       "Grass"
@@ -41567,8 +41567,8 @@
       "es": "Basculin",
       "it": "Basculin",
       "ko": "배쓰나이",
-      "zh": "野蛮鲈鱼",
-      "zh_HK": "野蠻鱸魚"
+      "zh": "野蠻鱸魚",
+      "zh_HK": "野蛮鲈鱼"
     },
     "types": [
       "Water"
@@ -41642,8 +41642,8 @@
       "es": "Sandile",
       "it": "Sandile",
       "ko": "깜눈크",
-      "zh": "黑眼鳄",
-      "zh_HK": "黑眼鱷"
+      "zh": "黑眼鱷",
+      "zh_HK": "黑眼鳄"
     },
     "types": [
       "Ground",
@@ -41719,8 +41719,8 @@
       "es": "Krokorok",
       "it": "Krokorok",
       "ko": "악비르",
-      "zh": "混混鳄",
-      "zh_HK": "混混鱷"
+      "zh": "混混鱷",
+      "zh_HK": "混混鳄"
     },
     "types": [
       "Ground",
@@ -41796,8 +41796,8 @@
       "es": "Krookodile",
       "it": "Krookodile",
       "ko": "악비아르",
-      "zh": "流氓鳄",
-      "zh_HK": "流氓鱷"
+      "zh": "流氓鱷",
+      "zh_HK": "流氓鳄"
     },
     "types": [
       "Ground",
@@ -41873,8 +41873,8 @@
       "es": "Darumaka",
       "it": "Darumaka",
       "ko": "달막화",
-      "zh": "火红不倒翁",
-      "zh_HK": "火紅不倒翁"
+      "zh": "火紅不倒翁",
+      "zh_HK": "火红不倒翁"
     },
     "types": [
       "Fire"
@@ -41947,8 +41947,8 @@
       "es": "Darmanitan",
       "it": "Darmanitan",
       "ko": "불비달마",
-      "zh": "达摩狒狒",
-      "zh_HK": "達摩狒狒"
+      "zh": "達摩狒狒",
+      "zh_HK": "达摩狒狒"
     },
     "types": [
       "Fire"
@@ -42021,8 +42021,8 @@
       "es": "Maractus",
       "it": "Maractus",
       "ko": "마라카치",
-      "zh": "沙铃仙人掌",
-      "zh_HK": "沙鈴仙人掌"
+      "zh": "沙鈴仙人掌",
+      "zh_HK": "沙铃仙人掌"
     },
     "types": [
       "Grass"
@@ -42330,8 +42330,8 @@
       "es": "Scrafty",
       "it": "Scrafty",
       "ko": "곤율거니",
-      "zh": "头巾混混",
-      "zh_HK": "頭巾混混"
+      "zh": "頭巾混混",
+      "zh_HK": "头巾混混"
     },
     "types": [
       "Dark",
@@ -42408,8 +42408,8 @@
       "es": "Sigilyph",
       "it": "Sigilyph",
       "ko": "심보러",
-      "zh": "象征鸟",
-      "zh_HK": "象徵鳥"
+      "zh": "象徵鳥",
+      "zh_HK": "象征鸟"
     },
     "types": [
       "Psychic",
@@ -42559,7 +42559,7 @@
       "es": "Cofagrigus",
       "it": "Cofagrigus",
       "ko": "데스니칸",
-      "zh": "迭失棺",
+      "zh": "死神棺",
       "zh_HK": "死神棺"
     },
     "types": [
@@ -42633,8 +42633,8 @@
       "es": "Tirtouga",
       "it": "Tirtouga",
       "ko": "프로토가",
-      "zh": "原盖海龟",
-      "zh_HK": "原蓋海龜"
+      "zh": "原蓋海龜",
+      "zh_HK": "原盖海龟"
     },
     "types": [
       "Water",
@@ -42711,8 +42711,8 @@
       "es": "Carracosta",
       "it": "Carracosta",
       "ko": "늑골라",
-      "zh": "肋骨海龟",
-      "zh_HK": "肋骨海龜"
+      "zh": "肋骨海龜",
+      "zh_HK": "肋骨海龟"
     },
     "types": [
       "Water",
@@ -42789,8 +42789,8 @@
       "es": "Archen",
       "it": "Archen",
       "ko": "아켄",
-      "zh": "始祖小鸟",
-      "zh_HK": "始祖小鳥"
+      "zh": "始祖小鳥",
+      "zh_HK": "始祖小鸟"
     },
     "types": [
       "Rock",
@@ -42865,8 +42865,8 @@
       "es": "Archeops",
       "it": "Archeops",
       "ko": "아케오스",
-      "zh": "始祖大鸟",
-      "zh_HK": "始祖大鳥"
+      "zh": "始祖大鳥",
+      "zh_HK": "始祖大鸟"
     },
     "types": [
       "Rock",
@@ -43016,8 +43016,8 @@
       "es": "Garbodor",
       "it": "Garbodor",
       "ko": "더스트나",
-      "zh": "灰尘山",
-      "zh_HK": "灰塵山"
+      "zh": "灰塵山",
+      "zh_HK": "灰尘山"
     },
     "types": [
       "Poison"
@@ -43091,8 +43091,8 @@
       "es": "Zorua",
       "it": "Zorua",
       "ko": "조로아",
-      "zh": "索罗亚",
-      "zh_HK": "索羅亞"
+      "zh": "索羅亞",
+      "zh_HK": "索罗亚"
     },
     "types": [
       "Dark"
@@ -43164,8 +43164,8 @@
       "es": "Zoroark",
       "it": "Zoroark",
       "ko": "조로아크",
-      "zh": "索罗亚克",
-      "zh_HK": "索羅亞克"
+      "zh": "索羅亞克",
+      "zh_HK": "索罗亚克"
     },
     "types": [
       "Dark"
@@ -43312,8 +43312,8 @@
       "es": "Cinccino",
       "it": "Cinccino",
       "ko": "치라치노",
-      "zh": "奇诺栗鼠",
-      "zh_HK": "奇諾栗鼠"
+      "zh": "奇諾栗鼠",
+      "zh_HK": "奇诺栗鼠"
     },
     "types": [
       "Normal"
@@ -43387,8 +43387,8 @@
       "es": "Gothita",
       "it": "Gothita",
       "ko": "고디탱",
-      "zh": "哥德宝宝",
-      "zh_HK": "哥德寶寶"
+      "zh": "哥德寶寶",
+      "zh_HK": "哥德宝宝"
     },
     "types": [
       "Psychic"
@@ -43612,8 +43612,8 @@
       "es": "Solosis",
       "it": "Solosis",
       "ko": "유니란",
-      "zh": "单卵细胞球",
-      "zh_HK": "單卵細胞球"
+      "zh": "單卵細胞球",
+      "zh_HK": "单卵细胞球"
     },
     "types": [
       "Psychic"
@@ -43687,8 +43687,8 @@
       "es": "Duosion",
       "it": "Duosion",
       "ko": "듀란",
-      "zh": "双卵细胞球",
-      "zh_HK": "雙卵細胞球"
+      "zh": "雙卵細胞球",
+      "zh_HK": "双卵细胞球"
     },
     "types": [
       "Psychic"
@@ -43762,8 +43762,8 @@
       "es": "Reuniclus",
       "it": "Reuniclus",
       "ko": "란쿨루스",
-      "zh": "人造细胞卵",
-      "zh_HK": "人造細胞卵"
+      "zh": "人造細胞卵",
+      "zh_HK": "人造细胞卵"
     },
     "types": [
       "Psychic"
@@ -43837,8 +43837,8 @@
       "es": "Ducklett",
       "it": "Ducklett",
       "ko": "꼬지보리",
-      "zh": "鸭宝宝",
-      "zh_HK": "鴨寶寶"
+      "zh": "鴨寶寶",
+      "zh_HK": "鸭宝宝"
     },
     "types": [
       "Water",
@@ -43915,8 +43915,8 @@
       "es": "Swanna",
       "it": "Swanna",
       "ko": "스완나",
-      "zh": "舞天鹅",
-      "zh_HK": "舞天鵝"
+      "zh": "舞天鵝",
+      "zh_HK": "舞天鹅"
     },
     "types": [
       "Water",
@@ -44143,8 +44143,8 @@
       "es": "Vanilluxe",
       "it": "Vanilluxe",
       "ko": "배바닐라",
-      "zh": "双倍多多冰",
-      "zh_HK": "雙倍多多冰"
+      "zh": "雙倍多多冰",
+      "zh_HK": "双倍多多冰"
     },
     "types": [
       "Ice"
@@ -44372,8 +44372,8 @@
       "es": "Emolga",
       "it": "Emolga",
       "ko": "에몽가",
-      "zh": "电飞鼠",
-      "zh_HK": "電飛鼠"
+      "zh": "電飛鼠",
+      "zh_HK": "电飞鼠"
     },
     "types": [
       "Electric",
@@ -44448,8 +44448,8 @@
       "es": "Karrablast",
       "it": "Karrablast",
       "ko": "딱정곤",
-      "zh": "盖盖虫",
-      "zh_HK": "蓋蓋蟲"
+      "zh": "蓋蓋蟲",
+      "zh_HK": "盖盖虫"
     },
     "types": [
       "Bug"
@@ -44523,8 +44523,8 @@
       "es": "Escavalier",
       "it": "Escavalier",
       "ko": "슈바르고",
-      "zh": "骑士蜗牛",
-      "zh_HK": "騎士蝸牛"
+      "zh": "騎士蝸牛",
+      "zh_HK": "骑士蜗牛"
     },
     "types": [
       "Bug",
@@ -44676,8 +44676,8 @@
       "es": "Amoongus",
       "it": "Amoongus",
       "ko": "뽀록나",
-      "zh": "败露球菇",
-      "zh_HK": "敗露球菇"
+      "zh": "敗露球菇",
+      "zh_HK": "败露球菇"
     },
     "types": [
       "Grass",
@@ -44752,8 +44752,8 @@
       "es": "Frillish",
       "it": "Frillish",
       "ko": "탱그릴",
-      "zh": "轻飘飘",
-      "zh_HK": "輕飄飄"
+      "zh": "輕飄飄",
+      "zh_HK": "轻飘飘"
     },
     "types": [
       "Water",
@@ -44982,8 +44982,8 @@
       "es": "Joltik",
       "it": "Joltik",
       "ko": "피쪼옥",
-      "zh": "电电虫",
-      "zh_HK": "電電蟲"
+      "zh": "電電蟲",
+      "zh_HK": "电电虫"
     },
     "types": [
       "Bug",
@@ -45059,8 +45059,8 @@
       "es": "Galvantula",
       "it": "Galvantula",
       "ko": "전툴라",
-      "zh": "电蜘蛛",
-      "zh_HK": "電蜘蛛"
+      "zh": "電蜘蛛",
+      "zh_HK": "电蜘蛛"
     },
     "types": [
       "Bug",
@@ -45136,8 +45136,8 @@
       "es": "Ferroseed",
       "it": "Ferroseed",
       "ko": "철시드",
-      "zh": "种子铁球",
-      "zh_HK": "種子鐵球"
+      "zh": "種子鐵球",
+      "zh_HK": "种子铁球"
     },
     "types": [
       "Grass",
@@ -45212,8 +45212,8 @@
       "es": "Ferrothorn",
       "it": "Ferrothorn",
       "ko": "너트령",
-      "zh": "坚果哑铃",
-      "zh_HK": "堅果啞鈴"
+      "zh": "堅果啞鈴",
+      "zh_HK": "坚果哑铃"
     },
     "types": [
       "Grass",
@@ -45289,8 +45289,8 @@
       "es": "Klink",
       "it": "Klink",
       "ko": "기어르",
-      "zh": "齿轮儿",
-      "zh_HK": "齒輪兒"
+      "zh": "齒輪兒",
+      "zh_HK": "齿轮儿"
     },
     "types": [
       "Steel"
@@ -45364,8 +45364,8 @@
       "es": "Klang",
       "it": "Klang",
       "ko": "기기어르",
-      "zh": "齿轮组",
-      "zh_HK": "齒輪組"
+      "zh": "齒輪組",
+      "zh_HK": "齿轮组"
     },
     "types": [
       "Steel"
@@ -45439,8 +45439,8 @@
       "es": "Klinklang",
       "it": "Klinklang",
       "ko": "기기기어르",
-      "zh": "齿轮怪",
-      "zh_HK": "齒輪怪"
+      "zh": "齒輪怪",
+      "zh_HK": "齿轮怪"
     },
     "types": [
       "Steel"
@@ -45514,8 +45514,8 @@
       "es": "Tynamo",
       "it": "Tynamo",
       "ko": "저리어",
-      "zh": "麻麻小鱼",
-      "zh_HK": "麻麻小魚"
+      "zh": "麻麻小魚",
+      "zh_HK": "麻麻小鱼"
     },
     "types": [
       "Electric"
@@ -45587,8 +45587,8 @@
       "es": "Eelektrik",
       "it": "Eelektrik",
       "ko": "저리릴",
-      "zh": "麻麻鳗",
-      "zh_HK": "麻麻鰻"
+      "zh": "麻麻鰻",
+      "zh_HK": "麻麻鳗"
     },
     "types": [
       "Electric"
@@ -45660,8 +45660,8 @@
       "es": "Eelektross",
       "it": "Eelektross",
       "ko": "저리더프",
-      "zh": "麻麻鳗鱼王",
-      "zh_HK": "麻麻鰻魚王"
+      "zh": "麻麻鰻魚王",
+      "zh_HK": "麻麻鳗鱼王"
     },
     "types": [
       "Electric"
@@ -45883,8 +45883,8 @@
       "es": "Litwick",
       "it": "Litwick",
       "ko": "불켜미",
-      "zh": "烛光灵",
-      "zh_HK": "燭光靈"
+      "zh": "燭光靈",
+      "zh_HK": "烛光灵"
     },
     "types": [
       "Ghost",
@@ -45960,8 +45960,8 @@
       "es": "Lampent",
       "it": "Lampent",
       "ko": "램프라",
-      "zh": "灯火幽灵",
-      "zh_HK": "燈火幽靈"
+      "zh": "燈火幽靈",
+      "zh_HK": "灯火幽灵"
     },
     "types": [
       "Ghost",
@@ -46037,8 +46037,8 @@
       "es": "Chandelure",
       "it": "Chandelure",
       "ko": "샹델라",
-      "zh": "水晶灯火灵",
-      "zh_HK": "水晶燈火靈"
+      "zh": "水晶燈火靈",
+      "zh_HK": "水晶灯火灵"
     },
     "types": [
       "Ghost",
@@ -46190,8 +46190,8 @@
       "es": "Fraxure",
       "it": "Fraxure",
       "ko": "액슨도",
-      "zh": "斧牙龙",
-      "zh_HK": "斧牙龍"
+      "zh": "斧牙龍",
+      "zh_HK": "斧牙龙"
     },
     "types": [
       "Dragon"
@@ -46266,8 +46266,8 @@
       "es": "Haxorus",
       "it": "Haxorus",
       "ko": "액스라이즈",
-      "zh": "双斧战龙",
-      "zh_HK": "雙斧戰龍"
+      "zh": "雙斧戰龍",
+      "zh_HK": "双斧战龙"
     },
     "types": [
       "Dragon"
@@ -46342,8 +46342,8 @@
       "es": "Cubchoo",
       "it": "Cubchoo",
       "ko": "코고미",
-      "zh": "喷嚏熊",
-      "zh_HK": "噴嚏熊"
+      "zh": "噴嚏熊",
+      "zh_HK": "喷嚏熊"
     },
     "types": [
       "Ice"
@@ -46417,8 +46417,8 @@
       "es": "Beartic",
       "it": "Beartic",
       "ko": "툰베어",
-      "zh": "冻原熊",
-      "zh_HK": "凍原熊"
+      "zh": "凍原熊",
+      "zh_HK": "冻原熊"
     },
     "types": [
       "Ice"
@@ -46492,8 +46492,8 @@
       "es": "Cryogonal",
       "it": "Cryogonal",
       "ko": "프리지오",
-      "zh": "几何雪花",
-      "zh_HK": "幾何雪花"
+      "zh": "幾何雪花",
+      "zh_HK": "几何雪花"
     },
     "types": [
       "Ice"
@@ -46565,8 +46565,8 @@
       "es": "Shelmet",
       "it": "Shelmet",
       "ko": "쪼마리",
-      "zh": "小嘴蜗",
-      "zh_HK": "小嘴蝸"
+      "zh": "小嘴蝸",
+      "zh_HK": "小嘴蜗"
     },
     "types": [
       "Bug"
@@ -46640,8 +46640,8 @@
       "es": "Accelgor",
       "it": "Accelgor",
       "ko": "어지리더",
-      "zh": "敏捷虫",
-      "zh_HK": "敏捷蟲"
+      "zh": "敏捷蟲",
+      "zh_HK": "敏捷虫"
     },
     "types": [
       "Bug"
@@ -46715,8 +46715,8 @@
       "es": "Stunfisk",
       "it": "Stunfisk",
       "ko": "메더",
-      "zh": "泥巴鱼",
-      "zh_HK": "泥巴魚"
+      "zh": "泥巴魚",
+      "zh_HK": "泥巴鱼"
     },
     "types": [
       "Ground",
@@ -46869,8 +46869,8 @@
       "es": "Mienshao",
       "it": "Mienshao",
       "ko": "비조도",
-      "zh": "师父鼬",
-      "zh_HK": "師父鼬"
+      "zh": "師父鼬",
+      "zh_HK": "师父鼬"
     },
     "types": [
       "Fighting"
@@ -46945,8 +46945,8 @@
       "es": "Druddigon",
       "it": "Druddigon",
       "ko": "크리만",
-      "zh": "赤面龙",
-      "zh_HK": "赤面龍"
+      "zh": "赤面龍",
+      "zh_HK": "赤面龙"
     },
     "types": [
       "Dragon"
@@ -47175,8 +47175,8 @@
       "es": "Pawniard",
       "it": "Pawniard",
       "ko": "자망칼",
-      "zh": "驹刀小兵",
-      "zh_HK": "駒刀小兵"
+      "zh": "駒刀小兵",
+      "zh_HK": "驹刀小兵"
     },
     "types": [
       "Dark",
@@ -47252,8 +47252,8 @@
       "es": "Bisharp",
       "it": "Bisharp",
       "ko": "절각참",
-      "zh": "劈斩司令",
-      "zh_HK": "劈斬司令"
+      "zh": "劈斬司令",
+      "zh_HK": "劈斩司令"
     },
     "types": [
       "Dark",
@@ -47329,8 +47329,8 @@
       "es": "Bouffalant",
       "it": "Bouffalant",
       "ko": "버프론",
-      "zh": "爆炸头水牛",
-      "zh_HK": "爆炸頭水牛"
+      "zh": "爆炸頭水牛",
+      "zh_HK": "爆炸头水牛"
     },
     "types": [
       "Normal"
@@ -47404,8 +47404,8 @@
       "es": "Rufflet",
       "it": "Rufflet",
       "ko": "수리둥보",
-      "zh": "毛头小鹰",
-      "zh_HK": "毛頭小鷹"
+      "zh": "毛頭小鷹",
+      "zh_HK": "毛头小鹰"
     },
     "types": [
       "Normal",
@@ -47481,8 +47481,8 @@
       "es": "Braviary",
       "it": "Braviary",
       "ko": "워글",
-      "zh": "勇士雄鹰",
-      "zh_HK": "勇士雄鷹"
+      "zh": "勇士雄鷹",
+      "zh_HK": "勇士雄鹰"
     },
     "types": [
       "Normal",
@@ -47558,8 +47558,8 @@
       "es": "Vullaby",
       "it": "Vullaby",
       "ko": "벌차이",
-      "zh": "秃鹰丫头",
-      "zh_HK": "禿鷹丫頭"
+      "zh": "禿鷹丫頭",
+      "zh_HK": "秃鹰丫头"
     },
     "types": [
       "Dark",
@@ -47635,8 +47635,8 @@
       "es": "Mandibuzz",
       "it": "Mandibuzz",
       "ko": "버랜지나",
-      "zh": "秃鹰娜",
-      "zh_HK": "禿鷹娜"
+      "zh": "禿鷹娜",
+      "zh_HK": "秃鹰娜"
     },
     "types": [
       "Dark",
@@ -47712,8 +47712,8 @@
       "es": "Heatmor",
       "it": "Heatmor",
       "ko": "앤티골",
-      "zh": "熔蚁兽",
-      "zh_HK": "熔蟻獸"
+      "zh": "熔蟻獸",
+      "zh_HK": "熔蚁兽"
     },
     "types": [
       "Fire"
@@ -47787,8 +47787,8 @@
       "es": "Durant",
       "it": "Durant",
       "ko": "아이앤트",
-      "zh": "铁蚁",
-      "zh_HK": "鐵蟻"
+      "zh": "鐵蟻",
+      "zh_HK": "铁蚁"
     },
     "types": [
       "Bug",
@@ -47864,8 +47864,8 @@
       "es": "Deino",
       "it": "Deino",
       "ko": "모노두",
-      "zh": "单首龙",
-      "zh_HK": "單首龍"
+      "zh": "單首龍",
+      "zh_HK": "单首龙"
     },
     "types": [
       "Dark",
@@ -47939,8 +47939,8 @@
       "es": "Zweilous",
       "it": "Zweilous",
       "ko": "디헤드",
-      "zh": "双首暴龙",
-      "zh_HK": "雙首暴龍"
+      "zh": "雙首暴龍",
+      "zh_HK": "双首暴龙"
     },
     "types": [
       "Dark",
@@ -48014,8 +48014,8 @@
       "es": "Hydreigon",
       "it": "Hydreigon",
       "ko": "삼삼드래",
-      "zh": "三首恶龙",
-      "zh_HK": "三首惡龍"
+      "zh": "三首惡龍",
+      "zh_HK": "三首恶龙"
     },
     "types": [
       "Dark",
@@ -48089,8 +48089,8 @@
       "es": "Larvesta",
       "it": "Larvesta",
       "ko": "활화르바",
-      "zh": "燃烧虫",
-      "zh_HK": "燃燒蟲"
+      "zh": "燃燒蟲",
+      "zh_HK": "燃烧虫"
     },
     "types": [
       "Bug",
@@ -48391,8 +48391,8 @@
       "es": "Virizion",
       "it": "Virizion",
       "ko": "비리디온",
-      "zh": "毕力吉翁",
-      "zh_HK": "畢力吉翁"
+      "zh": "畢力吉翁",
+      "zh_HK": "毕力吉翁"
     },
     "types": [
       "Grass",
@@ -48466,8 +48466,8 @@
       "es": "Tornadus",
       "it": "Tornadus",
       "ko": "토네로스",
-      "zh": "龙卷云",
-      "zh_HK": "龍捲雲"
+      "zh": "龍捲雲",
+      "zh_HK": "龙卷云"
     },
     "types": [
       "Flying"
@@ -48540,8 +48540,8 @@
       "es": "Thundurus",
       "it": "Thundurus",
       "ko": "볼트로스",
-      "zh": "雷电云",
-      "zh_HK": "雷電雲"
+      "zh": "雷電雲",
+      "zh_HK": "雷电云"
     },
     "types": [
       "Electric",
@@ -48617,7 +48617,7 @@
       "it": "Reshiram",
       "ko": "레시라무",
       "zh": "萊希拉姆",
-      "zh_HK": "萊希拉姆"
+      "zh_HK": "莱希拉姆"
     },
     "types": [
       "Dragon",
@@ -48691,8 +48691,8 @@
       "es": "Zekrom",
       "it": "Zekrom",
       "ko": "제크로무",
-      "zh": "捷克罗姆",
-      "zh_HK": "捷克羅姆"
+      "zh": "捷克羅姆",
+      "zh_HK": "捷克罗姆"
     },
     "types": [
       "Dragon",
@@ -48766,8 +48766,8 @@
       "es": "Landorus",
       "it": "Landorus",
       "ko": "랜드로스",
-      "zh": "土地云",
-      "zh_HK": "土地雲"
+      "zh": "土地雲",
+      "zh_HK": "土地云"
     },
     "types": [
       "Ground",
@@ -48917,8 +48917,8 @@
       "es": "Keldeo",
       "it": "Keldeo",
       "ko": "케르디오",
-      "zh": "凯路迪欧",
-      "zh_HK": "凱路迪歐"
+      "zh": "凱路迪歐",
+      "zh_HK": "凯路迪欧"
     },
     "types": [
       "Water",
@@ -49067,8 +49067,8 @@
       "es": "Genesect",
       "it": "Genesect",
       "ko": "게노세크트",
-      "zh": "盖诺赛克特",
-      "zh_HK": "蓋諾賽克特"
+      "zh": "蓋諾賽克特",
+      "zh_HK": "盖诺赛克特"
     },
     "types": [
       "Bug",
@@ -49440,8 +49440,8 @@
       "es": "Braixen",
       "it": "Braixen",
       "ko": "테르나",
-      "zh": "长尾火狐",
-      "zh_HK": "長尾火狐"
+      "zh": "長尾火狐",
+      "zh_HK": "长尾火狐"
     },
     "types": [
       "Fire"
@@ -49514,8 +49514,8 @@
       "es": "Delphox",
       "it": "Delphox",
       "ko": "마폭시",
-      "zh": "妖火红狐",
-      "zh_HK": "妖火紅狐"
+      "zh": "妖火紅狐",
+      "zh_HK": "妖火红狐"
     },
     "types": [
       "Fire",
@@ -49664,8 +49664,8 @@
       "es": "Frogadier",
       "it": "Frogadier",
       "ko": "개굴반장",
-      "zh": "呱头蛙",
-      "zh_HK": "呱頭蛙"
+      "zh": "呱頭蛙",
+      "zh_HK": "呱头蛙"
     },
     "types": [
       "Water"
@@ -49738,8 +49738,8 @@
       "es": "Greninja",
       "it": "Greninja",
       "ko": "개굴닌자",
-      "zh": "甲贺忍蛙",
-      "zh_HK": "甲賀忍蛙"
+      "zh": "甲賀忍蛙",
+      "zh_HK": "甲贺忍蛙"
     },
     "types": [
       "Water",
@@ -50118,8 +50118,8 @@
       "es": "Talonflame",
       "it": "Talonflame",
       "ko": "파이어로",
-      "zh": "烈箭鹰",
-      "zh_HK": "烈箭鷹"
+      "zh": "烈箭鷹",
+      "zh_HK": "烈箭鹰"
     },
     "types": [
       "Fire",
@@ -50194,8 +50194,8 @@
       "es": "Scatterbug",
       "it": "Scatterbug",
       "ko": "분이벌레",
-      "zh": "粉蝶虫",
-      "zh_HK": "粉蝶蟲"
+      "zh": "粉蝶蟲",
+      "zh_HK": "粉蝶虫"
     },
     "types": [
       "Bug"
@@ -50420,8 +50420,8 @@
       "es": "Litleo",
       "it": "Litleo",
       "ko": "레오꼬",
-      "zh": "小狮狮",
-      "zh_HK": "小獅獅"
+      "zh": "小獅獅",
+      "zh_HK": "小狮狮"
     },
     "types": [
       "Fire",
@@ -50497,8 +50497,8 @@
       "es": "Pyroar",
       "it": "Pyroar",
       "ko": "화염레오",
-      "zh": "火炎狮",
-      "zh_HK": "火炎獅"
+      "zh": "火炎獅",
+      "zh_HK": "火炎狮"
     },
     "types": [
       "Fire",
@@ -50648,8 +50648,8 @@
       "es": "Floette",
       "it": "Floette",
       "ko": "플라엣테",
-      "zh": "花叶蒂",
-      "zh_HK": "花葉蒂"
+      "zh": "花葉蒂",
+      "zh_HK": "花叶蒂"
     },
     "types": [
       "Fairy"
@@ -50722,8 +50722,8 @@
       "es": "Florges",
       "it": "Florges",
       "ko": "플라제스",
-      "zh": "花洁夫人",
-      "zh_HK": "花潔夫人"
+      "zh": "花潔夫人",
+      "zh_HK": "花洁夫人"
     },
     "types": [
       "Fairy"
@@ -50796,8 +50796,8 @@
       "es": "Skiddo",
       "it": "Skiddo",
       "ko": "메이클",
-      "zh": "坐骑小羊",
-      "zh_HK": "坐騎小羊"
+      "zh": "坐騎小羊",
+      "zh_HK": "坐骑小羊"
     },
     "types": [
       "Grass"
@@ -50870,8 +50870,8 @@
       "es": "Gogoat",
       "it": "Gogoat",
       "ko": "고고트",
-      "zh": "坐骑小羊",
-      "zh_HK": "坐騎小羊"
+      "zh": "坐騎山羊",
+      "zh_HK": "坐骑山羊"
     },
     "types": [
       "Grass"
@@ -50944,8 +50944,8 @@
       "es": "Pancham",
       "it": "Pancham",
       "ko": "판짱",
-      "zh": "顽皮熊猫",
-      "zh_HK": "頑皮熊貓"
+      "zh": "頑皮熊貓",
+      "zh_HK": "顽皮熊猫"
     },
     "types": [
       "Fighting"
@@ -51020,8 +51020,8 @@
       "es": "Pangoro",
       "it": "Pangoro",
       "ko": "부란다",
-      "zh": "霸道熊猫",
-      "zh_HK": "流氓熊貓"
+      "zh": "流氓熊貓",
+      "zh_HK": "流氓熊猫"
     },
     "types": [
       "Fighting",
@@ -51098,8 +51098,8 @@
       "es": "Furfrou",
       "it": "Furfrou",
       "ko": "트리미앙",
-      "zh": "多丽米亚",
-      "zh_HK": "多麗米亞"
+      "zh": "多麗米亞",
+      "zh_HK": "多丽米亚"
     },
     "types": [
       "Normal"
@@ -51321,8 +51321,8 @@
       "es": "Honedge",
       "it": "Honedge",
       "ko": "단칼빙",
-      "zh": "独剑鞘",
-      "zh_HK": "獨劍鞘"
+      "zh": "獨劍鞘",
+      "zh_HK": "独剑鞘"
     },
     "types": [
       "Steel",
@@ -51396,8 +51396,8 @@
       "es": "Doublade",
       "it": "Doublade",
       "ko": "쌍검킬",
-      "zh": "双剑鞘",
-      "zh_HK": "雙劍鞘"
+      "zh": "雙劍鞘",
+      "zh_HK": "双剑鞘"
     },
     "types": [
       "Steel",
@@ -51471,8 +51471,8 @@
       "es": "Aegislash",
       "it": "Aegislash",
       "ko": "킬가르도",
-      "zh": "坚盾剑怪",
-      "zh_HK": "堅盾劍怪"
+      "zh": "堅盾劍怪",
+      "zh_HK": "坚盾剑怪"
     },
     "types": [
       "Steel",
@@ -51694,8 +51694,8 @@
       "es": "Swirlix",
       "it": "Swirlix",
       "ko": "나룸퍼프",
-      "zh": "绵绵泡芙",
-      "zh_HK": "綿綿泡芙"
+      "zh": "綿綿泡芙",
+      "zh_HK": "绵绵泡芙"
     },
     "types": [
       "Fairy"
@@ -51842,8 +51842,8 @@
       "es": "Inkay",
       "it": "Inkay",
       "ko": "오케이징",
-      "zh": "好啦鱿",
-      "zh_HK": "好啦魷"
+      "zh": "好啦魷",
+      "zh_HK": "好啦鱿"
     },
     "types": [
       "Dark",
@@ -51920,8 +51920,8 @@
       "es": "Malamar",
       "it": "Malamar",
       "ko": "칼라마네로",
-      "zh": "乌贼王",
-      "zh_HK": "烏賊王"
+      "zh": "烏賊王",
+      "zh_HK": "乌贼王"
     },
     "types": [
       "Dark",
@@ -51998,8 +51998,8 @@
       "es": "Binacle",
       "it": "Binacle",
       "ko": "거북손손",
-      "zh": "龟脚脚",
-      "zh_HK": "龜腳腳"
+      "zh": "龜腳腳",
+      "zh_HK": "龟脚脚"
     },
     "types": [
       "Rock",
@@ -52075,8 +52075,8 @@
       "es": "Barbaracle",
       "it": "Barbaracle",
       "ko": "거북손데스",
-      "zh": "龟足巨铠",
-      "zh_HK": "龜足巨鎧"
+      "zh": "龜足巨鎧",
+      "zh_HK": "龟足巨铠"
     },
     "types": [
       "Rock",
@@ -52230,8 +52230,8 @@
       "es": "Dragalge",
       "it": "Dragalge",
       "ko": "드래캄",
-      "zh": "毒藻龙",
-      "zh_HK": "毒藻龍"
+      "zh": "毒藻龍",
+      "zh_HK": "毒藻龙"
     },
     "types": [
       "Poison",
@@ -52308,8 +52308,8 @@
       "es": "Clauncher",
       "it": "Clauncher",
       "ko": "완철포",
-      "zh": "铁臂枪虾",
-      "zh_HK": "鐵臂槍蝦"
+      "zh": "鐵臂槍蝦",
+      "zh_HK": "铁臂枪虾"
     },
     "types": [
       "Water"
@@ -52382,8 +52382,8 @@
       "es": "Clawitzer",
       "it": "Clawitzer",
       "ko": "블로스터",
-      "zh": "钢炮臂虾",
-      "zh_HK": "鋼炮臂蝦"
+      "zh": "鋼炮臂蝦",
+      "zh_HK": "钢炮臂虾"
     },
     "types": [
       "Water"
@@ -52456,8 +52456,8 @@
       "es": "Helioptile",
       "it": "Helioptile",
       "ko": "목도리키텔",
-      "zh": "伞电蜥",
-      "zh_HK": "傘電蜥"
+      "zh": "傘電蜥",
+      "zh_HK": "伞电蜥"
     },
     "types": [
       "Electric",
@@ -52534,8 +52534,8 @@
       "es": "Heliolisk",
       "it": "Heliolisk",
       "ko": "일레도리자드",
-      "zh": "光电伞蜥",
-      "zh_HK": "光電傘蜥"
+      "zh": "光電傘蜥",
+      "zh_HK": "光电伞蜥"
     },
     "types": [
       "Electric",
@@ -52612,8 +52612,8 @@
       "es": "Tyrunt",
       "it": "Tyrunt",
       "ko": "티고라스",
-      "zh": "宝宝暴龙",
-      "zh_HK": "寶寶暴龍"
+      "zh": "寶寶暴龍",
+      "zh_HK": "宝宝暴龙"
     },
     "types": [
       "Rock",
@@ -52689,8 +52689,8 @@
       "es": "Tyrantrum",
       "it": "Tyrantrum",
       "ko": "견고라스",
-      "zh": "怪颚龙",
-      "zh_HK": "怪顎龍"
+      "zh": "怪顎龍",
+      "zh_HK": "怪腭龙"
     },
     "types": [
       "Rock",
@@ -52766,8 +52766,8 @@
       "es": "Amaura",
       "it": "Amaura",
       "ko": "아마루스",
-      "zh": "冰雪龙",
-      "zh_HK": "冰雪龍"
+      "zh": "冰雪龍",
+      "zh_HK": "冰雪龙"
     },
     "types": [
       "Rock",
@@ -52842,8 +52842,8 @@
       "es": "Aurorus",
       "it": "Aurorus",
       "ko": "아마루르가",
-      "zh": "冰雪巨龙",
-      "zh_HK": "冰雪巨龍"
+      "zh": "冰雪巨龍",
+      "zh_HK": "冰雪巨龙"
     },
     "types": [
       "Rock",
@@ -52992,8 +52992,8 @@
       "es": "Hawlucha",
       "it": "Hawlucha",
       "ko": "루차불",
-      "zh": "摔角鹰人",
-      "zh_HK": "摔角鷹人"
+      "zh": "摔角鷹人",
+      "zh_HK": "摔角鹰人"
     },
     "types": [
       "Fighting",
@@ -53148,8 +53148,8 @@
       "es": "Carbink",
       "it": "Carbink",
       "ko": "멜리시",
-      "zh": "小碎钻",
-      "zh_HK": "小碎鑽"
+      "zh": "小碎鑽",
+      "zh_HK": "小碎钻"
     },
     "types": [
       "Rock",
@@ -53225,8 +53225,8 @@
       "es": "Goomy",
       "it": "Goomy",
       "ko": "미끄메라",
-      "zh": "黏黏宝",
-      "zh_HK": "黏黏寶"
+      "zh": "黏黏寶",
+      "zh_HK": "黏黏宝"
     },
     "types": [
       "Dragon"
@@ -53300,8 +53300,8 @@
       "es": "Sliggoo",
       "it": "Sliggoo",
       "ko": "미끄네일",
-      "zh": "黏美儿",
-      "zh_HK": "黏美兒"
+      "zh": "黏美兒",
+      "zh_HK": "黏美儿"
     },
     "types": [
       "Dragon"
@@ -53375,8 +53375,8 @@
       "es": "Goodra",
       "it": "Goodra",
       "ko": "미끄래곤",
-      "zh": "黏美龙",
-      "zh_HK": "黏美龍"
+      "zh": "黏美龍",
+      "zh_HK": "黏美龙"
     },
     "types": [
       "Dragon"
@@ -53450,8 +53450,8 @@
       "es": "Klefki",
       "it": "Klefki",
       "ko": "클레피",
-      "zh": "钥圈儿",
-      "zh_HK": "鑰圈兒"
+      "zh": "鑰圈兒",
+      "zh_HK": "钥圈儿"
     },
     "types": [
       "Steel",
@@ -53526,8 +53526,8 @@
       "es": "Phantump",
       "it": "Phantump",
       "ko": "나목령",
-      "zh": "小木灵",
-      "zh_HK": "小木靈"
+      "zh": "小木靈",
+      "zh_HK": "小木灵"
     },
     "types": [
       "Ghost",
@@ -53836,8 +53836,8 @@
       "es": "Bergmite",
       "it": "Bergmite",
       "ko": "꽁어름",
-      "zh": "冰宝",
-      "zh_HK": "冰寶"
+      "zh": "冰寶",
+      "zh_HK": "冰宝"
     },
     "types": [
       "Ice"
@@ -54066,8 +54066,8 @@
       "es": "Noivern",
       "it": "Noivern",
       "ko": "음번",
-      "zh": "音波龙",
-      "zh_HK": "音波龍"
+      "zh": "音波龍",
+      "zh_HK": "音波龙"
     },
     "types": [
       "Flying",
@@ -54144,8 +54144,8 @@
       "es": "Xerneas",
       "it": "Xerneas",
       "ko": "제르네아스",
-      "zh": "哲尔尼亚斯",
-      "zh_HK": "哲爾尼亞斯"
+      "zh": "哲爾尼亞斯",
+      "zh_HK": "哲尔尼亚斯"
     },
     "types": [
       "Fairy"
@@ -54217,8 +54217,8 @@
       "es": "Yveltal",
       "it": "Yveltal",
       "ko": "이벨타르",
-      "zh": "伊裴尔塔尔",
-      "zh_HK": "伊裴爾塔爾"
+      "zh": "伊裴爾塔爾",
+      "zh_HK": "伊裴尔塔尔"
     },
     "types": [
       "Dark",
@@ -54292,8 +54292,8 @@
       "es": "Zygarde",
       "it": "Zygarde",
       "ko": "지가르데",
-      "zh": "基格尔德",
-      "zh_HK": "基格爾德"
+      "zh": "基格爾德",
+      "zh_HK": "基格尔德"
     },
     "types": [
       "Dragon",
@@ -54517,8 +54517,8 @@
       "es": "Volcanion",
       "it": "Volcanion",
       "ko": "볼케니온",
-      "zh": "波尔凯尼恩",
-      "zh_HK": "波爾凱尼恩"
+      "zh": "波爾凱尼恩",
+      "zh_HK": "波尔凯尼恩"
     },
     "types": [
       "Fire",
@@ -54592,8 +54592,8 @@
       "es": "Rowlet",
       "it": "Rowlet",
       "ko": "나몰빼미",
-      "zh": "木木枭",
-      "zh_HK": "木木梟"
+      "zh": "木木梟",
+      "zh_HK": "木木枭"
     },
     "types": [
       "Grass",
@@ -54668,8 +54668,8 @@
       "es": "Dartrix",
       "it": "Dartrix",
       "ko": "빼미스로우",
-      "zh": "投羽枭",
-      "zh_HK": "投羽梟"
+      "zh": "投羽梟",
+      "zh_HK": "投羽枭"
     },
     "types": [
       "Grass",
@@ -54744,8 +54744,8 @@
       "es": "Decidueye",
       "it": "Decidueye",
       "ko": "모크나이퍼",
-      "zh": "狙射树枭",
-      "zh_HK": "狙射樹梟"
+      "zh": "狙射樹梟",
+      "zh_HK": "狙射树枭"
     },
     "types": [
       "Grass",
@@ -54894,8 +54894,8 @@
       "es": "Torracat",
       "it": "Torracat",
       "ko": "냐오히트",
-      "zh": "炎热喵",
-      "zh_HK": "炎熱喵"
+      "zh": "炎熱喵",
+      "zh_HK": "炎热喵"
     },
     "types": [
       "Fire"
@@ -54968,8 +54968,8 @@
       "es": "Incineroar",
       "it": "Incineroar",
       "ko": "어흥염",
-      "zh": "炽焰咆哮虎",
-      "zh_HK": "熾焰咆哮虎"
+      "zh": "熾焰咆哮虎",
+      "zh_HK": "炽焰咆哮虎"
     },
     "types": [
       "Fire",
@@ -55044,8 +55044,8 @@
       "es": "Popplio",
       "it": "Popplio",
       "ko": "누리공",
-      "zh": "球球海狮",
-      "zh_HK": "球球海獅"
+      "zh": "球球海獅",
+      "zh_HK": "球球海狮"
     },
     "types": [
       "Water"
@@ -55119,8 +55119,8 @@
       "es": "Brionne",
       "it": "Brionne",
       "ko": "키요공",
-      "zh": "花漾海狮",
-      "zh_HK": "花漾海獅"
+      "zh": "花漾海獅",
+      "zh_HK": "花漾海狮"
     },
     "types": [
       "Water"
@@ -55194,8 +55194,8 @@
       "es": "Primarina",
       "it": "Primarina",
       "ko": "누리레느",
-      "zh": "西狮海壬",
-      "zh_HK": "西獅海壬"
+      "zh": "西獅海壬",
+      "zh_HK": "西狮海壬"
     },
     "types": [
       "Water",
@@ -55271,8 +55271,8 @@
       "es": "Pikipek",
       "it": "Pikipek",
       "ko": "콕코구리",
-      "zh": "小笃儿",
-      "zh_HK": "小篤兒"
+      "zh": "小篤兒",
+      "zh_HK": "小笃儿"
     },
     "types": [
       "Normal",
@@ -55348,8 +55348,8 @@
       "es": "Trumbeak",
       "it": "Trumbeak",
       "ko": "크라파",
-      "zh": "喇叭啄鸟",
-      "zh_HK": "喇叭啄鳥"
+      "zh": "喇叭啄鳥",
+      "zh_HK": "喇叭啄鸟"
     },
     "types": [
       "Normal",
@@ -55425,8 +55425,8 @@
       "es": "Toucannon",
       "it": "Toucannon",
       "ko": "왕큰부리",
-      "zh": "铳嘴大鸟",
-      "zh_HK": "銃嘴大鳥"
+      "zh": "銃嘴大鳥",
+      "zh_HK": "铳嘴大鸟"
     },
     "types": [
       "Normal",
@@ -55502,8 +55502,8 @@
       "es": "Yungoos",
       "it": "Yungoos",
       "ko": "영구스",
-      "zh": "猫鼬少",
-      "zh_HK": "貓鼬少"
+      "zh": "貓鼬少",
+      "zh_HK": "猫鼬少"
     },
     "types": [
       "Normal"
@@ -55577,8 +55577,8 @@
       "es": "Gumchoos",
       "it": "Gumchoos",
       "ko": "형사구스",
-      "zh": "猫鼬探长",
-      "zh_HK": "貓鼬探長"
+      "zh": "貓鼬探長",
+      "zh_HK": "猫鼬探长"
     },
     "types": [
       "Normal"
@@ -55652,8 +55652,8 @@
       "es": "Grubbin",
       "it": "Grubbin",
       "ko": "턱지충이",
-      "zh": "强颚鸡母虫",
-      "zh_HK": "強顎雞母蟲"
+      "zh": "強顎雞母蟲",
+      "zh_HK": "强腭鸡母虫"
     },
     "types": [
       "Bug"
@@ -55725,8 +55725,8 @@
       "es": "Charjabug",
       "it": "Charjabug",
       "ko": "전지충이",
-      "zh": "虫电宝",
-      "zh_HK": "蟲電寶"
+      "zh": "蟲電寶",
+      "zh_HK": "虫电宝"
     },
     "types": [
       "Bug",
@@ -55800,8 +55800,8 @@
       "es": "Vikavolt",
       "it": "Vikavolt",
       "ko": "투구뿌논",
-      "zh": "锹农炮虫",
-      "zh_HK": "鍬農炮蟲"
+      "zh": "鍬農炮蟲",
+      "zh_HK": "锹农炮虫"
     },
     "types": [
       "Bug",
@@ -55875,8 +55875,8 @@
       "es": "Crabrawler",
       "it": "Crabrawler",
       "ko": "오기지게",
-      "zh": "好胜蟹",
-      "zh_HK": "好勝蟹"
+      "zh": "好勝蟹",
+      "zh_HK": "好胜蟹"
     },
     "types": [
       "Fighting"
@@ -55950,8 +55950,8 @@
       "es": "Crabominable",
       "it": "Crabominable",
       "ko": "모단단게",
-      "zh": "好胜毛蟹",
-      "zh_HK": "好勝毛蟹"
+      "zh": "好勝毛蟹",
+      "zh_HK": "好胜毛蟹"
     },
     "types": [
       "Fighting",
@@ -56027,8 +56027,8 @@
       "es": "Oricorio",
       "it": "Oricorio",
       "ko": "춤추새",
-      "zh": "花舞鸟",
-      "zh_HK": "花舞鳥"
+      "zh": "花舞鳥",
+      "zh_HK": "花舞鸟"
     },
     "types": [
       "Fire",
@@ -56180,8 +56180,8 @@
       "es": "Ribombee",
       "it": "Ribombee",
       "ko": "에리본",
-      "zh": "蝶结萌虻",
-      "zh_HK": "蝶結萌虻"
+      "zh": "蝶結萌虻",
+      "zh_HK": "蝶结萌虻"
     },
     "types": [
       "Bug",
@@ -56408,8 +56408,8 @@
       "es": "Wishiwashi",
       "it": "Wishiwashi",
       "ko": "약어리",
-      "zh": "弱丁鱼",
-      "zh_HK": "弱丁魚"
+      "zh": "弱丁魚",
+      "zh_HK": "弱丁鱼"
     },
     "types": [
       "Water"
@@ -56481,8 +56481,8 @@
       "es": "Mareanie",
       "it": "Mareanie",
       "ko": "시마사리",
-      "zh": "好坏星",
-      "zh_HK": "好壞星"
+      "zh": "好壞星",
+      "zh_HK": "好坏星"
     },
     "types": [
       "Poison",
@@ -56558,8 +56558,8 @@
       "es": "Toxapex",
       "it": "Toxapex",
       "ko": "더시마사리",
-      "zh": "超坏星",
-      "zh_HK": "超壞星"
+      "zh": "超壞星",
+      "zh_HK": "超坏星"
     },
     "types": [
       "Poison",
@@ -56635,8 +56635,8 @@
       "es": "Mudbray",
       "it": "Mudbray",
       "ko": "머드나기",
-      "zh": "泥驴仔",
-      "zh_HK": "泥驢仔"
+      "zh": "泥驢仔",
+      "zh_HK": "泥驴仔"
     },
     "types": [
       "Ground"
@@ -56710,8 +56710,8 @@
       "es": "Mudsdale",
       "it": "Mudsdale",
       "ko": "만마드",
-      "zh": "重泥挽马",
-      "zh_HK": "重泥挽馬"
+      "zh": "重泥挽馬",
+      "zh_HK": "重泥挽马"
     },
     "types": [
       "Ground"
@@ -56939,8 +56939,8 @@
       "es": "Fomantis",
       "it": "Fomantis",
       "ko": "짜랑랑",
-      "zh": "伪螳草",
-      "zh_HK": "偽螳草"
+      "zh": "偽螳草",
+      "zh_HK": "伪螳草"
     },
     "types": [
       "Grass"
@@ -57013,8 +57013,8 @@
       "es": "Lurantis",
       "it": "Lurantis",
       "ko": "라란티스",
-      "zh": "兰螳花",
-      "zh_HK": "蘭螳花"
+      "zh": "蘭螳花",
+      "zh_HK": "兰螳花"
     },
     "types": [
       "Grass"
@@ -57164,8 +57164,8 @@
       "es": "Shiinotic",
       "it": "Shiinotic",
       "ko": "마셰이드",
-      "zh": "灯罩夜菇",
-      "zh_HK": "燈罩夜菇"
+      "zh": "燈罩夜菇",
+      "zh_HK": "灯罩夜菇"
     },
     "types": [
       "Grass",
@@ -57242,7 +57242,7 @@
       "it": "Salandit",
       "ko": "야도뇽",
       "zh": "夜盜火蜥",
-      "zh_HK": "夜盜火蜥"
+      "zh_HK": "夜盗火蜥"
     },
     "types": [
       "Poison",
@@ -57472,8 +57472,8 @@
       "es": "Bewear",
       "it": "Bewear",
       "ko": "이븐곰",
-      "zh": "穿着熊",
-      "zh_HK": "穿著熊"
+      "zh": "穿著熊",
+      "zh_HK": "穿着熊"
     },
     "types": [
       "Normal",
@@ -57774,8 +57774,8 @@
       "es": "Comfey",
       "it": "Comfey",
       "ko": "큐아링",
-      "zh": "花疗环环",
-      "zh_HK": "花療環環"
+      "zh": "花療環環",
+      "zh_HK": "花疗环环"
     },
     "types": [
       "Fairy"
@@ -57849,8 +57849,8 @@
       "es": "Oranguru",
       "it": "Oranguru",
       "ko": "하랑우탄",
-      "zh": "智挥猩",
-      "zh_HK": "智揮猩"
+      "zh": "智揮猩",
+      "zh_HK": "智挥猩"
     },
     "types": [
       "Normal",
@@ -57926,8 +57926,8 @@
       "es": "Passimian",
       "it": "Passimian",
       "ko": "내던숭이",
-      "zh": "投掷猴",
-      "zh_HK": "投擲猴"
+      "zh": "投擲猴",
+      "zh_HK": "投掷猴"
     },
     "types": [
       "Fighting"
@@ -58000,8 +58000,8 @@
       "es": "Wimpod",
       "it": "Wimpod",
       "ko": "꼬시레",
-      "zh": "胆小虫",
-      "zh_HK": "膽小蟲"
+      "zh": "膽小蟲",
+      "zh_HK": "胆小虫"
     },
     "types": [
       "Bug",
@@ -58229,7 +58229,7 @@
       "it": "Palosand",
       "ko": "모래성이당",
       "zh": "噬沙堡爺",
-      "zh_HK": "噬沙堡爺"
+      "zh_HK": "噬沙堡爷"
     },
     "types": [
       "Ghost",
@@ -58304,8 +58304,8 @@
       "es": "Pyukumuku",
       "it": "Pyukumuku",
       "ko": "해무기",
-      "zh": "拳海参",
-      "zh_HK": "拳海參"
+      "zh": "拳海參",
+      "zh_HK": "拳海参"
     },
     "types": [
       "Water"
@@ -58378,8 +58378,8 @@
       "es": "Código Cero",
       "it": "Tipo Zero",
       "ko": "타입：널",
-      "zh": "属性：空",
-      "zh_HK": "屬性：空"
+      "zh": "屬性：空",
+      "zh_HK": "属性：空"
     },
     "types": [
       "Normal"
@@ -58451,8 +58451,8 @@
       "es": "Silvally",
       "it": "Silvally",
       "ko": "실버디",
-      "zh": "银伴战兽",
-      "zh_HK": "銀伴戰獸"
+      "zh": "銀伴戰獸",
+      "zh_HK": "银伴战兽"
     },
     "types": [
       "Normal"
@@ -58524,8 +58524,8 @@
       "es": "Minior",
       "it": "Minior",
       "ko": "메테노",
-      "zh": "小陨星",
-      "zh_HK": "小隕星"
+      "zh": "小隕星",
+      "zh_HK": "小陨星"
     },
     "types": [
       "Rock",
@@ -58599,8 +58599,8 @@
       "es": "Komala",
       "it": "Komala",
       "ko": "자말라",
-      "zh": "树枕尾熊",
-      "zh_HK": "樹枕尾熊"
+      "zh": "樹枕尾熊",
+      "zh_HK": "树枕尾熊"
     },
     "types": [
       "Normal"
@@ -58672,8 +58672,8 @@
       "es": "Turtonator",
       "it": "Turtonator",
       "ko": "폭거북스",
-      "zh": "爆焰龟兽",
-      "zh_HK": "爆焰龜獸"
+      "zh": "爆焰龜獸",
+      "zh_HK": "爆焰龟兽"
     },
     "types": [
       "Fire",
@@ -58748,8 +58748,8 @@
       "es": "Togedemaru",
       "it": "Togedemaru",
       "ko": "토게데마루",
-      "zh": "托戈德玛尔",
-      "zh_HK": "托戈德瑪爾"
+      "zh": "托戈德瑪爾",
+      "zh_HK": "托戈德玛尔"
     },
     "types": [
       "Electric",
@@ -58826,8 +58826,8 @@
       "es": "Mimikyu",
       "it": "Mimikyu",
       "ko": "따라큐",
-      "zh": "谜拟丘",
-      "zh_HK": "謎擬Ｑ"
+      "zh": "謎擬Ｑ",
+      "zh_HK": "谜拟Ｑ"
     },
     "types": [
       "Ghost",
@@ -58901,8 +58901,8 @@
       "es": "Bruxish",
       "it": "Bruxish",
       "ko": "치갈기",
-      "zh": "磨牙彩皮鱼",
-      "zh_HK": "磨牙彩皮魚"
+      "zh": "磨牙彩皮魚",
+      "zh_HK": "磨牙彩皮鱼"
     },
     "types": [
       "Water",
@@ -58978,8 +58978,8 @@
       "es": "Drampa",
       "it": "Drampa",
       "ko": "할비롱",
-      "zh": "老翁龙",
-      "zh_HK": "老翁龍"
+      "zh": "老翁龍",
+      "zh_HK": "老翁龙"
     },
     "types": [
       "Normal",
@@ -59056,8 +59056,8 @@
       "es": "Dhelmise",
       "it": "Dhelmise",
       "ko": "타타륜",
-      "zh": "破破舵轮",
-      "zh_HK": "破破舵輪"
+      "zh": "破破舵輪",
+      "zh_HK": "破破舵轮"
     },
     "types": [
       "Ghost",
@@ -59131,8 +59131,8 @@
       "es": "Jangmo-o",
       "it": "Jangmo-o",
       "ko": "짜랑꼬",
-      "zh": "心鳞宝",
-      "zh_HK": "心鱗寶"
+      "zh": "心鱗寶",
+      "zh_HK": "心鳞宝"
     },
     "types": [
       "Dragon"
@@ -59206,8 +59206,8 @@
       "es": "Hakamo-o",
       "it": "Hakamo-o",
       "ko": "짜랑고우거",
-      "zh": "鳞甲龙",
-      "zh_HK": "鱗甲龍"
+      "zh": "鱗甲龍",
+      "zh_HK": "鳞甲龙"
     },
     "types": [
       "Dragon",
@@ -59283,8 +59283,8 @@
       "es": "Kommo-o",
       "it": "Kommo-o",
       "ko": "짜랑고우거",
-      "zh": "杖尾鳞甲龙",
-      "zh_HK": "杖尾鱗甲龍"
+      "zh": "杖尾鱗甲龍",
+      "zh_HK": "杖尾鳞甲龙"
     },
     "types": [
       "Dragon",
@@ -59360,8 +59360,8 @@
       "es": "Tapu Koko",
       "it": "Tapu Koko",
       "ko": "카푸꼬꼬꼭",
-      "zh": "卡璞・鸣鸣",
-      "zh_HK": "卡璞・鳴鳴"
+      "zh": "卡璞・鳴鳴",
+      "zh_HK": "卡璞・鸣鸣"
     },
     "types": [
       "Electric",
@@ -59588,8 +59588,8 @@
       "es": "Tapu Fini",
       "it": "Tapu Fini",
       "ko": "카푸느지느",
-      "zh": "卡璞・鳍鳍",
-      "zh_HK": "卡璞・鰭鰭"
+      "zh": "卡璞・鰭鰭",
+      "zh_HK": "卡璞・鳍鳍"
     },
     "types": [
       "Water",
@@ -59810,8 +59810,8 @@
       "es": "Solgaleo",
       "it": "Solgaleo",
       "ko": "솔가레오",
-      "zh": "索尔迦雷欧",
-      "zh_HK": "索爾迦雷歐"
+      "zh": "索爾迦雷歐",
+      "zh_HK": "索尔迦雷欧"
     },
     "types": [
       "Psychic",
@@ -59960,8 +59960,8 @@
       "es": "Nihilego",
       "it": "Nihilego",
       "ko": "텅비드",
-      "zh": "虚吾伊德",
-      "zh_HK": "虛吾伊德"
+      "zh": "虛吾伊德",
+      "zh_HK": "虚吾伊德"
     },
     "types": [
       "Rock",
@@ -60110,8 +60110,8 @@
       "es": "Pheromosa",
       "it": "Pheromosa",
       "ko": "페로코체",
-      "zh": "费洛美螂",
-      "zh_HK": "費洛美螂"
+      "zh": "費洛美螂",
+      "zh_HK": "费洛美螂"
     },
     "types": [
       "Bug",
@@ -60185,8 +60185,8 @@
       "es": "Xurkitree",
       "it": "Xurkitree",
       "ko": "전수목",
-      "zh": "电束木",
-      "zh_HK": "電束木"
+      "zh": "電束木",
+      "zh_HK": "电束木"
     },
     "types": [
       "Electric"
@@ -60258,8 +60258,8 @@
       "es": "Celesteela",
       "it": "Celesteela",
       "ko": "철화구야",
-      "zh": "铁火辉夜",
-      "zh_HK": "鐵火輝夜"
+      "zh": "鐵火輝夜",
+      "zh_HK": "铁火辉夜"
     },
     "types": [
       "Steel",
@@ -60333,8 +60333,8 @@
       "es": "Kartana",
       "it": "Kartana",
       "ko": "종이신도",
-      "zh": "纸御剑",
-      "zh_HK": "紙御劍"
+      "zh": "紙御劍",
+      "zh_HK": "纸御剑"
     },
     "types": [
       "Grass",
@@ -60408,8 +60408,8 @@
       "es": "Guzzlord",
       "it": "Guzzlord",
       "ko": "악식킹",
-      "zh": "恶食大王",
-      "zh_HK": "惡食大王"
+      "zh": "惡食大王",
+      "zh_HK": "恶食大王"
     },
     "types": [
       "Dark",
@@ -60483,8 +60483,8 @@
       "es": "Necrozma",
       "it": "Necrozma",
       "ko": "네크로즈마",
-      "zh": "奈克洛兹玛",
-      "zh_HK": "奈克洛茲瑪"
+      "zh": "奈克洛茲瑪",
+      "zh_HK": "奈克洛兹玛"
     },
     "types": [
       "Psychic"
@@ -60556,8 +60556,8 @@
       "es": "Magearna",
       "it": "Magearna",
       "ko": "마기아나",
-      "zh": "玛机雅娜",
-      "zh_HK": "瑪機雅娜"
+      "zh": "瑪機雅娜",
+      "zh_HK": "玛机雅娜"
     },
     "types": [
       "Steel",
@@ -60631,8 +60631,8 @@
       "es": "Marshadow",
       "it": "Marshadow",
       "ko": "마샤도",
-      "zh": "玛夏多",
-      "zh_HK": "瑪夏多"
+      "zh": "瑪夏多",
+      "zh_HK": "玛夏多"
     },
     "types": [
       "Fighting",
@@ -60706,8 +60706,8 @@
       "es": "Poipole",
       "it": "Poipole",
       "ko": "베베놈",
-      "zh": "毒贝比",
-      "zh_HK": "毒貝比"
+      "zh": "毒貝比",
+      "zh_HK": "毒贝比"
     },
     "types": [
       "Poison"
@@ -60779,8 +60779,8 @@
       "es": "Naganadel",
       "it": "Naganadel",
       "ko": "아고용",
-      "zh": "四颚针龙",
-      "zh_HK": "四顎針龍"
+      "zh": "四顎針龍",
+      "zh_HK": "四腭针龙"
     },
     "types": [
       "Poison",
@@ -60854,8 +60854,8 @@
       "es": "Stakataka",
       "it": "Stakataka",
       "ko": "차곡차곡",
-      "zh": "垒磊石",
-      "zh_HK": "壘磊石"
+      "zh": "壘磊石",
+      "zh_HK": "垒磊石"
     },
     "types": [
       "Rock",
@@ -60929,8 +60929,8 @@
       "es": "Blacephalon",
       "it": "Blacephalon",
       "ko": "두파팡",
-      "zh": "砰头小丑",
-      "zh_HK": "砰頭小丑"
+      "zh": "砰頭小丑",
+      "zh_HK": "砰头小丑"
     },
     "types": [
       "Fire",
@@ -61004,8 +61004,8 @@
       "es": "Zeraora",
       "it": "Zeraora",
       "ko": "제라오라",
-      "zh": "捷拉奥拉",
-      "zh_HK": "捷拉奧拉"
+      "zh": "捷拉奧拉",
+      "zh_HK": "捷拉奥拉"
     },
     "types": [
       "Electric"
@@ -61077,8 +61077,8 @@
       "es": "Meltan",
       "it": "Meltan",
       "ko": "멜탄",
-      "zh": "美录坦",
-      "zh_HK": "美錄坦"
+      "zh": "美錄坦",
+      "zh_HK": "美录坦"
     },
     "types": [
       "Steel"
@@ -61150,8 +61150,8 @@
       "es": "Melmetal",
       "it": "Melmetal",
       "ko": "멜메탈",
-      "zh": "美录梅塔",
-      "zh_HK": "美錄梅塔"
+      "zh": "美錄梅塔",
+      "zh_HK": "美录梅塔"
     },
     "types": [
       "Steel"
@@ -61373,8 +61373,8 @@
       "es": "Rillaboom",
       "it": "Rillaboom",
       "ko": "고릴타",
-      "zh": "轰擂金刚猩",
-      "zh_HK": "轟擂金剛猩"
+      "zh": "轟擂金剛猩",
+      "zh_HK": "轰擂金刚猩"
     },
     "types": [
       "Grass"
@@ -61448,8 +61448,8 @@
       "es": "Scorbunny",
       "it": "Scorbunny",
       "ko": "염버니",
-      "zh": "炎兔儿",
-      "zh_HK": "炎兔兒"
+      "zh": "炎兔兒",
+      "zh_HK": "炎兔儿"
     },
     "types": [
       "Fire"
@@ -61523,8 +61523,8 @@
       "es": "Raboot",
       "it": "Raboot",
       "ko": "래비풋",
-      "zh": "腾蹴小将",
-      "zh_HK": "騰蹴小將"
+      "zh": "騰蹴小將",
+      "zh_HK": "腾蹴小将"
     },
     "types": [
       "Fire"
@@ -61598,8 +61598,8 @@
       "es": "Cinderace",
       "it": "Cinderace",
       "ko": "에이스번",
-      "zh": "闪焰王牌",
-      "zh_HK": "閃焰王牌"
+      "zh": "閃焰王牌",
+      "zh_HK": "闪焰王牌"
     },
     "types": [
       "Fire"
@@ -61673,8 +61673,8 @@
       "es": "Sobble",
       "it": "Sobble",
       "ko": "울머기",
-      "zh": "泪眼蜥",
-      "zh_HK": "淚眼蜥"
+      "zh": "淚眼蜥",
+      "zh_HK": "泪眼蜥"
     },
     "types": [
       "Water"
@@ -61748,8 +61748,8 @@
       "es": "Drizzile",
       "it": "Drizzile",
       "ko": "누겔레온",
-      "zh": "变涩蜥",
-      "zh_HK": "變澀蜥"
+      "zh": "變澀蜥",
+      "zh_HK": "变涩蜥"
     },
     "types": [
       "Water"
@@ -61898,8 +61898,8 @@
       "es": "Skowvet",
       "it": "Skowvet",
       "ko": "탐리스",
-      "zh": "贪心栗鼠",
-      "zh_HK": "貪心栗鼠"
+      "zh": "貪心栗鼠",
+      "zh_HK": "贪心栗鼠"
     },
     "types": [
       "Normal"
@@ -61972,8 +61972,8 @@
       "es": "Greedent",
       "it": "Greedent",
       "ko": "요씽리스",
-      "zh": "藏饱栗鼠",
-      "zh_HK": "藏飽栗鼠"
+      "zh": "藏飽栗鼠",
+      "zh_HK": "藏饱栗鼠"
     },
     "types": [
       "Normal"
@@ -62121,8 +62121,8 @@
       "es": "Corvisquire",
       "it": "Corvisquire",
       "ko": "파크로우",
-      "zh": "蓝鸦",
-      "zh_HK": "藍鴉"
+      "zh": "藍鴉",
+      "zh_HK": "蓝鸦"
     },
     "types": [
       "Flying"
@@ -62196,8 +62196,8 @@
       "es": "Corviknight",
       "it": "Corviknight",
       "ko": "아머까오",
-      "zh": "钢铠鸦",
-      "zh_HK": "鋼鎧鴉"
+      "zh": "鋼鎧鴉",
+      "zh_HK": "钢铠鸦"
     },
     "types": [
       "Flying",
@@ -62273,8 +62273,8 @@
       "es": "Blipbug",
       "it": "Blipbug",
       "ko": "두루지벌레",
-      "zh": "索侦虫",
-      "zh_HK": "索偵蟲"
+      "zh": "索偵蟲",
+      "zh_HK": "索侦虫"
     },
     "types": [
       "Bug"
@@ -62348,8 +62348,8 @@
       "es": "Dottler",
       "it": "Dottler",
       "ko": "레돔벌레",
-      "zh": "天罩虫",
-      "zh_HK": "天罩蟲"
+      "zh": "天罩蟲",
+      "zh_HK": "天罩虫"
     },
     "types": [
       "Bug",
@@ -62425,8 +62425,8 @@
       "es": "Orbeetle",
       "it": "Orbeetle",
       "ko": "이올브",
-      "zh": "以欧路普",
-      "zh_HK": "以歐路普"
+      "zh": "以歐路普",
+      "zh_HK": "以欧路普"
     },
     "types": [
       "Bug",
@@ -62502,8 +62502,8 @@
       "es": "Nickit",
       "it": "Nickit",
       "ko": "훔처우",
-      "zh": "狡小狐",
-      "zh_HK": "偷兒狐"
+      "zh": "偷兒狐",
+      "zh_HK": "偷儿狐"
     },
     "types": [
       "Dark"
@@ -62577,8 +62577,8 @@
       "es": "Thievul",
       "it": "Thievul",
       "ko": "폭슬라이",
-      "zh": "猾大狐",
-      "zh_HK": "狐大盜"
+      "zh": "狐大盜",
+      "zh_HK": "狐大盗"
     },
     "types": [
       "Dark"
@@ -62802,8 +62802,8 @@
       "es": "Wooloo",
       "it": "Wooloo",
       "ko": "우르",
-      "zh": "毛辫羊",
-      "zh_HK": "毛辮羊"
+      "zh": "毛辮羊",
+      "zh_HK": "毛辫羊"
     },
     "types": [
       "Normal"
@@ -62952,8 +62952,8 @@
       "es": "Chewtle",
       "it": "Chewtle",
       "ko": "깨물부기",
-      "zh": "咬咬龟",
-      "zh_HK": "咬咬龜"
+      "zh": "咬咬龜",
+      "zh_HK": "咬咬龟"
     },
     "types": [
       "Water"
@@ -63028,8 +63028,8 @@
       "es": "Drednaw",
       "it": "Drednaw",
       "ko": "갈가부기",
-      "zh": "暴噬龟",
-      "zh_HK": "暴噬龜"
+      "zh": "暴噬龜",
+      "zh_HK": "暴噬龟"
     },
     "types": [
       "Water",
@@ -63106,8 +63106,8 @@
       "es": "Yamper",
       "it": "Yamper",
       "ko": "멍파치",
-      "zh": "来电汪",
-      "zh_HK": "來電汪"
+      "zh": "來電汪",
+      "zh_HK": "来电汪"
     },
     "types": [
       "Electric"
@@ -63180,8 +63180,8 @@
       "es": "Boltund",
       "it": "Boltund",
       "ko": "펄스멍",
-      "zh": "逐电犬",
-      "zh_HK": "逐電犬"
+      "zh": "逐電犬",
+      "zh_HK": "逐电犬"
     },
     "types": [
       "Electric"
@@ -63329,8 +63329,8 @@
       "es": "Carkol",
       "it": "Carkol",
       "ko": "탄차곤",
-      "zh": "大炭车",
-      "zh_HK": "大炭車"
+      "zh": "大炭車",
+      "zh_HK": "大炭车"
     },
     "types": [
       "Rock",
@@ -63483,8 +63483,8 @@
       "es": "Applin",
       "it": "Applin",
       "ko": "과사삭벌레",
-      "zh": "啃果虫",
-      "zh_HK": "啃果蟲"
+      "zh": "啃果蟲",
+      "zh_HK": "啃果虫"
     },
     "types": [
       "Grass",
@@ -63561,8 +63561,8 @@
       "es": "Flapple",
       "it": "Flapple",
       "ko": "애프룡",
-      "zh": "苹裹龙",
-      "zh_HK": "蘋裹龍"
+      "zh": "蘋裹龍",
+      "zh_HK": "苹裹龙"
     },
     "types": [
       "Grass",
@@ -63639,8 +63639,8 @@
       "es": "Appletun",
       "it": "Appletun",
       "ko": "단지래플",
-      "zh": "丰蜜龙",
-      "zh_HK": "豐蜜龍"
+      "zh": "豐蜜龍",
+      "zh_HK": "丰蜜龙"
     },
     "types": [
       "Grass",
@@ -63869,8 +63869,8 @@
       "es": "Cramorant",
       "it": "Cramorant",
       "ko": "윽우지",
-      "zh": "古月鸟",
-      "zh_HK": "古月鳥"
+      "zh": "古月鳥",
+      "zh_HK": "古月鸟"
     },
     "types": [
       "Flying",
@@ -63945,8 +63945,8 @@
       "es": "Arrokuda",
       "it": "Arrokuda",
       "ko": "찌로꼬치",
-      "zh": "刺梭鱼",
-      "zh_HK": "刺梭魚"
+      "zh": "刺梭魚",
+      "zh_HK": "刺梭鱼"
     },
     "types": [
       "Water"
@@ -64093,8 +64093,8 @@
       "es": "Toxel",
       "it": "Toxel",
       "ko": "일레즌",
-      "zh": "电音婴",
-      "zh_HK": "毒電嬰"
+      "zh": "毒電嬰",
+      "zh_HK": "毒电婴"
     },
     "types": [
       "Electric",
@@ -64170,8 +64170,8 @@
       "es": "Toxtricity",
       "it": "Toxtricity",
       "ko": "스트린더",
-      "zh": "颤弦蝾螈",
-      "zh_HK": "顫弦蠑螈"
+      "zh": "顫弦蠑螈",
+      "zh_HK": "颤弦蝾螈"
     },
     "types": [
       "Electric",
@@ -64247,8 +64247,8 @@
       "es": "Sizzlipede",
       "it": "Sizzlipede",
       "ko": "태우지네",
-      "zh": "烧火蚣",
-      "zh_HK": "燒火蚣"
+      "zh": "燒火蚣",
+      "zh_HK": "烧火蚣"
     },
     "types": [
       "Fire",
@@ -64476,8 +64476,8 @@
       "es": "Grapploct",
       "it": "Grapploct",
       "ko": "케오퍼스",
-      "zh": "八爪武师",
-      "zh_HK": "八爪武師"
+      "zh": "八爪武師",
+      "zh_HK": "八爪武师"
     },
     "types": [
       "Fighting"
@@ -64552,7 +64552,7 @@
       "it": "Sinistea",
       "ko": "데인차",
       "zh": "來悲茶",
-      "zh_HK": "來悲茶"
+      "zh_HK": "来悲茶"
     },
     "types": [
       "Ghost"
@@ -64626,8 +64626,8 @@
       "es": "Polteageist",
       "it": "Polteageist",
       "ko": "포트데스",
-      "zh": "怖思壶",
-      "zh_HK": "怖思壺"
+      "zh": "怖思壺",
+      "zh_HK": "怖思壶"
     },
     "types": [
       "Ghost"
@@ -64851,8 +64851,8 @@
       "es": "Hatterene",
       "it": "Hatterene",
       "ko": "브리무음",
-      "zh": "布莉姆温",
-      "zh_HK": "布莉姆溫"
+      "zh": "布莉姆溫",
+      "zh_HK": "布莉姆温"
     },
     "types": [
       "Psychic",
@@ -64928,8 +64928,8 @@
       "es": "Impidimp",
       "it": "Impidimp",
       "ko": "메롱꿍",
-      "zh": "捣蛋小妖",
-      "zh_HK": "搗蛋小妖"
+      "zh": "搗蛋小妖",
+      "zh_HK": "捣蛋小妖"
     },
     "types": [
       "Dark",
@@ -65006,8 +65006,8 @@
       "es": "Morgrem",
       "it": "Morgrem",
       "ko": "쏘겨모",
-      "zh": "诈唬魔",
-      "zh_HK": "詐唬魔"
+      "zh": "詐唬魔",
+      "zh_HK": "诈唬魔"
     },
     "types": [
       "Dark",
@@ -65084,8 +65084,8 @@
       "es": "Grimmsnarl",
       "it": "Grimmsnarl",
       "ko": "오롱털",
-      "zh": "长毛巨魔",
-      "zh_HK": "長毛巨魔"
+      "zh": "長毛巨魔",
+      "zh_HK": "长毛巨魔"
     },
     "types": [
       "Dark",
@@ -65162,8 +65162,8 @@
       "es": "Obstagoon",
       "it": "Obstagoon",
       "ko": "가로막구리",
-      "zh": "堵拦熊",
-      "zh_HK": "堵攔熊"
+      "zh": "堵攔熊",
+      "zh_HK": "堵拦熊"
     },
     "types": [
       "Dark",
@@ -65239,8 +65239,8 @@
       "es": "Perrserker",
       "it": "Perrserker",
       "ko": "나이킹",
-      "zh": "喵头目",
-      "zh_HK": "喵頭目"
+      "zh": "喵頭目",
+      "zh_HK": "喵头目"
     },
     "types": [
       "Steel"
@@ -65314,8 +65314,8 @@
       "es": "Cursola",
       "it": "Cursola",
       "ko": "산호르곤",
-      "zh": "魔灵珊瑚",
-      "zh_HK": "魔靈珊瑚"
+      "zh": "魔靈珊瑚",
+      "zh_HK": "魔灵珊瑚"
     },
     "types": [
       "Ghost"
@@ -65389,8 +65389,8 @@
       "es": "Sirfetch'd",
       "it": "Sirfetch'd",
       "ko": "창파나이트",
-      "zh": "葱游兵",
-      "zh_HK": "蔥遊兵"
+      "zh": "蔥遊兵",
+      "zh_HK": "葱游兵"
     },
     "types": [
       "Fighting"
@@ -65541,7 +65541,7 @@
       "es": "Runerigus",
       "it": "Runerigus",
       "ko": "데스판",
-      "zh": "迭失板",
+      "zh": "死神板",
       "zh_HK": "死神板"
     },
     "types": [
@@ -65767,8 +65767,8 @@
       "es": "Falinks",
       "it": "Falinks",
       "ko": "대여르",
-      "zh": "列阵兵",
-      "zh_HK": "列陣兵"
+      "zh": "列陣兵",
+      "zh_HK": "列阵兵"
     },
     "types": [
       "Fighting"
@@ -65842,8 +65842,8 @@
       "es": "Pincurchin",
       "it": "Pincurchin",
       "ko": "찌르성게",
-      "zh": "啪嚓海胆",
-      "zh_HK": "啪嚓海膽"
+      "zh": "啪嚓海膽",
+      "zh_HK": "啪嚓海胆"
     },
     "types": [
       "Electric"
@@ -65917,8 +65917,8 @@
       "es": "Snom",
       "it": "Snom",
       "ko": "누니머기",
-      "zh": "雪吞虫",
-      "zh_HK": "雪吞蟲"
+      "zh": "雪吞蟲",
+      "zh_HK": "雪吞虫"
     },
     "types": [
       "Ice",
@@ -65993,8 +65993,8 @@
       "es": "Frosmoth",
       "it": "Frosmoth",
       "ko": "모스노우",
-      "zh": "雪绒蛾",
-      "zh_HK": "雪絨蛾"
+      "zh": "雪絨蛾",
+      "zh_HK": "雪绒蛾"
     },
     "types": [
       "Ice",
@@ -66142,8 +66142,8 @@
       "es": "Eiscue",
       "it": "Eiscue",
       "ko": "빙큐보",
-      "zh": "冰砌鹅",
-      "zh_HK": "冰砌鵝"
+      "zh": "冰砌鵝",
+      "zh_HK": "冰砌鹅"
     },
     "types": [
       "Ice"
@@ -66216,8 +66216,8 @@
       "es": "Indeedee",
       "it": "Indeedee",
       "ko": "에써르",
-      "zh": "爱管侍",
-      "zh_HK": "愛管侍"
+      "zh": "愛管侍",
+      "zh_HK": "爱管侍"
     },
     "types": [
       "Psychic",
@@ -66293,8 +66293,8 @@
       "es": "Morpeko",
       "it": "Morpeko",
       "ko": "모르페코",
-      "zh": "莫鲁贝可",
-      "zh_HK": "莫魯貝可"
+      "zh": "莫魯貝可",
+      "zh_HK": "莫鲁贝可"
     },
     "types": [
       "Electric",
@@ -66369,8 +66369,8 @@
       "es": "Cufant",
       "it": "Cufant",
       "ko": "끼리동",
-      "zh": "铜象",
-      "zh_HK": "銅象"
+      "zh": "銅象",
+      "zh_HK": "铜象"
     },
     "types": [
       "Steel"
@@ -66444,8 +66444,8 @@
       "es": "Copperajah",
       "it": "Copperajah",
       "ko": "대왕끼리동",
-      "zh": "大王铜象",
-      "zh_HK": "大王銅象"
+      "zh": "大王銅象",
+      "zh_HK": "大王铜象"
     },
     "types": [
       "Steel"
@@ -66519,8 +66519,8 @@
       "es": "Dracozolt",
       "it": "Dracozolt",
       "ko": "파치래곤",
-      "zh": "雷鸟龙",
-      "zh_HK": "雷鳥龍"
+      "zh": "雷鳥龍",
+      "zh_HK": "雷鸟龙"
     },
     "types": [
       "Electric",
@@ -66596,8 +66596,8 @@
       "es": "Arctozolt",
       "it": "Arctozolt",
       "ko": "파치르돈",
-      "zh": "雷鸟海兽",
-      "zh_HK": "雷鳥海獸"
+      "zh": "雷鳥海獸",
+      "zh_HK": "雷鸟海兽"
     },
     "types": [
       "Electric",
@@ -66673,8 +66673,8 @@
       "es": "Dracovish",
       "it": "Dracovish",
       "ko": "어래곤",
-      "zh": "鳃鱼龙",
-      "zh_HK": "鰓魚龍"
+      "zh": "鰓魚龍",
+      "zh_HK": "鳃鱼龙"
     },
     "types": [
       "Water",
@@ -66750,8 +66750,8 @@
       "es": "Arctovish",
       "it": "Arctovish",
       "ko": "어치르돈",
-      "zh": "鳃鱼海兽",
-      "zh_HK": "鰓魚海獸"
+      "zh": "鰓魚海獸",
+      "zh_HK": "鳃鱼海兽"
     },
     "types": [
       "Water",
@@ -66827,8 +66827,8 @@
       "es": "Duraludon",
       "it": "Duraludon",
       "ko": "두랄루돈",
-      "zh": "铝钢龙",
-      "zh_HK": "鋁鋼龍"
+      "zh": "鋁鋼龍",
+      "zh_HK": "铝钢龙"
     },
     "types": [
       "Steel",
@@ -66905,8 +66905,8 @@
       "es": "Dreepy",
       "it": "Dreepy",
       "ko": "드라꼰",
-      "zh": "多龙梅西亚",
-      "zh_HK": "多龍梅西亞"
+      "zh": "多龍梅西亞",
+      "zh_HK": "多龙梅西亚"
     },
     "types": [
       "Dragon",
@@ -66983,8 +66983,8 @@
       "es": "Drakloak",
       "it": "Drakloak",
       "ko": "드래런치",
-      "zh": "多龙奇",
-      "zh_HK": "多龍奇"
+      "zh": "多龍奇",
+      "zh_HK": "多龙奇"
     },
     "types": [
       "Dragon",
@@ -67061,8 +67061,8 @@
       "es": "Dragapult",
       "it": "Dragapult",
       "ko": "드래펄트",
-      "zh": "多龙巴鲁托",
-      "zh_HK": "多龍巴魯托"
+      "zh": "多龍巴魯托",
+      "zh_HK": "多龙巴鲁托"
     },
     "types": [
       "Dragon",
@@ -67139,8 +67139,8 @@
       "es": "Zacian",
       "it": "Zacian",
       "ko": "자시안",
-      "zh": "苍响",
-      "zh_HK": "蒼響"
+      "zh": "蒼響",
+      "zh_HK": "苍响"
     },
     "types": [
       "Fairy"
@@ -67212,8 +67212,8 @@
       "es": "Zamazanta",
       "it": "Zamazanta",
       "ko": "자마젠타",
-      "zh": "藏玛然特",
-      "zh_HK": "藏瑪然特"
+      "zh": "藏瑪然特",
+      "zh_HK": "藏玛然特"
     },
     "types": [
       "Fighting"
@@ -67285,8 +67285,8 @@
       "es": "Eternatus",
       "it": "Eternatus",
       "ko": "무한다이노",
-      "zh": "无极汰那",
-      "zh_HK": "無極汰那"
+      "zh": "無極汰那",
+      "zh_HK": "无极汰那"
     },
     "types": [
       "Poison",
@@ -67433,8 +67433,8 @@
       "es": "Urshifu",
       "it": "Urshifu",
       "ko": "우라오스",
-      "zh": "武道熊师",
-      "zh_HK": "武道熊師"
+      "zh": "武道熊師",
+      "zh_HK": "武道熊师"
     },
     "types": [
       "Fighting",
@@ -67508,8 +67508,8 @@
       "es": "Zarude",
       "it": "Zarude",
       "ko": "자루도",
-      "zh": "萨戮德",
-      "zh_HK": "薩戮德"
+      "zh": "薩戮德",
+      "zh_HK": "萨戮德"
     },
     "types": [
       "Dark",
@@ -67656,8 +67656,8 @@
       "es": "Regidrago",
       "it": "Regidrago",
       "ko": "레지드래고",
-      "zh": "雷吉铎拉戈",
-      "zh_HK": "雷吉鐸拉戈"
+      "zh": "雷吉鐸拉戈",
+      "zh_HK": "雷吉铎拉戈"
     },
     "types": [
       "Dragon"
@@ -67729,8 +67729,8 @@
       "es": "Glastrier",
       "it": "Glastrier",
       "ko": "블리자포스",
-      "zh": "雪暴马",
-      "zh_HK": "雪暴馬"
+      "zh": "雪暴馬",
+      "zh_HK": "雪暴马"
     },
     "types": [
       "Ice"
@@ -67802,8 +67802,8 @@
       "es": "Spectrier",
       "it": "Spectrier",
       "ko": "레이스포스",
-      "zh": "灵幽马",
-      "zh_HK": "靈幽馬"
+      "zh": "靈幽馬",
+      "zh_HK": "灵幽马"
     },
     "types": [
       "Ghost"
@@ -67950,8 +67950,8 @@
       "es": "Wyrdeer",
       "it": "Wyrdeer",
       "ko": "신비록",
-      "zh": "诡角鹿",
-      "zh_HK": "詭角鹿"
+      "zh": "詭角鹿",
+      "zh_HK": "诡角鹿"
     },
     "types": [
       "Normal",
@@ -68181,8 +68181,8 @@
       "es": "Basculegion",
       "it": "Basculegion",
       "ko": "대쓰여너",
-      "zh": "幽尾玄鱼",
-      "zh_HK": "幽尾玄魚"
+      "zh": "幽尾玄魚",
+      "zh_HK": "幽尾玄鱼"
     },
     "types": [
       "Water",
@@ -68335,8 +68335,8 @@
       "es": "Overqwil",
       "it": "Overqwil",
       "ko": "장침바루",
-      "zh": "万针鱼",
-      "zh_HK": "萬針魚"
+      "zh": "萬針魚",
+      "zh_HK": "万针鱼"
     },
     "types": [
       "Dark",
@@ -68412,8 +68412,8 @@
       "es": "Enamorus",
       "it": "Enamorus",
       "ko": "러브로스",
-      "zh": "眷恋云",
-      "zh_HK": "眷戀雲"
+      "zh": "眷戀雲",
+      "zh_HK": "眷恋云"
     },
     "types": [
       "Fairy",
@@ -68488,8 +68488,8 @@
       "es": "Sprigatito",
       "it": "Sprigatito",
       "ko": "나오하",
-      "zh": "新叶喵",
-      "zh_HK": "新葉喵"
+      "zh": "新葉喵",
+      "zh_HK": "新叶喵"
     },
     "types": [
       "Grass"
@@ -68715,8 +68715,8 @@
       "es": "Fuecoco",
       "it": "Fuecoco",
       "ko": "뜨아거",
-      "zh": "呆火鳄",
-      "zh_HK": "呆火鱷"
+      "zh": "呆火鱷",
+      "zh_HK": "呆火鳄"
     },
     "types": [
       "Fire"
@@ -68789,8 +68789,8 @@
       "es": "Crocalor",
       "it": "Crocalor",
       "ko": "악뜨거",
-      "zh": "炙烫鳄",
-      "zh_HK": "炙燙鱷"
+      "zh": "炙燙鱷",
+      "zh_HK": "炙烫鳄"
     },
     "types": [
       "Fire"
@@ -68863,8 +68863,8 @@
       "es": "Skeledirge",
       "it": "Skeledirge",
       "ko": "라우드본",
-      "zh": "骨纹巨声鳄",
-      "zh_HK": "骨紋巨聲鱷"
+      "zh": "骨紋巨聲鱷",
+      "zh_HK": "骨纹巨声鳄"
     },
     "types": [
       "Fire",
@@ -68939,8 +68939,8 @@
       "es": "Quaxly",
       "it": "Quaxly",
       "ko": "꾸왁스",
-      "zh": "润水鸭",
-      "zh_HK": "潤水鴨"
+      "zh": "潤水鴨",
+      "zh_HK": "润水鸭"
     },
     "types": [
       "Water"
@@ -69014,8 +69014,8 @@
       "es": "Quaxwell",
       "it": "Quaxwell",
       "ko": "아꾸왁",
-      "zh": "涌跃鸭",
-      "zh_HK": "湧躍鴨"
+      "zh": "湧躍鴨",
+      "zh_HK": "涌跃鸭"
     },
     "types": [
       "Water"
@@ -69089,8 +69089,8 @@
       "es": "Quaquaval",
       "it": "Quaquaval",
       "ko": "웨이니발",
-      "zh": "狂欢浪舞鸭",
-      "zh_HK": "狂歡浪舞鴨"
+      "zh": "狂歡浪舞鴨",
+      "zh_HK": "狂欢浪舞鸭"
     },
     "types": [
       "Water",
@@ -69166,8 +69166,8 @@
       "es": "Lechonk",
       "it": "Lechonk",
       "ko": "맛보돈",
-      "zh": "爱吃豚",
-      "zh_HK": "愛吃豚"
+      "zh": "愛吃豚",
+      "zh_HK": "爱吃豚"
     },
     "types": [
       "Normal"
@@ -69241,8 +69241,8 @@
       "es": "Oinkologne",
       "it": "Oinkologne",
       "ko": "퍼퓨돈",
-      "zh": "飘香豚",
-      "zh_HK": "飄香豚"
+      "zh": "飄香豚",
+      "zh_HK": "飘香豚"
     },
     "types": [
       "Normal"
@@ -69316,8 +69316,8 @@
       "es": "Tarountula",
       "it": "Tarountula",
       "ko": "타랜툴라",
-      "zh": "团珠蛛",
-      "zh_HK": "團珠蛛"
+      "zh": "團珠蛛",
+      "zh_HK": "团珠蛛"
     },
     "types": [
       "Bug"
@@ -69614,8 +69614,8 @@
       "es": "Pawmi",
       "it": "Pawmi",
       "ko": "빠모",
-      "zh": "布拨",
-      "zh_HK": "布撥"
+      "zh": "布撥",
+      "zh_HK": "布拨"
     },
     "types": [
       "Electric"
@@ -69689,8 +69689,8 @@
       "es": "Pawmo",
       "it": "Pawmo",
       "ko": "빠모트",
-      "zh": "布土拨",
-      "zh_HK": "布土撥"
+      "zh": "布土撥",
+      "zh_HK": "布土拨"
     },
     "types": [
       "Electric",
@@ -69766,8 +69766,8 @@
       "es": "Pawmot",
       "it": "Pawmot",
       "ko": "빠르모트",
-      "zh": "巴布土拨",
-      "zh_HK": "巴布土撥"
+      "zh": "巴布土撥",
+      "zh_HK": "巴布土拨"
     },
     "types": [
       "Electric",
@@ -69843,8 +69843,8 @@
       "es": "Tandemaus",
       "it": "Tandemaus",
       "ko": "두리쥐",
-      "zh": "一对鼠",
-      "zh_HK": "一對鼠"
+      "zh": "一對鼠",
+      "zh_HK": "一对鼠"
     },
     "types": [
       "Normal"
@@ -70221,8 +70221,8 @@
       "es": "Dolliv",
       "it": "Dolliv",
       "ko": "올리뇨",
-      "zh": "奥利纽",
-      "zh_HK": "奧利紐"
+      "zh": "奧利紐",
+      "zh_HK": "奥利纽"
     },
     "types": [
       "Grass",
@@ -70297,8 +70297,8 @@
       "es": "Arboliva",
       "it": "Arboliva",
       "ko": "올리르바",
-      "zh": "奥利瓦",
-      "zh_HK": "奧利瓦"
+      "zh": "奧利瓦",
+      "zh_HK": "奥利瓦"
     },
     "types": [
       "Grass",
@@ -70373,8 +70373,8 @@
       "es": "Squawkabilly",
       "it": "Squawkabilly",
       "ko": "시비꼬",
-      "zh": "怒鹦哥",
-      "zh_HK": "怒鸚哥"
+      "zh": "怒鸚哥",
+      "zh_HK": "怒鹦哥"
     },
     "types": [
       "Normal",
@@ -70450,8 +70450,8 @@
       "es": "Nacli",
       "it": "Nacli",
       "ko": "베베솔트",
-      "zh": "盐石宝",
-      "zh_HK": "鹽石寶"
+      "zh": "鹽石寶",
+      "zh_HK": "盐石宝"
     },
     "types": [
       "Rock"
@@ -70525,8 +70525,8 @@
       "es": "Naclstack",
       "it": "Naclstack",
       "ko": "스태솔트",
-      "zh": "盐石垒",
-      "zh_HK": "鹽石壘"
+      "zh": "鹽石壘",
+      "zh_HK": "盐石垒"
     },
     "types": [
       "Rock"
@@ -70600,8 +70600,8 @@
       "es": "Garganacl",
       "it": "Garganacl",
       "ko": "콜로솔트",
-      "zh": "盐石巨灵",
-      "zh_HK": "鹽石巨靈"
+      "zh": "鹽石巨靈",
+      "zh_HK": "盐石巨灵"
     },
     "types": [
       "Rock"
@@ -70749,8 +70749,8 @@
       "es": "Armarouge",
       "it": "Armarouge",
       "ko": "카디나르마",
-      "zh": "红莲铠骑",
-      "zh_HK": "紅蓮鎧騎"
+      "zh": "紅蓮鎧騎",
+      "zh_HK": "红莲铠骑"
     },
     "types": [
       "Fire",
@@ -70825,8 +70825,8 @@
       "es": "Ceruledge",
       "it": "Ceruledge",
       "ko": "파라블레이즈",
-      "zh": "苍炎刃鬼",
-      "zh_HK": "蒼炎刃鬼"
+      "zh": "蒼炎刃鬼",
+      "zh_HK": "苍炎刃鬼"
     },
     "types": [
       "Fire",
@@ -70976,8 +70976,8 @@
       "es": "Bellibolt",
       "it": "Bellibolt",
       "ko": "찌리배리",
-      "zh": "电肚蛙",
-      "zh_HK": "電肚蛙"
+      "zh": "電肚蛙",
+      "zh_HK": "电肚蛙"
     },
     "types": [
       "Electric"
@@ -71051,8 +71051,8 @@
       "es": "Wattrel",
       "it": "Wattrel",
       "ko": "찌리비",
-      "zh": "电海燕",
-      "zh_HK": "電海燕"
+      "zh": "電海燕",
+      "zh_HK": "电海燕"
     },
     "types": [
       "Electric",
@@ -71129,8 +71129,8 @@
       "es": "Kilowattrel",
       "it": "Kilowattrel",
       "ko": "찌리비크",
-      "zh": "大电海燕",
-      "zh_HK": "大電海燕"
+      "zh": "大電海燕",
+      "zh_HK": "大电海燕"
     },
     "types": [
       "Electric",
@@ -71357,8 +71357,8 @@
       "es": "Shroodle",
       "it": "Shroodle",
       "ko": "땃쭈르",
-      "zh": "滋汁鼹",
-      "zh_HK": "滋汁鼴"
+      "zh": "滋汁鼴",
+      "zh_HK": "滋汁鼹"
     },
     "types": [
       "Poison",
@@ -71434,8 +71434,8 @@
       "es": "Grafaiai",
       "it": "Grafaiai",
       "ko": "태깅구르",
-      "zh": "涂标客",
-      "zh_HK": "塗標客"
+      "zh": "塗標客",
+      "zh_HK": "涂标客"
     },
     "types": [
       "Poison",
@@ -71511,8 +71511,8 @@
       "es": "Bramblin",
       "it": "Bramblin",
       "ko": "그푸리",
-      "zh": "纳噬草",
-      "zh_HK": "納噬草"
+      "zh": "納噬草",
+      "zh_HK": "纳噬草"
     },
     "types": [
       "Grass",
@@ -71587,8 +71587,8 @@
       "es": "Brambleghast",
       "it": "Brambleghast",
       "ko": "공푸리",
-      "zh": "怖纳噬草",
-      "zh_HK": "麋納噬草"
+      "zh": "怖納噬草",
+      "zh_HK": "怖纳噬草"
     },
     "types": [
       "Grass",
@@ -71738,8 +71738,8 @@
       "es": "Toadscruel",
       "it": "Toadscruel",
       "ko": "육파리",
-      "zh": "陆地水母",
-      "zh_HK": "陸地水母"
+      "zh": "陸地水母",
+      "zh_HK": "陆地水母"
     },
     "types": [
       "Ground",
@@ -71888,8 +71888,8 @@
       "es": "Capsakid",
       "it": "Capsakid",
       "ko": "캡싸이",
-      "zh": "热辣娃",
-      "zh_HK": "熱辣娃"
+      "zh": "熱辣娃",
+      "zh_HK": "热辣娃"
     },
     "types": [
       "Grass"
@@ -72040,8 +72040,8 @@
       "es": "Rellor",
       "it": "Rellor",
       "ko": "구르데",
-      "zh": "虫滚泥",
-      "zh_HK": "蟲滾泥"
+      "zh": "蟲滾泥",
+      "zh_HK": "虫滚泥"
     },
     "types": [
       "Bug"
@@ -72114,8 +72114,8 @@
       "es": "Rabsca",
       "it": "Rabsca",
       "ko": "베라카스",
-      "zh": "虫甲圣",
-      "zh_HK": "蟲甲聖"
+      "zh": "蟲甲聖",
+      "zh_HK": "虫甲圣"
     },
     "types": [
       "Bug",
@@ -72190,8 +72190,8 @@
       "es": "Flittle",
       "it": "Flittle",
       "ko": "하느라기",
-      "zh": "飘飘雏",
-      "zh_HK": "飄飄雛"
+      "zh": "飄飄雛",
+      "zh_HK": "飘飘雏"
     },
     "types": [
       "Psychic"
@@ -72265,8 +72265,8 @@
       "es": "Espathra",
       "it": "Espathra",
       "ko": "클레스퍼트라",
-      "zh": "超能艳鸵",
-      "zh_HK": "超能艷鴕"
+      "zh": "超能豔鴕",
+      "zh_HK": "超能艳鸵"
     },
     "types": [
       "Psychic"
@@ -72340,8 +72340,8 @@
       "es": "Tinkatink",
       "it": "Tinkatink",
       "ko": "어리짱",
-      "zh": "小锻匠",
-      "zh_HK": "小鍛匠"
+      "zh": "小鍛匠",
+      "zh_HK": "小锻匠"
     },
     "types": [
       "Fairy",
@@ -72417,8 +72417,8 @@
       "es": "Tinkatuff",
       "it": "Tinkatuff",
       "ko": "벼리짱",
-      "zh": "巧锻匠",
-      "zh_HK": "巧鍛匠"
+      "zh": "巧鍛匠",
+      "zh_HK": "巧锻匠"
     },
     "types": [
       "Fairy",
@@ -72494,8 +72494,8 @@
       "es": "Tinkaton",
       "it": "Tinkaton",
       "ko": "두드리짱",
-      "zh": "巨锻匠",
-      "zh_HK": "大鍛匠"
+      "zh": "巨鍛匠",
+      "zh_HK": "巨锻匠"
     },
     "types": [
       "Fairy",
@@ -72721,8 +72721,8 @@
       "es": "Bombirdier",
       "it": "Bombirdier",
       "ko": "떨구새",
-      "zh": "下石鸟",
-      "zh_HK": "下石鳥"
+      "zh": "下石鳥",
+      "zh_HK": "下石鸟"
     },
     "types": [
       "Flying",
@@ -72872,8 +72872,8 @@
       "es": "Palafin",
       "it": "Palafin",
       "ko": "돌핀맨",
-      "zh": "海豚侠",
-      "zh_HK": "海豚俠"
+      "zh": "海豚俠",
+      "zh_HK": "海豚侠"
     },
     "types": [
       "Water"
@@ -73474,8 +73474,8 @@
       "es": "Houndstone",
       "it": "Houndstone",
       "ko": "묘두기",
-      "zh": "墓扬犬",
-      "zh_HK": "墓揚犬"
+      "zh": "墓揚犬",
+      "zh_HK": "墓扬犬"
     },
     "types": [
       "Ghost"
@@ -73548,8 +73548,8 @@
       "es": "Flamigo",
       "it": "Flamigo",
       "ko": "꼬이밍고",
-      "zh": "缠红鹤",
-      "zh_HK": "纏紅鶴"
+      "zh": "纏紅鶴",
+      "zh_HK": "缠红鹤"
     },
     "types": [
       "Flying",
@@ -73625,8 +73625,8 @@
       "es": "Cetoddle",
       "it": "Cetoddle",
       "ko": "터벅고래",
-      "zh": "走鲸",
-      "zh_HK": "走鯨"
+      "zh": "走鯨",
+      "zh_HK": "走鲸"
     },
     "types": [
       "Ice"
@@ -73700,8 +73700,8 @@
       "es": "Cetitan",
       "it": "Cetitan",
       "ko": "우락고래",
-      "zh": "浩大鲸",
-      "zh_HK": "浩大鯨"
+      "zh": "浩大鯨",
+      "zh_HK": "浩大鲸"
     },
     "types": [
       "Ice"
@@ -73775,8 +73775,8 @@
       "es": "Veluza",
       "it": "Veluza",
       "ko": "가비루사",
-      "zh": "轻身鳕",
-      "zh_HK": "輕身鱈"
+      "zh": "輕身鱈",
+      "zh_HK": "轻身鳕"
     },
     "types": [
       "Water",
@@ -73926,8 +73926,8 @@
       "es": "Tatsugiri",
       "it": "Tatsugiri",
       "ko": "싸리용",
-      "zh": "米立龙",
-      "zh_HK": "米立龍"
+      "zh": "米立龍",
+      "zh_HK": "米立龙"
     },
     "types": [
       "Dragon",
@@ -74002,8 +74002,8 @@
       "es": "Annihilape",
       "it": "Annihilape",
       "ko": "저승갓숭",
-      "zh": "弃世猴",
-      "zh_HK": "棄世猴"
+      "zh": "棄世猴",
+      "zh_HK": "弃世猴"
     },
     "types": [
       "Fighting",
@@ -74234,8 +74234,8 @@
       "es": "Dudunsparce",
       "it": "Dudunsparce",
       "ko": "노고고치",
-      "zh": "土龙节节",
-      "zh_HK": "土龍節節"
+      "zh": "土龍節節",
+      "zh_HK": "土龙节节"
     },
     "types": [
       "Normal"
@@ -74309,8 +74309,8 @@
       "es": "Kingambit",
       "it": "Kingambit",
       "ko": "대도각참",
-      "zh": "仆刀将军",
-      "zh_HK": "僕刀將軍"
+      "zh": "仆斬將軍",
+      "zh_HK": "仆斩将军"
     },
     "types": [
       "Dark",
@@ -74386,8 +74386,8 @@
       "es": "Colmilargo",
       "it": "Grandizanne",
       "ko": "위대한엄니",
-      "zh": "雄伟牙",
-      "zh_HK": "雄偉牙"
+      "zh": "雄偉牙",
+      "zh_HK": "雄伟牙"
     },
     "types": [
       "Ground",
@@ -74536,8 +74536,8 @@
       "es": "Furioseta",
       "it": "Fungofurioso",
       "ko": "사나운버섯",
-      "zh": "猛恶菇",
-      "zh_HK": "猛惡菇"
+      "zh": "猛惡菇",
+      "zh_HK": "猛恶菇"
     },
     "types": [
       "Grass",
@@ -74611,8 +74611,8 @@
       "es": "Melenaleto",
       "it": "Codaurlante",
       "ko": "날개치는머리",
-      "zh": "振翼发",
-      "zh_HK": "振翼發"
+      "zh": "振翼髮",
+      "zh_HK": "振翼发"
     },
     "types": [
       "Ghost",
@@ -74761,8 +74761,8 @@
       "es": "Sandy Shocks",
       "it": "Peldisabbia",
       "ko": "모래털가죽",
-      "zh": "沙铁皮",
-      "zh_HK": "沙鐵皮"
+      "zh": "沙鐵皮",
+      "zh_HK": "沙铁皮"
     },
     "types": [
       "Electric",
@@ -74836,8 +74836,8 @@
       "es": "Ferrodada",
       "it": "Solcoferreo",
       "ko": "무쇠바퀴",
-      "zh": "铁辙迹",
-      "zh_HK": "鐵轍跡"
+      "zh": "鐵轍跡",
+      "zh_HK": "铁辙迹"
     },
     "types": [
       "Ground",
@@ -74911,8 +74911,8 @@
       "es": "Ferrosaco",
       "it": "Saccoferreo",
       "ko": "무쇠보따리",
-      "zh": "铁包袱",
-      "zh_HK": "鐵包袱"
+      "zh": "鐵包袱",
+      "zh_HK": "铁包袱"
     },
     "types": [
       "Ice",
@@ -74986,8 +74986,8 @@
       "es": "Ferropalmas",
       "it": "Manoferrea",
       "ko": "무쇠손",
-      "zh": "铁臂膀",
-      "zh_HK": "鐵臂膀"
+      "zh": "鐵臂膀",
+      "zh_HK": "铁臂膀"
     },
     "types": [
       "Fighting",
@@ -75061,8 +75061,8 @@
       "es": "Ferrocuello",
       "it": "Colloferreo",
       "ko": "무쇠머리",
-      "zh": "铁脖颈",
-      "zh_HK": "鐵脖頸"
+      "zh": "鐵脖頸",
+      "zh_HK": "铁脖颈"
     },
     "types": [
       "Dark",
@@ -75136,8 +75136,8 @@
       "es": "Ferropolilla",
       "it": "Falenaferrea",
       "ko": "무쇠독나방",
-      "zh": "铁毒蛾",
-      "zh_HK": "鐵毒蛾"
+      "zh": "鐵毒蛾",
+      "zh_HK": "铁毒蛾"
     },
     "types": [
       "Fire",
@@ -75211,8 +75211,8 @@
       "es": "Ferropúas",
       "it": "Spineferree",
       "ko": "무쇠가시",
-      "zh": "铁荆棘",
-      "zh_HK": "鐵荊棘"
+      "zh": "鐵荊棘",
+      "zh_HK": "铁荆棘"
     },
     "types": [
       "Rock",
@@ -75286,8 +75286,8 @@
       "es": "Frigibax",
       "it": "Frigibax",
       "ko": "드니차",
-      "zh": "凉脊龙",
-      "zh_HK": "涼脊龍"
+      "zh": "涼脊龍",
+      "zh_HK": "凉脊龙"
     },
     "types": [
       "Dragon",
@@ -75363,8 +75363,8 @@
       "es": "Arctibax",
       "it": "Arctibax",
       "ko": "드니꽁",
-      "zh": "冻脊龙",
-      "zh_HK": "凍脊龍"
+      "zh": "凍脊龍",
+      "zh_HK": "冻脊龙"
     },
     "types": [
       "Dragon",
@@ -75440,8 +75440,8 @@
       "es": "Baxcalibur",
       "it": "Baxcalibur",
       "ko": "드닐레이브",
-      "zh": "戟脊龙",
-      "zh_HK": "戟脊龍"
+      "zh": "戟脊龍",
+      "zh_HK": "戟脊龙"
     },
     "types": [
       "Dragon",
@@ -75517,8 +75517,8 @@
       "es": "Gimmighoul",
       "it": "Gimmighoul",
       "ko": "모으령",
-      "zh": "索财灵",
-      "zh_HK": "索財靈"
+      "zh": "索財靈",
+      "zh_HK": "索财灵"
     },
     "types": [
       "Ghost"
@@ -75590,8 +75590,8 @@
       "es": "Gholdengo",
       "it": "Gholdengo",
       "ko": "타부자고",
-      "zh": "褰富豪",
-      "zh_HK": "褰富豪"
+      "zh": "賽富豪",
+      "zh_HK": "赛富豪"
     },
     "types": [
       "Steel",
@@ -75665,8 +75665,8 @@
       "es": "Wo-Chien",
       "it": "Wo-Chien",
       "ko": "총지엔",
-      "zh": "古简蜗",
-      "zh_HK": "古簡蝸"
+      "zh": "古簡蝸",
+      "zh_HK": "古简蜗"
     },
     "types": [
       "Dark",
@@ -75740,8 +75740,8 @@
       "es": "Chien-Pao",
       "it": "Chien-Pao",
       "ko": "파오젠",
-      "zh": "古剑豹",
-      "zh_HK": "古劍豹"
+      "zh": "古劍豹",
+      "zh_HK": "古剑豹"
     },
     "types": [
       "Dark",
@@ -75890,8 +75890,8 @@
       "es": "Chi-Yu",
       "it": "Chi-Yu",
       "ko": "위유이",
-      "zh": "古玉鱼",
-      "zh_HK": "古玉魚"
+      "zh": "古玉魚",
+      "zh_HK": "古玉鱼"
     },
     "types": [
       "Dark",
@@ -75965,8 +75965,8 @@
       "es": "Bramaluna",
       "it": "Lunaruggente",
       "ko": "고동치는달",
-      "zh": "轰鸣月",
-      "zh_HK": "轟鳴月"
+      "zh": "轟鳴月",
+      "zh_HK": "轰鸣月"
     },
     "types": [
       "Dragon",
@@ -76040,8 +76040,8 @@
       "es": "Ferropaladin",
       "it": "Eroeferreo",
       "ko": "무쇠무인",
-      "zh": "铁武者",
-      "zh_HK": "鐵武者"
+      "zh": "鐵武者",
+      "zh_HK": "铁武者"
     },
     "types": [
       "Fairy",
@@ -76115,8 +76115,8 @@
       "es": "Koraidon",
       "it": "Koraidon",
       "ko": "코라이돈",
-      "zh": "故勒顿",
-      "zh_HK": "故勒頓"
+      "zh": "故勒頓",
+      "zh_HK": "故勒顿"
     },
     "types": [
       "Fighting",
@@ -76190,8 +76190,8 @@
       "es": "Miraidon",
       "it": "Miraidon",
       "ko": "미라이돈",
-      "zh": "密勒顿",
-      "zh_HK": "密勒頓"
+      "zh": "密勒頓",
+      "zh_HK": "密勒顿"
     },
     "types": [
       "Electric",
@@ -76265,8 +76265,8 @@
       "es": "Ondulagua",
       "it": "Acquecrespe",
       "ko": "굽이치는물결",
-      "zh": "波荡水",
-      "zh_HK": "波蕩水"
+      "zh": "波盪水",
+      "zh_HK": "波荡水"
     },
     "types": [
       "Water",
@@ -76340,8 +76340,8 @@
       "es": "Bramaluna",
       "it": "Lunaruggente",
       "ko": "무쇠잎새",
-      "zh": "铁斑叶",
-      "zh_HK": "鐵斑葉"
+      "zh": "鐵斑葉",
+      "zh_HK": "铁斑叶"
     },
     "types": [
       "Grass",
@@ -76415,8 +76415,8 @@
       "es": "Dipplin",
       "it": "Dipplin",
       "ko": "과미르",
-      "zh": "裹蜜虫",
-      "zh_HK": "裹蜜蟲"
+      "zh": "裹蜜蟲",
+      "zh_HK": "裹蜜虫"
     },
     "types": [
       "Grass",
@@ -76570,8 +76570,8 @@
       "es": "Sinistcha",
       "it": "Sinistcha",
       "ko": "그우린차",
-      "zh": "来悲粗茶",
-      "zh_HK": "來悲粗茶"
+      "zh": "來悲粗茶",
+      "zh_HK": "来悲粗茶"
     },
     "types": [
       "Grass",
@@ -76647,8 +76647,8 @@
       "es": "Okidogi",
       "it": "Okidogi",
       "ko": "조타구",
-      "zh": "够赞狗",
-      "zh_HK": "夠贊狗"
+      "zh": "夠讚狗",
+      "zh_HK": "够赞狗"
     },
     "types": [
       "Poison",
@@ -76723,8 +76723,8 @@
       "es": "Munkidori",
       "it": "Munkidori",
       "ko": "이야후",
-      "zh": "愿增猿",
-      "zh_HK": "願增猿"
+      "zh": "願增猿",
+      "zh_HK": "愿增猿"
     },
     "types": [
       "Poison",
@@ -76799,8 +76799,8 @@
       "es": "Fezandipiti",
       "it": "Fezandipiti",
       "ko": "기로치",
-      "zh": "吉雉鸡",
-      "zh_HK": "吉雉雞"
+      "zh": "吉雉雞",
+      "zh_HK": "吉雉鸡"
     },
     "types": [
       "Poison",
@@ -76875,8 +76875,8 @@
       "es": "Ogerpon",
       "it": "Ogerpon",
       "ko": "오거폰",
-      "zh": "厄诡椪",
-      "zh_HK": "厄詭椪"
+      "zh": "厄鬼椪",
+      "zh_HK": "厄鬼椪"
     },
     "types": [
       "Grass"
@@ -76948,8 +76948,8 @@
       "es": "Archaludon",
       "it": "Archaludon",
       "ko": "브리두라스",
-      "zh": "铝钢桥龙",
-      "zh_HK": "鋁鋼橋龍"
+      "zh": "鋁鋼橋龍",
+      "zh_HK": "铝钢桥龙"
     },
     "types": [
       "Steel",
@@ -77254,8 +77254,8 @@
       "es": "Ferromole",
       "it": "Massoferreo",
       "ko": "무쇠암석",
-      "zh": "铁磐岩",
-      "zh_HK": "鐵磐岩"
+      "zh": "鐵磐岩",
+      "zh_HK": "铁磐岩"
     },
     "types": [
       "Rock",
@@ -77329,8 +77329,8 @@
       "es": "Ferrotesta",
       "it": "Capoferreo",
       "ko": "무쇠감투",
-      "zh": "铁头壳",
-      "zh_HK": "鐵頭殼"
+      "zh": "鐵頭殼",
+      "zh_HK": "铁头壳"
     },
     "types": [
       "Steel",
@@ -77404,8 +77404,8 @@
       "es": "Terapagos",
       "it": "Terapagos",
       "ko": "테라파고스",
-      "zh": "太乐巴戈斯",
-      "zh_HK": "太樂巴戈斯"
+      "zh": "太樂巴戈斯",
+      "zh_HK": "太乐巴戈斯"
     },
     "types": [
       "Normal"
