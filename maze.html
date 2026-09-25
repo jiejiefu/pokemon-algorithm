@@ -1,365 +1,290 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寶可夢像素迷宮 (BFS/DFS)</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        header {
-            width: 100%;
-            padding: 15px 20px;
-            background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            z-index: 10;
-        }
-        .controls button {
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #222;
-            background-color: #ffffff;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: 0.2s;
-            margin: 0 5px;
-        }
-        .controls button:hover {
-            background-color: #ffcb05;
-            transform: translateY(-2px);
-        }
-        .controls .btn-nav {
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #555;
-        }
-        #canvas-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        canvas {
-            background-color: #000000;
-            box-shadow: 0 0 30px rgba(0, 150, 255, 0.3);
-            border-radius: 8px;
-        }
-        #status {
-            margin-left: 15px;
-            font-weight: bold;
-            color: #ffcb05;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢像素迷宮 (BFS/DFS)</title>
+  <link rel="stylesheet" href="assets/css/shared.css">
 </head>
 <body>
-
-    <header>
-        <div class="controls">
-            <button class="btn-nav" onclick="location.href='index.html'">⬅ 返回大廳</button>
-            <button onclick="loadRandomPokemonMaze()">1. 載入隨機寶可夢迷宮</button>
-            <button onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
-            <button onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>
-            <span id="status">請先載入迷宮...</span>
-        </div>
-    </header>
-
-    <div id="canvas-container">
-        <canvas id="mazeCanvas"></canvas>
+  <header class="header header-maze">
+    <div class="controls controls-maze">
+      <button class="btn btn-nav" onclick="location.href='index.html'">⬅ 返回大廳</button>
+      <button class="btn" onclick="loadRandomPokemonMaze()">1. 載入隨機寶可夢迷宮</button>
+      <button class="btn" onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
+      <button class="btn" onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>
+      <span id="status" class="status-text">請先載入迷宮...</span>
     </div>
+  </header>
 
-    <script>
-        const canvas = document.getElementById('mazeCanvas');
-        const ctx = canvas.getContext('2d');
-        const statusText = document.getElementById('status');
+  <div class="canvas-container canvas-container-maze">
+    <canvas id="mazeCanvas" class="maze-canvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status');
+    
+    // 迷宮設定
+    const GRID_SIZE = 40;
+    const CELL_SIZE = 18;
+    canvas.width = GRID_SIZE * CELL_SIZE;
+    canvas.height = GRID_SIZE * CELL_SIZE;
+
+    let grid = [];
+    let searchGenerator = null;
+    let isSearching = false;
+    let finalPath = [];
+
+    // 網格節點類別
+    class Cell {
+      constructor(x, y, colorData) {
+        this.x = x;
+        this.y = y;
+        this.color = colorData;
+        this.walls = { top: true, right: true, bottom: true, left: true };
+        this.mazeVisited = false;
+        this.searchVisited = false;
+        this.onPath = false;
+      }
+
+      draw() {
+        const px = this.x * CELL_SIZE;
+        const py = this.y * CELL_SIZE;
+
+        let alpha = 0.05; 
+        if (this.onPath) alpha = 1.0;
+        else if (this.searchVisited) alpha = 0.5;
         
-        // 迷宮設定
-        const GRID_SIZE = 40; // 40x40 網格 (馬賽克解析度)
-        const CELL_SIZE = 18; // 每個格子的像素大小
-        canvas.width = GRID_SIZE * CELL_SIZE;
-        canvas.height = GRID_SIZE * CELL_SIZE;
-
-        let grid = [];
-        let searchGenerator = null;
-        let isSearching = false;
-        let finalPath = [];
-
-        // 網格節點類別
-        class Cell {
-            constructor(x, y, colorData) {
-                this.x = x;
-                this.y = y;
-                this.color = colorData; // {r, g, b, a}
-                this.walls = { top: true, right: true, bottom: true, left: true };
-                this.mazeVisited = false; // 用於生成迷宮
-                this.searchVisited = false; // 用於 BFS/DFS 走訪記錄
-                this.onPath = false; // 是否在最終解答路徑上
-            }
-
-            draw() {
-                const px = this.x * CELL_SIZE;
-                const py = this.y * CELL_SIZE;
-
-                // 根據探索狀態決定透明度：未探索(0.1) -> 已探索(0.5) -> 正確路徑(1.0)
-                let alpha = 0.05; 
-                if (this.onPath) alpha = 1.0;
-                else if (this.searchVisited) alpha = 0.5;
-                
-                // 處理原本透明的背景（Alpha < 50 的當作背景色）
-                if (this.color.a < 50) {
-                    ctx.fillStyle = `rgba(30, 30, 30, ${alpha})`;
-                } else {
-                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
-                }
-                
-                // 填滿格子顏色
-                ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-
-                // 繪製牆壁 (迷宮的線)
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                if (this.walls.top) { ctx.moveTo(px, py); ctx.lineTo(px + CELL_SIZE, py); }
-                if (this.walls.right) { ctx.moveTo(px + CELL_SIZE, py); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
-                if (this.walls.bottom) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
-                if (this.walls.left) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px, py); }
-                ctx.stroke();
-            }
+        if (this.color.a < 50) {
+          ctx.fillStyle = `rgba(30, 30, 30, ${alpha})`;
+        } else {
+          ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
         }
-
-        // ================= 1. 圖片像素化與迷宮生成 =================
-
-        function loadRandomPokemonMaze() {
-            isSearching = false;
-            searchGenerator = null;
-            finalPath = [];
-            grid = [];
-            
-            // 隨機抽選 1~1025 的寶可夢
-            const randomId = Math.floor(Math.random() * 1025) + 1;
-            statusText.innerText = `正在載入 # ${randomId} 寶可夢大圖...`;
-
-            const img = new Image();
-            const imagesPath = 'assets/images/pokemon/';
-            img.src = `${imagesPath}${randomId}.png`;
-            img.onload = () => {
-                // 使用隱藏的 Canvas 讀取圖片顏色
-                const offCanvas = document.createElement('canvas');
-                offCanvas.width = GRID_SIZE;
-                offCanvas.height = GRID_SIZE;
-                const offCtx = offCanvas.getContext('2d');
-                offCtx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
-                const imgData = offCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
-
-                // 建立 40x40 的網格節點
-                for (let y = 0; y < GRID_SIZE; y++) {
-                    let row = [];
-                    for (let x = 0; x < GRID_SIZE; x++) {
-                        const i = (y * GRID_SIZE + x) * 4;
-                        const color = { r: imgData[i], g: imgData[i+1], b: imgData[i+2], a: imgData[i+3] };
-                        row.push(new Cell(x, y, color));
-                    }
-                    grid.push(row);
-                }
-
-                generateMazeBacktracker();
-                statusText.innerText = `迷宮生成完畢！請選擇 BFS 或 DFS 進行探索。`;
-                drawFullMaze();
-            };
-        }
-
-        // 遞迴回溯法生成迷宮 (Recursive Backtracker)
-        function generateMazeBacktracker() {
-            let stack = [];
-            let current = grid[0][0]; // 起點左上角
-            current.mazeVisited = true;
-
-            while (true) {
-                let neighbors = getUnvisitedNeighbors(current);
-                if (neighbors.length > 0) {
-                    let next = neighbors[Math.floor(Math.random() * neighbors.length)];
-                    stack.push(current);
-                    removeWalls(current, next);
-                    next.mazeVisited = true;
-                    current = next;
-                } else if (stack.length > 0) {
-                    current = stack.pop();
-                } else {
-                    break; // 生成完畢
-                }
-            }
-            // 打開起點與終點的缺口
-            grid[0][0].walls.top = false;
-            grid[GRID_SIZE-1][GRID_SIZE-1].walls.bottom = false;
-        }
-
-        function getUnvisitedNeighbors(cell) {
-            let neighbors = [];
-            let x = cell.x;
-            let y = cell.y;
-            if (y > 0 && !grid[y-1][x].mazeVisited) neighbors.push(grid[y-1][x]);
-            if (x < GRID_SIZE-1 && !grid[y][x+1].mazeVisited) neighbors.push(grid[y][x+1]);
-            if (y < GRID_SIZE-1 && !grid[y+1][x].mazeVisited) neighbors.push(grid[y+1][x]);
-            if (x > 0 && !grid[y][x-1].mazeVisited) neighbors.push(grid[y][x-1]);
-            return neighbors;
-        }
-
-        function removeWalls(a, b) {
-            let x = a.x - b.x;
-            if (x === 1) { a.walls.left = false; b.walls.right = false; }
-            else if (x === -1) { a.walls.right = false; b.walls.left = false; }
-            let y = a.y - b.y;
-            if (y === 1) { a.walls.top = false; b.walls.bottom = false; }
-            else if (y === -1) { a.walls.bottom = false; b.walls.top = false; }
-        }
-
-        // ================= 2. 尋路演算法 (BFS / DFS) =================
         
-        function getAccessibleNeighbors(cell) {
-            let neighbors = [];
-            let x = cell.x;
-            let y = cell.y;
-            // 檢查牆壁是否打通，且該節點未被搜尋過
-            if (!cell.walls.top && y > 0 && !grid[y-1][x].searchVisited) neighbors.push(grid[y-1][x]);
-            if (!cell.walls.right && x < GRID_SIZE-1 && !grid[y][x+1].searchVisited) neighbors.push(grid[y][x+1]);
-            if (!cell.walls.bottom && y < GRID_SIZE-1 && !grid[y+1][x].searchVisited) neighbors.push(grid[y+1][x]);
-            if (!cell.walls.left && x > 0 && !grid[y][x-1].searchVisited) neighbors.push(grid[y][x-1]);
-            return neighbors;
+        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (this.walls.top) { ctx.moveTo(px, py); ctx.lineTo(px + CELL_SIZE, py); }
+        if (this.walls.right) { ctx.moveTo(px + CELL_SIZE, py); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
+        if (this.walls.bottom) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
+        if (this.walls.left) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px, py); }
+        ctx.stroke();
+      }
+    }
+
+    // ================= 1. 圖片像素化與迷宮生成 =================
+
+    function loadRandomPokemonMaze() {
+      isSearching = false;
+      searchGenerator = null;
+      finalPath = [];
+      grid = [];
+      
+      const randomId = Math.floor(Math.random() * 1025) + 1;
+      statusText.innerText = `正在載入 # ${randomId} 寶可夢大圖...`;
+
+      const img = new Image();
+      const imagesPath = 'assets/images/pokemon/';
+      img.src = `${imagesPath}${randomId}.png`;
+      img.onload = () => {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = GRID_SIZE;
+        offCanvas.height = GRID_SIZE;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
+        const imgData = offCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
+
+        for (let y = 0; y < GRID_SIZE; y++) {
+          let row = [];
+          for (let x = 0; x < GRID_SIZE; x++) {
+            const i = (y * GRID_SIZE + x) * 4;
+            const color = { r: imgData[i], g: imgData[i+1], b: imgData[i+2], a: imgData[i+3] };
+            row.push(new Cell(x, y, color));
+          }
+          grid.push(row);
         }
 
-        // BFS Generator (使用 Queue)
-        function* bfsSteps() {
-            let queue = [{ cell: grid[0][0], path: [grid[0][0]] }];
-            grid[0][0].searchVisited = true;
+        generateMazeBacktracker();
+        statusText.innerText = `迷宮生成完畢！請選擇 BFS 或 DFS 進行探索。`;
+        drawFullMaze();
+      };
+    }
 
-            while (queue.length > 0) {
-                let { cell, path } = queue.shift(); // 先進先出 (Queue)
+    // 遞迴回溯法生成迷宮 (Recursive Backtracker)
+    function generateMazeBacktracker() {
+      let stack = [];
+      let current = grid[0][0];
+      current.mazeVisited = true;
 
-                if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
-                    finalPath = path; // 到達終點
-                    return;
-                }
+      while (true) {
+        let neighbors = getUnvisitedNeighbors(current);
+        if (neighbors.length > 0) {
+          let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+          stack.push(current);
+          removeWalls(current, next);
+          next.mazeVisited = true;
+          current = next;
+        } else if (stack.length > 0) {
+          current = stack.pop();
+        } else {
+          break;
+        }
+      }
+      grid[0][0].walls.top = false;
+      grid[GRID_SIZE-1][GRID_SIZE-1].walls.bottom = false;
+    }
 
-                let neighbors = getAccessibleNeighbors(cell);
-                for (let next of neighbors) {
-                    next.searchVisited = true;
-                    queue.push({ cell: next, path: [...path, next] });
-                }
-                yield; // 暫停並更新畫面
-            }
+    function getUnvisitedNeighbors(cell) {
+      let neighbors = [];
+      let x = cell.x;
+      let y = cell.y;
+      if (y > 0 && !grid[y-1][x].mazeVisited) neighbors.push(grid[y-1][x]);
+      if (x < GRID_SIZE-1 && !grid[y][x+1].mazeVisited) neighbors.push(grid[y][x+1]);
+      if (y < GRID_SIZE-1 && !grid[y+1][x].mazeVisited) neighbors.push(grid[y+1][x]);
+      if (x > 0 && !grid[y][x-1].mazeVisited) neighbors.push(grid[y][x-1]);
+      return neighbors;
+    }
+
+    function removeWalls(a, b) {
+      let x = a.x - b.x;
+      if (x === 1) { a.walls.left = false; b.walls.right = false; }
+      else if (x === -1) { a.walls.right = false; b.walls.left = false; }
+      let y = a.y - b.y;
+      if (y === 1) { a.walls.top = false; b.walls.bottom = false; }
+      else if (y === -1) { a.walls.bottom = false; b.walls.top = false; }
+    }
+
+    // ================= 2. 尋路演算法 (BFS / DFS) =================
+    
+    function getAccessibleNeighbors(cell) {
+      let neighbors = [];
+      let x = cell.x;
+      let y = cell.y;
+      if (!cell.walls.top && y > 0 && !grid[y-1][x].searchVisited) neighbors.push(grid[y-1][x]);
+      if (!cell.walls.right && x < GRID_SIZE-1 && !grid[y][x+1].searchVisited) neighbors.push(grid[y][x+1]);
+      if (!cell.walls.bottom && y < GRID_SIZE-1 && !grid[y+1][x].searchVisited) neighbors.push(grid[y+1][x]);
+      if (!cell.walls.left && x > 0 && !grid[y][x-1].searchVisited) neighbors.push(grid[y][x-1]);
+      return neighbors;
+    }
+
+    // BFS Generator (使用 Queue)
+    function* bfsSteps() {
+      let queue = [{ cell: grid[0][0], path: [grid[0][0]] }];
+      grid[0][0].searchVisited = true;
+
+      while (queue.length > 0) {
+        let { cell, path } = queue.shift();
+
+        if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
+          finalPath = path;
+          return;
         }
 
-        // DFS Generator (使用 Stack)
-        function* dfsSteps() {
-            let stack = [{ cell: grid[0][0], path: [grid[0][0]] }];
-            grid[0][0].searchVisited = true;
+        let neighbors = getAccessibleNeighbors(cell);
+        for (let next of neighbors) {
+          next.searchVisited = true;
+          queue.push({ cell: next, path: [...path, next] });
+        }
+        yield;
+      }
+    }
 
-            while (stack.length > 0) {
-                let { cell, path } = stack.pop(); // 後進先出 (Stack)
+    // DFS Generator (使用 Stack)
+    function* dfsSteps() {
+      let stack = [{ cell: grid[0][0], path: [grid[0][0]] }];
+      grid[0][0].searchVisited = true;
 
-                if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
-                    finalPath = path; // 到達終點
-                    return;
-                }
+      while (stack.length > 0) {
+        let { cell, path } = stack.pop();
 
-                let neighbors = getAccessibleNeighbors(cell);
-                for (let next of neighbors) {
-                    next.searchVisited = true;
-                    stack.push({ cell: next, path: [...path, next] });
-                }
-                yield; // 暫停並更新畫面
-            }
+        if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
+          finalPath = path;
+          return;
         }
 
-        function startSearch(type) {
-            if (grid.length === 0) return;
-            
-            // 重置搜尋狀態
-            for(let y=0; y<GRID_SIZE; y++) {
-                for(let x=0; x<GRID_SIZE; x++) {
-                    grid[y][x].searchVisited = false;
-                    grid[y][x].onPath = false;
-                }
-            }
-            finalPath = [];
-            
-            if (type === 'bfs') {
-                statusText.innerText = 'BFS 探索中 (如水波般擴散)...';
-                searchGenerator = bfsSteps();
-            } else {
-                statusText.innerText = 'DFS 探索中 (如蛇行般深入)...';
-                searchGenerator = dfsSteps();
-            }
-
-            if (!isSearching) {
-                isSearching = true;
-                requestAnimationFrame(renderLoop);
-            }
+        let neighbors = getAccessibleNeighbors(cell);
+        for (let next of neighbors) {
+          next.searchVisited = true;
+          stack.push({ cell: next, path: [...path, next] });
         }
+        yield;
+      }
+    }
 
-        // ================= 3. 畫面渲染 =================
-
-        function drawFullMaze() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let y = 0; y < GRID_SIZE; y++) {
-                for (let x = 0; x < GRID_SIZE; x++) {
-                    grid[y][x].draw();
-                }
-            }
+    function startSearch(type) {
+      if (grid.length === 0) return;
+      
+      for(let y=0; y<GRID_SIZE; y++) {
+        for(let x=0; x<GRID_SIZE; x++) {
+          grid[y][x].searchVisited = false;
+          grid[y][x].onPath = false;
         }
+      }
+      finalPath = [];
+      
+      if (type === 'bfs') {
+        statusText.innerText = 'BFS 探索中 (如水波般擴散)...';
+        searchGenerator = bfsSteps();
+      } else {
+        statusText.innerText = 'DFS 探索中 (如蛇行般深入)...';
+        searchGenerator = dfsSteps();
+      }
 
-        function renderLoop() {
-            if (searchGenerator) {
-                // 為了加速動畫，每次 requestAnimationFrame 執行多步
-                let done = false;
-                for (let i = 0; i < 5; i++) {
-                    const res = searchGenerator.next();
-                    if (res.done) {
-                        done = true;
-                        break;
-                    }
-                }
-                
-                drawFullMaze();
+      if (!isSearching) {
+        isSearching = true;
+        requestAnimationFrame(renderLoop);
+      }
+    }
 
-                if (done) {
-                    searchGenerator = null;
-                    isSearching = false;
-                    // 將正確路徑標示出來
-                    finalPath.forEach(cell => cell.onPath = true);
-                    drawFullMaze();
-                    statusText.innerText = '探索完成！成功點亮寶可夢路徑！';
-                    return;
-                }
-            }
-            requestAnimationFrame(renderLoop);
+    // ================= 3. 畫面渲染 =================
+
+    function drawFullMaze() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          grid[y][x].draw();
         }
+      }
+    }
 
-        // 頁面載入時初始提示
-        window.onload = () => {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffcb05';
-            ctx.font = '24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('請點擊上方按鈕載入迷宮', canvas.width/2, canvas.height/2);
-        };
-    </script>
+    function renderLoop() {
+      if (searchGenerator) {
+        let done = false;
+        for (let i = 0; i < 5; i++) {
+          const res = searchGenerator.next();
+          if (res.done) {
+            done = true;
+            break;
+          }
+        }
+        
+        drawFullMaze();
+
+        if (done) {
+          searchGenerator = null;
+          isSearching = false;
+          finalPath.forEach(cell => cell.onPath = true);
+          drawFullMaze();
+          statusText.innerText = '探索完成！成功點亮寶可夢路徑！';
+          return;
+        }
+      }
+      requestAnimationFrame(renderLoop);
+    }
+
+    // 頁面載入時初始提示
+    window.onload = () => {
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ffcb05';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('請點擊上方按鈕載入迷宮', canvas.width/2, canvas.height/2);
+    };
+  </script>
 </body>
 </html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>排序演算法視覺化 — 1025 寶可夢演算法實驗室</title>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header-sort { padding: 12px 20px; }
+    .canvas-container { flex: 1; width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="header header-sort">
+    <div class="header-title">⚡ 排序演算法視覺化 ⚡</div>
+    <div class="controls">
+      <button class="btn btn-utility" onclick="shufflePokemon()">🔀 隨機打亂</button>
+      <span class="btn-group-label">| 排序演算法：</span>
+      <button class="btn" onclick="runAlgorithm('bubble')">氣泡</button>
+      <button class="btn" onclick="runAlgorithm('selection')">選擇</button>
+      <button class="btn" onclick="runAlgorithm('insertion')">插入</button>
+      <button class="btn" onclick="runAlgorithm('quick')">快速</button>
+      <button class="btn" onclick="runAlgorithm('merge')">合併</button>
+      <button class="btn" onclick="runAlgorithm('heap')">堆積</button>
+      <span class="btn-group-label">| 色彩：</span>
+      <button class="btn btn-color" onclick="groupByColor()">🎨 色彩聚類</button>
+    </div>
+  </header>
+
+  <div class="canvas-container">
+    <div id="loading" class="loading-overlay">載入 1025 隻寶可夢資料與圖片中，請稍候...</div>
+    <canvas id="appCanvas"></canvas>
+  </div>
+
+  <script type="module">
+    import {
+      loadPokemonData,
+      PokemonNode,
+      GRID_CONFIG,
+      getGridStartPositions,
+      updateGridPositions,
+      groupByColor as sharedGroupByColor,
+      shuffleArray
+    } from './assets/js/shared.js';
+
+    const canvas = document.getElementById('appCanvas');
+    const ctx = canvas.getContext('2d');
+    const loadingText = document.getElementById('loading');
+
+    canvas.width = GRID_CONFIG.CANVAS_WIDTH;
+    canvas.height = GRID_CONFIG.CANVAS_HEIGHT;
+
+    let pokemons = [];
+    let sortGenerator = null;
+
+    async function init() {
+      try {
+        const jsonData = await loadPokemonData();
+        pokemons = await loadAllPokemonNodes(jsonData, GRID_CONFIG.CANVAS_WIDTH, GRID_CONFIG.CANVAS_HEIGHT);
+        updateGridPositions(pokemons);
+        loadingText.style.display = 'none';
+        requestAnimationFrame(renderLoop);
+      } catch (error) {
+        loadingText.innerText = '載入失敗！請確認是否使用 Local Server';
+        console.error(error);
+      }
+    }
+
+    function renderLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (sortGenerator) {
+        const res = sortGenerator.next();
+        updateGridPositions(pokemons);
+        if (res.done) sortGenerator = null;
+      }
+
+      for (let i = 0; i < pokemons.length; i++) {
+        pokemons[i].update();
+        pokemons[i].draw(ctx);
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    function shufflePokemon() {
+      sortGenerator = null;
+      shuffleArray(pokemons);
+      updateGridPositions(pokemons);
+    }
+
+    function runAlgorithm(type) {
+      sortGenerator = null;
+      switch(type) {
+        case 'bubble': sortGenerator = bubbleSortSteps(pokemons); break;
+        case 'selection': sortGenerator = selectionSortSteps(pokemons); break;
+        case 'insertion': sortGenerator = insertionSortSteps(pokemons); break;
+        case 'quick': sortGenerator = quickSortSteps(pokemons); break;
+        case 'merge': sortGenerator = mergeSortSteps(pokemons); break;
+        case 'heap': sortGenerator = heapSortSteps(pokemons); break;
+      }
+    }
+
+    function groupByColor() {
+      sortGenerator = null;
+      sharedGroupByColor(pokemons);
+    }
+
+    init();
+  </script>
+
+  <script src="assets/js/sorting-algorithms.js"></script>
+</body>
+</html>

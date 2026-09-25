@@ -1,227 +1,94 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1025 全國寶可夢圖鑑</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #121212;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff;
-        }
-        /* 導覽列與標題 */
-        header {
-            background: linear-gradient(135deg, #e3350d 0%, #a61a00 100%);
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        h1 {
-            margin: 0;
-            font-size: 28px;
-            color: #ffcb05;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            letter-spacing: 2px;
-        }
-        .nav-links {
-            margin-top: 15px;
-        }
-        .nav-links a {
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-            transition: 0.2s;
-        }
-        .nav-links a:hover {
-            background: #ffcb05;
-            color: #222;
-        }
-        /* 控制列 (搜尋與過濾) */
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            padding: 20px;
-            background: #1e1e1e;
-        }
-        input, select {
-            padding: 10px 15px;
-            border-radius: 25px;
-            border: 1px solid #444;
-            background: #2a2a2a;
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-        }
-        input:focus, select:focus {
-            border-color: #ffcb05;
-        }
-        /* 圖鑑網格 */
-        #pokedex-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        /* 單一寶可夢卡片 */
-        .card {
-            background: #2a2a2a;
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(255, 203, 5, 0.4);
-        }
-        .card img {
-            width: 100%;
-            max-width: 140px;
-            height: auto;
-            image-rendering: crisp-edges; /* 保持圖片銳利 */
-        }
-        .card-id {
-            font-size: 14px;
-            color: #aaa;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .card-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin: 5px 0;
-            color: #fff;
-        }
-        .color-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 5px;
-            color: #fff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-        }
-        #loading {
-            text-align: center;
-            font-size: 24px;
-            padding: 50px;
-            color: #ffcb05;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1025 全國寶可夢圖鑑</title>
+  <link rel="stylesheet" href="assets/css/shared.css">
 </head>
 <body>
-
-    <header>
-        <h1>1025 全國寶可夢圖鑑</h1>
-        <div class="nav-links">
-            <a href="index.html">⬅ 返回演算法實驗室 (Canvas)</a>
-        </div>
-    </header>
-
-    <div class="controls">
-        <input type="number" id="searchInput" placeholder="輸入編號 (e.g. 25)..." oninput="filterPokedex()">
-        <select id="colorFilter" onchange="filterPokedex()">
-            <option value="all">所有顏色 (All Colors)</option>
-            <option value="Red">紅色 (Red)</option>
-            <option value="Blue">藍色 (Blue)</option>
-            <option value="Green">綠色 (Green)</option>
-            <option value="Yellow">黃色 (Yellow)</option>
-            <option value="Purple">紫色 (Purple)</option>
-            <option value="Pink">粉色 (Pink)</option>
-            <option value="Brown">棕色 (Brown)</option>
-            <option value="Black">黑色 (Black)</option>
-            <option value="White/Gray">灰白 (White/Gray)</option>
-        </select>
+  <header class="header header-dex">
+    <h1>1025 全國寶可夢圖鑑</h1>
+    <div class="header-nav">
+      <a href="sorting.html" class="sort-link">🎯 排序演算法</a>
+      <a href="maze.html" class="maze-link">🎮 像素迷宮</a>
+      <a href="pokedex.html" class="dex-link active">📖 完整圖鑑</a>
     </div>
+  </header>
 
-    <div id="loading">讀取圖鑑資料中...</div>
-    <div id="pokedex-grid"></div>
+  <div class="search-controls">
+    <input type="number" id="searchInput" class="search-input" placeholder="輸入編號 (e.g. 25)..." oninput="filterPokedex()">
+    <select id="colorFilter" class="search-select" onchange="filterPokedex()">
+      <option value="all">所有顏色 (All Colors)</option>
+      <option value="Red">紅色 (Red)</option>
+      <option value="Blue">藍色 (Blue)</option>
+      <option value="Green">綠色 (Green)</option>
+      <option value="Yellow">黃色 (Yellow)</option>
+      <option value="Purple">紫色 (Purple)</option>
+      <option value="Pink">粉色 (Pink)</option>
+      <option value="Brown">棕色 (Brown)</option>
+      <option value="Black">黑色 (Black)</option>
+      <option value="White/Gray">灰白 (White/Gray)</option>
+    </select>
+  </div>
 
-    <script>
-        let allPokemonData = [];
-        const grid = document.getElementById('pokedex-grid');
-        const loading = document.getElementById('loading');
-        const imagesPath = 'assets/images/pokemon/';
+  <div id="loading" class="loading-text">讀取圖鑑資料中...</div>
+  <div id="pokedex-grid" class="pokedex-grid"></div>
 
-        // 色系標籤的背景顏色對應表
-        const badgeColors = {
-            "Red": "#d32f2f", "Blue": "#1976d2", "Green": "#388e3c", 
-            "Yellow": "#fbc02d", "Purple": "#7b1fa2", "Pink": "#c2185b", 
-            "Brown": "#795548", "Black": "#212121", "White/Gray": "#9e9e9e"
-        };
+  <script type="module">
+    import { loadPokemonData, renderPokemonGrid, BADGE_COLORS } from './assets/js/shared.js';
 
-        // 載入 JSON 資料
-        async function fetchPokedex() {
-            try {
-                const response = await fetch('assets/data/pokemon_data.json');
-                allPokemonData = await response.json();
-                
-                loading.style.display = 'none';
-                renderGrid(allPokemonData);
-            } catch (error) {
-                loading.innerText = '載入失敗，請確認是否使用 Local Server 開啟。';
-                console.error(error);
-            }
-        }
+    const grid = document.getElementById('pokedex-grid');
+    const loading = document.getElementById('loading');
+    let allPokemonData = [];
 
-        // 渲染圖鑑網格
-        function renderGrid(dataArray) {
-            grid.innerHTML = ''; // 清空當前網格
-            
-            dataArray.forEach(pokemon => {
-                // 格式化 ID (e.g., 1 變成 #0001)
-                const formattedId = String(pokemon.id).padStart(4, '0');
-                const group = pokemon.color_group || "White/Gray";
-                const badgeColor = badgeColors[group] || "#9e9e9e";
+    async function fetchPokedex() {
+      try {
+        allPokemonData = await loadPokemonData();
+        loading.style.display = 'none';
+        renderGrid(allPokemonData);
+      } catch (error) {
+        loading.innerText = '載入失敗，請確認是否使用 Local Server 開啟。';
+        console.error(error);
+      }
+    }
 
-                // 建立卡片 DOM
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <img src="${imagesPath}${pokemon.filename}" alt="Pokemon ${formattedId}" loading="lazy">
-                    <div class="card-id">#${formattedId}</div>
-                    <div class="card-title">Pokemon ${pokemon.id}</div>
-                    <span class="color-badge" style="background-color: ${badgeColor};">${group}</span>
-                `;
-                grid.appendChild(card);
-            });
-        }
+    function renderGrid(dataArray) {
+      grid.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      
+      dataArray.forEach(pokemon => {
+        const formattedId = String(pokemon.id).padStart(4, '0');
+        const group = pokemon.color_group || "White/Gray";
+        const badgeColor = BADGE_COLORS[group] || "#9e9e9e";
 
-        // 處理搜尋與過濾
-        function filterPokedex() {
-            const searchText = document.getElementById('searchInput').value;
-            const selectedColor = document.getElementById('colorFilter').value;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="assets/images/pokemon/${pokemon.filename}" alt="Pokemon ${formattedId}" loading="lazy">
+          <div class="card-id">#${formattedId}</div>
+          <div class="card-title">Pokemon ${pokemon.id}</div>
+          <span class="color-badge" style="background-color: ${badgeColor};">${group}</span>
+        `;
+        fragment.appendChild(card);
+      });
+      grid.appendChild(fragment);
+    }
 
-            const filteredData = allPokemonData.filter(pokemon => {
-                const matchId = searchText === '' || String(pokemon.id).includes(searchText);
-                const matchColor = selectedColor === 'all' || pokemon.color_group === selectedColor;
-                return matchId && matchColor;
-            });
+    function filterPokedex() {
+      const searchText = document.getElementById('searchInput').value;
+      const selectedColor = document.getElementById('colorFilter').value;
 
-            renderGrid(filteredData);
-        }
+      const filteredData = allPokemonData.filter(pokemon => {
+        const matchId = searchText === '' || String(pokemon.id).includes(searchText);
+        const matchColor = selectedColor === 'all' || pokemon.color_group === selectedColor;
+        return matchId && matchColor;
+      });
 
-        // 頁面載入時執行
-        window.onload = fetchPokedex;
-    </script>
+      renderGrid(filteredData);
+    }
+
+    window.onload = fetchPokedex;
+  </script>
 </body>
 </html>

@@ -1,330 +1,160 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1025 寶可夢演算法實驗室</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        header {
-            width: 100%;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #cc0000 0%, #8b0000 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            z-index: 10;
-        }
-        .header-title {
-            font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: #ffde00;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-group-label {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #ddd;
-            margin-right: 5px;
-        }
-        button {
-            padding: 8px 14px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #222;
-            background-color: #ffffff;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        button:hover {
-            background-color: #ffde00;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-        }
-        button.active {
-            background-color: #ffde00;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-        }
-        button.btn-utility {
-            background-color: #e0e0e0;
-        }
-        button.btn-color {
-            background-color: #4caf50;
-            color: #fff;
-        }
-        button.btn-color:hover {
-            background-color: #66bb6a;
-            color: #fff;
-        }
-        #canvas-container {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            background-color: #1a1a1a;
-        }
-        canvas {
-            background-color: #121212;
-            box-shadow: 0 0 25px rgba(0,0,0,0.9);
-            border-radius: 12px;
-        }
-        #loading {
-            position: absolute;
-            font-size: 22px;
-            font-weight: bold;
-            color: #ffde00;
-            text-shadow: 2px 2px 5px #000;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px 30px;
-            border-radius: 10px;
-        }
-    </style>
-    <a href="pokedex.html" style="margin-left:auto; color:#fff; text-decoration:none; font-weight:bold; background:#222; padding:8px 15px; border-radius:20px; border: 1px solid #555;">📖 切換至全圖鑑總覽</a>
-    <a href="maze.html" style="margin-left:5px; color:#fff; text-decoration:none; font-weight:bold; background:#1976d2; padding:8px 15px; border-radius:20px; border: 1px solid #555;">🎮 挑戰像素迷宮</a>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1025 寶可夢演算法實驗室</title>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      background: linear-gradient(180deg, rgba(204,0,0,0.15) 0%, transparent 100%);
+    }
+    .hero h1 {
+      font-size: 42px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+      margin: 0 0 16px;
+      letter-spacing: 2px;
+    }
+    .hero .tagline {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .hero .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--accent-gold);
+    }
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    main {
+      flex: 1;
+    }
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,221,0,0.3), transparent);
+      margin: 0 40px;
+    }
+    .pokedex-grid-container {
+      overflow-x: auto;
+    }
+  </style>
 </head>
 <body>
+  <header class="header header-dex">
+    <div class="header-title header-title-large">⚡ 1025 寶可夢演算法實驗室 ⚡</div>
+    <nav class="header-nav">
+      <a href="sorting.html" class="sort-link">🎯 排序演算法</a>
+      <a href="maze.html" class="maze-link">🎮 像素迷宮</a>
+      <a href="pokedex.html" class="dex-link active">📖 完整圖鑑</a>
+    </nav>
+  </header>
 
-    <header>
-        <div class="header-title">⚡ 1025 寶可夢演算法實驗室 ⚡</div>
-        <div class="controls">
-            <button class="btn-utility" onclick="shufflePokemon()">🔀 隨機打亂 (Shuffle)</button>
-            <span class="btn-group-label">| 排序演算法：</span>
-            <button onclick="runAlgorithm('bubble')">氣泡 (Bubble)</button>
-            <button onclick="runAlgorithm('selection')">選擇 (Selection)</button>
-            <button onclick="runAlgorithm('insertion')">插入 (Insertion)</button>
-            <button onclick="runAlgorithm('quick')">快速 (Quick)</button>
-            <button onclick="runAlgorithm('merge')">合併 (Merge)</button>
-            <button onclick="runAlgorithm('heap')">堆積 (Heap)</button>
-            <span class="btn-group-label">| 色彩：</span>
-            <button class="btn-color" onclick="groupByColor()">🎨 色彩聚類 (Color Group)</button>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">1025 寶可夢演算法實驗室</h1>
+      <p class="tagline">
+        透過互動視覺化學習經典演算法 — 排序、路徑尋找、資料結構，全部以 1025 隻寶可夢為教材。
+      </p>
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-value">1,025</div>
+          <div class="stat-label">寶可夢精靈</div>
         </div>
-    </header>
+        <div class="stat-item">
+          <div class="stat-value">6</div>
+          <div class="stat-label">排序演算法</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">2</div>
+          <div class="stat-label">路徑搜尋演算法</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">10</div>
+          <div class="stat-label">顏色分群</div>
+        </div>
+      </div>
+    </section>
 
-    <div id="canvas-container">
-        <div id="loading">載入 1025 隻寶可夢資料與圖片中，請稍候...</div>
-        <canvas id="appCanvas"></canvas>
-    </div>
+    <div class="section-divider"></div>
 
-    <!-- 1. 引入獨立演算法模組 -->
-    <script src="assets/js/sorting-algorithms.js"></script>
+    <section class="feature-grid" aria-label="功能區塊">
+      <a href="sorting.html" class="feature-card sort">
+        <span class="feature-icon">🎯</span>
+        <div class="feature-title">排序演算法視覺化</div>
+        <div class="feature-desc">氣泡、選擇、插入、快速、合併、堆積 — 6 種經典排序即時動畫演示，觀察 1025 隻寶可夢依編號重新排列</div>
+      </a>
+      <a href="maze.html" class="feature-card maze">
+        <span class="feature-icon">🎮</span>
+        <div class="feature-title">像素迷宮 BFS / DFS</div>
+        <div class="feature-desc">隨機寶可夢圖片像素化為 40×40 迷宮，體驗廣度優先與深度優先搜尋的探索差異</div>
+      </a>
+      <a href="pokedex.html" class="feature-card dex">
+        <span class="feature-icon">📖</span>
+        <div class="feature-title">完整圖鑑搜尋系統</div>
+        <div class="feature-desc">支援編號搜尋、顏色分群篩選、懶加載圖片的完整 1025 隻寶可夢圖鑑</div>
+      </a>
+    </section>
 
-    <!-- 2. 主繪圖與控制邏輯 -->
-    <script>
-        const canvas = document.getElementById('appCanvas');
-        const ctx = canvas.getContext('2d');
-        const loadingText = document.getElementById('loading');
-        
-        // 設定 Canvas 解析度
-        const CANVAS_WIDTH = 1200;
-        const CANVAS_HEIGHT = 800;
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
+    <div class="section-divider"></div>
 
-        // 1025 寶可夢網格排列設定 (40 欄 x 26 列)
-        const COLS = 40;
-        const ROWS = Math.ceil(1025 / COLS);
-        const PADDING_X = 28;
-        const PADDING_Y = 28;
-        const START_X = (CANVAS_WIDTH - (COLS * PADDING_X)) / 2 + 14;
-        const START_Y = (CANVAS_HEIGHT - (ROWS * PADDING_Y)) / 2 + 14;
+    <section class="pokedex-section" aria-labelledby="pokedex-preview-title">
+      <h2 id="pokedex-preview-title" class="pokedex-section-title">寶可夢圖鑑總覽</h2>
+      <p class="pokedex-section-subtitle">全部 1025 隻寶可夢 • 點擊卡片查看細節 • 完整搜尋功能請前往 <a href="pokedex.html" style="color:var(--accent-gold);">完整圖鑑頁面</a></p>
+      
+      <div class="pokedex-grid-container">
+        <div id="pokedex-grid" class="pokedex-grid"></div>
+      </div>
+      
+      <a href="pokedex.html" class="view-all-link">前往完整圖鑑 → 支援搜尋、篩選、懶加載</a>
+    </section>
+  </main>
 
-        let pokemons = []; // 儲存 1025 個 PokemonNode 物件
-        let sortGenerator = null;
+  <footer class="footer-note">
+    資料來源：Pokémon 官方圖鑑 • 圖片：Images & Descriptions of All 1025 Pokemon • 純前端實作，無後端
+  </footer>
 
-        // 寶可夢節點類別：處理圖片繪製與 Lerp 平滑動畫
-        class PokemonNode {
-            constructor(data, img) {
-                this.data = data;
-                this.img = img;
-                this.x = CANVAS_WIDTH / 2;
-                this.y = CANVAS_HEIGHT / 2;
-                this.targetX = this.x;
-                this.targetY = this.y;
-                this.size = 24;
-            }
+  <script type="module">
+    import { loadPokemonData, renderPokemonGrid } from './assets/js/shared.js';
 
-            update() {
-                // 移動平滑係數 (Lerp)
-                const speed = 0.15;
-                this.x += (this.targetX - this.x) * speed;
-                this.y += (this.targetY - this.y) * speed;
-            }
+    const grid = document.getElementById('pokedex-grid');
 
-            draw() {
-                if(this.img.complete && this.img.naturalWidth !== 0) {
-                    ctx.drawImage(this.img, this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-                }
-            }
-        }
+    async function init() {
+      try {
+        const data = await loadPokemonData();
+        renderPokemonGrid(grid, data);
+      } catch (error) {
+        grid.innerHTML = '<p style="text-align:center;color:#ff6b6b;padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
+        console.error(error);
+      }
+    }
 
-        // 載入 JSON 資料與 1025 張圖檔
-        async function loadAllData() {
-            try {
-                const response = await fetch('assets/data/pokemon_data.json');
-                const jsonData = await response.json();
-                const imagesPath = 'assets/images/pokemon/';
-
-                let loadedCount = 0;
-                
-                for (let i = 0; i < jsonData.length; i++) {
-                    const data = jsonData[i];
-                    const img = new Image();
-                    img.src = `${imagesPath}${data.filename}`;
-                    
-                    img.onload = () => {
-                        loadedCount++;
-                        if(loadedCount % 100 === 0 || loadedCount === jsonData.length) {
-                            loadingText.innerText = `載入進度: ${loadedCount} / 1025`;
-                        }
-                        if (loadedCount === jsonData.length) {
-                            loadingText.style.display = 'none';
-                            initGridPositions();
-                        }
-                    };
-
-                    pokemons.push(new PokemonNode(data, img));
-                }
-                
-                // 啟動 60 FPS 渲染迴圈
-                requestAnimationFrame(renderLoop);
-
-            } catch (error) {
-                loadingText.innerText = '載入失敗！請確認是否使用 Local Server (例如 Live Server)';
-                console.error(error);
-            }
-        }
-
-        // 根據當前 pokemons 陣列順序，更新每隻寶可夢在 Canvas 上的網格目標座標
-        function initGridPositions() {
-            for (let i = 0; i < pokemons.length; i++) {
-                const col = i % COLS;
-                const row = Math.floor(i / COLS);
-                pokemons[i].targetX = START_X + col * PADDING_X;
-                pokemons[i].targetY = START_Y + row * PADDING_Y;
-            }
-        }
-
-        // ================== 事件控制函式 ==================
-
-        // 隨機打亂
-        function shufflePokemon() {
-            sortGenerator = null;
-            for (let i = pokemons.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [pokemons[i], pokemons[j]] = [pokemons[j], pokemons[i]];
-            }
-            initGridPositions();
-        }
-
-        // 執行指定排序演算法
-        function runAlgorithm(type) {
-            sortGenerator = null; // 重置當前進行中的生成器
-            
-            switch(type) {
-                case 'bubble':
-                    sortGenerator = bubbleSortSteps(pokemons);
-                    break;
-                case 'selection':
-                    sortGenerator = selectionSortSteps(pokemons);
-                    break;
-                case 'insertion':
-                    sortGenerator = insertionSortSteps(pokemons);
-                    break;
-                case 'quick':
-                    sortGenerator = quickSortSteps(pokemons);
-                    break;
-                case 'merge':
-                    sortGenerator = mergeSortSteps(pokemons);
-                    break;
-                case 'heap':
-                    sortGenerator = heapSortSteps(pokemons);
-                    break;
-            }
-        }
-
-        // 色彩聚類分組 (Color Grouping)
-        function groupByColor() {
-            sortGenerator = null;
-            
-            const colorCenters = {
-                "Red": {x: 200, y: 220}, 
-                "Orange": {x: 400, y: 220}, 
-                "Yellow": {x: 600, y: 220}, 
-                "Green": {x: 800, y: 220}, 
-                "Blue": {x: 1000, y: 220},
-                "Purple": {x: 300, y: 550}, 
-                "Pink": {x: 500, y: 550}, 
-                "Brown": {x: 700, y: 550}, 
-                "Black": {x: 350, y: 700}, 
-                "White/Gray": {x: 850, y: 700}
-            };
-
-            pokemons.forEach(p => {
-                const group = p.data.color_group || "White/Gray";
-                const center = colorCenters[group];
-                if(center) {
-                    p.targetX = center.x + (Math.random() - 0.5) * 160;
-                    p.targetY = center.y + (Math.random() - 0.5) * 160;
-                }
-            });
-        }
-
-        // ================== 主繪圖迴圈 ==================
-        function renderLoop() {
-            // 清空 Canvas 畫布
-            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-            // 若有啟用中的排序演算法，推進一步 (Yield Step)
-            if (sortGenerator) {
-                const res = sortGenerator.next();
-                initGridPositions(); // 更新陣列交換後的目標座標
-                
-                if (res.done) {
-                    sortGenerator = null; // 排序結束
-                }
-            }
-
-            // 更新並繪製 1025 隻寶可夢
-            for (let i = 0; i < pokemons.length; i++) {
-                pokemons[i].update();
-                pokemons[i].draw();
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        // 頁面載入完成後啟動
-        window.onload = loadAllData;
-    </script>
+    init();
+  </script>
 </body>
 </html>
