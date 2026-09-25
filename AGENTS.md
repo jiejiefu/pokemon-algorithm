@@ -42,7 +42,7 @@ Static HTML/JS/CSS site (GitHub Pages ready) visualizing algorithms with 1025 Po
 │   ├── enhance_pokemon_data.py   # Phase 1: merge CSV/XLSX → enhanced JSON
 │   ├── scrape_zh_descriptions.py # Phase 2: scrape Chinese descriptions (httpx + BS4)
 │   ├── fix_pokemon_names.py      # Scrape official names from tw.portal-pokemon.com (h1) → JSON + XLSX
-│   ├── extract_genus_zh.py       # Parse data-sources/分類列表.txt → assets/js/genus-zh.js
+│   ├── extract_genus_zh.py       # Scrape 52poke 分類列表 (zh-hant) → assets/js/genus-zh.js
 │   ├── extract_type_chart.py     # Scrape 52poke 屬性相剋表 (Gen 6+) → assets/js/type-chart.js
 │   ├── check_type_chart.mjs      # Type chart regression test (node scripts/check_type_chart.mjs)
 │   ├── extract_evolution_chains.py # Build evolution_chains.json from CSV
@@ -52,7 +52,6 @@ Static HTML/JS/CSS site (GitHub Pages ready) visualizing algorithms with 1025 Po
 │   ├── legacy-pokemon-data/  # Original captions CSVs
 │   ├── pokemon_complete_2026.csv
 │   ├── International List of Pokémon Names.xlsx
-│   ├── 分類列表.txt          # 52poke genus list (1051 rows incl. alternate forms)
 │   └── *.csv / *.xlsx
 ```
 
@@ -99,7 +98,7 @@ Each entry now includes:
 | Enhance JSON data | `source .venv/bin/activate && python scripts/enhance_pokemon_data.py` |
 | Fix Chinese names | `source .venv/bin/activate && python scripts/fix_pokemon_names.py` |
 | Scrape Chinese descriptions | `source .venv/bin/activate && python scripts/scrape_zh_descriptions.py` (≈10 min) |
-| Rebuild genus translations | `python scripts/extract_genus_zh.py` (分類列表.txt → genus-zh.js) |
+| Rebuild genus translations | `python scripts/extract_genus_zh.py` (scrapes 52poke 分類列表 → genus-zh.js) |
 | Rebuild type chart | `python scripts/extract_type_chart.py` (52poke 屬性相剋表 → type-chart.js) |
 | Test type chart | `node scripts/check_type_chart.mjs` |
 | Rebuild evolution chains | `python scripts/extract_evolution_chains.py` |
@@ -123,6 +122,8 @@ Each entry now includes:
 13. **Detail page is a single scroll, not tabs**: `detail.html` renders every section at once (hero → facts → stats → evolution → descriptions → prev/next) so it is printable and linkable. There is no tab state to keep in sync. Sections carry `aria-labelledby` pointing at their heading id; decorative icons are inline `<svg aria-hidden="true" focusable="false">`.
 14. **The radar canvas is sized from its rendered box**: `drawRadarChart()` reads `clientWidth` and multiplies by `devicePixelRatio` for the backing store, because the canvas is fluid in CSS (`max-width: 320px`, `aspect-ratio: 1`). Setting only the `width`/`height` attributes would render at 1× on retina. It is redrawn on a debounced `resize`. It also shares `STAT_MAX` (255) with the bars so the two views agree — an earlier `/200` scale made strong Pokémon read as a flat hexagon.
 15. **`renderEvolutionChain()` assigns `innerHTML` unconditionally**: 505 of the 541 chains in `evolution_chains.json` carry no `variants` key, so an assignment that lived inside the variants branch left the evolution section blank for 93% of Pokémon. Its CSS lives in `detail.css` under "Evolution chain" — that markup is emitted by `shared.js`, so deleting the old inline `<style>` block in `detail.html` silently unstyled it.
+16. **Genus translations are scraped, not vendored**: `assets/js/genus-zh.js` is generated from `https://wiki.52poke.com/zh-hant/分类` (1051 rows → 734 genus, 715/715 covered), so regenerating needs network and is deliberately **not** byte-idempotent — upstream edits show up as a diff. That is the point: switching from the old checked-in dump already picked up two corrections (`Ghost Flame Pokémon` 磷火→鬼火, `Hexpert Pokémon` 咒術師→詛咒師), neither of which any of our 1025 Pokémon uses. The `zh-hant` page must be fetched **by URL**: `api.php?action=parse` returns the default *simplified* variant (`全国编号`), so the `全國編號` header marker never matches. `api.php` also rejects the full URL as a title — it normalizes to `Https://…` and reports the page missing — so `PAGE_TITLE` stays a bare `分类` for the revision lookup. Provenance is recorded in `GENUS_SOURCE` alongside the chart's `TYPE_CHART_SOURCE`.
+17. **Hero carries 繁體, the badge row carries 簡體**: `NAMES` in `detail.html` has no `zh` entry because the hero `<h1>` is already `names.zh`. It does *not* filter out a simplified name that happens to equal the traditional one — 359 of 1025 are character-for-character identical (妙蛙草, 巴大蝶, 波波) and hiding those made the badge row a different length per page, which read as a bug. All 1025 records carry all 9 `names` keys, so every page now renders exactly 8 badges.
 
 ## Adding New Algorithms
 1. Add `function* newAlgoSteps(arr)` in `assets/js/sorting-algorithms.js` (yield per visual step)
@@ -162,4 +163,3 @@ python scripts/fix_pokemon_names.py
 ```
 Reads: `https://tw.portal-pokemon.com/play/pokedex/{id:04d}/` (`<h1>`), existing `pokemon_data.json` + `International List of Pokémon Names.xlsx`
 Writes: `names.zh` (Traditional, official), `names.zh_HK` (Simplified via `opencc` `tw2s.json`) in both JSON and XLSX
-16. **Hero carries 繁體, the badge row carries 簡體**: `NAMES` in `detail.html` has no `zh` entry because the hero `<h1>` is already `names.zh`. It does *not* filter out a simplified name that happens to equal the traditional one — 359 of 1025 are character-for-character identical (妙蛙草, 巴大蝶, 波波) and hiding those made the badge row a different length per page, which read as a bug. All 1025 records carry all 9 `names` keys, so every page now renders exactly 8 badges.

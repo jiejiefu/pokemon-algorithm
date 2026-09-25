@@ -1,3 +1,5 @@
+export const GENUS_SOURCE = {"url": "https://wiki.52poke.com/zh-hant/分类", "revid": 2615011, "timestamp": "2026-08-24T08:35:56Z"};
+
 export const GENUS_EN_ZH = {
  'Abundance Pokémon': '豐饒寶可夢', 'Acorn Pokémon': '橡實寶可夢', 'Alloy Pokémon': '合金寶可夢',
  'Alpha Pokémon': '創造寶可夢', 'Ambush Pokémon': '埋伏寶可夢', 'Angler Pokémon': '琵琶魚寶可夢',
@@ -88,7 +90,7 @@ export const GENUS_EN_ZH = {
  'Frost Moth Pokémon': '冰蛾寶可夢', 'Frost Tree Pokémon': '樹冰寶可夢', 'Fruit Pokémon': '水果寶可夢',
  'Garden Eel Pokémon': '糯鰻寶可夢', 'Garden Pokémon': '花園寶可夢', 'Gas Pokémon': '氣體狀寶可夢',
  'Gear Pokémon': '齒輪寶可夢', 'Generator Pokémon': '發電寶可夢', 'Genetic Pokémon': '基因寶可夢',
- 'Geyser Pokémon': '放水寶可夢', 'Ghost Dog Pokémon': '鬼犬寶可夢', 'Ghost Flame Pokémon': '磷火寶可夢',
+ 'Geyser Pokémon': '放水寶可夢', 'Ghost Dog Pokémon': '鬼犬寶可夢', 'Ghost Flame Pokémon': '鬼火寶可夢',
  'Gigantic Pokémon': '超極巨寶可夢', 'Gleam Eyes Pokémon': '目光寶可夢', 'Gloomdweller Pokémon': '棲影寶可夢',
  'Glowing Pokémon': '燈飾寶可夢', 'Gnash Teeth Pokémon': '磨牙寶可夢', 'Goldfish Pokémon': '金魚寶可夢',
  'Grass Cat Pokémon': '草貓寶可夢', 'Grass Monkey Pokémon': '草猴寶可夢', 'Grass Quill Pokémon': '草羽寶可夢',
@@ -100,7 +102,7 @@ export const GENUS_EN_ZH = {
  'Hard Scale Pokémon': '裝甲寶可夢', 'Hard Shell Pokémon': '子彈寶可夢', 'Head Butt Pokémon': '頭錘寶可夢',
  'Hearing Pokémon': '聽力寶可夢', 'Heavyweight Pokémon': '重量寶可夢', 'Heel Pokémon': '反派寶可夢',
  'Herb Pokémon': '芳草寶可夢', 'Hermit Crab Pokémon': '寄居蟹寶可夢', 'Hero Pokémon': '英雄寶可夢',
- 'Hex Nut Pokémon': '螺帽寶可夢', 'Hexpert Pokémon': '咒術師寶可夢', 'Hibernator Pokémon': '冬眠寶可夢',
+ 'Hex Nut Pokémon': '螺帽寶可夢', 'Hexpert Pokémon': '詛咒師寶可夢', 'Hibernator Pokémon': '冬眠寶可夢',
  'High King Pokémon': '帝皇寶可夢', 'High Temp Pokémon': '高溫寶可夢', 'Hippo Pokémon': '河馬寶可夢',
  'Hog Pokémon': '豬寶可夢', 'Hoodlum Pokémon': '惡黨寶可夢', 'Hostile Pokémon': '粗暴寶可夢',
  'Howitzer Pokémon': '發射器寶可夢', 'Human Shape Pokémon': '人形寶可夢', 'Humming Pokémon': '哼唱寶可夢',
