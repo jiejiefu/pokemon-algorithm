@@ -333,10 +333,8 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
   let html = '<div class="evolution-chain">';
 
   // Main line
-  chainData.main_line.forEach((pokemon, i) => {
-    const isCurrent = pokemon.id === currentPokemonId;
-    const formBadge = pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : '';
-    const currentClass = isCurrent ? 'evolution-current' : '';
+  chainData.main_line.forEach(pokemon => {
+    const currentClass = pokemon.id === currentPokemonId ? 'evolution-current' : '';
 
     html += `
       <div class="evolution-stage ${currentClass}">
@@ -357,7 +355,6 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
         <div class="evolution-variant-label">${region.toUpperCase()} 形態</div>
         <div class="evolution-chain">`;
       pokemons.forEach(p => {
-        const isCurrent = p.id === currentPokemonId;
         html += `
           <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
             <a href="${pokemonDetailUrl(p)}" class="evolution-link">
@@ -377,7 +374,6 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
           <div class="evolution-variant-label">${form.toUpperCase()} 形態</div>
           <div class="evolution-chain">`;
         pokemons.forEach(p => {
-          const isCurrent = p.id === currentPokemonId;
           html += `
             <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
               <a href="${pokemonDetailUrl(p)}" class="evolution-link">
@@ -389,7 +385,9 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
         html += '</div></div>';
       });
     }
-
-    container.innerHTML = html;
   }
+
+  // Assigned unconditionally: 505 of 541 chains carry no `variants`, so
+  // setting this inside the branch above left the section blank for them.
+  container.innerHTML = html;
 }
