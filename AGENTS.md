@@ -162,3 +162,4 @@ python scripts/fix_pokemon_names.py
 ```
 Reads: `https://tw.portal-pokemon.com/play/pokedex/{id:04d}/` (`<h1>`), existing `pokemon_data.json` + `International List of Pokémon Names.xlsx`
 Writes: `names.zh` (Traditional, official), `names.zh_HK` (Simplified via `opencc` `tw2s.json`) in both JSON and XLSX
+16. **Hero carries 繁體, the badge row carries 簡體**: `NAMES` in `detail.html` has no `zh` entry because the hero `<h1>` is already `names.zh`. It does *not* filter out a simplified name that happens to equal the traditional one — 359 of 1025 are character-for-character identical (妙蛙草, 巴大蝶, 波波) and hiding those made the badge row a different length per page, which read as a bug. All 1025 records carry all 9 `names` keys, so every page now renders exactly 8 badges.

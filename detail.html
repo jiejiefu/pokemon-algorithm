@@ -150,8 +150,11 @@
       typeEffectiveness, genusZh, labelZh
     } from './assets/js/pokemon-lexicon.js';
 
+    // 繁體 is the hero h1, so it is deliberately absent here; the other eight
+    // render for all 1025 Pokemon, including the 359 whose simplified name is
+    // character-for-character identical to the traditional one, so that the
+    // badge row is the same length on every page.
     const NAMES = [
-      { lang: '繁體', key: 'zh' },
       { lang: '簡體', key: 'zh_HK' },
       { lang: '日文', key: 'ja' },
       { lang: '法文', key: 'fr' },
@@ -266,7 +269,7 @@
       }).join('');
 
       el('pokemon-names-row').innerHTML = NAMES
-        .filter(n => p.names[n.key] && p.names[n.key] !== p.names.zh)
+        .filter(n => p.names[n.key])
         .map(n => `<li><span class="lang">${n.lang}</span>${escapeHtml(p.names[n.key])}</li>`)
         .join('');
 
