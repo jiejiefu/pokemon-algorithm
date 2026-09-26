@@ -45,7 +45,11 @@ export const MOVE_CLASS_ZH = {
 
 /** Column headings shared by the four move tables. */
 export const MOVE_COLUMNS = {
-  level: '等級',
+  // "Lv." rather than 等級, matching InfoPoke's own header over its narrow
+  // w-8 column. Not a layout fix: 等級 never wraps here at any width from
+  // 320 to 1400px, it is just 4-9px wider, and that width goes to the numbers.
+  // The 等級提升 *tab* is unaffected. See AGENTS.md gotcha 22.
+  level: 'Lv.',
   move: '招式',
   type: '屬性',
   class: '分類',
@@ -488,24 +492,41 @@ function escapeMoveText(text) {
 const DASH = '<span class="move-dash">—</span>';
 
 /**
+ * Tally the machine codes so the ones reused across games can be flagged.
+ *
+ * This has to be computed over the whole tab, never per rendered table. A tab
+ * is split into two side-by-side halves, and rows are sorted by code, so a
+ * split can land exactly between the two moves that share a code — each half
+ * would then see a count of 1, lose its dagger, and quietly reintroduce the
+ * bug gotcha 19 describes.
+ */
+function machineCodeTally(rows) {
+  const tally = {};
+  for (const row of rows) tally[row[1]] = (tally[row[1]] || 0) + 1;
+  return tally;
+}
+
+/**
  * Build one move table.
  *
  * Machine rows carry a code like `TM01` / `TR09` / `HM06`, not a bare number:
  * PokeAPI's 100 TR codes overlap the TM range, so `tr09` and `tm09` would be
  * indistinguishable. Codes are also per-game — Bulbasaur has two moves coded
  * TM01 and three coded TM31, each from a different generation — so the rows
- * whose code is reused inside this table are marked with a dagger and the
- * source generation is exposed as a tooltip.
+ * whose code is reused inside the tab are marked with a dagger and the source
+ * generation is exposed as a tooltip. The tally arrives in `opts.codeTally`
+ * from moveTablesHtml(); pass it rather than letting this function recount, or
+ * the second half of a split tab flags a different set than the first.
+ *
+ * @param {string} tabKey - one of MOVE_TABS
+ * @param {Array} rows - this half's rows, already sorted
+ * @param {Object} moveDefs - keyed by move id
+ * @param {Object} [opts] - `codeTally` from the whole tab, `range` for the caption
  */
-function moveTableHtml(tabKey, rows, moveDefs) {
+function moveTableHtml(tabKey, rows, moveDefs, opts = {}) {
   const isLevel = tabKey === 'level';
   const isMachine = tabKey === 'machine';
-
-  // Codes used by more than one move in this table are the ambiguous ones.
-  const codeTally = {};
-  if (isMachine) {
-    for (const row of rows) codeTally[row[1]] = (codeTally[row[1]] || 0) + 1;
-  }
+  const codeTally = opts.codeTally || (isMachine ? machineCodeTally(rows) : {});
 
   // Each column carries its own class so the cells and their header can be
   // styled together; a bare `.move-num` would lose to `.move-table td`.
@@ -540,35 +561,72 @@ function moveTableHtml(tabKey, rows, moveDefs) {
       }</td>`;
     }
 
+    // The damage class gets its own slug class so detail.css can tint 物理 /
+    // 特殊 / 變化. An unrecognised slug falls back to "other", which keeps the
+    // default text colour rather than silently losing its cell to a typo.
+    const classSlug = MOVE_CLASS_ZH[move.class] ? move.class : 'other';
+
     return `<tr>
       ${isLevel ? `<td class="move-col-level">${first}</td>` : ''}<td class="move-col-move">${escapeMoveText(move.zh)}<span class="move-en">${escapeMoveText(move.en)}</span></td>
       <td class="move-col-type">${typeBadgeSmHtml(move.type)}</td>
-      <td class="move-col-class">${MOVE_CLASS_ZH[move.class] || move.class}</td>
+      <td class="move-col-class move-class-${classSlug}">${MOVE_CLASS_ZH[move.class] || move.class}</td>
       <td class="move-col-num">${move.power ?? DASH}</td>
       <td class="move-col-num">${move.accuracy === null || move.accuracy === undefined ? DASH : move.accuracy}</td>
       ${machineCell}
     </tr>`;
   }).join('');
 
-  const ambiguousNote = isMachine && Object.values(codeTally).some(n => n > 1)
-    ? '<p class="move-legend">† 招式機編號依世代而異，該編號取自此招最近一次可用的世代。</p>'
-    : '';
+  // The caption doubles as the table's accessible name. On a split tab each
+  // half numbers a different range, so the two tables do not announce the
+  // same name twice.
+  const caption = MOVE_TABS.find(t => t.key === tabKey).label;
 
   return `<table class="move-table">
-      <caption class="sr-only">${MOVE_TABS.find(t => t.key === tabKey).label}</caption>
+      <caption class="sr-only">${caption}${opts.range ? ` ${opts.range}` : ''}</caption>
       <thead><tr>${columns
         .map(c => `<th scope="col" class="${c.cls}">${c.label}</th>`)
         .join('')}</tr></thead>
       <tbody>${body}</tbody>
-    </table>${ambiguousNote}`;
+    </table>`;
+}
+
+/**
+ * Split one tab's rows across two side-by-side tables, the way InfoPoke lays
+ * them out (`grid-cols-1 lg:grid-cols-2`). A machine tab can run to 340 rows,
+ * so two columns roughly halves the scroll without widening anything.
+ *
+ * A single row is not split: one table in a two-column grid leaves an orphan
+ * header bar with nothing under it, which reads as a rendering fault rather
+ * than as a one-move learnset. Zero rows never reach here — the caller renders
+ * the empty state instead.
+ */
+function moveTablesHtml(tabKey, rows, moveDefs) {
+  const ambiguous = tabKey === 'machine' && Object.values(machineCodeTally(rows)).some(n => n > 1);
+  const legend = ambiguous
+    ? '<p class="move-legend">† 招式機編號依世代而異，該編號取自此招最近一次可用的世代。</p>'
+    : '';
+
+  if (rows.length < 2) return moveTableHtml(tabKey, rows, moveDefs) + legend;
+
+  // Counted once over the full list, then shared by both halves.
+  const codeTally = tabKey === 'machine' ? machineCodeTally(rows) : {};
+  const half = Math.ceil(rows.length / 2);
+
+  return `<div class="move-tables">
+      ${moveTableHtml(tabKey, rows.slice(0, half), moveDefs,
+        { codeTally, range: `1–${half}` })}
+      ${moveTableHtml(tabKey, rows.slice(half), moveDefs,
+        { codeTally, range: `${half + 1}–${rows.length}` })}
+    </div>${legend}`;
 }
 
 /**
  * Render the four-tab move section.
  *
- * This is a real tab widget: only the selected panel is in the DOM, so the
- * inactive tabs are neither printable nor findable with Ctrl+F. `detail.css`
- * reveals every panel in `@media print` to recover printing.
+ * This is a real tab widget: all four panels are in the DOM and the inactive
+ * three carry `hidden`, so the ARIA relationships stay intact but a screen
+ * reader and Ctrl+F only reach the selected tab. `detail.css` reveals every
+ * panel in `@media print` to recover printing.
  *
  * @param {HTMLElement} container - the moves section body
  * @param {Object} learnset - one entry from learnsets.json
@@ -599,7 +657,7 @@ export function renderMoveSection(container, learnset, moveDefs) {
           data-move-tab-label="${tab.label}"
           aria-labelledby="move-tab-${tab.key}" tabindex="0"${index === 0 ? '' : ' hidden'}>
         ${rows.length
-          ? moveTableHtml(tab.key, rows, moveDefs)
+          ? moveTablesHtml(tab.key, rows, moveDefs)
           : '<p class="eff-neutral">此學習方式沒有可學習的招式</p>'}
       </div>`;
     }).join('')}`;

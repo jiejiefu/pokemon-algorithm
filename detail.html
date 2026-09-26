@@ -167,15 +167,20 @@
     // render for all 1025 Pokemon, including the 359 whose simplified name is
     // character-for-character identical to the traditional one, so that the
     // badge row is the same length on every page.
+    // Only the *alternate* names belong here. The hero already shows the two
+    // primary ones at full size: names.zh is the <h1> and names.en sits under
+    // it in .hero-title-en, so an 英文 badge repeated it verbatim.
+    // es/it are absent for the same reason - for 1005 of 1025 they are a
+    // character-for-character copy of names.en, which made the row read as
+    // padding. The data stays in pokemon_data.json because 20 es and 21 it
+    // names ARE real translations (Iron Thorns -> Ferropúas / Spineferree),
+    // so re-adding these two lines is all it takes to bring them back.
     const NAMES = [
       { lang: '簡體', key: 'zh_HK' },
       { lang: '日文', key: 'ja' },
       { lang: '法文', key: 'fr' },
       { lang: '德文', key: 'de' },
-      { lang: '西班牙', key: 'es' },
-      { lang: '義大利', key: 'it' },
-      { lang: '韓文', key: 'ko' },
-      { lang: '英文', key: 'en' }
+      { lang: '韓文', key: 'ko' }
     ];
 
     // WCAG relative luminance / contrast, used only for the colour swatch.
