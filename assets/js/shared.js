@@ -326,7 +326,15 @@ export async function loadAllPokemonNodes(jsonData, canvasWidth, canvasHeight) {
 }
 
 /**
- * Color grouping centers for visual clustering
+ * Cluster centres for groupByColor(), keyed by PokeAPI's `color` with the
+ * first letter capitalised. The field arrived lowercase ("green"), so lookups
+ * go through the same capitalize() the type badges use.
+ *
+ * White and Gray are separate buckets on purpose. They were one "White/Gray"
+ * slot, which put 195 of our 1025 into a single ±80px box — 24px sprites, so
+ * roughly six across, meaning five or six layers of overlap. Gray took the
+ * empty bottom-left corner. "Orange" is a legal PokeAPI colour that no current
+ * record uses, kept so a future one has somewhere to land.
  */
 export const COLOR_CENTERS = {
   "Red": {x: 200, y: 220},
@@ -338,22 +346,48 @@ export const COLOR_CENTERS = {
   "Pink": {x: 500, y: 550},
   "Brown": {x: 700, y: 550},
   "Black": {x: 350, y: 700},
-  "White/Gray": {x: 850, y: 700}
+  "White": {x: 850, y: 700},
+  "Gray": {x: 200, y: 700}
 };
 
 /**
- * Apply color grouping to Pokémon nodes
+ * Shuffle an array in place (Fisher-Yates).
+ *
+ * Used by the sorting page's 隨機打亂 button. In place rather than returning a
+ * copy because the caller sorts a live array of PokemonNode objects that the
+ * render loop is already holding references to.
+ *
+ * @param {Array} arr
+ * @returns {Array} the same array
+ */
+export function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Apply color grouping to Pokémon nodes.
+ *
+ * Reads PokeAPI's `color`, which is the source of truth and replaced the
+ * computed `color_group` that no record has carried for a while — every
+ * Pokémon used to land in the White/Gray fallback, so this clustered the whole
+ * roster into one corner.
+ *
  * @param {Array<PokemonNode>} pokemons
  */
 export function groupByColor(pokemons) {
-  pokemons.forEach(p => {
-    const group = p.data.color_group || "White/Gray";
-    const center = COLOR_CENTERS[group];
-    if (center) {
-      p.targetX = center.x + (Math.random() - 0.5) * 160;
-      p.targetY = center.y + (Math.random() - 0.5) * 160;
-    }
-  });
+  for (const p of pokemons) {
+    const center = COLOR_CENTERS[capitalize(p.data.color)];
+    // No fallback on purpose: a colour with no centre leaves the node where the
+    // grid put it, which is better than teleporting it into a bucket that
+    // misrepresents it. All 1025 records have a colour, so this never fires.
+    if (!center) continue;
+    p.targetX = center.x + (Math.random() - 0.5) * 160;
+    p.targetY = center.y + (Math.random() - 0.5) * 160;
+  }
 }
 
 /**

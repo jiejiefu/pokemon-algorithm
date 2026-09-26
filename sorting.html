@@ -21,16 +21,16 @@
   <header class="header header-sort">
     <div class="header-title">⚡ 排序演算法視覺化 ⚡</div>
     <div class="controls">
-      <button class="btn btn-utility" onclick="shufflePokemon()">🔀 隨機打亂</button>
+      <button class="btn btn-utility" data-action="shuffle">🔀 隨機打亂</button>
       <span class="btn-group-label">| 排序演算法：</span>
-      <button class="btn" onclick="runAlgorithm('bubble')">氣泡</button>
-      <button class="btn" onclick="runAlgorithm('selection')">選擇</button>
-      <button class="btn" onclick="runAlgorithm('insertion')">插入</button>
-      <button class="btn" onclick="runAlgorithm('quick')">快速</button>
-      <button class="btn" onclick="runAlgorithm('merge')">合併</button>
-      <button class="btn" onclick="runAlgorithm('heap')">堆積</button>
+      <button class="btn" data-action="sort" data-algorithm="bubble">氣泡</button>
+      <button class="btn" data-action="sort" data-algorithm="selection">選擇</button>
+      <button class="btn" data-action="sort" data-algorithm="insertion">插入</button>
+      <button class="btn" data-action="sort" data-algorithm="quick">快速</button>
+      <button class="btn" data-action="sort" data-algorithm="merge">合併</button>
+      <button class="btn" data-action="sort" data-algorithm="heap">堆積</button>
       <span class="btn-group-label">| 色彩：</span>
-      <button class="btn btn-color" onclick="groupByColor()">🎨 色彩聚類</button>
+      <button class="btn btn-color" data-action="color">🎨 色彩聚類</button>
     </div>
   </header>
 
@@ -40,11 +40,14 @@
   </div>
 
   <script type="module">
+    // PokemonNode / shuffleArray / groupByColor come from shared.js below; the
+    // six *Steps generators come from sorting-algorithms.js, which is a CLASSIC
+    // script (see the tag at the end of body), so those really are globals.
     import {
       loadPokemonData,
+      loadAllPokemonNodes,
       PokemonNode,
       GRID_CONFIG,
-      getGridStartPositions,
       updateGridPositions,
       groupByColor as sharedGroupByColor,
       shuffleArray
@@ -112,6 +115,20 @@
       sortGenerator = null;
       sharedGroupByColor(pokemons);
     }
+
+    // These used to be inline onclick="" attributes. That cannot work here: an
+    // inline handler resolves its callee on the global object, and everything
+    // in this file lives in module scope, so every button raised
+    // "ReferenceError: runAlgorithm is not defined". The generators are the
+    // exception — they come from a classic script below, so they *are* global.
+    // Wiring the same way pokedex.html does, with addEventListener.
+    document.querySelector('[data-action="shuffle"]')
+      .addEventListener('click', shufflePokemon);
+    for (const btn of document.querySelectorAll('[data-action="sort"]')) {
+      btn.addEventListener('click', () => runAlgorithm(btn.dataset.algorithm));
+    }
+    document.querySelector('[data-action="color"]')
+      .addEventListener('click', groupByColor);
 
     init();
   </script>
