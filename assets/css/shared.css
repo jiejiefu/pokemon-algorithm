@@ -101,8 +101,8 @@
      readThemeTokens() — that is the only bridge, and it keeps one source of
      truth rather than a JS-side copy of the palette. */
   --canvas-bg: #010409;
-  --canvas-wall: 30, 30, 30;       /* RGB triplet, unquoted, for template use */
-  --canvas-grid: rgba(240, 246, 252, 0.2);
+  --canvas-wall: 50, 50, 50;       /* RGB triplet, unquoted, for template use */
+  --canvas-grid: rgba(240, 246, 252, 0.5);
   --canvas-text: #e3b341;
   /* The radar's polygon wash, as an alpha over --accent-gold-rgb. Per theme
      because the gold is a bright yellow here and a dark brown in light, so a

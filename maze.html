@@ -126,6 +126,9 @@
     let animPhase = 'idle';    // 👈 新增：動畫狀態 ('search' | 'path' | 'idle')
     let isSearching = false;
     let finalPath = [];
+    // 記錄當前搜尋段的起點與終點
+    let currentStart = null;
+    let currentEnd = null;
 
     // 網格節點類別
     class Cell {
@@ -170,6 +173,43 @@
       }
     }
 
+    // 繪製起點與終點標籤
+    function drawMarkers() {
+      if (!currentStart || !currentEnd) return;
+
+      // 繪製起點 (綠色底 + 白色 Start)
+      drawMarkerCell(currentStart, '#2e7d32', 'S');
+      // 繪製終點 (紅色底 + 白色 Goal)
+      drawMarkerCell(currentEnd, '#c62828', 'G');
+    }
+
+    // 單一標記繪製邏輯 (包含圓形外框與文字)
+    function drawMarkerCell(cell, color, label) {
+      const px = cell.x * CELL_SIZE + CELL_SIZE / 2;
+      const py = cell.y * CELL_SIZE + CELL_SIZE / 2;
+      const radius = CELL_SIZE * 0.38; // 依格子大小調整半徑
+
+      ctx.save();
+      
+      // 1. 畫圓形背景與白框
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      // 2. 寫入文字 (S 或 G)
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.floor(CELL_SIZE * 0.5)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, px, py);
+
+      ctx.restore();
+    }
+
     // ================= Seed 偽隨機數產生器 (Mulberry32) =================
     let rngFunc = null;
 
@@ -204,6 +244,9 @@
     function loadPokemonMaze(isRandom = true) {
       isSearching = false;
       searchGenerator = null;
+      // --- 重置起點與終點標記 ---
+      currentStart = null;
+      currentEnd = null;
       finalPath = [];
       grid = [];
 
@@ -274,6 +317,11 @@
         // 這樣不論背景換成哪隻寶可夢，Seed 42 產生的牆壁結構與拆牆順序都是 100% 相同的。
         initSeed(seedVal);
         generateMazeBacktracker();
+
+        // 👇 新增：預設將左上角與右下角設為當前的起點與終點
+        currentStart = grid[0][0];
+        currentEnd = grid[GRID_SIZE - 1][GRID_SIZE - 1];
+
         statusText.innerText = `迷宮生成完畢 (Seed: ${seedVal}, 寶可夢 # ${targetId})！請選擇探索演算法。`;
         drawFullMaze();
       };
@@ -425,6 +473,9 @@
           grid[y][x].draw();
         }
       }
+
+      // 👇 新增：在畫面的最上層繪製起點與終點標籤
+      drawMarkers();
     }
 
     function setSpeed(sliderValue) {
@@ -553,6 +604,10 @@
 
     // 單段搜尋 Generator (給定起點與終點)
     function* searchSegment(startCell, endCell, algoType) {
+      // 👇 新增：更新當前搜尋段的起點與終點
+      currentStart = startCell;
+      currentEnd = endCell;
+
       let visitedSet = new Set();
       let list = [{ cell: startCell, path: [startCell] }];
       
