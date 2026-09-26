@@ -6,6 +6,31 @@
   <title>排序演算法視覺化 — 1025 寶可夢演算法實驗室</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <style>
     body {
@@ -21,6 +46,7 @@
 </head>
 <body>
   <header class="header header-sort">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <div class="header-title">排序演算法視覺化</div>
     <div class="controls">
       <button class="btn btn-utility" data-action="shuffle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>隨機打亂</button>
@@ -45,15 +71,16 @@
     // PokemonNode / shuffleArray / groupByColor come from shared.js below; the
     // six *Steps generators come from sorting-algorithms.js, which is a CLASSIC
     // script (see the tag at the end of body), so those really are globals.
-    import {
-      loadPokemonData,
+    import {loadPokemonData,
       loadAllPokemonNodes,
       PokemonNode,
       GRID_CONFIG,
       updateGridPositions,
       groupByColor as sharedGroupByColor,
-      shuffleArray
-    } from './assets/js/shared.js';
+      shuffleArray, initThemeToggle } from './assets/js/shared.js';
+    // Wire the theme toggle before anything else. Module scripts are deferred, so
+    // the DOM is already parsed here and the button in the header is present.
+    initThemeToggle();
 
     const canvas = document.getElementById('appCanvas');
     const ctx = canvas.getContext('2d');

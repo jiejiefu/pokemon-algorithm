@@ -6,6 +6,31 @@
   <title>1025 寶可夢演算法實驗室</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <style>
     body {
@@ -16,13 +41,13 @@
     .hero {
       text-align: center;
       padding: 60px 20px 40px;
-      background: linear-gradient(180deg, rgba(204,0,0,0.15) 0%, transparent 100%);
+      background: linear-gradient(180deg, var(--hero-tint) 0%, transparent 100%);
     }
     .hero h1 {
       font-size: 42px;
       font-weight: bold;
       color: var(--accent-gold);
-      text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+      text-shadow: var(--hero-title-shadow);
       margin: 0 0 16px;
       letter-spacing: 2px;
     }
@@ -59,7 +84,7 @@
     }
     .section-divider {
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,221,0,0.3), transparent);
+      background: linear-gradient(90deg, transparent, var(--divider-glow), transparent);
       margin: 0 40px;
     }
     .pokedex-grid-container {
@@ -69,6 +94,7 @@
 </head>
 <body>
   <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <div class="header-title header-title-large">1025 寶可夢演算法實驗室</div>
     <nav class="header-nav">
       <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
@@ -142,7 +168,10 @@
   </footer>
 
   <script type="module">
-    import { loadPokemonData, createPokemonCard, pokemonDetailUrl } from './assets/js/shared.js';
+    import {loadPokemonData, createPokemonCard, pokemonDetailUrl, initThemeToggle } from './assets/js/shared.js';
+    // Wire the theme toggle before anything else. Module scripts are deferred, so
+    // the DOM is already parsed here and the button in the header is present.
+    initThemeToggle();
 
     const grid = document.getElementById('pokedex-grid');
 
@@ -160,7 +189,7 @@
         
         grid.appendChild(fragment);
       } catch (error) {
-        grid.innerHTML = '<p style="text-align:center;color:#ff6b6b;padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
+        grid.innerHTML = '<p style="text-align:center;color:var(--error-text);padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
         console.error(error);
       }
     }

@@ -6,10 +6,36 @@
   <title>寶可夢像素迷宮 (BFS/DFS)</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/shared.css">
 </head>
 <body>
   <header class="header header-maze">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <div class="controls controls-maze">
       <button class="btn btn-nav" onclick="location.href='index.html'"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>返回大廳</button>
       <button class="btn" onclick="loadRandomPokemonMaze()">1. 載入隨機寶可夢迷宮</button>
@@ -23,10 +49,33 @@
     <canvas id="mazeCanvas" class="maze-canvas"></canvas>
   </div>
 
+  <!-- This page is otherwise a pair of CLASSIC scripts (inline onclick handlers
+       throughout, which resolve on the global object, so the maze code cannot be a
+       module without rewriting all of it). One small module is added purely to
+       mount the shared theme toggle, and it coexists with the classic scripts
+       because `type="module"` scripts are deferred. The canvas listens for the
+       'themechange' event that shared.js dispatches on `document`, so a theme
+       switch repaints it from the very same code path. -->
+  <script type="module">
+    import { initThemeToggle } from './assets/js/shared.js';
+    initThemeToggle();
+  </script>
+
   <script>
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     const statusText = document.getElementById('status');
+
+    // A <canvas> is painted imperatively, so it cannot see var(--x) at all and
+    // every colour drawn here has to be read back off the stylesheet. This is the
+    // same mechanism as readThemeToken() in shared.js, inlined because this file
+    // is a classic script and cannot import it — it re-reads on every repaint, so
+    // a theme switch can never leave a stale palette behind, and the palette
+    // itself still lives only in shared.css. --canvas-wall is an unquoted
+    // "r, g, b" triplet, which is why it composes into a template rather than
+    // needing a parse.
+    const themeToken = (name) =>
+      getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     
     // 迷宮設定
     const GRID_SIZE = 40;
@@ -59,15 +108,19 @@
         if (this.onPath) alpha = 1.0;
         else if (this.searchVisited) alpha = 0.5;
         
+        // Very light Pokémon would be invisible against a white canvas, so they
+        // take the theme's wall colour instead. The `a < 50` test is a crude
+        // lightness proxy on the sprite's own alpha channel, which is what the
+        // maze has always used; it is unchanged here.
         if (this.color.a < 50) {
-          ctx.fillStyle = `rgba(30, 30, 30, ${alpha})`;
+          ctx.fillStyle = `rgba(${themeToken('--canvas-wall')}, ${alpha})`;
         } else {
           ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
         }
         
         ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeStyle = themeToken('--canvas-grid');
         ctx.lineWidth = 1;
         ctx.beginPath();
         if (this.walls.top) { ctx.moveTo(px, py); ctx.lineTo(px + CELL_SIZE, py); }
@@ -278,15 +331,26 @@
       requestAnimationFrame(renderLoop);
     }
 
-    // 頁面載入時初始提示
-    window.onload = () => {
-      ctx.fillStyle = '#111';
+    function drawIdlePrompt() {
+      ctx.fillStyle = themeToken('--canvas-bg');
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#ffcb05';
+      ctx.fillStyle = themeToken('--canvas-text');
       ctx.font = '24px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('請點擊上方按鈕載入迷宮', canvas.width/2, canvas.height/2);
-    };
+    }
+
+    // A canvas is opaque once painted, so switching the page palette underneath it
+    // changes nothing until something redraws. Both the idle prompt and a loaded
+    // maze therefore have to be repainted explicitly, and colours are re-read
+    // rather than cached so this cannot land on the old palette.
+    document.addEventListener('themechange', () => {
+      if (grid.length) drawFullMaze();
+      else drawIdlePrompt();
+    });
+
+    // 頁面載入時初始提示
+    window.onload = drawIdlePrompt;
   </script>
 </body>
 </html>

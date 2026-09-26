@@ -6,17 +6,43 @@
   <title id="page-title">寶可夢詳細資料 — 1025 寶可夢演算法實驗室</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <link rel="stylesheet" href="assets/css/detail.css">
 </head>
 <body>
   <header class="header header-detail">
     <div class="header-inner">
-        <div class="header-title" style="font-size:18px;">寶可夢圖鑑詳細資料</div>
+        <div class="header-title" style="font-size:18px;">寶可夢圖鑑</div>
       <a href="index.html" class="btn btn-nav header-back">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
         返回大廳
       </a>
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     </div>
   </header>
 
@@ -54,17 +80,6 @@
             </div>
 
             <div class="type-badges" id="type-badges"></div>
-
-            <nav class="hero-pager" aria-label="寶可夢瀏覽">
-              <a class="pager-link" id="pokemon-prev" rel="prev">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
-                <span>上一隻</span>
-              </a>
-              <a class="pager-link" id="pokemon-next" rel="next">
-                <span>下一隻</span>
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z"/></svg>
-              </a>
-            </nav>
           </div>
 
           <div class="info-card">
@@ -180,14 +195,16 @@
   </main>
 
   <script type="module">
-    import {
-      loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
+    import {loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
       pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
-      loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml
-    } from './assets/js/shared.js';
+      loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, readThemeToken,
+      badgeStyle, hexToRgb, capitalize } from './assets/js/shared.js';
+    // Wire the theme toggle before anything else. Module scripts are deferred, so
+    // the DOM is already parsed here and the button in the header is present.
+    initThemeToggle();
     import {
       TYPE_EN_ZH, TYPE_COLORS, SHAPE_ZH, HABITAT_ZH, GROWTH_RATE_ZH, EGG_GROUP_ZH,
-      COLOR_ZH, STAT_KEYS, STAT_MAX, TOTAL_MAX, STAT_LABELS, EFFECT_BUCKETS, TYPE_CHART_SOURCE,
+      COLOR_HEX, STAT_KEYS, STAT_MAX, TOTAL_MAX, STAT_LABELS, EFFECT_BUCKETS, TYPE_CHART_SOURCE,
       typeEffectiveness, genusZh, labelZh
     } from './assets/js/pokemon-lexicon.js';
 
@@ -210,37 +227,6 @@
       { lang: '德文', key: 'de' },
       { lang: '韓文', key: 'ko' }
     ];
-
-    // WCAG relative luminance / contrast, used only for the colour swatch.
-    const toLinear = v => {
-      v /= 255;
-      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    };
-    const luminance = ([r, g, b]) => 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-    const contrast = (a, b) => {
-      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-      return (hi + 0.05) / (lo + 0.05);
-    };
-
-    /**
-     * The colour swatch fill comes from the Pokémon's own RGB, but for mid-tone
-     * colours neither white nor near-black text reaches 4.5:1 against it. Pick
-     * the better text colour, then scale the fill towards black or white only
-     * as far as needed, so the swatch still reads as the Pokémon's colour.
-     */
-    function badgeStyle(rgb) {
-      const LIGHT = [255, 255, 255];
-      const DARK = [20, 17, 10];
-      const useLightText = contrast(rgb, LIGHT) >= contrast(rgb, DARK);
-      const textColor = useLightText ? LIGHT : DARK;
-      const towards = useLightText ? [0, 0, 0] : [255, 255, 255];
-      let fill = rgb.slice();
-      for (let t = 0; t <= 1.0001; t += 0.02) {
-        fill = rgb.map((c, i) => Math.round(c + (towards[i] - c) * t));
-        if (contrast(fill, textColor) >= 4.5) break;
-      }
-      return `background:rgb(${fill.join(', ')});color:rgb(${textColor.join(', ')})`;
-    }
 
     let pokemonData = [];
     let currentPokemon = null;
@@ -339,7 +325,11 @@
       const prev = index > 0 ? pokemonData[index - 1] : null;
       const next = index >= 0 && index < pokemonData.length - 1 ? pokemonData[index + 1] : null;
 
-      // Hero pager carries the neighbour's name; the footer pager stays terse.
+      // The footer pager is the only one. A second copy used to sit under the
+      // sprite in the top card, and two id-based pagers on one page meant the
+      // same control announced itself twice. That copy carried the neighbour's
+      // name; the end-of-roster wording moves here so removing it loses no
+      // information.
       const setLink = (link, target, label) => {
         if (target) {
           link.href = pokemonDetailUrl(target);
@@ -354,10 +344,8 @@
         if (text) text.textContent = label;
       };
 
-      setLink(el('pokemon-prev'), prev, prev ? `上一隻：${prev.names.zh}` : '已是第一隻');
-      setLink(el('pokemon-next'), next, next ? `下一隻：${next.names.zh}` : '已是最後一隻');
-      setLink(el('pokemon-prev-foot'), prev, '上一隻');
-      setLink(el('pokemon-next-foot'), next, '下一隻');
+      setLink(el('pokemon-prev-foot'), prev, prev ? '上一隻' : '已是第一隻');
+      setLink(el('pokemon-next-foot'), next, next ? '下一隻' : '已是最後一隻');
     }
 
     /**
@@ -400,14 +388,18 @@
         { label: '世代', value: p.generation },
         { label: '棲息地', value: labelZh(HABITAT_ZH, p.habitat) },
         { label: '體型', value: labelZh(SHAPE_ZH, p.shape) },
-        { label: '顏色', value: labelZh(COLOR_ZH, p.color), badge: p.rgb }
+        { label: '顏色', value: capitalize(p.color), swatch: COLOR_HEX[p.color] }
       ];
 
       el('fact-grid').innerHTML = facts.map(f => {
-        // The swatch keeps the AA-contrast fix in badgeStyle() rather than
-        // InfoPoke's plain colour dot: its fill is the Pokémon's own RGB.
-        const value = f.badge && Array.isArray(f.badge) && f.badge.length === 3
-          ? `<span class="color-badge" style="${badgeStyle(f.badge)}">${escapeHtml(f.value)}</span>`
+        // A dot plus the English colour name, the way InfoPoke does it. The name
+        // is a *sibling* of the fill rather than text sitting on it, so this no
+        // longer needs the fill/text search in badgeStyle() -- that existed only
+        // because the label used to be printed on the colour, and Steelix was
+        // the worst case at exactly 4.50:1. An unknown colour still renders the
+        // name, just without a dot, rather than showing a wrong one.
+        const value = f.swatch
+          ? `<span class="color-swatch"><span class="color-dot" style="--dot:${f.swatch}"></span>${escapeHtml(f.value)}</span>`
           : factText(f.value);
         const cls = f.wide ? ' fact-wide' : '';
         return `<div class="fact${cls}"><span class="fact-label">${f.label}</span><span class="fact-value">${value}</span></div>`;
@@ -492,7 +484,7 @@
 
       el('stat-bars').innerHTML = bars + `
         <p class="stat-total">
-          <span class="stat-label stat-total-label">能力總和 / ${TOTAL_MAX}</span>
+          <span class="stat-label stat-total-label">能力總和</span>
           <span class="stat-value stat-total-value">${p.stats.total}</span>
           <span class="stat-track">
             <span class="stat-fill stat-total-fill" style="width:${(Math.max(0, Math.min(100, (p.stats.total / TOTAL_MAX) * 100))).toFixed(1)}%"></span>
@@ -501,6 +493,14 @@
 
       drawRadarChart(p.stats);
     }
+
+    // A <canvas> cannot see var(--x), so its colours are read back off the
+    // stylesheet every repaint. --hairline-rgb / --accent-gold-rgb are unquoted
+    // "r, g, b" triplets for exactly this reason. Re-reading per frame (rather
+    // than caching at load) is what makes a theme switch correct by construction
+    // instead of by remembering to invalidate something.
+    const rgbaHairline = (a) => `rgba(${readThemeToken('--hairline-rgb')}, ${a})`;
+    const rgbaGold = (a) => `rgba(${readThemeToken('--accent-gold-rgb')}, ${a})`;
 
     function drawRadarChart(stats) {
       const canvas = el('radar-chart');
@@ -522,7 +522,7 @@
       const count = STAT_KEYS.length;
       const angleFor = i => (i / count) * Math.PI * 2 - Math.PI / 2;
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.strokeStyle = rgbaHairline(0.12);
       ctx.lineWidth = 1;
       for (let level = 1; level <= 5; level++) {
         ctx.beginPath();
@@ -530,7 +530,7 @@
         ctx.stroke();
       }
 
-      ctx.strokeStyle = 'rgba(255,221,0,0.3)';
+      ctx.strokeStyle = rgbaGold(0.3);
       STAT_KEYS.forEach((key, i) => {
         const angle = angleFor(i);
         ctx.beginPath();
@@ -550,13 +550,15 @@
         else ctx.lineTo(x, y);
       });
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255,221,0,0.3)';
+      // Alphas come from the stylesheet so the wash is a tint in both themes
+      // rather than a shadow in one of them; see --radar-fill in shared.css.
+      ctx.fillStyle = rgbaGold(parseFloat(readThemeToken('--radar-fill')) || 0.15);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,221,0,0.9)';
+      ctx.strokeStyle = rgbaGold(parseFloat(readThemeToken('--radar-stroke')) || 0.7);
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillStyle = rgbaHairline(0.85);
       ctx.font = '12px "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -572,10 +574,18 @@
 
     function renderEffectiveness(p) {
       const buckets = typeEffectiveness(p.types);
-      const colors = { 4: '#ff5470', 2: '#ff9f45', 0.5: '#4cc9f0', 0.25: '#7bcf6b', 0: '#ffde00' };
+      // Read from the stylesheet rather than duplicated here: the same five
+      // values are text, so the light theme has to substitute a different set.
+      const colors = {
+        4: readThemeToken('--eff-4x'),
+        2: readThemeToken('--eff-2x'),
+        0.5: readThemeToken('--eff-half'),
+        0.25: readThemeToken('--eff-quarter'),
+        0: readThemeToken('--eff-immune')
+      };
 
       el('type-effectiveness').innerHTML = buckets.map(bucket => {
-        const color = colors[bucket.multiplier] || '#ccc';
+        const color = colors[bucket.multiplier] || readThemeToken('--text-muted');
         return `
           <div class="eff-bucket">
             <div class="eff-head">
@@ -585,7 +595,7 @@
             <div class="eff-types">
               ${bucket.types.map(t => {
                 const zh = t.zh || TYPE_EN_ZH[t.en] || t.en;
-                return `<span class="eff-type" style="background:${TYPE_COLORS[t.en] || '#777'}">${escapeHtml(zh)}</span>`;
+                return `<span class="eff-type" style="${badgeStyle(hexToRgb(TYPE_COLORS[t.en]))}">${escapeHtml(zh)}</span>`;
               }).join('')}
             </div>
           </div>`;
@@ -669,11 +679,22 @@
     }
 
     // The canvas is sized from its rendered box, so redraw when that box changes.
+    // A theme switch is a second, independent reason to redraw: the canvas keeps
+    // whatever was last painted into it regardless of the page behind it, and
+    // every stroke it draws is theme-dependent. It reuses the debounce so a
+    // switch mid-drag cannot queue a storm of repaints.
     let resizeTimer = null;
-    window.addEventListener('resize', () => {
+    const scheduleRadar = () => {
       if (!currentPokemon) return;
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => drawRadarChart(currentPokemon.stats), 150);
+    };
+    window.addEventListener('resize', scheduleRadar);
+    document.addEventListener('themechange', () => {
+      // The buckets are inline styles on freshly generated markup, so they have
+      // to be re-rendered too, not just the chart.
+      if (currentPokemon) renderEffectiveness(currentPokemon);
+      scheduleRadar();
     });
 
     init();

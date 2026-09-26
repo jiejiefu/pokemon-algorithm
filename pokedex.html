@@ -6,6 +6,31 @@
   <title>1025 全國寶可夢圖鑑</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <style>
     .search-controls {
@@ -20,7 +45,7 @@
     .search-select {
       padding: 10px 15px;
       border-radius: var(--radius-pill);
-      border: 1px solid #444;
+      border: 1px solid var(--border-input);
       background: var(--bg-card);
       color: var(--text-primary);
       font-size: 16px;
@@ -48,13 +73,13 @@
       flex-wrap: wrap;
       justify-content: center;
       padding: 12px 20px;
-      background: rgba(255,255,255,0.02);
-      border-top: 1px solid rgba(255,255,255,0.05);
+      background: var(--sticky-surface);
+      border-top: 1px solid var(--hairline);
     }
     .filter-select {
       padding: 8px 12px;
       border-radius: var(--radius-pill);
-      border: 1px solid #444;
+      border: 1px solid var(--border-input);
       background: var(--bg-card);
       color: var(--text-primary);
       font-size: 13px;
@@ -70,12 +95,13 @@
       color: var(--text-muted);
       font-size: 14px;
       background: var(--bg-controls);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid var(--hairline);
     }
   </style>
 </head>
 <body>
   <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <h1>1025 全國寶可夢圖鑑</h1>
     <div class="header-nav">
       <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
@@ -120,7 +146,7 @@
       <option value="8">第 8 世代 (伽勒爾)</option>
       <option value="9">第 9 世代 (帕底亞)</option>
     </select>
-    <button id="clearFilters" class="filter-select" style="background:var(--accent-gold);color:#222;border:none;font-weight:bold;">清除篩選</button>
+    <button id="clearFilters" class="filter-select" style="background:var(--accent-gold);color:var(--on-accent);border:none;font-weight:bold;">清除篩選</button>
   </div>
 
   <div class="results-info" id="resultsInfo">載入中...</div>
@@ -129,7 +155,10 @@
   <div id="pokedex-grid" class="pokedex-grid"></div>
 
   <script type="module">
-    import { loadPokemonData, createPokemonCard, pokemonDetailUrl, TYPE_EN_ZH } from './assets/js/shared.js';
+    import {loadPokemonData, createPokemonCard, pokemonDetailUrl, TYPE_EN_ZH, initThemeToggle } from './assets/js/shared.js';
+    // Wire the theme toggle before anything else. Module scripts are deferred, so
+    // the DOM is already parsed here and the button in the header is present.
+    initThemeToggle();
 
     const grid = document.getElementById('pokedex-grid');
     const loading = document.getElementById('loading');
