@@ -115,6 +115,18 @@
         <div id="evolution-chain"></div>
       </section>
 
+      <!-- Moves -->
+      <section class="section" aria-labelledby="moves-title" id="moves-section">
+        <div class="section-head">
+          <h2 class="section-title" id="moves-title">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3 4 13h6l-2 8 10-10h-6z"/></svg>
+            招式
+          </h2>
+          <span class="section-note" id="moves-note">載入中…</span>
+        </div>
+        <div id="move-section"></div>
+      </section>
+
       <!-- Descriptions -->
       <section class="section" aria-labelledby="desc-title">
         <div class="section-head">
@@ -142,7 +154,8 @@
   <script type="module">
     import {
       loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
-      pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain
+      pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
+      loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml
     } from './assets/js/shared.js';
     import {
       TYPE_EN_ZH, TYPE_COLORS, SHAPE_ZH, HABITAT_ZH, GROWTH_RATE_ZH, EGG_GROUP_ZH,
@@ -263,10 +276,7 @@
       el('pokemon-name-zh').textContent = p.names.zh;
       el('pokemon-name-en').textContent = p.names.en;
 
-      el('type-badges').innerHTML = p.types.map((t, i) => {
-        const zh = p.types_zh[i] || TYPE_EN_ZH[t] || t;
-        return `<span class="type-badge" style="background:${TYPE_COLORS[t] || '#777'}">${escapeHtml(zh)}</span>`;
-      }).join('');
+      el('type-badges').innerHTML = p.types.map((t, i) => typeBadgeHtml(t, p.types_zh[i])).join('');
 
       el('pokemon-names-row').innerHTML = NAMES
         .filter(n => p.names[n.key])
@@ -279,6 +289,7 @@
       renderStats(p);
       renderEffectiveness(p);
       renderEvolution(p);
+      renderMoves(p);
       renderDescriptions(p);
     }
 
@@ -489,6 +500,46 @@
         console.error('Failed to load evolution chain:', err);
         container.innerHTML = '<p class="eff-neutral">無法載入進化鏈數據</p>';
       });
+    }
+
+    /**
+     * learnsets.json is ~940 KB raw, so it is not fetched until the moves
+     * section is close to the viewport. Both files are cached on window by
+     * loadLearnsets() / loadMoveDefs(), so paging back and forth reuses them.
+     */
+    function renderMoves(p) {
+      const container = el('move-section');
+      const note = el('moves-note');
+
+      const load = () => {
+        if (container.dataset.loaded === 'true') return;
+        container.dataset.loaded = 'true';
+        Promise.all([loadLearnsets(), loadMoveDefs()])
+          .then(([learnsets, moveDefs]) => {
+            const learnset = learnsets[String(p.id)];
+            renderMoveSection(container, learnset, moveDefs);
+            note.textContent = learnset
+              ? '全世代聯集，等級取最低；招式機編號依世代而異'
+              : '暫無招式數據';
+          })
+          .catch(err => {
+            console.error('Failed to load move learnsets:', err);
+            note.textContent = '招式數據載入失敗';
+            container.innerHTML = '<p class="detail-error">無法載入招式數據</p>';
+          });
+      };
+
+      // Fall straight through where IntersectionObserver is unavailable.
+      if (!('IntersectionObserver' in window)) {
+        load();
+        return;
+      }
+      const observer = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        observer.disconnect();
+        load();
+      }, { rootMargin: '400px' });
+      observer.observe(el('moves-section'));
     }
 
     function renderDescriptions(p) {

@@ -1,0 +1,6276 @@
+{
+  "1": {
+    "en": "pound",
+    "zh": "拍擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "2": {
+    "en": "karate-chop",
+    "zh": "空手劈",
+    "type": "fighting",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "3": {
+    "en": "double-slap",
+    "zh": "連環巴掌",
+    "type": "normal",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 85
+  },
+  "4": {
+    "en": "comet-punch",
+    "zh": "連續拳",
+    "type": "normal",
+    "class": "physical",
+    "power": 18,
+    "accuracy": 85
+  },
+  "5": {
+    "en": "mega-punch",
+    "zh": "百萬噸重拳",
+    "type": "normal",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 85
+  },
+  "6": {
+    "en": "pay-day",
+    "zh": "聚寶功",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "7": {
+    "en": "fire-punch",
+    "zh": "火焰拳",
+    "type": "fire",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "8": {
+    "en": "ice-punch",
+    "zh": "冰凍拳",
+    "type": "ice",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "9": {
+    "en": "thunder-punch",
+    "zh": "雷電拳",
+    "type": "electric",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "10": {
+    "en": "scratch",
+    "zh": "抓",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "11": {
+    "en": "vice-grip",
+    "zh": "夾住",
+    "type": "normal",
+    "class": "physical",
+    "power": 55,
+    "accuracy": 100
+  },
+  "12": {
+    "en": "guillotine",
+    "zh": "斷頭鉗",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 30
+  },
+  "13": {
+    "en": "razor-wind",
+    "zh": "旋風刀",
+    "type": "normal",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "14": {
+    "en": "swords-dance",
+    "zh": "劍舞",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "15": {
+    "en": "cut",
+    "zh": "居合斬",
+    "type": "normal",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 95
+  },
+  "16": {
+    "en": "gust",
+    "zh": "起風",
+    "type": "flying",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "17": {
+    "en": "wing-attack",
+    "zh": "翅膀攻擊",
+    "type": "flying",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "18": {
+    "en": "whirlwind",
+    "zh": "吹飛",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "19": {
+    "en": "fly",
+    "zh": "飛翔",
+    "type": "flying",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 95
+  },
+  "20": {
+    "en": "bind",
+    "zh": "綁緊",
+    "type": "normal",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 85
+  },
+  "21": {
+    "en": "slam",
+    "zh": "摔打",
+    "type": "normal",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 75
+  },
+  "22": {
+    "en": "vine-whip",
+    "zh": "藤鞭",
+    "type": "grass",
+    "class": "physical",
+    "power": 45,
+    "accuracy": 100
+  },
+  "23": {
+    "en": "stomp",
+    "zh": "踩踏",
+    "type": "normal",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "24": {
+    "en": "double-kick",
+    "zh": "二連踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 100
+  },
+  "25": {
+    "en": "mega-kick",
+    "zh": "百萬噸重踢",
+    "type": "normal",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 75
+  },
+  "26": {
+    "en": "jump-kick",
+    "zh": "飛踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 95
+  },
+  "27": {
+    "en": "rolling-kick",
+    "zh": "迴旋踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 85
+  },
+  "28": {
+    "en": "sand-attack",
+    "zh": "潑沙",
+    "type": "ground",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "29": {
+    "en": "headbutt",
+    "zh": "頭錘",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "30": {
+    "en": "horn-attack",
+    "zh": "角撞",
+    "type": "normal",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "31": {
+    "en": "fury-attack",
+    "zh": "亂擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 85
+  },
+  "32": {
+    "en": "horn-drill",
+    "zh": "角鑽",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 30
+  },
+  "33": {
+    "en": "tackle",
+    "zh": "撞擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "34": {
+    "en": "body-slam",
+    "zh": "泰山壓頂",
+    "type": "normal",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "35": {
+    "en": "wrap",
+    "zh": "緊束",
+    "type": "normal",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 90
+  },
+  "36": {
+    "en": "take-down",
+    "zh": "猛撞",
+    "type": "normal",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 85
+  },
+  "37": {
+    "en": "thrash",
+    "zh": "大鬧一番",
+    "type": "normal",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "38": {
+    "en": "double-edge",
+    "zh": "捨身衝撞",
+    "type": "normal",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "39": {
+    "en": "tail-whip",
+    "zh": "搖尾巴",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "40": {
+    "en": "poison-sting",
+    "zh": "毒針",
+    "type": "poison",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 100
+  },
+  "41": {
+    "en": "twineedle",
+    "zh": "雙針",
+    "type": "bug",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 100
+  },
+  "42": {
+    "en": "pin-missile",
+    "zh": "飛彈針",
+    "type": "bug",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 95
+  },
+  "43": {
+    "en": "leer",
+    "zh": "瞪眼",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "44": {
+    "en": "bite",
+    "zh": "咬住",
+    "type": "dark",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "45": {
+    "en": "growl",
+    "zh": "叫聲",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "46": {
+    "en": "roar",
+    "zh": "吼叫",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "47": {
+    "en": "sing",
+    "zh": "唱歌",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 55
+  },
+  "48": {
+    "en": "supersonic",
+    "zh": "超音波",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 55
+  },
+  "49": {
+    "en": "sonic-boom",
+    "zh": "音爆",
+    "type": "normal",
+    "class": "special",
+    "power": null,
+    "accuracy": 90
+  },
+  "50": {
+    "en": "disable",
+    "zh": "定身法",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "51": {
+    "en": "acid",
+    "zh": "溶解液",
+    "type": "poison",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "52": {
+    "en": "ember",
+    "zh": "火花",
+    "type": "fire",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "53": {
+    "en": "flamethrower",
+    "zh": "噴射火焰",
+    "type": "fire",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "54": {
+    "en": "mist",
+    "zh": "白霧",
+    "type": "ice",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "55": {
+    "en": "water-gun",
+    "zh": "水槍",
+    "type": "water",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "56": {
+    "en": "hydro-pump",
+    "zh": "水炮",
+    "type": "water",
+    "class": "special",
+    "power": 110,
+    "accuracy": 80
+  },
+  "57": {
+    "en": "surf",
+    "zh": "衝浪",
+    "type": "water",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "58": {
+    "en": "ice-beam",
+    "zh": "冰凍光束",
+    "type": "ice",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "59": {
+    "en": "blizzard",
+    "zh": "暴風雪",
+    "type": "ice",
+    "class": "special",
+    "power": 110,
+    "accuracy": 70
+  },
+  "60": {
+    "en": "psybeam",
+    "zh": "幻象光線",
+    "type": "psychic",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "61": {
+    "en": "bubble-beam",
+    "zh": "泡沫光線",
+    "type": "water",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "62": {
+    "en": "aurora-beam",
+    "zh": "極光束",
+    "type": "ice",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "63": {
+    "en": "hyper-beam",
+    "zh": "破壞光線",
+    "type": "normal",
+    "class": "special",
+    "power": 150,
+    "accuracy": 90
+  },
+  "64": {
+    "en": "peck",
+    "zh": "啄",
+    "type": "flying",
+    "class": "physical",
+    "power": 35,
+    "accuracy": 100
+  },
+  "65": {
+    "en": "drill-peck",
+    "zh": "啄鑽",
+    "type": "flying",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "66": {
+    "en": "submission",
+    "zh": "地獄翻滾",
+    "type": "fighting",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 80
+  },
+  "67": {
+    "en": "low-kick",
+    "zh": "踢倒",
+    "type": "fighting",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "68": {
+    "en": "counter",
+    "zh": "雙倍奉還",
+    "type": "fighting",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "69": {
+    "en": "seismic-toss",
+    "zh": "地球上投",
+    "type": "fighting",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "70": {
+    "en": "strength",
+    "zh": "怪力",
+    "type": "normal",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "71": {
+    "en": "absorb",
+    "zh": "吸取",
+    "type": "grass",
+    "class": "special",
+    "power": 20,
+    "accuracy": 100
+  },
+  "72": {
+    "en": "mega-drain",
+    "zh": "超級吸取",
+    "type": "grass",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "73": {
+    "en": "leech-seed",
+    "zh": "寄生種子",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 90
+  },
+  "74": {
+    "en": "growth",
+    "zh": "生長",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "75": {
+    "en": "razor-leaf",
+    "zh": "飛葉快刀",
+    "type": "grass",
+    "class": "physical",
+    "power": 55,
+    "accuracy": 95
+  },
+  "76": {
+    "en": "solar-beam",
+    "zh": "日光束",
+    "type": "grass",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "77": {
+    "en": "poison-powder",
+    "zh": "毒粉",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 75
+  },
+  "78": {
+    "en": "stun-spore",
+    "zh": "麻痺粉",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 75
+  },
+  "79": {
+    "en": "sleep-powder",
+    "zh": "催眠粉",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 75
+  },
+  "80": {
+    "en": "petal-dance",
+    "zh": "花瓣舞",
+    "type": "grass",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "81": {
+    "en": "string-shot",
+    "zh": "吐絲",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": 95
+  },
+  "82": {
+    "en": "dragon-rage",
+    "zh": "龍之怒",
+    "type": "dragon",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "83": {
+    "en": "fire-spin",
+    "zh": "火焰旋渦",
+    "type": "fire",
+    "class": "special",
+    "power": 35,
+    "accuracy": 85
+  },
+  "84": {
+    "en": "thunder-shock",
+    "zh": "電擊",
+    "type": "electric",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "85": {
+    "en": "thunderbolt",
+    "zh": "十萬伏特",
+    "type": "electric",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "86": {
+    "en": "thunder-wave",
+    "zh": "電磁波",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": 90
+  },
+  "87": {
+    "en": "thunder",
+    "zh": "打雷",
+    "type": "electric",
+    "class": "special",
+    "power": 110,
+    "accuracy": 70
+  },
+  "88": {
+    "en": "rock-throw",
+    "zh": "落石",
+    "type": "rock",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 90
+  },
+  "89": {
+    "en": "earthquake",
+    "zh": "地震",
+    "type": "ground",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "90": {
+    "en": "fissure",
+    "zh": "地裂",
+    "type": "ground",
+    "class": "physical",
+    "power": null,
+    "accuracy": 30
+  },
+  "91": {
+    "en": "dig",
+    "zh": "挖洞",
+    "type": "ground",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "92": {
+    "en": "toxic",
+    "zh": "劇毒",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 90
+  },
+  "93": {
+    "en": "confusion",
+    "zh": "念力",
+    "type": "psychic",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "94": {
+    "en": "psychic",
+    "zh": "精神強念",
+    "type": "psychic",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "95": {
+    "en": "hypnosis",
+    "zh": "催眠術",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 60
+  },
+  "96": {
+    "en": "meditate",
+    "zh": "瑜伽姿勢",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "97": {
+    "en": "agility",
+    "zh": "高速移動",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "98": {
+    "en": "quick-attack",
+    "zh": "電光一閃",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "99": {
+    "en": "rage",
+    "zh": "憤怒",
+    "type": "normal",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 100
+  },
+  "100": {
+    "en": "teleport",
+    "zh": "瞬間移動",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "101": {
+    "en": "night-shade",
+    "zh": "黑夜魔影",
+    "type": "ghost",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "102": {
+    "en": "mimic",
+    "zh": "模仿",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "103": {
+    "en": "screech",
+    "zh": "刺耳聲",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 85
+  },
+  "104": {
+    "en": "double-team",
+    "zh": "影子分身",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "105": {
+    "en": "recover",
+    "zh": "自我再生",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "106": {
+    "en": "harden",
+    "zh": "變硬",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "107": {
+    "en": "minimize",
+    "zh": "變小",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "108": {
+    "en": "smokescreen",
+    "zh": "煙幕",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "109": {
+    "en": "confuse-ray",
+    "zh": "奇異之光",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "110": {
+    "en": "withdraw",
+    "zh": "縮入殼中",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "111": {
+    "en": "defense-curl",
+    "zh": "變圓",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "112": {
+    "en": "barrier",
+    "zh": "屏障",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "113": {
+    "en": "light-screen",
+    "zh": "光牆",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "114": {
+    "en": "haze",
+    "zh": "黑霧",
+    "type": "ice",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "115": {
+    "en": "reflect",
+    "zh": "反射壁",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "116": {
+    "en": "focus-energy",
+    "zh": "聚氣",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "117": {
+    "en": "bide",
+    "zh": "忍耐",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": null
+  },
+  "118": {
+    "en": "metronome",
+    "zh": "揮指",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "119": {
+    "en": "mirror-move",
+    "zh": "鸚鵡學舌",
+    "type": "flying",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "120": {
+    "en": "self-destruct",
+    "zh": "自爆",
+    "type": "normal",
+    "class": "physical",
+    "power": 200,
+    "accuracy": 100
+  },
+  "121": {
+    "en": "egg-bomb",
+    "zh": "炸蛋",
+    "type": "normal",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 75
+  },
+  "122": {
+    "en": "lick",
+    "zh": "舌舔",
+    "type": "ghost",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 100
+  },
+  "123": {
+    "en": "smog",
+    "zh": "濁霧",
+    "type": "poison",
+    "class": "special",
+    "power": 30,
+    "accuracy": 70
+  },
+  "124": {
+    "en": "sludge",
+    "zh": "污泥攻擊",
+    "type": "poison",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "125": {
+    "en": "bone-club",
+    "zh": "骨棒",
+    "type": "ground",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 85
+  },
+  "126": {
+    "en": "fire-blast",
+    "zh": "大字爆炎",
+    "type": "fire",
+    "class": "special",
+    "power": 110,
+    "accuracy": 85
+  },
+  "127": {
+    "en": "waterfall",
+    "zh": "攀瀑",
+    "type": "water",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "128": {
+    "en": "clamp",
+    "zh": "貝殼夾擊",
+    "type": "water",
+    "class": "physical",
+    "power": 35,
+    "accuracy": 85
+  },
+  "129": {
+    "en": "swift",
+    "zh": "高速星星",
+    "type": "normal",
+    "class": "special",
+    "power": 60,
+    "accuracy": null
+  },
+  "130": {
+    "en": "skull-bash",
+    "zh": "火箭頭錘",
+    "type": "normal",
+    "class": "physical",
+    "power": 130,
+    "accuracy": 100
+  },
+  "131": {
+    "en": "spike-cannon",
+    "zh": "尖刺加農炮",
+    "type": "normal",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 100
+  },
+  "132": {
+    "en": "constrict",
+    "zh": "纏繞",
+    "type": "normal",
+    "class": "physical",
+    "power": 10,
+    "accuracy": 100
+  },
+  "133": {
+    "en": "amnesia",
+    "zh": "瞬間失憶",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "134": {
+    "en": "kinesis",
+    "zh": "折彎湯匙",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 80
+  },
+  "135": {
+    "en": "soft-boiled",
+    "zh": "生蛋",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "136": {
+    "en": "high-jump-kick",
+    "zh": "飛膝踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 130,
+    "accuracy": 90
+  },
+  "137": {
+    "en": "glare",
+    "zh": "大蛇瞪眼",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "138": {
+    "en": "dream-eater",
+    "zh": "食夢",
+    "type": "psychic",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "139": {
+    "en": "poison-gas",
+    "zh": "毒瓦斯",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 90
+  },
+  "140": {
+    "en": "barrage",
+    "zh": "投球",
+    "type": "normal",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 85
+  },
+  "141": {
+    "en": "leech-life",
+    "zh": "吸血",
+    "type": "bug",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "142": {
+    "en": "lovely-kiss",
+    "zh": "惡魔之吻",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 75
+  },
+  "143": {
+    "en": "sky-attack",
+    "zh": "神鳥猛擊",
+    "type": "flying",
+    "class": "physical",
+    "power": 140,
+    "accuracy": 90
+  },
+  "144": {
+    "en": "transform",
+    "zh": "變身",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "145": {
+    "en": "bubble",
+    "zh": "泡沫",
+    "type": "water",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "146": {
+    "en": "dizzy-punch",
+    "zh": "迷昏拳",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "147": {
+    "en": "spore",
+    "zh": "蘑菇孢子",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "148": {
+    "en": "flash",
+    "zh": "閃光",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "149": {
+    "en": "psywave",
+    "zh": "精神波",
+    "type": "psychic",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "150": {
+    "en": "splash",
+    "zh": "躍起",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "151": {
+    "en": "acid-armor",
+    "zh": "溶化",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "152": {
+    "en": "crabhammer",
+    "zh": "蟹鉗錘",
+    "type": "water",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 90
+  },
+  "153": {
+    "en": "explosion",
+    "zh": "大爆炸",
+    "type": "normal",
+    "class": "physical",
+    "power": 250,
+    "accuracy": 100
+  },
+  "154": {
+    "en": "fury-swipes",
+    "zh": "亂抓",
+    "type": "normal",
+    "class": "physical",
+    "power": 18,
+    "accuracy": 80
+  },
+  "155": {
+    "en": "bonemerang",
+    "zh": "骨頭回力鏢",
+    "type": "ground",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 90
+  },
+  "156": {
+    "en": "rest",
+    "zh": "睡覺",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "157": {
+    "en": "rock-slide",
+    "zh": "岩崩",
+    "type": "rock",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 90
+  },
+  "158": {
+    "en": "hyper-fang",
+    "zh": "必殺門牙",
+    "type": "normal",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 90
+  },
+  "159": {
+    "en": "sharpen",
+    "zh": "稜角化",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "160": {
+    "en": "conversion",
+    "zh": "紋理",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "161": {
+    "en": "tri-attack",
+    "zh": "三重攻擊",
+    "type": "normal",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "162": {
+    "en": "super-fang",
+    "zh": "憤怒門牙",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 90
+  },
+  "163": {
+    "en": "slash",
+    "zh": "劈開",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "164": {
+    "en": "substitute",
+    "zh": "替身",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "166": {
+    "en": "sketch",
+    "zh": "寫生",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "167": {
+    "en": "triple-kick",
+    "zh": "三連踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 10,
+    "accuracy": 90
+  },
+  "168": {
+    "en": "thief",
+    "zh": "小偷",
+    "type": "dark",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "169": {
+    "en": "spider-web",
+    "zh": "蛛網",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "170": {
+    "en": "mind-reader",
+    "zh": "心之眼",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "171": {
+    "en": "nightmare",
+    "zh": "惡夢",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "172": {
+    "en": "flame-wheel",
+    "zh": "火焰輪",
+    "type": "fire",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "173": {
+    "en": "snore",
+    "zh": "打鼾",
+    "type": "normal",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "174": {
+    "en": "curse",
+    "zh": "詛咒",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "175": {
+    "en": "flail",
+    "zh": "抓狂",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "176": {
+    "en": "conversion-2",
+    "zh": "紋理２",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "177": {
+    "en": "aeroblast",
+    "zh": "氣旋攻擊",
+    "type": "flying",
+    "class": "special",
+    "power": 100,
+    "accuracy": 95
+  },
+  "178": {
+    "en": "cotton-spore",
+    "zh": "棉孢子",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "179": {
+    "en": "reversal",
+    "zh": "起死回生",
+    "type": "fighting",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "180": {
+    "en": "spite",
+    "zh": "怨恨",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "181": {
+    "en": "powder-snow",
+    "zh": "細雪",
+    "type": "ice",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "182": {
+    "en": "protect",
+    "zh": "守住",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "183": {
+    "en": "mach-punch",
+    "zh": "音速拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "184": {
+    "en": "scary-face",
+    "zh": "鬼面",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "185": {
+    "en": "feint-attack",
+    "zh": "出奇一擊",
+    "type": "dark",
+    "class": "physical",
+    "power": 60,
+    "accuracy": null
+  },
+  "186": {
+    "en": "sweet-kiss",
+    "zh": "天使之吻",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": 75
+  },
+  "187": {
+    "en": "belly-drum",
+    "zh": "腹鼓",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "188": {
+    "en": "sludge-bomb",
+    "zh": "污泥炸彈",
+    "type": "poison",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "189": {
+    "en": "mud-slap",
+    "zh": "擲泥",
+    "type": "ground",
+    "class": "special",
+    "power": 20,
+    "accuracy": 100
+  },
+  "190": {
+    "en": "octazooka",
+    "zh": "章魚桶炮",
+    "type": "water",
+    "class": "special",
+    "power": 65,
+    "accuracy": 85
+  },
+  "191": {
+    "en": "spikes",
+    "zh": "撒菱",
+    "type": "ground",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "192": {
+    "en": "zap-cannon",
+    "zh": "電磁炮",
+    "type": "electric",
+    "class": "special",
+    "power": 120,
+    "accuracy": 50
+  },
+  "193": {
+    "en": "foresight",
+    "zh": "識破",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "194": {
+    "en": "destiny-bond",
+    "zh": "同命",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "195": {
+    "en": "perish-song",
+    "zh": "滅亡之歌",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "196": {
+    "en": "icy-wind",
+    "zh": "冰凍之風",
+    "type": "ice",
+    "class": "special",
+    "power": 55,
+    "accuracy": 95
+  },
+  "197": {
+    "en": "detect",
+    "zh": "看穿",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "198": {
+    "en": "bone-rush",
+    "zh": "骨棒亂打",
+    "type": "ground",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 90
+  },
+  "199": {
+    "en": "lock-on",
+    "zh": "鎖定",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "200": {
+    "en": "outrage",
+    "zh": "逆鱗",
+    "type": "dragon",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "201": {
+    "en": "sandstorm",
+    "zh": "沙暴",
+    "type": "rock",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "202": {
+    "en": "giga-drain",
+    "zh": "終極吸取",
+    "type": "grass",
+    "class": "special",
+    "power": 75,
+    "accuracy": 100
+  },
+  "203": {
+    "en": "endure",
+    "zh": "挺住",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "204": {
+    "en": "charm",
+    "zh": "撒嬌",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "205": {
+    "en": "rollout",
+    "zh": "滾動",
+    "type": "rock",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 90
+  },
+  "206": {
+    "en": "false-swipe",
+    "zh": "點到為止",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "207": {
+    "en": "swagger",
+    "zh": "虛張聲勢",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 85
+  },
+  "208": {
+    "en": "milk-drink",
+    "zh": "喝牛奶",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "209": {
+    "en": "spark",
+    "zh": "電光",
+    "type": "electric",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "210": {
+    "en": "fury-cutter",
+    "zh": "連斬",
+    "type": "bug",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 95
+  },
+  "211": {
+    "en": "steel-wing",
+    "zh": "鋼翼",
+    "type": "steel",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 90
+  },
+  "212": {
+    "en": "mean-look",
+    "zh": "黑色目光",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "213": {
+    "en": "attract",
+    "zh": "迷人",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "214": {
+    "en": "sleep-talk",
+    "zh": "夢話",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "215": {
+    "en": "heal-bell",
+    "zh": "治癒鈴聲",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "216": {
+    "en": "return",
+    "zh": "報恩",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "217": {
+    "en": "present",
+    "zh": "禮物",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 90
+  },
+  "218": {
+    "en": "frustration",
+    "zh": "遷怒",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "219": {
+    "en": "safeguard",
+    "zh": "神秘守護",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "220": {
+    "en": "pain-split",
+    "zh": "分擔痛楚",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "221": {
+    "en": "sacred-fire",
+    "zh": "神聖之火",
+    "type": "fire",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 95
+  },
+  "222": {
+    "en": "magnitude",
+    "zh": "震級",
+    "type": "ground",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "223": {
+    "en": "dynamic-punch",
+    "zh": "爆裂拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 50
+  },
+  "224": {
+    "en": "megahorn",
+    "zh": "超級角擊",
+    "type": "bug",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 85
+  },
+  "225": {
+    "en": "dragon-breath",
+    "zh": "龍息",
+    "type": "dragon",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "226": {
+    "en": "baton-pass",
+    "zh": "接棒",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "227": {
+    "en": "encore",
+    "zh": "再來一次",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "228": {
+    "en": "pursuit",
+    "zh": "追打",
+    "type": "dark",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "229": {
+    "en": "rapid-spin",
+    "zh": "高速旋轉",
+    "type": "normal",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "230": {
+    "en": "sweet-scent",
+    "zh": "甜甜香氣",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "231": {
+    "en": "iron-tail",
+    "zh": "鐵尾",
+    "type": "steel",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 75
+  },
+  "232": {
+    "en": "metal-claw",
+    "zh": "金屬爪",
+    "type": "steel",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 95
+  },
+  "233": {
+    "en": "vital-throw",
+    "zh": "借力摔",
+    "type": "fighting",
+    "class": "physical",
+    "power": 70,
+    "accuracy": null
+  },
+  "234": {
+    "en": "morning-sun",
+    "zh": "晨光",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "235": {
+    "en": "synthesis",
+    "zh": "光合作用",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "236": {
+    "en": "moonlight",
+    "zh": "月光",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "237": {
+    "en": "hidden-power",
+    "zh": "覺醒力量",
+    "type": "normal",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "238": {
+    "en": "cross-chop",
+    "zh": "十字劈",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 80
+  },
+  "239": {
+    "en": "twister",
+    "zh": "龍捲風",
+    "type": "dragon",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "240": {
+    "en": "rain-dance",
+    "zh": "求雨",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "241": {
+    "en": "sunny-day",
+    "zh": "大晴天",
+    "type": "fire",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "242": {
+    "en": "crunch",
+    "zh": "咬碎",
+    "type": "dark",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "243": {
+    "en": "mirror-coat",
+    "zh": "鏡面反射",
+    "type": "psychic",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "244": {
+    "en": "psych-up",
+    "zh": "自我暗示",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "245": {
+    "en": "extreme-speed",
+    "zh": "神速",
+    "type": "normal",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "246": {
+    "en": "ancient-power",
+    "zh": "原始之力",
+    "type": "rock",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "247": {
+    "en": "shadow-ball",
+    "zh": "暗影球",
+    "type": "ghost",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "248": {
+    "en": "future-sight",
+    "zh": "預知未來",
+    "type": "psychic",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "249": {
+    "en": "rock-smash",
+    "zh": "碎岩",
+    "type": "fighting",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "250": {
+    "en": "whirlpool",
+    "zh": "潮旋",
+    "type": "water",
+    "class": "special",
+    "power": 35,
+    "accuracy": 85
+  },
+  "251": {
+    "en": "beat-up",
+    "zh": "圍攻",
+    "type": "dark",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "252": {
+    "en": "fake-out",
+    "zh": "擊掌奇襲",
+    "type": "normal",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "253": {
+    "en": "uproar",
+    "zh": "吵鬧",
+    "type": "normal",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "254": {
+    "en": "stockpile",
+    "zh": "蓄力",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "255": {
+    "en": "spit-up",
+    "zh": "噴出",
+    "type": "normal",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "256": {
+    "en": "swallow",
+    "zh": "吞下",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "257": {
+    "en": "heat-wave",
+    "zh": "熱風",
+    "type": "fire",
+    "class": "special",
+    "power": 95,
+    "accuracy": 90
+  },
+  "258": {
+    "en": "hail",
+    "zh": "冰雹",
+    "type": "ice",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "259": {
+    "en": "torment",
+    "zh": "無理取鬧",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "260": {
+    "en": "flatter",
+    "zh": "吹捧",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "261": {
+    "en": "will-o-wisp",
+    "zh": "鬼火",
+    "type": "fire",
+    "class": "status",
+    "power": null,
+    "accuracy": 85
+  },
+  "262": {
+    "en": "memento",
+    "zh": "臨別禮物",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "263": {
+    "en": "facade",
+    "zh": "硬撐",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "264": {
+    "en": "focus-punch",
+    "zh": "真氣拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 150,
+    "accuracy": 100
+  },
+  "265": {
+    "en": "smelling-salts",
+    "zh": "清醒",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "266": {
+    "en": "follow-me",
+    "zh": "看我嘛",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "267": {
+    "en": "nature-power",
+    "zh": "自然之力",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "268": {
+    "en": "charge",
+    "zh": "充電",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "269": {
+    "en": "taunt",
+    "zh": "挑釁",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "270": {
+    "en": "helping-hand",
+    "zh": "幫助",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "271": {
+    "en": "trick",
+    "zh": "戲法",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "272": {
+    "en": "role-play",
+    "zh": "扮演",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "273": {
+    "en": "wish",
+    "zh": "祈願",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "274": {
+    "en": "assist",
+    "zh": "借助",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "275": {
+    "en": "ingrain",
+    "zh": "扎根",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "276": {
+    "en": "superpower",
+    "zh": "蠻力",
+    "type": "fighting",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "277": {
+    "en": "magic-coat",
+    "zh": "魔法反射",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "278": {
+    "en": "recycle",
+    "zh": "回收利用",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "279": {
+    "en": "revenge",
+    "zh": "報復",
+    "type": "fighting",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "280": {
+    "en": "brick-break",
+    "zh": "劈瓦",
+    "type": "fighting",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "281": {
+    "en": "yawn",
+    "zh": "哈欠",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "282": {
+    "en": "knock-off",
+    "zh": "拍落",
+    "type": "dark",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "283": {
+    "en": "endeavor",
+    "zh": "蠻幹",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "284": {
+    "en": "eruption",
+    "zh": "噴火",
+    "type": "fire",
+    "class": "special",
+    "power": 150,
+    "accuracy": 100
+  },
+  "285": {
+    "en": "skill-swap",
+    "zh": "特性互換",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "286": {
+    "en": "imprison",
+    "zh": "封印",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "287": {
+    "en": "refresh",
+    "zh": "煥然一新",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "288": {
+    "en": "grudge",
+    "zh": "怨念",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "289": {
+    "en": "snatch",
+    "zh": "搶奪",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "290": {
+    "en": "secret-power",
+    "zh": "秘密之力",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "291": {
+    "en": "dive",
+    "zh": "潛水",
+    "type": "water",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "292": {
+    "en": "arm-thrust",
+    "zh": "猛推",
+    "type": "fighting",
+    "class": "physical",
+    "power": 15,
+    "accuracy": 100
+  },
+  "293": {
+    "en": "camouflage",
+    "zh": "保護色",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "294": {
+    "en": "tail-glow",
+    "zh": "螢火",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "295": {
+    "en": "luster-purge",
+    "zh": "潔淨光芒",
+    "type": "psychic",
+    "class": "special",
+    "power": 95,
+    "accuracy": 100
+  },
+  "296": {
+    "en": "mist-ball",
+    "zh": "薄霧球",
+    "type": "psychic",
+    "class": "special",
+    "power": 95,
+    "accuracy": 100
+  },
+  "297": {
+    "en": "feather-dance",
+    "zh": "羽毛舞",
+    "type": "flying",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "298": {
+    "en": "teeter-dance",
+    "zh": "搖晃舞",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "299": {
+    "en": "blaze-kick",
+    "zh": "火焰踢",
+    "type": "fire",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 90
+  },
+  "300": {
+    "en": "mud-sport",
+    "zh": "玩泥巴",
+    "type": "ground",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "301": {
+    "en": "ice-ball",
+    "zh": "冰球",
+    "type": "ice",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 90
+  },
+  "302": {
+    "en": "needle-arm",
+    "zh": "尖刺臂",
+    "type": "grass",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "303": {
+    "en": "slack-off",
+    "zh": "偷懶",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "304": {
+    "en": "hyper-voice",
+    "zh": "巨聲",
+    "type": "normal",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "305": {
+    "en": "poison-fang",
+    "zh": "劇毒牙",
+    "type": "poison",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "306": {
+    "en": "crush-claw",
+    "zh": "撕裂爪",
+    "type": "normal",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 95
+  },
+  "307": {
+    "en": "blast-burn",
+    "zh": "爆炸烈焰",
+    "type": "fire",
+    "class": "special",
+    "power": 150,
+    "accuracy": 90
+  },
+  "308": {
+    "en": "hydro-cannon",
+    "zh": "加農水炮",
+    "type": "water",
+    "class": "special",
+    "power": 150,
+    "accuracy": 90
+  },
+  "309": {
+    "en": "meteor-mash",
+    "zh": "彗星拳",
+    "type": "steel",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 90
+  },
+  "310": {
+    "en": "astonish",
+    "zh": "驚嚇",
+    "type": "ghost",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 100
+  },
+  "311": {
+    "en": "weather-ball",
+    "zh": "氣象球",
+    "type": "normal",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "312": {
+    "en": "aromatherapy",
+    "zh": "芳香治療",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "313": {
+    "en": "fake-tears",
+    "zh": "假哭",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "314": {
+    "en": "air-cutter",
+    "zh": "空氣利刃",
+    "type": "flying",
+    "class": "special",
+    "power": 60,
+    "accuracy": 95
+  },
+  "315": {
+    "en": "overheat",
+    "zh": "過熱",
+    "type": "fire",
+    "class": "special",
+    "power": 130,
+    "accuracy": 90
+  },
+  "316": {
+    "en": "odor-sleuth",
+    "zh": "氣味偵測",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "317": {
+    "en": "rock-tomb",
+    "zh": "岩石封鎖",
+    "type": "rock",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 95
+  },
+  "318": {
+    "en": "silver-wind",
+    "zh": "銀色旋風",
+    "type": "bug",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "319": {
+    "en": "metal-sound",
+    "zh": "金屬音",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": 85
+  },
+  "320": {
+    "en": "grass-whistle",
+    "zh": "草笛",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 55
+  },
+  "321": {
+    "en": "tickle",
+    "zh": "搔癢",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "322": {
+    "en": "cosmic-power",
+    "zh": "宇宙力量",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "323": {
+    "en": "water-spout",
+    "zh": "噴水",
+    "type": "water",
+    "class": "special",
+    "power": 150,
+    "accuracy": 100
+  },
+  "324": {
+    "en": "signal-beam",
+    "zh": "信號光束",
+    "type": "bug",
+    "class": "special",
+    "power": 75,
+    "accuracy": 100
+  },
+  "325": {
+    "en": "shadow-punch",
+    "zh": "暗影拳",
+    "type": "ghost",
+    "class": "physical",
+    "power": 60,
+    "accuracy": null
+  },
+  "326": {
+    "en": "extrasensory",
+    "zh": "神通力",
+    "type": "psychic",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "327": {
+    "en": "sky-uppercut",
+    "zh": "衝天拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 90
+  },
+  "328": {
+    "en": "sand-tomb",
+    "zh": "流沙地獄",
+    "type": "ground",
+    "class": "physical",
+    "power": 35,
+    "accuracy": 85
+  },
+  "329": {
+    "en": "sheer-cold",
+    "zh": "絕對零度",
+    "type": "ice",
+    "class": "special",
+    "power": null,
+    "accuracy": 30
+  },
+  "330": {
+    "en": "muddy-water",
+    "zh": "濁流",
+    "type": "water",
+    "class": "special",
+    "power": 90,
+    "accuracy": 85
+  },
+  "331": {
+    "en": "bullet-seed",
+    "zh": "種子機關槍",
+    "type": "grass",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 100
+  },
+  "332": {
+    "en": "aerial-ace",
+    "zh": "燕返",
+    "type": "flying",
+    "class": "physical",
+    "power": 60,
+    "accuracy": null
+  },
+  "333": {
+    "en": "icicle-spear",
+    "zh": "冰錐",
+    "type": "ice",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 100
+  },
+  "334": {
+    "en": "iron-defense",
+    "zh": "鐵壁",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "335": {
+    "en": "block",
+    "zh": "擋路",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "336": {
+    "en": "howl",
+    "zh": "長嚎",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "337": {
+    "en": "dragon-claw",
+    "zh": "龍爪",
+    "type": "dragon",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "338": {
+    "en": "frenzy-plant",
+    "zh": "瘋狂植物",
+    "type": "grass",
+    "class": "special",
+    "power": 150,
+    "accuracy": 90
+  },
+  "339": {
+    "en": "bulk-up",
+    "zh": "健美",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "340": {
+    "en": "bounce",
+    "zh": "彈跳",
+    "type": "flying",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 85
+  },
+  "341": {
+    "en": "mud-shot",
+    "zh": "泥巴射擊",
+    "type": "ground",
+    "class": "special",
+    "power": 55,
+    "accuracy": 95
+  },
+  "342": {
+    "en": "poison-tail",
+    "zh": "毒尾",
+    "type": "poison",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "343": {
+    "en": "covet",
+    "zh": "渴望",
+    "type": "normal",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "344": {
+    "en": "volt-tackle",
+    "zh": "伏特攻擊",
+    "type": "electric",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "345": {
+    "en": "magical-leaf",
+    "zh": "魔法葉",
+    "type": "grass",
+    "class": "special",
+    "power": 60,
+    "accuracy": null
+  },
+  "346": {
+    "en": "water-sport",
+    "zh": "玩水",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "347": {
+    "en": "calm-mind",
+    "zh": "冥想",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "348": {
+    "en": "leaf-blade",
+    "zh": "葉刃",
+    "type": "grass",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "349": {
+    "en": "dragon-dance",
+    "zh": "龍之舞",
+    "type": "dragon",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "350": {
+    "en": "rock-blast",
+    "zh": "岩石爆擊",
+    "type": "rock",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 90
+  },
+  "351": {
+    "en": "shock-wave",
+    "zh": "電擊波",
+    "type": "electric",
+    "class": "special",
+    "power": 60,
+    "accuracy": null
+  },
+  "352": {
+    "en": "water-pulse",
+    "zh": "水之波動",
+    "type": "water",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "353": {
+    "en": "doom-desire",
+    "zh": "破滅之願",
+    "type": "steel",
+    "class": "special",
+    "power": 140,
+    "accuracy": 100
+  },
+  "354": {
+    "en": "psycho-boost",
+    "zh": "精神突進",
+    "type": "psychic",
+    "class": "special",
+    "power": 140,
+    "accuracy": 90
+  },
+  "355": {
+    "en": "roost",
+    "zh": "羽棲",
+    "type": "flying",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "356": {
+    "en": "gravity",
+    "zh": "重力",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "357": {
+    "en": "miracle-eye",
+    "zh": "奇跡之眼",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "358": {
+    "en": "wake-up-slap",
+    "zh": "喚醒巴掌",
+    "type": "fighting",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "359": {
+    "en": "hammer-arm",
+    "zh": "臂錘",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 90
+  },
+  "360": {
+    "en": "gyro-ball",
+    "zh": "陀螺球",
+    "type": "steel",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "361": {
+    "en": "healing-wish",
+    "zh": "治癒之願",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "362": {
+    "en": "brine",
+    "zh": "鹽水",
+    "type": "water",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "363": {
+    "en": "natural-gift",
+    "zh": "自然之恩",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "364": {
+    "en": "feint",
+    "zh": "佯攻",
+    "type": "normal",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 100
+  },
+  "365": {
+    "en": "pluck",
+    "zh": "啄食",
+    "type": "flying",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "366": {
+    "en": "tailwind",
+    "zh": "順風",
+    "type": "flying",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "367": {
+    "en": "acupressure",
+    "zh": "點穴",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "368": {
+    "en": "metal-burst",
+    "zh": "金屬爆炸",
+    "type": "steel",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "369": {
+    "en": "u-turn",
+    "zh": "急速折返",
+    "type": "bug",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "370": {
+    "en": "close-combat",
+    "zh": "近身戰",
+    "type": "fighting",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "371": {
+    "en": "payback",
+    "zh": "以牙還牙",
+    "type": "dark",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "372": {
+    "en": "assurance",
+    "zh": "惡意追擊",
+    "type": "dark",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "373": {
+    "en": "embargo",
+    "zh": "查封",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "374": {
+    "en": "fling",
+    "zh": "投擲",
+    "type": "dark",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "375": {
+    "en": "psycho-shift",
+    "zh": "精神轉移",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "376": {
+    "en": "trump-card",
+    "zh": "王牌",
+    "type": "normal",
+    "class": "special",
+    "power": null,
+    "accuracy": null
+  },
+  "377": {
+    "en": "heal-block",
+    "zh": "回復封鎖",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "378": {
+    "en": "wring-out",
+    "zh": "絞緊",
+    "type": "normal",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "379": {
+    "en": "power-trick",
+    "zh": "力量戲法",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "380": {
+    "en": "gastro-acid",
+    "zh": "胃液",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "381": {
+    "en": "lucky-chant",
+    "zh": "幸運咒語",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "382": {
+    "en": "me-first",
+    "zh": "搶先一步",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "383": {
+    "en": "copycat",
+    "zh": "仿效",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "384": {
+    "en": "power-swap",
+    "zh": "力量互換",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "385": {
+    "en": "guard-swap",
+    "zh": "防守互換",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "386": {
+    "en": "punishment",
+    "zh": "懲罰",
+    "type": "dark",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "387": {
+    "en": "last-resort",
+    "zh": "珍藏",
+    "type": "normal",
+    "class": "physical",
+    "power": 140,
+    "accuracy": 100
+  },
+  "388": {
+    "en": "worry-seed",
+    "zh": "煩惱種子",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "389": {
+    "en": "sucker-punch",
+    "zh": "突襲",
+    "type": "dark",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "390": {
+    "en": "toxic-spikes",
+    "zh": "毒菱",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "391": {
+    "en": "heart-swap",
+    "zh": "心靈互換",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "392": {
+    "en": "aqua-ring",
+    "zh": "水流環",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "393": {
+    "en": "magnet-rise",
+    "zh": "電磁飄浮",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "394": {
+    "en": "flare-blitz",
+    "zh": "閃焰衝鋒",
+    "type": "fire",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "395": {
+    "en": "force-palm",
+    "zh": "發勁",
+    "type": "fighting",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "396": {
+    "en": "aura-sphere",
+    "zh": "波導彈",
+    "type": "fighting",
+    "class": "special",
+    "power": 80,
+    "accuracy": null
+  },
+  "397": {
+    "en": "rock-polish",
+    "zh": "岩石打磨",
+    "type": "rock",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "398": {
+    "en": "poison-jab",
+    "zh": "毒擊",
+    "type": "poison",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "399": {
+    "en": "dark-pulse",
+    "zh": "惡之波動",
+    "type": "dark",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "400": {
+    "en": "night-slash",
+    "zh": "暗襲要害",
+    "type": "dark",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "401": {
+    "en": "aqua-tail",
+    "zh": "水流尾",
+    "type": "water",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 90
+  },
+  "402": {
+    "en": "seed-bomb",
+    "zh": "種子炸彈",
+    "type": "grass",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "403": {
+    "en": "air-slash",
+    "zh": "空氣斬",
+    "type": "flying",
+    "class": "special",
+    "power": 75,
+    "accuracy": 95
+  },
+  "404": {
+    "en": "x-scissor",
+    "zh": "十字剪",
+    "type": "bug",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "405": {
+    "en": "bug-buzz",
+    "zh": "蟲鳴",
+    "type": "bug",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "406": {
+    "en": "dragon-pulse",
+    "zh": "龍之波動",
+    "type": "dragon",
+    "class": "special",
+    "power": 85,
+    "accuracy": 100
+  },
+  "407": {
+    "en": "dragon-rush",
+    "zh": "龍之俯衝",
+    "type": "dragon",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 75
+  },
+  "408": {
+    "en": "power-gem",
+    "zh": "力量寶石",
+    "type": "rock",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "409": {
+    "en": "drain-punch",
+    "zh": "吸取拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "410": {
+    "en": "vacuum-wave",
+    "zh": "真空波",
+    "type": "fighting",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "411": {
+    "en": "focus-blast",
+    "zh": "真氣彈",
+    "type": "fighting",
+    "class": "special",
+    "power": 120,
+    "accuracy": 70
+  },
+  "412": {
+    "en": "energy-ball",
+    "zh": "能量球",
+    "type": "grass",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "413": {
+    "en": "brave-bird",
+    "zh": "勇鳥猛攻",
+    "type": "flying",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "414": {
+    "en": "earth-power",
+    "zh": "大地之力",
+    "type": "ground",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "415": {
+    "en": "switcheroo",
+    "zh": "掉包",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "416": {
+    "en": "giga-impact",
+    "zh": "終極衝擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 150,
+    "accuracy": 90
+  },
+  "417": {
+    "en": "nasty-plot",
+    "zh": "詭計",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "418": {
+    "en": "bullet-punch",
+    "zh": "子彈拳",
+    "type": "steel",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "419": {
+    "en": "avalanche",
+    "zh": "雪崩",
+    "type": "ice",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "420": {
+    "en": "ice-shard",
+    "zh": "冰礫",
+    "type": "ice",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "421": {
+    "en": "shadow-claw",
+    "zh": "暗影爪",
+    "type": "ghost",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "422": {
+    "en": "thunder-fang",
+    "zh": "雷電牙",
+    "type": "electric",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 95
+  },
+  "423": {
+    "en": "ice-fang",
+    "zh": "冰凍牙",
+    "type": "ice",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 95
+  },
+  "424": {
+    "en": "fire-fang",
+    "zh": "火焰牙",
+    "type": "fire",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 95
+  },
+  "425": {
+    "en": "shadow-sneak",
+    "zh": "影子偷襲",
+    "type": "ghost",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "426": {
+    "en": "mud-bomb",
+    "zh": "泥巴炸彈",
+    "type": "ground",
+    "class": "special",
+    "power": 65,
+    "accuracy": 85
+  },
+  "427": {
+    "en": "psycho-cut",
+    "zh": "精神利刃",
+    "type": "psychic",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "428": {
+    "en": "zen-headbutt",
+    "zh": "意念頭錘",
+    "type": "psychic",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 90
+  },
+  "429": {
+    "en": "mirror-shot",
+    "zh": "鏡光射擊",
+    "type": "steel",
+    "class": "special",
+    "power": 65,
+    "accuracy": 85
+  },
+  "430": {
+    "en": "flash-cannon",
+    "zh": "加農光炮",
+    "type": "steel",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "431": {
+    "en": "rock-climb",
+    "zh": "攀岩",
+    "type": "normal",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 85
+  },
+  "432": {
+    "en": "defog",
+    "zh": "清除濃霧",
+    "type": "flying",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "433": {
+    "en": "trick-room",
+    "zh": "戲法空間",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "434": {
+    "en": "draco-meteor",
+    "zh": "流星群",
+    "type": "dragon",
+    "class": "special",
+    "power": 130,
+    "accuracy": 90
+  },
+  "435": {
+    "en": "discharge",
+    "zh": "放電",
+    "type": "electric",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "436": {
+    "en": "lava-plume",
+    "zh": "噴煙",
+    "type": "fire",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "437": {
+    "en": "leaf-storm",
+    "zh": "飛葉風暴",
+    "type": "grass",
+    "class": "special",
+    "power": 130,
+    "accuracy": 90
+  },
+  "438": {
+    "en": "power-whip",
+    "zh": "強力鞭打",
+    "type": "grass",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 85
+  },
+  "439": {
+    "en": "rock-wrecker",
+    "zh": "岩石炮",
+    "type": "rock",
+    "class": "physical",
+    "power": 150,
+    "accuracy": 90
+  },
+  "440": {
+    "en": "cross-poison",
+    "zh": "十字毒刃",
+    "type": "poison",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "441": {
+    "en": "gunk-shot",
+    "zh": "垃圾射擊",
+    "type": "poison",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 80
+  },
+  "442": {
+    "en": "iron-head",
+    "zh": "鐵頭",
+    "type": "steel",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "443": {
+    "en": "magnet-bomb",
+    "zh": "磁鐵炸彈",
+    "type": "steel",
+    "class": "physical",
+    "power": 60,
+    "accuracy": null
+  },
+  "444": {
+    "en": "stone-edge",
+    "zh": "尖石攻擊",
+    "type": "rock",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 80
+  },
+  "445": {
+    "en": "captivate",
+    "zh": "誘惑",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "446": {
+    "en": "stealth-rock",
+    "zh": "隱形岩",
+    "type": "rock",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "447": {
+    "en": "grass-knot",
+    "zh": "打草結",
+    "type": "grass",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "448": {
+    "en": "chatter",
+    "zh": "喋喋不休",
+    "type": "flying",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "449": {
+    "en": "judgment",
+    "zh": "制裁光礫",
+    "type": "normal",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "450": {
+    "en": "bug-bite",
+    "zh": "蟲咬",
+    "type": "bug",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "451": {
+    "en": "charge-beam",
+    "zh": "充電光束",
+    "type": "electric",
+    "class": "special",
+    "power": 50,
+    "accuracy": 90
+  },
+  "452": {
+    "en": "wood-hammer",
+    "zh": "木槌",
+    "type": "grass",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "453": {
+    "en": "aqua-jet",
+    "zh": "水流噴射",
+    "type": "water",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "454": {
+    "en": "attack-order",
+    "zh": "攻擊指令",
+    "type": "bug",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "455": {
+    "en": "defend-order",
+    "zh": "防禦指令",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "456": {
+    "en": "heal-order",
+    "zh": "回復指令",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "457": {
+    "en": "head-smash",
+    "zh": "雙刃頭錘",
+    "type": "rock",
+    "class": "physical",
+    "power": 150,
+    "accuracy": 80
+  },
+  "458": {
+    "en": "double-hit",
+    "zh": "二連擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 35,
+    "accuracy": 90
+  },
+  "459": {
+    "en": "roar-of-time",
+    "zh": "時光咆哮",
+    "type": "dragon",
+    "class": "special",
+    "power": 150,
+    "accuracy": 90
+  },
+  "460": {
+    "en": "spacial-rend",
+    "zh": "亞空裂斬",
+    "type": "dragon",
+    "class": "special",
+    "power": 100,
+    "accuracy": 95
+  },
+  "461": {
+    "en": "lunar-dance",
+    "zh": "新月舞",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "462": {
+    "en": "crush-grip",
+    "zh": "捏碎",
+    "type": "normal",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "463": {
+    "en": "magma-storm",
+    "zh": "熔岩風暴",
+    "type": "fire",
+    "class": "special",
+    "power": 100,
+    "accuracy": 75
+  },
+  "464": {
+    "en": "dark-void",
+    "zh": "暗黑洞",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 50
+  },
+  "465": {
+    "en": "seed-flare",
+    "zh": "種子閃光",
+    "type": "grass",
+    "class": "special",
+    "power": 120,
+    "accuracy": 85
+  },
+  "466": {
+    "en": "ominous-wind",
+    "zh": "奇異之風",
+    "type": "ghost",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "467": {
+    "en": "shadow-force",
+    "zh": "暗影潛襲",
+    "type": "ghost",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "468": {
+    "en": "hone-claws",
+    "zh": "磨爪",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "469": {
+    "en": "wide-guard",
+    "zh": "廣域防守",
+    "type": "rock",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "470": {
+    "en": "guard-split",
+    "zh": "防守平分",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "471": {
+    "en": "power-split",
+    "zh": "力量平分",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "472": {
+    "en": "wonder-room",
+    "zh": "奇妙空間",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "473": {
+    "en": "psyshock",
+    "zh": "精神衝擊",
+    "type": "psychic",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "474": {
+    "en": "venoshock",
+    "zh": "毒液衝擊",
+    "type": "poison",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "475": {
+    "en": "autotomize",
+    "zh": "身體輕量化",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "476": {
+    "en": "rage-powder",
+    "zh": "憤怒粉",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "477": {
+    "en": "telekinesis",
+    "zh": "意念移物",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "478": {
+    "en": "magic-room",
+    "zh": "魔法空間",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "479": {
+    "en": "smack-down",
+    "zh": "擊落",
+    "type": "rock",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "480": {
+    "en": "storm-throw",
+    "zh": "山嵐摔",
+    "type": "fighting",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "481": {
+    "en": "flame-burst",
+    "zh": "烈焰濺射",
+    "type": "fire",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "482": {
+    "en": "sludge-wave",
+    "zh": "污泥波",
+    "type": "poison",
+    "class": "special",
+    "power": 95,
+    "accuracy": 100
+  },
+  "483": {
+    "en": "quiver-dance",
+    "zh": "蝶舞",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "484": {
+    "en": "heavy-slam",
+    "zh": "重磅衝撞",
+    "type": "steel",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "485": {
+    "en": "synchronoise",
+    "zh": "同步干擾",
+    "type": "psychic",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "486": {
+    "en": "electro-ball",
+    "zh": "電球",
+    "type": "electric",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "487": {
+    "en": "soak",
+    "zh": "浸水",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "488": {
+    "en": "flame-charge",
+    "zh": "蓄能焰襲",
+    "type": "fire",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "489": {
+    "en": "coil",
+    "zh": "盤蜷",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "490": {
+    "en": "low-sweep",
+    "zh": "下盤踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "491": {
+    "en": "acid-spray",
+    "zh": "酸液炸彈",
+    "type": "poison",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "492": {
+    "en": "foul-play",
+    "zh": "欺詐",
+    "type": "dark",
+    "class": "physical",
+    "power": 95,
+    "accuracy": 100
+  },
+  "493": {
+    "en": "simple-beam",
+    "zh": "單純光束",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "494": {
+    "en": "entrainment",
+    "zh": "找夥伴",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "495": {
+    "en": "after-you",
+    "zh": "您先請",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "496": {
+    "en": "round",
+    "zh": "輪唱",
+    "type": "normal",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "497": {
+    "en": "echoed-voice",
+    "zh": "回聲",
+    "type": "normal",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "498": {
+    "en": "chip-away",
+    "zh": "逐步擊破",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "499": {
+    "en": "clear-smog",
+    "zh": "清除之煙",
+    "type": "poison",
+    "class": "special",
+    "power": 50,
+    "accuracy": null
+  },
+  "500": {
+    "en": "stored-power",
+    "zh": "輔助力量",
+    "type": "psychic",
+    "class": "special",
+    "power": 20,
+    "accuracy": 100
+  },
+  "501": {
+    "en": "quick-guard",
+    "zh": "快速防守",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "502": {
+    "en": "ally-switch",
+    "zh": "交換場地",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "503": {
+    "en": "scald",
+    "zh": "熱水",
+    "type": "water",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "504": {
+    "en": "shell-smash",
+    "zh": "破殼",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "505": {
+    "en": "heal-pulse",
+    "zh": "治癒波動",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "506": {
+    "en": "hex",
+    "zh": "禍不單行",
+    "type": "ghost",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "507": {
+    "en": "sky-drop",
+    "zh": "自由落體",
+    "type": "flying",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "508": {
+    "en": "shift-gear",
+    "zh": "換檔",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "509": {
+    "en": "circle-throw",
+    "zh": "巴投",
+    "type": "fighting",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 90
+  },
+  "510": {
+    "en": "incinerate",
+    "zh": "燒盡",
+    "type": "fire",
+    "class": "special",
+    "power": 60,
+    "accuracy": 100
+  },
+  "511": {
+    "en": "quash",
+    "zh": "延後",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "512": {
+    "en": "acrobatics",
+    "zh": "雜技",
+    "type": "flying",
+    "class": "physical",
+    "power": 55,
+    "accuracy": 100
+  },
+  "513": {
+    "en": "reflect-type",
+    "zh": "鏡面屬性",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "514": {
+    "en": "retaliate",
+    "zh": "報仇",
+    "type": "normal",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "515": {
+    "en": "final-gambit",
+    "zh": "搏命",
+    "type": "fighting",
+    "class": "special",
+    "power": null,
+    "accuracy": 100
+  },
+  "516": {
+    "en": "bestow",
+    "zh": "傳遞禮物",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "517": {
+    "en": "inferno",
+    "zh": "煉獄",
+    "type": "fire",
+    "class": "special",
+    "power": 100,
+    "accuracy": 50
+  },
+  "518": {
+    "en": "water-pledge",
+    "zh": "水之誓約",
+    "type": "water",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "519": {
+    "en": "fire-pledge",
+    "zh": "火之誓約",
+    "type": "fire",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "520": {
+    "en": "grass-pledge",
+    "zh": "草之誓約",
+    "type": "grass",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "521": {
+    "en": "volt-switch",
+    "zh": "伏特替換",
+    "type": "electric",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "522": {
+    "en": "struggle-bug",
+    "zh": "蟲之抵抗",
+    "type": "bug",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "523": {
+    "en": "bulldoze",
+    "zh": "重踏",
+    "type": "ground",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "524": {
+    "en": "frost-breath",
+    "zh": "冰息",
+    "type": "ice",
+    "class": "special",
+    "power": 60,
+    "accuracy": 90
+  },
+  "525": {
+    "en": "dragon-tail",
+    "zh": "龍尾",
+    "type": "dragon",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 90
+  },
+  "526": {
+    "en": "work-up",
+    "zh": "自我激勵",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "527": {
+    "en": "electroweb",
+    "zh": "電網",
+    "type": "electric",
+    "class": "special",
+    "power": 55,
+    "accuracy": 95
+  },
+  "528": {
+    "en": "wild-charge",
+    "zh": "瘋狂伏特",
+    "type": "electric",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "529": {
+    "en": "drill-run",
+    "zh": "直衝鑽",
+    "type": "ground",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 95
+  },
+  "530": {
+    "en": "dual-chop",
+    "zh": "二連劈",
+    "type": "dragon",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 90
+  },
+  "531": {
+    "en": "heart-stamp",
+    "zh": "愛心印章",
+    "type": "psychic",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "532": {
+    "en": "horn-leech",
+    "zh": "木角",
+    "type": "grass",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "533": {
+    "en": "sacred-sword",
+    "zh": "聖劍",
+    "type": "fighting",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "534": {
+    "en": "razor-shell",
+    "zh": "貝殼刃",
+    "type": "water",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 95
+  },
+  "535": {
+    "en": "heat-crash",
+    "zh": "高溫重壓",
+    "type": "fire",
+    "class": "physical",
+    "power": null,
+    "accuracy": 100
+  },
+  "536": {
+    "en": "leaf-tornado",
+    "zh": "青草攪拌器",
+    "type": "grass",
+    "class": "special",
+    "power": 65,
+    "accuracy": 90
+  },
+  "537": {
+    "en": "steamroller",
+    "zh": "瘋狂滾壓",
+    "type": "bug",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "538": {
+    "en": "cotton-guard",
+    "zh": "棉花防守",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "539": {
+    "en": "night-daze",
+    "zh": "暗黑爆破",
+    "type": "dark",
+    "class": "special",
+    "power": 85,
+    "accuracy": 95
+  },
+  "540": {
+    "en": "psystrike",
+    "zh": "精神擊破",
+    "type": "psychic",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "541": {
+    "en": "tail-slap",
+    "zh": "掃尾拍打",
+    "type": "normal",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 85
+  },
+  "542": {
+    "en": "hurricane",
+    "zh": "暴風",
+    "type": "flying",
+    "class": "special",
+    "power": 110,
+    "accuracy": 70
+  },
+  "543": {
+    "en": "head-charge",
+    "zh": "爆炸頭突擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "544": {
+    "en": "gear-grind",
+    "zh": "齒輪飛盤",
+    "type": "steel",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 85
+  },
+  "545": {
+    "en": "searing-shot",
+    "zh": "火焰彈",
+    "type": "fire",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "546": {
+    "en": "techno-blast",
+    "zh": "高科技光炮",
+    "type": "normal",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "547": {
+    "en": "relic-song",
+    "zh": "古老之歌",
+    "type": "normal",
+    "class": "special",
+    "power": 75,
+    "accuracy": 100
+  },
+  "548": {
+    "en": "secret-sword",
+    "zh": "神秘之劍",
+    "type": "fighting",
+    "class": "special",
+    "power": 85,
+    "accuracy": 100
+  },
+  "549": {
+    "en": "glaciate",
+    "zh": "冰封世界",
+    "type": "ice",
+    "class": "special",
+    "power": 65,
+    "accuracy": 95
+  },
+  "550": {
+    "en": "bolt-strike",
+    "zh": "雷擊",
+    "type": "electric",
+    "class": "physical",
+    "power": 130,
+    "accuracy": 85
+  },
+  "551": {
+    "en": "blue-flare",
+    "zh": "青焰",
+    "type": "fire",
+    "class": "special",
+    "power": 130,
+    "accuracy": 85
+  },
+  "552": {
+    "en": "fiery-dance",
+    "zh": "火之舞",
+    "type": "fire",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "555": {
+    "en": "snarl",
+    "zh": "大聲咆哮",
+    "type": "dark",
+    "class": "special",
+    "power": 55,
+    "accuracy": 95
+  },
+  "556": {
+    "en": "icicle-crash",
+    "zh": "冰柱墜擊",
+    "type": "ice",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 90
+  },
+  "557": {
+    "en": "v-create",
+    "zh": "Ｖ熱焰",
+    "type": "fire",
+    "class": "physical",
+    "power": 180,
+    "accuracy": 95
+  },
+  "558": {
+    "en": "fusion-flare",
+    "zh": "交錯火焰",
+    "type": "fire",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "559": {
+    "en": "fusion-bolt",
+    "zh": "交錯閃電",
+    "type": "electric",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "560": {
+    "en": "flying-press",
+    "zh": "飛身重壓",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 95
+  },
+  "561": {
+    "en": "mat-block",
+    "zh": "掀榻榻米",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "562": {
+    "en": "belch",
+    "zh": "打嗝",
+    "type": "poison",
+    "class": "special",
+    "power": 120,
+    "accuracy": 90
+  },
+  "563": {
+    "en": "rototiller",
+    "zh": "耕地",
+    "type": "ground",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "564": {
+    "en": "sticky-web",
+    "zh": "黏黏網",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "565": {
+    "en": "fell-stinger",
+    "zh": "致命針刺",
+    "type": "bug",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "566": {
+    "en": "phantom-force",
+    "zh": "潛靈奇襲",
+    "type": "ghost",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "567": {
+    "en": "trick-or-treat",
+    "zh": "萬聖夜",
+    "type": "ghost",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "568": {
+    "en": "noble-roar",
+    "zh": "戰吼",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "569": {
+    "en": "ion-deluge",
+    "zh": "等離子浴",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "570": {
+    "en": "parabolic-charge",
+    "zh": "拋物面充電",
+    "type": "electric",
+    "class": "special",
+    "power": 65,
+    "accuracy": 100
+  },
+  "571": {
+    "en": "forests-curse",
+    "zh": "森林詛咒",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "572": {
+    "en": "petal-blizzard",
+    "zh": "落英繽紛",
+    "type": "grass",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "573": {
+    "en": "freeze-dry",
+    "zh": "冷凍乾燥",
+    "type": "ice",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "574": {
+    "en": "disarming-voice",
+    "zh": "魅惑之聲",
+    "type": "fairy",
+    "class": "special",
+    "power": 40,
+    "accuracy": null
+  },
+  "575": {
+    "en": "parting-shot",
+    "zh": "拋下狠話",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "576": {
+    "en": "topsy-turvy",
+    "zh": "顛倒",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "577": {
+    "en": "draining-kiss",
+    "zh": "吸取之吻",
+    "type": "fairy",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "578": {
+    "en": "crafty-shield",
+    "zh": "戲法防守",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "579": {
+    "en": "flower-shield",
+    "zh": "鮮花防守",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "580": {
+    "en": "grassy-terrain",
+    "zh": "青草場地",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "581": {
+    "en": "misty-terrain",
+    "zh": "薄霧場地",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "582": {
+    "en": "electrify",
+    "zh": "輸電",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "583": {
+    "en": "play-rough",
+    "zh": "嬉鬧",
+    "type": "fairy",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 90
+  },
+  "584": {
+    "en": "fairy-wind",
+    "zh": "妖精之風",
+    "type": "fairy",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "585": {
+    "en": "moonblast",
+    "zh": "月亮之力",
+    "type": "fairy",
+    "class": "special",
+    "power": 95,
+    "accuracy": 100
+  },
+  "586": {
+    "en": "boomburst",
+    "zh": "爆音波",
+    "type": "normal",
+    "class": "special",
+    "power": 140,
+    "accuracy": 100
+  },
+  "587": {
+    "en": "fairy-lock",
+    "zh": "妖精之鎖",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "588": {
+    "en": "kings-shield",
+    "zh": "王者盾牌",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "589": {
+    "en": "play-nice",
+    "zh": "和睦相處",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "590": {
+    "en": "confide",
+    "zh": "密語",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "591": {
+    "en": "diamond-storm",
+    "zh": "鑽石風暴",
+    "type": "rock",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 95
+  },
+  "592": {
+    "en": "steam-eruption",
+    "zh": "蒸汽爆炸",
+    "type": "water",
+    "class": "special",
+    "power": 110,
+    "accuracy": 95
+  },
+  "593": {
+    "en": "hyperspace-hole",
+    "zh": "異次元洞",
+    "type": "psychic",
+    "class": "special",
+    "power": 80,
+    "accuracy": null
+  },
+  "594": {
+    "en": "water-shuriken",
+    "zh": "飛水手裡劍",
+    "type": "water",
+    "class": "special",
+    "power": 15,
+    "accuracy": 100
+  },
+  "595": {
+    "en": "mystical-fire",
+    "zh": "魔法火焰",
+    "type": "fire",
+    "class": "special",
+    "power": 75,
+    "accuracy": 100
+  },
+  "596": {
+    "en": "spiky-shield",
+    "zh": "尖刺防守",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "597": {
+    "en": "aromatic-mist",
+    "zh": "芳香薄霧",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "598": {
+    "en": "eerie-impulse",
+    "zh": "怪異電波",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "599": {
+    "en": "venom-drench",
+    "zh": "毒液陷阱",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "600": {
+    "en": "powder",
+    "zh": "粉塵",
+    "type": "bug",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "601": {
+    "en": "geomancy",
+    "zh": "大地掌控",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "602": {
+    "en": "magnetic-flux",
+    "zh": "磁場操控",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "604": {
+    "en": "electric-terrain",
+    "zh": "電氣場地",
+    "type": "electric",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "605": {
+    "en": "dazzling-gleam",
+    "zh": "魔法閃耀",
+    "type": "fairy",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "608": {
+    "en": "baby-doll-eyes",
+    "zh": "圓瞳",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "609": {
+    "en": "nuzzle",
+    "zh": "蹭蹭臉頰",
+    "type": "electric",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 100
+  },
+  "611": {
+    "en": "infestation",
+    "zh": "死纏爛打",
+    "type": "bug",
+    "class": "special",
+    "power": 20,
+    "accuracy": 100
+  },
+  "612": {
+    "en": "power-up-punch",
+    "zh": "增強拳",
+    "type": "fighting",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "613": {
+    "en": "oblivion-wing",
+    "zh": "死亡之翼",
+    "type": "flying",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "614": {
+    "en": "thousand-arrows",
+    "zh": "千箭齊發",
+    "type": "ground",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "615": {
+    "en": "thousand-waves",
+    "zh": "千波激盪",
+    "type": "ground",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "616": {
+    "en": "lands-wrath",
+    "zh": "大地神力",
+    "type": "ground",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "618": {
+    "en": "origin-pulse",
+    "zh": "根源波動",
+    "type": "water",
+    "class": "special",
+    "power": 110,
+    "accuracy": 85
+  },
+  "619": {
+    "en": "precipice-blades",
+    "zh": "斷崖之劍",
+    "type": "ground",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 85
+  },
+  "620": {
+    "en": "dragon-ascent",
+    "zh": "畫龍點睛",
+    "type": "flying",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "659": {
+    "en": "shore-up",
+    "zh": "集沙",
+    "type": "ground",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "660": {
+    "en": "first-impression",
+    "zh": "迎頭一擊",
+    "type": "bug",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "661": {
+    "en": "baneful-bunker",
+    "zh": "碉堡",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "662": {
+    "en": "spirit-shackle",
+    "zh": "縫影",
+    "type": "ghost",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "663": {
+    "en": "darkest-lariat",
+    "zh": "ＤＤ金勾臂",
+    "type": "dark",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "664": {
+    "en": "sparkling-aria",
+    "zh": "泡影的詠歎調",
+    "type": "water",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "665": {
+    "en": "ice-hammer",
+    "zh": "冰錘",
+    "type": "ice",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 90
+  },
+  "666": {
+    "en": "floral-healing",
+    "zh": "花療",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "667": {
+    "en": "high-horsepower",
+    "zh": "十萬馬力",
+    "type": "ground",
+    "class": "physical",
+    "power": 95,
+    "accuracy": 95
+  },
+  "668": {
+    "en": "strength-sap",
+    "zh": "吸取力量",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "669": {
+    "en": "solar-blade",
+    "zh": "日光刃",
+    "type": "grass",
+    "class": "physical",
+    "power": 125,
+    "accuracy": 100
+  },
+  "670": {
+    "en": "leafage",
+    "zh": "樹葉",
+    "type": "grass",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "671": {
+    "en": "spotlight",
+    "zh": "聚光燈",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "672": {
+    "en": "toxic-thread",
+    "zh": "毒絲",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "673": {
+    "en": "laser-focus",
+    "zh": "磨礪",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "674": {
+    "en": "gear-up",
+    "zh": "輔助齒輪",
+    "type": "steel",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "675": {
+    "en": "throat-chop",
+    "zh": "地獄突刺",
+    "type": "dark",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "676": {
+    "en": "pollen-puff",
+    "zh": "花粉團",
+    "type": "bug",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "677": {
+    "en": "anchor-shot",
+    "zh": "擲錨",
+    "type": "steel",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "678": {
+    "en": "psychic-terrain",
+    "zh": "精神場地",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "679": {
+    "en": "lunge",
+    "zh": "猛撲",
+    "type": "bug",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "680": {
+    "en": "fire-lash",
+    "zh": "火焰鞭",
+    "type": "fire",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "681": {
+    "en": "power-trip",
+    "zh": "囂張",
+    "type": "dark",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 100
+  },
+  "682": {
+    "en": "burn-up",
+    "zh": "燃盡",
+    "type": "fire",
+    "class": "special",
+    "power": 130,
+    "accuracy": 100
+  },
+  "683": {
+    "en": "speed-swap",
+    "zh": "速度互換",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "684": {
+    "en": "smart-strike",
+    "zh": "修長之角",
+    "type": "steel",
+    "class": "physical",
+    "power": 70,
+    "accuracy": null
+  },
+  "685": {
+    "en": "purify",
+    "zh": "淨化",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "686": {
+    "en": "revelation-dance",
+    "zh": "覺醒之舞",
+    "type": "normal",
+    "class": "special",
+    "power": 90,
+    "accuracy": 100
+  },
+  "687": {
+    "en": "core-enforcer",
+    "zh": "核心懲罰者",
+    "type": "dragon",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "688": {
+    "en": "trop-kick",
+    "zh": "熱帶踢",
+    "type": "grass",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "689": {
+    "en": "instruct",
+    "zh": "號令",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "690": {
+    "en": "beak-blast",
+    "zh": "鳥嘴加農炮",
+    "type": "flying",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "691": {
+    "en": "clanging-scales",
+    "zh": "鱗片噪音",
+    "type": "dragon",
+    "class": "special",
+    "power": 110,
+    "accuracy": 100
+  },
+  "692": {
+    "en": "dragon-hammer",
+    "zh": "龍錘",
+    "type": "dragon",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "693": {
+    "en": "brutal-swing",
+    "zh": "狂舞揮打",
+    "type": "dark",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "694": {
+    "en": "aurora-veil",
+    "zh": "極光幕",
+    "type": "ice",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "704": {
+    "en": "shell-trap",
+    "zh": "陷阱甲殼",
+    "type": "fire",
+    "class": "special",
+    "power": 150,
+    "accuracy": 100
+  },
+  "705": {
+    "en": "fleur-cannon",
+    "zh": "花朵加農炮",
+    "type": "fairy",
+    "class": "special",
+    "power": 130,
+    "accuracy": 90
+  },
+  "706": {
+    "en": "psychic-fangs",
+    "zh": "精神之牙",
+    "type": "psychic",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "707": {
+    "en": "stomping-tantrum",
+    "zh": "跺腳",
+    "type": "ground",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "709": {
+    "en": "accelerock",
+    "zh": "衝岩",
+    "type": "rock",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "710": {
+    "en": "liquidation",
+    "zh": "水流裂破",
+    "type": "water",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "711": {
+    "en": "prismatic-laser",
+    "zh": "稜鏡鐳射",
+    "type": "psychic",
+    "class": "special",
+    "power": 160,
+    "accuracy": 100
+  },
+  "712": {
+    "en": "spectral-thief",
+    "zh": "暗影偷盜",
+    "type": "ghost",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "713": {
+    "en": "sunsteel-strike",
+    "zh": "流星閃衝",
+    "type": "steel",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "714": {
+    "en": "moongeist-beam",
+    "zh": "暗影之光",
+    "type": "ghost",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "715": {
+    "en": "tearful-look",
+    "zh": "淚眼汪汪",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "716": {
+    "en": "zing-zap",
+    "zh": "麻麻刺刺",
+    "type": "electric",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "717": {
+    "en": "natures-madness",
+    "zh": "自然之怒",
+    "type": "fairy",
+    "class": "special",
+    "power": null,
+    "accuracy": 90
+  },
+  "718": {
+    "en": "multi-attack",
+    "zh": "多屬性攻擊",
+    "type": "normal",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "720": {
+    "en": "mind-blown",
+    "zh": "驚爆大頭",
+    "type": "fire",
+    "class": "special",
+    "power": 150,
+    "accuracy": 100
+  },
+  "721": {
+    "en": "plasma-fists",
+    "zh": "等離子閃電拳",
+    "type": "electric",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "722": {
+    "en": "photon-geyser",
+    "zh": "光子噴湧",
+    "type": "psychic",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "742": {
+    "en": "double-iron-bash",
+    "zh": "鋼拳雙擊",
+    "type": "steel",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "744": {
+    "en": "dynamax-cannon",
+    "zh": "極巨炮",
+    "type": "dragon",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "745": {
+    "en": "snipe-shot",
+    "zh": "狙擊",
+    "type": "water",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "746": {
+    "en": "jaw-lock",
+    "zh": "緊咬不放",
+    "type": "dark",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "747": {
+    "en": "stuff-cheeks",
+    "zh": "大快朵頤",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "748": {
+    "en": "no-retreat",
+    "zh": "背水一戰",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "749": {
+    "en": "tar-shot",
+    "zh": "瀝青射擊",
+    "type": "rock",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "750": {
+    "en": "magic-powder",
+    "zh": "魔法粉",
+    "type": "psychic",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "751": {
+    "en": "dragon-darts",
+    "zh": "龍箭",
+    "type": "dragon",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "752": {
+    "en": "teatime",
+    "zh": "茶會",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "753": {
+    "en": "octolock",
+    "zh": "蛸固",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "754": {
+    "en": "bolt-beak",
+    "zh": "電喙",
+    "type": "electric",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "755": {
+    "en": "fishious-rend",
+    "zh": "鰓咬",
+    "type": "water",
+    "class": "physical",
+    "power": 85,
+    "accuracy": 100
+  },
+  "756": {
+    "en": "court-change",
+    "zh": "換場",
+    "type": "normal",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "775": {
+    "en": "clangorous-soul",
+    "zh": "魂舞烈音爆",
+    "type": "dragon",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "776": {
+    "en": "body-press",
+    "zh": "撲擊",
+    "type": "fighting",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "777": {
+    "en": "decorate",
+    "zh": "裝飾",
+    "type": "fairy",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "778": {
+    "en": "drum-beating",
+    "zh": "鼓擊",
+    "type": "grass",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "780": {
+    "en": "pyro-ball",
+    "zh": "火焰球",
+    "type": "fire",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 90
+  },
+  "783": {
+    "en": "aura-wheel",
+    "zh": "氣場輪",
+    "type": "electric",
+    "class": "physical",
+    "power": 110,
+    "accuracy": 100
+  },
+  "784": {
+    "en": "breaking-swipe",
+    "zh": "廣域破壞",
+    "type": "dragon",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "785": {
+    "en": "branch-poke",
+    "zh": "木枝突刺",
+    "type": "grass",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "786": {
+    "en": "overdrive",
+    "zh": "破音",
+    "type": "electric",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "787": {
+    "en": "apple-acid",
+    "zh": "蘋果酸",
+    "type": "grass",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "788": {
+    "en": "grav-apple",
+    "zh": "萬有引力",
+    "type": "grass",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "789": {
+    "en": "spirit-break",
+    "zh": "靈魂衝擊",
+    "type": "fairy",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "791": {
+    "en": "life-dew",
+    "zh": "生命水滴",
+    "type": "water",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "792": {
+    "en": "obstruct",
+    "zh": "攔堵",
+    "type": "dark",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "793": {
+    "en": "false-surrender",
+    "zh": "假跪真撞",
+    "type": "dark",
+    "class": "physical",
+    "power": 80,
+    "accuracy": null
+  },
+  "794": {
+    "en": "meteor-assault",
+    "zh": "流星突擊",
+    "type": "fighting",
+    "class": "physical",
+    "power": 150,
+    "accuracy": 100
+  },
+  "795": {
+    "en": "eternabeam",
+    "zh": "無極光束",
+    "type": "dragon",
+    "class": "special",
+    "power": 160,
+    "accuracy": 90
+  },
+  "796": {
+    "en": "steel-beam",
+    "zh": "鐵蹄光線",
+    "type": "steel",
+    "class": "special",
+    "power": 140,
+    "accuracy": 95
+  },
+  "797": {
+    "en": "expanding-force",
+    "zh": "廣域戰力",
+    "type": "psychic",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "798": {
+    "en": "steel-roller",
+    "zh": "鐵滾輪",
+    "type": "steel",
+    "class": "physical",
+    "power": 130,
+    "accuracy": 100
+  },
+  "799": {
+    "en": "scale-shot",
+    "zh": "鱗射",
+    "type": "dragon",
+    "class": "physical",
+    "power": 25,
+    "accuracy": 90
+  },
+  "800": {
+    "en": "meteor-beam",
+    "zh": "流星光束",
+    "type": "rock",
+    "class": "special",
+    "power": 120,
+    "accuracy": 90
+  },
+  "802": {
+    "en": "misty-explosion",
+    "zh": "薄霧炸裂",
+    "type": "fairy",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "803": {
+    "en": "grassy-glide",
+    "zh": "青草滑梯",
+    "type": "grass",
+    "class": "physical",
+    "power": 55,
+    "accuracy": 100
+  },
+  "804": {
+    "en": "rising-voltage",
+    "zh": "電力上升",
+    "type": "electric",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "805": {
+    "en": "terrain-pulse",
+    "zh": "大地波動",
+    "type": "normal",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "806": {
+    "en": "skitter-smack",
+    "zh": "爬擊",
+    "type": "bug",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 90
+  },
+  "807": {
+    "en": "burning-jealousy",
+    "zh": "妒火",
+    "type": "fire",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "808": {
+    "en": "lash-out",
+    "zh": "洩憤",
+    "type": "dark",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "809": {
+    "en": "poltergeist",
+    "zh": "靈騷",
+    "type": "ghost",
+    "class": "physical",
+    "power": 110,
+    "accuracy": 90
+  },
+  "810": {
+    "en": "corrosive-gas",
+    "zh": "腐蝕氣體",
+    "type": "poison",
+    "class": "status",
+    "power": null,
+    "accuracy": 100
+  },
+  "811": {
+    "en": "coaching",
+    "zh": "指導",
+    "type": "fighting",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "812": {
+    "en": "flip-turn",
+    "zh": "快速折返",
+    "type": "water",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "813": {
+    "en": "triple-axel",
+    "zh": "三旋擊",
+    "type": "ice",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 90
+  },
+  "814": {
+    "en": "dual-wingbeat",
+    "zh": "雙翼",
+    "type": "flying",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 90
+  },
+  "815": {
+    "en": "scorching-sands",
+    "zh": "熱沙大地",
+    "type": "ground",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "816": {
+    "en": "jungle-healing",
+    "zh": "叢林治療",
+    "type": "grass",
+    "class": "status",
+    "power": null,
+    "accuracy": null
+  },
+  "817": {
+    "en": "wicked-blow",
+    "zh": "暗冥強擊",
+    "type": "dark",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "819": {
+    "en": "thunder-cage",
+    "zh": "雷電囚籠",
+    "type": "electric",
+    "class": "special",
+    "power": 80,
+    "accuracy": 90
+  },
+  "820": {
+    "en": "dragon-energy",
+    "zh": "巨龍威能",
+    "type": "dragon",
+    "class": "special",
+    "power": 150,
+    "accuracy": 100
+  },
+  "827": {
+    "en": "dire-claw",
+    "zh": "剋命爪",
+    "type": "poison",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "828": {
+    "en": "psyshield-bash",
+    "zh": "屏障猛攻",
+    "type": "psychic",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 90
+  },
+  "830": {
+    "en": "stone-axe",
+    "zh": "岩斧",
+    "type": "rock",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 90
+  },
+  "831": {
+    "en": "springtide-storm",
+    "zh": "陽春風暴",
+    "type": "fairy",
+    "class": "special",
+    "power": 100,
+    "accuracy": 80
+  },
+  "832": {
+    "en": "mystical-power",
+    "zh": "神秘之力",
+    "type": "psychic",
+    "class": "special",
+    "power": 70,
+    "accuracy": 90
+  },
+  "833": {
+    "en": "raging-fury",
+    "zh": "大憤慨",
+    "type": "fire",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "834": {
+    "en": "wave-crash",
+    "zh": "波動衝",
+    "type": "water",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "838": {
+    "en": "headlong-rush",
+    "zh": "突飛猛撲",
+    "type": "ground",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "839": {
+    "en": "barb-barrage",
+    "zh": "毒千針",
+    "type": "poison",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "842": {
+    "en": "shelter",
+    "zh": "閉關",
+    "type": "steel",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "846": {
+    "en": "bleakwind-storm",
+    "zh": "枯葉風暴",
+    "type": "flying",
+    "class": "special",
+    "power": 100,
+    "accuracy": 80
+  },
+  "847": {
+    "en": "wildbolt-storm",
+    "zh": "鳴雷風暴",
+    "type": "electric",
+    "class": "special",
+    "power": 100,
+    "accuracy": 80
+  },
+  "848": {
+    "en": "sandsear-storm",
+    "zh": "熱沙風暴",
+    "type": "ground",
+    "class": "special",
+    "power": 100,
+    "accuracy": 80
+  },
+  "849": {
+    "en": "lunar-blessing",
+    "zh": "新月祈禱",
+    "type": "psychic",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "850": {
+    "en": "take-heart",
+    "zh": "勇氣填充",
+    "type": "psychic",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "851": {
+    "en": "tera-blast",
+    "zh": "太晶爆發",
+    "type": "normal",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "853": {
+    "en": "axe-kick",
+    "zh": "下壓踢",
+    "type": "fighting",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 90
+  },
+  "854": {
+    "en": "last-respects",
+    "zh": "掃墓",
+    "type": "ghost",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "856": {
+    "en": "order-up",
+    "zh": "上菜",
+    "type": "dragon",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "857": {
+    "en": "jet-punch",
+    "zh": "噴射拳",
+    "type": "water",
+    "class": "physical",
+    "power": 60,
+    "accuracy": 100
+  },
+  "859": {
+    "en": "spin-out",
+    "zh": "疾速轉輪",
+    "type": "steel",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "860": {
+    "en": "population-bomb",
+    "zh": "鼠數兒",
+    "type": "normal",
+    "class": "physical",
+    "power": 20,
+    "accuracy": 90
+  },
+  "861": {
+    "en": "ice-spinner",
+    "zh": "冰旋",
+    "type": "ice",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "864": {
+    "en": "salt-cure",
+    "zh": "鹽醃",
+    "type": "rock",
+    "class": "physical",
+    "power": 40,
+    "accuracy": 100
+  },
+  "865": {
+    "en": "triple-dive",
+    "zh": "三連鑽",
+    "type": "water",
+    "class": "physical",
+    "power": 30,
+    "accuracy": 95
+  },
+  "868": {
+    "en": "fillet-away",
+    "zh": "甩肉",
+    "type": "normal",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "873": {
+    "en": "raging-bull",
+    "zh": "怒牛",
+    "type": "normal",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "874": {
+    "en": "make-it-rain",
+    "zh": "淘金潮",
+    "type": "steel",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "875": {
+    "en": "psyblade",
+    "zh": "精神劍",
+    "type": "psychic",
+    "class": "physical",
+    "power": 80,
+    "accuracy": 100
+  },
+  "876": {
+    "en": "hydro-steam",
+    "zh": "水蒸氣",
+    "type": "water",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "877": {
+    "en": "ruination",
+    "zh": "大災難",
+    "type": "dark",
+    "class": "special",
+    "power": 1,
+    "accuracy": 90
+  },
+  "878": {
+    "en": "collision-course",
+    "zh": "全開猛撞",
+    "type": "fighting",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "879": {
+    "en": "electro-drift",
+    "zh": "閃電猛衝",
+    "type": "electric",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "880": {
+    "en": "shed-tail",
+    "zh": "斷尾",
+    "type": "normal",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "881": {
+    "en": "chilly-reception",
+    "zh": "冷笑話",
+    "type": "ice",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "882": {
+    "en": "tidy-up",
+    "zh": "大掃除",
+    "type": "normal",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "883": {
+    "en": "snowscape",
+    "zh": "雪景",
+    "type": "ice",
+    "class": "status",
+    "power": 0,
+    "accuracy": null
+  },
+  "884": {
+    "en": "pounce",
+    "zh": "蟲撲",
+    "type": "bug",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "885": {
+    "en": "trailblaze",
+    "zh": "起草",
+    "type": "grass",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "886": {
+    "en": "chilling-water",
+    "zh": "潑冷水",
+    "type": "water",
+    "class": "special",
+    "power": 50,
+    "accuracy": 100
+  },
+  "887": {
+    "en": "hyper-drill",
+    "zh": "強力鑽",
+    "type": "normal",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "888": {
+    "en": "twin-beam",
+    "zh": "雙光束",
+    "type": "psychic",
+    "class": "special",
+    "power": 40,
+    "accuracy": 100
+  },
+  "889": {
+    "en": "rage-fist",
+    "zh": "憤怒之拳",
+    "type": "ghost",
+    "class": "physical",
+    "power": 50,
+    "accuracy": 100
+  },
+  "890": {
+    "en": "armor-cannon",
+    "zh": "鎧農炮",
+    "type": "fire",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "891": {
+    "en": "bitter-blade",
+    "zh": "悔念劍",
+    "type": "fire",
+    "class": "physical",
+    "power": 90,
+    "accuracy": 100
+  },
+  "892": {
+    "en": "double-shock",
+    "zh": "電光雙擊",
+    "type": "electric",
+    "class": "physical",
+    "power": 120,
+    "accuracy": 100
+  },
+  "894": {
+    "en": "comeuppance",
+    "zh": "復仇",
+    "type": "dark",
+    "class": "physical",
+    "power": 1,
+    "accuracy": 100
+  },
+  "895": {
+    "en": "aqua-cutter",
+    "zh": "水波刀",
+    "type": "water",
+    "class": "physical",
+    "power": 70,
+    "accuracy": 100
+  },
+  "903": {
+    "en": "syrup-bomb",
+    "zh": "糖漿炸彈",
+    "type": "grass",
+    "class": "special",
+    "power": 60,
+    "accuracy": 85
+  },
+  "904": {
+    "en": "ivy-cudgel",
+    "zh": "棘藤棒",
+    "type": "grass",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 100
+  },
+  "906": {
+    "en": "tera-starstorm",
+    "zh": "晶光星群",
+    "type": "normal",
+    "class": "special",
+    "power": 120,
+    "accuracy": 100
+  },
+  "908": {
+    "en": "burning-bulwark",
+    "zh": "火焰守護",
+    "type": "fire",
+    "class": "status",
+    "power": 0,
+    "accuracy": 0
+  },
+  "909": {
+    "en": "thunderclap",
+    "zh": "迅雷",
+    "type": "electric",
+    "class": "special",
+    "power": 70,
+    "accuracy": 100
+  },
+  "910": {
+    "en": "mighty-cleave",
+    "zh": "強刃攻擊",
+    "type": "rock",
+    "class": "physical",
+    "power": 95,
+    "accuracy": 100
+  },
+  "911": {
+    "en": "tachyon-cutter",
+    "zh": "迅子利刃",
+    "type": "steel",
+    "class": "special",
+    "power": 50,
+    "accuracy": 0
+  },
+  "912": {
+    "en": "hard-press",
+    "zh": "硬壓",
+    "type": "steel",
+    "class": "physical",
+    "power": 0,
+    "accuracy": 100
+  },
+  "913": {
+    "en": "dragon-cheer",
+    "zh": "龍聲鼓舞",
+    "type": "dragon",
+    "class": "status",
+    "power": 0,
+    "accuracy": 0
+  },
+  "914": {
+    "en": "alluring-voice",
+    "zh": "魅誘之聲",
+    "type": "fairy",
+    "class": "special",
+    "power": 80,
+    "accuracy": 100
+  },
+  "915": {
+    "en": "temper-flare",
+    "zh": "豁出去",
+    "type": "fire",
+    "class": "physical",
+    "power": 75,
+    "accuracy": 100
+  },
+  "916": {
+    "en": "supercell-slam",
+    "zh": "閃電強襲",
+    "type": "electric",
+    "class": "physical",
+    "power": 100,
+    "accuracy": 95
+  },
+  "917": {
+    "en": "psychic-noise",
+    "zh": "精神噪音",
+    "type": "psychic",
+    "class": "special",
+    "power": 75,
+    "accuracy": 100
+  },
+  "918": {
+    "en": "upper-hand",
+    "zh": "快手還擊",
+    "type": "fighting",
+    "class": "physical",
+    "power": 65,
+    "accuracy": 100
+  },
+  "919": {
+    "en": "malignant-chain",
+    "zh": "邪毒鎖鏈",
+    "type": "poison",
+    "class": "special",
+    "power": 100,
+    "accuracy": 100
+  },
+  "_meta": {
+    "source": "https://pokeapi.co/api/v2",
+    "generated": "2026-09-26T02:56:13+00:00",
+    "pokemon": 1025,
+    "moves_referenced": 782,
+    "rows_per_method": {
+      "level": 18246,
+      "machine": 61460,
+      "egg": 5128,
+      "tutor": 17080
+    },
+    "pokemon_with_none": {
+      "level": 0,
+      "machine": 9,
+      "egg": 459,
+      "tutor": 138
+    }
+  }
+}
