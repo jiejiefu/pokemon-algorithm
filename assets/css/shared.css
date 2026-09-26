@@ -64,6 +64,28 @@ body {
   letter-spacing: 2px;
 }
 
+/* ===== Icons =====
+   Every icon on the site is an inline `<svg class="icon">` — emoji are banned
+   (font-dependent, cannot inherit currentColor, render differently per OS).
+   Sized in `em` so one rule tracks the font size of whatever text it sits in:
+   a 16px nav link, a 14px .btn and 16px bold .view-all-link all get a correctly
+   proportioned icon with no per-component override. `fill: currentColor` lets
+   each context tint it (feature cards use --feature-accent). */
+.icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+  margin-right: 0.3em;
+}
+
+/* Trailing icon: gap goes on the left, since the icon follows the text. */
+.icon-trailing {
+  margin-right: 0;
+  margin-left: 0.3em;
+}
+
 .header-sort { background: var(--bg-header-sort); }
 .header-maze { background: var(--bg-header-maze); }
 .header-dex { background: var(--bg-header-dex); position: sticky; top: 0; z-index: 100; }
@@ -245,10 +267,22 @@ body {
 .feature-card.maze { --feature-accent: #1976d2; }
 .feature-card.dex { --feature-accent: #e3350d; }
 
+/* Was `font-size: 48px` to size an emoji glyph; the icon is now a fixed 40px
+   SVG box, centred by `margin: auto`, and tinted with the card's own accent
+   (the same --feature-accent that already drives the ::before top border). */
 .feature-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
   display: block;
+  margin-bottom: 16px;
+  line-height: 0;
+}
+
+.feature-icon .icon {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  vertical-align: middle;
+  fill: var(--feature-accent);
 }
 
 .feature-title {

@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>寶可夢像素迷宮 (BFS/DFS)</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/shared.css">
 </head>
 <body>
   <header class="header header-maze">
     <div class="controls controls-maze">
-      <button class="btn btn-nav" onclick="location.href='index.html'">⬅ 返回大廳</button>
+      <button class="btn btn-nav" onclick="location.href='index.html'"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>返回大廳</button>
       <button class="btn" onclick="loadRandomPokemonMaze()">1. 載入隨機寶可夢迷宮</button>
       <button class="btn" onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
       <button class="btn" onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>

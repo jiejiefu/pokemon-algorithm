@@ -195,9 +195,40 @@ export function renderPokemonGrid(gridEl, pokemonArray) {
   gridEl.appendChild(fragment);
 }
 
+/* ===== Icons =====
+   Emoji are banned: they are font-dependent, cannot inherit `currentColor`, and
+   render differently per platform. Every icon is an inline SVG on a 24x24 grid
+   with a single filled Material-style path, matching the hand-written icons
+   already in detail.html. `aria-hidden` + `focusable="false"` because the
+   adjacent text label always carries the meaning — the icon is decoration.
+   `.icon` in shared.css sizes it in `em`, so one rule tracks every font size. */
+const ICON_PATHS = {
+  sort: 'M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z',
+  grid: 'M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z',
+  book: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z'
+};
+
+/**
+ * Render an inline SVG icon by name.
+ * @param {keyof typeof ICON_PATHS} name
+ * @param {string} [extraClass] - additional class names, e.g. 'icon-trailing'
+ * @returns {string} SVG markup
+ */
+export function iconSvg(name, extraClass = '') {
+  const d = ICON_PATHS[name];
+  if (!d) throw new Error(`iconSvg: unknown icon "${name}"`);
+  const cls = extraClass ? `icon ${extraClass}` : 'icon';
+  return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+}
+
+const ICON_SORT = iconSvg('sort');
+const ICON_GRID = iconSvg('grid');
+const ICON_BOOK = iconSvg('book');
+
 /**
  * Create feature card for landing page
  * @param {Object} options - { href, icon, title, desc, className }
+ *   `icon` is inline SVG markup (see iconSvg), never an emoji.
  * @returns {HTMLElement}
  */
 export function createFeatureCard({ href, icon, title, desc, className }) {
@@ -221,14 +252,14 @@ export function initHeaderNav(currentPage) {
   if (!navContainer) return;
 
   const links = [
-    { href: 'sorting.html', label: '🎯 排序演算法', class: 'sort-link', active: currentPage === 'sorting' },
-    { href: 'maze.html', label: '🎮 像素迷宮', class: 'maze-link', active: currentPage === 'maze' },
-    { href: 'pokedex.html', label: '📖 完整圖鑑', class: 'dex-link', active: currentPage === 'pokedex' }
+    { href: 'sorting.html', label: '排序演算法', icon: ICON_SORT, class: 'sort-link', active: currentPage === 'sorting' },
+    { href: 'maze.html', label: '像素迷宮', icon: ICON_GRID, class: 'maze-link', active: currentPage === 'maze' },
+    { href: 'pokedex.html', label: '完整圖鑑', icon: ICON_BOOK, class: 'dex-link', active: currentPage === 'pokedex' }
   ];
 
   navContainer.innerHTML = links
     .filter(l => l.href !== currentPage + '.html' || currentPage === 'index')
-    .map(l => `<a href="${l.href}" class="${l.class} ${l.active ? 'active' : ''}">${l.label}</a>`)
+    .map(l => `<a href="${l.href}" class="${l.class} ${l.active ? 'active' : ''}">${l.icon}${l.label}</a>`)
     .join('');
 }
 
