@@ -2,29 +2,250 @@
    Shared Styles — Pokémon Algorithm Lab
    ========================================== */
 
+/* ==========================================
+   Design tokens
+   ------------------------------------------------------------
+   Two blocks only: `:root` is the dark palette, `[data-theme="light"]` is
+   the light one. There is no `prefers-color-scheme` media query on purpose —
+   the inline <head> script in every content page *always* resolves a concrete
+   `data-theme` (from localStorage, else matchMedia) before first paint, so an
+   explicit attribute is the single source of truth. A `:root:not([data-theme=
+   "dark"])` media-query pattern cannot work once that script runs, because the
+   attribute is always present.
+
+   The dark block doubles as the no-JS fallback. Every value in it is measured
+   for WCAG AA against the surface it sits on; see AGENTS.md gotcha 31 for the
+   light-mode equivalents and the six corrections to the reference palette.
+
+   Naming: `--accent-gold` is gold *as text* and `--accent-gold-surface` is gold
+   *as a fill*, with `--on-accent` for text sitting on either. One value cannot
+   serve both jobs — #ffde00 is 14:1 as dark-theme text and 1.34:1 on white.
+   ========================================== */
+
 :root {
-  --bg-primary: #121212;
-  --bg-secondary: #1a1a1a;
-  --bg-card: #2a2a2a;
-  --bg-header-sort: linear-gradient(135deg, #cc0000 0%, #8b0000 100%);
-  --bg-header-maze: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
-  --bg-header-dex: linear-gradient(135deg, #e3350d 0%, #a61a00 100%);
-  --bg-controls: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #dddddd;
-  --text-muted: #aaaaaa;
-  --accent-gold: #ffde00;
-  --accent-yellow: #ffcb05;
-  --accent-green: #4caf50;
-  --accent-green-hover: #66bb6a;
-  --shadow-card: 0 4px 8px rgba(0,0,0,0.4);
-  --shadow-card-hover: 0 10px 22px rgba(0, 0, 0, 0.55);
-  --shadow-header: 0 4px 15px rgba(0,0,0,0.6);
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-card: #21262d;
+  --bg-controls: #161b22;
+  --surface-raised: #262c33;
+  --surface-hover: rgba(240, 246, 252, 0.06);
+  --on-surface: #f0f6fc;
+
+  /* Brand headers */
+  --bg-header-sort: linear-gradient(135deg, #be123c 0%, #881337 100%);
+  --bg-header-maze: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  --bg-header-dex: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+  --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  /* Same hue, two roles: as a *fill* it takes white text, as *text* it has to
+     clear 4.5:1 on a near-white page. #e3b341 does both in dark (#14110a on it
+     is 9.68:1, it on #0d1117 is 9.72:1); no single light value does, hence the
+     pair. #f1e05a rather than #e3b341 because .status-text sits on the
+     saturated blue header, where #e3b341 only reaches 3.44:1. */
+  --accent-yellow-text: #f1e05a;
+
+  /* Text */
+  --text-primary: #f0f6fc;
+  --text-secondary: #c9d1d9;
+  --text-muted: #8b949e;
+
+  /* Accents */
+  --accent-gold-rgb: 241, 224, 90;
+  --accent-gold: rgb(var(--accent-gold-rgb));          /* as text */
+  --accent-gold-surface: rgb(var(--accent-gold-rgb));  /* as a fill */
+  --stat-fill-end: #ffb300;
+  --accent-yellow: #e3b341;
+  --accent-green: #238636;
+  --accent-green-hover: #1f883d;    /* deepens rather than lifts: the lighter
+                                       greens all drop white text under 4.5:1 */
+  --on-accent: #14110a;            /* text on gold or any light accent fill */
+
+  /* Lines & raised fills */
+  /* The one value that is already correct in both themes, so it is defined
+     once instead of per-theme. The old hardcoded #444 sat at 1.56:1 against
+     --bg-card #21262d, so the input boundary failed WCAG 1.4.11 (3:1) in dark
+     while looking far too heavy in light. #868d96 gives 4.54:1 / 3.35:1. */
+  --border-input: #868d96;
+  --error-text: #ff6b6b;          /* 6.82:1 on --bg-primary; light needs 6.14 */
+  --hero-tint: rgba(204, 0, 0, 0.15);
+  --hero-title-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+  --divider-glow: rgba(255, 221, 0, 0.3);
+  --sticky-surface: rgba(255, 255, 255, 0.02);
+  --hairline-rgb: 240, 246, 252;
+  --hairline: rgba(var(--hairline-rgb), 0.10);
+  --hairline-strong: rgba(var(--hairline-rgb), 0.20);
+  --btn-border: transparent;   /* a white pill needs no edge on a dark page */
+  --btn-bg: #ffffff;           /* the primary button is white in BOTH themes: */
+  --btn-fg: #1f2328;           /* 14.6:1, and only the edge differs in light */
+
+  /* Glass — the detail page's top card */
+  --glass-bg: rgba(33, 38, 45, 0.58);
+  --glass-border: rgba(240, 246, 252, 0.14);
+  --glass-fallback: rgba(33, 38, 45, 0.94);
+  --accent-border: 0.28;   /* the card's 1px edge in the Pokemon's own RGB;
+                              a white Pokemon on a white card needs more */
+  --aurora-1: 0.32;   /* radial tint over the card, from --card-accent-rgb */
+  --aurora-2: 0.18;
+  --card-muted: #bdbdbd;  /* the glass is lighter than the page; see gotcha 28 */
+
+  /* Per-Pokémon card glow. The alphas are the RGB card signature — 0.55/0.35
+     is right on a near-black page and a grey smudge on white, so light mode
+     drops them and adds a 1px border in the same RGB instead. */
+  --glow-1: 0.55;
+  --glow-2: 0.35;
+  --glow-border: transparent;
+
+  /* Canvas. CSS cannot paint inside a <canvas>, so these are read by JS via
+     readThemeTokens() — that is the only bridge, and it keeps one source of
+     truth rather than a JS-side copy of the palette. */
+  --canvas-bg: #010409;
+  --canvas-wall: 30, 30, 30;       /* RGB triplet, unquoted, for template use */
+  --canvas-grid: rgba(240, 246, 252, 0.2);
+  --canvas-text: #e3b341;
+  /* The radar's polygon wash, as an alpha over --accent-gold-rgb. Per theme
+     because the gold is a bright yellow here and a dark brown in light, so a
+     single shared value is a warm glow in one theme and a mud wash in the
+     other. Kept very low on purpose: this fill sits *under* the stat polygon,
+     and anything above ~0.15 stops reading as a tint and starts reading as a
+     shadow over the chart. The outline below is what should carry the shape. */
+  --radar-fill: 0.13;
+  --radar-stroke: 0.8;
+
+  /* Data colours. These are TEXT, so unlike the brand header gradients they are
+     held to 4.5:1 in each theme rather than kept identical. The dark values are
+     the originals; the light values are corrected (see the light block). */
+  --gender-male: #7fb3ff;
+  --gender-female: #ff9ec4;
+  --move-physical: #dddddd;
+  --move-special: #5cb3f7;
+  --move-status: #ffa726;
+  --stat-total-from: #ffffff;
+  --stat-total-to: #aab6c2;
+  --surface-panel: linear-gradient(150deg, #2a2a30 0%, #17171a 100%);
+  /* Type-effectiveness multipliers, rendered as 17px/800 text — under the
+     18.66px large-text cut-off, so 4.5:1. All five clear it on --bg-card. */
+  --eff-4x: #ff5470;
+  --eff-2x: #ff9f45;
+  --eff-half: #4cc9f0;
+  --eff-quarter: #7bcf6b;
+  --eff-immune: #ffde00;
+
+  /* Shadows */
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-header: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* Geometry & motion — unchanged; the palette work did not adopt the reference
+     schemes' radius changes, which were a layout decision rather than a colour
+     one. */
   --radius-sm: 12px;
   --radius-md: 15px;
   --radius-pill: 20px;
   --transition-fast: 0.2s ease;
   --transition-med: 0.3s ease;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-primary: #f6f8fa;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-controls: #eff1f3;
+  --surface-raised: #e8eaed;
+  --surface-hover: rgba(31, 35, 40, 0.05);
+  --on-surface: #1f2328;
+
+  /* Headers keep their saturation in both themes — they carry the Pokédex red
+     identity, and a pale header reads as a disabled one. */
+  /* Pale, not saturated. The dark gradients below are too light for white text
+     (2.14:1 on #fb7185) and too dark for this theme's own near-black text
+     tokens -- the title measured 1.00:1. A pale tint keeps the brand hue and
+     lets the header use --text-primary / --accent-gold unchanged. */
+  --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  --text-primary: #1f2328;
+  --text-secondary: #424a53;
+  --text-muted: #656d76;
+
+  --accent-gold-rgb: 156, 65, 6;
+  --accent-gold: rgb(var(--accent-gold-rgb));
+  --accent-gold-surface: rgb(var(--accent-gold-rgb));
+  --stat-fill-end: #c2410c;   /* #ffb300 is 1.79:1 on white; the bar's right end
+                                 simply vanished. 3:1 applies here (non-text). */
+  --accent-yellow: #b45309;
+  --accent-yellow-text: #92400e;
+  --accent-green: #1a7f37;
+  --accent-green-hover: #116329;
+  --on-accent: #ffffff;
+
+  /* #ff6b6b is the dark theme's error colour and only reaches 2.61:1 here, so
+     the pair is genuinely per-theme rather than one value with an alpha. */
+  --error-text: #b3261e;
+  --hero-tint: rgba(204, 0, 0, 0.06);
+  --hero-title-shadow: 3px 3px 6px rgba(31, 35, 40, 0.22);
+  --divider-glow: rgba(156, 65, 6, 0.3);
+  --sticky-surface: rgba(255, 255, 255, 0.72);
+  --radar-fill: 0.06;
+  --radar-stroke: 0.6;
+  --hairline-rgb: 31, 35, 40;
+  --hairline: rgba(var(--hairline-rgb), 0.12);
+  --hairline-strong: rgba(var(--hairline-rgb), 0.22);
+  --btn-border: var(--hairline-strong);   /* white on #f6f8fa needs an edge */
+  --btn-bg: #ffffff;
+  --btn-fg: #1f2328;
+
+  /* The light glass is *darker* than nothing at all but lighter than the page,
+     so the same override gotcha 28 documents is needed, pointing the other
+     way: a pale gold-grey like #656d76 measures 2.34:1 on an aurora-tinted
+     card. #3f3f46 holds 6.18:1 at the reduced aurora below. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(31, 35, 40, 0.12);
+  --glass-fallback: rgba(255, 255, 255, 0.96);
+  --accent-border: 0.55;
+  --aurora-1: 0.22;   /* 0.32 would let a black Pokémon drag the card to
+                         #adadad — a "light" card rendering mid-grey */
+  --aurora-2: 0.12;
+  --card-muted: #3f3f46;
+
+  --glow-1: 0.28;
+  --glow-2: 0.18;
+  --glow-border: rgba(var(--card-accent-rgb, 31, 35, 40), 0.45);
+
+  --canvas-bg: #ffffff;
+  --canvas-wall: 31, 35, 40;
+  --canvas-grid: rgba(31, 35, 40, 0.22);
+  --canvas-text: #b45309;
+
+  /* Corrected, not copied. Every one of the five dark values above fails as text
+     on a white card: --gender-male 2.14:1 and --gender-female 1.92:1, and all
+     three move tints 1.36 / 2.27 / 1.94 — the dark values were only ever measured
+     against the #2a2a2a card (gotcha 22), which is why they looked fine. The
+     replacements hold 5.67-10.44:1 here. */
+  --gender-male: #1d4ed8;
+  --gender-female: #be185d;
+  --move-physical: #3f3f46;
+  --move-special: #0369a1;
+  --move-status: #92400e;
+  --stat-total-from: #424a53;
+  --stat-total-to: #8a929c;   /* #b0b8c0 = 2.06:1 on white */
+  --surface-panel: linear-gradient(150deg, #ffffff 0%, #eef0f2 100%);
+  /* Every dark bucket colour is 1.34-3.11:1 on white, so the light set is a
+     different palette, not a reuse. All five clear 4.5:1. */
+  --eff-4x: #b42318;
+  --eff-2x: #b54708;
+  --eff-half: #0e7490;
+  --eff-quarter: #166534;
+  --eff-immune: #a16207;
+
+  --shadow-card: 0 1px 3px rgba(31, 35, 40, 0.08);
+  --shadow-card-hover: 0 8px 20px rgba(31, 35, 40, 0.12);
+  --shadow-header: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -39,8 +260,15 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* ===== Header ===== */
+/* ===== Header =====
+   `position: relative` is what anchors the theme toggle and the nav to the
+   header rather than the viewport. It was missing before: .header-dex is
+   `sticky` so it happened to form a containing block, but .header-sort and
+   .header-maze are static, so on those two pages the absolutely-positioned
+   .header-nav was resolving against the initial containing block. Adding the
+   positioning here makes all three behave the same. */
 .header {
+  position: relative;
   width: 100%;
   padding: 12px 20px;
   display: flex;
@@ -56,7 +284,7 @@ body {
   font-weight: bold;
   letter-spacing: 1px;
   color: var(--accent-gold);
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: var(--header-title-shadow);
 }
 
 .header-title-large {
@@ -116,27 +344,32 @@ body {
   padding: 8px 14px;
   font-size: 13px;
   font-weight: bold;
-  color: #222;
-  background-color: #ffffff;
-  border: none;
+  color: var(--btn-fg);
+  background-color: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: var(--shadow-card);
 }
 
+/* Light mode paints a white pill on a #f6f8fa page, which is all but invisible
+   without an edge, so the border is a token rather than `none`. */
+
 .btn:hover {
-  background-color: var(--accent-gold);
+  background-color: var(--accent-gold-surface);
+  color: var(--on-accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .btn.active {
-  background-color: var(--accent-gold);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+  background-color: var(--accent-gold-surface);
+  color: var(--on-accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.btn-utility { background-color: #e0e0e0; }
+.btn-utility { background-color: var(--surface-raised); color: var(--text-primary); }
 
 .btn-color {
   background-color: var(--accent-green);
@@ -148,15 +381,17 @@ body {
   color: #fff;
 }
 
+/* Sits on the saturated red/blue header, which is equally saturated in both
+   themes, so this button stays dark in both. */
 .btn-nav {
-  background-color: #333 !important;
-  color: #fff !important;
-  border: 1px solid #555 !important;
+  background-color: #21262d !important;
+  color: #f0f6fc !important;
+  border: 1px solid var(--hairline-strong) !important;
 }
 
 .btn-nav:hover {
   background-color: var(--accent-yellow) !important;
-  color: #222 !important;
+  color: #14110a !important;
 }
 
 .controls-maze .btn {
@@ -185,8 +420,9 @@ body {
 .card:hover {
   transform: translateY(-10px);
   box-shadow: var(--shadow-card-hover),
-              0 0 14px rgba(var(--card-accent-rgb, 255, 221, 0), 0.55),
-              0 0 40px rgba(var(--card-accent-rgb, 255, 221, 0), 0.35);
+              0 0 14px rgba(var(--card-accent-rgb, 255, 221, 0), var(--glow-1)),
+              0 0 40px rgba(var(--card-accent-rgb, 255, 221, 0), var(--glow-2));
+  border: 1px solid var(--glow-border);
 }
 
 .card img {
@@ -208,18 +444,6 @@ body {
   font-weight: bold;
   margin: 5px 0;
   color: var(--text-primary);
-}
-
-.color-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-  margin-top: 5px;
-  color: #fff;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 /* ===== Feature Cards (Landing Page) ===== */
@@ -263,9 +487,9 @@ body {
   background: var(--feature-accent);
 }
 
-.feature-card.sort { --feature-accent: #cc0000; }
-.feature-card.maze { --feature-accent: #1976d2; }
-.feature-card.dex { --feature-accent: #e3350d; }
+.feature-card.sort { --feature-accent: #e11d48; }
+.feature-card.maze { --feature-accent: #3b82f6; }
+.feature-card.dex { --feature-accent: #f43f5e; }
 
 /* Was `font-size: 48px` to size an emoji glyph; the icon is now a fixed 40px
    SVG box, centred by `margin: auto`, and tinted with the card's own accent
@@ -334,8 +558,8 @@ body {
   display: inline-block;
   margin: 24px auto 0;
   padding: 12px 28px;
-  background: var(--accent-gold);
-  color: #222;
+  background: var(--accent-gold-surface);
+  color: var(--on-accent);
   font-weight: bold;
   text-decoration: none;
   border-radius: var(--radius-pill);
@@ -345,8 +569,9 @@ body {
 
 .view-all-link:hover {
   background: var(--accent-yellow);
+  color: var(--on-accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 203, 5, 0.4);
+  box-shadow: 0 4px 12px rgba(227, 179, 65, 0.4);
 }
 
 /* ===== Canvas Container ===== */
@@ -370,14 +595,14 @@ body {
 
 canvas {
   background-color: var(--bg-primary);
-  box-shadow: 0 0 25px rgba(0,0,0,0.9);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
   border-radius: var(--radius-sm);
 }
 
 canvas.maze-canvas {
-  background-color: #000000;
+  background-color: var(--canvas-bg);
   box-shadow: 0 0 30px rgba(0, 150, 255, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 /* ===== Loading ===== */
@@ -386,8 +611,8 @@ canvas.maze-canvas {
   font-size: 22px;
   font-weight: bold;
   color: var(--accent-gold);
-  text-shadow: 2px 2px 5px #000;
-  background: rgba(0, 0, 0, 0.7);
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.9);
+  background: rgba(13, 17, 23, 0.82);
   padding: 20px 30px;
   border-radius: 10px;
   z-index: 5;
@@ -397,7 +622,7 @@ canvas.maze-canvas {
   text-align: center;
   font-size: 24px;
   padding: 50px;
-  color: var(--accent-yellow);
+  color: var(--accent-gold);
 }
 
 /* ===== Inputs (Pokedex) ===== */
@@ -413,7 +638,7 @@ canvas.maze-canvas {
 .search-select {
   padding: 10px 15px;
   border-radius: var(--radius-pill);
-  border: 1px solid #444;
+  border: 1px solid var(--hairline-strong);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 16px;
@@ -434,14 +659,57 @@ canvas.maze-canvas {
 .status-text {
   margin-left: 15px;
   font-weight: bold;
-  color: var(--accent-yellow);
+  color: var(--accent-yellow-text);
 }
 
-/* ===== Navigation Links (in header) ===== */
+/* ===== Theme toggle =====
+   Lives in the header, NOT inside .header-nav: only index.html and pokedex.html
+   have a nav at all, and initHeaderNav() in shared.js assigns that container's
+   innerHTML unconditionally (gotcha 27), so anything placed there would be
+   destroyed on first paint. As a header child it is identical on all five
+   content pages. */
+.theme-toggle {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-gold);
+}
+
+/* The two glyphs are the same <button> with one hidden by state, not two
+   buttons, so the accessible name has to live on the button and swap with it. */
+.theme-toggle .icon {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.theme-toggle .icon-sun { display: none; }
+[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+/* On the two pages that do have a nav, the toggle takes the far corner and the
+   nav steps left to clear it. Inert on the other three pages, which have no nav.
+   62px = the toggle's 34px box + its 16px inset + 12px of breathing room. */
 .header-nav {
   position: absolute;
   top: 50%;
-  right: 20px;
+  right: 62px;
   transform: translateY(-50%);
   display: flex;
   gap: 8px;
@@ -453,21 +721,25 @@ canvas.maze-canvas {
   font-weight: bold;
   padding: 8px 15px;
   border-radius: var(--radius-pill);
-  border: 1px solid #555;
+  border: 1px solid var(--hairline-strong);
   transition: all var(--transition-fast);
 }
 
 .header-nav a:hover {
   background: var(--accent-yellow);
-  color: #222;
+  color: #14110a;
 }
 
 .header-nav a.maze-link {
-  background: #1976d2;
+  background: #1d4ed8;
+  /* Solid fill, so the label is fixed rather than themed: the neighbouring nav
+     links inherit --text-primary, which is near-black in light mode and only
+     reaches 2.36:1 on this blue. */
+  color: #fff;
 }
 
 .header-nav a.maze-link:hover {
-  background: #1565c0;
+  background: #1e40af;
 }
 
 /* ===== Footer / Bottom ===== */
@@ -476,6 +748,57 @@ canvas.maze-canvas {
   padding: 20px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+/* ===== Print =====
+   Print is a THIRD palette, not a reflection of the active theme, and this is a
+   bug fix rather than a feature. Browsers drop background colours unless the
+   user ticks "background graphics", so the dark theme was already printing
+   #f0f6fc body text onto white paper — the detail page's own @media print block
+   in detail.css handles its own panels, but nothing set the page itself.
+   Forcing the colour tokens to their light values here is what makes printing
+   independent of the toggle. Geometry, radii and motion are deliberately
+   untouched. */
+@media print {
+  :root,
+  [data-theme="light"],
+  [data-theme="dark"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-controls: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-hover: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+    --hairline: rgba(0, 0, 0, 0.25);
+    --hairline-strong: rgba(0, 0, 0, 0.4);
+    --btn-border: rgba(0, 0, 0, 0.4);
+    --btn-bg: #ffffff;
+    --btn-fg: #1f2328;
+    --glow-border: transparent;
+    /* Brand colours are not `color`, so they survive into print on their own.
+       Without these, printing from the dark theme lays #f1e05a text on white
+       paper. The header gradients are background-images, so they need the same
+       treatment -- they are pale here for the same reason as in light mode. */
+    --accent-gold: #9c4106;
+    --error-text: #b3261e;
+    --hero-tint: rgba(204, 0, 0, 0.04);
+    --hero-title-shadow: none;
+    --divider-glow: rgba(31, 35, 40, 0.25);
+    --sticky-surface: #ffffff;
+    --accent-gold-rgb: 156, 65, 6;
+    --accent-yellow: #b45309;
+    --accent-yellow-text: #92400e;
+    --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    --header-title-shadow: none;
+    color-scheme: light;
+  }
+
+  body { background: #fff; color: #000; }
 }
 
 /* ===== Responsive ===== */
@@ -488,4 +811,29 @@ canvas.maze-canvas {
   .pokedex-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 16px; }
   .search-controls { flex-direction: column; align-items: center; }
   .search-input, .search-select { width: 100%; max-width: 300px; }
+}
+.color-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-dot {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dot, var(--text-muted));
+  /* WCAG 1.4.11, and the ring is load-bearing rather than decorative.
+     COLOR_HEX spans pure #000000 and #ffffff plus mid-tone #a9a9a9 and
+     #008000, and the card behind the dot is glass tinted by the sprite's own
+     average, so the dot's worst case is against its own colour family. The dot
+     only has to clear 3:1 against *one* of its two neighbours, and an OPAQUE
+     ring is what makes that true: measured over all 2050 colour x theme pairs
+     against the worst-case tinted card, 0.55 alpha bottoms out at 1.62:1 (a
+     grey dot landing almost exactly on a half-alpha ring) and every value up
+     to 0.9 still fails, while opaque clears at 3.10:1. A 1px ring is adjacent
+     to the dot and the card at once, so there is no second ring to specialise
+     one side -- a single ring is the only option, and it has to be opaque. */
+  box-shadow: 0 0 0 1px rgb(var(--hairline-rgb));
 }

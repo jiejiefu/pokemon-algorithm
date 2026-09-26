@@ -85,6 +85,34 @@ export const COLOR_ZH = {
   yellow: '黃'
 };
 
+/**
+ * PokeAPI's canonical `pokemon-color` values, so the detail page's colour dot
+ * means the colour it is labelled with. Deliberately NOT `pokemon_data.json`'s
+ * `rgb`, which is the mean of the sprite's visible pixels
+ * (`pokemon_preprocessing_script.py`): that is a desaturated mid-tone, and
+ * placing it beside the official name contradicts the name on 870 of 1025
+ * records -- Spewpa reads "Black" over a pale grey dot, Swablu "Blue" over a
+ * near-white one. `rgb` still drives the card aurora and the card accent, where
+ * "this Pokémon's own sprite colour" is the intended meaning.
+ *
+ * Two of the ten are pure #000000 / #ffffff, which is exactly 1:1 against the
+ * matching theme surface, so the dot needs a ring to have a perceivable edge at
+ * all -- see `.color-dot` in shared.css. PokeAPI has no "orange" record, and
+ * this map is keyed by the same 10 values as COLOR_ZH above.
+ */
+export const COLOR_HEX = {
+  black: '#000000',
+  blue: '#0000ff',
+  brown: '#a52a2a',
+  gray: '#a9a9a9',
+  green: '#008000',
+  pink: '#ffc0cb',
+  purple: '#800080',
+  red: '#ff0000',
+  white: '#ffffff',
+  yellow: '#ffff00'
+};
+
 export const STAT_KEYS = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed'];
 export const STAT_MAX = 255;
 

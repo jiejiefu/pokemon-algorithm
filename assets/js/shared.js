@@ -23,7 +23,7 @@ export const TYPE_COLORS = {
 
 // PokeAPI returns type slugs lowercase, but TYPE_EN_ZH / TYPE_COLORS are keyed
 // TitleCase, so every move type has to be capitalised before lookup.
-const capitalize = slug => String(slug).charAt(0).toUpperCase() + String(slug).slice(1);
+export const capitalize = slug => String(slug).charAt(0).toUpperCase() + String(slug).slice(1);
 
 /**
  * The four move tabs, in the order InfoPoke lists them. `key` indexes
@@ -65,7 +65,7 @@ export const MOVE_COLUMNS = {
 export function typeBadgeHtml(typeSlug, zh) {
   const key = capitalize(typeSlug);
   const label = zh || TYPE_EN_ZH[key] || key;
-  return `<span class="type-badge" style="background:${TYPE_COLORS[key] || '#777'}">${label}</span>`;
+  return `<span class="type-badge" style="${typeBadgeStyle(key)}">${label}</span>`;
 }
 
 /**
@@ -76,21 +76,15 @@ export function typeBadgeHtml(typeSlug, zh) {
 export function typeBadgeSmHtml(typeSlug, zh) {
   const key = capitalize(typeSlug);
   const label = zh || TYPE_EN_ZH[key] || key;
-  return `<span class="type-badge" style="background:${TYPE_COLORS[key] || '#777'};font-size:10px;padding:2px 8px;border-radius:10px;">${label}</span>`;
+  return `<span class="type-badge" style="${typeBadgeStyle(key)};font-size:10px;padding:2px 8px;border-radius:10px;">${label}</span>`;
 }
 
-// Color badge mapping (used by pokedex cards)
-export const BADGE_COLORS = {
-  "Red": "#d32f2f",
-  "Blue": "#1976d2",
-  "Green": "#388e3c",
-  "Yellow": "#fbc02d",
-  "Purple": "#7b1fa2",
-  "Pink": "#c2185b",
-  "Brown": "#795548",
-  "Black": "#212121",
-  "White/Gray": "#9e9e9e"
-};
+// BADGE_COLORS used to live here — nine hardcoded values keyed by the computed
+// `color_group` key. It is gone: `color_group` is carried by 0 of our 1025
+// records (gotcha 23), so groupByColor() now reads PokeAPI's `color` instead, and
+// nothing imported BADGE_COLORS anywhere. It was a dead second palette, and
+// leaving a hardcoded colour map beside the real token system invites someone to
+// use it.
 
 // Paths
 export const ASSETS = {
@@ -137,11 +131,61 @@ export function pokemonDetailUrl(pokemon) {
   return `detail.html?slug=${encodeURIComponent(pokemonSlug(pokemon))}`;
 }
 
-export function getReadableTextColor(rgb) {
-  const [r, g, b] = rgb;
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? '#111111' : '#ffffff';
+/**
+ * WCAG relative luminance / contrast. `toLinear` keeps the 0.03928 breakpoint
+ * of the WCAG 1.x erratum rather than 0.04045: it is what produced the
+ * measured figures recorded in AGENTS.md, and the two differ only inside a
+ * ~1/255 band, so changing it would invalidate those numbers for no gain.
+ */
+const toLinear = v => {
+  v /= 255;
+  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+};
+const luminance = ([r, g, b]) => 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/** "#a8a878" -> [168, 168, 120]. TYPE_COLORS is 6-digit hex throughout. */
+export function hexToRgb(hex) {
+  if (typeof hex !== 'string') return null;
+  const h = hex.trim().replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
 }
+
+/**
+ * The one place a saturated fill is turned into readable text, for both the
+ * Pokémon's colour swatch and the type badges. Mid-tone colours reach neither
+ * 4.5:1 with white nor with near-black, so pick the better text colour and
+ * then scale the fill towards black or white in 2% steps *only* until that text
+ * clears 4.5:1 -- the badge still reads as the colour it represents.
+ *
+ * This is deliberately not a theme token. The type fills are fixed saturated
+ * colours that do not change between themes, so a text colour read from the
+ * theme is wrong in at least one of the two: the old `.eff-type { color:
+ * var(--on-accent) }` put near-black on Fighting in dark and white on
+ * Electric in light, failing both ways (3.32:1 and 1.49:1). Deriving the pair
+ * from the fill is correct in every theme by construction.
+ */
+export function badgeStyle(rgb) {
+  if (!Array.isArray(rgb) || rgb.length !== 3) return '';
+  const LIGHT = [255, 255, 255];
+  const DARK = [20, 17, 10];
+  const useLightText = contrast(rgb, LIGHT) >= contrast(rgb, DARK);
+  const textColor = useLightText ? LIGHT : DARK;
+  const towards = useLightText ? [0, 0, 0] : [255, 255, 255];
+  let fill = rgb.slice();
+  for (let t = 0; t <= 1.0001; t += 0.02) {
+    fill = rgb.map((c, i) => Math.round(c + (towards[i] - c) * t));
+    if (contrast(fill, textColor) >= 4.5) break;
+  }
+  return `background:rgb(${fill.join(', ')});color:rgb(${textColor.join(', ')})`;
+}
+
+/** The inline style for a type badge, AA-correct against its own fill. */
+const typeBadgeStyle = key => badgeStyle(hexToRgb(TYPE_COLORS[key]) || [119, 119, 119]);
 
 /**
  * Create a Pokédex card DOM element
@@ -205,7 +249,16 @@ export function renderPokemonGrid(gridEl, pokemonArray) {
 const ICON_PATHS = {
   sort: 'M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z',
   grid: 'M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z',
-  book: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z'
+  book: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z',
+  // Theme toggle. Both glyphs live in this map for the same reason the nav
+  // icons do, but note the toggle is NOT built by initHeaderNav() — it is
+  // static markup in each page's header, because only two of the five content
+  // pages have a .header-nav at all. These two are the exception to the
+  // gotcha-27 rule that static-only icons stay out of ICON_PATHS: unlike
+  // `shuffle`/`palette`/`back`/`forward`, the theme button is generated by
+  // mountThemeToggle() below, so it needs the paths at hand.
+  sun: 'M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0 1.41.996.996 0 0 0 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41a.996.996 0 0 0-1.41 0l-1.06 1.06z',
+  moon: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z'
 };
 
 /**
@@ -219,6 +272,136 @@ export function iconSvg(name, extraClass = '') {
   if (!d) throw new Error(`iconSvg: unknown icon "${name}"`);
   const cls = extraClass ? `icon ${extraClass}` : 'icon';
   return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+}
+
+/* ===== Theme =====
+   The contract, in order:
+     1. Each content page's <head> runs a BLOCKING inline script that sets
+        document.documentElement.dataset.theme from localStorage, falling back to
+        matchMedia. It is inline and in <head> because a module in shared.js
+        cannot run earlier — module scripts are deferred by definition, so a
+        themed page would paint once in :root's dark palette and then repaint.
+     2. That script is the ONLY place a theme is resolved, and it always writes a
+        concrete value, so :root's dark palette is just the no-JS fallback and
+        there is deliberately no prefers-color-scheme media query in the CSS. A
+        `:root:not([data-theme="dark"])` block cannot match once the script has
+        run, which is why that pattern is absent.
+     3. This module handles what happens AFTER first paint: the toggle, the
+        system listener, and notifying canvas renderers. */
+const THEME_KEY = 'pokemon-theme';
+const THEME_COLORS = { light: '#f6f8fa', dark: '#0d1117' };
+
+/** The active theme. Reflects the DOM rather than a local variable, so it cannot
+ *  drift from what the user actually sees. */
+export function currentTheme() {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+/**
+ * Apply a theme. Pass null to hand control back to the OS.
+ * @param {'light'|'dark'|null} theme
+ */
+/**
+ * `persist` is what separates "the user chose this" from "this is what the OS
+ * says right now", and conflating the two is a silent, permanent bug: the OS
+ * listener below has to update the theme *without* writing a preference, or the
+ * first OS change after page load stores one and the listener -- which early
+ * returns as soon as any value is stored -- never fires again. The site then
+ * looks like it follows the OS and does not.
+ */
+export function setTheme(theme, { persist = true } = {}) {
+  const next = theme === 'light' || theme === 'dark' ? theme : systemTheme();
+  document.documentElement.dataset.theme = next;
+  // Storage throws outright when cookies are blocked, and setItem throws on a
+  // quota error. The theme is already applied to the DOM by this point, so a
+  // failure here must not abort the meta repaint or the themechange event.
+  try {
+    if (persist && theme !== null) localStorage.setItem(THEME_KEY, next);
+    else localStorage.removeItem(THEME_KEY);
+  } catch (e) {
+    /* not persisting; the toggle still works for this page view */
+  }
+  // Repaint <meta name="theme-color"> from the resolved theme. A
+  // `media="(prefers-color-scheme: dark)"` pair of metas would be wrong here:
+  // those follow the OS, and the whole point of the toggle is that the user's
+  // choice overrides it.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_COLORS[next]);
+  syncToggle();
+  document.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
+}
+
+function systemTheme() {
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+/** Keep the toggle button's state honest. The accessible name is deliberately
+ *  STABLE and the state lives in aria-pressed, which is what a toggle button is
+ *  for. The earlier draft swapped the label to "switch to dark theme" while
+ *  also setting aria-pressed; that makes the button announce two contradictory
+ *  things. The sun/moon glyph carries the current state visually and
+ *  CSS shows one of the two, so the icon and the ARIA state agree. */
+function syncToggle() {
+  const btn = document.querySelector('.theme-toggle');
+  if (!btn) return;
+  const isLight = currentTheme() === 'light';
+  btn.setAttribute('aria-pressed', String(isLight));
+}
+
+/**
+ * Mount the header theme toggle. The button is static markup in each page's
+ * header rather than nav markup: only index.html and pokedex.html have a
+ * .header-nav, and initHeaderNav() assigns that container's innerHTML
+ * unconditionally, so a button placed there would not survive first paint.
+ * @param {HTMLElement} [root]
+ */
+export function initThemeToggle(root = document) {
+  const btn = root.querySelector('.theme-toggle');
+  if (!btn || btn.dataset.wired === '1') return;
+  btn.dataset.wired = '1';
+  if (!btn.querySelector('.icon-sun')) {
+    btn.insertAdjacentHTML('afterbegin',
+      iconSvg('sun', 'icon-sun') + iconSvg('moon', 'icon-moon'));
+  }
+  btn.addEventListener('click', () => setTheme(currentTheme() === 'light' ? 'dark' : 'light'));
+  syncToggle();
+
+  // Follow the OS, but only while the user has expressed no preference. Once
+  // they click, that choice wins and the listener goes quiet — otherwise it
+  // would undo an explicit selection on the next OS change, and the setting
+  // would not actually persist.
+  const mq = window.matchMedia('(prefers-color-scheme: light)');
+  const hasPreference = () => {
+    try { return !!localStorage.getItem(THEME_KEY); } catch (e) { return false; }
+  };
+  const onSystemChange = (e) => {
+    if (hasPreference()) return;
+    setTheme(e.matches ? 'light' : 'dark', { persist: false });
+  };
+  if (mq.addEventListener) mq.addEventListener('change', onSystemChange);
+  else mq.addListener(onSystemChange);
+}
+
+/**
+ * Read the current values of a CSS custom property off the document root.
+ * This is the ONLY bridge from the stylesheet to <canvas> code. A <canvas> is
+ * painted imperatively, so it cannot see var(--x) at all; keeping a second copy
+ * of the palette in JS is how the two drift apart. Values are re-read on every
+ * themechange rather than cached, so a theme switch cannot leave a canvas
+ * painted in the old palette.
+ * @param {string} name
+ * @returns {string}
+ */
+export function readThemeToken(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/**
+ * Resolve a --canvas-wall style RGB triplet into a canvas fillStyle.
+ * @returns {string} 'rgba(r, g, b, alpha)'
+ */
+export function wallColor(alpha = 1) {
+  return `rgba(${readThemeToken('--canvas-wall')}, ${alpha})`;
 }
 
 const ICON_SORT = iconSvg('sort');
