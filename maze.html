@@ -38,9 +38,46 @@
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <div class="controls controls-maze">
       <button class="btn btn-nav" onclick="location.href='index.html'"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>返回大廳</button>
-      <button class="btn" onclick="loadRandomPokemonMaze()">1. 載入隨機寶可夢迷宮</button>
+      <button class="btn" onclick="loadPokemonMaze(true)">1. 載入寶可夢迷宮</button>
       <button class="btn" onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
       <button class="btn" onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>
+      <button class="btn" onclick="startSearch('bfs', 'star')">4. 中心四角巡航 (BFS)</button>
+      <button class="btn" onclick="startSearch('dfs', 'star')">5. 中心四角巡航 (DFS)</button>
+      <!-- 👇 新增：速度調整滑桿 -->
+      <div class="speed-control" style="display:inline-flex; align-items:center; gap:8px; font-size:14px;">
+        <label for="speedRange">速度：</label>
+        <!-- min=0 max=100，平滑連續滑動，預設 30 對應約 1.0x 二次方曲線公式為 $Y = 0.1 + 9.9 \times (X / 100)^2$ -->
+        <input type="range" id="speedRange" min="0" max="100" value="30" style="cursor:pointer; width: 140px;">
+        <!-- 顯示當前實際算出來的速度數值 -->
+        <span id="speedValue" style="font-weight:bold; min-width:38px;">1.0x</span>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+        <button class="btn-sm" onclick="setSpeed(0)">0.1x</button>
+        <button class="btn-sm" onclick="setSpeed(20)">0.5x</button>
+        <button class="btn-sm" onclick="setSpeed(30)">1.0x</button>
+        <button class="btn-sm" onclick="setSpeed(49)">2.5x</button>
+        <button class="btn-sm" onclick="setSpeed(100)">10.0x</button>
+      </div>
+      <!-- 👇 新增：寶可夢 ID 輸入框 (支援 Enter 鍵觸發) -->
+      <div class="pokemon-id-control" style="display:inline-flex; align-items:center; gap:6px; font-size:14px; margin-left:8px;">
+        <label for="pokemonIdInput">寶可夢 ID：</label>
+        <input type="number" id="pokemonIdInput" min="1" max="1025" placeholder="隨機" style="width:65px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; text-align:center;" onkeydown="if(event.key==='Enter') loadPokemonMaze(false)">
+        <button class="btn-sm" onclick="loadPokemonMaze(false)">套用 ID</button>
+      </div>
+      <!-- 👇 隨機迷宮 Toggle 與 Seed 輸入框 -->
+      <div class="seed-control" style="display:inline-flex; align-items:center; gap:8px; font-size:14px; margin-left:8px;">
+        <!-- Toggle 切換開關 (預設 checked 隨機) -->
+        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="randomSeedToggle" checked onchange="toggleSeedVisibility()" style="cursor:pointer;">
+          <span>隨機迷宮</span>
+        </label>
+
+        <!-- 當「隨機迷宮」未勾選時才顯示輸入框 (預設 display: none) -->
+        <div id="seedInputContainer" style="display:none; align-items:center; gap:4px;">
+          <label for="seedInput">Seed：</label>
+          <input type="number" id="seedInput" value="42" style="width:70px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; text-align:center;">
+        </div>
+      </div>
       <span id="status" class="status-text">請先載入迷宮...</span>
     </div>
   </header>
@@ -85,6 +122,8 @@
 
     let grid = [];
     let searchGenerator = null;
+    let pathGenerator = null; // 👈 新增：用於動畫繪製最終路徑
+    let animPhase = 'idle';    // 👈 新增：動畫狀態 ('search' | 'path' | 'idle')
     let isSearching = false;
     let finalPath = [];
 
@@ -131,20 +170,88 @@
       }
     }
 
+    // ================= Seed 偽隨機數產生器 (Mulberry32) =================
+    let rngFunc = null;
+
+    function initSeed(seed) {
+      let a = seed;
+      rngFunc = function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    // 取得 0 ~ 1 之間的隨機數 (替代 Math.random)
+    function seededRandom() {
+      if (!rngFunc) initSeed(42);
+      return rngFunc();
+    }
+    
+    // 控制迷宮 Seed 輸入框顯示 / 隱藏
+    function toggleSeedVisibility() {
+      const isRandom = document.getElementById('randomSeedToggle').checked;
+      const container = document.getElementById('seedInputContainer');
+      if (container) {
+        container.style.display = isRandom ? 'none' : 'inline-flex';
+      }
+    }
+
     // ================= 1. 圖片像素化與迷宮生成 =================
 
-    function loadRandomPokemonMaze() {
+    // 寶可夢迷宮載入邏輯 (傳入 true 代表隨機抽號，false 代表讀取輸入框的 ID)
+    function loadPokemonMaze(isRandom = true) {
       isSearching = false;
       searchGenerator = null;
       finalPath = [];
       grid = [];
+
+      // --- 讀取隨機或指定 Seed ---
+      const randomSeedToggle = document.getElementById('randomSeedToggle');
+      const isRandomSeed = randomSeedToggle ? randomSeedToggle.checked : true;
+      const seedInput = document.getElementById('seedInput');
+
+      let seedVal;
+      if (isRandomSeed) {
+        // 預設隨機產生一個 Seed (1 ~ 999999)
+        seedVal = Math.floor(Math.random() * 999999) + 1;
+        // 同步更新隱藏的 seedInput 值（方便切換時知道上一次隨機的數值）
+        if (seedInput) seedInput.value = seedVal;
+      } else {
+        // 讀取使用者輸入的 Seed (若為空則預設 42)
+        seedVal = seedInput ? (parseInt(seedInput.value, 10) || 42) : 42;
+      }
       
-      const randomId = Math.floor(Math.random() * 1025) + 1;
-      statusText.innerText = `正在載入 # ${randomId} 寶可夢大圖...`;
+      // 初始化隨機數種子
+      // initSeed(seedVal);
+
+      const pokemonIdInput = document.getElementById('pokemonIdInput');
+      let targetId;
+
+      if (isRandom) {
+        // 使用原生 Math.random() 隨機抽取 1 ~ 1025 的 寶可夢ID，並即時更新到輸入框上
+        targetId = Math.floor(Math.random() * 1025) + 1;
+        if (pokemonIdInput) {
+          pokemonIdInput.value = targetId;
+        }
+      } else {
+        // 讀取使用者手動輸入的 ID，並做範圍保護
+        targetId = pokemonIdInput ? parseInt(pokemonIdInput.value, 10) : 25;
+        if (isNaN(targetId) || targetId < 1 || targetId > 1025) {
+          alert('請輸入有效的寶可夢 ID (1 ~ 1025)');
+          return;
+        }
+      }
+
+      statusText.innerText = `正在載入 # ${targetId} 寶可夢大圖 (Seed: ${seedVal})...`;
 
       const img = new Image();
       const imagesPath = 'assets/images/pokemon/';
-      img.src = `${imagesPath}${randomId}.png`;
+      img.src = `${imagesPath}${targetId}.png`;
+      img.onerror = () => {
+          statusText.innerText = `載入失敗！找不到 ID #${targetId} 的寶可夢圖片。`;
+        };
       img.onload = () => {
         const offCanvas = document.createElement('canvas');
         offCanvas.width = GRID_SIZE;
@@ -163,8 +270,11 @@
           grid.push(row);
         }
 
+        // 關鍵修正：在生成迷宮牆壁「正前方」才重置 Seed 亂數序列！
+        // 這樣不論背景換成哪隻寶可夢，Seed 42 產生的牆壁結構與拆牆順序都是 100% 相同的。
+        initSeed(seedVal);
         generateMazeBacktracker();
-        statusText.innerText = `迷宮生成完畢！請選擇 BFS 或 DFS 進行探索。`;
+        statusText.innerText = `迷宮生成完畢 (Seed: ${seedVal}, 寶可夢 # ${targetId})！請選擇探索演算法。`;
         drawFullMaze();
       };
     }
@@ -178,7 +288,8 @@
       while (true) {
         let neighbors = getUnvisitedNeighbors(current);
         if (neighbors.length > 0) {
-          let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+          // 👈 將 Math.random() 替換為 seededRandom()
+          let next = neighbors[Math.floor(seededRandom() * neighbors.length)];
           stack.push(current);
           removeWalls(current, next);
           next.mazeVisited = true;
@@ -270,6 +381,14 @@
       }
     }
 
+    // 👈 新增：將最終路徑逐步點亮的 Generator
+    function* pathSteps() {
+      for (let i = 0; i < finalPath.length; i++) {
+        finalPath[i].onPath = true;
+        yield;
+      }
+    }
+
     function startSearch(type) {
       if (grid.length === 0) return;
       
@@ -289,13 +408,15 @@
         searchGenerator = dfsSteps();
       }
 
+      animPhase = 'search'; // 設定目前為搜尋階段
+
       if (!isSearching) {
         isSearching = true;
         requestAnimationFrame(renderLoop);
       }
     }
 
-    // ================= 3. 畫面渲染 =================
+    // ================= 3. 畫面渲染迴圈 (含速度與階段控制) =================
 
     function drawFullMaze() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -306,29 +427,269 @@
       }
     }
 
+    function setSpeed(sliderValue) {
+      document.getElementById('speedRange').value = sliderValue;
+    }
+
+    // 輸入想要的速度 Y (例如 0.5, 1.0, 2.5)，回傳滑桿位置 X (0~100), 反推公式為 $X = 100 \times \sqrt{(Y - 0.1) / 9.9}$
+    function getSliderValFromSpeed(targetSpeed) {
+      // 限制 Y 的範圍在 0.1 ~ 10.0 之間，避免傳入小於 0.1 的數字導致開根號出現 NaN
+      const clampedY = Math.max(0.1, Math.min(10.0, targetSpeed));
+      
+      // 反推公式
+      const x = 100 * Math.sqrt((clampedY - 0.1) / 9.9);
+      
+      // 四捨五入取整數
+      return Math.round(x);
+    }
+
+    function setSpeedByValue(speed) {
+      const sliderValue = getSliderValFromSpeed(speed);
+      document.getElementById('speedRange').value = sliderValue;
+    }
+
+    // 計算非線性速度的函式 (輸入 0~100，輸出 0.1~10)
+    function getMappedSpeed(sliderVal) {
+      const minSpeed = 0.1;
+      const maxSpeed = 10.0;
+      
+      // 將 0~100 轉為 0~1 的比例
+      const progress = sliderVal / 100; 
+      
+      // 使用二次方 (progress^2) 做非線性拉伸
+      const mappedValue = minSpeed + (maxSpeed - minSpeed) * Math.pow(progress, 2);
+      
+      return mappedValue;
+    }
+
     function renderLoop() {
-      if (searchGenerator) {
+      // 1. 動態讀取滑桿速度
+      const speedInput = document.getElementById('speedRange');
+      const speedText = document.getElementById('speedValue');
+
+      // 2. 取得對數/曲線轉換後的實際速度 (例如 0.1, 0.5, 1.2, 2.5 等)
+      const rawSpeed = speedInput ? getMappedSpeed(parseFloat(speedInput.value)) : 1.0;
+
+      // 3. 更新介面上的數字顯示 (保留 1 位小數)
+      if (speedText) {
+        speedText.innerText = rawSpeed.toFixed(1) + 'x';
+      }
+
+      // 4. 處理「小於 1 步」的累積邏輯 (例如 0.1 步/幀 代表每 10 幀才走 1 步)
+      // 如果數值包含小數，可以使用計數器累積步數
+      let stepsToExecute = Math.floor(rawSpeed);
+      
+      // 處理小數點機率 (例如 speed = 0.3，有 30% 機率在這一幀多走 1 步)
+      if (Math.random() < (rawSpeed % 1)) {
+        stepsToExecute += 1;
+      }
+
+      // 階段一：演算法搜尋中
+      if (animPhase === 'search' && searchGenerator) {
         let done = false;
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < stepsToExecute; i++) {
           const res = searchGenerator.next();
           if (res.done) {
             done = true;
             break;
           }
         }
-        
-        drawFullMaze();
 
         if (done) {
           searchGenerator = null;
+          if (finalPath.length > 0) {
+            // 搜尋成功，切換到「畫出路徑」階段
+            animPhase = 'path';
+            pathGenerator = pathSteps();
+            statusText.innerText = '探索成功！正在畫出明顯路徑...';
+          } else {
+            animPhase = 'idle';
+            isSearching = false;
+            statusText.innerText = '探索結束，未找到可行路徑！';
+          }
+        }
+      } 
+      // 階段二：逐格繪製終點路徑中
+      else if (animPhase === 'path' && pathGenerator) {
+        let done = false;
+        for (let i = 0; i < stepsToExecute; i++) {
+          const res = pathGenerator.next();
+          if (res.done) {
+            done = true;
+            break;
+          }
+        }
+
+        if (done) {
+          pathGenerator = null;
+          animPhase = 'idle';
           isSearching = false;
-          finalPath.forEach(cell => cell.onPath = true);
-          drawFullMaze();
-          statusText.innerText = '探索完成！成功點亮寶可夢路徑！';
-          return;
+          statusText.innerText = `路徑點亮完成！成功用 ${finalPath.length} 步連至終點！`;
         }
       }
-      requestAnimationFrame(renderLoop);
+
+      // 重繪迷宮畫面
+      drawFullMaze();
+
+      // 如果動畫尚未完全結束，持續循環
+      if (isSearching) {
+        requestAnimationFrame(renderLoop);
+      }
+    }
+
+    // ================= 2. 尋路演算法 (單段與多段巡航) =================
+
+    // 取得當前搜尋段可通行的鄰居 (使用區域 visitedSet，避免上一段影響下一段的探索)
+    function getAccessibleNeighborsForSegment(cell, visitedSet) {
+      let neighbors = [];
+      let x = cell.x;
+      let y = cell.y;
+      if (!cell.walls.top && y > 0 && !visitedSet.has(grid[y-1][x])) neighbors.push(grid[y-1][x]);
+      if (!cell.walls.right && x < GRID_SIZE-1 && !visitedSet.has(grid[y][x+1])) neighbors.push(grid[y][x+1]);
+      if (!cell.walls.bottom && y < GRID_SIZE-1 && !visitedSet.has(grid[y+1][x])) neighbors.push(grid[y+1][x]);
+      if (!cell.walls.left && x > 0 && !visitedSet.has(grid[y][x-1])) neighbors.push(grid[y][x-1]);
+      return neighbors;
+    }
+
+    // 單段搜尋 Generator (給定起點與終點)
+    function* searchSegment(startCell, endCell, algoType) {
+      let visitedSet = new Set();
+      let list = [{ cell: startCell, path: [startCell] }];
+      
+      startCell.searchVisited = true;
+      visitedSet.add(startCell);
+
+      let foundPath = null;
+
+      while (list.length > 0) {
+        let { cell, path } = (algoType === 'bfs') ? list.shift() : list.pop();
+
+        if (cell.x === endCell.x && cell.y === endCell.y) {
+          foundPath = path;
+          break;
+        }
+
+        let neighbors = getAccessibleNeighborsForSegment(cell, visitedSet);
+        for (let next of neighbors) {
+          next.searchVisited = true; // 累積全局探索紀錄，保持畫面半透明綠色鋪開
+          visitedSet.add(next);
+          list.push({ cell: next, path: [...path, next] });
+        }
+        yield; // 每一步 yield 給 renderLoop 繪製動畫
+      }
+
+      return foundPath;
+    }
+
+    // 中心四角巡航多段 Generator
+    function* centerStarSteps(algoType) {
+      const cx = Math.floor(GRID_SIZE / 2);
+      const cy = Math.floor(GRID_SIZE / 2);
+
+      const center = grid[cy][cx];
+      const topLeft = grid[0][0];
+      const bottomRight = grid[GRID_SIZE - 1][GRID_SIZE - 1];
+      const topRight = grid[0][GRID_SIZE - 1];
+      const bottomLeft = grid[GRID_SIZE - 1][0];
+
+      // 巡航順序：中心 -> 左上, 中心 -> 右下, 中心 -> 右上, 中心 -> 左下
+      const legs = [
+        { start: center, end: topLeft },
+        { start: center, end: bottomRight },
+        { start: center, end: topRight },
+        { start: center, end: bottomLeft }
+      ];
+
+      finalPath = [];
+
+      for (let leg of legs) {
+        // 👈 每次出發前，將全局畫面刷淡（重置 searchVisited）
+        for (let y = 0; y < GRID_SIZE; y++) {
+          for (let x = 0; x < GRID_SIZE; x++) {
+            grid[y][x].searchVisited = false;
+          }
+        }
+
+        let gen = searchSegment(leg.start, leg.end, algoType);
+        let segmentPath = null;
+
+        while (true) {
+          let res = gen.next();
+          if (res.done) {
+            segmentPath = res.value;
+            break;
+          }
+          yield;
+        }
+
+        if (segmentPath) {
+          if (finalPath.length === 0) {
+            finalPath = segmentPath;
+          } else {
+            // 拼接路徑時，移除重疊的起點
+            finalPath = finalPath.concat(segmentPath.slice(1));
+          }
+        }
+      }
+    }
+
+    // BFS Generator (傳統 左上 -> 右下)
+    function* bfsSteps() {
+      let gen = searchSegment(grid[0][0], grid[GRID_SIZE-1][GRID_SIZE-1], 'bfs');
+      while (true) {
+        let res = gen.next();
+        if (res.done) {
+          finalPath = res.value || [];
+          break;
+        }
+        yield;
+      }
+    }
+
+    // DFS Generator (傳統 左上 -> 右下)
+    function* dfsSteps() {
+      let gen = searchSegment(grid[0][0], grid[GRID_SIZE-1][GRID_SIZE-1], 'dfs');
+      while (true) {
+        let res = gen.next();
+        if (res.done) {
+          finalPath = res.value || [];
+          break;
+        }
+        yield;
+      }
+    }
+
+    // 啟動搜尋入口
+    function startSearch(type, mode = 'normal') {
+      if (grid.length === 0) return;
+      
+      for(let y=0; y<GRID_SIZE; y++) {
+        for(let x=0; x<GRID_SIZE; x++) {
+          grid[y][x].searchVisited = false;
+          grid[y][x].onPath = false;
+        }
+      }
+      finalPath = [];
+      
+      if (mode === 'star') {
+        statusText.innerText = `${type.toUpperCase()} 中心四角巡航探索中...`;
+        searchGenerator = centerStarSteps(type);
+      } else {
+        if (type === 'bfs') {
+          statusText.innerText = 'BFS 探索中 (如水波般擴散)...';
+          searchGenerator = bfsSteps();
+        } else {
+          statusText.innerText = 'DFS 探索中 (如蛇行般深入)...';
+          searchGenerator = dfsSteps();
+        }
+      }
+
+      animPhase = 'search';
+
+      if (!isSearching) {
+        isSearching = true;
+        requestAnimationFrame(renderLoop);
+      }
     }
 
     function drawIdlePrompt() {

@@ -1049,6 +1049,7 @@ body {
 .evolution-chain {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center; /* 👈 新增：讓主軸（水平方向）上的子元素居中 */
   align-items: stretch;
   gap: 10px;
 }
@@ -1080,10 +1081,10 @@ body {
 }
 
 .evolution-sprite {
-  /* 68px x 1.5. The section-note above the chain already states that stats
+  /* 100px x 1.5. The section-note above the chain already states that stats
      peak at 255 and the total at 720, so nothing here needs to restate scale. */
-  width: 102px;
-  height: 102px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   image-rendering: crisp-edges;
   flex-shrink: 0;
@@ -1126,6 +1127,7 @@ body {
   letter-spacing: 0.8px;
   color: var(--text-muted);
   margin-bottom: 10px;
+  text-align: center; /* 👈 建議加這行：讓「分支形態/異形」標題文字也一起置中 */
 }
 
 .evolution-variant-group .evolution-chain {
