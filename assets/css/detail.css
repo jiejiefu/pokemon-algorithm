@@ -1125,6 +1125,33 @@ body {
   color: var(--text-secondary);
 }
 
+/* The disclosure that opens the long-form pair. Sits in .section-head, which is
+   a baseline-aligned flex row, so it needs the same optical size as the
+   .section-note beside it rather than the full .btn padding. */
+.desc-toggle {
+  font-size: 12px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.desc-toggle .icon {
+  transition: transform var(--transition-fast);
+}
+
+/* The supplementary pair is collapsed by the `hidden` attribute, which is what
+   aria-expanded describes. Print gets both tiers: a printed page cannot be
+   toggled, so the long descriptions would otherwise be silently dropped. The
+   button itself is hidden because it would have nothing left to do. */
+@media print {
+  #description-extra[hidden] {
+    display: block !important;
+  }
+
+  .desc-toggle {
+    display: none !important;
+  }
+}
+
 /* ===== Footer pager ===== */
 .detail-footer {
   display: flex;
