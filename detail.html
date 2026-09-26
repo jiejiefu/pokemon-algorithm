@@ -519,6 +519,20 @@
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      // Flush with the bars. Above the 900px breakpoint the radar shares a row
+      // with .stat-bars, and the bars are the shorter of the two, so a 320px
+      // radar hangs 74px below the 能力總和 row. Cap the canvas to the bars'
+      // own measured height so the bottoms line up. Measured rather than
+      // hardcoded: the block is six rows plus a summary, so its height comes
+      // from font metrics and platform line-height and is not a stable number.
+      // Below the breakpoint the radar is its own row above the bars, where
+      // "flush" is meaningless, so the stylesheet's 320px stands and the radar
+      // keeps the full column width.
+      const bars = el('stat-bars');
+      const barsBox = bars.getBoundingClientRect();
+      const sideBySide = Math.abs(barsBox.top - canvas.getBoundingClientRect().top) <= 1;
+      canvas.style.maxWidth = sideBySide ? `${Math.round(barsBox.height)}px` : '';
+
       // The canvas is fluid in CSS, so size the backing store to its rendered
       // box times devicePixelRatio instead of trusting the width/height attributes.
       const cssWidth = canvas.clientWidth || 320;
@@ -564,7 +578,10 @@
       ctx.closePath();
       // Alphas come from the stylesheet so the wash is a tint in both themes
       // rather than a shadow in one of them; see --radar-fill in shared.css.
-      ctx.fillStyle = rgbaGold(parseFloat(readThemeToken('--radar-fill')) || 0.15);
+      // The 0.13 fallback is the dark token's value, not a third option — it
+      // only fires if the stylesheet failed to load, which unstyles the page
+      // anyway, and matching it keeps 0.13/0.06 the only pair of numbers here.
+      ctx.fillStyle = rgbaGold(parseFloat(readThemeToken('--radar-fill')) || 0.13);
       ctx.fill();
       ctx.strokeStyle = rgbaGold(parseFloat(readThemeToken('--radar-stroke')) || 0.7);
       ctx.lineWidth = 2;

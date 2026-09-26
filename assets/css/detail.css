@@ -862,7 +862,13 @@ body {
 /* ===== Stats + radar ===== */
 .stats-layout {
   display: grid;
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  /* Bars on the left, radar on the right. The DOM order is radar-then-bars, so
+     the columns are declared widest-first (1fr then 320px) and .radar-frame
+     carries order: 2 to move it into the second one — declaring `320px 1fr`
+     and reordering would have put the radar in the 1fr track and squeezed the
+     seven bars into 320px. The bars get the wide track because that track is
+     what has to stay one consistent length (see .stat-bars). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
   gap: 28px;
   align-items: start;
 }
@@ -870,8 +876,13 @@ body {
 .radar-frame {
   display: flex;
   justify-content: center;
+  order: 2;
 }
 
+/* max-width is the 320px column cap, and the floor for the stacked layout.
+   Above the 900px breakpoint drawRadarChart() lowers it to the measured height
+   of .stat-bars so the two are flush; do not hardcode that number here, the
+   bars block is font-driven and would drift. */
 #radar-chart {
   width: 100%;
   max-width: 320px;
@@ -879,10 +890,25 @@ body {
   aspect-ratio: 1;
 }
 
+/* One column, deliberately. This was repeat(auto-fit, minmax(210px, 1fr)),
+   which wrapped the six stats into 3 columns of 234px inside the 792px bars
+   column at desktop — leaving each bar's track 118px while .stat-total, which
+   carries grid-column: 1 / -1, spanned all three at 626px. The six bars were
+   5.3x shorter than the total they are supposed to be read against, and it is
+   the kind of mismatch that only shows above ~600px because below that
+   auto-fit already collapsed to a single column and every track was equal.
+
+   A single column makes the equal length structural instead of incidental:
+   all seven rows are .stat-row / .stat-total and share one template
+   (3.4em 2.6em minmax(0, 1fr)), so the track is the same width by
+   construction rather than by tuning a minmax() until it happens to divide
+   evenly. Do not reintroduce a column count here — if the bars ever need to
+   be narrower than the radar leaves room for, cap the .stat-bars width or
+   move the radar, but keep all seven rows in one track width. */
 .stat-bars {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
   align-content: start;
 }
 
@@ -924,10 +950,14 @@ body {
   border-radius: var(--radius-pill);
 }
 
-/* The total row reuses .stat-row's column template so its bar lines up with
-   the per-stat bars. It keeps grid-column: 1 / -1, so above ~600px — where
-   .stat-bars wraps into 2-3 columns — the total bar spans the full width and
-   reads as a summary footer rather than a 7th comparable stat. */
+/* The total row reuses .stat-row's column template verbatim, so its track is
+   the same width as the six above it — measured identical (626px) at 1180px
+   viewport — and 能力加總 is therefore directly comparable to the stats it
+   sums. grid-column: 1 / -1 is now a no-op in .stat-bars' single column, but
+   it is kept so the total still spans if a column count is ever reintroduced;
+   without it the total would silently become a 7th comparable stat squeezed
+   into one column. The border-top, not a shorter bar, is what marks it as a
+   summary rather than a stat. */
 .stat-total {
   grid-column: 1 / -1;
   display: grid;
