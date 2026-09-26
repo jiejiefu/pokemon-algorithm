@@ -385,27 +385,45 @@ body {
 }
 
 .stat-fill {
+  /* Must be a block box: the fill is a <span>, and its parent .stat-track is a
+     plain block (blockified only as a grid item of .stat-row), so the fill
+     would stay display:inline — where width/height are ignored — and collapse
+     to 0x0, leaving only the gray track visible. */
+  display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-gold) 0%, #ffb300 100%);
   border-radius: var(--radius-pill);
 }
 
+/* The total row reuses .stat-row's column template so its bar lines up with
+   the per-stat bars. It keeps grid-column: 1 / -1, so above ~600px — where
+   .stat-bars wraps into 2-3 columns — the total bar spans the full width and
+   reads as a summary footer rather than a 7th comparable stat. */
 .stat-total {
   grid-column: 1 / -1;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 3.4em 2.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 14px;
-  color: var(--text-secondary);
 }
 
-.stat-total strong {
-  font-size: 20px;
-  color: var(--accent-gold);
-  font-variant-numeric: tabular-nums;
+.stat-total-label {
+  white-space: nowrap;
+}
+
+/* Keep the total readable as the section's headline number. 18px, not the
+   previous 20px, so three digits stay inside the 2.6em (41.6px) value column. */
+.stat-total-value {
+  font-size: 18px;
+}
+
+/* Silver, not gold: the total is on a 720 scale, not the 255 scale of the six
+   bars above, and the colour is what makes that difference legible. */
+.stat-total-fill {
+  background: linear-gradient(90deg, #ffffff 0%, #aab6c2 100%);
 }
 
 /* ===== Type effectiveness ===== */
@@ -645,8 +663,11 @@ button:focus-visible,
     gap: 8px;
   }
 
-  .stat-row {
-    grid-template-columns: 3.2em 2.4em minmax(0, 1fr);
+  /* Label track stays 3.4em: 能力總和 is 4 CJK glyphs at 13px = 52px, and 3.2em
+     is 51.2px, which wraps the total's label onto a second line. */
+  .stat-row,
+  .stat-total {
+    grid-template-columns: 3.4em 2.4em minmax(0, 1fr);
   }
 
   .detail-footer {

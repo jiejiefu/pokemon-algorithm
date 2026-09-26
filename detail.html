@@ -80,7 +80,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20V10h4v10zm6 0V4h4v16zm6 0v-7h4v7z"/></svg>
             能力數值
           </h2>
-          <span class="section-note">各項能力以 255 為滿值</span>
+          <span class="section-note" id="stats-note">各項能力以 255 為滿值，能力總和以 720 為滿值</span>
         </div>
         <div class="stats-layout">
           <div class="radar-frame">
@@ -146,7 +146,7 @@
     } from './assets/js/shared.js';
     import {
       TYPE_EN_ZH, TYPE_COLORS, SHAPE_ZH, HABITAT_ZH, GROWTH_RATE_ZH, EGG_GROUP_ZH,
-      COLOR_ZH, STAT_KEYS, STAT_MAX, STAT_LABELS, EFFECT_BUCKETS, TYPE_CHART_SOURCE,
+      COLOR_ZH, STAT_KEYS, STAT_MAX, TOTAL_MAX, STAT_LABELS, EFFECT_BUCKETS, TYPE_CHART_SOURCE,
       typeEffectiveness, genusZh, labelZh
     } from './assets/js/pokemon-lexicon.js';
 
@@ -354,6 +354,11 @@
     }
 
     function renderStats(p) {
+      // The note is static markup, so it cannot interpolate the scale constants
+      // itself; it is rewritten here to keep them the single source of truth
+      // alongside the bars they describe.
+      el('stats-note').textContent = `各項能力以 ${STAT_MAX} 為滿值，能力總和以 ${TOTAL_MAX} 為滿值`;
+
       const bars = STAT_KEYS.map(key => {
         const value = p.stats[key] || 0;
         const pct = Math.max(0, Math.min(100, (value / STAT_MAX) * 100));
@@ -368,7 +373,13 @@
       }).join('');
 
       el('stat-bars').innerHTML = bars + `
-        <p class="stat-total"><span>能力總和</span><strong>${p.stats.total}</strong></p>`;
+        <p class="stat-total">
+          <span class="stat-label stat-total-label">能力總和 / ${TOTAL_MAX}</span>
+          <span class="stat-value stat-total-value">${p.stats.total}</span>
+          <span class="stat-track">
+            <span class="stat-fill stat-total-fill" style="width:${(Math.max(0, Math.min(100, (p.stats.total / TOTAL_MAX) * 100))).toFixed(1)}%"></span>
+          </span>
+        </p>`;
 
       drawRadarChart(p.stats);
     }

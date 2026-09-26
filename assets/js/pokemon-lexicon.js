@@ -85,6 +85,11 @@ export const COLOR_ZH = {
 export const STAT_KEYS = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed'];
 export const STAT_MAX = 255;
 
+// The base stat total is on its own scale, not 6 x STAT_MAX: 6 x 120 is the
+// in-game ceiling and also the highest total in our data, so scoring against
+// 1530 would leave every bar under 47% and read as broken.
+export const TOTAL_MAX = 720;
+
 export const STAT_LABELS = {
   hp: 'HP',
   attack: '攻擊',
