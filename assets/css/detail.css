@@ -69,84 +69,205 @@ body {
   font-size: 14px;
 }
 
-/* ===== Hero ===== */
-.hero {
-  display: grid;
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
-  padding: 24px;
-  margin-bottom: 20px;
-  background: var(--bg-card);
-  border: 1px solid rgba(255, 222, 0, 0.12);
+/* ===== Top card: identity | names+profile+abilities | breeding =====
+   InfoPoke's three columns, at the 3fr 4fr 5fr ratio. The card is real glass:
+   the page background behind it is a flat #121212, which a backdrop-filter has
+   nothing to refract, so the card paints its own tinted aurora (--card-accent-rgb,
+   set from pokemon.rgb in renderDetail) and blurs that. Same convention, and the
+   same variable name, as createPokemonCard() in shared.js.
+   The aurora is on ::before rather than the element itself so the real element can
+   keep the translucent fill: a pseudo-element cannot be a backdrop for its own
+   parent, so putting both on .top-hero-card would blur nothing. */
+.top-hero-card {
+  position: relative;
+  isolation: isolate;
+  /* Seeded so the very first paint is not transparent. renderDetail() overwrites
+     this with the Pokemon's own RGB; the earlier declaration in the cascade is
+     what makes that safe. */
+  --card-accent-rgb: 255, 222, 0;
+  /* The card is *lighter* than the page -- it is glass over a dark background
+     plus a tinted aurora -- so the page's --text-muted (#aaaaaa) no longer clears
+     4.5:1 on it. Measured worst case is Chansey's, whose accent rgb(214,178,192)
+     is the palest of the 1025, at exactly 4.50:1 for a 12px .names-grid .lang.
+     Same zero-margin trap as badgeStyle()'s Steelix, and the aurora alpha is a
+     model of the gradient rather than a sampled pixel, so the real minimum could
+     sit a hair lower. #bdbdbd measures 5.5:1 on the same stack. */
+  --text-muted: #bdbdbd;
+  border: 1px solid rgba(var(--card-accent-rgb), 0.28);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
+  margin-bottom: 20px;
+  overflow: hidden;
 }
 
-.hero-figure {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .top-hero-card {
+    background: rgba(28, 28, 32, 0.58);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+  }
+}
+
+/* No backdrop-filter (Firefox before 103, older Safari): drop to a near-opaque
+   fill. rgba(28,28,32,.94) still reads as a panel, it just cannot smear the
+   aurora — which is the entire point of the effect, so it is not left subtle. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .top-hero-card { background: rgba(28, 28, 32, 0.94); }
+}
+
+.top-hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(52% 68% at 18% 12%, rgba(var(--card-accent-rgb), 0.32) 0%, transparent 68%),
+    radial-gradient(44% 58% at 88% 78%, rgba(var(--card-accent-rgb), 0.18) 0%, transparent 66%),
+    linear-gradient(155deg, rgba(255, 222, 0, 0.09) 0%, transparent 52%);
+  pointer-events: none;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  padding: 24px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 3fr 4fr 5fr;
+    gap: 32px;
+    padding: 28px;
+  }
+}
+
+/* ===== Column 1: identity ===== */
+.hero-col-left {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  text-align: center;
+}
+
+.shiny-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  align-self: flex-end;
+  padding: 0;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.shiny-btn svg { width: 19px; height: 19px; fill: currentColor; }
+
+.shiny-btn:hover {
+  color: var(--accent-gold);
+  border-color: rgba(255, 222, 0, 0.45);
+  background: rgba(255, 222, 0, 0.12);
+}
+
+.shiny-btn.is-active {
+  color: #14110a;
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+/* Placeholder for the real shiny artwork: no shiny sprite exists in the data or on
+   disk yet, so this is a palette shift only. See toggleShiny() in detail.html. */
+#pokemon-sprite {
+  transition: filter var(--transition-fast);
+}
+
+#pokemon-sprite.is-shiny {
+  filter: hue-rotate(-28deg) saturate(165%) brightness(1.12) contrast(1.05);
 }
 
 .sprite-frame {
+  position: relative;
   width: 100%;
+  max-width: 240px;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(150deg, #333 0%, #1c1c1c 100%);
-  border: 1px solid rgba(255, 222, 0, 0.14);
-  border-radius: var(--radius-sm);
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(150deg, #2a2a30 0%, #17171a 100%);
+}
+
+/* Sits behind the sprite so the sprite has a coloured core to refract. Derived
+   from the same --card-accent-rgb as the card's own aurora, so a red Pokemon gets
+   a red core and a blue one a blue core without a second colour lookup. */
+.sprite-glow {
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(var(--card-accent-rgb), 0.4) 0%,
+    transparent 72%
+  );
+  pointer-events: none;
 }
 
 .sprite-frame img {
-  width: 82%;
-  height: 82%;
+  position: relative;
+  z-index: 1;
+  width: 84%;
+  height: 84%;
   object-fit: contain;
   image-rendering: crisp-edges;
 }
 
-.sprite-caption {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
+.hero-subtitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
 }
 
 .hero-id {
-  display: inline-block;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--accent-gold);
-  background: rgba(255, 222, 0, 0.14);
-  border-radius: var(--radius-pill);
-  padding: 4px 14px;
-  margin-bottom: 10px;
 }
 
 .hero-title {
-  margin: 0 0 4px;
-  font-size: clamp(26px, 5vw, 40px);
+  margin: 0;
+  font-size: clamp(28px, 6vw, 44px);
   line-height: 1.15;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .hero-title-en {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: clamp(15px, 2.4vw, 19px);
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 0.4px;
+  overflow-wrap: anywhere;
 }
 
 .type-badges {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 18px;
 }
 
 .type-badge {
@@ -161,31 +282,10 @@ body {
   /* Type colours are mid-lightness fills, so the dark label always clears 4.5:1. */
 }
 
-.hero-names {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  margin-bottom: 18px;
-  padding: 0;
-  list-style: none;
-}
-
-.hero-names li {
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-pill);
-  padding: 3px 11px;
-}
-
-.hero-names .lang {
-  color: var(--text-muted);
-  margin-right: 6px;
-}
-
 .hero-pager {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   margin-top: 4px;
 }
@@ -222,6 +322,97 @@ body {
   opacity: 0.35;
   pointer-events: none;
 }
+
+/* ===== Columns 2 and 3: the info cards ===== */
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+}
+
+.info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* A real h2, so each group is a landmark by role rather than a bold <span>. It is
+   the aria-labelledby target for its .info-group. */
+.group-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  letter-spacing: 0.6px;
+}
+
+@media (min-width: 1024px) {
+  .group-title { font-size: 16px; }
+}
+
+/* 培育 and 生蛋 sit side by side inside column 3, as in InfoPoke's two-column
+   breeding block. They stack whenever the card is too narrow for both, which is
+   decided by the viewport rather than by the content. */
+.breed-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 640px) {
+  .breed-split { grid-template-columns: 1fr 1fr; }
+}
+
+.names-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 480px) {
+  .names-grid { grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+}
+
+.names-grid li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+
+.names-grid .lang {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.names-grid .value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-muted { color: var(--text-muted); }
+
+.gender-male { color: #7fb3ff; }
+.gender-female { color: #ff9ec4; }
+
+.egg-groups { overflow-wrap: anywhere; }
 
 /* ===== Sections ===== */
 .section {
@@ -516,40 +707,126 @@ body {
   .move-tables {
     display: block;
   }
+
+  /* The top card is a screen affordance. Paper gets flat panels: a backdrop-filter
+     cannot survive the print pipeline, the aurora would print as a grey wash, and
+     the three columns are laid out for a 3fr 4fr 5fr viewport that A4 portrait
+     does not have. */
+  .top-hero-card {
+    background: none;
+    border-color: rgba(0, 0, 0, 0.3);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .top-hero-card::before,
+  .sprite-glow {
+    display: none;
+  }
+
+  .info-card {
+    background: none;
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* The shiny control has no meaning on paper, and the filter is a placeholder
+     for artwork that does not exist yet — printing a recoloured sprite would
+     misrepresent it as the real thing. */
+  .shiny-btn {
+    display: none;
+  }
+
+  #pokemon-sprite.is-shiny {
+    filter: none;
+  }
 }
 
-/* ===== Fact grid ===== */
+/* ===== Fact rows =====
+   InfoPoke's dense style: a muted label on the left, the value on the right of
+   the same line, separated by a dotted leader. The old cards stacked label over
+   value with their own background, which at 13 facts turned the middle column
+   into a wall of boxes. */
 .fact-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 18px;
+}
+
+/* Two columns need ~130px each before a row stops wrapping, because the label is
+   nowrap and the widest one is 基礎經驗值. Measured on Dragonite (the longest
+   values): 374px viewport -> 130px columns, clean 40px rows; 360px -> 45px rows;
+   340px -> 62px; 320px -> 94px columns and the value is actually clipped. So the
+   phone layout is one column, which keeps every row single-line with no clipping
+   and holds the 40px rhythm. Re-measure with getBoundingClientRect if a label
+   gets longer. */
+@media (max-width: 399px) {
+  .fact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fact-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .fact {
-  background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .fact-label {
-  display: block;
-  font-size: 11px;
-  letter-spacing: 0.6px;
+  flex: 0 0 auto;
+  font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 5px;
+  white-space: nowrap;
 }
 
 .fact-value {
-  display: block;
-  font-size: 15px;
+  /* No flex-grow: the dotted leader below is what consumes the free space, so
+     the value stays flush right. flex-grow here would split the slack 1:1 and
+     leave a gap after the value. 0 1 auto still lets a long value shrink. */
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  text-align: right;
   overflow-wrap: anywhere;
 }
 
-.fact-value.is-muted {
+/* The dotted leader: fills the gap between label and value so the eye can track
+   across a two-column grid. Hidden from AT (it is decorative, and the label/value
+   pairing already carries the meaning). */
+.fact::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 8px;
+  order: 1;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.18);
+  align-self: center;
+}
+
+.fact .fact-value { order: 2; }
+
+/* 分類 spans both columns — it is the longest string in the group and InfoPoke
+   gives it the full width. */
+.fact-wide {
+  grid-column: 1 / -1;
+}
+
+.fact-value.is-muted,
+.fact-value .is-muted {
   color: var(--text-muted);
   font-weight: 400;
 }
@@ -876,23 +1153,6 @@ button:focus-visible,
 
   .radar-frame {
     order: -1;
-  }
-}
-
-@media (max-width: 720px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-    padding: 18px;
-  }
-
-  .hero-figure {
-    max-width: 200px;
-    margin: 0 auto;
-  }
-
-  .hero-pager {
-    justify-content: center;
   }
 }
 

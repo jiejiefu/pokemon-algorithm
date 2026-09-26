@@ -32,47 +32,73 @@
     </div>
 
     <div id="detail-content" hidden>
-      <!-- Hero -->
-      <section class="hero" aria-labelledby="pokemon-name-zh">
-        <div class="hero-figure">
-          <div class="sprite-frame">
-            <img id="pokemon-sprite" src="" alt="" loading="eager" decoding="async">
+      <!-- Top card: identity | names + profile + abilities | breeding -->
+      <section class="top-hero-card" id="top-hero-card" aria-labelledby="pokemon-name-zh">
+        <div class="hero-grid">
+
+          <div class="hero-col-left">
+            <button type="button" class="shiny-btn" id="shiny-toggle" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+              <span class="sr-only">切換閃亮外觀</span>
+            </button>
+
+            <h1 class="hero-title" id="pokemon-name-zh">—</h1>
+            <p class="hero-subtitle">
+              <span class="hero-id" id="pokemon-id">#0001</span>
+              <span class="hero-title-en" id="pokemon-name-en">—</span>
+            </p>
+
+            <div class="sprite-frame" id="sprite-frame">
+              <span class="sprite-glow" aria-hidden="true"></span>
+              <img id="pokemon-sprite" src="" alt="" loading="eager" decoding="async" width="475" height="475">
+            </div>
+
+            <div class="type-badges" id="type-badges"></div>
+
+            <nav class="hero-pager" aria-label="寶可夢瀏覽">
+              <a class="pager-link" id="pokemon-prev" rel="prev">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
+                <span>上一隻</span>
+              </a>
+              <a class="pager-link" id="pokemon-next" rel="next">
+                <span>下一隻</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z"/></svg>
+              </a>
+            </nav>
           </div>
-          <p class="sprite-caption" id="pokemon-sprite-caption"></p>
+
+          <div class="info-card">
+            <section class="info-group" aria-labelledby="grp-names">
+              <h2 class="group-title" id="grp-names">名字</h2>
+              <ul class="names-grid" id="pokemon-names-row"></ul>
+            </section>
+
+            <section class="info-group" aria-labelledby="grp-profile">
+              <h2 class="group-title" id="grp-profile">檔案</h2>
+              <div class="fact-grid" id="fact-grid"></div>
+            </section>
+
+            <section class="info-group" aria-labelledby="grp-abilities">
+              <h2 class="group-title" id="grp-abilities">特性</h2>
+              <div class="chip-row" id="ability-chips"></div>
+            </section>
+          </div>
+
+          <div class="info-card">
+            <div class="breed-split">
+              <section class="info-group" aria-labelledby="grp-breeding">
+                <h2 class="group-title" id="grp-breeding">培育</h2>
+                <div class="fact-rows" id="breeding-list"></div>
+              </section>
+
+              <section class="info-group" aria-labelledby="grp-egg">
+                <h2 class="group-title" id="grp-egg">生蛋</h2>
+                <div class="fact-rows" id="egg-list"></div>
+              </section>
+            </div>
+          </div>
+
         </div>
-
-        <div class="hero-info">
-          <span class="hero-id" id="pokemon-id">#0001</span>
-          <h1 class="hero-title" id="pokemon-name-zh">—</h1>
-          <p class="hero-title-en" id="pokemon-name-en">—</p>
-
-          <div class="type-badges" id="type-badges"></div>
-
-          <ul class="hero-names" id="pokemon-names-row"></ul>
-
-          <nav class="hero-pager" aria-label="寶可夢瀏覽">
-            <a class="pager-link" id="pokemon-prev" rel="prev">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
-              <span>上一隻</span>
-            </a>
-            <a class="pager-link" id="pokemon-next" rel="next">
-              <span>下一隻</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z"/></svg>
-            </a>
-          </nav>
-        </div>
-      </section>
-
-      <!-- Facts -->
-      <section class="section" aria-labelledby="facts-title">
-        <div class="section-head">
-          <h2 class="section-title" id="facts-title">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>
-            基本資料
-          </h2>
-          <span class="section-note" id="pokemon-genus-note"></span>
-        </div>
-        <div class="fact-grid" id="fact-grid"></div>
       </section>
 
       <!-- Stats -->
@@ -245,6 +271,7 @@
         }
 
         renderDetail();
+        el('shiny-toggle').addEventListener('click', toggleShiny);
         if (params.get('from404') === '1') {
           history.replaceState(null, '', pokemonDetailPath(currentPokemon));
         }
@@ -277,22 +304,29 @@
 
       el('pokemon-sprite').src = `${ASSETS.images}${p.filename}`;
       el('pokemon-sprite').alt = `${p.names.zh}（${p.names.en}）`;
-      el('pokemon-sprite-caption').textContent = p.genus ? genusZh(p) : '';
 
       el('pokemon-id').textContent = formatPokemonId(p.id);
       el('pokemon-name-zh').textContent = p.names.zh;
       el('pokemon-name-en').textContent = p.names.en;
 
+      // The card's glass has to refract something, and the page background is a
+      // flat #121212, so the card paints its own tinted aurora behind the
+      // backdrop-filter. Same convention as createPokemonCard() in shared.js.
+      if (Array.isArray(p.rgb) && p.rgb.length === 3) {
+        el('top-hero-card').style.setProperty('--card-accent-rgb', p.rgb.join(' '));
+      }
+
       el('type-badges').innerHTML = p.types.map((t, i) => typeBadgeHtml(t, p.types_zh[i])).join('');
 
       el('pokemon-names-row').innerHTML = NAMES
         .filter(n => p.names[n.key])
-        .map(n => `<li><span class="lang">${n.lang}</span>${escapeHtml(p.names[n.key])}</li>`)
+        .map(n => `<li><span class="lang">${n.lang}</span><span class="value">${escapeHtml(p.names[n.key])}</span></li>`)
         .join('');
 
-      el('pokemon-genus-note').textContent = genusZh(p);
       renderPager(p);
-      renderFacts(p);
+      renderProfile(p);
+      renderAbilities(p);
+      renderBreeding(p);
       renderStats(p);
       renderEffectiveness(p);
       renderEvolution(p);
@@ -326,49 +360,115 @@
       setLink(el('pokemon-next-foot'), next, '下一隻');
     }
 
-    function renderFacts(p) {
+    /**
+     * Shiny is a CSS filter placeholder, not real artwork: pokemon_data.json
+     * has no shiny sprite URL and none is downloaded yet. PokeAPI keeps the real
+     * one at /pokemon/{id} -> other["official-artwork"]["front_shiny"], and
+     * files/official-artwork/shiny/{id}.png is the plain artwork variant — so
+     * when that lands, this function becomes a src swap and .is-shiny stops
+     * setting filter. Until then the button must still report its state, which
+     * is why aria-pressed is updated here rather than left to the CSS.
+     */
+    let shinyOn = false;
+
+    function toggleShiny() {
+      shinyOn = !shinyOn;
+      el('pokemon-sprite').classList.toggle('is-shiny', shinyOn);
+      el('shiny-toggle').classList.toggle('is-active', shinyOn);
+      el('shiny-toggle').setAttribute('aria-pressed', String(shinyOn));
+    }
+
+    /** One label/value pair, InfoPoke's dense left-right row. */
+
+    function factRow(label, valueHtml) {
+      return `<div class="fact"><span class="fact-label">${label}</span><span class="fact-value">${valueHtml}</span></div>`;
+    }
+
+    function factText(value) {
+      return value === null || value === undefined || value === ''
+        ? '<span class="is-muted">—</span>'
+        : escapeHtml(String(value));
+    }
+
+    /** 檔案 — the identity fields. 分類 spans both columns, as in InfoPoke. */
+    function renderProfile(p) {
       const facts = [
-        { label: '分類', value: genusZh(p) },
-        { label: '世代', value: `第 ${p.generation} 世代` },
+        { label: '分類', value: p.genus ? genusZh(p) : null, wide: true },
         { label: '身高', value: p.height_m != null ? `${p.height_m} m` : null },
         { label: '體重', value: p.weight_kg != null ? `${p.weight_kg} kg` : null },
-        { label: '顏色', value: labelZh(COLOR_ZH, p.color), badge: p.rgb },
-        { label: '捕捉率', value: p.capture_rate },
-        { label: '基礎親密度', value: p.base_happiness },
-        { label: '體型', value: labelZh(SHAPE_ZH, p.shape) },
+        { label: '基礎經驗值', value: p.base_experience },
+        { label: '世代', value: p.generation },
         { label: '棲息地', value: labelZh(HABITAT_ZH, p.habitat) },
-        { label: '成長速度', value: labelZh(GROWTH_RATE_ZH, p.growth_rate) },
-        { label: '基礎經驗', value: p.base_experience }
+        { label: '體型', value: labelZh(SHAPE_ZH, p.shape) },
+        { label: '顏色', value: labelZh(COLOR_ZH, p.color), badge: p.rgb }
       ];
 
-      const cards = facts.map(f => {
-        const missing = f.value === null || f.value === undefined || f.value === '';
-        if (missing) {
-          return `<div class="fact"><span class="fact-label">${f.label}</span><span class="fact-value is-muted">—</span></div>`;
-        }
-        if (f.badge && Array.isArray(f.badge) && f.badge.length === 3) {
-          return `<div class="fact"><span class="fact-label">${f.label}</span><span class="color-badge" style="${badgeStyle(f.badge)}">${escapeHtml(f.value)}</span></div>`;
-        }
-        return `<div class="fact"><span class="fact-label">${f.label}</span><span class="fact-value">${escapeHtml(String(f.value))}</span></div>`;
+      el('fact-grid').innerHTML = facts.map(f => {
+        // The swatch keeps the AA-contrast fix in badgeStyle() rather than
+        // InfoPoke's plain colour dot: its fill is the Pokémon's own RGB.
+        const value = f.badge && Array.isArray(f.badge) && f.badge.length === 3
+          ? `<span class="color-badge" style="${badgeStyle(f.badge)}">${escapeHtml(f.value)}</span>`
+          : factText(f.value);
+        const cls = f.wide ? ' fact-wide' : '';
+        return `<div class="fact${cls}"><span class="fact-label">${f.label}</span><span class="fact-value">${value}</span></div>`;
+      }).join('');
+    }
+
+    /** 特性 — the hidden ability is tagged, as in InfoPoke's purple chip. */
+    function renderAbilities(p) {
+      const values = p.abilities || [];
+      if (!values.length) {
+        el('ability-chips').innerHTML = '<span class="is-muted">—</span>';
+        return;
+      }
+      el('ability-chips').innerHTML = values.map(v => {
+        const isHidden = p.hidden_ability && v === p.hidden_ability;
+        return `<span class="chip${isHidden ? ' is-hidden-ability' : ''}">${escapeHtml(v)}${isHidden ? ' · 隱藏特性' : ''}</span>`;
+      }).join('');
+    }
+
+    /**
+     * 培育 and 生蛋. gender_rate and hatch_counter come from
+     * fetch_breeding_data.py; both are absent on the pre-breeding dataset, so
+     * every value is routed through factText() and degrades to a muted —.
+     */
+    function renderBreeding(p) {
+      const breeding = [
+        { label: '捕獲率', value: p.capture_rate },
+        { label: '基礎親密度', value: p.base_happiness },
+        { label: '成長速度', value: labelZh(GROWTH_RATE_ZH, p.growth_rate) }
+      ];
+      el('breeding-list').innerHTML = breeding
+        .map(f => factRow(f.label, factText(f.value)))
+        .join('');
+
+      const eggs = [];
+      if (typeof p.gender_rate === 'number' && p.gender_rate >= 0) {
+        const female = (p.gender_rate / 8) * 100;
+        const male = 100 - female;
+        // ♂/♀ are U+2642/U+2640 data symbols, the same category as the ones in
+        // Nidoran♀/Nidoran♂ — not decorative emoji, so do not "clean" them up.
+        const pct = n => `${Number(n.toFixed(1))}%`;
+        eggs.push({ label: '性別比例', html: `<span class="gender-male">♂${pct(male)}</span> <span class="gender-female">♀${pct(female)}</span>` });
+      } else if (p.gender_rate === -1) {
+        eggs.push({ label: '性別比例', html: '無性別' });
+      } else {
+        eggs.push({ label: '性別比例', html: '<span class="is-muted">—</span>' });
+      }
+
+      if (p.hatch_counter > 0) {
+        eggs.push({ label: '孵化時間', value: `${p.hatch_counter} 週期` });
+      } else {
+        eggs.push({ label: '孵化時間', html: '<span class="is-muted">—</span>' });
+      }
+
+      const groups = (p.egg_groups || []).map(g => escapeHtml(labelZh(EGG_GROUP_ZH, g)));
+      eggs.push({
+        label: '蛋群組',
+        html: groups.length ? `<span class="egg-groups">${groups.join('、')}</span>` : '<span class="is-muted">—</span>'
       });
 
-      // Abilities and egg groups need chips rather than a plain value.
-      const chips = (label, values, hiddenValue) => {
-        const items = values.map(v => {
-          const isHidden = hiddenValue && v === hiddenValue;
-          return `<span class="chip${isHidden ? ' is-hidden-ability' : ''}">${escapeHtml(v)}${isHidden ? ' · 隱藏特性' : ''}</span>`;
-        }).join('');
-        return `<div class="fact"><span class="fact-label">${label}</span><div class="chip-row">${items || '<span class="fact-value is-muted">—</span>'}</div></div>`;
-      };
-
-      if (p.abilities && p.abilities.length) {
-        cards.push(chips('特性', p.abilities, p.hidden_ability));
-      }
-      if (p.egg_groups && p.egg_groups.length) {
-        cards.push(chips('蛋群組', p.egg_groups.map(g => labelZh(EGG_GROUP_ZH, g))));
-      }
-
-      el('fact-grid').innerHTML = cards.join('');
+      el('egg-list').innerHTML = eggs.map(e => factRow(e.label, e.html || factText(e.value))).join('');
     }
 
     function renderStats(p) {

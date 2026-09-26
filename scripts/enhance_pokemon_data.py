@@ -170,6 +170,13 @@ def build_pokemon_entry(row, existing_data):
         'genus': row['genus'] if pd.notna(row['genus']) else '',
         'evolution_chain_id': int(row['evolution_chain_id']) if pd.notna(row['evolution_chain_id']) else 0,
         
+        # Breeding (PokeAPI /pokemon-species, not /pokemon — see
+        # fetch_breeding_data.py). No CSV column carries these, so they are
+        # carried from the previous JSON exactly like the colour block below.
+        # gender_rate is eighths female; -1 means the species is genderless.
+        'gender_rate': int(existing['gender_rate']) if existing.get('gender_rate') is not None else -1,
+        'hatch_counter': int(existing['hatch_counter']) if existing.get('hatch_counter') is not None else 0,
+
         # Color (legacy - keep for visual sorting)
         'rgb': existing.get('rgb', [128, 128, 128]),
         'hsv': existing.get('hsv', [0, 0, 0.5]),
