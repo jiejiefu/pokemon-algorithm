@@ -41,7 +41,7 @@
 
 /** Region slug → Traditional Chinese, for regional-form card titles and filters. */
 const REGION_ZH = {
-  alola: '阿羅亞',
+  alola: '阿羅拉',
   galar: '伽勒爾',
   hisui: '他思岐',
   paldea: '帕底亞',
@@ -313,18 +313,18 @@ export const CATEGORIES = {
     title: '究極異獸',
     titleEn: 'Ultra Beasts',
     subtitle: '12 隻來自超空間的異獸完整名單',
-    note: '阿羅亞地區以外空間降臨的神秘生物',
+    note: '阿羅拉地區以外空間降臨的神秘生物',
     accent: ['#4338ca', '#7e22ce', '#0e7490'],
     needs: ['pokemon'],
     members: speciesFlags('is_ultra_beast'),
     tiles: (m) => [
       [m.length, '究極異獸'],
-      ['第 7 世代', '阿羅亞地區'],
+      ['第 7 世代', '阿羅拉地區'],
       [m.length ? Math.min(...m.map((p) => p.stats?.total || 0)) : 0, '最低能力總和'],
       [m.length ? Math.max(...m.map((p) => p.stats?.total || 0)) : 0, '最高能力總和'],
     ],
     prose:
-      '究極異獸是與阿羅亞地區毫無淵源的異世界生物。牠們會在稱為極巨化洞穴的裂縫深處出現，得用特殊的究極之球才有辦法捕捉。每一隻都擁有極為壓倒性的能力總和——全部 12 隻落在 420 到 600 之間，其中 11 隻擁有能夠在連續擊倒對手時逐步強化自身的能力。牠們與阿羅亞原有的寶可夢之間沒有任何進化關係。',
+      '究極異獸是與阿羅拉地區毫無淵源的異世界生物。牠們會在稱為極巨化洞穴的裂縫深處出現，得用特殊的究極之球才有辦法捕捉。每一隻都擁有極為壓倒性的能力總和——全部 12 隻落在 420 到 600 之間，其中 11 隻擁有能夠在連續擊倒對手時逐步強化自身的能力。牠們與阿羅拉原有的寶可夢之間沒有任何進化關係。',
   },
 
   starter: {
@@ -439,7 +439,7 @@ export const CATEGORIES = {
     title: '地區型態',
     titleEn: 'Regional Forms',
     subtitle: '58 個地區型態完整名單',
-    note: '阿羅亞、伽勒爾、他思岐與帕底亞的在地變體',
+    note: '阿羅拉、伽勒爾、他思岐與帕底亞的在地變體',
     accent: ['#0f766e', '#047857', '#0e7490'],
     needs: ['pokemon', 'chains'],
     members: regionalMembers(),
@@ -449,12 +449,12 @@ export const CATEGORIES = {
     ],
     tiles: (m) => [
       [m.length, '地區型態'],
-      [m.filter((p) => p.regionKey === 'alola').length, '阿羅亞'],
+      [m.filter((p) => p.regionKey === 'alola').length, '阿羅拉'],
       [m.filter((p) => p.regionKey === 'galar').length, '伽勒爾'],
       [m.filter((p) => p.regionKey === 'hisui').length, '他思岐'],
     ],
     prose:
-      '地區型態是指某個寶可夢在特定地區演化或存在時所呈現的不同樣貌，屬性與能力值都可能與原版大相逕庭。阿羅亞的妙蛙種子因為適應了日照而變得擅長吸收光能，伽勒爾的喵喵則因為金屬與都市環境而改變了原本的生活方式；他思岐的型態大多體型巨大、性情溫順，與關都的印象截然不同。本頁的 58 個型態以名稱中的地區標記判定，並排除妖裝型態。',
+      '地區型態是指某個寶可夢在特定地區演化或存在時所呈現的不同樣貌，屬性與能力值都可能與原版大相逕庭。阿羅拉的妙蛙種子因為適應了日照而變得擅長吸收光能，伽勒爾的喵喵則因為金屬與都市環境而改變了原本的生活方式；他思岐的型態大多體型巨大、性情溫順，與關都的印象截然不同。本頁的 58 個型態以名稱中的地區標記判定，並排除妖裝型態。',
   },
 };
 
@@ -652,7 +652,7 @@ export const COLLECTION_GROUPS = [
     items: [
       { slug: 'legendary', count: 71, stats: [[9, '涵蓋世代', 'spans'], [690, '最高能力總和', 'statHigh'], [65, '基礎經驗 200 以上', 'statBar']] },
       { slug: 'mythical', count: 23, stats: [[9, '涵蓋世代', 'spans'], ['100%', '皆為活動限定', 'eventOnly'], [1, '第九世代', 'generation']] },
-      { slug: 'ultra-beast', count: 12, stats: [['第 7 世代', '阿羅亞地區', 'alola'], [420, '最低能力總和', 'statLow'], [600, '最高能力總和', 'statHigh']] },
+      { slug: 'ultra-beast', count: 12, stats: [['第 7 世代', '阿羅拉地區', 'alola'], [420, '最低能力總和', 'statLow'], [600, '最高能力總和', 'statHigh']] },
     ],
   },
   {
@@ -699,7 +699,7 @@ export const COLLECTION_GROUPS = [
     items: [
       { slug: 'mega', count: 48, stats: [[46, '對應寶可夢', 'baseSpecies'], [6, '涵蓋世代', 'spans'], [18, '涉及屬性', 'breadth']] },
       { slug: 'gigantamax', count: 32, stats: [[32, '對應寶可夢', 'baseSpecies'], [4, '涵蓋世代', 'spans'], ['第 8 世代', '伽勒爾地區', 'galar']] },
-      { slug: 'regional', count: 58, stats: [[18, '阿羅亞', 'alola'], [20, '伽勒爾', 'galar'], [16, '他思岐', 'hisui']] },
+      { slug: 'regional', count: 58, stats: [[18, '阿羅拉', 'alola'], [20, '伽勒爾', 'galar'], [16, '他思岐', 'hisui']] },
     ],
   },
 ];

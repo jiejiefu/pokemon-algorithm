@@ -453,12 +453,14 @@ body {
 }
 
 /* ===== Columns 2 and 3: the info cards ===== */
+/* InfoPoke's fact cards are p-3 (12px), not 18px. That is not cosmetic here: it is
+   the 6px per side that lets column 3 hold 培育/生蛋 side by side at 1024px. */
 .info-card {
   display: flex;
   flex-direction: column;
   gap: 18px;
   min-width: 0;
-  padding: 18px;
+  padding: 12px;
   background: var(--surface-hover);
   border: 1px solid rgba(var(--hairline-rgb), 0.08);
   border-radius: var(--radius-sm);
@@ -485,28 +487,82 @@ body {
   .group-title { font-size: 16px; }
 }
 
-/* 培育 and 生蛋 sit side by side inside column 3, as in InfoPoke's two-column
-   breeding block. Below 640px they stack for real, because there the hero is a
-   single full-width column and there is nothing to sit beside. */
+/* 培育 and 生蛋 sit side by side inside column 3, as in InfoPoke's breeding block,
+   with 地區圖鑑 below them across the full width of the card.
+
+   The divider is drawn as a background gradient rather than a border on the second
+   group, because Tailwind's divide-x (and any border equivalent) takes width out
+   of the track it sits on: at 1024px column 3 is 373.33px, so a 1px border plus
+   12px of padding would leave the two tracks unequal at 173.66px and 160.66px and
+   buy nothing. A gradient at calc(50% ± 0.5px) leaves both at exactly 173.66px.
+
+   The floor is 480px, measured: below it the hero is one full-width column, each
+   track drops under 189px, and at 390px Dragonite wraps 性別比例 (52px label +
+   111px value) while at 320px three rows wrap (the value column reaches 85px).
+   Two 109px columns are not a two-column layout, so they stack there. */
 .breed-split {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 18px;
+  gap: 0;
 }
 
-@media (min-width: 640px) {
-  .breed-split { grid-template-columns: 1fr 1fr; }
+@media (min-width: 480px) {
+  .breed-split {
+    grid-template-columns: 1fr 1fr;
+    background-image: linear-gradient(
+      to right,
+      transparent calc(50% - 0.5px),
+      rgba(var(--hairline-rgb), 0.1) calc(50% - 0.5px),
+      rgba(var(--hairline-rgb), 0.1) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  }
 }
 
-/* ...but from 1024px the hero is three columns again, and column 3 is only
-   373px wide, which halves to 159px per side — too narrow for 性別比例 (52px
-   label + 111px value), which wrapped the row to 51px. That is a property of
-   hero-grid's third column, not of the viewport, so the 640px rule above cannot
-   see it. One column takes the full 335px and holds every row at 31px.
-   This must stay AFTER that 640px block: both selectors are (0,1,0), so source
-   order is the only thing keeping them apart. */
-@media (min-width: 1024px) {
-  .breed-split { grid-template-columns: 1fr; }
+/* 地區圖鑑 — InfoPoke's grid-cols-3 of label/number pairs, at the full width of
+   the card below both breeding columns. Two columns on a phone, because three
+   at 320px leaves (244 - 24 - 32) / 3 = 62px per cell and the longest label
+   plus its number is 86px. The 400px floor is the same one .fact-grid uses for
+   the same reason; above it each cell is >= 104px, which is the same cell width
+   the 1024px three-column hero produces (373.33px column, 104px cells), so the
+   tightest case is covered by both layouts at once.
+
+   minmax(0, 1fr) rather than 1fr: a bare 1fr track floors at min-content, and
+   min-content of a nowrap number is the number, so it would work by luck. */
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+}
+
+@media (min-width: 400px) {
+  .dex-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Same shape as .fact: label left, value flush right via margin-left:auto, no
+   dotted leader between them (see the .fact-value note). */
+.dex-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.dex-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+.dex-num {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .names-grid {

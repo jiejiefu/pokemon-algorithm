@@ -124,6 +124,16 @@
                 <div class="fact-rows" id="egg-list"></div>
               </section>
             </div>
+
+            <!-- Full width of the card, below both breeding columns, as in
+                 InfoPoke. A sibling of .breed-split, not a third child of it:
+                 a 藍莓學園 row needs 86px and the two breeding tracks are
+                 173.66px each at 1024px, so it is width-starved, not
+                 merely cramped, inside one. -->
+            <section class="info-group" aria-labelledby="grp-dex">
+              <h2 class="group-title" id="grp-dex">地區圖鑑</h2>
+              <div class="dex-grid" id="dex-list"></div>
+            </section>
           </div>
 
         </div>
@@ -378,6 +388,7 @@
       renderProfile(p);
       renderAbilities(p);
       renderBreeding(p);
+      renderRegionalDex(p);
       renderStats(p);
       renderEffectiveness(p);
       renderEvolution(p);
@@ -526,6 +537,35 @@
       });
 
       el('egg-list').innerHTML = eggs.map(e => factRow(e.label, e.html || factText(e.value))).join('');
+    }
+
+    /** 地區圖鑑 — first-appearance dex numbers, as InfoPoke lists them.
+     *
+     * Stored as {"全國": 1, "關都": 1, ...} in render order by
+     * scripts/fetch_regional_dex.py, so this iterates the object directly and
+     * never sorts: JSON object key order is insertion order, and the writer
+     * inserts in DEXES order. The 28 records that are in no regional dex at all
+     * (legendaries, mythicals, paradox, specials) still carry 全國, so there is
+     * no empty state to handle — but the guard is here because "the key is
+     * missing" and "the value is empty" are different failures and the section
+     * has no useful empty rendering worth inventing.
+     *
+     * 全國 goes through formatPokemonId (4 digits, #1025 is the widest) while
+     * regional numbers are 3 (#400 is the widest). #000 is legal: Victini is
+     * 合眾 #000, obtainable before the Pokedex in Black/White. */
+    function renderRegionalDex(p) {
+      const dex = p.regional_dex;
+      const target = el('dex-list');
+      if (!dex || typeof dex !== 'object' || Object.keys(dex).length === 0) {
+        target.innerHTML = '<p class="is-muted">—</p>';
+        return;
+      }
+      const rows = Object.entries(dex).map(([label, number]) => {
+        const shown = label === '全國' ? formatPokemonId(number) : String(number).padStart(3, '0');
+        return `<div class="dex-row"><span class="dex-label">${escapeHtml(label)}</span>`
+          + `<span class="dex-num">#${shown}</span></div>`;
+      });
+      target.innerHTML = rows.join('');
     }
 
     function renderStats(p) {
