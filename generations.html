@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢世代指南 — 1025 全國寶可夢圖鑑</title>
+  <meta name="description" content="寶可夢九個世代的完整指南：地區、推出年份、國家圖鑑編號範圍、新機制、新屬性、主要遊戲、傳說與幻之寶可夢，以及每一代的御三家。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    /* ===== Generations page =====
+       Page-specific only. Everything here is either (a) a colour the page owns —
+       the nine generation gradients and the chip pairs, which have no counterpart
+       in shared.css because no other page has them — or (b) geometry that only
+       this layout needs. Markup is emitted by renderGenerations() in this file,
+       not by shared.js, so the rules live beside the emitter by the same
+       convention that moved the evolution chain's CSS out of detail.html's
+       inline <style> block and into detail.css. */
+
+    .gen-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    /* ===== Breadcrumb =====
+       A real <nav> with aria-current, not three <a>s in a row: it is a
+       hierarchy, and the last item is not a link because it is where you are. */
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--text-primary);
+      text-decoration: underline;
+    }
+
+    .breadcrumb [aria-current="page"] {
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+
+    .breadcrumb .sep {
+      color: var(--hairline-strong);
+    }
+
+    /* ===== Hero =====
+       indigo-700 -> purple-700 -> pink-700. The source page used the Tailwind
+       600/500 steps (#6366f1, #a855f7, #ec4899) and white text over it measures
+       1.54:1 — invisible. Dropping every stop to its 700 pair puts the worst
+       point of this gradient at 6.04:1. Measured, not eyeballed: see the table
+       in AGENTS.md. */
+    .gen-hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #4338ca 0%, #7e22ce 50%, #be185d 100%);
+      color: #fff;
+      padding: 40px 28px 56px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .gen-hero h2 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 1.25;
+      text-shadow: var(--header-title-shadow);
+    }
+
+    .gen-hero-lede {
+      margin: 0 0 26px;
+      max-width: 62ch;
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    /* bg-white/10 — a white overlay LIGHTENS the fill, so it has to be checked
+       like any other. Over this gradient it lands at 5.26:1, which passes; the
+       source's white/20 range box does not (4.45:1), which is why the range box
+       below is black instead. */
+    .gen-hero-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .gen-hero-stats li {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .gen-hero-stats strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .gen-hero-stats span {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    /* The wave sits after the stats in the DOM, absolutely positioned against
+       the hero, and inherits the page's own background so it reads as a cut-out
+       rather than a third colour. `preserveAspectRatio="none"` on the element
+       lets the single path stretch to whatever width the hero is. */
+    .gen-wave {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      width: 100%;
+      height: 42px;
+      display: block;
+      fill: var(--bg-primary);
+      pointer-events: none;
+    }
+
+    /* ===== Card list ===== */
+    .gen-list {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .gen-card {
+      display: grid;
+      grid-template-columns: 1fr;
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    /* 1024px is the site's existing content breakpoint, which is also where the
+       source moves from stacked to 3+9. Below it the side panel stacks above
+       the body and both go full width. */
+    @media (min-width: 1024px) {
+      .gen-card {
+        grid-template-columns: repeat(12, 1fr);
+      }
+
+      .gen-card-side {
+        grid-column: span 3;
+      }
+
+      .gen-card-body {
+        grid-column: span 9;
+      }
+    }
+
+    /* The nine gradients. Each pair is the source page's hue at the 700 step
+       instead of 500/600; the min contrast of white 14px text over each, sampled
+       every 1% of the interpolation (a gradient's worst point is not reliably
+       its midpoint — gen II's is t=0.00 at 4.92:1, and gen III's is t=0.01):
+
+         I    #b91c1c -> #1d4ed8   6.47:1     VI   #1d4ed8 -> #b91c1c   6.47:1
+         II   #a16207 -> #7e22ce   4.92:1     VII  #c2410c -> #0f766e   5.18:1
+         III  #15803d -> #1d4ed8   5.02:1     VIII #7e22ce -> #b91c1c   6.47:1
+         IV   #4338ca -> #be185d   6.04:1     IX   #6d28d9 -> #c2410c   5.18:1
+         V    #374151 -> #1d4ed8   6.70:1
+
+       Worst case across all nine is 4.92:1. The same hues at the source's step
+       fail: I 3.68:1, II 1.92:1, V 3.68:1, IX 2.80:1. */
+    .gen-card[data-gen="1"] { --gen-accent: linear-gradient(160deg, #b91c1c 0%, #1d4ed8 100%); }
+    .gen-card[data-gen="2"] { --gen-accent: linear-gradient(160deg, #a16207 0%, #7e22ce 100%); }
+    .gen-card[data-gen="3"] { --gen-accent: linear-gradient(160deg, #15803d 0%, #1d4ed8 100%); }
+    .gen-card[data-gen="4"] { --gen-accent: linear-gradient(160deg, #4338ca 0%, #be185d 100%); }
+    .gen-card[data-gen="5"] { --gen-accent: linear-gradient(160deg, #374151 0%, #1d4ed8 100%); }
+    .gen-card[data-gen="6"] { --gen-accent: linear-gradient(160deg, #1d4ed8 0%, #b91c1c 100%); }
+    .gen-card[data-gen="7"] { --gen-accent: linear-gradient(160deg, #c2410c 0%, #0f766e 100%); }
+    .gen-card[data-gen="8"] { --gen-accent: linear-gradient(160deg, #7e22ce 0%, #b91c1c 100%); }
+    .gen-card[data-gen="9"] { --gen-accent: linear-gradient(160deg, #6d28d9 0%, #c2410c 100%); }
+
+    /* Gen V starts on gray-700, which against the dark page background is
+       1.84:1 — a card edge that is effectively invisible. The other eight
+       gradients are all brighter than that, so this is the one card that needs
+       its edge strengthened.
+
+       The strengthening is a token, not a literal. A hardcoded
+       rgba(240, 246, 252, 0.28) is the DARK theme's --hairline-rgb, and in
+       light mode --hairline-rgb flips to 31, 35, 40 — so the literal stayed a
+       near-white 1.03:1 against the light --bg-card and the border that exists
+       to be seen was the one thing you could not see. Read through the token it
+       lands at 1.80:1 in light, i.e. still the strongest edge of the nine
+       (their own --hairline is 1.15:1 on #fff) but in the right direction. */
+    .gen-card[data-gen="5"] {
+      border-color: rgba(var(--hairline-rgb), 0.28);
+    }
+
+    /* ===== Card: accent side ===== */
+    .gen-card-side {
+      background: var(--gen-accent);
+      color: #fff;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .gen-card-label {
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .gen-card-name {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .gen-card-numeral {
+      display: block;
+      font-size: 52px;
+      line-height: 1.05;
+      font-weight: 800;
+      text-shadow: var(--header-title-shadow);
+    }
+
+    .gen-card-region {
+      display: block;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .gen-card-year {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    /* black/20, not white/20. This panel is the darkest thing on the page in
+       every generation, so a white overlay costs contrast where it needs to
+       signal elevation; measured over the nine gradients white/20 lands between
+       3.41:1 (gen II) and 4.68:1 (gen VIII) and fails 4.5:1 on eight of the
+       nine. black/20 measures 6.92:1 to 8.99:1. */
+    .gen-card-range {
+      margin-top: 14px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .gen-card-range-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .gen-card-range-value {
+      font-size: 14px;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gen-card-count {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .gen-card-cta {
+      margin-top: auto;
+      display: block;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: var(--radius-pill);
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .gen-card-cta:hover {
+      background: #fff;
+      color: #14110a;
+      transform: translateY(-2px);
+    }
+
+    /* ===== Card: body ===== */
+    .gen-card-body {
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .gen-card-desc {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-secondary);
+    }
+
+    .gen-boxes {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 700px) {
+      .gen-boxes {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .gen-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      min-width: 0;
+    }
+
+    .gen-box h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .gen-box-full {
+      grid-column: 1 / -1;
+    }
+
+    /* ===== Chips =====
+       Six roles, six pairs, each measured against the surface it actually sits
+       on (--bg-card #21262d in dark, #ffffff in light). A single "grey chip"
+       token cannot serve both themes: --surface-raised flips from #262c33 to
+       #e8eaed and --text-secondary from #c9d1d9 to #424a53, and the two only
+       happen to pass together (9.13:1 / 7.46:1). */
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+    }
+
+    /* 傳說寶可夢 — dark 9.08:1, light 6.85:1 */
+    .chip-legendary {
+      background: rgba(245, 158, 11, 0.16);
+      color: #fde68a;
+    }
+
+    [data-theme="light"] .chip-legendary {
+      background: #fefce8;
+      color: #92400e;
+    }
+
+    /* 幻之寶可夢 — dark 8.97:1, light 5.14:1 */
+    .chip-mythical {
+      background: rgba(236, 72, 153, 0.18);
+      color: #fbcfe8;
+    }
+
+    [data-theme="light"] .chip-mythical {
+      background: #fce7f3;
+      color: #be185d;
+    }
+
+    /* The source's #db2777 on #fce7f3 is 3.91:1, which is why the light value
+       here is the darker pink-700 rather than pink-600. */
+    .chip-mechanic {
+      background: rgba(168, 85, 247, 0.16);
+      color: #d8b4fe;
+    }
+
+    [data-theme="light"] .chip-mechanic {
+      background: #f3e8ff;
+      color: #7e22ce;
+    }
+
+    /* 新屬性 — dark 7.32:1, light 6.23:1. Only reached if the English type key
+       cannot be resolved from the Chinese label, because the two generations
+       that have new types resolve cleanly and render the official type pill
+       below instead. */
+    .chip-newtype {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fecaca;
+    }
+
+    [data-theme="light"] .chip-newtype {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* The new-type row is the one place a generation card shows official type
+       colours, and they are AA-correct by construction (badgeStyle() derives
+       the text colour from the fill and only then darkens or lightens the fill
+       until it clears 4.5:1, so 鋼's #B8B8D0 and 妖精's #EE99AC are fine in
+       both themes). Only the SIZE is overridden, to sit at the same 12px as the
+       four other chip roles in the same card — typeBadgeSmHtml() ships 10px for
+       the Pokédex card footers and the move tables. Scoped to this box, so it
+       cannot resize those (gotcha 20). */
+    .gen-box-newtypes .type-badge {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* 主要遊戲 — 9.13:1 dark, 7.46:1 light */
+    .chip-game {
+      background: var(--surface-raised);
+      color: var(--text-secondary);
+    }
+
+    /* ===== Legendary / mythical groups =====
+       One box, two labelled rows: the two categories are not interchangeable
+       (the source's own pink/amber pairing is what made that visible) and
+       generation 1 and 2 have a single mythical against four and five
+       legendary, so a bare undifferentiated chip row would read as a list
+       rather than as two populations. */
+    .gen-legend-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .gen-legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gen-legend-row-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .gen-legend-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ===== Starters =====
+       Names, not numbers, and linked: a starter that goes nowhere is a caption.
+       The row lives in the card BODY, not on the accent panel, so the name
+       takes --text-primary off .gen-box and needs no colour of its own — which
+       is why it is correct in both themes with no override. What it does need is
+       a real hit area: 56px tall with a 4px gap either side, so the whole cell
+       is the link rather than just the 12px text. */
+    .starter-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .starter-list a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 4px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: inherit;
+      transition: background var(--transition-fast);
+    }
+
+    .starter-list a:hover {
+      background: var(--surface-hover);
+    }
+
+    .starter-list img {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .starter-list span {
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.35;
+    }
+
+    /* ===== Error state =====
+       Visible, and it says what failed. sorting.html's equivalent is a
+       console.error behind a try/catch that reports "check your local server"
+       for what was not a server problem (gotcha 23), so this page reports the
+       actual failure and the URL that produced it. */
+    .gen-error {
+      padding: 20px;
+      border: 1px solid var(--error-text);
+      border-radius: var(--radius-sm);
+      color: var(--error-text);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    @media print {
+      /* Print is a third palette (see shared.css's @media print block). The
+         accent panel is the one element that cannot survive it: browsers drop
+         background colours unless the user ticks "background graphics", which
+         would leave white text on white paper. The card's own border takes
+         over as the boundary. */
+      .gen-hero {
+        background: none;
+        color: var(--text-primary);
+        box-shadow: none;
+        padding-bottom: 24px;
+      }
+
+      .gen-hero h2,
+      .gen-hero-lede,
+      .gen-hero-stats span {
+        color: var(--text-primary);
+        text-shadow: none;
+      }
+
+      .gen-hero-stats li {
+        background: none;
+        border-color: var(--hairline-strong);
+      }
+
+      .gen-wave,
+      .breadcrumb,
+      .gen-card-cta {
+        display: none;
+      }
+
+      .gen-card-side {
+        background: none;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .gen-card-side .gen-card-label,
+      .gen-card-side .gen-card-year,
+      .gen-card-side .gen-card-range-label,
+      .gen-card-cta {
+        color: var(--text-secondary);
+      }
+
+      .gen-card-numeral {
+        text-shadow: none;
+      }
+
+      .gen-card-range {
+        background: none;
+        border-color: var(--hairline-strong);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <h1>寶可夢世代指南</h1>
+    <div class="header-nav">
+      <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
+      <a href="maze.html" class="maze-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>像素迷宮</a>
+      <a href="pokedex.html" class="dex-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-2zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>完整圖鑑</a>
+      <a href="generations.html" class="gen-link active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10h2v4h-2v-4zm0 5h2v2h-2v-2z"/></svg>世代指南</a>
+    </div>
+  </header>
+
+  <main class="gen-page">
+    <nav class="breadcrumb" aria-label="麵包屑導覽">
+      <a href="index.html">首頁</a>
+      <span class="sep" aria-hidden="true">›</span>
+      <a href="pokedex.html">完整圖鑑</a>
+      <span class="sep" aria-hidden="true">›</span>
+      <span aria-current="page">世代指南</span>
+    </nav>
+
+    <section class="gen-hero" aria-labelledby="gen-hero-title">
+      <h2 id="gen-hero-title">九個世代，一段冒險</h2>
+      <p class="gen-hero-lede">
+        從 1996 年的關都到最新的帕底亞，每一代都帶來新的地區、新的寶可夢、新的屬性與新的機制。
+        這裡是九個世代的完整對照表：全國圖鑑編號範圍、推出了哪些新東西，以及每一代的三隻御三家。
+      </p>
+      <ul class="gen-hero-stats">
+        <li><strong id="stat-gens">9</strong><span>個世代</span></li>
+        <li><strong id="stat-pokemon">1,025</strong><span>隻寶可夢</span></li>
+        <li><strong id="stat-regions">9</strong><span>個地區</span></li>
+        <li><strong id="stat-years">26+</strong><span>年曆</span></li>
+      </ul>
+      <svg class="gen-wave" viewBox="0 0 1440 42" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M0 21c120-16 240-16 360 0s240 16 360 0 240-16 360 0 240 16 360 0v21H0V21z"/>
+      </svg>
+    </section>
+
+    <p class="loading-text" id="gen-loading">讀取世代資料中…</p>
+    <div class="gen-list" id="gen-list"></div>
+  </main>
+
+  <p class="footer-note">寶可夢資料來自 PokeAPI 與官方寶可夢圖鑑・共 1,025 隻</p>
+
+  <script type="module">
+    import {
+      ASSETS,
+      TYPE_EN_ZH,
+      loadPokemonData,
+      pokemonDetailUrl,
+      typeBadgeSmHtml,
+      initThemeToggle
+    } from './assets/js/shared.js';
+
+    initThemeToggle();
+
+    const listEl = document.getElementById('gen-list');
+    const loadingEl = document.getElementById('gen-loading');
+
+    // TYPE_EN_ZH is keyed by capitalised English and valued in Chinese, but
+    // generations.json stores 新屬性 the way the page displays it (惡/鋼/妖精).
+    // typeBadgeSmHtml() colours itself from the English key, so the Chinese
+    // label has to be walked back to the key rather than passed through.
+    function typeSlugFor(zh) {
+      const hit = Object.keys(TYPE_EN_ZH).find(k => TYPE_EN_ZH[k] === zh);
+      if (!hit) return null;
+      return hit.charAt(0).toLowerCase() + hit.slice(1);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    // The Pokédex number is a national index, so it is always four digits here.
+    // The RANGE below is a different format on purpose (see rangeLabel).
+    function formatId(id) {
+      return `#${String(id).padStart(4, '0')}`;
+    }
+
+    function chipList(items, cls) {
+      return `<ul class="chip-list">${items
+        .map(i => `<li class="chip ${cls}">${escapeHtml(i)}</li>`)
+        .join('')}</ul>`;
+    }
+
+    // #494 is padded, not #0494 — the Pokédex number is a national index, and
+    // the site's own formatPokemonId() is what every other page uses.
+    function rangeLabel(ids) {
+      return `#${String(ids[0]).padStart(3, '0')} – #${String(ids[ids.length - 1]).padStart(3, '0')}`;
+    }
+
+    function renderStarters(generation, byId) {
+      const cells = generation.starters
+        .map(id => byId.get(id))
+        .filter(Boolean)
+        .map(p => `<li>
+            <a href="${pokemonDetailUrl(p)}">
+              <img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="56" height="56">
+              <span>${escapeHtml(p.names.zh)}</span>
+            </a>
+          </li>`);
+      return `<section class="gen-box">
+          <h3>最初的夥伴</h3>
+          <ul class="starter-list">${cells.join('')}</ul>
+        </section>`;
+    }
+
+    // 傳說 and 幻之 are rendered as two labelled rows rather than one chip cloud.
+    // They are separate is_legendary / is_mythical booleans in the data, they
+    // have different counts in every generation (1 vs 4 in gen 1), and a merged
+    // list would not say which was which.
+    function renderLegendary(generation, members) {
+      const legendary = members.filter(p => p.is_legendary);
+      const mythical = members.filter(p => p.is_mythical);
+      const row = (label, cls, list) => {
+        if (!list.length) {
+          return `<div class="gen-legend-row">
+              <span class="gen-legend-row-label">${label}</span>
+              <span class="gen-legend-empty">本代無</span>
+            </div>`;
+        }
+        return `<div class="gen-legend-row">
+            <span class="gen-legend-row-label">${label}</span>
+            ${chipList(list.map(p => `${formatId(p.id)} ${p.names.zh}`), cls)}
+          </div>`;
+      };
+      return `<section class="gen-box gen-box-full">
+          <h3>傳說 &amp; 幻之寶可夢</h3>
+          <div class="gen-legend-groups">
+            ${row('傳說', 'chip-legendary', legendary)}
+            ${row('幻之', 'chip-mythical', mythical)}
+          </div>
+        </section>`;
+    }
+
+    function renderCard(generation, members, byId) {
+      const ids = members.map(p => p.id).sort((a, b) => a - b);
+      const count = ids.length;
+      const newTypes = generation.newTypes || [];
+
+      const newTypesBox = newTypes.length ? `<section class="gen-box gen-box-full gen-box-newtypes">
+          <h3>新屬性</h3>
+          <ul class="chip-list">${newTypes.map(zh => {
+            const slug = typeSlugFor(zh);
+            return `<li>${slug ? typeBadgeSmHtml(slug, zh) : `<span class="chip chip-newtype">${escapeHtml(zh)}</span>`}</li>`;
+          }).join('')}</ul>
+        </section>` : '';
+
+      return `<article class="gen-card" data-gen="${generation.gen}" aria-labelledby="gen-card-name-${generation.gen}">
+        <div class="gen-card-side">
+          <span class="gen-card-label">世代</span>
+          <h2 class="gen-card-name" id="gen-card-name-${generation.gen}">
+            <span class="sr-only">第 ${generation.gen} 世代・${escapeHtml(generation.region)}・${generation.year}</span>
+            <span class="gen-card-numeral" aria-hidden="true">${escapeHtml(generation.numeral)}</span>
+            <span class="gen-card-region" aria-hidden="true">${escapeHtml(generation.region)}</span>
+          </h2>
+          <p class="gen-card-year">${generation.year}</p>
+          <div class="gen-card-range">
+            <span class="gen-card-range-label">全國圖鑑</span>
+            <span class="gen-card-range-value">${rangeLabel(ids)}</span>
+          </div>
+          <p class="gen-card-count">${count} 隻新寶可夢</p>
+          <a class="gen-card-cta" href="pokedex.html?gen=${generation.gen}">查看所有 ${count} 隻寶可夢</a>
+        </div>
+        <div class="gen-card-body">
+          <p class="gen-card-desc">${escapeHtml(generation.description)}</p>
+          <div class="gen-boxes">
+            <section class="gen-box">
+              <h3>新機制</h3>
+              ${chipList(generation.mechanics, 'chip-mechanic')}
+            </section>
+            <section class="gen-box">
+              <h3>主要遊戲</h3>
+              ${chipList(generation.games, 'chip-game')}
+            </section>
+            ${renderStarters(generation, byId)}
+            ${renderLegendary(generation, members)}
+            ${newTypesBox}
+          </div>
+        </div>
+      </article>`;
+    }
+
+    // The hero's four tiles are derived, not typed in: 1,025 has appeared in a
+    // <strong> on four other pages and 9 is generations.json's own length, so
+    // hardcoding them here would be a fifth place to forget to update. The year
+    // span is max(year) - min(year) over the same data, which is where 26+
+    // comes from — the source page's own stat, and why the first generation
+    // being 1996 matters to the arithmetic.
+    function renderHeroStats(generations, totalPokemon) {
+      const years = generations.map(g => Number(g.year));
+      const span = Math.max(...years) - Math.min(...years);
+      document.getElementById('stat-gens').textContent = generations.length;
+      document.getElementById('stat-pokemon').textContent = totalPokemon.toLocaleString('en-US');
+      document.getElementById('stat-regions').textContent = new Set(generations.map(g => g.region)).size;
+      document.getElementById('stat-years').textContent = `${span}+`;
+    }
+
+    async function init() {
+      let generations;
+      let allPokemon;
+      try {
+        const [gensRes, data] = await Promise.all([
+          fetch(ASSETS.generations),
+          loadPokemonData()
+        ]);
+        if (!gensRes.ok) {
+          throw new Error(`generations.json: HTTP ${gensRes.status}`);
+        }
+        generations = await gensRes.json();
+        allPokemon = data;
+      } catch (err) {
+        loadingEl.remove();
+        listEl.innerHTML = `<p class="gen-error">
+            世代資料載入失敗：${escapeHtml(err.message)}<br>
+            本頁需要經由 HTTP 伺服器開啟，直接以 file:// 開啟會被瀏覽器阻擋。
+          </p>`;
+        return;
+      }
+
+      if (!Array.isArray(generations) || !generations.length) {
+        loadingEl.remove();
+        listEl.innerHTML = '<p class="gen-error">generations.json 內容格式不符預期。</p>';
+        return;
+      }
+
+      const byId = new Map(allPokemon.map(p => [p.id, p]));
+      const groups = generations
+        .slice()
+        .sort((a, b) => a.gen - b.gen)
+        .map(g => ({
+          generation: g,
+          members: allPokemon.filter(p => p.generation === g.gen)
+        }));
+
+      // A generation with no members would render an empty range and a "查看
+      // 所有 0 隻" link, both of which read as a bug rather than as a data gap.
+      const empty = groups.filter(g => !g.members.length);
+      if (empty.length) {
+        console.warn('generations with no Pokémon in pokemon_data.json:',
+          empty.map(g => g.generation.gen).join(', '));
+      }
+
+      renderHeroStats(generations, allPokemon.length);
+      listEl.innerHTML = groups
+        .map(g => renderCard(g.generation, g.members, byId))
+        .join('');
+      loadingEl.remove();
+    }
+
+    init();
+  </script>
+</body>
+</html>

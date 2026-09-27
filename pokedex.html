@@ -172,6 +172,30 @@
     
     let allPokemonData = [];
 
+    // generations.html deep-links here as pokedex.html?gen=N. The value is
+    // validated before it reaches the <select> because a hand-edited or stale
+    // link can carry anything, and assigning genFilter.value = '99' would
+    // silently render the unfiltered 1025 while the URL claims a generation.
+    // The application is deliberately NOT here: filterPokedex() needs
+    // allPokemonData, so the param is applied once the fetch resolves below.
+    const genParam = new URLSearchParams(location.search).get('gen');
+    if (genParam && /^[1-9]$/.test(genParam)) {
+      genFilter.value = genParam;
+    }
+
+    // Keep ?gen= in the address bar so a filtered view can be shared or
+    // reloaded. replaceState, not pushState: this is a refinement of the view
+    // the user is already on, not a navigation they should have to go back to.
+    function syncUrl() {
+      const url = new URL(location.href);
+      if (genFilter.value === 'all') {
+        url.searchParams.delete('gen');
+      } else {
+        url.searchParams.set('gen', genFilter.value);
+      }
+      history.replaceState(null, '', url);
+    }
+
     async function fetchPokedex() {
       try {
         allPokemonData = await loadPokemonData();
@@ -183,7 +207,11 @@
         // Populate type filter
         populateTypeFilter();
         
-        renderGrid(allPokemonData);
+        // filterPokedex(), not renderGrid(allPokemonData): with every control at
+        // its default this is the same call, and it is the only one that honours
+        // a ?gen= in the URL. Calling it here rather than at parse time is the
+        // whole reason the param is stored above instead of applied.
+        filterPokedex();
       } catch (error) {
         loading.innerText = '載入失敗，請確認是否使用 Local Server 開啟。';
         console.error(error);
@@ -294,13 +322,16 @@
       colorFilter.value = 'all';
       genFilter.value = 'all';
       renderGrid(allPokemonData);
+      syncUrl();
     }
 
     // Event listeners
     searchInput.addEventListener('input', filterPokedex);
     typeFilter.addEventListener('change', filterPokedex);
     colorFilter.addEventListener('change', filterPokedex);
-    genFilter.addEventListener('change', filterPokedex);
+    // Only the generation select writes the URL — doing it from filterPokedex()
+    // would rewrite the address bar on every keystroke in the search box.
+    genFilter.addEventListener('change', () => { filterPokedex(); syncUrl(); });
     clearBtn.addEventListener('click', clearFilters);
 
     // Allow Enter key on search to focus first result

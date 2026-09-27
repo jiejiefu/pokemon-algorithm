@@ -1,0 +1,241 @@
+[
+  {
+    "gen": 1,
+    "numeral": "I",
+    "region": "關都",
+    "year": 1996,
+    "description": "引發全球現象的最初 151 隻寶可夢。第一世代奠定了整個系列的基礎，引入了屬性相剋、進化和成為寶可夢大師的冒險等核心機制。",
+    "mechanics": [
+      "屬性系統",
+      "進化",
+      "交換",
+      "傳說三鳥/三獸等"
+    ],
+    "games": [
+      "Red",
+      "Blue",
+      "Yellow",
+      "FireRed",
+      "LeafGreen",
+      "Let's Go"
+    ],
+    "newTypes": [],
+    "starters": [
+      1,
+      4,
+      7
+    ]
+  },
+  {
+    "gen": 2,
+    "numeral": "II",
+    "region": "城都",
+    "year": 1999,
+    "description": "透過生蛋機制、寶寶寶可夢、攜帶道具和日夜週期擴展了寶可夢世界。城都地區還引入了受歡迎的惡屬性和鋼屬性，以對抗超能力屬性的優勢。",
+    "mechanics": [
+      "生蛋",
+      "攜帶道具",
+      "日夜週期",
+      "寶寶寶可夢",
+      "異色寶可夢"
+    ],
+    "games": [
+      "Gold",
+      "Silver",
+      "Crystal",
+      "HeartGold",
+      "SoulSilver"
+    ],
+    "newTypes": [
+      "惡",
+      "鋼"
+    ],
+    "starters": [
+      152,
+      155,
+      158
+    ]
+  },
+  {
+    "gen": 3,
+    "numeral": "III",
+    "region": "豐緣",
+    "year": 2002,
+    "description": "以特性和雙打對戰徹底改變了戰鬥。熱帶的豐緣地區擁有豐富的環境，並引入了華麗大賽作為戰鬥的替代方案。",
+    "mechanics": [
+      "特性",
+      "雙打對戰",
+      "性格",
+      "基礎點數/個體值重製",
+      "華麗大賽"
+    ],
+    "games": [
+      "Ruby",
+      "Sapphire",
+      "Emerald",
+      "Omega Ruby",
+      "Alpha Sapphire"
+    ],
+    "newTypes": [],
+    "starters": [
+      252,
+      255,
+      258
+    ]
+  },
+  {
+    "gen": 4,
+    "numeral": "IV",
+    "region": "神奧",
+    "year": 2006,
+    "description": "透過 Nintendo Wi-Fi Connection 引入線上對戰，以及突破性的物理/特殊分類，使招式基於其性質而非屬性。神奧地區探索了神話和創造。",
+    "mechanics": [
+      "物理/特殊分類",
+      "線上對戰",
+      "GTS 交換",
+      "地下通道"
+    ],
+    "games": [
+      "Diamond",
+      "Pearl",
+      "Platinum",
+      "Brilliant Diamond",
+      "Shining Pearl"
+    ],
+    "newTypes": [],
+    "starters": [
+      387,
+      390,
+      393
+    ]
+  },
+  {
+    "gen": 5,
+    "numeral": "V",
+    "region": "合眾",
+    "year": 2010,
+    "description": "新增寶可夢數量最多的一代。合眾地區在通關前只出現新寶可夢，提供了新鮮的體驗。引入了三打對戰、輪盤對戰和夢境世界。",
+    "mechanics": [
+      "三打對戰",
+      "輪盤對戰",
+      "季節",
+      "隱藏特性",
+      "夢境世界"
+    ],
+    "games": [
+      "Black",
+      "White",
+      "Black 2",
+      "White 2"
+    ],
+    "newTypes": [],
+    "starters": [
+      495,
+      498,
+      501
+    ]
+  },
+  {
+    "gen": 6,
+    "numeral": "VI",
+    "region": "卡洛斯",
+    "year": 2013,
+    "description": "首個 3D 主系列遊戲，帶來了超級進化等突破性變化。妖精屬性改變了對戰環境，卡洛斯地區帶來了美麗的畫面和現代感。",
+    "mechanics": [
+      "超級進化",
+      "寶可夢友誼系統",
+      "超級訓練",
+      "群聚對戰",
+      "空中對戰"
+    ],
+    "games": [
+      "X",
+      "Y"
+    ],
+    "newTypes": [
+      "妖精"
+    ],
+    "starters": [
+      650,
+      653,
+      656
+    ]
+  },
+  {
+    "gen": 7,
+    "numeral": "VII",
+    "region": "阿羅拉",
+    "year": 2016,
+    "description": "以諸島巡禮取代道館，並引入了 Z 招式。阿羅拉地區擁有熱帶地區型態，來自究極空間的神秘究極異獸增添了趣味。",
+    "mechanics": [
+      "地區型態",
+      "Z 招式",
+      "諸島巡禮",
+      "究極異獸",
+      "寶可度假地"
+    ],
+    "games": [
+      "Sun",
+      "Moon",
+      "Ultra Sun",
+      "Ultra Moon"
+    ],
+    "newTypes": [],
+    "starters": [
+      722,
+      725,
+      728
+    ]
+  },
+  {
+    "gen": 8,
+    "numeral": "VIII",
+    "region": "伽勒爾",
+    "year": 2019,
+    "description": "Switch 上首個擁有曠野地帶開放區域的主系列遊戲。極巨化和超極巨化成為新的戰鬥機制，伽勒爾地區的靈感來自英國。",
+    "mechanics": [
+      "極巨化",
+      "超極巨化",
+      "曠野地帶",
+      "極巨團體戰",
+      "寶可夢露營"
+    ],
+    "games": [
+      "Sword",
+      "Shield",
+      "Legends: Arceus"
+    ],
+    "newTypes": [],
+    "starters": [
+      810,
+      813,
+      816
+    ]
+  },
+  {
+    "gen": 9,
+    "numeral": "IX",
+    "region": "帕底亞",
+    "year": 2022,
+    "description": "首個完全開放世界的寶可夢遊戲。太晶化可以改變寶可夢的屬性。帕底亞地區擁有三條獨立的故事線和來自不同時代的悖謬寶可夢。",
+    "mechanics": [
+      "太晶化",
+      "開放世界",
+      "悖謬寶可夢",
+      "自主對戰",
+      "野餐"
+    ],
+    "games": [
+      "Scarlet",
+      "Violet",
+      "Teal Mask DLC",
+      "Indigo Disk DLC"
+    ],
+    "newTypes": [],
+    "starters": [
+      906,
+      909,
+      912
+    ]
+  }
+]
