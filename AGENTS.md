@@ -133,6 +133,23 @@ Each entry now includes:
 | Regenerate color data | `python scripts/pokemon_preprocessing_script.py` (requires Pillow, numpy) |
 | Deploy to GitHub Pages | Push to `main` branch; enable Pages from root folder |
 
+## Git Workflow
+**Commit at the end of every paragraph of work — never batch.** A "paragraph" is one
+coherent unit: one bug fix, one component, one page's worth of changes, however long it
+took to verify. Finishing the unit means `git add` + `git commit` right there, not
+"after the next thing". The rule is here because uncommitted work is one interrupted
+session, one stray `git checkout`, or one bad `git stash` away from gone — and because a
+commit is the cheapest record of *what changed and why*: the message is where the measured
+number and the rejected alternative live, so the reasoning outlives the conversation.
+- Stage only the files the paragraph touched. Never `git add -A` — `infopoke_net_*.html`
+  (gotcha 42) and the venv are untracked by design, and sweeping them in is how a 3 MB
+  third-party dump lands in a commit about CSS.
+- Write the message for whoever reads `git log` in six months: what changed, the number
+  that justified it, and the option rejected. "update styles" is not a message.
+- Never amend, rebase, or force-push a commit the user may already have seen.
+- Do not commit a half-finished unit. If the fix is partial or its verification failed,
+  leave it in the working tree and say so in the reply.
+
 ## Gotchas
 1. **No build step** — edit HTML/JS directly; changes reflect on reload
 2. **1025 images + JSON** — initial load ~200 MB; first paint shows "載入進度" counter
