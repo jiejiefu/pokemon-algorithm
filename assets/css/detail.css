@@ -154,8 +154,11 @@ body {
 
 @media (min-width: 1024px) {
   .hero-grid {
+    /* InfoPoke's three columns are lg:col-span-3 / 4 / 5 inside a
+       grid-cols-12, so 3fr 4fr 5fr is a transcription of that, not a
+       preference. gap 16px is its gap-4. */
     grid-template-columns: 3fr 4fr 5fr;
-    gap: 32px;
+    gap: 16px;
     padding: 28px;
   }
 }
@@ -390,8 +393,8 @@ body {
 }
 
 /* 培育 and 生蛋 sit side by side inside column 3, as in InfoPoke's two-column
-   breeding block. They stack whenever the card is too narrow for both, which is
-   decided by the viewport rather than by the content. */
+   breeding block. Below 640px they stack for real, because there the hero is a
+   single full-width column and there is nothing to sit beside. */
 .breed-split {
   display: grid;
   grid-template-columns: 1fr;
@@ -400,6 +403,17 @@ body {
 
 @media (min-width: 640px) {
   .breed-split { grid-template-columns: 1fr 1fr; }
+}
+
+/* ...but from 1024px the hero is three columns again, and column 3 is only
+   373px wide, which halves to 159px per side — too narrow for 性別比例 (52px
+   label + 111px value), which wrapped the row to 51px. That is a property of
+   hero-grid's third column, not of the viewport, so the 640px rule above cannot
+   see it. One column takes the full 335px and holds every row at 31px.
+   This must stay AFTER that 640px block: both selectors are (0,1,0), so source
+   order is the only thing keeping them apart. */
+@media (min-width: 1024px) {
+  .breed-split { grid-template-columns: 1fr; }
 }
 
 .names-grid {
