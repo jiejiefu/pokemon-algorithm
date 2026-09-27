@@ -83,6 +83,99 @@ body {
   font-size: 14px;
 }
 
+/* ===== Breadcrumb =====
+   InfoPoke's trail is Home › Pokédex › Gen N › <name>, sticky under its own
+   sticky header at top-16. Ours sticks at top:0 because .header is
+   position: relative (shared.css:270), not sticky, so nothing else claims the
+   viewport top on this page and the offsets do not collide.
+
+   The bar is a solid --bg-secondary rather than InfoPoke's bg-white/80 plus
+   backdrop-blur: the top card directly below already owns the glass treatment
+   on this page, and a second translucent blurred surface 16px under it reads as
+   a rendering fault rather than as depth. */
+.breadcrumb {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* --text-secondary for the trail, --text-primary for where you are: the source
+   separates its blue links from its gray-900 current crumb the same way. This
+   site has no link-blue token, so the two weights carry the distinction, and
+   both clear AA on --bg-secondary in both themes. */
+.breadcrumb-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  text-decoration: underline;
+}
+
+.breadcrumb-link:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14em;
+}
+
+.breadcrumb-sep-wrap {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* The .icon rule sizes icons in em, so this only has to keep it from
+   inheriting a link colour it should not carry. */
+.breadcrumb-sep {
+  font-size: 16px;
+  margin-right: 0;
+}
+
+/* Navigation, not content: the printed page is identified by its h1 and the
+   pager below carries prev/next, so the trail would be dead links on paper. */
+@media print {
+  .breadcrumb { display: none; }
+}
+
 /* ===== Top card: identity | names+profile+abilities | breeding =====
    InfoPoke's three columns, at the 3fr 4fr 5fr ratio. The card is real glass:
    the page background behind it is a flat --bg-primary, which a backdrop-filter has

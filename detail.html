@@ -58,6 +58,14 @@
     </div>
 
     <div id="detail-content" hidden>
+      <!-- Breadcrumb. InfoPoke's is Home › Pokédex › Gen N › <name>, with the
+           last crumb as plain text carrying aria-current. Two of our four crumbs
+           depend on the loaded Pokémon, so only the nav shell is static and
+           renderBreadcrumb() fills the list once. -->
+      <nav class="breadcrumb" id="breadcrumb" aria-label="麵包屑導覽">
+        <ol class="breadcrumb-list" id="breadcrumb-list"></ol>
+      </nav>
+
       <!-- Top card: identity | names + profile + abilities | breeding -->
       <section class="top-hero-card" id="top-hero-card" aria-labelledby="pokemon-name-zh">
         <div class="hero-grid">
@@ -299,6 +307,45 @@
       return div.innerHTML;
     }
 
+    // Material `chevron_right`, the same icon family as the rest of the site.
+    // Emoji are banned (gotcha 26) and decorative icons must be hidden from
+    // assistive tech, because the adjacent crumb label already carries the
+    // meaning (gotcha 27). This one is used only here, so it stays a local
+    // literal rather than an ICON_PATHS entry (gotcha 40's static-icon rule).
+    const BREADCRUMB_SEP =
+      '<svg class="icon breadcrumb-sep" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+
+    function renderBreadcrumb(p) {
+      // InfoPoke's Home and Pokédex crumbs both point at /zh-TW, which is one
+      // page there. Ours are two genuinely different pages, so the trail is
+      // 首頁 › 寶可夢圖鑑 › 第 N 世代 › <name>. The generation crumb targets
+      // pokedex.html?gen=N rather than generations.html, because that is the
+      // deep link generations.html already uses and it lands on a filtered
+      // list instead of a guide section.
+      const crumbs = [
+        { label: '首頁', href: 'index.html' },
+        { label: '寶可夢圖鑑', href: 'pokedex.html' },
+        { label: `第 ${p.generation} 世代`, href: `pokedex.html?gen=${p.generation}` },
+        { label: p.names.zh, current: true },
+      ];
+
+      el('breadcrumb-list').innerHTML = crumbs
+        .map((c, i) => {
+          // The separator rides inside each item after the first, as in the
+          // source, so it never becomes an <li> of its own and inflates the
+          // list's item count.
+          const sep = i ? `<span class="breadcrumb-sep-wrap" aria-hidden="true">${BREADCRUMB_SEP}</span>` : '';
+          if (c.current) {
+            return `<li class="breadcrumb-item">${sep}` +
+              `<span class="breadcrumb-current" aria-current="page">${escapeHtml(c.label)}</span></li>`;
+          }
+          return `<li class="breadcrumb-item">${sep}` +
+            `<a class="breadcrumb-link" href="${c.href}">${escapeHtml(c.label)}</a></li>`;
+        })
+        .join('');
+    }
+
     function renderDetail() {
       const p = currentPokemon;
 
@@ -326,6 +373,7 @@
         .map(n => `<li><span class="lang">${n.lang}</span><span class="value">${escapeHtml(p.names[n.key])}</span></li>`)
         .join('');
 
+      renderBreadcrumb(p);
       renderPager(p);
       renderProfile(p);
       renderAbilities(p);
