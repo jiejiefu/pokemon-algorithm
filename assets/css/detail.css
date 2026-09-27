@@ -169,13 +169,30 @@ body {
   text-align: center;
 }
 
+/* The name and the shiny control are one unit, so they share a row; the button
+   used to be a direct child of the column flex with align-self: flex-end, which
+   made it claim a line of its own above the h1. `center`, not space-between:
+   column 1 is a centred identity stack (the sprite and the type badges below are
+   both centred), and the track is only ~265px wide at 1180px (3fr of 3fr 4fr 5fr),
+   so pushing a 38px control to the far edge would strand it ~200px from a 60px
+   name. The h1 carries min-width: 0 so it shrinks and wraps against the button
+   instead of overflowing — five CJK glyphs at the clamp's 44px top already fill
+   the track — and the button is flex: 0 0 auto so it is never the thing squeezed. */
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
 .shiny-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   height: 38px;
-  align-self: flex-end;
+  flex: 0 0 auto;
   padding: 0;
   color: var(--text-secondary);
   background: var(--surface-hover);
@@ -263,9 +280,16 @@ body {
   color: var(--accent-gold);
 }
 
+/* 40px, not the 44px this used to cap at: the name now shares a row with the 38px
+   shiny button, and column 1's track is ~255px at 1180px. The longest zh name in
+   the roster is 5 glyphs (46 of 1025 are; 315 are 4+), so single-line needs
+   5fs + 10 gap + 38 button <= 255, i.e. fs <= 41.4. At 44px the 5-glyph names
+   wrapped to two lines — a regression the button move introduced, since the
+   title used to have the track to itself. */
 .hero-title {
   margin: 0;
-  font-size: clamp(28px, 6vw, 44px);
+  min-width: 0;
+  font-size: clamp(28px, 6vw, 40px);
   line-height: 1.15;
   font-weight: 800;
   overflow-wrap: anywhere;

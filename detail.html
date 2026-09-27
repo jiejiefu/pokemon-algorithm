@@ -63,12 +63,17 @@
         <div class="hero-grid">
 
           <div class="hero-col-left">
-            <button type="button" class="shiny-btn" id="shiny-toggle" aria-pressed="false">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-              <span class="sr-only">切換閃亮外觀</span>
-            </button>
+            <!-- Name first, then the control that recolours the sprite below it: the
+                 two are one unit, so they share a row (see .hero-title-row). The
+                 button used to sit on a line of its own above the h1. -->
+            <div class="hero-title-row">
+              <h1 class="hero-title" id="pokemon-name-zh">—</h1>
+              <button type="button" class="shiny-btn" id="shiny-toggle" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+                <span class="sr-only">切換閃亮外觀</span>
+              </button>
+            </div>
 
-            <h1 class="hero-title" id="pokemon-name-zh">—</h1>
             <p class="hero-subtitle">
               <span class="hero-id" id="pokemon-id">#0001</span>
               <span class="hero-title-en" id="pokemon-name-en">—</span>
