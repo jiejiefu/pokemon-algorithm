@@ -583,13 +583,13 @@
       border: 1px solid transparent;
     }
 
-    /* 傳說寶可夢 was amber and 幻之寶可夢 was pink, which is what made the split
-       between the two rows visible. That is now carried by the row LABEL rather
-       than by a tint, because both rows render the same neutral sprite chip —
-       the source's chips are neutral too, and it has no per-category colour.
-       So .chip-legendary and .chip-mythical are gone rather than left behind as
-       dead rules; their contrast notes (dark 9.08/8.97:1, light 6.85/5.14:1)
-       went with them. */
+    /* 傳說寶可夢 was amber and 幻之寶可夢 was pink as two separate text chips, so
+       the split between the categories was once carried by the colour alone. The
+       chips are image chips now (the sprite leads, the name follows) and the box
+       is a single cloud, so the amber sits on every chip and 幻之 is carried by
+       the pink badge on .gen-mythical-badge instead. .chip-legendary and
+       .chip-mythical are therefore gone rather than left behind as dead rules;
+       their contrast notes (dark 9.08/8.97:1, light 6.85/5.14:1) went with them. */
 
     /* The source's #db2777 on #fce7f3 is 3.91:1, which is why the light value
        here is the darker pink-700 rather than pink-600. */
@@ -637,60 +637,68 @@
       color: var(--text-secondary);
     }
 
-    /* ===== Legendary / mythical groups =====
-       One box, two labelled rows: the two categories are not interchangeable
-       and generation 1 and 2 have a single mythical against four and five
-       legendary, so a bare undifferentiated chip row would read as a list
-       rather than as two populations. The label is what separates them now
-       that both rows use the same neutral chip. */
-    .gen-legend-groups {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    /* ===== Legendary / mythical cloud =====
+       One flat chip cloud, the way the source shows it: a single
+       `flex flex-wrap gap-3` container holding both categories, with 幻之 told
+       apart by a pink badge on the chip rather than by a row label. The box
+       heading already reads 傳說 & 幻之寶可夢, so a merged list still says which
+       population a name belongs to — the badge is what carries it.
 
-    .gen-legend-row {
+       The chip is the source's, transcribed: `px-3 py-2 gap-2 border
+       rounded-lg` over `from-amber-50 to-yellow-50` with a `border-amber-200`
+       edge. Three things about that need saying rather than copying.
+
+       - The gradient is transcribed verbatim even though it is invisible.
+         amber-50 #fffbeb and yellow-50 #fefce8 differ by (1,1,3) out of 255, so
+         both ends are the same cream. Flattening it to a solid amber-50 would
+         look identical and read better; the source's class string is the record
+         of what it ships, so the gradient stays and the equivalence is noted.
+       - 8px is the source's `rounded-lg`, which is not on this site's radius
+         scale (the smallest token is --radius-sm at 12px), so it is a literal.
+         The old chip was --radius-pill (20px), a stadium; the source's is a
+         rounded RECTANGLE, which is the 矩型+些微圓角 this box was asked for.
+       - The chip grew from 38px to 48px tall (a 32px sprite plus py-2's 16px).
+         That is the source's own box and it makes 94 chips easier to hit, but it
+         is a real change to the page's rhythm across all nine cards, not a
+         no-op.
+
+       Dark is the base rule and light restores the source's opaque values, which
+       is gotcha 41's shape — but the dark fill is NOT gotcha 41's `-950 at low
+       alpha`. That rule assumes a light surface to tint; .gen-box is already
+       dark (--bg-secondary #161b22), so an amber tint disappears into it.  Measured
+       separation from the box: amber-950 @0.30 is 1.02:1, worse than the
+       1.23:1 of the --surface-raised chip it replaces, while amber-900 @0.70
+       reaches 1.51:1 — the first value that actually reads as a chip.
+
+       Measured, 14px name and 12px badge each against their own fill:
+       light 9.94:1 name and 4.84:1 on hover, dark 9.22:1 name,
+       badge light 5.14:1 and dark 11.43:1. */
+    .gen-legend-cloud {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
+      gap: 12px;
     }
 
-    .gen-legend-row-label {
-      font-size: 12px;
-      font-weight: bold;
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-
-    /* Image chips, the way the source shows them. The old text chips led with
-       "#004 妙蛙種子", and the number is the one thing on this page that the
-       accent panel already states — twice, as a range and as a count — so
-       repeating it per row made the wrap point land earlier than it needed to.
-       The sprite identifies them; the range does the numbering.
-
-       --surface-raised rather than --bg-card, and this is a theme reason rather
-       than a taste one: --bg-card and --bg-secondary are the SAME value in light
-       (#ffffff), so a --bg-card chip on .gen-box would have no fill at all and
-       rely entirely on its 1px border. --surface-raised is #262c33 in dark and
-       #e8eaed in light, so the chip separates from the box in both. */
     .gen-legend-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 10px 3px 3px;
-      background: var(--surface-raised);
-      border: 1px solid var(--hairline);
-      border-radius: var(--radius-pill);
-      color: var(--text-primary);
-      font-size: 13px;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(120, 53, 15, 0.70);
+      border: 1px solid #b45309;
+      border-radius: 8px;
+      color: #fde68a;
+      font-size: 14px;
+      font-weight: 500;
       line-height: 1.3;
       text-decoration: none;
-      transition: background var(--transition-fast);
+      transition: background var(--transition-fast), border-color var(--transition-fast);
     }
 
     .gen-legend-chip:hover {
-      background: var(--surface-hover);
+      background: rgba(120, 53, 15, 0.85);
+      border-color: #fbbf24;
+      color: #fef3c7;
     }
 
     .gen-legend-chip img {
@@ -701,6 +709,45 @@
       image-rendering: pixelated;
     }
 
+    /* 幻之寶可夢 — the source's own badge text, verbatim. The source's
+       text-pink-600 #db2777 on bg-pink-100 #fce7f3 is 3.91:1 and misses AA at
+       12px, so the light text is pink-700 #be185d instead: the same correction
+       .chip-mechanic makes a few rules above. */
+    .gen-mythical-badge {
+      padding: 2px 6px;
+      background: rgba(80, 7, 36, 0.30);
+      border-radius: 9999px;
+      color: #fbcfe8;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    /* The source's hover is `hover:border-amber-400` on the edge and
+       `group-hover:text-amber-700` on the name — it does not touch the fill, so
+       neither does the light form. */
+    [data-theme="light"] .gen-legend-chip {
+      background: linear-gradient(90deg, #fffbeb, #fefce8);
+      border-color: #fde68a;
+      color: #374151;
+    }
+
+    [data-theme="light"] .gen-legend-chip:hover {
+      border-color: #fbbf24;
+      color: #b45309;
+    }
+
+    [data-theme="light"] .gen-mythical-badge {
+      background: #fce7f3;
+      color: #be185d;
+    }
+
+    /* Unreachable today: all nine generations carry at least one legendary and
+       at least one mythical. Kept as one box-level fallback rather than one per
+       category, because a merged cloud has no second row to report an empty one
+       in — without it a future generation with neither would render a heading
+       over nothing at all. */
     .gen-legend-empty {
       font-size: 12px;
       color: var(--text-muted);
@@ -855,6 +902,26 @@
       .gen-card-range {
         background: none;
         border-color: var(--hairline-strong);
+      }
+
+      /* The chip's light values are restated here for gotcha 41's reason: print
+         forces the light tokens, but the DARK values are this file's base rule,
+         so a dark-theme page would print #fde68a amber-200 names on white paper
+         — invisible — and the badge would lose its fill while keeping a pink-200
+         text. The gradient is dropped rather than kept: it is a 1,1,3/255
+         difference between its two ends (see the block comment above), so
+         dropping it costs nothing visually and avoids asking the user to tick
+         "background graphics" for two creams that look the same anyway. */
+      .gen-legend-chip,
+      .gen-legend-chip:hover {
+        background: none;
+        border-color: var(--hairline-strong);
+        color: var(--text-primary);
+      }
+
+      .gen-mythical-badge {
+        background: none;
+        color: var(--text-secondary);
       }
     }
   </style>
@@ -1015,43 +1082,43 @@
         </section>`;
     }
 
-    // 傳說 and 幻之 are rendered as two labelled rows rather than one chip cloud.
-    // They are separate is_legendary / is_mythical booleans in the data, they
-    // have different counts in every generation (1 vs 4 in gen 1), and a merged
-    // list would not say which was which.
+    // 傳說 and 幻之 are one flat cloud, the way the source shows them: a single
+    // `flex flex-wrap gap-3` holding both categories, with the mythical carrying
+    // a pink 幻之寶可夢 badge. They used to be two labelled rows on the argument
+    // that a merged list "would not say which was which" — but the badge says
+    // it per item, which is strictly more information than a row label gave, and
+    // it is what the source does with the same 1-vs-4 split in gen 1.
     //
-    // The chips carry the sprite and the name, where the source has exactly
-    // that. `byId` is not needed: `members` is already the resolved record for
-    // this generation, so `p.filename` and `p.names.zh` come off it directly.
-    // The number that used to lead each chip is gone — see the CSS comment on
+    // Order is legendary then mythical, matching the source's gen 1 box
+    // (Articuno/Zapdos/Moltres/Mewtwo, then Mew). Two filter() calls rather than
+    // one sort, because the badge has to be decided per record anyway and this
+    // puts the two populations in a fixed order instead of relying on the order
+    // the data happens to arrive in.
+    //
+    // The chips carry the sprite and the name, where the source has exactly that.
+    // `byId` is not needed: `members` is already the resolved record for this
+    // generation, so `p.filename` and `p.names.zh` come off it directly. The
+    // number that used to lead each chip is gone — see the CSS comment on
     // .gen-legend-chip for why the accent panel makes it redundant.
     function renderLegendary(members) {
-      const row = (label, list) => {
-        if (!list.length) {
-          return `<div class="gen-legend-row">
-              <span class="gen-legend-row-label">${label}</span>
-              <span class="gen-legend-empty">本代無</span>
-            </div>`;
-        }
-        return `<div class="gen-legend-row">
-            <span class="gen-legend-row-label">${label}</span>
-            ${list.map(p => `<a class="gen-legend-chip" href="${pokemonDetailUrl(p)}"><img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="32" height="32"><span>${escapeHtml(p.names.zh)}</span></a>`).join('')}
-          </div>`;
-      };
+      const list = [
+        ...members.filter(p => p.is_legendary),
+        ...members.filter(p => p.is_mythical),
+      ];
+      const body = list.length
+        ? `<div class="gen-legend-cloud">${list.map(p => `<a class="gen-legend-chip" href="${pokemonDetailUrl(p)}"><img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="32" height="32"><span>${escapeHtml(p.names.zh)}</span>${p.is_mythical ? '<span class="gen-mythical-badge">幻之寶可夢</span>' : ''}</a>`).join('')}</div>`
+        : '<p class="gen-legend-empty">本代無</p>';
       return `<section class="gen-box">
           ${boxHeading('傳說 & 幻之寶可夢', 'legendary')}
-          <div class="gen-legend-groups">
-            ${row('傳說', members.filter(p => p.is_legendary))}
-            ${row('幻之', members.filter(p => p.is_mythical))}
-          </div>
+          ${body}
         </section>`;
     }
 
     // Three named rows, not one auto-flow grid — see the .gen-row CSS comment
     // for why the optional 新屬性 box cannot be placed by auto-flow. Row 3 is
     // full width on both breakpoints: at 768px+ it is the only box in its row,
-    // so `repeat(2, ...)` would leave an empty track, and the two chip rows
-    // underneath 傳說/幻之 need the width more than a sibling would.
+    // so `repeat(2, ...)` would leave an empty track, and the chip cloud
+    // underneath 傳說/幻之 needs the width more than a sibling would.
     function renderCard(generation, members, byId) {
       const ids = members.map(p => p.id).sort((a, b) => a - b);
       const count = ids.length;
