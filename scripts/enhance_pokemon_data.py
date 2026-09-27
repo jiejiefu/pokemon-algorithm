@@ -177,6 +177,14 @@ def build_pokemon_entry(row, existing_data):
         'gender_rate': int(existing['gender_rate']) if existing.get('gender_rate') is not None else -1,
         'hatch_counter': int(existing['hatch_counter']) if existing.get('hatch_counter') is not None else 0,
 
+        # First-appearance regional dex numbers, written by
+        # scripts/fetch_regional_dex.py from PokeAPI /pokedex/{name}. Carried for
+        # the same reason as the breeding block: no CSV column carries them.
+        # A dict, so it must be copied rather than shared -- the default is a new
+        # empty dict per call so a record that has never been fetched does not
+        # alias the same object as every other one.
+        'regional_dex': dict(existing['regional_dex']) if existing.get('regional_dex') is not None else {},
+
         # Collection membership (Ultra Beast / Paradox / Mega / Gigantamax).
         # No CSV column carries any of these, so they are carried from the
         # previous JSON for the same reason as the breeding block above, and are
