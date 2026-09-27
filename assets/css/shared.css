@@ -446,6 +446,58 @@ body {
   color: var(--text-primary);
 }
 
+/* A card that is a link must LOOK like the same card, and must be reachable by
+   keyboard. `display:block` + colour/decoration reset keeps the two card shapes
+   pixel-identical whether or not `href` was passed; the focus ring is not
+   optional, because a card is a 140px-tall target and silently losing its focus
+   indicator makes the whole grid unusable without a mouse. */
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-link:focus-visible {
+  outline: 3px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Corner label for FORM cards (超級進化 / 超極巨化 / 阿羅亞). It overlaps whatever
+   sprite sits under it, so the fill is 72% black rather than a themed colour:
+   composited over the lightest sprite, 0.72 black lands on rgb(71,71,71) and
+   white text measures 9.29:1 — comfortably clear of AA on both themes, with no
+   second rule to keep in sync. `.card` is already position:relative and
+   overflow:hidden, so this needs no extra positioning context. */
+.card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+/* Shiny placeholder filter. Scoped to the card's own <img> rather than to
+   #pokemon-sprite, which is the detail page's hero sprite. There is no shiny
+   artwork in pokemon_data.json or on disk, so this is a labelled stand-in
+   (AGENTS.md gotcha 30) — the shiny page says so in its hero note, and the
+   print rule below removes it so nobody prints a recoloured sprite believing it
+   is the real thing. */
+.card.is-shiny img {
+  filter: hue-rotate(-28deg) saturate(165%) brightness(1.12) contrast(1.05);
+}
+
+@media print {
+  .card.is-shiny img {
+    filter: none;
+  }
+}
+
 /* ===== Feature Cards (Landing Page) ===== */
 .feature-grid {
   display: grid;
@@ -490,6 +542,15 @@ body {
 .feature-card.sort { --feature-accent: #e11d48; }
 .feature-card.maze { --feature-accent: #3b82f6; }
 .feature-card.dex { --feature-accent: #f43f5e; }
+/* One value per card for both themes, as the three above already are. Picked by
+   measuring the 40px glyph and the 4px rule against --bg-card (#21262d dark,
+   #ffffff light) rather than by eye: the accent is non-text, so 3:1 is the bar,
+   and these two are the only options that cleared the existing set's own 3.67
+   worst case. violet-600 (#7c3aed) is the tempting choice for 特殊分類 and it
+   fails — 3.04:1 on the dark card — as does every 400-level and 500-level hue
+   that is bright enough to look right in the light theme. */
+.feature-card.collections { --feature-accent: #a855f7; }
+.feature-card.gens { --feature-accent: #059669; }
 
 /* Was `font-size: 48px` to size an emoji glyph; the icon is now a fixed 40px
    SVG box, centred by `margin: auto`, and tinted with the card's own accent
@@ -728,6 +789,34 @@ canvas.maze-canvas {
 .header-nav a:hover {
   background: var(--accent-yellow);
   color: #14110a;
+}
+
+/* Marks the current page. The two pages that had a nav both already carried
+   class="... active" and nothing styled it, so the current page was marked in
+   markup only. Same treatment as the other links — a filled pill, not just a
+   heavier font — because "which of these four am I on" is exactly what a nav
+   item has to answer at a glance. */
+.header-nav a.active {
+  background: var(--accent-yellow);
+  color: #14110a;
+  border-color: var(--accent-yellow);
+}
+
+/* Was in detail.css with a comment claiming it was available on every page,
+   which is how a second page needing it would have copied it. The clip path is
+   kept alongside `clip` because the latter is deprecated but still what Safari
+   honours; dropping it makes the text visible there. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .header-nav a.maze-link {

@@ -177,6 +177,22 @@ def build_pokemon_entry(row, existing_data):
         'gender_rate': int(existing['gender_rate']) if existing.get('gender_rate') is not None else -1,
         'hatch_counter': int(existing['hatch_counter']) if existing.get('hatch_counter') is not None else 0,
 
+        # Collection membership (Ultra Beast / Paradox / Mega / Gigantamax).
+        # No CSV column carries any of these, so they are carried from the
+        # previous JSON for the same reason as the breeding block above, and are
+        # written by scripts/add_collection_tags.py. Regional forms are NOT
+        # here — they live in evolution_chains.json under `variants`, and
+        # duplicating them would create a second source of truth.
+        # The booleans use .get with an explicit False default rather than a
+        # truthiness test on `existing`: False is a real value for the other
+        # 1013 records, and `if existing.get(...)` would be correct here only
+        # by accident. The risk gotcha 29 documents is the reverse one —
+        # rewriting a real 0/-1 — and bool() cannot do that.
+        'is_ultra_beast': bool(existing.get('is_ultra_beast', False)),
+        'is_paradox': bool(existing.get('is_paradox', False)),
+        'paradox_side': existing.get('paradox_side'),
+        'forms': existing.get('forms', []),
+
         # Color (legacy - keep for visual sorting)
         'rgb': existing.get('rgb', [128, 128, 128]),
         'hsv': existing.get('hsv', [0, 0, 0.5]),

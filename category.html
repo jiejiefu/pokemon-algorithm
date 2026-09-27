@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>特殊分類 — 1025 全國寶可夢圖鑑</title>
+  <meta name="description" content="依特殊分類瀏覽寶可夢：傳說、幻之、究極異獸、御三家、異色、悖謬、超級進化、超極巨化與地區型態。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. See the identical
+       block in generations.html: a theme applied from a module lands after the
+       first paint, and shared.css has no prefers-color-scheme query to catch it
+       (AGENTS.md gotcha 31). -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    /* ===== Category page =====
+       Page-specific. The nine accent gradients live in assets/js/categories.js
+       (they are data, not a fixed palette), so what is left here is geometry and
+       the filter row. Markup is emitted by this file's module, not by shared.js,
+       so these rules sit beside the emitter — the same convention that moved the
+       evolution chain's CSS out of detail.html into detail.css. */
+
+    .cat-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* ===== Breadcrumb =====
+       A real hierarchy: the last item is where you are, so it is not a link. */
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--text-primary);
+      text-decoration: underline;
+    }
+
+    .breadcrumb [aria-current="page"] {
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+
+    /* ===== Hero =====
+       `background-image` is set inline from the category's three-stop accent, so
+       the gradient is data. All nine are Tailwind 700-level shades, which is the
+       600→700 correction explained in categories.js: white text needs 4.50:1 here
+       because the subtitle is 18–20px in normal weight, and six of the source's
+       600-level hues do not reach it. Worst case across the nine is 4.92:1. */
+    .cat-hero {
+      border-radius: var(--radius-md);
+      padding: 48px 24px;
+      margin-bottom: 28px;
+      text-align: center;
+      color: #fff;
+      box-shadow: var(--shadow-card);
+    }
+
+    .cat-hero h1 {
+      font-size: 2.25rem;
+      margin: 0 0 10px;
+      color: #fff;
+    }
+
+    @media (min-width: 640px) {
+      .cat-hero h1 { font-size: 3rem; }
+    }
+
+    .cat-hero-sub {
+      font-size: 1.125rem;
+      margin: 0 0 6px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    @media (min-width: 640px) {
+      .cat-hero-sub { font-size: 1.25rem; }
+    }
+
+    .cat-hero-note {
+      font-size: 0.875rem;
+      margin: 0;
+      /* 0.95, not the 0.88 this started at. 14px is normal-weight text, so it
+         needs 4.50:1, and the lightest accent stop (starter's #1d4ed8) only
+         reaches 4.27:1 at 0.88. 0.92 clears by 0.01 — no margin for a rounding
+         difference — and 0.95 gives 4.70:1. Alpha buys a visual hierarchy here,
+         but not at the cost of the threshold, so the hierarchy is kept shallow
+         and the value is held high. Same 0.95 as .cat-hero-sub. */
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    /* Stat tiles. The scrim is BLACK at 0.16, which is the opposite of what
+       looks like the obvious choice and is load-bearing. These are white
+       numbers on a coloured fill, so a *white* scrim lightens the fill and
+       *reduces* contrast: at rgba(255,255,255,0.16) the 12px label measured
+       3.67:1 on shiny, 4.00:1 on legendary and gigantamax, and 4.02:1 on
+       regional — four of nine categories below WCAG AA. Black at the same 0.16
+       darkens the fill instead, which lifts the worst case to 5.61:1 and the
+       best to 7.35:1 across all nine accents. */
+    .cat-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      max-width: 640px;
+      margin: 28px auto 0;
+    }
+
+    @media (min-width: 640px) {
+      .cat-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    .cat-stat {
+      background: rgba(0, 0, 0, 0.16);
+      border-radius: var(--radius-md);
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .cat-stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.2;
+      /* Longest value is 「第 7 世代」/「皆為活動限定」-style CJK; wrapping beats
+         shrinking because the tile is a fixed 4-column track on desktop. */
+      overflow-wrap: anywhere;
+    }
+
+    .cat-stat-label {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    /* ===== Prose ===== */
+    .cat-intro {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .cat-intro h2 {
+      font-size: 1.5rem;
+      margin: 0 0 12px;
+      color: var(--text-primary);
+    }
+
+    .cat-intro p {
+      margin: 0;
+      line-height: 1.85;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Disclaimer (shiny only) =====
+       The shiny page recolours sprites with a CSS filter because no shiny artwork
+       exists on disk or in the data. That is a labelled placeholder
+       (AGENTS.md gotcha 30), so it gets said out loud in a banner as well as in
+       the hero note — a reader who lands mid-page and skips the hero still sees
+       it. */
+    .cat-disclaimer {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+      border-left: 4px solid var(--accent-yellow);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .cat-disclaimer .icon {
+      flex: none;
+      color: var(--accent-yellow);
+      margin-top: 2px;
+    }
+
+    .cat-disclaimer strong {
+      color: var(--text-primary);
+    }
+
+    /* ===== Filter row =====
+       Real buttons, not links: they filter what is already on the page and do not
+       navigate, so they are not anchors. `aria-pressed` carries the state, and the
+       active chip is distinguished by fill AND border rather than colour alone. */
+    .cat-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cat-filter {
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: 2px solid var(--hairline);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast),
+                  border-color var(--transition-fast);
+    }
+
+    .cat-filter:hover {
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    .cat-filter[aria-pressed="true"] {
+      /* The active chip borrows the category's own mid-stop so it reads as part
+         of this page's identity; white on all nine mids is >= 4.98:1. */
+      background: var(--cat-accent-mid);
+      border-color: var(--cat-accent-mid);
+      color: #fff;
+    }
+
+    .cat-filter:focus-visible {
+      outline: 3px solid var(--accent-gold);
+      outline-offset: 2px;
+    }
+
+    /* ===== Result meta + grid ===== */
+    .cat-result-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .cat-grid {
+      display: grid;
+      /* auto-fill + minmax, so the column count follows the 1180px content
+         column and the tracks never force a horizontal scrollbar on a 320px
+         viewport. The card's own image is capped at 140px by shared.css, so
+         tracks below that would only add gutters. */
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .cat-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px dashed var(--hairline);
+      border-radius: var(--radius-md);
+    }
+
+    /* ===== Loading / error ===== */
+    .cat-status {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-muted);
+    }
+
+    .cat-status.is-error {
+      color: var(--text-primary);
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-left: 4px solid var(--error-text);
+      border-radius: var(--radius-md);
+      text-align: left;
+      line-height: 1.8;
+    }
+
+    .cat-status.is-error code {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      overflow-wrap: anywhere;
+    }
+
+    /* ===== Print =====
+       The gradient and the white-on-gradient text cannot both survive paper, so
+       the hero prints as plain text on the page background. Print is not the
+       place to reproduce a colour ramp that will come out as a grey smear. */
+    @media print {
+      .cat-hero {
+        background: none !important;
+        color: var(--text-primary);
+        box-shadow: none;
+        border: 1px solid var(--hairline);
+        padding: 16px;
+      }
+
+      .cat-hero h1,
+      .cat-hero-sub,
+      .cat-hero-note,
+      .cat-stat-value,
+      .cat-stat-label {
+        color: var(--text-primary);
+      }
+
+      .cat-stat {
+        background: var(--bg-secondary);
+        border: 1px solid var(--hairline);
+      }
+
+      .cat-filters,
+      .breadcrumb {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <!-- A div, not an <h1>: #cat-title below owns the page's single h1, because
+         it is filled in from the ?cat= slug after load. Matches index.html, the
+         only other page with a hero. -->
+    <div class="header-title header-title-large">特殊分類</div>
+    <div class="header-nav">
+      <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
+      <a href="maze.html" class="maze-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>像素迷宮</a>
+      <a href="pokedex.html" class="dex-link active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-2zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>完整圖鑑</a>
+      <a href="generations.html" class="gen-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10h2v4h-2v-4zm0 5h2v2h-2v-2z"/></svg>世代指南</a>
+    </div>
+  </header>
+
+  <main class="cat-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a>
+      <span aria-hidden="true">/</span>
+      <a href="collections.html">特殊分類</a>
+      <span aria-hidden="true">/</span>
+      <span id="crumb-current" aria-current="page">…</span>
+    </nav>
+
+    <section class="cat-hero" id="cat-hero" aria-labelledby="cat-title">
+      <h1 id="cat-title">載入中…</h1>
+      <p class="cat-hero-sub" id="cat-sub"></p>
+      <p class="cat-hero-note" id="cat-note"></p>
+      <div class="cat-stats" id="cat-stats"></div>
+    </section>
+
+    <div id="cat-disclaimer-slot"></div>
+
+    <section class="cat-intro" aria-labelledby="cat-intro-title">
+      <h2 id="cat-intro-title">什麼是…</h2>
+      <p id="cat-prose"></p>
+    </section>
+
+    <div id="cat-filter-slot"></div>
+
+    <p class="cat-result-line" id="cat-result-line"></p>
+    <div class="cat-grid" id="cat-grid" role="list" aria-labelledby="cat-title">
+      <p class="cat-status">載入中…</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      ASSETS,
+      createPokemonCard,
+      iconSvg,
+      initThemeToggle,
+      loadEvolutionChains,
+      loadPokemonData,
+      pokemonDetailUrl
+    } from './assets/js/shared.js';
+    import { CATEGORIES, CATEGORY_SLUGS, getCategory, passesFilter } from './assets/js/categories.js';
+
+    initThemeToggle();
+
+    const gridEl = document.getElementById('cat-grid');
+    const heroEl = document.getElementById('cat-hero');
+    const statsEl = document.getElementById('cat-stats');
+    const resultLine = document.getElementById('cat-result-line');
+    const filterSlot = document.getElementById('cat-filter-slot');
+    const disclaimerSlot = document.getElementById('cat-disclaimer-slot');
+
+    /* `?cat=` is read the same way `pokedex.html?gen=` is: parse, validate against
+       the declared slug list, and never let an unrecognised value through. An
+       unknown slug falls back to the first category rather than rendering an
+       empty page, because an empty grid and a typo'd URL are indistinguishable
+       to the person looking at it. */
+    const VALID = new Set(CATEGORY_SLUGS);
+    const raw = new URLSearchParams(location.search).get('cat');
+    const slug = VALID.has(raw) ? raw : CATEGORY_SLUGS[0];
+    const config = getCategory(slug);
+    if (raw && !VALID.has(raw)) {
+      console.warn(`[category] unknown ?cat=${raw}, falling back to ${slug}`);
+    }
+
+    let allMembers = [];
+    let activeFilter = 'all';
+
+    function setStatus(message, isError) {
+      gridEl.innerHTML = '';
+      const p = document.createElement('p');
+      p.className = isError ? 'cat-status is-error' : 'cat-status';
+      p.textContent = message;
+      gridEl.appendChild(p);
+    }
+
+    function renderHero() {
+      heroEl.style.backgroundImage =
+        `linear-gradient(135deg, ${config.accent[0]} 0%, ${config.accent[1]} 50%, ${config.accent[2]} 100%)`;
+      // Published on :root, NOT on the hero. Custom properties inherit DOWN the
+      // tree, and the active filter chip lives in #cat-filter-slot — a sibling
+      // subtree of the hero, not a descendant — so setting it on heroEl left
+      // every chip with an invalid `background` and no active fill at all. One
+      // page owns one accent, so :root is the correct scope.
+      document.documentElement.style.setProperty('--cat-accent-mid', config.accent[1]);
+
+      document.getElementById('cat-title').textContent = config.title;
+      document.getElementById('cat-sub').textContent = config.subtitle;
+      document.getElementById('cat-note').textContent = config.note;
+      document.getElementById('crumb-current').textContent = config.title;
+      document.title = `${config.title} — 1025 全國寶可夢圖鑑`;
+      document.getElementById('cat-intro-title').textContent = `什麼是${config.title}？`;
+      document.getElementById('cat-prose').textContent = config.prose;
+    }
+
+    function renderStats(members) {
+      statsEl.innerHTML = '';
+      for (const [value, label] of config.tiles(members)) {
+        const tile = document.createElement('div');
+        tile.className = 'cat-stat';
+        const v = document.createElement('div');
+        v.className = 'cat-stat-value';
+        v.textContent = value;
+        const l = document.createElement('div');
+        l.className = 'cat-stat-label';
+        l.textContent = label;
+        tile.append(v, l);
+        statsEl.appendChild(tile);
+      }
+    }
+
+    function renderDisclaimer() {
+      disclaimerSlot.innerHTML = '';
+      if (!config.disclaimer) return;
+      const box = document.createElement('div');
+      box.className = 'cat-disclaimer';
+      // The icon is decorative; the sentence beside it carries the meaning, so an
+      // exposed <svg> would just announce "info" a second time (AGENTS.md gotcha 27).
+      box.innerHTML =
+        `${iconSvg('info')}<div><strong>這些不是真實的異色 artwork。</strong>` +
+        `本頁的顏色由 CSS 濾鏡位移而來，用來一次呈現全 1,025 隻的異色外觀。` +
+        `真正的異色圖可由 PokéAPI 的 official-artwork shiny 取得，之後會改為直接替換圖片來源。</div>`;
+      disclaimerSlot.appendChild(box);
+    }
+
+    function renderFilters() {
+      filterSlot.innerHTML = '';
+      if (!config.filters?.length) return;
+      const row = document.createElement('div');
+      row.className = 'cat-filters';
+      // A labelled group rather than a bare row of buttons: "篩選方式" is what
+      // the set of buttons is, and without a name the group is unlabeled.
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', '篩選方式');
+      for (const f of config.filters) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cat-filter';
+        btn.dataset.filter = f.key;
+        btn.setAttribute('aria-pressed', String(f.key === activeFilter));
+        const count = f.test ? allMembers.filter(f.test).length : allMembers.length;
+        btn.textContent = `${f.label}（${count}）`;
+        btn.addEventListener('click', () => {
+          activeFilter = f.key;
+          for (const other of row.querySelectorAll('.cat-filter')) {
+            other.setAttribute('aria-pressed', String(other.dataset.filter === activeFilter));
+          }
+          renderGrid();
+        });
+        row.appendChild(btn);
+      }
+      filterSlot.appendChild(row);
+    }
+
+    function renderGrid() {
+      const shown = allMembers.filter((m) => passesFilter(m, activeFilter, config.filters));
+      gridEl.innerHTML = '';
+      if (!shown.length) {
+        const empty = document.createElement('p');
+        empty.className = 'cat-empty';
+        empty.textContent = '這個篩選條件底下沒有成員。';
+        gridEl.appendChild(empty);
+      } else {
+        const frag = document.createDocumentFragment();
+        for (const m of shown) {
+          // Form members (Mega / Gigantamax / regional) carry `linkTo`, the base
+          // species, because a form id like 10033 has no record in
+          // pokemon_data.json and `detail.html` could not resolve it.
+          const target = m.linkTo || m;
+          const card = createPokemonCard(m, {
+            href: pokemonDetailUrl(target),
+            badge: m.formBadge || null,
+            shiny: !!m.shiny || slug === 'shiny',
+          });
+          card.setAttribute('role', 'listitem');
+          frag.appendChild(card);
+        }
+        gridEl.appendChild(frag);
+      }
+      // Compared against the filter KEY, not its label. Matching on '全部' would
+      // mean hardcoding this page's Chinese copy here and silently changing the
+      // result line's meaning the moment a category renames that chip.
+      const filterLabel =
+        activeFilter === 'all' ? '' : config.filters?.find((f) => f.key === activeFilter)?.label;
+      resultLine.textContent =
+        `顯示 ${shown.length} 隻` + (filterLabel ? `（${filterLabel}）` : '') +
+        `／共 ${allMembers.length} 隻`;
+    }
+
+    async function init() {
+      renderHero();
+      renderDisclaimer();
+      try {
+        // Only the datasets this category actually declares are fetched. The
+        // regional page needs the 291 KB chain file; the other eight never pay
+        // for it. `members()` is called with exactly this 3-slot shape for every
+        // category, and each one reads only the slots it declared in `needs`.
+        const needs = config.needs || ['pokemon'];
+        const [pokemon, gens, chains] = await Promise.all([
+          needs.includes('pokemon') ? loadPokemonData() : Promise.resolve([]),
+          needs.includes('generations')
+            ? fetch(ASSETS.generations).then((r) => {
+                if (!r.ok) throw new Error(`generations.json: HTTP ${r.status}`);
+                return r.json();
+              })
+            : Promise.resolve(null),
+          needs.includes('chains') ? loadEvolutionChains() : Promise.resolve(null),
+        ]);
+        allMembers = config.members(pokemon, gens, chains);
+      } catch (err) {
+        // Name the actual failure. This page fetches up to three files and a
+        // bare "載入失敗" would not tell you which one, or that the server was
+        // the problem rather than the code.
+        setStatus(`載入失敗：${err.message}。請確認本頁是透過 HTTP 伺服器開啟，而不是直接雙擊檔案（file://）。`, true);
+        console.error('[category]', err);
+        return;
+      }
+      renderStats(allMembers);
+      renderFilters();
+      renderGrid();
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -49,3 +49,17 @@ Thumbs.db
 ._*
 .Spotlight-V100
 .Trashes
+
+# InfoPoke reference snapshots (inputs to the generators, not vendored)
+# ---------------------------------------------------------------------------
+# *.json.bak is add_collection_tags.py's own pre-write backup, not an input.
+*.json.bak
+#
+# infopoke_net_*.html are the page captures that scripts/extract_generations.py
+# and scripts/add_collection_tags.py parse. They are 3.1 MB of third-party
+# markup that changes whenever infopoke.net ships a redesign, so they are not
+# tracked; what IS tracked is the JSON each script produces from them. Re-fetch
+# a missing one from its source URL — both scripts now exit with that URL
+# rather than raising FileNotFoundError. See the "InfoPoke reference snapshots"
+# entry in AGENTS.md.
+infopoke_net_*.html

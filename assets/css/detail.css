@@ -466,20 +466,6 @@ body {
 }
 
 /* ===== Moves ===== */
-
-/* Available on every page, so it lives here rather than in shared.css. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .move-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1081,8 +1067,8 @@ body {
 }
 
 .evolution-sprite {
-  /* 100px x 1.5. The section-note above the chain already states that stats
-     peak at 255 and the total at 720, so nothing here needs to restate scale. */
+  /* 150px, downscaled from the 475×475 source sprites (the same set the hero
+     uses), which is what object-fit and crisp-edges below are there for. */
   width: 150px;
   height: 150px;
   object-fit: contain;
