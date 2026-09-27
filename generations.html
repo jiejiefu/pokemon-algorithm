@@ -43,10 +43,13 @@
        convention that moved the evolution chain's CSS out of detail.html's
        inline <style> block and into detail.css. */
 
+    /* 1280px, the source page's own max-w-7xl. Its inner hero is max-w-7xl with
+       px-8, so 1280 - 2×16 here lands within 16px of the reference's content
+       column without the hero needing its own second container. */
     .gen-page {
-      max-width: 1180px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 24px 16px 40px;
+      padding: 32px 16px 48px;
     }
 
     /* ===== Breadcrumb =====
@@ -82,100 +85,227 @@
     }
 
     /* ===== Hero =====
-       indigo-700 -> purple-700 -> pink-700. The source page used the Tailwind
-       600/500 steps (#6366f1, #a855f7, #ec4899) and white text over it measures
-       1.54:1 — invisible. Dropping every stop to its 700 pair puts the worst
-       point of this gradient at 6.04:1. Measured, not eyeballed: see the table
-       in AGENTS.md. */
+       The source page's hero is bg-gradient-to-br indigo-600 → purple-600 →
+       pink-600, under a black/10 scrim, with a 60×60 sparkle tile at 10%. All
+       three are copied. The 600 steps clear AA where the old 700-level rule
+       also cleared it, and the copy is now exact rather than an approximation
+       of a different step — see AGENTS.md gotcha 43.
+
+       Two values are NOT copied, and both are the same mistake: a white
+       overlay LIGHTENS the fill, so on a mid-tone gradient it pushes white
+       text DOWN rather than up. Measured over 101 samples of this gradient,
+       at its lightest end:
+         span  text-white/70   3.35:1  FAIL   -> white/90   4.69:1
+         tile  bg-white/10     3.58:1  FAIL   -> black/10   4.62:1
+       The h1 (5.48:1) and the lede (4.69:1) are fine as the source has them.
+       The scrim is black, which is gotcha 39's rule for a light-text band. */
     .gen-hero {
       position: relative;
       overflow: hidden;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #4338ca 0%, #7e22ce 50%, #be185d 100%);
+      background: linear-gradient(to bottom right, #4f46e5 0%, #9333ea 50%, #db2777 100%);
       color: #fff;
-      padding: 40px 28px 56px;
-      margin-bottom: 32px;
+      padding: 64px 16px;
+      margin-bottom: 40px;
       box-shadow: var(--shadow-card);
+      isolation: isolate;
     }
 
-    .gen-hero h2 {
-      margin: 0 0 10px;
-      font-size: 30px;
-      line-height: 1.25;
+    /* The two overlay layers. Both are absolutely positioned over the gradient.
+       `z-index` is explicit on BOTH sides of this, and that is the whole point:
+       `position: relative` alone does NOT lift the content above them. Positioned
+       descendants with `z-index: auto` are all painted in step 6 of the painting
+       order, in TREE ORDER, and `::after` is always the LAST child — so with only
+       `position: relative` the sparkle layer sits ON TOP of the h1, which is the
+       opposite of what it looks like it does. At opacity 0.1 that is nearly
+       invisible over white text, so it reads as working. Pin the overlays to 0
+       and the content to 1 and the ordering holds by construction.
+       `isolation: isolate` on the hero keeps them compositing against the
+       gradient rather than against whatever is behind the card. */
+    .gen-hero::before,
+    .gen-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .gen-hero::before {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* The source's sparkle tile verbatim: four plus-marks at 40% white in a
+       60×60 SVG, laid down at 10% opacity. The SVG carries its own intrinsic
+       size, so it tiles at 60px without a background-size. */
+    .gen-hero::after {
+      opacity: 0.1;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .gen-hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .gen-hero-title {
+      margin: 0 0 16px;
+      font-size: 36px;
+      line-height: 1.2;
+      font-weight: bold;
+      text-align: center;
       text-shadow: var(--header-title-shadow);
     }
 
     .gen-hero-lede {
-      margin: 0 0 26px;
-      max-width: 62ch;
-      font-size: 15px;
-      line-height: 1.7;
-      color: rgba(255, 255, 255, 0.92);
+      margin: 0 auto 16px;
+      max-width: 768px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
     }
 
-    /* bg-white/10 — a white overlay LIGHTENS the fill, so it has to be checked
-       like any other. Over this gradient it lands at 5.26:1, which passes; the
-       source's white/20 range box does not (4.45:1), which is why the range box
-       below is black instead. */
+    .gen-hero-span {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    /* The source is 2 tiles on mobile and 4 from sm, not auto-fit. At a 320px
+       viewport auto-fit also lands on 2, so this is not a visual fix — it is so
+       the two column counts are named rather than emergent. */
     .gen-hero-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 40px auto 0;
+      max-width: 768px;
       padding: 0;
       list-style: none;
     }
 
+    /* black/10, not the source's white/10 — see the block comment above for
+       the 3.58:1 that decided it. The white/18 border is kept (down from 0.22)
+       because a darker tile on a lighter gradient needs its edge, and it is
+       the reason the print rule below can find something to restate. */
     .gen-hero-stats li {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: var(--radius-sm);
-      padding: 12px 16px;
+      padding: 16px;
       text-align: center;
     }
 
     .gen-hero-stats strong {
       display: block;
-      font-size: 24px;
+      font-size: 30px;
       line-height: 1.2;
+      font-weight: bold;
     }
 
     .gen-hero-stats span {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.88);
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    @media (min-width: 640px) {
+      .gen-hero {
+        padding: 80px 24px;
+      }
+
+      .gen-hero-title {
+        font-size: 48px;
+      }
+
+      .gen-hero-lede {
+        font-size: 20px;
+      }
+
+      .gen-hero-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .gen-hero-title {
+        font-size: 60px;
+      }
     }
 
     /* The wave sits after the stats in the DOM, absolutely positioned against
        the hero, and inherits the page's own background so it reads as a cut-out
        rather than a third colour. `preserveAspectRatio="none"` on the element
-       lets the single path stretch to whatever width the hero is. */
+       lets the single path stretch to whatever width the hero is.
+
+       The path and the 48px height are the source's own (viewBox 0 0 1200 120,
+       h-12). The source can fill it text-blue-50 only because its whole page
+       sits on a blue-50 wash; we take --bg-primary, because we keep the dark
+       page background instead of adopting that wash. Same reason the hero stays
+       inside .gen-page rather than going full-bleed. */
     .gen-wave {
       position: absolute;
       left: 0;
       right: 0;
       bottom: -1px;
       width: 100%;
-      height: 42px;
+      height: 48px;
       display: block;
       fill: var(--bg-primary);
       pointer-events: none;
+    }
+
+    /* ===== Section head =====
+       The source's 寶可夢的進化 heading sits above the card list, outside it.
+       It is the page's only h2 before the per-card h2s, and it is what the
+       hero's closing sentence introduces. */
+    .gen-section-head {
+      max-width: 672px;
+      margin: 0 auto 32px;
+      text-align: center;
+    }
+
+    .gen-section-head h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.3;
+      color: var(--text-primary);
+    }
+
+    .gen-section-head p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
     }
 
     /* ===== Card list ===== */
     .gen-list {
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 32px;
     }
 
+    /* No border. The source's cards are edge-to-edge colour panels separated by
+       white space, and a hairline here fought the accent panel: a 1px line
+       between two differently-coloured regions reads as a seam, not an edge.
+       Dropping it also deleted the gen-V special case below. */
     .gen-card {
       display: grid;
       grid-template-columns: 1fr;
       background: var(--bg-card);
-      border: 1px solid var(--hairline);
-      border-radius: var(--radius-md);
+      border-radius: 16px;
       overflow: hidden;
       box-shadow: var(--shadow-card);
+      transition: box-shadow var(--transition-fast);
+    }
+
+    /* 16px is the source's rounded-2xl. --radius-md (15px) is the site's
+       near-equivalent if this ever needs to be a token instead. */
+    .gen-card:hover {
+      box-shadow: var(--shadow-card-hover);
     }
 
     /* 1024px is the site's existing content breakpoint, which is also where the
@@ -195,50 +325,49 @@
       }
     }
 
-    /* The nine gradients. Each pair is the source page's hue at the 700 step
-       instead of 500/600; the min contrast of white 14px text over each, sampled
-       every 1% of the interpolation (a gradient's worst point is not reliably
-       its midpoint — gen II's is t=0.00 at 4.92:1, and gen III's is t=0.01):
+    /* The nine side-panel gradients. Each pair keeps the source page's hue but
+       at a DESATURATED 700 step, because the source's own 500-level values put
+       white text below 4.5:1 on all nine of its card gradients, and the worst of
+       them is 2.15:1 — gen II, amber-500 → purple-500 (AGENTS.md gotcha 43).
+       Saturation is what the source trades
+       away, not lightness, which is why these read as muted rather than dark.
 
-         I    #b91c1c -> #1d4ed8   6.47:1     VI   #1d4ed8 -> #b91c1c   6.47:1
-         II   #a16207 -> #7e22ce   4.92:1     VII  #c2410c -> #0f766e   5.18:1
-         III  #15803d -> #1d4ed8   5.02:1     VIII #7e22ce -> #b91c1c   6.47:1
-         IV   #4338ca -> #be185d   6.04:1     IX   #6d28d9 -> #c2410c   5.18:1
-         V    #374151 -> #1d4ed8   6.70:1
+       Every text layer below is sampled every 1% of the interpolation, because
+       a gradient's worst point is not reliably its midpoint nor its lightest
+       endpoint. Worst case per layer across all nine, of the values on this
+       panel (numeral and region are large bold text, so they only need 3:1):
 
-       Worst case across all nine is 4.92:1. The same hues at the source's step
-       fail: I 3.68:1, II 1.92:1, V 3.68:1, IX 2.80:1. */
-    .gen-card[data-gen="1"] { --gen-accent: linear-gradient(160deg, #b91c1c 0%, #1d4ed8 100%); }
-    .gen-card[data-gen="2"] { --gen-accent: linear-gradient(160deg, #a16207 0%, #7e22ce 100%); }
-    .gen-card[data-gen="3"] { --gen-accent: linear-gradient(160deg, #15803d 0%, #1d4ed8 100%); }
-    .gen-card[data-gen="4"] { --gen-accent: linear-gradient(160deg, #4338ca 0%, #be185d 100%); }
-    .gen-card[data-gen="5"] { --gen-accent: linear-gradient(160deg, #374151 0%, #1d4ed8 100%); }
-    .gen-card[data-gen="6"] { --gen-accent: linear-gradient(160deg, #1d4ed8 0%, #b91c1c 100%); }
-    .gen-card[data-gen="7"] { --gen-accent: linear-gradient(160deg, #c2410c 0%, #0f766e 100%); }
-    .gen-card[data-gen="8"] { --gen-accent: linear-gradient(160deg, #7e22ce 0%, #b91c1c 100%); }
-    .gen-card[data-gen="9"] { --gen-accent: linear-gradient(160deg, #6d28d9 0%, #c2410c 100%); }
+         numeral 52px bold    6.77:1        year   13px /0.88   5.66:1
+         region  20px bold    6.77:1        glass  12px /0.85   7.04:1
+         label   12px /0.85   5.41:1        glass  14px /1.00   9.02:1
 
-    /* Gen V starts on gray-700, which against the dark page background is
-       1.84:1 — a card edge that is effectively invisible. The other eight
-       gradients are all brighter than that, so this is the one card that needs
-       its edge strengthened.
-
-       The strengthening is a token, not a literal. A hardcoded
-       rgba(240, 246, 252, 0.28) is the DARK theme's --hairline-rgb, and in
-       light mode --hairline-rgb flips to 31, 35, 40 — so the literal stayed a
-       near-white 1.03:1 against the light --bg-card and the border that exists
-       to be seen was the one thing you could not see. Read through the token it
-       lands at 1.80:1 in light, i.e. still the strongest edge of the nine
-       (their own --hairline is 1.15:1 on #fff) but in the right direction. */
-    .gen-card[data-gen="5"] {
-      border-color: rgba(var(--hairline-rgb), 0.28);
-    }
+       The binding layer is the 12px 世代 label at 5.41:1, not the 52px numeral.
+       135deg, not the source's bg-gradient-to-br: the side panel's aspect ratio
+       is set by its content, so a corner-directed gradient renders at a
+       different angle on every one of the nine cards, while a fixed angle gives
+       all nine the same character. */
+    .gen-card[data-gen="1"] { --gen-accent: linear-gradient(135deg, #873939 0%, #40589d 100%); }
+    .gen-card[data-gen="2"] { --gen-accent: linear-gradient(135deg, #725325 0%, #6f4197 100%); }
+    .gen-card[data-gen="3"] { --gen-accent: linear-gradient(135deg, #295e3c 0%, #40589d 100%); }
+    .gen-card[data-gen="4"] { --gen-accent: linear-gradient(135deg, #554f99 0%, #893759 100%); }
+    .gen-card[data-gen="5"] { --gen-accent: linear-gradient(135deg, #373c44 0%, #40589d 100%); }
+    .gen-card[data-gen="6"] { --gen-accent: linear-gradient(135deg, #40589d 0%, #873939 100%); }
+    .gen-card[data-gen="7"] { --gen-accent: linear-gradient(135deg, #8a4a30 0%, #225551 100%); }
+    .gen-card[data-gen="8"] { --gen-accent: linear-gradient(135deg, #6f4197 0%, #873939 100%); }
+    .gen-card[data-gen="9"] { --gen-accent: linear-gradient(135deg, #6a47a0 0%, #8a4a30 100%); }
 
     /* ===== Card: accent side ===== */
+    /* 24px 20px at every width, with no >=1024px bump. The side panel is 3 of
+       the card's 12 columns, so it is NARROWEST at exactly 1024px: 248px, of
+       which 208px is content. The widest thing it holds is the 編號範圍 glass
+       box at ~130px, and a probe at 320/390/700/1100/1440 reports 0px of
+       horizontal overflow with 0 offending elements, so a larger inset would
+       spend 24px of a 312px panel to move nothing. Re-measure with
+       getBoundingClientRect before changing either number. */
     .gen-card-side {
       background: var(--gen-accent);
       color: #fff;
-      padding: 24px 22px;
+      padding: 24px 20px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -276,21 +405,25 @@
       color: rgba(255, 255, 255, 0.88);
     }
 
-    /* black/20, not white/20. This panel is the darkest thing on the page in
-       every generation, so a white overlay costs contrast where it needs to
-       signal elevation; measured over the nine gradients white/20 lands between
-       3.41:1 (gen II) and 4.68:1 (gen VIII) and fails 4.5:1 on eight of the
-       nine. black/20 measures 6.92:1 to 8.99:1. */
+    /* black/20, not white/20 — the same reasoning as the hero's tile, and for
+       the same reason: a white overlay lightens. Measured over the nine
+       gradients above, white/20 lands between 3.41:1 (gen II) and 4.68:1
+       (gen VIII) and fails 4.5:1 on eight of the nine; black/20 measures
+       7.04:1 on the label and 9.02:1 on the value.
+
+       This box also carries the new-B count now. The source stacks the count
+       beside the range rather than under it, and at the 3-column desktop width
+       a 7-character range like #001 – #151 has no room for it — which is why
+       the count moved in here rather than gaining a second line. */
     .gen-card-range {
-      margin-top: 14px;
+      margin-top: 16px;
       padding: 8px 10px;
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: var(--radius-sm);
       display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .gen-card-range-label {
@@ -305,29 +438,33 @@
     }
 
     .gen-card-count {
-      margin: 0;
+      margin: 4px 0 0;
       font-size: 13px;
     }
 
+    /* The CTA moved to the foot of the body column. On the accent panel it was
+       the only element pinned with margin-top:auto, so the panel's height was
+       set by the tallest card's body rather than by its own content, and the
+       button's hit area was white-on-gradient at 13px. In the body it is an
+       ordinary footer action over --bg-card, where it inherits --text-primary
+       and needs no colour of its own. */
     .gen-card-cta {
-      margin-top: auto;
-      display: block;
-      padding: 10px 12px;
-      background: rgba(0, 0, 0, 0.24);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: inline-block;
+      margin-top: 4px;
+      padding: 9px 14px;
+      background: var(--surface-raised);
+      border: 1px solid var(--hairline);
       border-radius: var(--radius-pill);
-      color: #fff;
+      color: var(--text-primary);
       font-size: 13px;
       font-weight: bold;
       text-align: center;
       text-decoration: none;
-      transition: all var(--transition-fast);
+      transition: background var(--transition-fast);
     }
 
     .gen-card-cta:hover {
-      background: #fff;
-      color: #14110a;
-      transform: translateY(-2px);
+      background: var(--surface-hover);
     }
 
     /* ===== Card: body ===== */
@@ -345,14 +482,44 @@
       color: var(--text-secondary);
     }
 
-    .gen-boxes {
+    /* ===== Body rows =====
+       Three explicit rows rather than one auto-flow grid. The source pairs
+       新機制|新屬性 on the first row, 主要遊戲|最初的夥伴 on the second, and
+       gives 傳說 & 幻之寶可夢 a full-width row of its own — and 新屬性 exists on
+       only two of the nine cards, so a single grid cannot hold that shape: it
+       paired 新機制|主要遊戲, stranded 最初的夥伴, and pushed 新屬性 to a row
+       of its own whenever it appeared. Naming the rows makes the optional box
+       land in the right place instead of wherever auto-flow puts it. */
+    .gen-row {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
     }
 
-    @media (min-width: 700px) {
-      .gen-boxes {
+    .gen-row:last-child {
+      margin-bottom: 0;
+    }
+
+    /* A row with one box spans the full width instead of sitting in the first of
+       two tracks. Two rows need this: 傳說 & 幻之 is always alone, and 新機制 is
+       alone on the seven generations with no 新屬性 (it exists on gen II and VI
+       only).
+
+       The source leaves both halves empty — its first row is `md:grid-cols-2`
+       with 新屬性 as an optional child, so 7 of its 9 cards have a half-width
+       新機制 box and a gap beside it. This is a deliberate deviation rather than
+       an oversight, and it is the one layout change here: the two-column
+       pairing is preserved exactly where the source has it, and a row is filled
+       everywhere else. Spanning is a structural consequence of the child count,
+       not a tuned breakpoint, so it cannot go stale if 新屬性 is ever added to
+       another generation. */
+    .gen-row > :only-child {
+      grid-column: 1 / -1;
+    }
+
+    @media (min-width: 768px) {
+      .gen-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -365,15 +532,31 @@
       min-width: 0;
     }
 
+    /* The source puts a 16px stroke icon in each of these five headings. It is
+       the one icon set on the page that is not `currentColor`-fillable by the
+       shared `.icon` rule (gotcha 27), because these are outline icons, not the
+       site's filled set — so they carry their own size and stroke and are
+       hidden from assistive tech, with the heading text carrying the meaning. */
     .gen-box h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin: 0 0 10px;
       font-size: 13px;
       font-weight: bold;
       color: var(--text-primary);
     }
 
-    .gen-box-full {
-      grid-column: 1 / -1;
+    .gen-box-icon {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     /* ===== Chips =====
@@ -400,27 +583,13 @@
       border: 1px solid transparent;
     }
 
-    /* 傳說寶可夢 — dark 9.08:1, light 6.85:1 */
-    .chip-legendary {
-      background: rgba(245, 158, 11, 0.16);
-      color: #fde68a;
-    }
-
-    [data-theme="light"] .chip-legendary {
-      background: #fefce8;
-      color: #92400e;
-    }
-
-    /* 幻之寶可夢 — dark 8.97:1, light 5.14:1 */
-    .chip-mythical {
-      background: rgba(236, 72, 153, 0.18);
-      color: #fbcfe8;
-    }
-
-    [data-theme="light"] .chip-mythical {
-      background: #fce7f3;
-      color: #be185d;
-    }
+    /* 傳說寶可夢 was amber and 幻之寶可夢 was pink, which is what made the split
+       between the two rows visible. That is now carried by the row LABEL rather
+       than by a tint, because both rows render the same neutral sprite chip —
+       the source's chips are neutral too, and it has no per-category colour.
+       So .chip-legendary and .chip-mythical are gone rather than left behind as
+       dead rules; their contrast notes (dark 9.08/8.97:1, light 6.85/5.14:1)
+       went with them. */
 
     /* The source's #db2777 on #fce7f3 is 3.91:1, which is why the light value
        here is the darker pink-700 rather than pink-600. */
@@ -470,10 +639,10 @@
 
     /* ===== Legendary / mythical groups =====
        One box, two labelled rows: the two categories are not interchangeable
-       (the source's own pink/amber pairing is what made that visible) and
-       generation 1 and 2 have a single mythical against four and five
+       and generation 1 and 2 have a single mythical against four and five
        legendary, so a bare undifferentiated chip row would read as a list
-       rather than as two populations. */
+       rather than as two populations. The label is what separates them now
+       that both rows use the same neutral chip. */
     .gen-legend-groups {
       display: flex;
       flex-direction: column;
@@ -494,22 +663,64 @@
       white-space: nowrap;
     }
 
+    /* Image chips, the way the source shows them. The old text chips led with
+       "#004 妙蛙種子", and the number is the one thing on this page that the
+       accent panel already states — twice, as a range and as a count — so
+       repeating it per row made the wrap point land earlier than it needed to.
+       The sprite identifies them; the range does the numbering.
+
+       --surface-raised rather than --bg-card, and this is a theme reason rather
+       than a taste one: --bg-card and --bg-secondary are the SAME value in light
+       (#ffffff), so a --bg-card chip on .gen-box would have no fill at all and
+       rely entirely on its 1px border. --surface-raised is #262c33 in dark and
+       #e8eaed in light, so the chip separates from the box in both. */
+    .gen-legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px 3px 3px;
+      background: var(--surface-raised);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.3;
+      text-decoration: none;
+      transition: background var(--transition-fast);
+    }
+
+    .gen-legend-chip:hover {
+      background: var(--surface-hover);
+    }
+
+    .gen-legend-chip img {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
     .gen-legend-empty {
       font-size: 12px;
       color: var(--text-muted);
     }
 
     /* ===== Starters =====
-       Names, not numbers, and linked: a starter that goes nowhere is a caption.
-       The row lives in the card BODY, not on the accent panel, so the name
-       takes --text-primary off .gen-box and needs no colour of its own — which
-       is why it is correct in both themes with no override. What it does need is
-       a real hit area: 56px tall with a 4px gap either side, so the whole cell
-       is the link rather than just the 12px text. */
+       The source's three circles: a 56px round well with the 48px sprite
+       centred inside it, the name below. flex, not the old 3-column grid —
+       there are always exactly three, so a grid's 1fr tracks just stretch the
+       first starter away from the other two and left the row reading as a
+       table cell. flex + gap keeps all three the same width and the row the
+       width of its content.
+
+       The name takes --text-primary off .gen-box and needs no colour of its
+       own, which is why this is correct in both themes with no override. What
+       it does need is a real hit area, and the circle is that: 56px of target
+       rather than 12px of text, with the whole link scaling on hover. */
     .starter-list {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      display: flex;
+      gap: 16px;
       margin: 0;
       padding: 0;
       list-style: none;
@@ -519,26 +730,41 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
-      padding: 6px 4px;
+      gap: 6px;
+      padding: 4px;
       border-radius: var(--radius-sm);
       text-decoration: none;
       color: inherit;
-      transition: background var(--transition-fast);
+      transition: transform var(--transition-fast);
     }
 
     .starter-list a:hover {
-      background: var(--surface-hover);
+      transform: scale(1.1);
+    }
+
+    /* overflow:hidden plus a 48px child in a 56px box: object-fit alone would
+       scale the 475px source down but let it overflow the rounded edge, and the
+       sprite is a square so there is no aspect to letterbox away. */
+    .starter-art {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      overflow: hidden;
+      border: 1px solid var(--hairline);
+      border-radius: 50%;
+      background: var(--surface-raised);
     }
 
     .starter-list img {
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
       object-fit: contain;
       image-rendering: pixelated;
     }
 
-    .starter-list span {
+    .starter-name {
       font-size: 12px;
       text-align: center;
       line-height: 1.35;
@@ -563,7 +789,23 @@
          accent panel is the one element that cannot survive it: browsers drop
          background colours unless the user ticks "background graphics", which
          would leave white text on white paper. The card's own border takes
-         over as the boundary. */
+         over as the boundary.
+
+         The hero's two overlay layers have to be hidden explicitly, not left
+         alone. `.gen-hero { background: none }` does nothing to a ::before
+         that paints its OWN background, so the black/10 scrim would print as a
+         10% grey rectangle on white paper and the sparkle tile would print on
+         top of it — a texture that exists only to sit behind text.
+
+         `.gen-row` needs no print rule: the two-column breakpoint is 768px and
+         print is ~794px, so the rows print two-up, which is what they look like
+         on screen. A rule forcing one column here would need re-measuring
+         against the real print width, and the layout is better at two. */
+      .gen-hero::before,
+      .gen-hero::after {
+        display: none;
+      }
+
       .gen-hero {
         background: none;
         color: var(--text-primary);
@@ -571,8 +813,9 @@
         padding-bottom: 24px;
       }
 
-      .gen-hero h2,
+      .gen-hero-title,
       .gen-hero-lede,
+      .gen-hero-span,
       .gen-hero-stats span {
         color: var(--text-primary);
         text-shadow: none;
@@ -584,9 +827,13 @@
       }
 
       .gen-wave,
-      .breadcrumb,
-      .gen-card-cta {
+      .breadcrumb {
         display: none;
+      }
+
+      .gen-card {
+        box-shadow: none;
+        border: 1px solid var(--hairline);
       }
 
       .gen-card-side {
@@ -597,8 +844,7 @@
 
       .gen-card-side .gen-card-label,
       .gen-card-side .gen-card-year,
-      .gen-card-side .gen-card-range-label,
-      .gen-card-cta {
+      .gen-card-side .gen-card-range-label {
         color: var(--text-secondary);
       }
 
@@ -616,7 +862,10 @@
 <body>
   <header class="header header-dex">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
-    <h1>寶可夢世代指南</h1>
+    <!-- A div, not an <h1>: the hero below owns the page's single h1. This is
+         the index.html / collections.html pattern, and the reason is gotcha 40 —
+         a page must not carry an h1 in the header AND one in its hero. -->
+    <div class="header-title header-title-large">寶可夢世代指南</div>
     <div class="header-nav">
       <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
       <a href="maze.html" class="maze-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>像素迷宮</a>
@@ -635,21 +884,24 @@
     </nav>
 
     <section class="gen-hero" aria-labelledby="gen-hero-title">
-      <h2 id="gen-hero-title">九個世代，一段冒險</h2>
-      <p class="gen-hero-lede">
-        從 1996 年的關都到最新的帕底亞，每一代都帶來新的地區、新的寶可夢、新的屬性與新的機制。
-        這裡是九個世代的完整對照表：全國圖鑑編號範圍、推出了哪些新東西，以及每一代的三隻御三家。
-      </p>
+      <h1 class="gen-hero-title" id="gen-hero-title">寶可夢世代指南</h1>
+      <p class="gen-hero-lede">涵蓋所有 9 個寶可夢世代的綜合百科全書。探索每個時代的歷史、獨特機制、傳說寶可夢和特徵。</p>
+      <p class="gen-hero-span">從關都 (1996) 到帕底亞 (2022) — 26 年的寶可夢進化史</p>
       <ul class="gen-hero-stats">
-        <li><strong id="stat-gens">9</strong><span>個世代</span></li>
-        <li><strong id="stat-pokemon">1,025</strong><span>隻寶可夢</span></li>
-        <li><strong id="stat-regions">9</strong><span>個地區</span></li>
-        <li><strong id="stat-years">26+</strong><span>年曆</span></li>
+        <li><strong id="stat-gens">9</strong><span>世代</span></li>
+        <li><strong id="stat-pokemon">1,025</strong><span>寶可夢總數</span></li>
+        <li><strong id="stat-regions">9</strong><span>地區</span></li>
+        <li><strong id="stat-years">26+</strong><span>歷史 (年)</span></li>
       </ul>
-      <svg class="gen-wave" viewBox="0 0 1440 42" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <path d="M0 21c120-16 240-16 360 0s240 16 360 0 240-16 360 0 240 16 360 0v21H0V21z"/>
+      <svg class="gen-wave" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M321.39 56.44c58-10.79 114.16-30.13 172-41.86 82.39-16.72 168.19-17.73 250.45-.39C823.78 31 906.67 72 985.66 92.83c70.05 18.48 146.53 26.09 214.34 3V120H0V95.8C67.3 64.84 144.26 61.14 221.39 56.44Z"/>
       </svg>
     </section>
+
+    <div class="gen-section-head">
+      <h2>寶可夢的進化</h2>
+      <p>每個世代都為寶可夢世界帶來了革命性的變化。探索定義每個時代的獨特功能、傳說寶可夢和遊戲機制。</p>
+    </div>
 
     <p class="loading-text" id="gen-loading">讀取世代資料中…</p>
     <div class="gen-list" id="gen-list"></div>
@@ -688,10 +940,47 @@
       }[c]));
     }
 
-    // The Pokédex number is a national index, so it is always four digits here.
-    // The RANGE below is a different format on purpose (see rangeLabel).
-    function formatId(id) {
-      return `#${String(id).padStart(4, '0')}`;
+    // The five outline icons the source puts in its box headings, transcribed
+    // rather than swapped for the site's filled set — gotcha 27's rule is that
+    // icons are inline SVG sized in `em` and filled with `currentColor`, and
+    // these are the one place that does not apply: the source's own tag is
+    // `fill="none" stroke="currentColor"`, so they are stroked, not filled, and
+    // need their own `fill:none` / `stroke-width` on top of the size. The
+    // source puts `stroke-width="2"` on each <path> and `w-4 h-4` (16px) on the
+    // <svg>, which is exactly what .gen-box-icon sets.
+    //
+    // These five paths were extracted per heading — one distinct `d` per
+    // heading, cross-checked so no two share. That check is the point: an
+    // earlier pass matched icons to headings by proximity and picked up five
+    // unrelated lucide paths that also appear elsewhere in that page, all of
+    // which looked plausible next to the heading they were attached to. A gear
+    // next to 新機制 is not wrong-looking; it is just not the source's icon.
+    const GEN_BOX_ICONS = {
+      // zap
+      mechanics: 'M13 10V3L4 14h7v7l9-11h-7z',
+      // puzzle / boxes
+      newTypes: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01',
+      // gamepad
+      games: 'M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+      // star
+      starters: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+      // sparkles
+      legendary: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'
+    };
+
+    // Returns '' for an unknown key rather than a broken <svg>, so a box without
+    // an icon still renders its heading — an icon is never load-bearing.
+    function boxIcon(name) {
+      const d = GEN_BOX_ICONS[name];
+      if (!d) return '';
+      return `<svg class="gen-box-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+    }
+
+    // The heading and its icon are emitted together so the two can never drift
+    // apart. `.gen-box h3` is a flex row with an 8px gap, so the SVG is a flex
+    // item and needs no wrapper.
+    function boxHeading(label, icon) {
+      return `<h3>${boxIcon(icon)}${escapeHtml(label)}</h3>`;
     }
 
     function chipList(items, cls) {
@@ -706,18 +995,22 @@
       return `#${String(ids[0]).padStart(3, '0')} – #${String(ids[ids.length - 1]).padStart(3, '0')}`;
     }
 
+    // Starters are linked, not captioned: a starter that goes nowhere is a
+    // caption. The sprite is `alt=""` because the name beside it is the label —
+    // the same reason the chips below are. Three per generation, always, so
+    // flex is enough and a grid would only stretch the first one away.
     function renderStarters(generation, byId) {
       const cells = generation.starters
         .map(id => byId.get(id))
         .filter(Boolean)
         .map(p => `<li>
             <a href="${pokemonDetailUrl(p)}">
-              <img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="56" height="56">
-              <span>${escapeHtml(p.names.zh)}</span>
+              <span class="starter-art"><img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="48" height="48"></span>
+              <span class="starter-name">${escapeHtml(p.names.zh)}</span>
             </a>
           </li>`);
       return `<section class="gen-box">
-          <h3>最初的夥伴</h3>
+          ${boxHeading('最初的夥伴', 'starters')}
           <ul class="starter-list">${cells.join('')}</ul>
         </section>`;
     }
@@ -726,10 +1019,14 @@
     // They are separate is_legendary / is_mythical booleans in the data, they
     // have different counts in every generation (1 vs 4 in gen 1), and a merged
     // list would not say which was which.
-    function renderLegendary(generation, members) {
-      const legendary = members.filter(p => p.is_legendary);
-      const mythical = members.filter(p => p.is_mythical);
-      const row = (label, cls, list) => {
+    //
+    // The chips carry the sprite and the name, where the source has exactly
+    // that. `byId` is not needed: `members` is already the resolved record for
+    // this generation, so `p.filename` and `p.names.zh` come off it directly.
+    // The number that used to lead each chip is gone — see the CSS comment on
+    // .gen-legend-chip for why the accent panel makes it redundant.
+    function renderLegendary(members) {
+      const row = (label, list) => {
         if (!list.length) {
           return `<div class="gen-legend-row">
               <span class="gen-legend-row-label">${label}</span>
@@ -738,25 +1035,30 @@
         }
         return `<div class="gen-legend-row">
             <span class="gen-legend-row-label">${label}</span>
-            ${chipList(list.map(p => `${formatId(p.id)} ${p.names.zh}`), cls)}
+            ${list.map(p => `<a class="gen-legend-chip" href="${pokemonDetailUrl(p)}"><img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="32" height="32"><span>${escapeHtml(p.names.zh)}</span></a>`).join('')}
           </div>`;
       };
-      return `<section class="gen-box gen-box-full">
-          <h3>傳說 &amp; 幻之寶可夢</h3>
+      return `<section class="gen-box">
+          ${boxHeading('傳說 & 幻之寶可夢', 'legendary')}
           <div class="gen-legend-groups">
-            ${row('傳說', 'chip-legendary', legendary)}
-            ${row('幻之', 'chip-mythical', mythical)}
+            ${row('傳說', members.filter(p => p.is_legendary))}
+            ${row('幻之', members.filter(p => p.is_mythical))}
           </div>
         </section>`;
     }
 
+    // Three named rows, not one auto-flow grid — see the .gen-row CSS comment
+    // for why the optional 新屬性 box cannot be placed by auto-flow. Row 3 is
+    // full width on both breakpoints: at 768px+ it is the only box in its row,
+    // so `repeat(2, ...)` would leave an empty track, and the two chip rows
+    // underneath 傳說/幻之 need the width more than a sibling would.
     function renderCard(generation, members, byId) {
       const ids = members.map(p => p.id).sort((a, b) => a - b);
       const count = ids.length;
       const newTypes = generation.newTypes || [];
 
-      const newTypesBox = newTypes.length ? `<section class="gen-box gen-box-full gen-box-newtypes">
-          <h3>新屬性</h3>
+      const newTypesBox = newTypes.length ? `<section class="gen-box gen-box-newtypes">
+          ${boxHeading('新屬性', 'newTypes')}
           <ul class="chip-list">${newTypes.map(zh => {
             const slug = typeSlugFor(zh);
             return `<li>${slug ? typeBadgeSmHtml(slug, zh) : `<span class="chip chip-newtype">${escapeHtml(zh)}</span>`}</li>`;
@@ -775,25 +1077,29 @@
           <div class="gen-card-range">
             <span class="gen-card-range-label">全國圖鑑</span>
             <span class="gen-card-range-value">${rangeLabel(ids)}</span>
+            <p class="gen-card-count">${count} 隻新寶可夢</p>
           </div>
-          <p class="gen-card-count">${count} 隻新寶可夢</p>
-          <a class="gen-card-cta" href="pokedex.html?gen=${generation.gen}">查看所有 ${count} 隻寶可夢</a>
         </div>
         <div class="gen-card-body">
           <p class="gen-card-desc">${escapeHtml(generation.description)}</p>
-          <div class="gen-boxes">
+          <div class="gen-row">
             <section class="gen-box">
-              <h3>新機制</h3>
+              ${boxHeading('新機制', 'mechanics')}
               ${chipList(generation.mechanics, 'chip-mechanic')}
             </section>
+            ${newTypesBox}
+          </div>
+          <div class="gen-row">
             <section class="gen-box">
-              <h3>主要遊戲</h3>
+              ${boxHeading('主要遊戲', 'games')}
               ${chipList(generation.games, 'chip-game')}
             </section>
             ${renderStarters(generation, byId)}
-            ${renderLegendary(generation, members)}
-            ${newTypesBox}
           </div>
+          <div class="gen-row">
+            ${renderLegendary(members)}
+          </div>
+          <a class="gen-card-cta" href="pokedex.html?gen=${generation.gen}">查看所有 ${count} 隻寶可夢</a>
         </div>
       </article>`;
     }
