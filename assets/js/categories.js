@@ -39,6 +39,13 @@
  * holds 22 and 12.
  */
 
+// The `shiny` category reports how many ids have real shiny artwork, so the
+// number has to come from the generated index rather than be written down here
+// — a hardcoded 1327 is exactly the kind of duplication COLLECTION_GROUPS
+// already needs check_categories.mjs to police (AGENTS.md gotcha 38), and
+// regenerating the index would then silently leave the tile wrong.
+import { SHINY_IDS } from './shiny-index.js';
+
 /** Region slug → Traditional Chinese, for regional-form card titles and filters. */
 const REGION_ZH = {
   alola: '阿羅拉',
@@ -359,7 +366,7 @@ export const CATEGORIES = {
     title: '異色寶可夢',
     titleEn: 'Shiny Pokémon',
     subtitle: '1,025 隻寶可夢的異色外觀一覽',
-    note: '色彩由濾鏡位移而來，並非真實的異色 artwork',
+    note: '本頁卡片的色彩由濾鏡位移而來；真實異色 artwork 請見各寶可夢的詳情頁',
     accent: ['#92400e', '#a16207', '#c2410c'],
     needs: ['pokemon'],
     members: (data) => data,
@@ -367,13 +374,17 @@ export const CATEGORIES = {
     tiles: (m) => [
       [m.length, '寶可夢總數'],
       [new Set(m.map((p) => p.generation)).size, '涵蓋世代'],
-      ['0', '真實異色 artwork'],
+      // Not "0 real shiny artwork" any more — the artwork landed, and 1327 of
+      // the 1350 referenced ids have it. What is still true is the *asymmetry*:
+      // this page shows 1025 cards at once, so it filters where the detail page
+      // swaps src. State the count and where the real thing lives.
+      [SHINY_IDS.size, '具真實異色 artwork（詳情頁）'],
       // "濾鏡" as a *value* read as a stray word next to three numbers. One
       // rendering method, stated as a count, with the method in the label.
       ['1', '呈現方式（CSS 濾鏡）'],
     ],
     prose:
-      '異色是寶可夢極其罕見的個體變體，在遊戲中的出現機率通常只有數千分之一以下，官方從未公布統一的計算方式。本頁把全部 1,025 隻都列出來，並對每張卡套上一組色彩濾鏡，讓你一次看完整份名單的異色外觀。請注意：這些顏色是濾鏡位移出來的示意效果，並不是真正的異色 artwork。真正的異色圖可由 PokéAPI 的 official-artwork shiny 檔案取得，之後會改為直接替換圖片來源。',
+      '異色是寶可夢極其罕見的個體變體，在遊戲中的出現機率通常只有數千分之一以下，官方從未公布統一的計算方式。本頁把全部 1,025 隻都列出來，讓你一次看完整份名單。由於本頁一次鋪滿 1,025 張卡，每張卡都另外讀取一張異色圖並不划算，因此卡片上呈現的是一組色彩濾鏡的示意效果，而不是真正的異色 artwork。真正的異色 artwork 已經收錄在站內 —— 進入任一寶可夢的詳情頁，按下名稱旁的「切換閃亮外觀」按鈕即可看到原版異色圖。',
   },
 
   paradox: {
@@ -576,7 +587,7 @@ export function cardTintVars(tint) {
 /**
  * Tag tones, keyed by meaning. Every entry is a hue that appears in InfoPoke's
  * own tag markup for the same concept where one exists — see the table above.
- * 'neutral' is for facts about absence (0 real shiny artwork, not yet collected),
+ * 'neutral' is for facts about absence (not yet built / not recorded),
  * which InfoPoke also renders in plain gray.
  */
 export const TAG_TONES = {
@@ -601,7 +612,11 @@ export const TAG_TONES = {
   statBar: { hue: 'amber', why: '基礎經驗 200 以上' },
   breadth: { hue: 'green', why: '涉及屬性／對應寶可夢（廣度）' },
   baseSpecies: { hue: 'blue', why: '對應寶可夢' },
-  placeholder: { hue: 'gray', why: '尚無 artwork — 關於「沒有」的事實' },
+  // Repurposed from "尚無 artwork — 關於「沒有」的事實" (gray) when the real
+  // artwork landed. Only the shiny card used it, and it now reports a positive
+  // count, which gray would read as "absent" — the exact inversion. Gold is the
+  // accent this category's own hero already uses, and shiny reads gold.
+  shinyArt: { hue: 'amber', why: '已收錄的真實異色 artwork 數量' },
   rendering: { hue: 'indigo', why: '呈現方式（CSS 濾鏡）' },
   neutral: { hue: 'gray', why: '尚未建立／資料未收錄' },
 };
@@ -661,7 +676,7 @@ export const COLLECTION_GROUPS = [
     desc: '被點閱最多的三個分類。',
     items: [
       { slug: 'starter', count: 27, stats: [[9, '涵蓋世代', 'spans'], [5, '涉及屬性', 'breadth'], ['第 1 世代', '最早推出', 'earliest']] },
-      { slug: 'shiny', count: 1025, stats: [[9, '涵蓋世代', 'spans'], ['0', '真實異色 artwork', 'placeholder'], ['1', '呈現方式（CSS 濾鏡）', 'rendering']] },
+      { slug: 'shiny', count: 1025, stats: [[9, '涵蓋世代', 'spans'], [SHINY_IDS.size, '具真實異色 artwork（詳情頁）', 'shinyArt'], ['1', '呈現方式（CSS 濾鏡）', 'rendering']] },
       { slug: 'paradox', count: 22, stats: [[11, '古代', 'ancient'], [11, '未來', 'future'], ['第 9 世代', '帕底亞地區', 'paldea']] },
     ],
   },
