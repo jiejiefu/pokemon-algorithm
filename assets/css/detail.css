@@ -313,14 +313,18 @@ body {
   border-color: var(--accent-gold);
 }
 
-/* Placeholder for the real shiny artwork: no shiny sprite exists in the data or on
-   disk yet, so this is a palette shift only. See toggleShiny() in detail.html. */
-#pokemon-sprite {
-  transition: filter var(--transition-fast);
-}
-
-#pokemon-sprite.is-shiny {
-  filter: hue-rotate(-28deg) saturate(165%) brightness(1.12) contrast(1.05);
+/* 24 of the 1350 referenced ids have no shiny file (see shiny-index.js), so the
+   button is disabled rather than allowed to paint a 404. `aria-disabled`, not
+   `disabled`, so it keeps its place in the tab order and can be discovered —
+   same reasoning as .pager-link.is-disabled below. The hover rule is cancelled
+   with the same specificity count, or a disabled button would light up gold on
+   hover while doing nothing. */
+.shiny-btn.is-disabled,
+.shiny-btn.is-disabled:hover {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: rgba(var(--hairline-rgb), 0.1);
+  cursor: not-allowed;
 }
 
 .sprite-frame {
@@ -919,15 +923,13 @@ body {
     gap: 16px;
   }
 
-  /* The shiny control has no meaning on paper, and the filter is a placeholder
-     for artwork that does not exist yet — printing a recoloured sprite would
-     misrepresent it as the real thing. */
+  /* The shiny control has no meaning on paper. The sprite itself is left alone:
+     it used to be a hue-rotate placeholder whose printed colour would have
+     misrepresented non-shiny artwork as shiny, so it was forced back to normal
+     here. It is a real src swap now, so whatever is on screen is what is
+     printed, and there is nothing to undo. */
   .shiny-btn {
     display: none;
-  }
-
-  #pokemon-sprite.is-shiny {
-    filter: none;
   }
 }
 

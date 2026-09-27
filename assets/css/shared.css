@@ -482,12 +482,14 @@ body {
   background: rgba(0, 0, 0, 0.72);
 }
 
-/* Shiny placeholder filter. Scoped to the card's own <img> rather than to
-   #pokemon-sprite, which is the detail page's hero sprite. There is no shiny
-   artwork in pokemon_data.json or on disk, so this is a labelled stand-in
-   (AGENTS.md gotcha 30) — the shiny page says so in its hero note, and the
-   print rule below removes it so nobody prints a recoloured sprite believing it
-   is the real thing. */
+/* Shiny placeholder filter for the Pokédex card. Scoped to the card's own <img>
+   rather than to #pokemon-sprite, which is the detail page's hero sprite. Real
+   shiny artwork IS on disk since AGENTS.md gotcha 30 was written, and the
+   detail page's toggle is a real src swap — but this one is a deliberate
+   stand-in, not a leftover: the shiny category page lists all 1025 at once, so
+   it needs a treatment that works without fetching a second file per card, and
+   categories.js says so in the page's own hero note. The print rule below drops
+   it so nobody prints 1025 recoloured sprites believing they are real artwork. */
 .card.is-shiny img {
   filter: hue-rotate(-28deg) saturate(165%) brightness(1.12) contrast(1.05);
 }

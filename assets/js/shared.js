@@ -89,6 +89,11 @@ export function typeBadgeSmHtml(typeSlug, zh) {
 // Paths
 export const ASSETS = {
   images: 'assets/images/pokemon/',
+  // A sibling of images/, not a subdirectory of it, so the two scripts that read
+  // assets/images/pokemon/ by explicit filename (pokemon_preprocessing_script.py,
+  // download_variant_sprites.py) can never walk into it. Whether a given id has
+  // a shiny file is a separate question — see hasShiny() in shiny-index.js.
+  shiny: 'assets/images/shiny/',
   data: 'assets/data/pokemon_data.json',
   generations: 'assets/data/generations.json',
   sortingAlgos: 'assets/js/sorting-algorithms.js'
@@ -207,9 +212,11 @@ const typeBadgeStyle = key => badgeStyle(hexToRgb(TYPE_COLORS[key]) || [119, 119
  * one card renderer, and so the badge cannot drift out of alignment with the
  * sprite on pages that never render a plain species card.
  *
- * `shiny` applies the CSS colour filter from the shiny category. It is a class
- * hook only: there is no shiny artwork in `pokemon_data.json` or on disk, so the
- * filter is a labelled placeholder (AGENTS.md gotcha 30), never a real asset.
+ * `shiny` applies the CSS colour filter. It stays a class hook rather than an
+ * `img.src` swap, and that is now a deliberate asymmetry rather than a missing
+ * asset: the detail hero does swap in real artwork, but a card grid lists all
+ * 1025 at once, so swapping would mean a second file per card. See AGENTS.md
+ * gotcha 30.
  */
 export function createPokemonCard(pokemon, options = {}) {
   const formattedId = formatPokemonId(pokemon.id);

@@ -71,14 +71,15 @@
         <div class="hero-grid">
 
           <div class="hero-col-left">
-            <!-- Name first, then the control that recolours the sprite below it: the
-                 two are one unit, so they share a row (see .hero-title-row). The
-                 button used to sit on a line of its own above the h1. -->
+            <!-- Name first, then the control that switches the sprite below it to its
+                 real shiny artwork: the two are one unit, so they share a row (see
+                 .hero-title-row). The button used to sit on a line of its own above
+                 the h1. -->
             <div class="hero-title-row">
               <h1 class="hero-title" id="pokemon-name-zh">—</h1>
               <button type="button" class="shiny-btn" id="shiny-toggle" aria-pressed="false">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-                <span class="sr-only">切換閃亮外觀</span>
+                <span class="sr-only" id="shiny-toggle-label">切換閃亮外觀</span>
               </button>
             </div>
 
@@ -231,6 +232,10 @@
       pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
       loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, readThemeToken,
       badgeStyle, hexToRgb, capitalize } from './assets/js/shared.js';
+    // 5.7 KB of ids, so the toggle can be disabled before a click rather than
+    // painting a 404 and swapping back. See the module for why a probe per id
+    // is worse.
+    import {hasShiny} from './assets/js/shiny-index.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
@@ -362,7 +367,11 @@
       el('detail-loading').hidden = true;
       el('detail-content').hidden = false;
 
-      el('pokemon-sprite').src = `${ASSETS.images}${p.filename}`;
+      // resetShiny() rather than a bare src assignment: it sets the normal
+      // artwork AND re-syncs the toggle, so navigating from a shiny Pokémon to
+      // one without artwork cannot leave the button pressed on a sprite that is
+      // not its shiny.
+      resetShiny();
       el('pokemon-sprite').alt = `${p.names.zh}（${p.names.en}）`;
 
       el('pokemon-id').textContent = formatPokemonId(p.id);
@@ -425,21 +434,57 @@
     }
 
     /**
-     * Shiny is a CSS filter placeholder, not real artwork: pokemon_data.json
-     * has no shiny sprite URL and none is downloaded yet. PokeAPI keeps the real
-     * one at /pokemon/{id} -> other["official-artwork"]["front_shiny"], and
-     * files/official-artwork/shiny/{id}.png is the plain artwork variant — so
-     * when that lands, this function becomes a src swap and .is-shiny stops
-     * setting filter. Until then the button must still report its state, which
-     * is why aria-pressed is updated here rather than left to the CSS.
+     * Shiny is real artwork now: assets/images/shiny/ is a verbatim copy of
+     * PokeAPI's official-artwork shiny set, so this is a plain `src` swap and
+     * `.is-shiny` no longer sets a filter (it was a hue-rotate placeholder
+     * while no file existed).
+     *
+     * Not every id has one — 24 of the 1350 referenced do not — so the button is
+     * disabled up front from the id index rather than left to paint a broken
+     * image. `aria-disabled` rather than `disabled` on purpose: a disabled
+     * button is removed from the tab order, and a focusable control that
+     * announces "no shiny available" explains itself better than one that
+     * vanishes from the sequence. That is the same reasoning as the pager's
+     * `is-disabled` links in renderPager().
+     *
+     * State is reset by resetShiny(), which renderDetail() calls on every
+     * navigation — the toggle must not survive into the next Pokémon, whose
+     * sprite has just been replaced from scratch.
      */
     let shinyOn = false;
 
+    function setShinyButton() {
+      const btn = el('shiny-toggle');
+      const available = hasShiny(currentPokemon.id);
+      btn.classList.toggle('is-disabled', !available);
+      btn.classList.toggle('is-active', shinyOn && available);
+      if (available) {
+        btn.setAttribute('aria-pressed', String(shinyOn));
+        btn.removeAttribute('aria-disabled');
+        el('shiny-toggle-label').textContent = '切換閃亮外觀';
+      } else {
+        // aria-pressed is dropped rather than set to "false": a button that
+        // cannot be pressed should not claim a state on the pressed/unpressed
+        // axis at all. The label explains why, since the button stays
+        // focusable — a control that is disabled and unexplained reads as broken.
+        btn.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-disabled', 'true');
+        el('shiny-toggle-label').textContent = '此寶可夢沒有閃亮外觀 artwork';
+      }
+    }
+
+    /** Back to the normal artwork and the unpressed button. Called per render. */
+    function resetShiny() {
+      shinyOn = false;
+      el('pokemon-sprite').src = `${ASSETS.images}${currentPokemon.filename}`;
+      setShinyButton();
+    }
+
     function toggleShiny() {
+      if (!hasShiny(currentPokemon.id)) return;
       shinyOn = !shinyOn;
-      el('pokemon-sprite').classList.toggle('is-shiny', shinyOn);
-      el('shiny-toggle').classList.toggle('is-active', shinyOn);
-      el('shiny-toggle').setAttribute('aria-pressed', String(shinyOn));
+      el('pokemon-sprite').src = `${shinyOn ? ASSETS.shiny : ASSETS.images}${currentPokemon.filename}`;
+      setShinyButton();
     }
 
     /** One label/value pair, InfoPoke's dense left-right row. */
