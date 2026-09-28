@@ -389,6 +389,14 @@
       gap: 20px;
     }
     @media (min-width: 640px) { .home-link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    /* The desktop column count is chosen so the row divides EVENLY, and that is
+       the only reason the two densities differ: 精選系列 has 9 cards → 3 across in
+       3 rows, 寶可夢遊戲 and 對戰工具 have 4 each → 4 across in a single row. At 2
+       across the nine rendered as 5 rows with a 1-card orphan, which read as a
+       layout fault rather than as a grid. So `.is-dense` is not "smaller
+       padding" or "tighter" — it is the 4-count variant, and a new section with a
+       5th or 7th card count wants its own stop, not this one. */
+    @media (min-width: 1024px) { .home-link-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (min-width: 1024px) { .home-link-grid.is-dense { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     .home-link-card {
       display: block;
