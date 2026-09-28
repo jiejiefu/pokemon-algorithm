@@ -300,7 +300,18 @@ const ICON_PATHS = {
   // here aborts the whole page while it still reads 載入中….
   info: 'M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z',
   sun: 'M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0 1.41.996.996 0 0 0 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41a.996.996 0 0 0-1.41 0l-1.06 1.06z',
-  moon: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z'
+  moon: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z',
+  // The five below are the header nav's own (home / layers / chevron / menu /
+  // close / sparkle) plus the homepage's section icons. `chevron` points DOWN
+  // and is the dropdown affordance, so it is the one icon here that gets
+  // rotated by CSS rather than re-pathed; a second up-chevron would have been
+  // a different path for the same glyph.
+  home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
+  layers: 'M12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16zm-2.07 2.54L12 21l7.36-5.73L21 13.5l-9-7-9 7 1.63 1.27L12 18.54z',
+  chevron: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z',
+  menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
+  close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+  sparkle: 'M12 2l2.4 6.2L21 10l-6.6 1.8L12 18l-2.4-6.2L3 10l6.6-1.8L12 2z'
 };
 
 /**
@@ -446,10 +457,6 @@ export function wallColor(alpha = 1) {
   return `rgba(${readThemeToken('--canvas-wall')}, ${alpha})`;
 }
 
-const ICON_SORT = iconSvg('sort');
-const ICON_GRID = iconSvg('grid');
-const ICON_BOOK = iconSvg('book');
-
 /**
  * Create feature card for landing page
  * @param {Object} options - { href, icon, title, desc, className }
@@ -468,24 +475,269 @@ export function createFeatureCard({ href, icon, title, desc, className }) {
   return card;
 }
 
+/* ===== Header nav =====
+   ONE source of truth. This block replaces five hand-maintained copies of the
+   same <nav> that had drifted into three different link sets (3 / 3 / 4 / 4 / 4
+   links across index / pokedex / collections / category / generations), which is
+   the duplication AGENTS.md gotcha 27 warned about while the old initHeaderNav()
+   sat dead in this file. The old version is why that warning was latent rather
+   than active — nothing called it, so the static markup stayed live.
+
+   A `group` is InfoPoke's 瀏覽方式-style labelled block inside a dropdown; an
+   item without `groups` is a plain link. `planned: <slug>` renders as a
+   non-focusable disabled row and is deliberately NOT an <a>: gotcha 37's rule is
+   that a focusable element which does nothing when activated is worse than a
+   non-focusable one, and ?cat= accepts only the 9 real slugs.
+
+   Only the five pages listed in the plan render this: sorting / maze / detail
+   have control bars in their headers, not navigation. */
+export const NAV = [
+  { href: 'index.html', label: '首頁', icon: 'home' },
+  {
+    id: 'dex',
+    label: '圖鑑',
+    icon: 'book',
+    // `pages` is what makes a dropdown mark itself current: the trigger has no
+    // href of its own, so without this neither 完整圖鑑 nor 世代指南 would light
+    // up the 圖鑑 button.
+    pages: ['pokedex.html', 'generations.html'],
+    groups: [
+      {
+        items: [
+          { href: 'pokedex.html', label: '所有寶可夢', desc: '完整 1025 隻全國圖鑑' },
+          { href: 'generations.html', label: '按世代', desc: '第 1 到第 9 世代對照表' },
+        ],
+      },
+      {
+        title: '計劃中',
+        items: [
+          { label: '按屬性', desc: '18 種屬性與相剋表', planned: 'types.html' },
+          { label: '特性', desc: '284 種特性資料庫', planned: 'abilities.html' },
+          { label: '招式', desc: '783 個招式資料庫', planned: 'moves.html' },
+          { label: '性格', desc: '25 種性格與能力修正', planned: 'natures.html' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'algo',
+    label: '演算法',
+    icon: 'sort',
+    pages: ['sorting.html', 'maze.html'],
+    groups: [
+      {
+        items: [
+          { href: 'sorting.html', label: '排序演算法視覺化', desc: '6 種排序 × 1025 隻寶可夢' },
+          { href: 'maze.html', label: '像素迷宮 BFS / DFS', desc: '路徑尋找的探索差異' },
+        ],
+      },
+    ],
+  },
+  { href: 'collections.html', label: '特殊分類', icon: 'layers' },
+];
+
 /**
- * Initialize common header navigation
- * @param {string} currentPage - 'index' | 'sorting' | 'maze' | 'pokedex'
+ * Pages that do not exist yet, with the reason each is still missing.
+ *
+ * `natures.html` is the only entry whose DATA is also absent: natures are not
+ * carried on /pokemon-species or /pokemon at all, so there is nothing to read
+ * from pokemon_data.json and a fetch script has to be written first. Every other
+ * entry already has its data on disk (type-chart.js, the 284 abilities referenced
+ * by `abilities`, the 783 entries in moves_zh.json, evolution_chains.json, the
+ * 38 games in generations.json) and needs only a page.
+ *
+ * The counts are written down here on purpose — this is documentation, not a
+ * rendered figure, so it is NOT the duplication check_categories.mjs polices.
+ * Rendered counts come from the selectors instead.
+ *
+ * @type {Array<{slug: string, title: string, why: string, data: 'present'|'absent'}>}
+ */
+export const PLANNED_PAGES = [
+  { slug: 'types.html', title: '按屬性', why: '18 種屬性，type-chart.js 已有相剋表，缺的是瀏覽頁', data: 'present' },
+  { slug: 'abilities.html', title: '特性', why: '284 種特性散在各筆 abilities 欄位，缺的是彙整頁', data: 'present' },
+  { slug: 'moves.html', title: '招式', why: 'moves_zh.json 已有 783 筆，缺的是可搜尋的瀏覽頁', data: 'present' },
+  { slug: 'natures.html', title: '性格', why: '25 種性格，連資料都沒有 — PokeAPI 的 /pokemon-species 不帶 nature', data: 'absent' },
+  { slug: 'type-chart.html', title: '屬性相剋表', why: '詳情頁已有相剋計算，缺的是獨立對照頁', data: 'present' },
+  { slug: 'evolution-guide.html', title: '進化指南', why: 'evolution_chains.json 已有 541 條鏈，缺的是教學式呈現', data: 'present' },
+  { slug: 'breeding-guide.html', title: '生蛋指南', why: 'gender_rate / hatch_counter / 遺傳招式都有，缺的是指南頁', data: 'present' },
+  { slug: 'games.html', title: '全部遊戲', why: 'generations.json 已有 38 種遊戲，缺的是獨立頁', data: 'present' },
+  { slug: 'eevee-evolutions.html', title: '伊布進化', why: '熱門搜尋標籤，8 條進化鏈都在資料裡，缺的是對照頁', data: 'present' },
+  { slug: 'strongest.html', title: '最強寶可夢', why: '可由 stats.total 排序產生，缺的是排名頁', data: 'present' },
+  { slug: 'base-stat-600.html', title: '600 族寶可夢', why: '同上，stats.total >= 600 的篩選頁', data: 'present' },
+  { slug: 'search.html', title: '進階搜尋', why: 'pokedex.html 目前只支援 ?gen= 深連結', data: 'present' },
+  { slug: 'guides.html', title: '攻略', why: 'InfoPoke 導覽列的攻略入口，本站無對應內容', data: 'absent' },
+  { slug: 'blogs.html', title: 'Blogs', why: '同上', data: 'absent' },
+  { slug: 'about.html', title: '關於我們', why: '頁尾連結', data: 'present' },
+  { slug: 'privacy.html', title: '隱私權政策', why: '頁尾連結', data: 'present' },
+  { slug: 'sitemap.html', title: 'Sitemap', why: '頁尾連結', data: 'present' },
+];
+
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** One dropdown row. A planned row is a <span>, never an <a> — see NAV. */
+function navRowHtml(item) {
+  if (item.planned) {
+    return `<span class="site-nav-row is-planned" role="presentation">
+        <span class="site-nav-row-label">${esc(item.label)}</span>
+        <span class="site-nav-row-desc">${esc(item.desc || '')}</span>
+        <span class="site-nav-row-badge">敬請期待</span>
+      </span>`;
+  }
+  return `<a class="site-nav-row" href="${esc(item.href)}">
+      <span class="site-nav-row-label">${esc(item.label)}</span>
+      <span class="site-nav-row-desc">${esc(item.desc || '')}</span>
+    </a>`;
+}
+
+/** One top-level item. With `groups` it is a <button> + panel, else a plain <a>. */
+function navItemHtml(item, currentPage) {
+  const isActive = item.href === currentPage || (item.pages || []).includes(currentPage);
+  const icon = iconSvg(item.icon);
+
+  if (!item.groups) {
+    return `<a class="site-nav-item${isActive ? ' is-active' : ''}" href="${esc(item.href)}"${isActive ? ' aria-current="page"' : ''}>${icon}<span>${esc(item.label)}</span></a>`;
+  }
+
+  const panel = item.groups.map(group => `
+      <div class="site-nav-group${group.title ? ' has-title' : ''}">
+        ${group.title ? `<p class="site-nav-group-title">${esc(group.title)}</p>` : ''}
+        ${group.items.map(navRowHtml).join('')}
+      </div>`).join('');
+
+  return `<div class="site-nav-item site-nav-item-has-panel${isActive ? ' is-active' : ''}">
+      <button type="button" class="site-nav-trigger" aria-expanded="false" aria-haspopup="true"${isActive ? ' aria-current="page"' : ''}>
+        ${icon}<span>${esc(item.label)}</span>${iconSvg('chevron', 'site-nav-caret')}
+      </button>
+      <div class="site-nav-panel" hidden>${panel}</div>
+    </div>`;
+}
+
+/**
+ * Build the site nav into its mount point.
+ *
+ * The mount point is `<nav class="site-nav" data-nav>`; the whole nav is
+ * rendered from NAV above, so the five pages cannot drift apart again. The
+ * mobile drawer is the SAME markup in a different container — one render, two
+ * mount points — because duplicating the list is how this started.
+ *
+ * @param {string} [currentPage] - defaults to the current location's filename
  */
 export function initHeaderNav(currentPage) {
-  const navContainer = document.querySelector('.header-nav');
-  if (!navContainer) return;
+  const page = currentPage || (location.pathname.split('/').pop() || 'index.html');
+  const items = NAV.map(item => navItemHtml(item, page)).join('');
 
-  const links = [
-    { href: 'sorting.html', label: '排序演算法', icon: ICON_SORT, class: 'sort-link', active: currentPage === 'sorting' },
-    { href: 'maze.html', label: '像素迷宮', icon: ICON_GRID, class: 'maze-link', active: currentPage === 'maze' },
-    { href: 'pokedex.html', label: '完整圖鑑', icon: ICON_BOOK, class: 'dex-link', active: currentPage === 'pokedex' }
-  ];
+  // Desktop row and mobile drawer share one string, so they cannot disagree.
+  for (const el of document.querySelectorAll('[data-nav]')) {
+    el.innerHTML = items;
+  }
 
-  navContainer.innerHTML = links
-    .filter(l => l.href !== currentPage + '.html' || currentPage === 'index')
-    .map(l => `<a href="${l.href}" class="${l.class} ${l.active ? 'active' : ''}">${l.icon}${l.label}</a>`)
-    .join('');
+  initNavDropdowns();
+  initMobileNav();
+}
+
+/** Hover + focus-within open, Escape / click-outside close. */
+function initNavDropdowns() {
+  for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {
+    const trigger = item.querySelector('.site-nav-trigger');
+    const panel = item.querySelector('.site-nav-panel');
+    if (!trigger || !panel) continue;
+
+    const setOpen = open => {
+      panel.hidden = !open;
+      trigger.setAttribute('aria-expanded', String(open));
+    };
+
+    // focus-within is what makes the dropdown keyboard-reachable: Tab into the
+    // trigger and the panel opens, so it is never hover-only.
+    item.addEventListener('focusin', () => setOpen(true));
+    item.addEventListener('focusout', e => {
+      if (!item.contains(e.relatedTarget)) setOpen(false);
+    });
+    item.addEventListener('mouseenter', () => setOpen(true));
+    item.addEventListener('mouseleave', () => setOpen(false));
+
+    trigger.addEventListener('click', e => {
+      e.preventDefault();
+      setOpen(panel.hidden);
+    });
+    trigger.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setOpen(true);
+        panel.querySelector('a')?.focus();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {
+      const trigger = item.querySelector('.site-nav-trigger');
+      const panel = item.querySelector('.site-nav-panel');
+      if (panel?.hidden) continue;
+      panel.hidden = true;
+      trigger?.setAttribute('aria-expanded', 'false');
+      trigger?.focus();
+      return;
+    }
+    closeMobileNav();
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('.site-nav-item-has-panel')) return;
+    for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {
+      const panel = item.querySelector('.site-nav-panel');
+      const trigger = item.querySelector('.site-nav-trigger');
+      if (panel?.hidden) continue;
+      panel.hidden = true;
+      trigger?.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+const mobileToggle = () => document.querySelector('[data-nav-toggle]');
+const mobileDrawer = () => document.querySelector('[data-nav-drawer]');
+
+function closeMobileNav() {
+  const drawer = mobileDrawer();
+  const toggle = mobileToggle();
+  if (!drawer || drawer.hidden) return;
+  drawer.hidden = true;
+  toggle?.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * The drawer opens every panel statically — a hover panel inside a drawer is
+ * unreachable by touch, so `hidden` is stripped and the panels become plain
+ * blocks. `data-nav-open` then has no effect to override.
+ */
+function initMobileNav() {
+  const toggle = mobileToggle();
+  const drawer = mobileDrawer();
+  if (!toggle || !drawer) return;
+
+  // The static markup carries the button but not its glyph — an icon-less
+  // button is a blank box before the first click, which is why the icon is set
+  // here rather than written into 5 copies of the header.
+  toggle.innerHTML = iconSvg('menu');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-label', '開啟選單');
+
+  toggle.addEventListener('click', () => {
+    const open = drawer.hidden;
+    drawer.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.innerHTML = open ? iconSvg('close') : iconSvg('menu');
+    toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+  });
+
+  drawer.addEventListener('click', e => {
+    if (e.target.closest('a')) closeMobileNav();
+  });
+  // A resize past the breakpoint must not leave a body scroll lock behind.
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024) closeMobileNav();
+  });
 }
 
 /**
