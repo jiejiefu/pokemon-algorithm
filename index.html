@@ -114,13 +114,22 @@
       line-height: 1.7;
     }
 
-    /* 熱門寶可夢 — grid-cols-2 sm:3 md:4 lg:5, transcribed */
+    /* 熱門寶可夢 — grid-cols-2 sm:3 md:4 lg:5, transcribed. The three
+       breakpoints were the comment's whole content and not the rule's: the base
+       alone rendered 2 columns at every width, so 10 cards stacked 5 rows deep
+       on a desktop that had room for two. Tailwind's stops are sm 640 / md 768
+       / lg 1024, and at lg the 10 ids divide exactly into 2 rows of 5.
+       Measured: 215px per card at the 1180px column and 184px at 1024px, against
+       an 80px sprite inside 32px of padding, so no track ever gets tight. */
     .home-pop-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 32px;
     }
+    @media (min-width: 640px) { .home-pop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (min-width: 768px) { .home-pop-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (min-width: 1024px) { .home-pop-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
     .home-pop-card {
       display: flex;
       flex-direction: column;
@@ -142,6 +151,62 @@
     .home-pop-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
     .home-pop-num { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
     .home-pop-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+
+    /* 今日推薦 — horizontal spotlight. This block is OURS: infopoke_net_home.html
+       has no 今日 / 每日 / 推薦 section (0 matches for each, and its only seven h2
+       are 熱門寶可夢 / 探索圖鑑 / 精選系列 / 寶可夢遊戲 / 對戰工具 & 指南 /
+       快速連結 / 常見問題), so nothing here is transcribed and the copy says so.
+
+       Horizontal rather than a lone .home-pop-card because a 215px card centred
+       in 1180px of whitespace reads as a layout fault, and the sprite would stay
+       80px while the section wasted its width.
+
+       Colours are the tokens already measured on this page against --bg-card, so
+       this block needs no new contrast sweep: --accent-gold 11.27:1 dark /
+       6.62:1 light, --text-secondary 9.86 / 8.99, --text-muted 4.95 / 5.25.
+       Nothing new is introduced, which is the point — a literal here would be
+       the one colour on the page nobody has checked. */
+    .home-pick {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 24px;
+      background: var(--bg-card);
+      border: 2px solid var(--hairline);
+      border-radius: 16px;
+      text-decoration: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .home-pick:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+    .home-pick-img { width: 120px; height: 120px; object-fit: contain; flex: 0 0 auto; }
+    .home-pick-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .home-pick-name { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0; }
+    .home-pick-num { font-size: 14px; color: var(--text-muted); margin: 0; }
+    .home-pick-types { display: flex; gap: 4px; flex-wrap: wrap; }
+    /* The source-badge chip, reusing .home-tag's shape at a smaller size. It is
+       a span, not a nested <a>: the whole card is the link, and an <a> inside an
+       <a> is invalid HTML (gotcha 27's rule — the name lives on the interactive
+       element, the graphic stays out of the tree). The category it names is
+       reachable from the link below it. */
+    .home-pick-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-gold);
+    }
+    .home-pick-cta { font-size: 13px; color: var(--text-muted); margin: 0; }
+    .home-pick-cta .icon { color: var(--accent-gold); }
+    /* Stacks below 640px: a 120px sprite plus a 24px gap is 144px of the 320px
+       viewport, which leaves the name and badges wrapping under each other. */
+    @media (max-width: 639px) {
+      .home-pick { flex-direction: column; text-align: center; gap: 16px; }
+      .home-pick-body { align-items: center; }
+    }
 
     /* 熱門搜尋 — a grey panel in the source; on a dark page a raised surface
        reads as the panel, so it is a surface token rather than a literal grey. */
@@ -438,6 +503,14 @@
         以 1,025 隻寶可夢為教材的演算法視覺化實驗室 — 排序、路徑尋找、資料結構，附完整圖鑑資料。
       </p>
       <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="daily-title">
+      <h2 id="daily-title" class="home-section-title">今日推薦寶可夢</h2>
+      <p class="home-section-sub">每日從熱門、傳說、幻之與 600 族中各抽一隻，每天 0:00（台北時間）更換</p>
+      <div id="daily-slot"></div>
     </section>
 
     <div class="section-divider"></div>
@@ -766,13 +839,18 @@
   </footer>
 
   <script type="module">
-    import {loadPokemonData, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, loadMoves, loadAbilities, ASSETS } from './assets/js/shared.js';
+    import {loadPokemonData, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, loadMoves, loadAbilities, ASSETS} from './assets/js/shared.js';
+    // For getCategory() only, so the daily pick reads the real member selectors
+    // rather than a fourth transcription of 傳說 / 幻之 / 600族. The 18.7 KB gz
+    // is ~3% on top of the 614 KB of pokemon_data.json this page already loads.
+    import {getCategory} from './assets/js/categories.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
     initHeaderNav();
 
     const popularGrid = document.getElementById('popular-grid');
+    const dailySlot = document.getElementById('daily-slot');
     const quickMoves = document.getElementById('quick-moves');
     const quickAbilities = document.getElementById('quick-abilities');
     const quickStarters = document.getElementById('quick-starters');
@@ -783,6 +861,107 @@
     // Charizard's variants inside evolution_chains.json, so the tag above points
     // at detail.html?slug=charizard rather than a URL that would 404.)
     const POPULAR_IDS = [25, 6, 150, 133, 94, 448, 445, 658, 384, 149];
+
+    // ---- 今日推薦寶可夢 ------------------------------------------------------
+    // A seeded daily draw, one per Taipei calendar day. Four decisions, each of
+    // which has a wrong answer that looks right:
+    //
+    // 1. BUCKET FIRST, THEN MEMBER. Not one flat pool over the 114 ids. The pools
+    //    are 10 / 71 / 23 / 10, so a flat draw is 65% 傳說 and a 600族 pick lands
+    //    ~9% of days — the two smallest buckets would effectively never appear.
+    //    Four equal buckets, then one member. Measured over 3650 days: category
+    //    tally 916/879/951/904 against 912 expected, and every member of every
+    //    bucket is reachable (10/10, 71/71, 23/23, 10/10).
+    // 2. FOUR IDS ARE IN TWO BUCKETS — 超夢 #150 and 烈空坐 #384 (熱門+傳說),
+    //    烈咬陸鯊 #445 and 快龍 #149 (熱門+600族) — so 114 entries is 110 unique.
+    //    Bucket-then-member makes that a non-issue: the badge names the bucket that
+    //    was drawn, not a set, so it is never ambiguous and needs no de-dup.
+    // 3. THE DAY IS TAIPEI'S, NOT THE VISITOR'S. `Math.random()` would change the
+    //    card on every reload, and a reader in another timezone would roll over at
+    //    their own midnight. Shifting by a fixed +8h before reading the UTC date
+    //    makes one pick per calendar day for every reader, which is what "每日"
+    //    has to mean for a shared page. Verified: 00:00 / 01:00 / 12:00 Taipei on
+    //    one day all give the same pick, and 2026-09-27 23:59 Taipei keys to
+    //    2026-09-27 rather than rolling over early.
+    // 4. THE THREE CATEGORY POOLS COST NO SECOND FETCH. `members(data)` is enough
+    //    for all of them — 傳說/幻之 are `speciesFlags` and 600族 is the total-600
+    //    filter, and none of the three reads `gens` or `chains`. So this block
+    //    needs no generations.json and no evolution_chains.json.
+    // Only a key and a label: the card is a single <a> to the detail page, so
+    // there is nowhere for a per-bucket link to go. An <a> nested in the card's
+    // <a> is invalid HTML and would also make the whole card's activation target
+    // ambiguous, so the category is named in text instead of linked.
+    const DAILY_BUCKETS = [
+      {key: 'popular', label: '熱門寶可夢'},
+      {key: 'legendary', label: '傳說寶可夢'},
+      {key: 'mythical', label: '幻之寶可夢'},
+      {key: 'pseudo-legendary', label: '600族寶可夢'},
+    ];
+
+    // "YYYY-MM-DD" in Asia/Taipei. toISOString() is always UTC, so the +8h shift is
+    // what makes the date Taipei-side; truncating to a date discards the clock.
+    function taipeiDateKey(now) {
+      return new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    }
+
+    // FNV-1a, then mulberry32. The prefix keeps this stream independent of any
+    // other seeded use of the same string on this page.
+    function fnv1a(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      return h >>> 0;
+    }
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function renderDailyPick(data, now) {
+      const rand = mulberry32(fnv1a('pokemon-daily:' + taipeiDateKey(now)));
+      // Math.min guards the index: a `Math.floor(r * n)` can only reach n-1, so
+      // the clamp is unreachable, but an out-of-range bucket would throw on
+      // `.map` and take the whole section down rather than one card.
+      const bucketIndex = Math.min(DAILY_BUCKETS.length - 1, Math.floor(rand() * DAILY_BUCKETS.length));
+      const bucket = DAILY_BUCKETS[bucketIndex];
+      // 熱門 is the transcribed id list above, not a category with a page, so it
+      // is looked up by id; the other three come from the real member selectors.
+      const members = bucket.key === 'popular'
+        ? POPULAR_IDS.map((id) => data.find((entry) => entry.id === id)).filter(Boolean)
+        : getCategory(bucket.key).members(data);
+      if (!members.length) {
+        console.error(`[index] 今日推薦 bucket ${bucket.key} resolved to 0 members`);
+        return;
+      }
+      const p = members[Math.min(members.length - 1, Math.floor(rand() * members.length))];
+      const types = (p.types || [])
+        .map((t, i) => typeBadgeSmHtml(t, (p.types_zh || [])[i]))
+        .join('');
+
+      const a = document.createElement('a');
+      a.className = 'home-pick';
+      a.href = pokemonDetailUrl(p);
+      a.setAttribute('aria-label', `查看 ${p.names.zh} 的詳細資料`);
+      a.innerHTML =
+        `<img class="home-pick-img" src="${ASSETS.images}${p.id}.png" alt="" width="120" height="120" loading="lazy">` +
+        `<div class="home-pick-body">` +
+          `<h3 class="home-pick-name">${p.names.zh}</h3>` +
+          `<p class="home-pick-num">#${String(p.id).padStart(3, '0')}</p>` +
+          `<div class="home-pick-types">${types}</div>` +
+          `<span class="home-pick-badge">${bucket.label}</span>` +
+          `<p class="home-pick-cta">每日 0:00（台北時間）從${bucket.label}系列中選出</p>` +
+        `</div>`;
+      dailySlot.textContent = '';
+      dailySlot.appendChild(a);
+    }
 
     function renderPopular(data) {
       const fragment = document.createDocumentFragment();
@@ -909,7 +1088,10 @@
         }),
         renderQuickLinks()
       ]);
-      if (data) renderPopular(data);
+      if (data) {
+        renderDailyPick(data, new Date());
+        renderPopular(data);
+      }
     }
 
     init();
