@@ -350,12 +350,9 @@
          it is filled in from the ?cat= slug after load. Matches index.html, the
          only other page with a hero. -->
     <div class="header-title header-title-large">特殊分類</div>
-    <div class="header-nav">
-      <a href="sorting.html" class="sort-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>排序演算法</a>
-      <a href="maze.html" class="maze-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>像素迷宮</a>
-      <a href="pokedex.html" class="dex-link active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-2zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>完整圖鑑</a>
-      <a href="generations.html" class="gen-link"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10h2v4h-2v-4zm0 5h2v2h-2v-2z"/></svg>世代指南</a>
-    </div>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
   <main class="cat-page">
@@ -397,11 +394,11 @@
       initThemeToggle,
       loadEvolutionChains,
       loadPokemonData,
-      pokemonDetailUrl
-    } from './assets/js/shared.js';
+      pokemonDetailUrl, initHeaderNav } from './assets/js/shared.js';
     import { CATEGORIES, CATEGORY_SLUGS, getCategory, passesFilter } from './assets/js/categories.js';
 
     initThemeToggle();
+    initHeaderNav();
 
     const gridEl = document.getElementById('cat-grid');
     const heroEl = document.getElementById('cat-hero');

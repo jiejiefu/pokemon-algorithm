@@ -533,7 +533,14 @@ export const NAV = [
       },
     ],
   },
-  { href: 'collections.html', label: '特殊分類', icon: 'layers' },
+  // `pages` is needed even though this item has no `groups`: category.html is
+  // a CHILD of collections.html, reached only from it, and without listing it
+  // here the nav marks nothing current on that page — the one page of the five
+  // whose header is identical to the hub's and therefore cannot tell them
+  // apart by title. `href` alone cannot do it, and the check is
+  // `href === page || pages.includes(page)`, so an item with no groups still
+  // honours it.
+  { href: 'collections.html', pages: ['category.html'], label: '特殊分類', icon: 'layers' },
 ];
 
 /**
