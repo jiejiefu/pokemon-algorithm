@@ -152,61 +152,129 @@
     .home-pop-num { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
     .home-pop-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 
-    /* 今日推薦 — horizontal spotlight. This block is OURS: infopoke_net_home.html
-       has no 今日 / 每日 / 推薦 section (0 matches for each, and its only seven h2
-       are 熱門寶可夢 / 探索圖鑑 / 精選系列 / 寶可夢遊戲 / 對戰工具 & 指南 /
-       快速連結 / 常見問題), so nothing here is transcribed and the copy says so.
+    /* 今日推薦 — the InfoPoke spotlight card: text column left, 320px artwork
+       right, a gradient panel. This block is OURS in the sense that the *section*
+       is: infopoke_net_home.html has no 今日 / 每日 / 推薦 section (0 matches for
+       each, and its only seven h2 are 熱門寶可夢 / 探索圖鑑 / 精選系列 /
+       寶可夢遊戲 / 對戰工具 & 指南 / 快速連結 / 常見問題). The *card* is the
+       source's, transposed from its Tailwind classes.
 
-       Horizontal rather than a lone .home-pop-card because a 215px card centred
-       in 1180px of whitespace reads as a layout fault, and the sprite would stay
-       80px while the section wasted its width.
+       THE GRADIENT IS THE 700 STEP, NOT THE SOURCE'S 600, AND THE TILE SCrim IS
+       BLACK — both measured over 101 samples of the whole interpolation, never
+       just the endpoints (gotcha 41). Transcribing purple-600→blue-600 with its
+       own white/10 tile verbatim fails 4 of 8 text layers: the 14px type pill
+       3.62:1, the 18px description 4.24:1, the 14px tile label 3.05:1 and the
+       14px hover CTA 3.64:1. purple-700 #7e22ce → blue-700 #1d4ed8 fixes the
+       description (5.49:1) and the CTA (4.72:1), and the pill is the last
+       binding layer: a white scrim LIGHTENS the fill and pushes white text
+       down, so the source's white/20 sits at 4.42:1 and fails. white/12 is the
+       point where it clears with margin (5.25:1) and still reads as a pill.
 
-       Colours are the tokens already measured on this page against --bg-card, so
-       this block needs no new contrast sweep: --accent-gold 11.27:1 dark /
-       6.62:1 light, --text-secondary 9.86 / 8.99, --text-muted 4.95 / 5.25.
-       Nothing new is introduced, which is the point — a literal here would be
-       the one colour on the page nobody has checked. */
+       The tile is a 0.16 BLACK scrim with white/95 text, not the source's
+       white/10 with blue-200 — the same inversion as gotcha 39 and gotcha 43, and
+       for the same reason: a white scrim lightens the fill. Measured on black/16
+       the label is 5.96:1 and the value 8.47:1, against 3.85 and 5.47 on the
+       source's own pairing. Blue-200/blue-100 as the *text* colours are kept
+       verbatim from the source and both pass on the 700 ramp (4.72 / 5.49). */
     .home-pick {
-      display: flex;
-      align-items: center;
-      gap: 24px;
+      display: block;
       padding: 24px;
-      background: var(--bg-card);
-      border: 2px solid var(--hairline);
-      border-radius: 16px;
+      border-radius: 24px;
       text-decoration: none;
-      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      color: #ffffff;
+      background-image: linear-gradient(to right, #7e22ce, #1d4ed8);
+      transition: box-shadow var(--transition-fast), transform var(--transition-fast);
     }
-    .home-pick:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
-    .home-pick-img { width: 120px; height: 120px; object-fit: contain; flex: 0 0 auto; }
-    .home-pick-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-    .home-pick-name { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0; }
-    .home-pick-num { font-size: 14px; color: var(--text-muted); margin: 0; }
-    .home-pick-types { display: flex; gap: 4px; flex-wrap: wrap; }
-    /* The source-badge chip, reusing .home-tag's shape at a smaller size. It is
-       a span, not a nested <a>: the whole card is the link, and an <a> inside an
-       <a> is invalid HTML (gotcha 27's rule — the name lives on the interactive
-       element, the graphic stays out of the tree). The category it names is
-       reachable from the link below it. */
-    .home-pick-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--hairline);
-      border-radius: var(--radius-pill);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent-gold);
+    @media (min-width: 640px) { .home-pick { padding: 32px; } }
+    /* The source's hover is a shadow plus a 1% scale. The scale is kept; the
+       shadow is a token because the card is no longer on --bg-card, and a
+       literal drop shadow on a saturated panel is the one thing here that would
+       read as a different component. */
+    .home-pick:hover { transform: scale(1.01); box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55); }
+    @media (prefers-reduced-motion: reduce) {
+      .home-pick, .home-pick:hover, .home-pick-art { transition: none; }
+      .home-pick:hover { transform: none; }
     }
-    .home-pick-cta { font-size: 13px; color: var(--text-muted); margin: 0; }
-    .home-pick-cta .icon { color: var(--accent-gold); }
-    /* Stacks below 640px: a 120px sprite plus a 24px gap is 144px of the 320px
-       viewport, which leaves the name and badges wrapping under each other. */
-    @media (max-width: 639px) {
-      .home-pick { flex-direction: column; text-align: center; gap: 16px; }
-      .home-pick-body { align-items: center; }
+
+    .home-pick-grid { display: grid; gap: 24px; align-items: center; }
+    @media (min-width: 768px) { .home-pick-grid { grid-template-columns: 1fr 1fr; } }
+
+    .home-pick-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .home-pick-title { font-size: 24px; font-weight: 700; margin: 0; }
+    @media (min-width: 640px) { .home-pick-title { font-size: 30px; } }
+    /* The source's chevron is `opacity-50 group-hover:opacity-100
+       group-hover:translate-x-1`. A transition on opacity must not run on a
+       hover-revealed element alone: the non-hover end is also the resting state,
+       so it animates on entry too. */
+    .home-pick-chevron {
+      width: 24px; height: 24px; flex: 0 0 auto;
+      fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      opacity: 0.5;
+      transition: opacity var(--transition-fast), transform var(--transition-fast);
     }
+    .home-pick:hover .home-pick-chevron { opacity: 1; transform: translateX(4px); }
+
+    .home-pick-name { font-size: 36px; font-weight: 700; margin: 0 0 12px; }
+    @media (min-width: 640px) { .home-pick-name { font-size: 48px; } }
+    .home-pick-num { font-size: 30px; font-weight: 400; margin: 0 0 12px; opacity: 0.9; }
+
+    .home-pick-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .home-pick-types .type-badge {
+      font-size: 14px; font-weight: 500; padding: 4px 12px; border-radius: var(--radius-pill);
+      /* The pill's own palette is the 10% white scrim + white text from the
+         measurement above. The type colour is deliberately NOT carried over from
+         .type-badge elsewhere on the site: a saturated type hue on a saturated
+         panel is unreadable, and the panel hue is what distinguishes the card. */
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: none;
+    }
+    .home-pick-desc {
+      font-size: 18px; line-height: 1.6; color: #dbeafe; margin: 0 0 24px;
+      /* Two lines is the cap. The zh descriptions in pokemon_data.json run
+         21–64 characters (median 32) so this clips the long tail rather than
+         reflowing the card; the full text is on the detail page. */
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+    }
+
+    .home-pick-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .home-pick-tile {
+      padding: 12px; border-radius: 12px; min-width: 0;
+      /* 0.16 BLACK, the site's tile scrim, not the source's white/10. */
+      background: rgba(0, 0, 0, 0.16);
+    }
+    .home-pick-tile-label { font-size: 14px; color: #bfdbfe; margin: 0 0 4px; }
+    .home-pick-tile-value { font-size: 24px; font-weight: 700; margin: 0; }
+    /* 分類 is 4–5 CJK glyphs plus 寶可夢; at 24px in a third of a 526px column
+       that overflows, so only the value drops a step and only on the narrowest
+       of the three. 世代 is one digit and 屬性 at most 龍/飛行, so both keep 24px. */
+    .home-pick-tile-genus { font-size: 18px; line-height: 1.35; }
+
+    .home-pick-go {
+      font-size: 14px; color: #bfdbfe; margin: 24px 0 0;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+    .home-pick:hover .home-pick-go { opacity: 1; }
+    /* The source hides the hover line entirely at rest. A line that is invisible
+       until hover is invisible to a keyboard user, who never hovers — so it is
+       shown on :focus-visible instead, where the outline makes it moot. */
+    .home-pick:focus-visible .home-pick-go { opacity: 1; }
+
+    .home-pick-art { display: flex; justify-content: center; position: relative; }
+    .home-pick-glow {
+      position: absolute; inset: 0; border-radius: 50%;
+      background-image: linear-gradient(to right, #c084fc, #60a5fa);
+      filter: blur(64px); opacity: 0.3; pointer-events: none;
+    }
+    .home-pick-artwork { width: 288px; height: 288px; position: relative; }
+    @media (min-width: 640px) { .home-pick-artwork { width: 320px; height: 320px; } }
+    .home-pick-artwork img {
+      width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1;
+      filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
+      transition: transform var(--transition-fast);
+    }
+    .home-pick:hover .home-pick-artwork img { transform: scale(1.1); }
 
     /* 熱門搜尋 — a grey panel in the source; on a dark page a raised surface
        reads as the panel, so it is a surface token rather than a literal grey. */
@@ -507,9 +575,10 @@
 
     <div class="section-divider"></div>
 
-    <section class="home-section" aria-labelledby="daily-title">
-      <h2 id="daily-title" class="home-section-title">今日推薦寶可夢</h2>
-      <p class="home-section-sub">每日從熱門、傳說、幻之與 600 族中各抽一隻，每天 0:00（台北時間）更換</p>
+    <!-- No heading here: the card carries its own h2, per the source's structure.
+         A section whose only child is that card would otherwise have two h2s, and
+         the outer one would be labelling an empty wrapper. -->
+    <section class="home-section" id="daily-slot-wrap">
       <div id="daily-slot"></div>
     </section>
 
@@ -844,6 +913,10 @@
     // rather than a fourth transcription of 傳說 / 幻之 / 600族. The 18.7 KB gz
     // is ~3% on top of the 614 KB of pokemon_data.json this page already loads.
     import {getCategory} from './assets/js/categories.js';
+    // genusZh() for the card's 分類 tile. pokemon_data.json carries only the
+    // English genus, and the zh map is GENERATED by extract_genus_zh.py, so it is
+    // imported from the generator's output rather than transcribed here.
+    import {genusZh} from './assets/js/pokemon-lexicon.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
@@ -887,16 +960,14 @@
     //    for all of them — 傳說/幻之 are `speciesFlags` and 600族 is the total-600
     //    filter, and none of the three reads `gens` or `chains`. So this block
     //    needs no generations.json and no evolution_chains.json.
-    // Only a key and a label: the card is a single <a> to the detail page, so
-    // there is nowhere for a per-bucket link to go. An <a> nested in the card's
-    // <a> is invalid HTML and would also make the whole card's activation target
-    // ambiguous, so the category is named in text instead of linked.
-    const DAILY_BUCKETS = [
-      {key: 'popular', label: '熱門寶可夢'},
-      {key: 'legendary', label: '傳說寶可夢'},
-      {key: 'mythical', label: '幻之寶可夢'},
-      {key: 'pseudo-legendary', label: '600族寶可夢'},
-    ];
+    // Keys only, no labels. The card deliberately shows the reader none of the
+    // draw's mechanics — not which pool it came from, not that it changes at
+    // 0:00, not that it is a draw at all. "每日 0:00（台北時間）從…系列中選出"
+    // and the section's subtitle were both removed on the user's instruction:
+    // a visitor does not need the sampling rules, and on a card that changes
+    // once a day they read as trivia. The bucket is still the draw's first
+    // decision, because that is what keeps 幻之 and 600族 reachable at all.
+    const DAILY_BUCKETS = ['popular', 'legendary', 'mythical', 'pseudo-legendary'];
 
     // "YYYY-MM-DD" in Asia/Taipei. toISOString() is always UTC, so the +8h shift is
     // what makes the date Taipei-side; truncating to a date discards the clock.
@@ -934,30 +1005,64 @@
       const bucket = DAILY_BUCKETS[bucketIndex];
       // 熱門 is the transcribed id list above, not a category with a page, so it
       // is looked up by id; the other three come from the real member selectors.
-      const members = bucket.key === 'popular'
+      const members = bucket === 'popular'
         ? POPULAR_IDS.map((id) => data.find((entry) => entry.id === id)).filter(Boolean)
-        : getCategory(bucket.key).members(data);
+        : getCategory(bucket).members(data);
       if (!members.length) {
-        console.error(`[index] 今日推薦 bucket ${bucket.key} resolved to 0 members`);
+        console.error(`[index] 今日推薦 bucket ${bucket} resolved to 0 members`);
         return;
       }
       const p = members[Math.min(members.length - 1, Math.floor(rand() * members.length))];
+      const id = String(p.id).padStart(3, '0');
       const types = (p.types || [])
         .map((t, i) => typeBadgeSmHtml(t, (p.types_zh || [])[i]))
         .join('');
+      // 分類 is the *generated* zh genus, from genus-zh.js, not p.genus — the
+      // data carries only English ("Sky High Pokémon") and the site is zh-TW.
+      // Importing genusZh() rather than inlining the lookup is the point: the map
+      // is produced by extract_genus_zh.py, so any local copy is a snapshot that
+      // the next regeneration silently invalidates. Cost is 12.3 KB gz on top of
+      // the 668 KB of pokemon_data.json this page already loads.
+      const genus = genusZh(p);
+      const desc = (p.descriptions && p.descriptions.zh) || '';
 
       const a = document.createElement('a');
       a.className = 'home-pick';
       a.href = pokemonDetailUrl(p);
-      a.setAttribute('aria-label', `查看 ${p.names.zh} 的詳細資料`);
+      a.setAttribute('aria-label', `查看 ${p.names.zh} #${id} 的詳細資料`);
       a.innerHTML =
-        `<img class="home-pick-img" src="${ASSETS.images}${p.id}.png" alt="" width="120" height="120" loading="lazy">` +
-        `<div class="home-pick-body">` +
-          `<h3 class="home-pick-name">${p.names.zh}</h3>` +
-          `<p class="home-pick-num">#${String(p.id).padStart(3, '0')}</p>` +
-          `<div class="home-pick-types">${types}</div>` +
-          `<span class="home-pick-badge">${bucket.label}</span>` +
-          `<p class="home-pick-cta">每日 0:00（台北時間）從${bucket.label}系列中選出</p>` +
+        `<div class="home-pick-grid">` +
+          `<div>` +
+            `<div class="home-pick-head">` +
+              // h2, not h3: this is a section, and the page's other sections are
+              // h2 under the hero's single h1. The name beside it is a <p> styled
+              // as display type — it is not a heading, so a screen reader is not
+              // told the page has two section headings for one section.
+              `<h2 class="home-pick-title" id="daily-title">今日推薦寶可夢</h2>` +
+              `<svg class="home-pick-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">` +
+                `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>` +
+              `</svg>` +
+            `</div>` +
+            `<p class="home-pick-name">${p.names.zh} <span class="home-pick-num">#${id}</span></p>` +
+            `<div class="home-pick-types">${types}</div>` +
+            (desc ? `<p class="home-pick-desc">${desc}</p>` : '') +
+            `<div class="home-pick-tiles">` +
+              `<div class="home-pick-tile"><p class="home-pick-tile-label">世代</p><p class="home-pick-tile-value">${p.generation}</p></div>` +
+              `<div class="home-pick-tile"><p class="home-pick-tile-label">屬性</p><p class="home-pick-tile-value">${(p.types_zh || []).join(' / ') || '—'}</p></div>` +
+              `<div class="home-pick-tile"><p class="home-pick-tile-label">分類</p><p class="home-pick-tile-value home-pick-tile-genus">${genus}</p></div>` +
+            `</div>` +
+            `<p class="home-pick-go">點擊查看詳細資訊 →</p>` +
+          `</div>` +
+          `<div class="home-pick-art">` +
+            `<div class="home-pick-glow"></div>` +
+            `<div class="home-pick-artwork">` +
+              // alt="" on purpose: the whole card is the link and its aria-label
+              // already names the Pokémon, so a described image would announce it
+              // twice (gotcha 27/51's rule — the name lives on the interactive
+              // element, the graphic stays out of the tree).
+              `<img src="${ASSETS.images}${p.id}.png" alt="" width="320" height="320" loading="lazy" decoding="async">` +
+            `</div>` +
+          `</div>` +
         `</div>`;
       dailySlot.textContent = '';
       dailySlot.appendChild(a);
