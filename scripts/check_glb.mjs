@@ -264,6 +264,168 @@ if (models.length > 1) {
   }
 }
 
+// === 5. lighting: the light-theme regression, and the toggle's own state ===
+
+/**
+ * No theme token may set a light's colour.
+ *
+ * This is the whole of the original "3D model is too dark" report, and it is
+ * invisible in dark mode: `--text-primary` is #f0f6fc there, so tinting the key
+ * light with it produced a near-white lamp. In light mode the same token is
+ * #1f2328, so the key light was a near-black one. Measured on Bulbasaur at the
+ * time, the model's median relative luma went 0.081 -> 0.822 and the share of
+ * pixels below the 0.18 floor went 88% -> 0.2%. The key intensity was IDENTICAL
+ * on both sides of that measurement, so nothing about the model, the GLB or the
+ * renderer explained the swing — only the token.
+ *
+ * Read the 0.822 as historical, not as the current value. The lighting was
+ * retuned afterwards for a separate reason (the model was too BRIGHT and too
+ * glary, the opposite complaint), and the median now measures 0.545-0.647. A
+ * static number in a comment cannot be kept current by editing it after every
+ * retune; the point of this check is the invariant, not the measurement.
+ *
+ * Ground colour is excluded, and that is not leniency: a `HemisphereLight`'s
+ * ground is standing in for the FLOOR, so it is the one colour that should track
+ * the page. It is `hemi.`, not `key.`/`fill.`, that the pattern below allows.
+ */
+// NOTE: `matchAll` returns an ITERATOR, whose `.length` is undefined, so the
+// first version of this check read `undefined === 0` and failed forever against
+// clean code. Spread it.
+const themedLights = [...viewer.matchAll(/(key|fill|rim|spot)\w*\.color\.(copy|set)\s*\(\s*[^)]*(tokenColor|tint)/g)];
+ok(themedLights.length === 0,
+  'no light colour is bound to a theme token' +
+  (themedLights.length ? ` (found ${themedLights.map(m => m[1] + '.color').join(', ')})` : ''));
+
+// The ambient term. Every material in the roster is metallicFactor 0, which
+// means a model with no `scene.environment` has nothing to reflect and the whole
+// shadow side collapses to the hemisphere term.
+ok(/scene\.environment\s*=/.test(viewer),
+  'scene.environment is set, so metallic-0 materials have something to reflect');
+ok(/PMREMGenerator/.test(viewer), 'the environment is PMREM-prefiltered, not a raw cube');
+
+/**
+ * `scene.environmentIntensity` must be assigned EXACTLY ONCE, and below 1.
+ *
+ * This is a guard against a specific, already-committed bug. A sweep harness
+ * patched the value into the source with a `String.replace` that APPENDED a new
+ * assignment each run instead of replacing it, so after four candidates the file
+ * carried four `scene.environmentIntensity = N;` lines. Nothing errored: it
+ * parsed, it rendered, and the console was clean. Only the pixel measurement
+ * disagreed, and only by the difference between the value the results table was
+ * labelled with (0.4, the last line written) and the one actually in effect
+ * (0.5, the last line ASSIGNED — the insert was LIFO, so "written" and
+ * "effective" were not the same line).
+ *
+ * A duplicate assignment is therefore worse than a wrong one: it is invisible to
+ * review, to `node --check`, and to the page itself. Counting them is the only
+ * cheap channel that catches it, and the count must be `=== 1` — a `> 0` test
+ * passes the broken file.
+ */
+const envIntensityAssignments = [...viewer.matchAll(/scene\.environmentIntensity\s*=\s*([\d.]+)\s*;/g)];
+ok(envIntensityAssignments.length === 1,
+  `scene.environmentIntensity is assigned exactly once, not ${envIntensityAssignments.length} times` +
+  (envIntensityAssignments.length > 1
+    ? ` (values: ${envIntensityAssignments.map(m => m[1]).join(', ')} — the last one wins)`
+    : ''));
+if (envIntensityAssignments.length === 1) {
+  const envIntensity = Number(envIntensityAssignments[0][1]);
+  ok(envIntensity > 0 && envIntensity < 1,
+    `scene.environmentIntensity is dialled back from RoomEnvironment's default 1.0 (is ${envIntensity})`);
+}
+
+/**
+ * A toggle that only sets `aria-pressed` with no rule reading it.
+ *
+ * Both playback toggles did exactly this, so pressing 循環播放 or 自動旋轉
+ * changed the DOM and not one pixel — the reported "I can't tell whether looping
+ * is applied". A static grep is the whole check: this is a stylesheet fact, and
+ * the failure mode is invisible at runtime precisely because the JS is correct.
+ */
+const css = readFileSync(join(BASE, 'assets/css/shared.css'), 'utf8');
+ok(/\.btn\[aria-pressed=["']true["']\]/.test(css),
+  'shared.css has a rule for a pressed .btn');
+// The same shape, one level down: some rule must match a pressed button with
+// NOTHING else on that selector. Checking for the *declarations* instead is
+// wrong — the hover rule legitimately repeats them, so their presence proves
+// nothing about the resting state. And the selector cannot be found by
+// anchoring on `^` or `,` either, because the rule sits below a comment.
+function hasRestingPressedRule(src) {
+  // Comments are stripped FIRST and this is not optional: the block comment
+  // above the rule explains the very selectors being searched for, so
+  // `aria-pressed` and `:hover` both appear in prose before the first real
+  // selector. Without this, a captured "selector" is a paragraph of English
+  // ending in `.btn[aria-pressed="true"]]` and the check reads as absent.
+  const bare = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const m of bare.matchAll(/([^{}]+)\{/g)) {
+    for (const sel of m[1].split(',')) {
+      if (sel.trim() === '.btn[aria-pressed="true"]') return true;
+    }
+  }
+  return false;
+}
+ok(hasRestingPressedRule(css),
+  'the pressed style applies at rest, not only on :hover or :not(:disabled)');
+
+ok(/循環播放/.test(page) && /單次播放/.test(page),
+  'the loop button names the current mode, so its state is not colour-only');
+ok(/paintPlaybackButtons\(viewer\.state\)/.test(page),
+  'the buttons are repainted from the viewer state on load, not only on click');
+
+/* ── Zoom ────────────────────────────────────────────────────────────────
+ *
+ * Five separate ways the zoom control could be added and still not work, each
+ * worth a check because each was plausible while being written:
+ *
+ *  1. A ratio that hardcodes a world-space step. The two shipped models differ
+ *     24.2x in root scale (reported above) and `minDistance`/`maxDistance` are
+ *     both multiples of a per-model measured radius, so "move 1 unit" is a nudge
+ *     on one and a lurch on the other. Checked as `distance * ratio`.
+ *  2. A button wired to nothing — the family of fault gotcha 23 documents at
+ *     length. Checked against the public API surface, not the call site, so a
+ *     renamed method cannot leave the wiring looking present.
+ *  3. A limit the buttons know about and the wheel does not (or vice versa).
+ *     Both must read the SAME two numbers, or the wheel and the button disagree
+ *     about where the floor is.
+ *  4. Zoom controls visible over an empty stage. The pair is hidden by
+ *     setStatus(), which is the single choke point for loading / no-GLB /
+ *     failure / no-WebGL / context-lost — a second flag per site would be five
+ *     chances to miss one.
+ *  5. A keyboard handler that eats the browser's own zoom (Ctrl/Cmd + -) or
+ *     types a "+" into the speed slider. The guard has to be asserted, because
+ *     the handler is trivially "correct" by inspection and then wrong.
+ */
+ok(/function zoomBy\(\s*ratio\s*\)/.test(viewer),
+  'the viewer exposes zoomBy(ratio) — a RATIO, so one gesture means the same thing on a 109.5x and a 4.5x model');
+ok(/next\s*=\s*Math\.min\(\s*Math\.max\(\s*distance\s*\*\s*ratio/.test(viewer),
+  'zoomBy scales the current distance by the ratio instead of adding a fixed offset');
+ok(/controls\.minDistance/.test(viewer) && /controls\.maxDistance/.test(viewer),
+  'the zoom clamp reads the same minDistance/maxDistance OrbitControls clamps the wheel to');
+ok(/zoomBy,\s*\n\s*zoomLimits,/.test(viewer) ||
+   /zoomBy[\s\S]{0,40}zoomLimits[\s\S]{0,40}resetView/.test(viewer),
+  'zoomBy and zoomLimits are on the public API the page is allowed to call');
+ok(/function zoomLimits\(\)/.test(viewer),
+  'the viewer reports whether each direction has room left, so a press at the stop is explainable');
+ok(/zoomBox\.hidden\s*=\s*!!title/.test(page),
+  'the zoom pair hides with the status overlay, so it cannot float over an empty stage');
+ok(/id="zoom-in"[\s\S]{0,400}id="zoom-out"/.test(page),
+  'both zoom buttons are in the markup — a half-added pair is one dead control');
+ok(/aria-label="拉近"[\s\S]{0,400}aria-label="拉遠"/.test(page),
+  'each zoom button names its direction for assistive tech, since the glyph is aria-hidden');
+// No `disabled` attribute: aria-disabled keeps the control focusable so it can
+// report the limit, which is gotcha 30's rule for the shiny button.
+const zoomButtons = page.match(/<button[^>]*class="m3d-zoom-btn"[^>]*>/g) || [];
+ok(zoomButtons.length === 2, 'exactly two zoom buttons, neither hard-disabled');
+ok(zoomButtons.every(b => !/\sdisabled[\s>=]/.test(b)),
+  'zoom buttons use aria-disabled, not disabled, so a limit is readable rather than a disappearance');
+ok(/e\.ctrlKey\s*\|\|\s*e\.metaKey|e\.metaKey\s*\|\|\s*e\.ctrlKey/.test(page),
+  'the keyboard zoom skips when a modifier is held, leaving Ctrl/Cmd +/- to the browser');
+ok(/isComposing/.test(page) && /e\.repeat/.test(page),
+  'the keyboard zoom skips IME composition and key auto-repeat');
+ok(/isContentEditable[\s\S]{0,120}input\|textarea\|select/.test(page),
+  'the keyboard zoom stands down in a text field or select, so "+" still types');
+ok(/syncZoomButtons\(\);/.test(page) && /onFrame[\s\S]{0,400}syncZoomButtons/.test(page),
+  'aria-disabled tracks the WHEEL too, not only button clicks — both move the camera');
+
 if (problems.length) {
   for (const p of problems.slice(0, 30)) console.error(`  FAIL ${p}`);
   if (problems.length > 30) console.error(`  ... and ${problems.length - 30} more`);

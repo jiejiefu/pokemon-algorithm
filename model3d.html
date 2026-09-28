@@ -90,6 +90,49 @@
     .m3d-status .m3d-status-title { color: var(--text-primary); font-size: 17px; font-weight: 700; }
     .m3d-status .m3d-status-detail { color: var(--text-muted); font-size: 13px; }
 
+    /* Zoom controls, bottom-right of the stage. Before the .m3d-status overlay
+       in the DOM AND below it in paint order is the wrong way round to do this:
+       the status is an opaque full-bleed box, so a control that sat on top of it
+       would float over "載入中…". These are `hidden` from the markup and un-hidden
+       by setStatus(), which is the single choke point all three overlay states
+       pass through — so the zoom pair cannot end up visible over an empty stage,
+       and the two can never disagree about whether a model is on screen. */
+    .m3d-zoom {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .m3d-zoom[hidden] { display: none; }
+    .m3d-zoom-btn {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      color: var(--text-primary);
+      /* --surface-raised is already the "one step up from the page" surface, and
+         it is OPAQUE, which is the point: the alternative — a translucent scrim
+         over the canvas — would need its own contrast sweep against a background
+         the model can put anything in. Opaque means the glyph's contrast ratio
+         is fixed by the token pair, not by what the render happens to show. */
+      background: var(--surface-raised);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+    }
+    .m3d-zoom-btn .icon { width: 18px; height: 18px; margin: 0; }
+    .m3d-zoom-btn:hover:not(:disabled) { background: var(--bg-card); }
+    .m3d-zoom-btn:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+    /* aria-disabled, not disabled — see zoomLimits() in the viewer. A disabled
+       button leaves the tab order, and here the state is worth being able to
+       read: at the stop the control explains itself instead of vanishing. */
+    .m3d-zoom-btn[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+
     .m3d-side {
       display: flex;
       flex-direction: column;
@@ -230,6 +273,20 @@
   <main class="m3d-layout">
     <div>
       <div class="m3d-stage" id="stage">
+        <!-- Static markup, so the two glyphs stay OUT of ICON_PATHS: that map
+             exists for icons shared.js paints at runtime, and per the nav's own
+             convention (shuffle / palette / back / forward) a single-page icon
+             is written here once rather than duplicated into a shared table. The
+             paths are Material's add and remove, i.e. literally ＋ and － as
+             vectors — currentColor, so no font to disagree across platforms. -->
+        <div class="m3d-zoom" id="zoom" role="group" aria-label="縮放" hidden>
+          <button type="button" class="m3d-zoom-btn" id="zoom-in" aria-label="拉近">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
+          <button type="button" class="m3d-zoom-btn" id="zoom-out" aria-label="拉遠">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 13H5v-2h14v2z"/></svg>
+          </button>
+        </div>
         <div class="m3d-status" id="status" role="status">
           <p class="m3d-status-title" id="status-title">載入中…</p>
           <p class="m3d-status-detail" id="status-detail"></p>
@@ -276,6 +333,9 @@
         <h2 id="clip-label">動畫</h2>
         <div class="m3d-clips" id="clips" role="group" aria-labelledby="clip-label"></div>
         <div class="m3d-btn-row" style="margin-top:12px">
+          <!-- Text is the initial (unpainted) state; paintPlaybackButtons()
+               rewrites it per state. Kept as 循環播放 so the button is readable
+               before the first model loads. -->
           <button type="button" class="btn" id="loop" aria-pressed="false">循環播放</button>
         </div>
       </div>
@@ -314,6 +374,9 @@
     const autoBtn = document.getElementById('autorotate');
     const resetBtn = document.getElementById('resetview');
     const loopBtn = document.getElementById('loop');
+    const zoomBox = document.getElementById('zoom');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
     const speed = document.getElementById('speed');
     const speedOut = document.getElementById('speed-out');
     const progress = document.getElementById('progress');
@@ -331,11 +394,66 @@
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
+    // Declared above the overlay/zoom helpers that read them, not below. A
+    // function body only runs at CALL time, so a `let` further down the module
+    // would work by accident — until a path reached syncZoomButtons() first, at
+    // which point `if (!viewer)` hits the temporal dead zone and throws a
+    // ReferenceError instead of returning false. Four hundred lines of "works
+    // today" is not a reason to leave the trap in place.
+    let viewer = null;
+    let data = [];
+    let current = null;
+
     function setStatus(title, detail) {
+      // A status on screen means there is nothing to zoom. Tying the zoom pair's
+      // visibility to this one function rather than to `viewer.load`'s success
+      // branch is the point: every path that ends with an empty stage (loading,
+      // no GLB, parse failure, no WebGL, context lost) goes through here, and a
+      // second flag set at each of those five sites is five chances to forget one.
+      zoomBox.hidden = !!title;
       if (!title) { status.hidden = true; return; }
       status.hidden = false;
       statusTitle.textContent = title;
       statusDetail.textContent = detail || '';
+    }
+
+    /**
+     * Steps are ratios, and the numbers are on this side of the wire rather than
+     * in the viewer: they are a UI tempo choice (how brisk one press feels), not
+     * a property of the model. zoomBy() takes the ratio as an argument precisely
+     * so that this line, and not a constant in the render loop, is what someone
+     * edits to make the buttons gentler or snappier.
+     */
+    const ZOOM_IN = 0.8;
+    const ZOOM_OUT = 1.25;
+
+    /**
+     * Mirror the viewer's zoom limits onto the two buttons as aria-disabled.
+     *
+     * Called from onFrame rather than only from the click handlers, because the
+     * WHEEL also moves the camera: syncing on clicks alone would leave the pair
+     * reading 可用 while the wheel had already driven the camera to the stop, and
+     * pressing ＋ then would do nothing with no explanation. The frame callback
+     * fires ~60 times a second, so the cached signature is the whole cost
+     * control — two reads, and an attribute write only on the transitions (twice
+     * per wheel gesture, not once per frame).
+     */
+    let zoomSignature = '';
+    function syncZoomButtons() {
+      if (!viewer) return;
+      const { canZoomIn, canZoomOut } = viewer.zoomLimits();
+      const signature = `${canZoomIn}|${canZoomOut}`;
+      if (signature === zoomSignature) return;
+      zoomSignature = signature;
+      zoomIn.setAttribute('aria-disabled', String(!canZoomIn));
+      zoomOut.setAttribute('aria-disabled', String(!canZoomOut));
+    }
+
+    function applyZoom(ratio) {
+      // zoomBy returns whether the camera moved; at a limit it returns false, and
+      // there is nothing to repaint, so the click is simply absorbed.
+      viewer.zoomBy(ratio);
+      syncZoomButtons();
     }
 
     /**
@@ -363,20 +481,35 @@
     // The play/pause glyph is swapped by JS, so the path lives in shared.js's
     // ICON_PATHS rather than being written into this markup too. See the comment
     // on those four entries.
+    //
+    // The two toggles are labelled by STATE, not just tinted by it. `循環播放` on a
+    // button that is not looping is not a label, it is a command — the same
+    // ambiguity gotcha 49 avoided by making planned cards non-focusable. So the
+    // text names the current mode (循環播放 while looping, 單次播放 while not) and
+    // the gold pressed style in shared.css carries the redundant channel for
+    // anyone who cannot separate the two colours.
     function paintPlaybackButtons(state) {
       const playing = state.playing;
       playBtn.innerHTML = iconSvg(playing ? 'pause' : 'play') +
         `<span>${playing ? '暫停' : '播放'}</span>`;
       playBtn.setAttribute('aria-label', playing ? '暫停動畫' : '播放動畫');
-      autoBtn.innerHTML = iconSvg('orbit') + '<span>自動旋轉</span>';
-      autoBtn.setAttribute('aria-pressed', String(!!state.autoRotating));
-      resetBtn.innerHTML = iconSvg('reset') + '<span>重設視角</span>';
-      loopBtn.setAttribute('aria-pressed', String(!!state.loop));
-    }
 
-    let viewer = null;
-    let data = [];
-    let current = null;
+      const rotating = !!state.autoRotating;
+      autoBtn.innerHTML = iconSvg('orbit') +
+        `<span>${rotating ? '旋轉中' : '自動旋轉'}</span>`;
+      autoBtn.setAttribute('aria-pressed', String(rotating));
+
+      resetBtn.innerHTML = iconSvg('reset') + '<span>重設視角</span>';
+
+      const looping = !!state.loop;
+      loopBtn.innerHTML = iconSvg('orbit') +
+        `<span>${looping ? '循環播放' : '單次播放'}</span>`;
+      loopBtn.setAttribute('aria-pressed', String(looping));
+      // Single-clip models hide this button entirely, so its label has to be
+      // re-derived on load rather than only on click: a one-shot arrives with
+      // state.loop already false and would otherwise keep the markup's default
+      // text until the first press.
+    }
 
     function renderClips(clips) {
       clipsBox.innerHTML = clips.map((clip, i) => {
@@ -445,7 +578,14 @@
         renderClips(clips);
         const single = clips.length === 1;
         loopBtn.hidden = single;
-        loopBtn.setAttribute('aria-pressed', String(clips.length > 1));
+        // `aria-pressed` AND the label both come from the viewer, via
+        // paintPlaybackButtons. Setting the attribute here in isolation is what
+        // left the button stale before: a one-shot loads with state.loop already
+        // false, so the label has to be re-derived here, not only on the next
+        // click. Reading it back from the viewer rather than recomputing
+        // `clips.length > 1` keeps this from becoming a second implementation
+        // of the same rule.
+        paintPlaybackButtons(viewer.state);
         setStatus(null);
       } else {
         clipsBox.innerHTML = '';
@@ -477,6 +617,11 @@
         },
         onFrame: (fraction, state) => {
           paintProgress(fraction, state);
+          // Ahead of the playback early-return below: the WHEEL moves the camera
+          // whether or not a model is animating, and with playback hidden the
+          // zoom buttons would stop tracking it. A model with 0 clips still
+          // zooms, so this cannot live under `if (playback.hidden)`.
+          syncZoomButtons();
           // The play/pause label is repainted here rather than on click: a
           // one-shot clip ends on its own and the button has to follow.
           if (playback.hidden) return;
@@ -517,7 +662,49 @@
         viewer.state.autoRotating = on;
         paintPlaybackButtons(viewer.state);
       });
-      resetBtn.addEventListener('click', () => viewer.resetView());
+      resetBtn.addEventListener('click', () => {
+        viewer.resetView();
+        syncZoomButtons();
+      });
+
+      // ── Zoom ─────────────────────────────────────────────────────────────
+      // The buttons exist because zoom was wheel/pinch ONLY, and OrbitControls
+      // ships no keyboard zoom — so a keyboard user and anyone who cannot use a
+      // scroll wheel had no way in at all. That is the accessibility case; the
+      // discoverability case is the ordinary one.
+      zoomIn.addEventListener('click', () => applyZoom(ZOOM_IN));
+      zoomOut.addEventListener('click', () => applyZoom(ZOOM_OUT));
+
+      // Keyboard mirror of the two buttons, as asked for. Three things it is NOT:
+      // it does not listen on the buttons (Enter/Space already activate a real
+      // <button>, so binding there would double every press); it does not fire on
+      // repeat (holding a key is handled by the keydown auto-repeat, and an extra
+      // tick would double-step); and it does not fire when a modifier is held,
+      // because Ctrl+plus / Cmd+minus / Cmd+0 are the browser's own zoom and
+      // swallowing them would break the one zoom control the visitor always has.
+      //
+      // The editable-target guard is the standard one, and it is here because
+      // this page has a <select> and a <input type=range>: a bare keydown handler
+      // would eat a "=" typed into a field. isComposing covers CJK IME, where
+      // "+" is a candidate being assembled and must not zoom the model.
+      const ZOOM_KEYS = {
+        '+': ZOOM_IN, '=': ZOOM_IN, 'Add': ZOOM_IN, 'NumpadAdd': ZOOM_IN,
+        '-': ZOOM_OUT, '_': ZOOM_OUT, 'Subtract': ZOOM_OUT, 'NumpadSubtract': ZOOM_OUT
+      };
+      addEventListener('keydown', e => {
+        if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || e.repeat) return;
+        const ratio = ZOOM_KEYS[e.key];
+        if (ratio === undefined) return;
+        const t = e.target;
+        if (t && (t.isContentEditable ||
+          /^(input|textarea|select)$/i.test(t.tagName))) return;
+        // The page must have something to zoom. Cheap test, and the alternative
+        // — letting a press fall through to viewer.zoomBy() with no model — is a
+        // silent no-op on a stage that says 載入中.
+        if (zoomBox.hidden || !viewer || !current) return;
+        e.preventDefault();
+        applyZoom(ratio);
+      });
       loopBtn.addEventListener('click', () => {
         const on = loopBtn.getAttribute('aria-pressed') !== 'true';
         viewer.setLoop(on);

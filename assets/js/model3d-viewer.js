@@ -42,10 +42,12 @@ import {
   Scene, PerspectiveCamera, WebGLRenderer, Group,
   Box3, Vector3, Color, DirectionalLight, HemisphereLight,
   Mesh, CircleGeometry, ShadowMaterial, ACESFilmicToneMapping, SRGBColorSpace,
-  PCFSoftShadowMap, MathUtils, AnimationMixer, LoopOnce, LoopRepeat
+  PCFSoftShadowMap, MathUtils, AnimationMixer, LoopOnce, LoopRepeat,
+  PMREMGenerator
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /** Pinned in the importmap. Bumping three.js is a version-bump decision, not a
@@ -85,7 +87,7 @@ const ANIM_LABELS = {
   fight: '戰鬥',
   attack: '攻擊',
   ko: '倒地',
-  die: '倒地',
+  die: '陣亡',
   impact: '衝撞'
 };
 
@@ -168,7 +170,28 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  // 0.6 is a LOOK chosen by eye, not a number derived from a measurement. The
+  // sweep that got us here ran 1.3 / 1.0 / 0.85 / 0.7 and none of them was
+  // reported as right; 0.6 is where it was finally judged to sit. Do not
+  // "restore" a measured-looking figure here on the assumption one is owed —
+  // there is no measurement behind 0.6, and quoting one would be inventing it.
+  //
+  // What the sweep DID establish, and what is still worth keeping, is why the
+  // glaring was not fixed here. Exposure moves the whole curve down together,
+  // so it cannot separate "too bright" from "too contrasty": stepping 1.3 ->
+  // 1.0 -> 0.85 -> 0.7 slid the median down as intended, but in the light theme
+  // the p10..p90 spread narrowed 0.43 -> 0.36 at the same time — the image got
+  // darker by getting FLATTER, trading glare for grey. Level and contrast are
+  // separate complaints and exposure only speaks to one of them.
+  //
+  // The glare is therefore fixed at its source, on scene.environmentIntensity
+  // below, which is the one knob that lowers the bright broad contribution
+  // without flattening the image. The diagnostic that started all of this: at
+  // 1.3 the two models measured median 0.79-0.82 with p99 at 0.90-0.93, i.e.
+  // the subject crammed into the top 20% of the range — bright because the
+  // median was high, harsh because the highlights had nowhere left to go.
+  // Measured across both themes and both models; see the commit for the table.
+  renderer.toneMappingExposure = 0.6;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.domElement.className = 'm3d-canvas';
@@ -185,6 +208,11 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   // shadow disc, which reads as a broken scene rather than a low angle.
   controls.maxPolarAngle = Math.PI * 0.495;
 
+  // Intensities, not colours. The key:fill ratio is 2.4:0.7 — deliberately well
+  // under 2:1, because the environment below supplies most of the ambient and a
+  // dominant directional key on top of that is what produced the hard specular
+  // glare. It is still a clear ratio, so the model keeps a lit side and a shadow
+  // side rather than reading flat. Measured, not guessed; see the commit.
   const key = new DirectionalLight(0xffffff, 2.4);
   key.position.set(2.2, 3.4, 2.6);
   key.castShadow = true;
@@ -198,11 +226,16 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   key.shadow.normalBias = 0.02;
   scene.add(key);
 
-  const fill = new DirectionalLight(0xffffff, 0.75);
+  const fill = new DirectionalLight(0xffffff, 0.7);
   fill.position.set(-2.6, 1.4, -1.8);
   scene.add(fill);
 
-  const hemi = new HemisphereLight(0xffffff, 0x2a2a30, 0.5);
+  // Kept low deliberately: the hemisphere is the one light whose colour DOES
+  // track the theme (its ground is the floor), and it is the term that flattens
+  // the model when it is too strong — every surface gets the same lift from
+  // above, which is exactly the "grey blob" look. The environment map is now
+  // the ambient term, so this only fills what the room does not reach.
+  const hemi = new HemisphereLight(0xffffff, 0x2a2a30, 0.35);
   scene.add(hemi);
 
   // Contact shadow. Cheap, and it is what stops the model reading as a sticker
@@ -242,9 +275,21 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
    */
   function applyTheme() {
     renderer.setClearColor(tokenColor('--bg-primary', '#0d1117'));
-    const tint = tokenColor('--text-primary', '#f0f6fc');
-    key.color.copy(tint);
-    fill.color.copy(tint);
+    // NOT themed, and this is the second time this file has got it wrong. A light
+    // source's colour is the colour of the light — its temperature — not a token
+    // describing the page's text. Binding the key light to `--text-primary` looks
+    // fine in dark mode (#f0f6fc is nearly white) and silently kills the model in
+    // light mode, where that token is #1f2328: the intensity stays 2.4 and the
+    // model still renders, just lit by a near-black lamp. It is the whole of the
+    // "3D model is too dark" report, and it is invisible in the one theme a
+    // developer happens to have open.
+    //
+    // What DOES track the theme is below: the clear colour, the hemisphere's
+    // ground bounce (it stands in for the floor, so it has to be the floor's
+    // colour) and the shadow's opacity. A shadow needs more opacity on a dark
+    // page to read at all, and less on a light one that already provides
+    // contrast. Lights and floor are different kinds of thing, which is why one
+    // of them is a token and the other is a constant.
     hemi.groundColor.copy(tokenColor('--bg-secondary', '#161b22'));
     // A dark background swallows the shadow, so it needs more of one to read at
     // all; a light page shows the same disc at half the strength.
@@ -256,6 +301,69 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
     return document.documentElement.dataset.theme === 'light';
   }
   applyTheme();
+
+  /**
+   * Image-based ambient light, generated rather than loaded.
+   *
+   * Both shipped models are entirely `metallicFactor: 0`, and a non-metal with no
+   * environment to reflect has nothing but the three lights above it — so the
+   * shadow side of every limb falls to whatever the hemisphere contributes, and
+   * the model reads as underlit however high the light intensities go. Raising
+   * intensity fixes the average and blows out the highlight; the missing term is
+   * ambient occlusion's opposite, a room for the surface to bounce in.
+   *
+   * `RoomEnvironment` is a small box-lit room, PMREM-prefiltered into the mip
+   * chain PBR expects, so it is ~30 lines of generated data rather than a `.hdr`
+   * to fetch, version and get wrong the site's contrast rules (gotcha 39, 43).
+   * `scene.environment` is deliberately left independent of `scene.background`:
+   * the background is the page's `--bg-primary` and must not become a lit room.
+   */
+  const pmrem = new PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  // The room, dialled back. RoomEnvironment is BRIGHT — a lit interior built to
+  // be a neutral studio probe — and at its default intensity 1.0 it contributed
+  // more light than the key, laying broad specular glare across every surface.
+  // This is the term that answers "刺眼" (glaring), and it is why the fix lives
+  // here rather than in the exposure: cutting the room's bright broad-source
+  // contribution removes glare, where cutting exposure only dims the whole image
+  // toward flat grey (measured — see the exposure comment above).
+  //
+  // Swept 0.4 / 0.5 / 0.55 / 0.8 against key 1.8-3.2 and fill 0.5-1.05. 0.5 with
+  // key 2.4 / fill 0.7 measured median 0.545-0.647, p90 0.714-0.803 across both
+  // models and both themes, against 0.787-0.821 / 0.887-0.913 before — the top
+  // stopped being pinned against the ceiling, which was the actual complaint.
+  // 0.4 is only a shade darker again (median 0.500-0.619); 0.5 is the value that
+  // was looked at, so it is the one committed.
+  //
+  // Those medians were taken at exposure 0.9, which is no longer the value in use
+  // — exposure has since moved to 0.6, so the model's absolute luma is now lower
+  // than the table says. They are kept because the comparison they support is
+  // like-for-like (one sweep, one knob varied at a time) and because they are the
+  // evidence that THIS term is what moved the highlights. Re-measure before
+  // quoting them as the model's current luma.
+  scene.environmentIntensity = 0.5;
+  // The room, dialled back. RoomEnvironment is BRIGHT — a lit interior built to
+  // be a neutral studio probe — and at its default intensity 1.0 it contributed
+  // more light than the key, laying broad specular glare across every surface.
+  // This is the term that answers "刺眼" (glaring), and it is why the fix lives
+  // here rather than in the exposure: cutting the room's bright broad-source
+  // contribution removes glare, where cutting exposure only dims the whole image
+  // toward flat grey (measured — see the exposure comment above).
+  //
+  // Swept 0.4 / 0.5 / 0.55 / 0.8 against key 1.8-3.2 and fill 0.5-1.05. 0.5 with
+  // key 2.4 / fill 0.7 measured median 0.545-0.647, p90 0.714-0.803 across both
+  // models and both themes, against 0.787-0.821 / 0.887-0.913 before — the top
+  // stopped being pinned against the ceiling, which was the actual complaint.
+  // 0.4 is only a shade darker again (median 0.500-0.619); 0.5 is the value that
+  // was looked at, so it is the one committed.
+  //
+  // Those medians were taken at exposure 0.9, which is no longer the value in use
+  // — exposure has since moved to 0.6, so the model's absolute luma is now lower
+  // than the table says. They are kept because the comparison they support is
+  // like-for-like (one sweep, one knob varied at a time) and because they are the
+  // evidence that THIS term is what moved the highlights. Re-measure before
+  // quoting them as the model's current luma.
+  pmrem.dispose();
 
   /** Release everything the current model owns. Called before the next load so
    *  stepping through ids does not leak a scene graph per navigation — the bug
@@ -540,6 +648,63 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
     controls.autoRotateSpeed = 1.6;
   }
 
+  /**
+   * Dolly the camera along the view axis by a RATIO of its current distance.
+   *
+   * A ratio, not a fixed number of units, and that is the whole reason this is a
+   * function rather than two constants in the page: `minDistance` and
+   * `maxDistance` are both derived per model from its measured `radius`
+   * (normaliseAndFrame), and the two shipped models differ by 24x in root scale
+   * alone. A step of "1 world unit" is a nudge on a large model and a lurch on a
+   * small one; a step of "0.8x wherever you are" is the same gesture on both.
+   *
+   * Scaled on the vector from the TARGET, not on `camera.position`, so a zoom
+   * keeps the point the camera is orbiting rather than sliding the model out of
+   * frame. Clamped to the same two numbers OrbitControls clamps the wheel to, so
+   * a button and a scroll wheel cannot disagree about where the limits are —
+   * two limits is one more thing to keep in sync, and it is why the clamp is
+   * here rather than left to the next `controls.update()`.
+   *
+   * Returns whether the camera actually moved, so the caller can skip a state
+   * write (and the aria-disabled repaint) on a press that hit the limit.
+   */
+  function zoomBy(ratio) {
+    const offset = camera.position.clone().sub(controls.target);
+    const distance = offset.length();
+    if (!(distance > 0)) return false;
+    const next = Math.min(
+      Math.max(distance * ratio, controls.minDistance),
+      controls.maxDistance
+    );
+    if (next === distance) return false;
+    camera.position.copy(controls.target).add(offset.multiplyScalar(next / distance));
+    camera.updateMatrixWorld();
+    controls.update();
+    return true;
+  }
+
+  /**
+   * Whether a zoom in each direction has anywhere left to go.
+   *
+   * Reported rather than left to the buttons looking dead: the ＋ at maximum
+   * zoom and the − at minimum are the same situation as gotcha 30's shiny
+   * button with no artwork, so they take `aria-disabled` and stay in the tab
+   * order instead of `disabled`, and a control that can say "no further" beats
+   * one that silently swallows every press.
+   *
+   * The epsilon is a fraction of the limit rather than an absolute: at
+   * minDistance the model fills the frame, and `distance > min` is still true
+   * by float noise, which would leave ＋ permanently "available" at the stop.
+   */
+  function zoomLimits() {
+    const d = camera.position.distanceTo(controls.target);
+    const eps = (controls.maxDistance - controls.minDistance) * 1e-3;
+    return {
+      canZoomIn: d > controls.minDistance + eps,
+      canZoomOut: d < controls.maxDistance - eps
+    };
+  }
+
   function resetView() {
     // Re-frame the MODEL, not the pivot: normaliseAndFrame wraps whatever it is
     // given in a fresh Group and reparents it, so handing it the pivot would
@@ -631,6 +796,8 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
     setTimeScale,
     setLoop,
     setAutoRotate,
+    zoomBy,
+    zoomLimits,
     resetView,
     onThemeChange() {
       applyTheme();

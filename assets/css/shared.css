@@ -419,6 +419,42 @@ body {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* A toggle's ON state, for buttons that carry `aria-pressed`.
+   `.btn.active` above is the same visual but driven by a class, and it predates
+   any toggle button: model3d.html's 循環播放 and 自動旋轉 set `aria-pressed` and
+   nothing read it, so pressing either changed the DOM and not one pixel. Colour
+   alone is also not enough to read as state, so these two buttons change their
+   LABEL too (循環播放 / 單次播放) — a toggle whose two positions differ in
+   meaning rather than only in appearance is the WCAG-friendly shape.
+
+   The `:not(:disabled)` is not decoration either: a dead button that still
+   paints as pressed is worse than one that greys out, and `aria-disabled`
+   (rather than `disabled`) is what gotcha 30 chose for the shiny toggle so it
+   stays focusable and can explain itself. */
+.btn[aria-pressed="true"] {
+  background-color: var(--accent-gold-surface);
+  color: var(--on-accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Same colours as the pressed state, plus the lift — so hovering a pressed
+   button looks hovered rather than un-pressed. Written as one rule with the
+   pressed one because `.btn:hover` (0,1,1) and `.btn[aria-pressed="true"]`
+   (0,1,1) tie on specificity and the later rule would otherwise win by source
+   order alone, which is the trap this comment is here to prevent. */
+.btn[aria-pressed="true"]:hover,
+.btn[aria-pressed="true"]:not(:disabled) {
+  background-color: var(--accent-gold-surface);
+  color: var(--on-accent);
+}
+
+/* The pressed state must survive a hover, and the hover lift must not be lost
+   when it does. Ordered after `.btn:hover` on purpose — see above. */
+.btn[aria-pressed="true"]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 .btn-utility { background-color: var(--surface-raised); color: var(--text-primary); }
 
 .btn-color {
