@@ -292,6 +292,53 @@ body {
   letter-spacing: 2px;
 }
 
+/* ===== Site logo =====
+   Top-left of every header, linking to the homepage. This REVERSES gotcha 26,
+   which held that a visible logo image was a favicon only — that was the
+   user's earlier instruction and it no longer applies. This is a different
+   image, chosen for the header, and it is a real link.
+
+   The `.header-brand` wrapper is load-bearing, not decoration: `.header` is
+   `flex-direction: column; align-items: center`, so a bare logo <img> as a
+   sibling of the title lands on its own centred row ABOVE the title rather
+   than beside it. The wrapper is the flex row; `.header` still centres the
+   pair as one unit.
+
+   `alt=""` is deliberate. The link carries `aria-label`, so an alt on the img
+   would announce the site's name twice — the same rule as `.icon` in gotcha
+   27, where the accessible name lives on the interactive element and the
+   graphic stays out of the accessibility tree. */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.site-logo {
+  display: block;
+  flex: 0 0 auto;
+  line-height: 0;
+  border-radius: 10px;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.site-logo img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+.site-logo:hover { opacity: .85; }
+.site-logo:active { transform: scale(.96); }
+.site-logo:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
+
+/* maze.html is the one page whose header carries no title — it is a control
+   bar — so its logo is the bar's first child rather than a `.header-brand` row
+   of its own, which would otherwise be a lone centred line above the buttons.
+   Sized to the button height so it does not stretch the row. */
+.controls-maze .site-logo img { height: 32px; }
+
 /* ===== Icons =====
    Every icon on the site is an inline `<svg class="icon">` — emoji are banned
    (font-dependent, cannot inherit currentColor, render differently per OS).
