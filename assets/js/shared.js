@@ -937,6 +937,46 @@ export async function loadEvolutionChain(chainId) {
 }
 
 /**
+ * Load official Chinese move names, cached on `window`.
+ *
+ * Produced by scripts/fetch_moves.py alongside learnsets.json. Keyed by move id
+ * as a *string*, because that is how JSON object keys always arrive: indexing
+ * with a number works in JS but reads as if the file were array-shaped, and
+ * the two index differently the moment anything does a `in` check or spreads.
+ * @returns {Promise<Object<string, {en,zh,type,class,power,accuracy}>>}
+ */
+export async function loadMoves() {
+  if (!window._movesZh) {
+    const response = await fetch('assets/data/moves_zh.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load moves: ${response.status}`);
+    }
+    window._movesZh = await response.json();
+  }
+  return window._movesZh;
+}
+
+/**
+ * Load official Chinese ability names, cached on `window`.
+ *
+ * Produced by scripts/fetch_abilities.py. pokemon_data.json stores ability
+ * SLUGS only (`intimidate`, `air-lock`), which are 284 English identifiers and
+ * useless as a label on a zh-TW page, so the names live in their own file —
+ * the same split moves_zh.json already exists for. Keyed by slug string.
+ * @returns {Promise<Object<string, {en,zh}>>}
+ */
+export async function loadAbilities() {
+  if (!window._abilitiesZh) {
+    const response = await fetch('assets/data/abilities_zh.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load abilities: ${response.status}`);
+    }
+    window._abilitiesZh = await response.json();
+  }
+  return window._abilitiesZh;
+}
+
+/**
  * Render evolution chain
  * @param {HTMLElement} container - Container element
  * @param {Object} chainData - Evolution chain data

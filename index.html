@@ -46,9 +46,6 @@
       background: linear-gradient(90deg, transparent, var(--divider-glow), transparent);
       margin: 0 40px;
     }
-    .pokedex-grid-container {
-      overflow-x: auto;
-    }
 
     /* ------------------------------------------------------------------
        Home sections, transcribed from infopoke_net_home.html.
@@ -247,6 +244,163 @@
       [data-theme="dark"] .home-explore-card.is-cyan,
       [data-theme="light"] .home-explore-card.is-cyan   { --home-accent-rgb: 14, 116, 144; }
     }
+
+    /* ------------------------------------------------------------------
+       Blocks 5-8: the link-card family. 精選系列, 寶可夢遊戲 and 對戰工具
+       are the same shape in the source — a title, a big number, a sentence —
+       so they share one rule and differ only in grid density and accent.
+       ------------------------------------------------------------------ */
+    .home-link-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    @media (min-width: 640px) { .home-link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1024px) { .home-link-grid.is-dense { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .home-link-card {
+      display: block;
+      padding: 24px;
+      background: var(--bg-card);
+      border: 2px solid var(--hairline);
+      border-radius: 16px;
+      text-decoration: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    a.home-link-card:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+    .home-link-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px; }
+    .home-link-num { font-size: 28px; font-weight: 700; color: var(--accent-gold); margin: 0 0 8px; line-height: 1.1; }
+    .home-link-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+    /* A planned card states what it would have been, then says so. The badge
+       is the same .home-tag-badge as the tag panel — one "not built yet"
+       treatment site-wide, not one per section. */
+    .home-link-card.is-planned .home-link-num { color: var(--text-muted); }
+    .home-link-card .home-tag-badge { display: inline-block; margin-top: 12px; }
+
+    /* ------------------------------------------------------------------
+       Block 8: 快速連結 — four panels, not a link list. The 招式 and 特性
+       panels are data-driven (8 rows each); the 最初的夥伴 panel is 8 rows
+       of region links; the fourth is a 2x2 button block.
+       ------------------------------------------------------------------ */
+    .home-quick-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    @media (min-width: 768px) { .home-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1200px) { .home-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .home-quick-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .home-quick-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px; }
+    .home-quick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .home-quick-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-bottom: 1px solid var(--hairline);
+    }
+    a.home-quick-row:hover { color: var(--text-primary); }
+    .home-quick-row:last-child { border-bottom: 0; }
+    .home-quick-more {
+      margin-top: auto;
+      padding-top: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    a.home-quick-more:hover { color: var(--text-primary); }
+    .home-quick-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .home-quick-btn {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+    .home-quick-btn .home-quick-btn-sub { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+    /* The 熱門招式 and 熱門特性 rows are plain <li>, not disabled <a>s: moves.html
+       and abilities.html do not exist. `.is-static` is the same rule as
+       `.home-quick-row` with no hover, so a non-link row and a link row read
+       identically — a muted one would make 8 of them look broken. */
+    .home-quick-row.is-static { color: var(--text-secondary); }
+
+    /* ------------------------------------------------------------------
+       Block 9: FAQ. Real <details>/<summary>, which InfoPoke's is not — the
+       source uses div+onclick, which needs JS, is not keyboard-operable, and
+       announces nothing. The native element gives disclosure semantics and
+       Ctrl+F for free. open/closed markers are tokens, and hidden on <summary>
+       only via list-style so Safari's ::marker does not paint a stray triangle.
+       ------------------------------------------------------------------ */
+    .home-faq { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .home-faq details {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+    }
+    .home-faq summary {
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .home-faq summary::-webkit-details-marker { display: none; }
+    .home-faq summary::after {
+      content: "";
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      transform: rotate(45deg);
+      transition: transform var(--transition-fast);
+    }
+    .home-faq details[open] summary::after { transform: rotate(-135deg); }
+    .home-faq summary:hover { color: var(--accent-gold); }
+    .home-faq summary:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: -2px; border-radius: var(--radius-sm); }
+    .home-faq-answer { padding: 0 20px 18px; font-size: 15px; line-height: 1.8; color: var(--text-secondary); }
+    .home-faq-answer a { color: var(--accent-gold); }
+
+    /* ------------------------------------------------------------------
+       Footer. InfoPoke's is a full 4-column sitemap including 關於我們 /
+       隱私權政策 / Sitemap, none of which exist here and none of which are
+       registered as planned, so it is not transcribed wholesale — the
+       provenance line the site already had stays, and what is added is the
+       one thing a reader actually needs: where each area of the site lives.
+       ------------------------------------------------------------------ */
+    .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
+    .home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+    .home-footer-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+    @media (min-width: 640px) { .home-footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .home-footer-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px; }
+    .home-footer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .home-footer-list a, .home-footer-list span { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
+    .home-footer-list a:hover { color: var(--accent-gold); }
   </style>
 </head>
 <body>
@@ -378,31 +532,231 @@
 
     <div class="section-divider"></div>
 
-    <section class="pokedex-section" aria-labelledby="pokedex-preview-title">
-      <h2 id="pokedex-preview-title" class="pokedex-section-title">寶可夢圖鑑總覽</h2>
-      <p class="pokedex-section-subtitle">全部 1025 隻寶可夢 • 點擊卡片查看細節 • 完整搜尋功能請前往 <a href="pokedex.html" style="color:var(--accent-gold);">完整圖鑑頁面</a></p>
-      
-      <div class="pokedex-grid-container">
-        <div id="pokedex-grid" class="pokedex-grid"></div>
+    <section class="home-section" aria-labelledby="series-title">
+      <h2 id="series-title" class="home-section-title">精選系列</h2>
+      <p class="home-section-sub">探索稀有和獨特的寶可夢系列</p>
+      <div class="home-link-grid">
+        <a class="home-link-card" href="category.html?cat=legendary">
+          <h3 class="home-link-title">傳說寶可夢</h3>
+          <p class="home-link-num">71</p>
+          <p class="home-link-desc">發現所有擁有獨特力量和傳說的傳說寶可夢。包括封面神獸和三神組合。</p>
+        </a>
+        <a class="home-link-card" href="category.html?cat=mythical">
+          <h3 class="home-link-title">幻之寶可夢</h3>
+          <p class="home-link-num">23</p>
+          <p class="home-link-desc">探索像夢幻、時拉比、基拉祈和阿爾宙斯這樣稀有的活動限定幻之寶可夢。</p>
+        </a>
+        <a class="home-link-card" href="category.html?cat=starter">
+          <h3 class="home-link-title">最初的夥伴</h3>
+          <p class="home-link-num">27</p>
+          <p class="home-link-desc">第 1-9 世代的所有最初的夥伴。來自每個地區的草、火和水屬性。</p>
+        </a>
+        <a class="home-link-card" href="category.html?cat=shiny">
+          <h3 class="home-link-title">異色型態</h3>
+          <p class="home-link-num">1,025</p>
+          <p class="home-link-desc">包含替代配色的完整異色圖鑑。查看所有異色型態和變體。</p>
+        </a>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">超級進化</h3>
+          <p class="home-link-num">46</p>
+          <p class="home-link-desc">第 6 世代的所有超級進化型態。戰鬥中強大的暫時變身。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">超極巨化</h3>
+          <p class="home-link-num">32</p>
+          <p class="home-link-desc">第 8 世代具有獨特超極巨招式和外觀的特殊超極巨化型態。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">地區型態</h3>
+          <p class="home-link-num">60+</p>
+          <p class="home-link-desc">具有新屬性和特性的阿羅拉、伽勒爾、洗翠和帕底亞地區變體。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">究極異獸</h3>
+          <p class="home-link-num">11</p>
+          <p class="home-link-desc">來自究極空間的神秘異次元生物，具有獨特的設計和種族值。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">悖謬寶可夢</h3>
+          <p class="home-link-num">16</p>
+          <p class="home-link-desc">朱/紫中的古代和未來悖謬型態。穿越時空的變體。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
       </div>
-      
-      <a href="pokedex.html" class="view-all-link">前往完整圖鑑 — 支援搜尋、篩選、懶加載<svg class="icon icon-trailing" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg></a>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="games-title">
+      <h2 id="games-title" class="home-section-title">寶可夢遊戲</h2>
+      <p class="home-section-sub">探索主系列遊戲的遊戲指南、版本限定和地區圖鑑</p>
+      <div class="home-link-grid is-dense">
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">傳說 Z-A</h3>
+          <p class="home-link-desc">26 種新的超級進化和密阿雷市冒險。預計 2025 年 10 月發布。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <a class="home-link-card" href="generations.html#gen-card-name-9">
+          <h3 class="home-link-title">朱/紫</h3>
+          <p class="home-link-num">Gen 9</p>
+          <p class="home-link-desc">帕底亞地區的開放世界冒險，包含太晶化和悖謬寶可夢。</p>
+        </a>
+        <a class="home-link-card" href="generations.html#gen-card-name-8">
+          <h3 class="home-link-title">劍/盾</h3>
+          <p class="home-link-num">Gen 8</p>
+          <p class="home-link-desc">以英國為靈感的伽勒爾地區的極巨化和超極巨化對戰。</p>
+        </a>
+        <a class="home-link-card" href="generations.html#gen-card-name-8">
+          <h3 class="home-link-title">傳說 阿爾宙斯</h3>
+          <p class="home-link-num">Hisui</p>
+          <p class="home-link-desc">以古代神奧為背景的動作 RPG，包含洗翠型態和頭目寶可夢。</p>
+        </a>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="tools-title">
+      <h2 id="tools-title" class="home-section-title">對戰工具 &amp; 指南</h2>
+      <div class="home-link-grid is-dense">
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">傷害計算器</h3>
+          <p class="home-link-desc">使用我們的高級模擬器計算戰鬥傷害</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">性格指南</h3>
+          <p class="home-link-desc">了解性格如何影響寶可夢能力</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">進化指南</h3>
+          <p class="home-link-desc">完整的進化方法和條件</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-link-card is-planned">
+          <h3 class="home-link-title">屬性相剋</h3>
+          <p class="home-link-desc">屬性相剋表和戰鬥策略</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="quick-title">
+      <h2 id="quick-title" class="home-section-title">快速連結</h2>
+      <p class="home-section-sub">熱門招式、特性和對戰資源</p>
+      <div class="home-quick-grid">
+        <div class="home-quick-panel">
+          <h3 class="home-quick-title">熱門招式</h3>
+          <ul class="home-quick-list" id="quick-moves"></ul>
+          <span class="home-quick-more">查看所有 783 個招式<span class="home-tag-badge">敬請期待</span></span>
+        </div>
+        <div class="home-quick-panel">
+          <h3 class="home-quick-title">熱門特性</h3>
+          <ul class="home-quick-list" id="quick-abilities"></ul>
+          <span class="home-quick-more">查看所有 284 個特性<span class="home-tag-badge">敬請期待</span></span>
+        </div>
+        <div class="home-quick-panel">
+          <h3 class="home-quick-title">最初的夥伴</h3>
+          <ul class="home-quick-list" id="quick-starters"></ul>
+          <a class="home-quick-more" href="category.html?cat=starter">查看所有 27 隻最初的夥伴</a>
+        </div>
+        <div class="home-quick-panel">
+          <h3 class="home-quick-title">對戰資源</h3>
+          <div class="home-quick-buttons">
+            <span class="home-quick-btn">屬性相剋表<span class="home-quick-btn-sub">屬性相剋指南</span><span class="home-tag-badge">敬請期待</span></span>
+            <span class="home-quick-btn">進化指南<span class="home-quick-btn-sub">所有進化方式</span><span class="home-tag-badge">敬請期待</span></span>
+            <span class="home-quick-btn">性格指南<span class="home-quick-btn-sub">能力修正說明</span><span class="home-tag-badge">敬請期待</span></span>
+            <span class="home-quick-btn">生蛋指南<span class="home-quick-btn-sub">遺傳招式 &amp; 個體值</span><span class="home-tag-badge">敬請期待</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="faq-title">
+      <h2 id="faq-title" class="home-section-title">常見問題</h2>
+      <div class="home-faq">
+        <details>
+          <summary>總共有多少隻寶可夢？</summary>
+          <div class="home-faq-answer">截至 2025 年，全國圖鑑中共有 1,025 隻寶可夢，涵蓋從關都 (第 1 世代) 到帕底亞 (第 9 世代) 的 9 個世代。這包括所有標準寶可夢、地區型態和特殊變體。</div>
+        </details>
+        <details>
+          <summary>最強的寶可夢是什麼？</summary>
+          <div class="home-faq-answer">阿爾宙斯作為寶可夢宇宙的創造者，種族值總和為 720，通常被認為是最強的寶可夢。然而，超級烈空坐和無極巨化無極汰那擁有最高的種族值總和。在競技對戰中，蒼響、蕾冠王 (騎白馬/黑馬) 和密勒頓佔據主導地位。</div>
+        </details>
+        <details>
+          <summary>伊布的所有進化型是什麼？</summary>
+          <div class="home-faq-answer">伊布可以進化成 8 種不同的寶可夢 (伊布家族)：水伊布 (水之石)、雷伊布 (雷之石)、火伊布 (火之石)、太陽伊布 (親密度，白天)、月亮伊布 (親密度，夜晚)、葉伊布 (葉之石)、冰伊布 (冰之石) 和仙子伊布 (親密度 + 妖精屬性招式)。</div>
+        </details>
+        <details>
+          <summary>什麼是傳說寶可夢和幻之寶可夢？</summary>
+          <div class="home-faq-answer">傳說寶可夢是遊戲故事核心的稀有強大寶可夢，如超夢、烈空坐和故勒頓。幻之寶可夢則更為稀有，通常透過特殊活動獲得，如夢幻、時拉比和阿爾宙斯。瀏覽我們的<a href="category.html?cat=legendary">傳說寶可夢</a>和<a href="category.html?cat=mythical">幻之寶可夢</a>系列。</div>
+        </details>
+        <details>
+          <summary>最好的最初的夥伴是什麼？</summary>
+          <div class="home-faq-answer">熱門選擇包括噴火龍 (第 1 世代)、火焰雞 (第 3 世代)、甲賀忍蛙 (第 6 世代) 和閃焰王牌 (第 8 世代)。「最好」的最初的夥伴取決於您的遊戲風格。<a href="category.html?cat=starter">查看所有 27 隻最初的夥伴</a>進行比較。</div>
+        </details>
+      </div>
     </section>
   </main>
 
-  <footer class="footer-note">
-    資料來源：Pokémon 官方圖鑑 • 圖片：Images & Descriptions of All 1025 Pokemon • 純前端實作，無後端
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <div class="home-footer-grid">
+        <div>
+          <h2 class="home-footer-title">圖鑑</h2>
+          <ul class="home-footer-list">
+            <li><a href="pokedex.html">全部寶可夢</a></li>
+            <li><a href="generations.html">按世代</a></li>
+            <li><a href="category.html?cat=legendary">傳說寶可夢</a></li>
+            <li><a href="category.html?cat=mythical">幻之寶可夢</a></li>
+            <li><a href="category.html?cat=starter">最初的夥伴</a></li>
+            <li><a href="collections.html">特殊分類</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="home-footer-title">演算法實驗室</h2>
+          <ul class="home-footer-list">
+            <li><a href="sorting.html">排序演算法視覺化</a></li>
+            <li><a href="maze.html">迷宮路徑尋找</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="home-footer-title">對戰資源</h2>
+          <ul class="home-footer-list">
+            <li><span>招式資料庫</span></li>
+            <li><span>特性資料庫</span></li>
+            <li><span>屬性相剋表</span></li>
+            <li><span>性格指南</span></li>
+            <li><span>進化指南</span></li>
+            <li><span>生蛋指南</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note" style="margin-top:28px;">資料來源：Pokémon 官方圖鑑 • 圖片：Images &amp; Descriptions of All 1025 Pokemon • 招式與特性中文名稱來自 PokéAPI • 純前端實作，無後端</p>
+    </div>
   </footer>
 
   <script type="module">
-    import {loadPokemonData, createPokemonCard, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, ASSETS } from './assets/js/shared.js';
+    import {loadPokemonData, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, loadMoves, loadAbilities, ASSETS } from './assets/js/shared.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
     initHeaderNav();
 
-    const grid = document.getElementById('pokedex-grid');
     const popularGrid = document.getElementById('popular-grid');
+    const quickMoves = document.getElementById('quick-moves');
+    const quickAbilities = document.getElementById('quick-abilities');
+    const quickStarters = document.getElementById('quick-starters');
 
     // The ten from infopoke_net_home.html, in the source's order, by id. The
     // names, types and slugs come from our own data — only the selection is
@@ -444,24 +798,99 @@
       popularGrid.appendChild(fragment);
     }
 
-    async function init() {
-      try {
-        const data = await loadPokemonData();
-        renderPopular(data);
-        const fragment = document.createDocumentFragment();
-        
-        data.forEach(pokemon => {
-          fragment.appendChild(createPokemonCard(pokemon, {
-            onClick: (id) => window.location.href = pokemonDetailUrl(data.find(pokemon => pokemon.id === id)),
-            showTypes: true
-          }));
-        });
-        
-        grid.appendChild(fragment);
-      } catch (error) {
-        grid.innerHTML = '<p style="text-align:center;color:var(--error-text);padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
-        console.error(error);
+    // ---- 快速連結 panels ---------------------------------------------------
+    // All three lists are transcribed from infopoke_net_home.html's *selection*
+    // and its order. Every name, type and region label below is resolved from our
+    // own data at render time; only the "which eight" decision is copied. This is
+    // the same rule as POPULAR_IDS above.
+    //
+    // None of the three rows link anywhere, deliberately: moves.html and
+    // abilities.html are registered planned pages, so an <a> would be a dead
+    // href. The 最初的夥伴 rows DO link, to generations.html's per-gen card
+    // anchors, because generations.html exists and emits id="gen-card-name-N".
+    const POPULAR_MOVE_IDS = [89, 85, 58, 53, 370, 446, 369, 434];
+    const POPULAR_ABILITY_SLUGS = [
+      'intimidate', 'levitate', 'protean', 'multiscale',
+      'magic-guard', 'sand-veil', 'swift-swim', 'drought'
+    ];
+    // The source lists 8 of 9 generations — it stops at 伽勒爾 (Gen 8) because it
+    // was written before Scarlet/Violet. Kept as 8 rows, not padded to 9: the
+    // panel is a transcription, and adding a row the source does not have would
+    // be a different claim.
+    const QUICK_GEN_ROWS = [
+      { gen: 1, region: '關都' }, { gen: 2, region: '城都' },
+      { gen: 3, region: '豐緣' }, { gen: 4, region: '神奧' },
+      { gen: 5, region: '合眾' }, { gen: 6, region: '卡洛斯' },
+      { gen: 7, region: '阿羅拉' }, { gen: 8, region: '伽勒爾' }
+    ];
+
+    // types_zh is the parallel array of types; see the note in renderPopular.
+    function typeBadgesFor(p) {
+      return (p.types || [])
+        .map((t, i) => typeBadgeSmHtml(t, (p.types_zh || [])[i]))
+        .join('');
+    }
+
+    async function renderQuickLinks() {
+      // The two lookups are independent and neither needs the other's result, so
+      // they are issued concurrently rather than awaited in sequence. A failure
+      // in one panel must not blank the other two, so each is caught separately.
+      let moves = null, abilities = null;
+      try { moves = await loadMoves(); } catch (e) { console.error('[index] moves_zh.json', e); }
+      try { abilities = await loadAbilities(); } catch (e) { console.error('[index] abilities_zh.json', e); }
+
+      if (moves) {
+        const frag = document.createDocumentFragment();
+        for (const id of POPULAR_MOVE_IDS) {
+          const m = moves[String(id)];
+          if (!m) { console.error(`[index] 熱門招式 id ${id} not in moves_zh.json`); continue; }
+          const li = document.createElement('li');
+          li.className = 'home-quick-row is-static';
+          li.innerHTML = `<span>${m.zh}</span>${typeBadgeSmHtml(m.type)}`;
+          frag.appendChild(li);
+        }
+        quickMoves.appendChild(frag);
       }
+
+      if (abilities) {
+        const frag = document.createDocumentFragment();
+        for (const slug of POPULAR_ABILITY_SLUGS) {
+          const a = abilities[slug];
+          // A missing slug falls back to the English identifier, which is the
+          // honest rendering: pokemon_data.json itself stores slugs, so the name
+          // would be recognisable rather than blank.
+          if (!a) console.error(`[index] 熱門特性 slug ${slug} not in abilities_zh.json`);
+          const li = document.createElement('li');
+          li.className = 'home-quick-row is-static';
+          li.textContent = a ? a.zh : slug;
+          frag.appendChild(li);
+        }
+        quickAbilities.appendChild(frag);
+      }
+
+      const startFrag = document.createDocumentFragment();
+      for (const { gen, region } of QUICK_GEN_ROWS) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'home-quick-row';
+        a.href = `generations.html#gen-card-name-${gen}`;
+        a.textContent = `第 ${gen} 世代：${region}最初的夥伴`;
+        li.appendChild(a);
+        startFrag.appendChild(li);
+      }
+      quickStarters.appendChild(startFrag);
+    }
+
+    async function init() {
+      const [data] = await Promise.all([
+        loadPokemonData().catch(error => {
+          console.error(error);
+          popularGrid.innerHTML = '<p style="text-align:center;color:var(--error-text);padding:40px;">載入失敗，請確認使用 Local Server 開啟</p>';
+          return null;
+        }),
+        renderQuickLinks()
+      ]);
+      if (data) renderPopular(data);
     }
 
     init();
