@@ -180,6 +180,30 @@
       color: var(--text-secondary);
     }
 
+    /*
+     * `notes` is the optional per-category addendum to `prose`. The separation is
+     * a border + padding rather than another paragraph indent because these are
+     * corrections and extra facts, not a continuation of the definition — a reader
+     * should be able to tell at a glance which text is the category's definition
+     * and which is this page's extra material.
+     *
+     * The child selector is load-bearing: `#cat-notes` is a plain div, so without
+     * `:first-child` the FIRST note in a config would pick up a top border
+     * immediately after `#cat-prose` with no gap, and the two would read as one
+     * block with a rule through it. `:not(:last-child)` gives each note a bottom
+     * border and keeps the spacing between notes, so the first note never gets a
+     * top rule no matter how many there are.
+     */
+    .cat-intro #cat-notes:not(:empty) {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .cat-intro #cat-notes p:not(:last-child) {
+      margin-bottom: 12px;
+    }
+
     /* ===== Disclaimer (shiny only) =====
        The shiny page recolours sprites with a CSS filter because no shiny artwork
        exists on disk or in the data. That is a labelled placeholder
@@ -378,6 +402,7 @@
     <section class="cat-intro" aria-labelledby="cat-intro-title">
       <h2 id="cat-intro-title">什麼是…</h2>
       <p id="cat-prose"></p>
+      <div id="cat-notes"></div>
     </section>
 
     <div id="cat-filter-slot"></div>
@@ -450,6 +475,19 @@
       document.title = `${config.title} — 1025 全國寶可夢圖鑑`;
       document.getElementById('cat-intro-title').textContent = `什麼是${config.title}？`;
       document.getElementById('cat-prose').textContent = config.prose;
+
+      // Optional addendum. `#cat-notes` keeps `:not(:empty)` false for the nine
+      // categories that have no `notes`, so the section's border-top and padding
+      // do not appear at all rather than leaving an empty ruled band. Built with
+      // textContent per note, never innerHTML — a config string is content, and
+      // the other renderers in this file treat it the same way.
+      const notesEl = document.getElementById('cat-notes');
+      notesEl.textContent = '';
+      for (const note of config.notes || []) {
+        const p = document.createElement('p');
+        p.textContent = note;
+        notesEl.appendChild(p);
+      }
     }
 
     function renderStats(members) {

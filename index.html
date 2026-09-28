@@ -169,10 +169,10 @@
       transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
     }
     a.home-tag:hover { border-color: var(--home-accent); color: var(--text-primary); }
-    /* A planned tag is a <span>, never an <a>: four of the ten have no
-       destination (pokedex.html has no ?type= filter, and 600族 has no page),
-       and a focusable control that goes nowhere is worse than a non-focusable
-       one. Same rule as the nav's planned rows. */
+    /* A planned tag is a <span>, never an <a>: three of the ten have no
+       destination (pokedex.html has no ?type= filter), and a focusable control
+       that goes nowhere is worse than a non-focusable one. Same rule as the nav's
+       planned rows. 600族寶可夢 used to be the fourth and is a real <a> now. */
     .home-tag.is-planned { color: var(--text-muted); }
     .home-tag-badge {
       font-size: 10px;
@@ -456,7 +456,7 @@
           <a class="home-tag" href="detail.html?slug=charizard">超級噴火龍</a>
           <a class="home-tag" href="category.html?cat=shiny">異色寶可夢列表</a>
           <span class="home-tag is-planned">龍屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
-          <span class="home-tag is-planned">600族寶可夢<span class="home-tag-badge">敬請期待</span></span>
+          <a class="home-tag" href="category.html?cat=pseudo-legendary">600族寶可夢</a>
           <span class="home-tag is-planned">火屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
           <span class="home-tag is-planned">幽靈屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
           <a class="home-tag" href="category.html?cat=paradox">悖謬寶可夢</a>

@@ -2,12 +2,12 @@
  * Special-category configuration — the single source of truth for
  * `category.html?cat=<slug>`.
  *
- * WHY ONE TEMPLATED PAGE AND NOT NINE FILES
- * ------------------------------------------
- * All nine categories share the same five regions (breadcrumb → hero → stat
+ * WHY ONE TEMPLATED PAGE AND NOT TEN FILES
+ * -----------------------------------------
+ * All ten categories share the same five regions (breadcrumb → hero → stat
  * tiles → prose → filter row → card grid) and differ only in data: a title, a
  * gradient, four tile values, a paragraph, a member selector and a filter
- * dimension. Nine near-identical HTML files would mean nine copies of the hero
+ * dimension. Ten near-identical HTML files would mean ten copies of the hero
  * markup to keep in sync, which is how this repo already got bitten twice
  * (AGENTS.md gotcha 23 — dead code in a file that never ran; gotcha 32 — a
  * second, unreachable copy of the maze search). One page driven by this table
@@ -180,6 +180,47 @@ function formCard(base, form, opts = {}) {
 
 const speciesFlags = (key) => (data) => data.filter((p) => p[key]);
 
+/**
+ * The 600 族 ("pseudo-legendary") members.
+ *
+ * Two rules, not one. A pure `total === 600` filter is *not* sufficient, and the
+ * 11th record it admits is the reason this needs its own function:
+ *
+ *   - 36 species in the file carry `stats.total === 600`, and this picks out the
+ *     11 that are neither `is_legendary` nor `is_mythical`.
+ *   - 鋁鋼橋龍 (#1018) is one of those 11, and the category's own definition —
+ *     「需要經過兩次進化」 — is what excludes it. Its line is
+ *     Duraludon(884) → Archaludon(1018), one evolution, not two.
+ *
+ * So the honest description of `PSEUDO_EXCLUDED` is "the 600-BST species that
+ * fails the two-evolution half of the definition", not "a number I disagreed
+ * with". `scripts/check_categories.mjs` asserts the exact 10-id roster AND
+ * re-derives the two-evolution count from the chains, so this exclusion cannot
+ * quietly become a silent drop: a new 600-BST species fails the roster
+ * assertion instead of appearing here unremarked.
+ *
+ * WHY THIS IS NOT COMPUTED FROM `main_line`
+ * -----------------------------------------
+ * It looks like the cleaner rule — walk the chain, count stages, require 3 — and
+ * it is wrong, because two chain shapes in this data defeat it:
+ *
+ *   - 杖尾鱗甲龍 (#784) has chain 408 with `main_line: []`. Its three real
+ *     stages (Jangmo-O, Hakamo-O, Kommo-O) are filed in `special_forms.other`.
+ *     A `main_line` stage count reads 0 evolutions and DROPS the Pokémon, so the
+ *     page would render 9 cards against a page that says 10.
+ *   - Most other chains pad `main_line` with form rows — 妙蛙草(1),
+ *     妙蛙花(2), 妙蛙種子(3), 妙蛙種子-Mega(10001) — so an unfiltered count
+ *     yields 3 evolutions and would wrongly drop 快龍, 暴飛龍, 班基拉斯, 烈咬陸鯊,
+ *     黏美龍, 杖尾鱗甲龍, 多龍巴魯托 and 戟脊龍 too.
+ *
+ * Both shapes are facts about the data, not about the rule, so the rule keeps to
+ * the two flags it can evaluate correctly and the checker owns the rest. See
+ * AGENTS.md gotcha 37 for the sibling `variants: {}` truthiness trap.
+ */
+const PSEUDO_EXCLUDED = new Set([1018]);
+const pseudoLegendaryMembers = (data) =>
+  data.filter((p) => p.stats?.total === 600 && !p.is_legendary && !p.is_mythical && !PSEUDO_EXCLUDED.has(p.id));
+
 function formMembers(kind) {
   return (data) =>
     data
@@ -200,7 +241,7 @@ function formMembers(kind) {
  * regional page rendered an empty grid with no error anywhere. The skipped
  * middle argument has to be visible in the signature so the next reader does not
  * "tidy" it away. `scripts/check_categories.mjs` asserts a non-zero member count
- * for all nine categories, which is the check that would have caught it.
+ * for all ten categories, which is the check that would have caught it.
  */
 function regionalMembers() {
   return (data, _gens, chains) => {
@@ -277,7 +318,7 @@ function starterMembers() {
   };
 }
 
-/* ===== The nine categories ===== */
+/* ===== The ten categories ===== */
 
 export const CATEGORIES = {
   legendary: {
@@ -467,6 +508,47 @@ export const CATEGORIES = {
     prose:
       '地區型態是指某個寶可夢在特定地區演化或存在時所呈現的不同樣貌，屬性與能力值都可能與原版大相逕庭。阿羅拉的妙蛙種子因為適應了日照而變得擅長吸收光能，伽勒爾的喵喵則因為金屬與都市環境而改變了原本的生活方式；他思岐的型態大多體型巨大、性情溫順，與關都的印象截然不同。本頁的 58 個型態以名稱中的地區標記判定，並排除妖裝型態。',
   },
+  'pseudo-legendary': {
+    title: '600族寶可夢',
+    titleEn: 'Pseudo-Legendary Pokémon',
+    subtitle: '10 隻準傳說級寶可夢的完整名單',
+    note: '從關都的快龍到帕底亞的戟脊龍',
+    // lime-700 -> yellow-700 -> red-700: the 700 level per the file header's rule
+    // (InfoPoke's 600 shades fail AA for an 18-20px subtitle). Warm ramp because
+    // 8 of the 10 members are Dragon-type and the page is about peak power.
+    accent: ['#4d7c0f', '#a16207', '#b91c1c'],
+    needs: ['pokemon'],
+    members: pseudoLegendaryMembers,
+    filters: [
+      { key: 'all', label: '全部' },
+      ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => ({ key: `gen${g}`, label: `第 ${g} 世代`, test: (m) => m.generation === g })),
+    ],
+    tiles: (m) => [
+      [m.length, '600族寶可夢'],
+      [new Set(m.map((p) => p.generation)).size, '涵蓋世代'],
+      [Math.max(...m.map((p) => p.stats?.total || 0)), '最高能力總和'],
+      // The 4th tile's value is the member count, NOT a computed evolution depth.
+      // The claim it makes — that all 10 need two evolutions — is asserted against
+      // the chains in check_categories.mjs, which is the only place that can
+      // handle chain 408's empty `main_line` and the `-Mega`/`-Gmax` padding rows
+      // without a 15-line helper duplicating what gotcha 37 already warns about.
+      // Recomputing it here would be a second implementation to keep correct.
+      [m.length, '皆需兩次進化'],
+    ],
+    prose:
+      '「600族」又稱準傳說寶可夢或準神，是最終進化形態的種族值總和剛好為 600、需要經過兩次進化、且不是傳說或幻之寶可夢的一類強力寶可夢。牠們的種族值總和與傳說級寶可夢相同，因此培育困難卻極具實戰價值，分佈在關都到帕底亞的九個世代之中。',
+    // `notes` is optional and absent on the other nine categories (all of which predate
+    // it): an
+    // acknowledgement, or a correction, that is specific to this one page and
+    // has no business in a shared `prose` paragraph. `category.html` renders one
+    // `<p class="cat-note">` per entry and inherits `.cat-intro p`, so a config
+    // without `notes` is unchanged.
+    notes: [
+      '繁殖與培育：600族寶可夢全部都可以正常繁殖，可與百變怪或同蛋群的寶可夢生蛋，大量取得並培育後方的完整進化線，不需要特殊道具或限定條件。',
+      '黏美龍的差異一：牠是這 10 隻之中唯一單一屬性的成員（純龍系）。其餘每一隻都擁有兩種屬性，分別是快龍與暴飛龍的龍／飛行、班基拉斯的岩石／惡、巨金怪的鋼／超能力、烈咬陸鯊的龍／地面、三首惡龍的惡／龍、杖尾鱗甲龍的龍／格鬥、多龍巴魯托的龍／幽靈，以及戟脊龍的龍／冰。',
+      '黏美龍的差異二：牠也是唯一需要天氣條件才能進化的成員。幼體黏美兒不能只靠升級進化，必須在雨天或大霧的環境下才會變成黏美龍。',
+    ],
+  },
 };
 
 /**
@@ -653,8 +735,9 @@ export function tagToneVars(toneKey) {
  * cannot go stale silently — editing a selector without editing this table breaks
  * a test, and `node scripts/check_categories.mjs` is the command to run after
  * touching either side. The same file also asserts the 9 slugs here are exactly
- * the 9 in CATEGORY_SLUGS, in the same order, so a card can never point at a
- * category that does not exist or appear twice.
+ * the 9 in HUB_SLUGS, in the same order, so a card can never point at a category
+ * that does not exist or appear twice — HUB_SLUGS rather than CATEGORY_SLUGS
+ * because those two are no longer the same list (600族 is a page without a card).
  *
  * `stats` is tiles(members).slice(1) — the count is already the card's big
  * number, so the first tile would be redundant. See that assertion too.
@@ -686,9 +769,9 @@ export const COLLECTION_GROUPS = [
     desc: '跟著作品與活動開放的收藏。',
     items: [
       // Not links, and deliberately not placeholders pointing at a page that does
-      // not exist. `?cat=` only accepts the 9 slugs in CATEGORY_SLUGS, so a tenth
-      // card would have to render as something, and "即將推出" is the honest
-      // thing to render until the data for it exists.
+      // not exist. `?cat=` accepts the slugs in CATEGORY_SLUGS and each of those
+      // has a real page, so a tenth card would have to render as something, and
+      // "即將推出" is the honest thing to render until the data for it exists.
       {
         slug: 'legends-za',
         upcoming: true,
@@ -719,7 +802,12 @@ export const COLLECTION_GROUPS = [
   },
 ];
 
-/** Slug order used by the hub, so both pages agree. */
+/**
+ * Every slug `?cat=` accepts, in menu order. `category.html` builds its VALID set
+ * from this and falls back to element [0] for an unknown value, so APPEND new
+ * slugs — inserting one at the front silently changes the unknown-slug landing
+ * page from 傳說寶可夢 to whatever you prepended.
+ */
 export const CATEGORY_SLUGS = [
   'legendary',
   'mythical',
@@ -730,7 +818,25 @@ export const CATEGORY_SLUGS = [
   'mega',
   'gigantamax',
   'regional',
+  'pseudo-legendary',
 ];
+
+/**
+ * The subset that has a card in the collections hub, in hub order.
+ *
+ * This is a separate list because "every category" and "every category with a hub
+ * card" stopped being the same set when 600族 was added: the user wanted the page
+ * and the index.html link, but not a tenth hub card. Until then
+ * `check_categories.mjs` asserted `hubSlugs === CATEGORY_SLUGS` in two places
+ * (the card list and COLLECTION_TINTS' keys), which quietly encoded "the hub
+ * shows everything" as an invariant. That is not true of the site, and encoding
+ * it is what would force the next category into a hub group it may not belong in.
+ *
+ * The checker now asserts against this list instead, and additionally asserts
+ * that `CATEGORY_SLUGS \ HUB_SLUGS` is exactly the non-hub categories, so adding
+ * a category still requires a conscious decision about the hub.
+ */
+export const HUB_SLUGS = CATEGORY_SLUGS.filter((s) => s !== 'pseudo-legendary');
 
 export function getCategory(slug) {
   return Object.prototype.hasOwnProperty.call(CATEGORIES, slug) ? CATEGORIES[slug] : null;

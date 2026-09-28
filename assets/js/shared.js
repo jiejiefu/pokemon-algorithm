@@ -570,7 +570,15 @@ export const PLANNED_PAGES = [
   { slug: 'games.html', title: '全部遊戲', why: 'generations.json 已有 38 種遊戲，缺的是獨立頁', data: 'present' },
   { slug: 'eevee-evolutions.html', title: '伊布進化', why: '熱門搜尋標籤，8 條進化鏈都在資料裡，缺的是對照頁', data: 'present' },
   { slug: 'strongest.html', title: '最強寶可夢', why: '可由 stats.total 排序產生，缺的是排名頁', data: 'present' },
-  { slug: 'base-stat-600.html', title: '600 族寶可夢', why: '同上，stats.total >= 600 的篩選頁', data: 'present' },
+  // Deliberately NOT the same page as category.html?cat=pseudo-legendary, despite
+  // the identical title. That one is `stats.total === 600` filtered to
+  // non-legendary/non-mythical AND two evolutions, which is the community's 600族
+  // definition; this entry is the broader `>= 600` screening view — 60 species
+  // reach >= 600, 36 sit at exactly 600, and 11 of those 36 are neither
+  // legendary nor mythical (the other 25 are legendaries, and some reach 600 only
+  // in a form). Left in place because the broader question ("who is at or above
+  // 600?") is not answered by the category page, and its own `why` says `>= 600`.
+  { slug: 'base-stat-600.html', title: '600 族寶可夢（能力總和篩選）', why: 'stats.total >= 600 的篩選頁（60 隻）— 與 600族分類頁（=== 600、非傳說、需兩次進化，10 隻）不同', data: 'present' },
   { slug: 'search.html', title: '進階搜尋', why: 'pokedex.html 目前只支援 ?gen= 深連結', data: 'present' },
   { slug: 'guides.html', title: '攻略', why: 'InfoPoke 導覽列的攻略入口，本站無對應內容', data: 'absent' },
   { slug: 'blogs.html', title: 'Blogs', why: '同上', data: 'absent' },

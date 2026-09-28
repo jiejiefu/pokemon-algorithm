@@ -38,6 +38,7 @@ import { dirname, join } from 'node:path';
 import {
   CATEGORIES,
   CATEGORY_SLUGS,
+  HUB_SLUGS,
   COLLECTION_GROUPS,
   COLLECTION_TINTS,
   TAG_TONES,
@@ -163,6 +164,82 @@ for (const slug of ['mega', 'gigantamax', 'regional']) {
 }
 
 // ---------------------------------------------------------------------------
+// The 600族 roster, pinned. The page's 4th tile claims all ten need two
+// evolutions, and no selector computes that claim, so this is the only assertion
+// standing behind the words on the page.
+// ---------------------------------------------------------------------------
+console.log('600族寶可夢 roster + evolution depth');
+
+const PSEUDO = 'pseudo-legendary';
+const PSEUDO_ROSTER = [149, 248, 373, 376, 445, 635, 706, 784, 887, 998];
+const pseudoMembers = CATEGORIES[PSEUDO].members(SLOTS.pokemon, SLOTS.gens, SLOTS.chains);
+const pseudoIds = pseudoMembers.map((p) => p.id);
+ok(
+  JSON.stringify(pseudoIds) === JSON.stringify(PSEUDO_ROSTER),
+  `600族 roster drifted\n        got      ${JSON.stringify(pseudoIds)}\n        expected ${JSON.stringify(PSEUDO_ROSTER)}`
+);
+for (const p of pseudoMembers) {
+  ok(p.stats?.total === 600, `#${p.id} ${p.names.zh} is not 600 BST (${p.stats?.total})`);
+  ok(!p.is_legendary && !p.is_mythical, `#${p.id} ${p.names.zh} is legendary or mythical`);
+}
+
+// The one record the two flags admit and the definition rejects. Asserted by
+// name so that removing the exclusion from PSEUDO_EXCLUDED cannot pass quietly
+// as "the roster assertion was just updated to match".
+const archaludon = pokemon.find((p) => p.id === 1018);
+ok(archaludon?.stats?.total === 600, '#1018 is no longer 600 BST — revisit PSEUDO_EXCLUDED');
+ok(!archaludon?.is_legendary && !archaludon?.is_mythical, '#1018 is now flagged legendary/mythical');
+ok(!pseudoIds.includes(1018), '#1018 鋁鋼橋龍 must not be a 600族 member (one evolution, not two)');
+
+// Stage count -> evolution count, over both chain shapes this data uses.
+const baseStages = (p) => {
+  const chain = chains[p.evolution_chain_id];
+  if (!chain) return 0;
+  // A form row is `-Mega` / `-Gmax` / a numeric variant id. Counting them as
+  // stages is what makes 妙蛙草's chain read 3 evolutions instead of 2.
+  const isBase = (row) => !/-/.test(row.name) && typeof row.id === 'number' && row.id <= 1025;
+  const main = (chain.main_line || []).filter(isBase);
+  // 杖尾鱗甲龍 (#784, chain 408) has `main_line: []` and its three real stages
+  // in `special_forms.other`. This is the gotcha-37 `{}`-is-truthy family: an
+  // empty array is truthy, so `main.length || other.length` is the correct
+  // fallback and `chain.main_line || other` would silently yield nothing.
+  if (main.length) return main.length;
+  return ((chain.special_forms || {}).other || []).filter(isBase).length;
+};
+
+for (const p of pseudoMembers) {
+  const stages = baseStages(p);
+  // 3 stages = 2 evolutions. A species that is not the final stage of its own
+  // line would make this pass by coincidence, so require both.
+  ok(stages === 3, `#${p.id} ${p.names.zh} has ${stages} base stages in chain ${p.evolution_chain_id}, expected 3 (two evolutions)`);
+  const chain = chains[p.evolution_chain_id];
+  const last = [...(chain.main_line || []), ...((chain.special_forms || {}).other || [])]
+    .filter((row) => typeof row.id === 'number' && row.id <= 1025)
+    .at(-1);
+  ok(last?.id === p.id, `#${p.id} is not the final stage of chain ${p.evolution_chain_id} (last is #${last?.id})`);
+}
+
+// And the negative case, which is the one that proves the depth logic works: if
+// the count were simply "any chain with 3 rows", Archaludon's chain 465 has
+// Duraludon(884) → Archaludon(1018) → Duraludon-Gmax(10225) and would read 2
+// stages. Asserting it reads 2 documents why it is excluded.
+ok(baseStages(archaludon) === 2, '#1018 should read 2 base stages (Duraludon → Archaludon)');
+ok(baseStages(archaludon) - 1 === 1, '#1018 is a one-evolution species — the reason it is not 600族');
+
+// Generation coverage: the page says 9, and 黏美龍 is the only mono-type. Both
+// are claims in `prose`/`notes`, so they are checked here rather than trusted.
+const pseudoGens = new Set(pseudoMembers.map((p) => p.generation));
+ok(pseudoGens.size === 9, `600族 spans ${pseudoGens.size} generations, prose claims 9`);
+ok([...pseudoGens].sort((a, b) => a - b).join(',') === '1,2,3,4,5,6,7,8,9', `600族 generations are ${[...pseudoGens].sort()}`);
+const monoType = pseudoMembers.filter((p) => p.types.length === 1);
+ok(
+  monoType.length === 1 && monoType[0].id === 706,
+  `notes claim 黏美龍 is the only mono-type member — found ${monoType.map((p) => `#${p.id} ${p.names.zh}`).join(', ') || 'none'}`
+);
+const dragonish = pseudoMembers.filter((p) => p.types.includes('Dragon')).length;
+ok(dragonish === 8, `600族 has ${dragonish} Dragon-type members, expected 8 (the accent ramp assumes a warm page)`);
+
+// ---------------------------------------------------------------------------
 // The collections hub duplicates every count and stat triple rather than fetching
 // 900 KB to print "71". This is the assertion that pays for that duplication:
 // the numbers below are recomputed from the real selectors, so the hub table and
@@ -172,8 +249,16 @@ console.log('collections hub table');
 
 const hubSlugs = COLLECTION_GROUPS.flatMap((g) => g.items.filter((i) => !i.upcoming).map((i) => i.slug));
 ok(
-  JSON.stringify(hubSlugs) === JSON.stringify(CATEGORY_SLUGS),
-  `hub cards do not match CATEGORY_SLUGS\n        hub   ${JSON.stringify(hubSlugs)}\n        slugs ${JSON.stringify(CATEGORY_SLUGS)}`
+  JSON.stringify(hubSlugs) === JSON.stringify(HUB_SLUGS),
+  `hub cards do not match HUB_SLUGS\n        hub   ${JSON.stringify(hubSlugs)}\n        slugs ${JSON.stringify(HUB_SLUGS)}`
+);
+// Every hub card must be a real category page, and the two lists must be subsets
+// of each other in that direction. Asserting the difference is what stops
+// "the hub and the registry are the same list" from creeping back in as an
+// unexamined invariant the next time someone adds a page.
+ok(
+  HUB_SLUGS.every((s) => CATEGORY_SLUGS.includes(s)),
+  `HUB_SLUGS contains a slug the registry does not: ${JSON.stringify(HUB_SLUGS.filter((s) => !CATEGORY_SLUGS.includes(s)))}`
 );
 
 const totalCards = COLLECTION_GROUPS.reduce((n, g) => n + g.items.length, 0);
@@ -267,8 +352,8 @@ const hexOfRgb = (s) => '#' + s.split(/[\s,]+/).filter(Boolean).map((v) => Numbe
 
 const tintKeys = Object.keys(COLLECTION_TINTS);
 ok(
-  JSON.stringify(tintKeys.filter((k) => k !== 'upcoming')) === JSON.stringify(CATEGORY_SLUGS),
-  `COLLECTION_TINTS covers ${JSON.stringify(tintKeys)} — expected the 9 slugs plus "upcoming"`
+  JSON.stringify(tintKeys.filter((k) => k !== 'upcoming')) === JSON.stringify(HUB_SLUGS),
+  `COLLECTION_TINTS covers ${JSON.stringify(tintKeys)} — expected the 9 hub slugs plus "upcoming"`
 );
 
 // No two LIVE categories may share a gradient pair. Note this is asserted on the
@@ -278,7 +363,7 @@ ok(
 // (#fff7ed vs #fefce9). The two `upcoming` cards are excluded on purpose — they
 // both take the neutral slate→gray pair, which is the point of it.
 const pairs = new Map();
-for (const slug of CATEGORY_SLUGS) {
+for (const slug of HUB_SLUGS) {
   const { from, to } = COLLECTION_TINTS[slug];
   const key = `${from}->${to}`;
   ok(
