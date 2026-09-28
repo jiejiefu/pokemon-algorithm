@@ -649,7 +649,9 @@ function initNavDropdowns() {
     const panel = item.querySelector('.site-nav-panel');
     if (!trigger || !panel) continue;
 
+    let closeTimer = 0;
     const setOpen = open => {
+      clearTimeout(closeTimer);
       panel.hidden = !open;
       trigger.setAttribute('aria-expanded', String(open));
     };
@@ -661,7 +663,15 @@ function initNavDropdowns() {
       if (!item.contains(e.relatedTarget)) setOpen(false);
     });
     item.addEventListener('mouseenter', () => setOpen(true));
-    item.addEventListener('mouseleave', () => setOpen(false));
+
+    // Grace period, not the fix for the dead zone: the CSS bridge on
+    // `.site-nav-panel::before` is what makes the dropdown reachable at all.
+    // This only covers sub-pixel rounding and a fast diagonal out of the
+    // panel's corner, where a 0ms close reads as a flicker.
+    item.addEventListener('mouseleave', () => {
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => setOpen(false), 140);
+    });
 
     trigger.addEventListener('click', e => {
       e.preventDefault();

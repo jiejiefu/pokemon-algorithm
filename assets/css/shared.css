@@ -947,6 +947,25 @@ a.site-nav-item:focus-visible,
   display: none;
 }
 
+/* The 8px offset above creates a dead zone, and it was a real bug: the panel is
+   a DOM child of `.site-nav-item`, but `mouseleave` on that child only stays
+   away while the pointer is over the trigger OR the panel. Travelling down
+   through the gap it is over neither, so `mouseleave` fired and the panel
+   closed before the pointer reached it — the dropdown was unselectable.
+
+   Bridged here rather than in JS: a `::before` hanging above the panel is part
+   of the panel's hover target, so the transit never leaves. The height MUST
+   stay equal to the `calc(100% + 8px)` offset — shrink it and the dead zone
+   reopens, just smaller. */
+.site-nav-panel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+}
+
 .site-nav-group + .site-nav-group {
   margin-top: 8px;
   padding-top: 8px;
