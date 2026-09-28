@@ -38,47 +38,6 @@
       flex-direction: column;
       min-height: 100vh;
     }
-    .hero {
-      text-align: center;
-      padding: 60px 20px 40px;
-      background: linear-gradient(180deg, var(--hero-tint) 0%, transparent 100%);
-    }
-    .hero h1 {
-      font-size: 42px;
-      font-weight: bold;
-      color: var(--accent-gold);
-      text-shadow: var(--hero-title-shadow);
-      margin: 0 0 16px;
-      letter-spacing: 2px;
-    }
-    .hero .tagline {
-      font-size: 18px;
-      color: var(--text-secondary);
-      max-width: 600px;
-      margin: 0 auto;
-      line-height: 1.7;
-    }
-    .hero .stats {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin-top: 32px;
-      flex-wrap: wrap;
-    }
-    .stat-item {
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 28px;
-      font-weight: bold;
-      color: var(--accent-gold);
-    }
-    .stat-label {
-      font-size: 13px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
     main {
       flex: 1;
     }
@@ -89,6 +48,204 @@
     }
     .pokedex-grid-container {
       overflow-x: auto;
+    }
+
+    /* ------------------------------------------------------------------
+       Home sections, transcribed from infopoke_net_home.html.
+
+       Every colour below is a token, never a literal. InfoPoke is light-only
+       and hardcodes bg-white / text-gray-*, none of which survives this site's
+       dark default; the structure is copied, the palette is ours.
+       ------------------------------------------------------------------ */
+    .home-hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      background: linear-gradient(180deg, var(--hero-tint) 0%, transparent 100%);
+    }
+    /* InfoPoke's h1 is `bg-gradient-to-r from-blue-600 to-purple-600
+       bg-clip-text text-transparent`. Deliberately NOT transcribed: contrast of
+       gradient text varies per glyph, so it cannot be asserted, and
+       `text-transparent` renders the heading invisible wherever
+       `background-clip: text` is unsupported. The site's measured
+       --accent-gold keeps a single assertable ratio. */
+    .home-hero-title {
+      font-size: 42px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      text-shadow: var(--hero-title-shadow);
+      margin: 0 0 16px;
+      letter-spacing: 2px;
+    }
+    .home-hero-lede {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .home-hero-updated {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 12px 0 0;
+    }
+    /* Light only. Dark --text-muted already clears 4.5:1 on the tinted band
+       (5.83:1), and overriding it there pushed this line to 16.46:1 — the
+       quietest text on the page had become its brightest. The light theme is
+       the only one where the red tint costs contrast. */
+    [data-theme="light"] .home-hero {
+      --text-muted: var(--text-secondary);
+    }
+
+    .home-section {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 20px 0;
+    }
+    .home-section-title {
+      font-size: 30px;
+      font-weight: bold;
+      text-align: center;
+      color: var(--text-primary);
+      margin: 0 0 12px;
+    }
+    .home-section-sub {
+      font-size: 16px;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 672px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+    }
+
+    /* 熱門寶可夢 — grid-cols-2 sm:3 md:4 lg:5, transcribed */
+    .home-pop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .home-pop-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 2px solid var(--hairline);
+      border-radius: 16px;
+      text-decoration: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+    }
+    .home-pop-card:hover {
+      border-color: var(--hairline-strong);
+      box-shadow: var(--shadow-card);
+      transform: translateY(-2px);
+    }
+    .home-pop-card img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 8px; }
+    .home-pop-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .home-pop-num { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
+    .home-pop-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+
+    /* 熱門搜尋 — a grey panel in the source; on a dark page a raised surface
+       reads as the panel, so it is a surface token rather than a literal grey. */
+    .home-tags-panel {
+      --home-accent: #60a5fa;
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    [data-theme="light"] .home-tags-panel { --home-accent: #1d4ed8; }
+    .home-tags-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px; }
+    .home-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .home-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill);
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+    }
+    a.home-tag:hover { border-color: var(--home-accent); color: var(--text-primary); }
+    /* A planned tag is a <span>, never an <a>: four of the ten have no
+       destination (pokedex.html has no ?type= filter, and 600族 has no page),
+       and a focusable control that goes nowhere is worse than a non-focusable
+       one. Same rule as the nav's planned rows. */
+    .home-tag.is-planned { color: var(--text-muted); }
+    .home-tag-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-tertiary, var(--surface-raised));
+      /* Same defect as .home-hero-updated, in the other direction: the badge
+         sits on --bg-tertiary, one step darker than the card behind it, so
+         light-theme --text-muted scores 4.35:1 there. 4.5:1 is the floor for
+         10px text, and --text-secondary clears it at 5.28:1. */
+      color: var(--text-secondary);
+    }
+
+    /* 探索圖鑑 — one accent per card, carried as an rgb triple so one rule can
+       build both the border and the number. The comma in `96, 165, 250` is
+       load-bearing: `rgb(96 165 250 / .35)` is invalid and the whole
+       declaration is dropped (gotcha 41). Steps are chosen per theme, because
+       --bg-card flips: the 400 step is 8.73:1 on the dark card and 1.9:1 on
+       the white one. Worst case measured 5.50:1 dark / 5.02:1 light. */
+    .home-explore-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    @media (min-width: 640px) { .home-explore-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1024px) { .home-explore-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .home-explore-card {
+      display: block;
+      padding: 24px;
+      background: var(--bg-card);
+      border: 2px solid rgb(var(--home-accent-rgb), 0.32);
+      border-radius: 16px;
+      text-decoration: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    a.home-explore-card:hover { border-color: rgb(var(--home-accent-rgb), 0.75); box-shadow: var(--shadow-card); }
+    .home-explore-card.is-blue   { --home-accent-rgb: 96, 165, 250; }
+    .home-explore-card.is-purple { --home-accent-rgb: 192, 132, 252; }
+    .home-explore-card.is-green  { --home-accent-rgb: 74, 222, 128; }
+    .home-explore-card.is-amber  { --home-accent-rgb: 251, 191, 36; }
+    .home-explore-card.is-red    { --home-accent-rgb: 248, 113, 113; }
+    .home-explore-card.is-cyan   { --home-accent-rgb: 34, 211, 238; }
+    [data-theme="light"] .home-explore-card.is-blue   { --home-accent-rgb: 29, 78, 216; }
+    [data-theme="light"] .home-explore-card.is-purple { --home-accent-rgb: 126, 34, 206; }
+    [data-theme="light"] .home-explore-card.is-green  { --home-accent-rgb: 21, 128, 61; }
+    [data-theme="light"] .home-explore-card.is-amber  { --home-accent-rgb: 180, 83, 9; }
+    [data-theme="light"] .home-explore-card.is-red    { --home-accent-rgb: 185, 28, 28; }
+    [data-theme="light"] .home-explore-card.is-cyan   { --home-accent-rgb: 14, 116, 144; }
+    .home-explore-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .home-explore-title { font-size: 20px; font-weight: bold; color: var(--text-primary); margin: 0; }
+    .home-explore-num { font-size: 24px; font-weight: bold; color: rgb(var(--home-accent-rgb)); white-space: nowrap; }
+    .home-explore-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+    /* Print forces the light steps. Written with BOTH theme prefixes at equal
+       specificity so it wins on source order against either theme's base rule —
+       a bare `.home-explore-card.is-blue` here would lose to
+       `[data-theme="light"] .home-explore-card.is-blue` (0,2,0) and print the
+       dark 400 step on white paper (gotcha 44). */
+    @media print {
+      [data-theme="dark"] .home-explore-card.is-blue,
+      [data-theme="light"] .home-explore-card.is-blue   { --home-accent-rgb: 29, 78, 216; }
+      [data-theme="dark"] .home-explore-card.is-purple,
+      [data-theme="light"] .home-explore-card.is-purple { --home-accent-rgb: 126, 34, 206; }
+      [data-theme="dark"] .home-explore-card.is-green,
+      [data-theme="light"] .home-explore-card.is-green  { --home-accent-rgb: 21, 128, 61; }
+      [data-theme="dark"] .home-explore-card.is-amber,
+      [data-theme="light"] .home-explore-card.is-amber  { --home-accent-rgb: 180, 83, 9; }
+      [data-theme="dark"] .home-explore-card.is-red,
+      [data-theme="light"] .home-explore-card.is-red    { --home-accent-rgb: 185, 28, 28; }
+      [data-theme="dark"] .home-explore-card.is-cyan,
+      [data-theme="light"] .home-explore-card.is-cyan   { --home-accent-rgb: 14, 116, 144; }
     }
   </style>
 </head>
@@ -102,28 +259,90 @@
   </header>
 
   <main>
-    <section class="hero" aria-labelledby="hero-title">
-      <h1 id="hero-title">1025 寶可夢演算法實驗室</h1>
-      <p class="tagline">
-        透過互動視覺化學習經典演算法 — 排序、路徑尋找、資料結構，全部以 1025 隻寶可夢為教材。
+    <section class="home-hero" aria-labelledby="hero-title">
+      <h1 id="hero-title" class="home-hero-title">1025 寶可夢演算法實驗室</h1>
+      <p class="home-hero-lede">
+        以 1,025 隻寶可夢為教材的演算法視覺化實驗室 — 排序、路徑尋找、資料結構，附完整圖鑑資料。
       </p>
-      <div class="stats">
-        <div class="stat-item">
-          <div class="stat-value">1,025</div>
-          <div class="stat-label">寶可夢精靈</div>
+      <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="popular-title">
+      <h2 id="popular-title" class="home-section-title">熱門寶可夢</h2>
+      <p class="home-section-sub">探索所有世代中搜尋次數最多和最受喜愛的寶可夢</p>
+      <div class="home-pop-grid" id="popular-grid"></div>
+
+      <div class="home-tags-panel">
+        <h3 class="home-tags-title">熱門搜尋</h3>
+        <div class="home-tags">
+          <a class="home-tag" href="category.html?cat=starter">最強最初的夥伴</a>
+          <a class="home-tag" href="category.html?cat=legendary">最強寶可夢</a>
+          <a class="home-tag" href="detail.html?slug=eevee">伊布進化</a>
+          <a class="home-tag" href="detail.html?slug=charizard">超級噴火龍</a>
+          <a class="home-tag" href="category.html?cat=shiny">異色寶可夢列表</a>
+          <span class="home-tag is-planned">龍屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
+          <span class="home-tag is-planned">600族寶可夢<span class="home-tag-badge">敬請期待</span></span>
+          <span class="home-tag is-planned">火屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
+          <span class="home-tag is-planned">幽靈屬性寶可夢<span class="home-tag-badge">敬請期待</span></span>
+          <a class="home-tag" href="category.html?cat=paradox">悖謬寶可夢</a>
         </div>
-        <div class="stat-item">
-          <div class="stat-value">6</div>
-          <div class="stat-label">排序演算法</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">2</div>
-          <div class="stat-label">路徑搜尋演算法</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">10</div>
-          <div class="stat-label">顏色分群</div>
-        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section class="home-section" aria-labelledby="explore-title">
+      <h2 id="explore-title" class="home-section-title">探索圖鑑</h2>
+      <p class="home-section-sub">瀏覽我們按多個類別整理的 1,025 隻寶可夢資料庫</p>
+      <div class="home-explore-grid">
+        <a class="home-explore-card is-blue" href="pokedex.html">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">所有寶可夢</h3>
+            <span class="home-explore-num">1,025</span>
+          </div>
+          <p class="home-explore-desc">包含第 1-9 世代所有寶可夢的詳細種族值、進化和招式組的全國圖鑑。</p>
+        </a>
+        <a class="home-explore-card is-purple" href="generations.html">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">按世代</h3>
+            <span class="home-explore-num">9</span>
+          </div>
+          <p class="home-explore-desc">從關都 (第 1 世代) 到帕底亞 (第 9 世代) 按世代瀏覽寶可夢。查看地區圖鑑說明。</p>
+        </a>
+        <span class="home-explore-card is-green">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">按屬性</h3>
+            <span class="home-explore-num">18</span>
+          </div>
+          <p class="home-explore-desc">探索所有 18 種寶可夢屬性：火、水、草、電、超能力、龍等，附帶屬性表。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-explore-card is-amber">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">特性</h3>
+            <span class="home-explore-num">284</span>
+          </div>
+          <p class="home-explore-desc">完整的寶可夢特性資料庫，包括隱藏特性、戰鬥效果以及擁有這些特性的寶可夢。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-explore-card is-red">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">招式</h3>
+            <span class="home-explore-num">783</span>
+          </div>
+          <p class="home-explore-desc">搜尋所有寶可夢招式和攻擊。查看每個招式的威力、命中率、PP、屬性和學習方法。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
+        <span class="home-explore-card is-cyan">
+          <div class="home-explore-head">
+            <h3 class="home-explore-title">性格</h3>
+            <span class="home-explore-num">25</span>
+          </div>
+          <p class="home-explore-desc">了解性格如何影響能力。包含所有 25 種寶可夢性格及其能力修正的完整指南。</p>
+          <span class="home-tag-badge">敬請期待</span>
+        </span>
       </div>
     </section>
 
@@ -176,17 +395,59 @@
   </footer>
 
   <script type="module">
-    import {loadPokemonData, createPokemonCard, pokemonDetailUrl, initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import {loadPokemonData, createPokemonCard, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, ASSETS } from './assets/js/shared.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
     initHeaderNav();
 
     const grid = document.getElementById('pokedex-grid');
+    const popularGrid = document.getElementById('popular-grid');
+
+    // The ten from infopoke_net_home.html, in the source's order, by id. The
+    // names, types and slugs come from our own data — only the selection is
+    // transcribed. (超級噴火龍 has no page of its own; the Mega X form is one of
+    // Charizard's variants inside evolution_chains.json, so the tag above points
+    // at detail.html?slug=charizard rather than a URL that would 404.)
+    const POPULAR_IDS = [25, 6, 150, 133, 94, 448, 445, 658, 384, 149];
+
+    function renderPopular(data) {
+      const fragment = document.createDocumentFragment();
+      for (const id of POPULAR_IDS) {
+        const p = data.find(entry => entry.id === id);
+        // A missing id must be loud, not silently skipped: all ten are present in
+        // pokemon_data.json, so an empty card would mean the ids drifted.
+        if (!p) {
+          console.error(`[index] 熱門寶可夢 id ${id} not found in pokemon_data.json`);
+          continue;
+        }
+        // `types` and `types_zh` are parallel arrays in the schema, so this is a
+        // positional zip. (An earlier indexOf lookup was correct but needlessly
+        // indirect, and would silently mislabel anything if the two ever
+        // stopped being parallel.)
+        const types = (p.types || [])
+          .map((t, i) => typeBadgeSmHtml(t, (p.types_zh || [])[i]))
+          .join('');
+        const a = document.createElement('a');
+        a.className = 'home-pop-card';
+        a.href = pokemonDetailUrl(p);
+        // InfoPoke's aria-label is English ("View Pikachu details") on a zh-TW
+        // page; ours matches the language the rest of the site announces.
+        a.setAttribute('aria-label', `查看 ${p.names.zh} 的詳細資料`);
+        a.innerHTML =
+          `<img src="${ASSETS.images}${p.id}.png" alt="" width="80" height="80" loading="lazy">` +
+          `<p class="home-pop-name">${p.names.zh}</p>` +
+          `<p class="home-pop-num">#${String(p.id).padStart(3, '0')}</p>` +
+          `<div class="home-pop-types">${types}</div>`;
+        fragment.appendChild(a);
+      }
+      popularGrid.appendChild(fragment);
+    }
 
     async function init() {
       try {
         const data = await loadPokemonData();
+        renderPopular(data);
         const fragment = document.createDocumentFragment();
         
         data.forEach(pokemon => {
