@@ -726,11 +726,12 @@ canvas.maze-canvas {
 }
 
 /* ===== Theme toggle =====
-   Lives in the header, NOT inside .header-nav: only index.html and pokedex.html
-   have a nav at all, and initHeaderNav() in shared.js assigns that container's
-   innerHTML unconditionally (gotcha 27), so anything placed there would be
+   Lives in the header, NOT inside .site-nav: initHeaderNav() assigns the nav
+   container's innerHTML unconditionally, so anything placed there would be
    destroyed on first paint. As a header child it is identical on all five
-   content pages. */
+   content pages. It stays `position: absolute`, and `.header-dex` reserves the
+   62px it needs with `padding-right` — so the nav's own layout never has to
+   know the toggle exists. */
 .theme-toggle {
   position: absolute;
   top: 50%;
@@ -766,42 +767,285 @@ canvas.maze-canvas {
 [data-theme="light"] .theme-toggle .icon-sun { display: block; }
 [data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
-/* On the two pages that do have a nav, the toggle takes the far corner and the
-   nav steps left to clear it. Inert on the other three pages, which have no nav.
-   62px = the toggle's 34px box + its 16px inset + 12px of breathing room. */
-.header-nav {
-  position: absolute;
-  top: 50%;
-  right: 62px;
-  transform: translateY(-50%);
+/* ===== Site nav =====
+   `.header-dex` is the only header that carries navigation (sorting / maze /
+   detail are control bars), so the row layout below is scoped to it rather than
+   to `.header` — `.header` stays a centred column for the other four pages.
+
+   The nav used to be `.header-nav` positioned `absolute; right: 62px`, which
+   only cleared the absolutely-positioned theme toggle. Now that the nav is a
+   flex child in a row, the toggle is given a flow spacer instead: the toggle
+   itself stays `position: absolute`, so nothing about the 5 pages that have no
+   nav changes. */
+.header-dex {
   display: flex;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  padding-right: 62px; /* the toggle's 34px box + 16px inset + 12px of air */
 }
 
-.header-nav a {
-  color: var(--text-primary);
-  text-decoration: none;
-  font-weight: bold;
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.site-nav-item {
+  position: relative;
+  display: flex;
+}
+
+/* Chip on the saturated red header. This is NOT --text-primary: the old rule
+   inherited it and then needed a `.maze-link` override precisely because
+   near-black text only reached 2.36:1 on a saturated fill. A fixed white label
+   on a translucent black chip measures 11.6:1 over the darkest gradient stop
+   (#9f1239) and clears AA at every stop; the chip is what makes it a chip
+   rather than floating text. */
+/* The chip uses the same theme-aware token trio as `.btn`, and that is not
+   cosmetic: a hardcoded `color: #fff` measured 2.20:1 in light theme, because
+   `--bg-header-dex` is a saturated red there in dark and a PALE PINK
+   (#fff1f2 → #ffe4e6) in light — the same hex pair, inverted. The old rule had
+   the same class of bug and needed a `.maze-link` override to patch one page;
+   the fix is the token trio, not another override. `--btn-bg` is white in both
+   themes with `--btn-fg` #1f2328 on it = 14.6:1. */
+a.site-nav-item,
+.site-nav-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
   padding: 8px 15px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--hairline-strong);
-  transition: all var(--transition-fast);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: bold;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.header-nav a:hover {
-  background: var(--accent-yellow);
-  color: #14110a;
-}
-
-/* Marks the current page. The two pages that had a nav both already carried
-   class="... active" and nothing styled it, so the current page was marked in
-   markup only. Same treatment as the other links — a filled pill, not just a
-   heavier font — because "which of these four am I on" is exactly what a nav
-   item has to answer at a glance. */
-.header-nav a.active {
+a.site-nav-item:hover,
+.site-nav-trigger:hover {
   background: var(--accent-yellow);
   color: #14110a;
   border-color: var(--accent-yellow);
+}
+
+/* Current page / current section. `is-active` is emitted by initHeaderNav from
+   the `pages` list, not written in markup, so it cannot go stale. */
+a.site-nav-item.is-active,
+.site-nav-item-has-panel.is-active > .site-nav-trigger {
+  background: var(--accent-yellow);
+  color: #14110a;
+  border-color: var(--accent-yellow);
+}
+
+a.site-nav-item:focus-visible,
+.site-nav-trigger:focus-visible,
+.site-nav-toggle:focus-visible,
+.site-nav-row:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* The caret rotates instead of swapping to a second path: an up-chevron would
+   have been a different glyph for the same shape, and two paths means the
+   direction can disagree with `aria-expanded`. Rotation is a transform, so it
+   costs nothing per frame. */
+.site-nav-caret {
+  width: 0.85em;
+  height: 0.85em;
+  margin: 0;
+  opacity: 0.75;
+  transition: transform var(--transition-fast);
+}
+
+.site-nav-trigger[aria-expanded="true"] .site-nav-caret {
+  transform: rotate(180deg);
+}
+
+/* Dropdown panel. Sits over page content, not over the header, so it uses the
+   site's card surface rather than the header's chip treatment. `hidden` is the
+   open/close mechanism (initHeaderNav), so the closed state is also correct
+   before JS runs and with JS off.
+
+   `left: 0` + 8px is InfoPoke's own geometry — its panels are
+   `absolute top-full left-0 mt-2` against the trigger's wrapper. The
+   consequence, kept deliberately rather than corrected: the panel is anchored
+   to the 34px chip, not to the 64px header, so its top edge lands 4px above the
+   header's bottom and covers that strip of header padding. InfoPoke does the
+   same, and an `align-self: stretch` "fix" was tried and reverted — it moved
+   the panel 12px lower than the chip's baseline for no visual gain. Left-anchored
+   (not right) because a right-anchored panel under the 2nd of 4 items hangs off
+   the wrong edge. */
+.site-nav-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 268px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-strong);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 120;
+}
+
+.site-nav-panel[hidden] {
+  display: none;
+}
+
+.site-nav-group + .site-nav-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+
+.site-nav-group-title {
+  margin: 0 0 4px;
+  padding: 2px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* A dropdown row is a <a>, so the whole row is the hit target — the label and
+   the desc are separate spans purely for visual weight. */
+.site-nav-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.site-nav-row:hover {
+  background: var(--surface-hover);
+}
+
+.site-nav-row-label {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.site-nav-row-desc {
+  grid-column: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Planned page: a <span>, not an <a> (gotcha 37 — a focusable control that does
+   nothing is worse than a non-focusable one). `cursor: default` because
+   `pointer` on a dead row is the affordance lie. */
+.site-nav-row.is-planned {
+  cursor: default;
+}
+
+.site-nav-row.is-planned .site-nav-row-label,
+.site-nav-row.is-planned .site-nav-row-desc {
+  opacity: 0.6;
+}
+
+.site-nav-row-badge {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: var(--accent-gold);
+  background: rgb(var(--accent-gold-rgb) / 0.14);
+}
+
+/* ===== Mobile drawer =====
+   `hidden` is the open/close mechanism, so the closed drawer is correct before
+   JS runs. The toggle is a fixed 40px target; below 1024px the row nav is
+   hidden instead of being reflowed, because 4 top-level items plus 2 panels do
+   not fit a phone's width without a drawer. */
+.site-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.site-nav-toggle .icon {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+/* The drawer element is BOTH the panel and the list: initHeaderNav renders the
+   same top-level-item string into it as into the row nav, so there is no inner
+   `.site-nav` wrapper to style. `display: flex` here therefore has to be undone
+   by `.site-nav-drawer[hidden]`, which is why that rule is not merely a `hidden`
+   attribute but a `display: none` — the [hidden] selector would otherwise be
+   defeated by this one at equal specificity. */
+.site-nav-drawer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 110;
+}
+
+.site-nav-drawer[hidden] {
+  display: none;
+}
+
+/* Every panel is expanded in the drawer: a hover panel inside a drawer is
+   unreachable by touch, and the accordion a touch user would expect needs
+   state that `hidden` on a hover-driven panel cannot provide. The nav is short
+   enough (4 items, 8 rows) that showing everything beats a broken accordion. */
+.site-nav-drawer .site-nav-panel {
+  position: static;
+  min-width: 0;
+  padding: 0 0 6px 14px;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-nav-drawer .site-nav-panel[hidden] {
+  display: block;
+}
+
+.site-nav-drawer .site-nav-trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.site-nav-drawer .site-nav-row-desc {
+  display: none;
 }
 
 /* Was in detail.css with a comment claiming it was available on every page,
@@ -821,16 +1065,16 @@ canvas.maze-canvas {
   border: 0;
 }
 
-.header-nav a.maze-link {
-  background: #1d4ed8;
-  /* Solid fill, so the label is fixed rather than themed: the neighbouring nav
-     links inherit --text-primary, which is near-black in light mode and only
-     reaches 2.36:1 on this blue. */
-  color: #fff;
+@media (max-width: 1024px) {
+  .header-dex .site-nav { display: none; }
+  .site-nav-toggle { display: flex; margin-left: auto; }
+  .header-dex { padding-right: 62px; }
 }
 
-.header-nav a.maze-link:hover {
-  background: #1e40af;
+@media print {
+  .site-nav,
+  .site-nav-toggle,
+  .site-nav-drawer { display: none !important; }
 }
 
 /* ===== Footer / Bottom ===== */
