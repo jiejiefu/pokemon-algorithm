@@ -94,6 +94,13 @@ export const ASSETS = {
   // download_variant_sprites.py) can never walk into it. Whether a given id has
   // a shiny file is a separate question — see hasShiny() in shiny-index.js.
   shiny: 'assets/images/shiny/',
+  // A sibling of images/ for the same reason shiny/ is: three scripts address
+  // assets/images/pokemon/ by explicit filename, and a model tree is a third
+  // thing to not nest inside it. Which ids actually have a model is answered by
+  // hasGlb() in glb-index.js, not by probing — same contract as hasShiny(),
+  // because the roster is 2 of 1025 and a per-id request would leave a console
+  // error for the other 1023.
+  glbs: 'assets/glbs/',
   data: 'assets/data/pokemon_data.json',
   generations: 'assets/data/generations.json',
   sortingAlgos: 'assets/js/sorting-algorithms.js'
@@ -311,7 +318,23 @@ const ICON_PATHS = {
   chevron: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z',
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
   close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
-  sparkle: 'M12 2l2.4 6.2L21 10l-6.6 1.8L12 18l-2.4-6.2L3 10l6.6-1.8L12 2z'
+  sparkle: 'M12 2l2.4 6.2L21 10l-6.6 1.8L12 18l-2.4-6.2L3 10l6.6-1.8L12 2z',
+  // model3d.html. `view_in_ar` rather than a literal cube: it reads as a
+  // viewable 3D object at 16px, where an isometric cube outline flattens into a
+  // hexagon next to the other five.
+  cube: 'M12 2.5L20.5 7v10L12 21.5 3.5 17V7L12 2.5zm0 2.31L5.91 8.09 12 11.18l6.09-3.09L12 4.81zM5 9.64v6.72l6 3.13v-6.72l-6-3.13zm8 9.85l6-3.13V9.64l-6 3.13v6.72z',
+  // model3d.html's four playback buttons. These are the exception that proves
+  // the rule above: `shuffle` / `palette` / `back` / `forward` stay out of
+  // ICON_PATHS because nothing but static markup ever draws them, so the path
+  // is written once. These four WOULD be written twice — the play/pause button
+  // exists in the HTML and its glyph is swapped by JS when the state flips —
+  // so they live here, where one edit fixes both. Do not add a playback glyph
+  // as static markup and then also here; that is the duplication gotcha 27 was
+  // written about.
+  play: 'M8 5v14l11-7z',
+  pause: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
+  reset: 'M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z',
+  orbit: 'M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'
 };
 
 /**
@@ -489,8 +512,12 @@ export function createFeatureCard({ href, icon, title, desc, className }) {
    that a focusable element which does nothing when activated is worse than a
    non-focusable one, and ?cat= accepts only the 9 real slugs.
 
-   Only the five pages listed in the plan render this: sorting / maze / detail
-   have control bars in their headers, not navigation. */
+   Six pages mount this — index, pokedex, collections, category, generations,
+   model3d. The other three deliberately do not: sorting and maze have a control
+   bar where a nav would go (see maze.html's `.controls-maze`, whose leftmost
+   child is the logo for that reason, gotcha 51c), and detail is a single scroll
+   whose header is the three-column top card. `rg -l site-nav *.html` is the
+   check; a page added without it loses the nav silently. */
 export const NAV = [
   { href: 'index.html', label: '首頁', icon: 'home' },
   {
@@ -541,6 +568,11 @@ export const NAV = [
   // `href === page || pages.includes(page)`, so an item with no groups still
   // honours it.
   { href: 'collections.html', pages: ['category.html'], label: '特殊分類', icon: 'layers' },
+  // Third in the 演算法 group conceptually (it is another visualiser), but a
+  // top-level item because its own controls are the content — a dropdown would
+  // bury the page it links to behind a hover, and the page is reachable from the
+  // homepage's 精選系列 grid as well.
+  { href: 'model3d.html', label: '3D 模型', icon: 'cube' },
 ];
 
 /**
@@ -631,9 +663,9 @@ function navItemHtml(item, currentPage) {
  * Build the site nav into its mount point.
  *
  * The mount point is `<nav class="site-nav" data-nav>`; the whole nav is
- * rendered from NAV above, so the five pages cannot drift apart again. The
- * mobile drawer is the SAME markup in a different container — one render, two
- * mount points — because duplicating the list is how this started.
+ * rendered from NAV above, so the pages that mount it cannot drift apart
+ * again. The mobile drawer is the SAME markup in a different container — one
+ * render, two mount points — because duplicating the list is how this started.
  *
  * @param {string} [currentPage] - defaults to the current location's filename
  */

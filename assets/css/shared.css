@@ -38,6 +38,7 @@
   --bg-header-sort: linear-gradient(135deg, #be123c 0%, #881337 100%);
   --bg-header-maze: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
   --bg-header-dex: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+  --bg-header-3d: linear-gradient(135deg, #6d28d9 0%, #3730a3 100%);
   --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   /* Same hue, two roles: as a *fill* it takes white text, as *text* it has to
      clear 4.5:1 on a near-white page. #e3b341 does both in dark (#14110a on it
@@ -167,6 +168,7 @@
   --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
   --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
   --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   --text-primary: #1f2328;
@@ -364,6 +366,7 @@ body {
 .header-sort { background: var(--bg-header-sort); }
 .header-maze { background: var(--bg-header-maze); }
 .header-dex { background: var(--bg-header-dex); position: sticky; top: 0; z-index: 100; }
+.header-3d { background: var(--bg-header-3d); position: sticky; top: 0; z-index: 100; }
 
 /* ===== Controls / Buttons ===== */
 .controls {
@@ -815,16 +818,26 @@ canvas.maze-canvas {
 [data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
 /* ===== Site nav =====
-   `.header-dex` is the only header that carries navigation (sorting / maze /
-   detail are control bars), so the row layout below is scoped to it rather than
-   to `.header` — `.header` stays a centred column for the other four pages.
+   Six headers carry navigation (index / pokedex / collections / category /
+   generations / model3d); sorting, maze and detail are control bars instead, so
+   the row layout below is scoped to those two classes rather than to `.header`
+   — `.header` stays a centred column for the remaining three pages.
+
+   model3d.html joined `.header-dex` in every selector group here rather than
+   getting a parallel rule set: the row layout, the 62px right padding that
+   clears the absolutely-positioned theme toggle, and the 1024px collapse are
+   one behaviour, and a copy of it is a second thing to keep in step. Note
+   `.header-3d` is `sticky` like `.header-dex` and for the same stated reason
+   at line 265 — a static header does not form a containing block for the
+   toggle.
 
    The nav used to be `.header-nav` positioned `absolute; right: 62px`, which
    only cleared the absolutely-positioned theme toggle. Now that the nav is a
    flex child in a row, the toggle is given a flow spacer instead: the toggle
-   itself stays `position: absolute`, so nothing about the 5 pages that have no
-   nav changes. */
-.header-dex {
+   itself stays `position: absolute`, so nothing about the 3 pages that have no
+   nav changes — they have no `.site-nav` to lay out in a row. */
+.header-dex,
+.header-3d {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1132,9 +1145,11 @@ a.site-nav-item:focus-visible,
 }
 
 @media (max-width: 1024px) {
-  .header-dex .site-nav { display: none; }
+  .header-dex .site-nav,
+  .header-3d .site-nav { display: none; }
   .site-nav-toggle { display: flex; margin-left: auto; }
-  .header-dex { padding-right: 62px; }
+  .header-dex,
+  .header-3d { padding-right: 62px; }
 }
 
 @media print {
@@ -1195,6 +1210,7 @@ a.site-nav-item:focus-visible,
     --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
     --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
     --header-title-shadow: none;
     color-scheme: light;
   }

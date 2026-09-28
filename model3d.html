@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D 模型播放器</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
+       theme before the first paint so the page never flashes one palette and then
+       repaints in the other; a module in shared.js cannot do this because module
+       scripts are deferred by definition. It is also the only place a theme is
+       resolved, and it ALWAYS writes a concrete value, which is why shared.css
+       has no prefers-color-scheme media query: a `:root:not([data-theme="dark"])`
+       block could never match once this runs. :root's dark palette is the no-JS
+       fallback. Kept in sync with THEME_COLORS in assets/js/shared.js. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    /* Three.js and its addons are resolved by BARE specifier through this map,
+       which is the only thing model3d-viewer.js relies on. It is declared here
+       rather than in the module so that switching to a locally vendored copy is
+       a change to this one block, with no edit to the JS — see the module
+       header. `three` and `three/addons/` are separate entries because the
+       addons import the core by the bare name, which an import map resolves
+       independently of any path prefix rule. */
+    .m3d-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .m3d-layout { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* The stage is a fixed 4:3 box rather than a height: a viewer whose height
+       depends on its content has nothing to measure before the canvas is in
+       it, and `resize()` would be reading 0. aspect-ratio keeps the framing
+       sane at any width without a media query. */
+    .m3d-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      min-height: 300px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--bg-secondary);
+      border: 1px solid var(--hairline);
+    }
+    .m3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+    /* Overlay state, absolutely positioned over the stage. One element for
+       three states (loading / no-model / failed) rather than three overlapping
+       ones, so there is no way for two to be visible at once. */
+    .m3d-status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 15px;
+      background: var(--bg-secondary);
+    }
+    .m3d-status[hidden] { display: none; }
+    .m3d-status .m3d-status-title { color: var(--text-primary); font-size: 17px; font-weight: 700; }
+    .m3d-status .m3d-status-detail { color: var(--text-muted); font-size: 13px; }
+
+    .m3d-side {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .m3d-card {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .m3d-card > h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .m3d-picker {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-input);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 15px;
+    }
+    .m3d-picker:focus { border-color: var(--accent-yellow); outline: none; }
+
+    /* Identity row: the sprite is a thumbnail of the SAME pokemon whose model
+       is on screen, which is what makes the page read as a Pokémon page rather
+       than a bare model viewer. The name is the <h1> (see gotcha 40 — this page
+       has no hero, so the header keeps its heading, and this is a <p>). */
+    .m3d-identity { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .m3d-identity img { width: 56px; height: 56px; image-rendering: auto; }
+    .m3d-identity p { margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; }
+    .m3d-identity span { display: block; color: var(--text-muted); font-size: 12px; font-weight: 400; }
+
+    /* Progress. role=progressbar is a live-updating 0..1, and it is deliberately
+       NOT a live region — announcing 60 updates a second would be worse than
+       silence. The elapsed/total text beside it is the accessible readout, and
+       it changes on the same clock at a rate a reader can follow. */
+    .m3d-progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .m3d-progress {
+      flex: 1 1 auto;
+      height: 6px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-raised);
+      overflow: hidden;
+    }
+    .m3d-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-gold);
+      border-radius: inherit;
+    }
+    .m3d-time { flex: 0 0 auto; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .m3d-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .m3d-btn-row .btn { flex: 1 1 auto; }
+
+    .m3d-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .m3d-slider-row input[type="range"] { flex: 1 1 auto; accent-color: var(--accent-gold); }
+    .m3d-slider-row output { flex: 0 0 auto; min-width: 3.2em; text-align: right; color: var(--text-muted); }
+
+    /* The clip list. A GROUP of toggle buttons, not a tablist: choosing a clip
+       changes what is on the canvas and shows no panel of its own, so there is
+       nothing for a tab to own. `aria-pressed` carries the selection, and the
+       raw clip name is rendered under the Chinese label on every button — see
+       ANIM_LABELS in model3d-viewer.js for why that is not optional. */
+    .m3d-clips { display: flex; flex-direction: column; gap: 6px; }
+    .m3d-clip {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--hairline);
+      background: var(--surface-raised);
+      color: var(--text-primary);
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .m3d-clip:hover { background: var(--surface-hover); }
+    .m3d-clip[aria-pressed="true"] { border-color: var(--accent-gold); color: var(--accent-gold); font-weight: 700; }
+    .m3d-clip code {
+      flex: 0 0 auto;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 400;
+    }
+    .m3d-clip[aria-pressed="true"] code { color: var(--text-secondary); }
+
+    .m3d-empty { color: var(--text-muted); font-size: 13px; }
+
+    /* The whole playback panel is hidden, not just disabled, when a model has no
+       clips — a row of dead controls is worse than no row (the same argument as
+       gotcha 37's planned cards). */
+    .m3d-playback[hidden] { display: none; }
+
+    .m3d-note { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+    .m3d-note code { font-size: 11px; }
+
+    @media print {
+      .m3d-stage { display: none; }
+      .m3d-status { position: static; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="header header-3d">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
+      <h1>3D 模型播放器</h1>
+    </div>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="m3d-layout">
+    <div>
+      <div class="m3d-stage" id="stage">
+        <div class="m3d-status" id="status" role="status">
+          <p class="m3d-status-title" id="status-title">載入中…</p>
+          <p class="m3d-status-detail" id="status-detail"></p>
+        </div>
+      </div>
+      <p class="m3d-note" id="model-note" style="margin-top:12px;"></p>
+    </div>
+
+    <div class="m3d-side">
+      <div class="m3d-card">
+        <h2 id="picker-label">選擇寶可夢</h2>
+        <label class="m3d-sr-only" for="picker" hidden>選擇寶可夢</label>
+        <select class="m3d-picker" id="picker" aria-labelledby="picker-label"></select>
+        <div class="m3d-identity" id="identity" hidden>
+          <img id="identity-sprite" alt="" width="56" height="56" decoding="async">
+          <p><span id="identity-name"></span><span id="identity-sub"></span></p>
+        </div>
+      </div>
+
+      <!-- The whole block is `hidden` for a model with 0 clips, and re-shown per
+           load. Never disabled: a disabled row reads as broken. -->
+      <div class="m3d-card m3d-playback" id="playback" hidden>
+        <h2>播放控制</h2>
+        <div class="m3d-progress-row">
+          <div class="m3d-progress" id="progress" role="progressbar"
+               aria-label="動畫播放進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="m3d-progress-fill" id="progress-fill"></div>
+          </div>
+          <span class="m3d-time" id="time">0.00s / 0.00s</span>
+        </div>
+        <div class="m3d-btn-row">
+          <button type="button" class="btn" id="playpause" aria-label="播放"></button>
+          <button type="button" class="btn" id="autorotate" aria-pressed="false"></button>
+          <button type="button" class="btn" id="resetview" aria-label="重設視角"></button>
+        </div>
+        <div class="m3d-slider-row">
+          <label for="speed">速度</label>
+          <input type="range" id="speed" min="0.1" max="2" step="0.1" value="1">
+          <output for="speed" id="speed-out">1.0×</output>
+        </div>
+      </div>
+
+      <div class="m3d-card" id="clip-card" hidden>
+        <h2 id="clip-label">動畫</h2>
+        <div class="m3d-clips" id="clips" role="group" aria-labelledby="clip-label"></div>
+        <div class="m3d-btn-row" style="margin-top:12px">
+          <button type="button" class="btn" id="loop" aria-pressed="false">循環播放</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    // hasGlb() comes from glb-index.js, NOT from shared.js — a missing export is
+    // a SyntaxError at parse time that kills the whole module, and the only
+    // symptom is a page stuck on 載入中… with no console error of its own
+    // (gotcha 31).
+    import {
+      loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+      iconSvg, ASSETS
+    } from './assets/js/shared.js';
+    import { GLB_IDS } from './assets/js/glb-index.js';
+    import { createViewer, clipLabel } from './assets/js/model3d-viewer.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    const stage = document.getElementById('stage');
+    const status = document.getElementById('status');
+    const statusTitle = document.getElementById('status-title');
+    const statusDetail = document.getElementById('status-detail');
+    const modelNote = document.getElementById('model-note');
+    const picker = document.getElementById('picker');
+    const identity = document.getElementById('identity');
+    const identitySprite = document.getElementById('identity-sprite');
+    const identityName = document.getElementById('identity-name');
+    const identitySub = document.getElementById('identity-sub');
+    const playback = document.getElementById('playback');
+    const clipCard = document.getElementById('clip-card');
+    const clipsBox = document.getElementById('clips');
+    const playBtn = document.getElementById('playpause');
+    const autoBtn = document.getElementById('autorotate');
+    const resetBtn = document.getElementById('resetview');
+    const loopBtn = document.getElementById('loop');
+    const speed = document.getElementById('speed');
+    const speedOut = document.getElementById('speed-out');
+    const progress = document.getElementById('progress');
+    const progressFill = document.getElementById('progress-fill');
+    const timeLabel = document.getElementById('time');
+
+    // The label table lives in model3d-viewer.js and is reached through
+    // clipLabel(). An earlier draft kept a second copy here so the page could
+    // label a button; that is the duplication gotcha 27 and the module-header
+    // note are both about, and it was already wrong within one commit — the
+    // copy did not know about the `001a` exporter prefix, so all nine of 1.glb's
+    // buttons would have silently fallen back to their raw names.
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function setStatus(title, detail) {
+      if (!title) { status.hidden = true; return; }
+      status.hidden = false;
+      statusTitle.textContent = title;
+      statusDetail.textContent = detail || '';
+    }
+
+    /**
+     * WebGL support probe, before any three.js code runs.
+     *
+     * `new WebGLRenderer()` on a machine without WebGL throws a bare
+     * "Error creating WebGL context", which says nothing about the cause; asking
+     * for a context on a throwaway canvas and catching the failure lets the page
+     * say so in the visitor's language instead. The context is explicitly lost
+     * again — Safari counts live contexts and starts dropping the oldest.
+     */
+    function webglSupported() {
+      try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl2') || c.getContext('webgl');
+        if (!gl) return false;
+        const lose = gl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // The play/pause glyph is swapped by JS, so the path lives in shared.js's
+    // ICON_PATHS rather than being written into this markup too. See the comment
+    // on those four entries.
+    function paintPlaybackButtons(state) {
+      const playing = state.playing;
+      playBtn.innerHTML = iconSvg(playing ? 'pause' : 'play') +
+        `<span>${playing ? '暫停' : '播放'}</span>`;
+      playBtn.setAttribute('aria-label', playing ? '暫停動畫' : '播放動畫');
+      autoBtn.innerHTML = iconSvg('orbit') + '<span>自動旋轉</span>';
+      autoBtn.setAttribute('aria-pressed', String(!!state.autoRotating));
+      resetBtn.innerHTML = iconSvg('reset') + '<span>重設視角</span>';
+      loopBtn.setAttribute('aria-pressed', String(!!state.loop));
+    }
+
+    let viewer = null;
+    let data = [];
+    let current = null;
+
+    function renderClips(clips) {
+      clipsBox.innerHTML = clips.map((clip, i) => {
+        const { label } = clipLabel(clip.name);
+        // Always show the raw name. For an unrecognised token the label IS the
+        // raw name, so printing both would duplicate it.
+        const tail = label ? `<code>${esc(clip.name)}</code>` : '';
+        return `<button type="button" class="m3d-clip" data-clip="${i}" aria-pressed="${i === 0}">` +
+          `<span>${label ? esc(label) : esc(clip.name)}</span>${tail}</button>`;
+      }).join('');
+    }
+
+    function paintProgress(fraction, state) {
+      const action = state.actions[state.activeIndex];
+      const clip = action ? action.getClip() : null;
+      const total = clip ? clip.duration : 0;
+      const pct = Math.round(fraction * 100);
+      progressFill.style.width = `${pct}%`;
+      progress.setAttribute('aria-valuenow', String(pct));
+      timeLabel.textContent = total
+        ? `${(fraction * total).toFixed(2)}s / ${total.toFixed(2)}s`
+        : '0.00s / 0.00s';
+    }
+
+    async function show(id) {
+      current = id;
+      picker.value = String(id);
+      const p = data.find(d => d.id === id);
+      if (p) {
+        identity.hidden = false;
+        identitySprite.src = `${ASSETS.images}${p.filename}`;
+        identityName.textContent = p.names.zh;
+        identitySub.textContent = `#${formatPokemonId(p.id)} ${p.names.en}・${p.types_zh.join(' / ')}`;
+        document.title = `#${formatPokemonId(p.id)} ${p.names.zh} 3D 模型`;
+      }
+
+      setStatus('載入模型中…', '正在解析 Draco 網格');
+      const result = await viewer.load(id);
+
+      if (!result.ok) {
+        // A superseded load is not a state to render. Whoever is waiting on it
+        // has already been replaced by a newer show() call, and writing the
+        // empty state here would blank the panel under the model that IS on
+        // screen.
+        if (result.reason === 'superseded') return;
+        playback.hidden = true;
+        clipCard.hidden = true;
+        clipsBox.innerHTML = '';
+        if (result.reason === 'missing') {
+          setStatus('這隻寶可夢還沒有 3D 模型',
+            GLB_IDS.size === 1 ? '目前只有 1 隻有模型' : `目前共 ${GLB_IDS.size} 隻有模型`);
+        } else {
+          setStatus('3D 模型載入失敗',
+            '檔案可能下載不完整，或 Draco 解碼器無法連線');
+          console.error(result.error);
+        }
+        return;
+      }
+
+      const clips = result.clips;
+      // 0 clips: no playback row at all. 1 clip: a single button, one-shot.
+      // N clips: every one listed, looping by default.
+      playback.hidden = clips.length === 0;
+      clipCard.hidden = clips.length === 0;
+      if (clips.length) {
+        renderClips(clips);
+        const single = clips.length === 1;
+        loopBtn.hidden = single;
+        loopBtn.setAttribute('aria-pressed', String(clips.length > 1));
+        setStatus(null);
+      } else {
+        clipsBox.innerHTML = '';
+        setStatus(null);
+      }
+
+      const clipNames = clips.map(c => c.name).join('、');
+      modelNote.innerHTML = clips.length
+        ? `${GLB_IDS.size} 隻寶可夢有 3D 模型。這隻有 <strong>${clips.length}</strong> 個動畫：${esc(clipNames)}。` +
+          `拖曳可旋轉、滾輪可縮放。`
+        : `${GLB_IDS.size} 隻寶可夢有 3D 模型，這隻沒有內建動畫。拖曳可旋轉、滾輪可縮放。`;
+    }
+
+    // ---------- boot ----------
+
+    if (!webglSupported()) {
+      setStatus('此瀏覽器不支援 WebGL', '3D 模型需要 WebGL，請更新瀏覽器或開啟硬體加速');
+      picker.disabled = true;
+    } else {
+      viewer = createViewer({
+        mount: stage,
+        onContextLost: (detail) => setStatus('3D 畫面暫時中斷', detail),
+        onContextRestored: () => {
+          // Only clear the overlay if there is a model to show. After a
+          // context loss on a page that failed to load anything, "restored"
+          // is true and the stage is still empty, so hiding the status would
+          // leave a bare canvas with no explanation on it.
+          if (viewer && current && GLB_IDS.has(current)) setStatus(null);
+        },
+        onFrame: (fraction, state) => {
+          paintProgress(fraction, state);
+          // The play/pause label is repainted here rather than on click: a
+          // one-shot clip ends on its own and the button has to follow.
+          if (playback.hidden) return;
+          const want = state.playing ? '暫停' : '播放';
+          if (playBtn.textContent.trim().slice(-2) !== want) paintPlaybackButtons(state);
+        }
+      });
+
+      document.addEventListener('themechange', () => viewer.onThemeChange());
+
+      const requested = new URLSearchParams(location.search).get('id');
+      // ?id= is honoured even when the id has no model, because a deep link
+      // from a detail page must land on a page that explains itself rather than
+      // silently redirecting to some other Pokémon.
+      data = await loadPokemonData().catch(() => []);
+
+      const ids = [...GLB_IDS].sort((a, b) => a - b);
+      picker.innerHTML = ids.map(id => {
+        const p = data.find(d => d.id === id);
+        const name = p ? p.names.zh : `#${formatPokemonId(id)}`;
+        return `<option value="${id}">#${formatPokemonId(id)} ${esc(name)}</option>`;
+      }).join('');
+
+      picker.addEventListener('change', () => {
+        show(Number(picker.value));
+        const url = new URL(location.href);
+        url.searchParams.set('id', picker.value);
+        history.replaceState(null, '', url);
+      });
+
+      playBtn.addEventListener('click', () => {
+        viewer.setPlaying(!viewer.state.playing);
+        paintPlaybackButtons(viewer.state);
+      });
+      autoBtn.addEventListener('click', () => {
+        const on = autoBtn.getAttribute('aria-pressed') !== 'true';
+        viewer.setAutoRotate(on);
+        viewer.state.autoRotating = on;
+        paintPlaybackButtons(viewer.state);
+      });
+      resetBtn.addEventListener('click', () => viewer.resetView());
+      loopBtn.addEventListener('click', () => {
+        const on = loopBtn.getAttribute('aria-pressed') !== 'true';
+        viewer.setLoop(on);
+        paintPlaybackButtons(viewer.state);
+      });
+      speed.addEventListener('input', () => {
+        viewer.setTimeScale(speed.value);
+        speedOut.textContent = `${Number(speed.value).toFixed(1)}×`;
+      });
+      clipsBox.addEventListener('click', e => {
+        const btn = e.target.closest('[data-clip]');
+        if (!btn) return;
+        viewer.selectClip(Number(btn.dataset.clip));
+        clipsBox.querySelectorAll('[data-clip]').forEach(b =>
+          b.setAttribute('aria-pressed', String(b === btn)));
+        paintPlaybackButtons(viewer.state);
+      });
+
+      // BFCache is why this is pagehide and not unload: a page put in the
+      // bfcache can be restored, and a page that only had `unload` would come
+      // back with `disposed` still true, so its rAF loop is dead and the stage
+      // is a frozen last frame. A bfcached page is never unloaded, and its
+      // WebGL context is kept by the browser, so the safest disposition is to
+      // let the `persisted` case do nothing at all.
+      addEventListener('pagehide', e => {
+        if (e.persisted || !viewer) return;
+        viewer.dispose();
+      });
+
+      const initial = requested && /^\d+$/.test(requested) ? Number(requested) : ids[0];
+      await show(initial);
+    }
+  </script>
+</body>
+</html>
