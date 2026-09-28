@@ -833,10 +833,41 @@ export const CATEGORY_SLUGS = [
  * it is what would force the next category into a hub group it may not belong in.
  *
  * The checker now asserts against this list instead, and additionally asserts
- * that `CATEGORY_SLUGS \ HUB_SLUGS` is exactly the non-hub categories, so adding
+ * that `CATEGORY_SLUGS \ HUB_SLUGS` is exactly `['pseudo-legendary']`, so adding
  * a category still requires a conscious decision about the hub.
+ *
+ * It is written out as literals rather than derived as
+ * `CATEGORY_SLUGS.filter((s) => s !== 'pseudo-legendary')`. A filter is the
+ * version that reads like the separate list while quietly defeating the point:
+ * it is the *only* form under which appending a category to the registry
+ * auto-joins the hub, which is precisely the unexamined insertion the separate
+ * list exists to prevent. A literal cannot silently absorb the next category,
+ * and a typo here fails `HUB_SLUGS ⊆ CATEGORY_SLUGS` rather than reading as
+ * intent. Registry order and hub order happen to coincide, so the two
+ * differences (`CATEGORY_SLUGS \ HUB_SLUGS` and `HUB_SLUGS \ CATEGORY_SLUGS`)
+ * are each asserted with `===` on the exact value rather than as a length.
  */
-export const HUB_SLUGS = CATEGORY_SLUGS.filter((s) => s !== 'pseudo-legendary');
+
+/**
+ * The categories that deliberately have no card in the collections hub. Read
+ * before HUB_SLUGS on purpose: a filter-derived HUB_SLUGS referencing this is
+ * then a *failing* check rather than a ReferenceError, which aborts the run
+ * before any assertion is reported.
+ */
+export const NON_HUB_SLUGS = ['pseudo-legendary'];
+
+export const HUB_SLUGS = [
+  'legendary',
+  'mythical',
+  'ultra-beast',
+  'starter',
+  'shiny',
+  'paradox',
+  'mega',
+  'gigantamax',
+  'regional',
+];
+
 
 export function getCategory(slug) {
   return Object.prototype.hasOwnProperty.call(CATEGORIES, slug) ? CATEGORIES[slug] : null;

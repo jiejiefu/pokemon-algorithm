@@ -39,6 +39,7 @@ import {
   CATEGORIES,
   CATEGORY_SLUGS,
   HUB_SLUGS,
+  NON_HUB_SLUGS,
   COLLECTION_GROUPS,
   COLLECTION_TINTS,
   TAG_TONES,
@@ -252,13 +253,23 @@ ok(
   JSON.stringify(hubSlugs) === JSON.stringify(HUB_SLUGS),
   `hub cards do not match HUB_SLUGS\n        hub   ${JSON.stringify(hubSlugs)}\n        slugs ${JSON.stringify(HUB_SLUGS)}`
 );
-// Every hub card must be a real category page, and the two lists must be subsets
-// of each other in that direction. Asserting the difference is what stops
-// "the hub and the registry are the same list" from creeping back in as an
-// unexamined invariant the next time someone adds a page.
+// Every hub card must be a real category page. Asserting BOTH differences, with
+// exact values, is what stops "the hub and the registry are the same list" from
+// creeping back in as an unexamined invariant the next time someone adds a page:
+// a one-directional `every()` only proves the hub is a subset, so a category
+// missing from the hub and a typo in the hub both slip through it.
+const hubOnly = HUB_SLUGS.filter((s) => !CATEGORY_SLUGS.includes(s));
+const nonHub = CATEGORY_SLUGS.filter((s) => !HUB_SLUGS.includes(s));
+ok(hubOnly.length === 0, `HUB_SLUGS contains a slug the registry does not: ${JSON.stringify(hubOnly)}`);
 ok(
-  HUB_SLUGS.every((s) => CATEGORY_SLUGS.includes(s)),
-  `HUB_SLUGS contains a slug the registry does not: ${JSON.stringify(HUB_SLUGS.filter((s) => !CATEGORY_SLUGS.includes(s)))}`
+  JSON.stringify(nonHub) === JSON.stringify(NON_HUB_SLUGS),
+  `categories without a hub card are ${JSON.stringify(nonHub)}, expected ${JSON.stringify(NON_HUB_SLUGS)} — decide the hub explicitly for each new category`
+);
+// Order is the other half: COLLECTION_GROUPS is emitted top-to-bottom, so the
+// same 9 slugs in a different order is a different page, not a passing check.
+ok(
+  JSON.stringify(HUB_SLUGS) === JSON.stringify(CATEGORY_SLUGS.filter((s) => !NON_HUB_SLUGS.includes(s))),
+  `HUB_SLUGS order differs from registry order: ${JSON.stringify(HUB_SLUGS)}`
 );
 
 const totalCards = COLLECTION_GROUPS.reduce((n, g) => n + g.items.length, 0);
@@ -311,7 +322,18 @@ const over = (fg, bg, alpha) => '#' + chan(fg).map((v, i) => Math.round(v * alph
 
 console.log('\nhero contrast (white text on the lightest accent stop)');
 for (const slug of CATEGORY_SLUGS) {
-  const accent = getCategory(slug).accent;
+  // Guarded, because `getCategory()` returns null for a slug with no config and a
+  // bare `.accent` turns a typo into a TypeError. That aborts the whole run
+  // *after* earlier FAILs have been recorded but *before* the summary prints
+  // them, so the operator gets a stack trace and no report — the same
+  // "assertion told you about the wrong file" trap as gotcha 42. Skipping keeps
+  // the failure visible and named.
+  const cfg = getCategory(slug);
+  if (!cfg || !Array.isArray(cfg.accent) || cfg.accent.length === 0) {
+    ok(false, `CATEGORY_SLUGS has ${JSON.stringify(slug)} but getCategory() has no accent ramp for it`);
+    continue;
+  }
+  const accent = cfg.accent;
   const lightest = accent.reduce((w, c) => (contrast('#ffffff', c) < contrast('#ffffff', w) ? c : w));
   // The hero note is 14px normal weight → 4.50:1. The stat tile is a 0.16 BLACK
   // scrim over the gradient — black, not white, because a white scrim lightens
@@ -364,7 +386,12 @@ ok(
 // both take the neutral slate→gray pair, which is the point of it.
 const pairs = new Map();
 for (const slug of HUB_SLUGS) {
-  const { from, to } = COLLECTION_TINTS[slug];
+  const tint = COLLECTION_TINTS[slug];
+  if (!tint) {
+    ok(false, `HUB_SLUGS has ${JSON.stringify(slug)} but COLLECTION_TINTS has no gradient for it`);
+    continue;
+  }
+  const { from, to } = tint;
   const key = `${from}->${to}`;
   ok(
     !pairs.has(key),
