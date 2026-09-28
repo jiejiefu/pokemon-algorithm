@@ -383,11 +383,19 @@
     .home-faq-answer a { color: var(--accent-gold); }
 
     /* ------------------------------------------------------------------
-       Footer. InfoPoke's is a full 4-column sitemap including 關於我們 /
-       隱私權政策 / Sitemap, none of which exist here and none of which are
-       registered as planned, so it is not transcribed wholesale — the
-       provenance line the site already had stays, and what is added is the
-       one thing a reader actually needs: where each area of the site lives.
+       Footer: a 3-column link block, then the copyright / trademark / data
+       source / version line. Both are wanted — the columns are the navigation
+       and the line is the provenance, and one does not substitute for the
+       other. 關於我們 / 隱私權政策 / Sitemap from InfoPoke's own sitemap footer
+       are still not transcribed: a static site with no backend has nothing
+       true to put in a privacy policy.
+
+       `PokéAPI` is a real outbound link, so it gets `target="_blank"` and
+       `rel="noopener noreferrer"` in the markup. Its colour is
+       `--accent-gold` rather than `--text-secondary` so the one link in the
+       line reads as a link; the rest of the line is `--text-muted` at 13px.
+       The width cap is not repeated here — this paragraph is already inside
+       `.home-footer-inner`, which is the 1180px column.
        ------------------------------------------------------------------ */
     .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
     .home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
@@ -401,6 +409,15 @@
     .home-footer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .home-footer-list a, .home-footer-list span { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
     .home-footer-list a:hover { color: var(--accent-gold); }
+    .home-footer-line {
+      margin: 28px 0 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .home-footer-line a { color: var(--accent-gold); text-decoration: none; }
+    .home-footer-line a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -744,7 +761,7 @@
           </ul>
         </div>
       </div>
-      <p class="footer-note" style="margin-top:28px;">資料來源：Pokémon 官方圖鑑 • 圖片：Images &amp; Descriptions of All 1025 Pokemon • 招式與特性中文名稱來自 PokéAPI • 純前端實作，無後端</p>
+      <p class="home-footer-line">© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • v0.0.1</p>
     </div>
   </footer>
 
