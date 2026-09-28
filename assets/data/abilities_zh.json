@@ -1,0 +1,1138 @@
+{
+  "adaptability": {
+    "en": "Adaptability",
+    "zh": "適應力"
+  },
+  "aftermath": {
+    "en": "Aftermath",
+    "zh": "引爆"
+  },
+  "air-lock": {
+    "en": "Air Lock",
+    "zh": "氣閘"
+  },
+  "analytic": {
+    "en": "Analytic",
+    "zh": "分析"
+  },
+  "anger-point": {
+    "en": "Anger Point",
+    "zh": "憤怒穴位"
+  },
+  "anger-shell": {
+    "en": "Anger Shell",
+    "zh": "憤怒甲殼"
+  },
+  "anticipation": {
+    "en": "Anticipation",
+    "zh": "危險預知"
+  },
+  "arena-trap": {
+    "en": "Arena Trap",
+    "zh": "沙穴"
+  },
+  "armor-tail": {
+    "en": "Armor Tail",
+    "zh": "尾甲"
+  },
+  "aroma-veil": {
+    "en": "Aroma Veil",
+    "zh": "芳香幕"
+  },
+  "aura-break": {
+    "en": "Aura Break",
+    "zh": "氣場破壞"
+  },
+  "bad-dreams": {
+    "en": "Bad Dreams",
+    "zh": "夢魘"
+  },
+  "ball-fetch": {
+    "en": "Ball Fetch",
+    "zh": "撿球"
+  },
+  "battery": {
+    "en": "Battery",
+    "zh": "蓄電池"
+  },
+  "battle-armor": {
+    "en": "Battle Armor",
+    "zh": "戰鬥盔甲"
+  },
+  "beads-of-ruin": {
+    "en": "Beads of Ruin",
+    "zh": "災禍之玉"
+  },
+  "beast-boost": {
+    "en": "Beast Boost",
+    "zh": "異獸提升"
+  },
+  "berserk": {
+    "en": "Berserk",
+    "zh": "怒火沖天"
+  },
+  "big-pecks": {
+    "en": "Big Pecks",
+    "zh": "健壯胸肌"
+  },
+  "blaze": {
+    "en": "Blaze",
+    "zh": "猛火"
+  },
+  "bulletproof": {
+    "en": "Bulletproof",
+    "zh": "防彈"
+  },
+  "cheek-pouch": {
+    "en": "Cheek Pouch",
+    "zh": "頰囊"
+  },
+  "chilling-neigh": {
+    "en": "Chilling Neigh",
+    "zh": "蒼白嘶鳴"
+  },
+  "chlorophyll": {
+    "en": "Chlorophyll",
+    "zh": "葉綠素"
+  },
+  "clear-body": {
+    "en": "Clear Body",
+    "zh": "恆淨之軀"
+  },
+  "cloud-nine": {
+    "en": "Cloud Nine",
+    "zh": "無關天氣"
+  },
+  "color-change": {
+    "en": "Color Change",
+    "zh": "變色"
+  },
+  "comatose": {
+    "en": "Comatose",
+    "zh": "絕對睡眠"
+  },
+  "commander": {
+    "en": "Commander",
+    "zh": "發號施令"
+  },
+  "competitive": {
+    "en": "Competitive",
+    "zh": "好勝"
+  },
+  "compound-eyes": {
+    "en": "Compound Eyes",
+    "zh": "複眼"
+  },
+  "contrary": {
+    "en": "Contrary",
+    "zh": "唱反調"
+  },
+  "corrosion": {
+    "en": "Corrosion",
+    "zh": "腐蝕"
+  },
+  "costar": {
+    "en": "Costar",
+    "zh": "同台共演"
+  },
+  "cotton-down": {
+    "en": "Cotton Down",
+    "zh": "棉絮"
+  },
+  "cud-chew": {
+    "en": "Cud Chew",
+    "zh": "反芻"
+  },
+  "cursed-body": {
+    "en": "Cursed Body",
+    "zh": "詛咒之軀"
+  },
+  "cute-charm": {
+    "en": "Cute Charm",
+    "zh": "迷人之軀"
+  },
+  "damp": {
+    "en": "Damp",
+    "zh": "濕氣"
+  },
+  "dancer": {
+    "en": "Dancer",
+    "zh": "舞者"
+  },
+  "dark-aura": {
+    "en": "Dark Aura",
+    "zh": "暗黑氣場"
+  },
+  "dauntless-shield": {
+    "en": "Dauntless Shield",
+    "zh": "不屈之盾"
+  },
+  "dazzling": {
+    "en": "Dazzling",
+    "zh": "鮮艷之軀"
+  },
+  "defeatist": {
+    "en": "Defeatist",
+    "zh": "軟弱"
+  },
+  "defiant": {
+    "en": "Defiant",
+    "zh": "不服輸"
+  },
+  "disguise": {
+    "en": "Disguise",
+    "zh": "畫皮"
+  },
+  "download": {
+    "en": "Download",
+    "zh": "下載"
+  },
+  "dragons-maw": {
+    "en": "Dragon’s Maw",
+    "zh": "龍顎"
+  },
+  "drizzle": {
+    "en": "Drizzle",
+    "zh": "降雨"
+  },
+  "drought": {
+    "en": "Drought",
+    "zh": "日照"
+  },
+  "dry-skin": {
+    "en": "Dry Skin",
+    "zh": "乾燥皮膚"
+  },
+  "early-bird": {
+    "en": "Early Bird",
+    "zh": "早起"
+  },
+  "earth-eater": {
+    "en": "Earth Eater",
+    "zh": "食土"
+  },
+  "effect-spore": {
+    "en": "Effect Spore",
+    "zh": "孢子"
+  },
+  "electric-surge": {
+    "en": "Electric Surge",
+    "zh": "電氣製造者"
+  },
+  "electromorphosis": {
+    "en": "Electromorphosis",
+    "zh": "電力轉換"
+  },
+  "emergency-exit": {
+    "en": "Emergency Exit",
+    "zh": "危險迴避"
+  },
+  "fairy-aura": {
+    "en": "Fairy Aura",
+    "zh": "妖精氣場"
+  },
+  "filter": {
+    "en": "Filter",
+    "zh": "過濾"
+  },
+  "flame-body": {
+    "en": "Flame Body",
+    "zh": "火焰之軀"
+  },
+  "flare-boost": {
+    "en": "Flare Boost",
+    "zh": "受熱激升"
+  },
+  "flash-fire": {
+    "en": "Flash Fire",
+    "zh": "引火"
+  },
+  "flower-gift": {
+    "en": "Flower Gift",
+    "zh": "花之禮"
+  },
+  "flower-veil": {
+    "en": "Flower Veil",
+    "zh": "花幕"
+  },
+  "fluffy": {
+    "en": "Fluffy",
+    "zh": "毛茸茸"
+  },
+  "forecast": {
+    "en": "Forecast",
+    "zh": "陰晴不定"
+  },
+  "forewarn": {
+    "en": "Forewarn",
+    "zh": "預知夢"
+  },
+  "friend-guard": {
+    "en": "Friend Guard",
+    "zh": "友情防守"
+  },
+  "frisk": {
+    "en": "Frisk",
+    "zh": "察覺"
+  },
+  "full-metal-body": {
+    "en": "Full Metal Body",
+    "zh": "金屬防護"
+  },
+  "fur-coat": {
+    "en": "Fur Coat",
+    "zh": "毛皮大衣"
+  },
+  "gale-wings": {
+    "en": "Gale Wings",
+    "zh": "疾風之翼"
+  },
+  "gluttony": {
+    "en": "Gluttony",
+    "zh": "貪吃鬼"
+  },
+  "good-as-gold": {
+    "en": "Good as Gold",
+    "zh": "黃金之軀"
+  },
+  "gooey": {
+    "en": "Gooey",
+    "zh": "黏滑"
+  },
+  "grass-pelt": {
+    "en": "Grass Pelt",
+    "zh": "草之毛皮"
+  },
+  "grassy-surge": {
+    "en": "Grassy Surge",
+    "zh": "青草製造者"
+  },
+  "grim-neigh": {
+    "en": "Grim Neigh",
+    "zh": "漆黑嘶鳴"
+  },
+  "guard-dog": {
+    "en": "Guard Dog",
+    "zh": "看門犬"
+  },
+  "gulp-missile": {
+    "en": "Gulp Missile",
+    "zh": "一口飛彈"
+  },
+  "guts": {
+    "en": "Guts",
+    "zh": "毅力"
+  },
+  "hadron-engine": {
+    "en": "Hadron Engine",
+    "zh": "強子引擎"
+  },
+  "harvest": {
+    "en": "Harvest",
+    "zh": "收穫"
+  },
+  "healer": {
+    "en": "Healer",
+    "zh": "治癒之心"
+  },
+  "heatproof": {
+    "en": "Heatproof",
+    "zh": "耐熱"
+  },
+  "heavy-metal": {
+    "en": "Heavy Metal",
+    "zh": "重金屬"
+  },
+  "honey-gather": {
+    "en": "Honey Gather",
+    "zh": "採蜜"
+  },
+  "hospitality": {
+    "en": "Hospitality",
+    "zh": "款待"
+  },
+  "huge-power": {
+    "en": "Huge Power",
+    "zh": "大力士"
+  },
+  "hunger-switch": {
+    "en": "Hunger Switch",
+    "zh": "飽了又餓"
+  },
+  "hustle": {
+    "en": "Hustle",
+    "zh": "活力"
+  },
+  "hydration": {
+    "en": "Hydration",
+    "zh": "濕潤之軀"
+  },
+  "hyper-cutter": {
+    "en": "Hyper Cutter",
+    "zh": "怪力鉗"
+  },
+  "ice-body": {
+    "en": "Ice Body",
+    "zh": "冰凍之軀"
+  },
+  "ice-face": {
+    "en": "Ice Face",
+    "zh": "結凍頭"
+  },
+  "ice-scales": {
+    "en": "Ice Scales",
+    "zh": "冰鱗粉"
+  },
+  "illuminate": {
+    "en": "Illuminate",
+    "zh": "發光"
+  },
+  "illusion": {
+    "en": "Illusion",
+    "zh": "幻覺"
+  },
+  "immunity": {
+    "en": "Immunity",
+    "zh": "免疫"
+  },
+  "imposter": {
+    "en": "Imposter",
+    "zh": "變身者"
+  },
+  "infiltrator": {
+    "en": "Infiltrator",
+    "zh": "穿透"
+  },
+  "innards-out": {
+    "en": "Innards Out",
+    "zh": "飛出的內在物"
+  },
+  "inner-focus": {
+    "en": "Inner Focus",
+    "zh": "精神力"
+  },
+  "insomnia": {
+    "en": "Insomnia",
+    "zh": "不眠"
+  },
+  "intimidate": {
+    "en": "Intimidate",
+    "zh": "威嚇"
+  },
+  "intrepid-sword": {
+    "en": "Intrepid Sword",
+    "zh": "不撓之劍"
+  },
+  "iron-barbs": {
+    "en": "Iron Barbs",
+    "zh": "鐵刺"
+  },
+  "iron-fist": {
+    "en": "Iron Fist",
+    "zh": "鐵拳"
+  },
+  "justified": {
+    "en": "Justified",
+    "zh": "正義之心"
+  },
+  "keen-eye": {
+    "en": "Keen Eye",
+    "zh": "銳利目光"
+  },
+  "klutz": {
+    "en": "Klutz",
+    "zh": "笨拙"
+  },
+  "leaf-guard": {
+    "en": "Leaf Guard",
+    "zh": "葉子防守"
+  },
+  "levitate": {
+    "en": "Levitate",
+    "zh": "飄浮"
+  },
+  "libero": {
+    "en": "Libero",
+    "zh": "自由者"
+  },
+  "light-metal": {
+    "en": "Light Metal",
+    "zh": "輕金屬"
+  },
+  "lightning-rod": {
+    "en": "Lightning Rod",
+    "zh": "避雷針"
+  },
+  "limber": {
+    "en": "Limber",
+    "zh": "柔軟"
+  },
+  "lingering-aroma": {
+    "en": "Lingering Aroma",
+    "zh": "甩不掉的氣味"
+  },
+  "liquid-ooze": {
+    "en": "Liquid Ooze",
+    "zh": "污泥漿"
+  },
+  "liquid-voice": {
+    "en": "Liquid Voice",
+    "zh": "濕潤之聲"
+  },
+  "long-reach": {
+    "en": "Long Reach",
+    "zh": "遠隔"
+  },
+  "magic-bounce": {
+    "en": "Magic Bounce",
+    "zh": "魔法鏡"
+  },
+  "magic-guard": {
+    "en": "Magic Guard",
+    "zh": "魔法防守"
+  },
+  "magician": {
+    "en": "Magician",
+    "zh": "魔術師"
+  },
+  "magma-armor": {
+    "en": "Magma Armor",
+    "zh": "熔岩鎧甲"
+  },
+  "magnet-pull": {
+    "en": "Magnet Pull",
+    "zh": "磁力"
+  },
+  "marvel-scale": {
+    "en": "Marvel Scale",
+    "zh": "神奇鱗片"
+  },
+  "mega-launcher": {
+    "en": "Mega Launcher",
+    "zh": "超級發射器"
+  },
+  "merciless": {
+    "en": "Merciless",
+    "zh": "不仁不義"
+  },
+  "minus": {
+    "en": "Minus",
+    "zh": "負電"
+  },
+  "mirror-armor": {
+    "en": "Mirror Armor",
+    "zh": "鏡甲"
+  },
+  "misty-surge": {
+    "en": "Misty Surge",
+    "zh": "薄霧製造者"
+  },
+  "mold-breaker": {
+    "en": "Mold Breaker",
+    "zh": "破格"
+  },
+  "moody": {
+    "en": "Moody",
+    "zh": "心情不定"
+  },
+  "motor-drive": {
+    "en": "Motor Drive",
+    "zh": "電氣引擎"
+  },
+  "moxie": {
+    "en": "Moxie",
+    "zh": "自信過度"
+  },
+  "multiscale": {
+    "en": "Multiscale",
+    "zh": "多重鱗片"
+  },
+  "multitype": {
+    "en": "Multitype",
+    "zh": "多屬性"
+  },
+  "mummy": {
+    "en": "Mummy",
+    "zh": "木乃伊"
+  },
+  "mycelium-might": {
+    "en": "Mycelium Might",
+    "zh": "菌絲之力"
+  },
+  "natural-cure": {
+    "en": "Natural Cure",
+    "zh": "自然回復"
+  },
+  "neutralizing-gas": {
+    "en": "Neutralizing Gas",
+    "zh": "化學變化氣體"
+  },
+  "no-guard": {
+    "en": "No Guard",
+    "zh": "無防守"
+  },
+  "normalize": {
+    "en": "Normalize",
+    "zh": "一般皮膚"
+  },
+  "oblivious": {
+    "en": "Oblivious",
+    "zh": "遲鈍"
+  },
+  "opportunist": {
+    "en": "Opportunist",
+    "zh": "跟風"
+  },
+  "orichalcum-pulse": {
+    "en": "Orichalcum Pulse",
+    "zh": "緋紅脈動"
+  },
+  "overcoat": {
+    "en": "Overcoat",
+    "zh": "防塵"
+  },
+  "overgrow": {
+    "en": "Overgrow",
+    "zh": "茂盛"
+  },
+  "own-tempo": {
+    "en": "Own Tempo",
+    "zh": "我行我素"
+  },
+  "perish-body": {
+    "en": "Perish Body",
+    "zh": "滅亡之軀"
+  },
+  "pickpocket": {
+    "en": "Pickpocket",
+    "zh": "順手牽羊"
+  },
+  "pickup": {
+    "en": "Pickup",
+    "zh": "撿拾"
+  },
+  "pixilate": {
+    "en": "Pixilate",
+    "zh": "妖精皮膚"
+  },
+  "plus": {
+    "en": "Plus",
+    "zh": "正電"
+  },
+  "poison-heal": {
+    "en": "Poison Heal",
+    "zh": "毒療"
+  },
+  "poison-point": {
+    "en": "Poison Point",
+    "zh": "毒刺"
+  },
+  "poison-puppeteer": {
+    "en": "Poison Puppeteer",
+    "zh": "毒傀儡"
+  },
+  "poison-touch": {
+    "en": "Poison Touch",
+    "zh": "毒手"
+  },
+  "power-spot": {
+    "en": "Power Spot",
+    "zh": "能量點"
+  },
+  "prankster": {
+    "en": "Prankster",
+    "zh": "惡作劇之心"
+  },
+  "pressure": {
+    "en": "Pressure",
+    "zh": "壓迫感"
+  },
+  "prism-armor": {
+    "en": "Prism Armor",
+    "zh": "稜鏡裝甲"
+  },
+  "propeller-tail": {
+    "en": "Propeller Tail",
+    "zh": "螺旋尾鰭"
+  },
+  "protean": {
+    "en": "Protean",
+    "zh": "變幻自如"
+  },
+  "protosynthesis": {
+    "en": "Protosynthesis",
+    "zh": "古代活性"
+  },
+  "psychic-surge": {
+    "en": "Psychic Surge",
+    "zh": "精神製造者"
+  },
+  "punk-rock": {
+    "en": "Punk Rock",
+    "zh": "龐克搖滾"
+  },
+  "pure-power": {
+    "en": "Pure Power",
+    "zh": "瑜伽之力"
+  },
+  "purifying-salt": {
+    "en": "Purifying Salt",
+    "zh": "潔淨之鹽"
+  },
+  "quark-drive": {
+    "en": "Quark Drive",
+    "zh": "夸克充能"
+  },
+  "queenly-majesty": {
+    "en": "Queenly Majesty",
+    "zh": "女王的威嚴"
+  },
+  "quick-feet": {
+    "en": "Quick Feet",
+    "zh": "飛毛腿"
+  },
+  "rain-dish": {
+    "en": "Rain Dish",
+    "zh": "雨盤"
+  },
+  "rattled": {
+    "en": "Rattled",
+    "zh": "膽怯"
+  },
+  "receiver": {
+    "en": "Receiver",
+    "zh": "接球手"
+  },
+  "reckless": {
+    "en": "Reckless",
+    "zh": "捨身"
+  },
+  "refrigerate": {
+    "en": "Refrigerate",
+    "zh": "冰凍皮膚"
+  },
+  "regenerator": {
+    "en": "Regenerator",
+    "zh": "再生力"
+  },
+  "ripen": {
+    "en": "Ripen",
+    "zh": "熟成"
+  },
+  "rivalry": {
+    "en": "Rivalry",
+    "zh": "鬥爭心"
+  },
+  "rks-system": {
+    "en": "RKS System",
+    "zh": "ＡＲ系統"
+  },
+  "rock-head": {
+    "en": "Rock Head",
+    "zh": "堅硬腦袋"
+  },
+  "rocky-payload": {
+    "en": "Rocky Payload",
+    "zh": "搬岩"
+  },
+  "rough-skin": {
+    "en": "Rough Skin",
+    "zh": "粗糙皮膚"
+  },
+  "run-away": {
+    "en": "Run Away",
+    "zh": "逃跑"
+  },
+  "sand-force": {
+    "en": "Sand Force",
+    "zh": "沙之力"
+  },
+  "sand-rush": {
+    "en": "Sand Rush",
+    "zh": "撥沙"
+  },
+  "sand-spit": {
+    "en": "Sand Spit",
+    "zh": "吐沙"
+  },
+  "sand-stream": {
+    "en": "Sand Stream",
+    "zh": "揚沙"
+  },
+  "sand-veil": {
+    "en": "Sand Veil",
+    "zh": "沙隱"
+  },
+  "sap-sipper": {
+    "en": "Sap Sipper",
+    "zh": "食草"
+  },
+  "schooling": {
+    "en": "Schooling",
+    "zh": "魚群"
+  },
+  "scrappy": {
+    "en": "Scrappy",
+    "zh": "膽量"
+  },
+  "screen-cleaner": {
+    "en": "Screen Cleaner",
+    "zh": "除障"
+  },
+  "seed-sower": {
+    "en": "Seed Sower",
+    "zh": "掉出種子"
+  },
+  "serene-grace": {
+    "en": "Serene Grace",
+    "zh": "天恩"
+  },
+  "shadow-shield": {
+    "en": "Shadow Shield",
+    "zh": "幻影防守"
+  },
+  "shadow-tag": {
+    "en": "Shadow Tag",
+    "zh": "踩影"
+  },
+  "sharpness": {
+    "en": "Sharpness",
+    "zh": "鋒銳"
+  },
+  "shed-skin": {
+    "en": "Shed Skin",
+    "zh": "蛻皮"
+  },
+  "sheer-force": {
+    "en": "Sheer Force",
+    "zh": "強行"
+  },
+  "shell-armor": {
+    "en": "Shell Armor",
+    "zh": "硬殼盔甲"
+  },
+  "shield-dust": {
+    "en": "Shield Dust",
+    "zh": "鱗粉"
+  },
+  "shields-down": {
+    "en": "Shields Down",
+    "zh": "界限盾殼"
+  },
+  "simple": {
+    "en": "Simple",
+    "zh": "單純"
+  },
+  "skill-link": {
+    "en": "Skill Link",
+    "zh": "連續攻擊"
+  },
+  "slow-start": {
+    "en": "Slow Start",
+    "zh": "慢啟動"
+  },
+  "slush-rush": {
+    "en": "Slush Rush",
+    "zh": "撥雪"
+  },
+  "sniper": {
+    "en": "Sniper",
+    "zh": "狙擊手"
+  },
+  "snow-cloak": {
+    "en": "Snow Cloak",
+    "zh": "雪隱"
+  },
+  "snow-warning": {
+    "en": "Snow Warning",
+    "zh": "降雪"
+  },
+  "solar-power": {
+    "en": "Solar Power",
+    "zh": "太陽之力"
+  },
+  "solid-rock": {
+    "en": "Solid Rock",
+    "zh": "堅硬岩石"
+  },
+  "soul-heart": {
+    "en": "Soul-Heart",
+    "zh": "魂心"
+  },
+  "soundproof": {
+    "en": "Soundproof",
+    "zh": "隔音"
+  },
+  "speed-boost": {
+    "en": "Speed Boost",
+    "zh": "加速"
+  },
+  "stakeout": {
+    "en": "Stakeout",
+    "zh": "監視"
+  },
+  "stall": {
+    "en": "Stall",
+    "zh": "慢出"
+  },
+  "stalwart": {
+    "en": "Stalwart",
+    "zh": "堅毅"
+  },
+  "stamina": {
+    "en": "Stamina",
+    "zh": "持久力"
+  },
+  "stance-change": {
+    "en": "Stance Change",
+    "zh": "戰鬥切換"
+  },
+  "static": {
+    "en": "Static",
+    "zh": "靜電"
+  },
+  "steadfast": {
+    "en": "Steadfast",
+    "zh": "不屈之心"
+  },
+  "steam-engine": {
+    "en": "Steam Engine",
+    "zh": "蒸汽機"
+  },
+  "steelworker": {
+    "en": "Steelworker",
+    "zh": "鋼能力者"
+  },
+  "steely-spirit": {
+    "en": "Steely Spirit",
+    "zh": "鋼之意志"
+  },
+  "stench": {
+    "en": "Stench",
+    "zh": "惡臭"
+  },
+  "sticky-hold": {
+    "en": "Sticky Hold",
+    "zh": "黏著"
+  },
+  "storm-drain": {
+    "en": "Storm Drain",
+    "zh": "引水"
+  },
+  "strong-jaw": {
+    "en": "Strong Jaw",
+    "zh": "強壯之顎"
+  },
+  "sturdy": {
+    "en": "Sturdy",
+    "zh": "結實"
+  },
+  "suction-cups": {
+    "en": "Suction Cups",
+    "zh": "吸盤"
+  },
+  "super-luck": {
+    "en": "Super Luck",
+    "zh": "超幸運"
+  },
+  "supersweet-syrup": {
+    "en": "Supersweet Syrup",
+    "zh": "甘露之蜜"
+  },
+  "supreme-overlord": {
+    "en": "Supreme Overlord",
+    "zh": "大將"
+  },
+  "swarm": {
+    "en": "Swarm",
+    "zh": "蟲之預感"
+  },
+  "sweet-veil": {
+    "en": "Sweet Veil",
+    "zh": "甜幕"
+  },
+  "swift-swim": {
+    "en": "Swift Swim",
+    "zh": "悠游自如"
+  },
+  "sword-of-ruin": {
+    "en": "Sword of Ruin",
+    "zh": "災禍之劍"
+  },
+  "symbiosis": {
+    "en": "Symbiosis",
+    "zh": "共生"
+  },
+  "synchronize": {
+    "en": "Synchronize",
+    "zh": "同步"
+  },
+  "tablets-of-ruin": {
+    "en": "Tablets of Ruin",
+    "zh": "災禍之簡"
+  },
+  "tangled-feet": {
+    "en": "Tangled Feet",
+    "zh": "蹣跚"
+  },
+  "technician": {
+    "en": "Technician",
+    "zh": "技術高手"
+  },
+  "telepathy": {
+    "en": "Telepathy",
+    "zh": "心靈感應"
+  },
+  "tera-shift": {
+    "en": "Tera Shift",
+    "zh": "太晶變形"
+  },
+  "teravolt": {
+    "en": "Teravolt",
+    "zh": "兆級電壓"
+  },
+  "thermal-exchange": {
+    "en": "Thermal Exchange",
+    "zh": "熱交換"
+  },
+  "thick-fat": {
+    "en": "Thick Fat",
+    "zh": "厚脂肪"
+  },
+  "tinted-lens": {
+    "en": "Tinted Lens",
+    "zh": "有色眼鏡"
+  },
+  "torrent": {
+    "en": "Torrent",
+    "zh": "激流"
+  },
+  "tough-claws": {
+    "en": "Tough Claws",
+    "zh": "硬爪"
+  },
+  "toxic-boost": {
+    "en": "Toxic Boost",
+    "zh": "中毒激升"
+  },
+  "toxic-chain": {
+    "en": "Toxic Chain",
+    "zh": "毒鎖鏈"
+  },
+  "toxic-debris": {
+    "en": "Toxic Debris",
+    "zh": "毒滿地"
+  },
+  "trace": {
+    "en": "Trace",
+    "zh": "複製"
+  },
+  "transistor": {
+    "en": "Transistor",
+    "zh": "電晶體"
+  },
+  "triage": {
+    "en": "Triage",
+    "zh": "先行治療"
+  },
+  "truant": {
+    "en": "Truant",
+    "zh": "懶惰"
+  },
+  "turboblaze": {
+    "en": "Turboblaze",
+    "zh": "渦輪火焰"
+  },
+  "unaware": {
+    "en": "Unaware",
+    "zh": "純樸"
+  },
+  "unburden": {
+    "en": "Unburden",
+    "zh": "輕裝"
+  },
+  "unnerve": {
+    "en": "Unnerve",
+    "zh": "緊張感"
+  },
+  "unseen-fist": {
+    "en": "Unseen Fist",
+    "zh": "無形拳"
+  },
+  "vessel-of-ruin": {
+    "en": "Vessel of Ruin",
+    "zh": "災禍之鼎"
+  },
+  "victory-star": {
+    "en": "Victory Star",
+    "zh": "勝利之星"
+  },
+  "vital-spirit": {
+    "en": "Vital Spirit",
+    "zh": "幹勁"
+  },
+  "volt-absorb": {
+    "en": "Volt Absorb",
+    "zh": "蓄電"
+  },
+  "wandering-spirit": {
+    "en": "Wandering Spirit",
+    "zh": "遊魂"
+  },
+  "water-absorb": {
+    "en": "Water Absorb",
+    "zh": "儲水"
+  },
+  "water-bubble": {
+    "en": "Water Bubble",
+    "zh": "水泡"
+  },
+  "water-compaction": {
+    "en": "Water Compaction",
+    "zh": "遇水凝固"
+  },
+  "water-veil": {
+    "en": "Water Veil",
+    "zh": "水幕"
+  },
+  "weak-armor": {
+    "en": "Weak Armor",
+    "zh": "碎裂鎧甲"
+  },
+  "well-baked-body": {
+    "en": "Well-Baked Body",
+    "zh": "焦香之軀"
+  },
+  "white-smoke": {
+    "en": "White Smoke",
+    "zh": "白色煙霧"
+  },
+  "wimp-out": {
+    "en": "Wimp Out",
+    "zh": "躍躍欲逃"
+  },
+  "wind-power": {
+    "en": "Wind Power",
+    "zh": "風力發電"
+  },
+  "wind-rider": {
+    "en": "Wind Rider",
+    "zh": "乘風"
+  },
+  "wonder-guard": {
+    "en": "Wonder Guard",
+    "zh": "神奇守護"
+  },
+  "wonder-skin": {
+    "en": "Wonder Skin",
+    "zh": "奇跡皮膚"
+  },
+  "zen-mode": {
+    "en": "Zen Mode",
+    "zh": "達摩模式"
+  },
+  "zero-to-hero": {
+    "en": "Zero to Hero",
+    "zh": "全能變身"
+  }
+}
