@@ -185,6 +185,14 @@ export function pokemonSlug(pokemon) {
   if (symbolSlug) return symbolSlug;
   return name
     .normalize('NFKD')
+    // NFKD splits `é` into `e` + U+0301, and the combining mark is not
+    // [a-z0-9], so it used to fall through to the separator step and turn
+    // Flabébé into `flabe-be` -- the only broken slug in the 1025. Strip the
+    // marks first so the letter survives. Dropping them by *removing* rather
+    // than replacing is the point: a plain `[^a-z0-9] -> ''` squeeze would give
+    // `flabb`, losing the `e` outright, and 40 other names would lose their
+    // separator with it (Tapu Koko -> tapukoko, Ho-Oh -> hooh).
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

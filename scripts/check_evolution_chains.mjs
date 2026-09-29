@@ -15,8 +15,9 @@
  *    have no detail page, plus 54 species whose CSV spelling drifted from
  *    pokemon_data.json's names.en) resolved to a URL that 404s. `base_name_en`
  *    is the field that fixes it, so it is asserted to resolve for all 1350.
- *    That count is now 377, because the Nidoran slug split gave both halves a
- *    slug of their own; see the assertion in this file for why that is not drift.
+ *    That count is now 376, after the Nidoran split gave both halves a slug of
+ *    their own and the Flabebe accent fix stopped the mark becoming a separator;
+ *    see the assertions in this file for why each of those is not drift.
  *  - All 1025 species must answer to a distinct slug. Nidoran♀ and Nidoran♂
  *    differed by nothing but a symbol, and ♀/♂ are stripped by the slug filter,
  *    so both resolved to `nidoran` and first-match-wins sent every request to
@@ -61,6 +62,7 @@ const eq = (got, want, msg) =>
  *  module graph, which a node script cannot load. */
 const slugName = (name) => name
   .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '');
@@ -224,6 +226,27 @@ eq(slugToId.get('nidoran-m'), 32, '?slug=nidoran-m resolves to 尼多朗');
 // rename could pass while a stale `nidoran` alias quietly kept answering 尼多蘭,
 // which is the state the user ruled against.
 eq(slugToId.has('nidoran'), false, 'bare ?slug=nidoran is not an alias for 尼多蘭');
+// The port above is only trustworthy while it stays faithful, and it has drifted
+// once already. The port carries its own SYMBOL_SLUGS table and its own copy of
+// the normalisation, so a change to either in shared.js silently leaves the
+// checker validating a rule the site no longer ships. Compare the two over the
+// whole roster instead of trusting the hand-copy: this caught the combining-mark
+// bug below, which nothing else in the site looked at.
+const portDisagreements = data
+  .map(p => [p, slugFor(p.names.en), pokemonSlug(p)])
+  .filter(([, viaTable, real]) => viaTable !== real)
+  .map(([p, viaTable, real]) => `${p.names.en}: port=${viaTable} real=${real}`);
+eq(portDisagreements, [], 'port of pokemonSlug diverges from shared.js');
+// Named regression, and the only species slug the accent fix moves. NFKD split
+// Flabebe's e-acute into `e` + U+0301, and the mark is not [a-z0-9], so the
+// separator step turned it into `flabe-be` -- a URL that resolved to nothing
+// except through the `?id=` fallback. The marks have to be *removed* before the
+// separator step, not squeezed out by it: a plain `[^a-z0-9] -> ''` would give
+// `flabb`, losing the `e`, and would also collapse the 40-odd names that rely on
+// the separator (Tapu Koko -> tapukoko, Ho-Oh -> hooh).
+eq(byId.get(669) && pokemonSlug(byId.get(669)), 'flabebe', 'Flabébé slug (accented e)');
+eq(slugToId.get('flabe-be'), undefined, 'the pre-fix flabe-be slug is gone');
+
 // A missing base_name_en must read as a FAIL, not an abort: pokemonSlug(undefined)
 // throws, and a stack trace sends the reader to the wrong file (gotcha 38).
 const noBaseNameEn = nodes.filter(n => typeof n.base_name_en !== 'string');
@@ -233,19 +256,26 @@ const unresolvable = linkable.filter(n => !slugToId.has(slugFor(n.base_name_en))
 eq(unresolvable.map(n => n.id), [], 'nodes whose base_name_en has no detail page');
 // The old field must still be broken, or this check has stopped testing anything.
 const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
-// 379 before the Nidoran split, 378 after, 377 after ♀ became `nidoran-f`.
-// Both moves are the split working, not the count drifting -- 325 form nodes
-// plus the species whose CSV spelling drifted from pokemon_data.json is where
-// the rest come from. The second move is worth spelling out, because it is not
-// obvious: this probe bypasses SYMBOL_SLUGS, yet the *key set* it tests against
-// is built by pokemonSlug(), which uses it. Nodes 29 and 32 both spell
-// themselves with ASCII hyphens (`Nidoran-F`, `Nidoran-M`), so slugName derives
-// `nidoran-f` / `nidoran-m` for them. While ♀ answered to the bare `nidoran`,
-// node 29's derived slug matched nothing and node 32's matched the table; giving
-// both halves an explicit letter put `nidoran-f` in the key set too, so node 29
-// stopped being a casualty. That is why the expected number follows the rename
-// rather than staying put.
-eq(deadByNameEn.length, 377, 'nodes still unresolvable via name_en (the bug being fixed)');
+// 379 before the Nidoran split, 378 after, 377 after ♀ became `nidoran-f`, 376
+// after the Flabébé accent fix. All four are the fixes working, not the count
+// drifting -- 325 form nodes plus the species whose CSV spelling drifted from
+// pokemon_data.json is where the rest come from. The two that are worth
+// spelling out are not obvious, because this probe calls slugName() and so
+// bypasses SYMBOL_SLUGS while the *key set* it tests against is built by
+// pokemonSlug(), which does not.
+//
+// Nidoran: nodes 29 and 32 both spell themselves with ASCII hyphens, so
+// slugName() derived `nidoran-f` / `nidoran-m` for them all along. While ♀
+// answered to the bare `nidoran`, node 29's derived slug matched no key; giving
+// both halves an explicit letter put `nidoran-f` in the key set and node 29 left
+// the list.
+//
+// Flabebe: node 669 is spelled `Flabebe`, unaccented, because the CSV dropped
+// the accent -- so its derived slug was always the correct `flabebe` while the
+// species table said `flabe-be`, and the two halves disagreed about the same
+// species. Fixing the species slug repaired the node for free, which is the
+// payoff of checking the derived name rather than the stored one.
+eq(deadByNameEn.length, 376, 'nodes still unresolvable via name_en (the bug being fixed)');
 // Form nodes must point at their base, not at themselves.
 eq(linkable.filter(n => n.form !== null
       && slugToId.get(slugFor(n.base_name_en)) !== n.base_id).map(n => n.id),
@@ -280,8 +310,8 @@ eq(badHref.map(n => n.id), [], 'nodes whose rendered href would 404');
 // And prove the probe is live: the same expression over the old field must still
 // fail, otherwise this section has stopped testing anything.
 const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.name_en } })));
-// Same 379 -> 378 -> 377 as above, for the same reason.
-eq(badIfNameEn.length, 377, 'nodes that would 404 if the renderer used name_en');
+// Same 379 -> 378 -> 377 -> 376 as above, for the same reason.
+eq(badIfNameEn.length, 376, 'nodes that would 404 if the renderer used name_en');
 // The URL must be the ?slug= form the local dev server can actually serve, not
 // the clean /detail/<slug> path that Live Server 404s (gotcha 8).
 eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,
