@@ -89,6 +89,37 @@
       border-color: var(--accent-yellow);
       outline: none;
     }
+    /* Colour-page entries. These are a second axis onto the same 1,025 — the
+       filter row above narrows by Pokemon attributes, these browse by the
+       palette a sprite actually contains — so they get their own row instead of
+       competing with the filters for one. Two earlier placements both failed:
+       .view-all-link is a standalone centred CTA (margin: 24px auto 0) and
+       pushed them 24px below the row, and `align-self: stretch` to match the
+       selects' height SHRANK the selects themselves from 61px to 37px, because
+       every item in .filter-group is align-items:normal. Neither the 61px nor
+       any substitute is written down here: it is a UA-sized <select> height
+       that moves with platform and font settings. */
+    .filter-extras {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 20px 14px;
+      background: var(--sticky-surface);
+    }
+    .filter-extras-label { font-size: 13px; color: var(--text-muted); }
+    .filter-link {
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-input);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .filter-link:hover { border-color: var(--accent-yellow); color: var(--accent-gold); }
     .results-info {
       padding: 12px 20px;
       text-align: center;
@@ -149,6 +180,15 @@
     <button id="clearFilters" class="filter-select" style="background:var(--accent-gold);color:var(--on-accent);border:none;font-weight:bold;">清除篩選</button>
   </div>
 
+  <div class="filter-extras">
+    <span class="filter-extras-label">依色盤瀏覽：</span>
+    <!-- The single-Pokemon page is not linked from here — it needs a slug, so it
+         is reached from a card. All three colour pages are in the header's 色彩
+         trigger regardless; this row is a convenience, not the only way in. -->
+    <a class="filter-link" href="colors-explore.html">色彩探索</a>
+    <a class="filter-link" href="colors.html">色彩生成器</a>
+  </div>
+
   <div class="results-info" id="resultsInfo">載入中...</div>
 
   <div id="loading" class="loading-text">讀取圖鑑資料中...</div>
@@ -159,7 +199,7 @@
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
-    initHeaderNav();
+    initHeaderNav('pokedex.html');
 
     const grid = document.getElementById('pokedex-grid');
     const loading = document.getElementById('loading');

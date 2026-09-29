@@ -379,6 +379,26 @@ body {
 .header-maze { background: var(--bg-header-maze); }
 .header-dex { background: var(--bg-header-dex); position: sticky; top: 0; z-index: 100; }
 .header-3d { background: var(--bg-header-3d); position: sticky; top: 0; z-index: 100; }
+
+/* ---------- Site footer chrome ----------
+   These three rules were, until now, inline in index.html only — so the three
+   colour pages, which use the same markup, rendered their footer as a bare
+   unstyled <p>. Same failure mode as gotcha 15 (CSS that lives in one page and
+   is silently unstyled everywhere else). index.html keeps its own inline copy:
+   identical values, and because its block is linked after shared.css it still
+   wins on that page. The .home-footer-grid/list/title rules are homepage-only
+   (its 3-column link block) and deliberately stay there. */
+.home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
+.home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.home-footer-line {
+  margin: 28px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.home-footer-line a { color: var(--accent-gold); text-decoration: none; }
+.home-footer-line a:hover { text-decoration: underline; }
 .header-colors { background: var(--bg-header-colors); position: sticky; top: 0; z-index: 100; }
 
 /* ===== Controls / Buttons ===== */

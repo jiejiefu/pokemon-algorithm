@@ -379,7 +379,8 @@
     }
 
     /* ------------------------------------------------------------------
-       Blocks 5-8: the link-card family. 精選系列, 寶可夢遊戲 and 對戰工具
+       Blocks 5-8: the link-card family. 精選系列 (now 12 cards, 3 across),
+       寶可夢遊戲 and 對戰工具
        are the same shape in the source — a title, a big number, a sentence —
        so they share one rule and differ only in grid density and accent.
        ------------------------------------------------------------------ */
@@ -724,6 +725,27 @@
           <h3 class="home-link-title">異色型態</h3>
           <p class="home-link-num">1,025</p>
           <p class="home-link-desc">包含替代配色的完整異色圖鑑。查看所有異色型態和變體。</p>
+        </a>
+        <!-- Three colour views, which is what makes this count 12 rather than 9.
+             The grid is 3 across, and gotcha 49 records that the even division
+             is the ONLY reason that column count exists, so 12 keeps 3 clean
+             rows... er, 4. Placing them here rather than in 對戰工具 & 指南 is
+             deliberate too: that grid's 4 cards divide evenly across 4 columns,
+             and 7 would not, which gotcha 49 says wants its own breakpoint. -->
+        <a class="home-link-card" href="colors.html">
+          <h3 class="home-link-title">色彩生成器</h3>
+          <p class="home-link-num">1,025</p>
+          <p class="home-link-desc">從每隻寶可夢的圖片算出真實色盤，輸出 11 階明暗與 CSS 變數。</p>
+        </a>
+        <a class="home-link-card" href="colors-explore.html">
+          <h3 class="home-link-title">色彩探索</h3>
+          <p class="home-link-num">2,050</p>
+          <p class="home-link-desc">一般與閃亮共 2,050 組色盤，依屬性、稀有度與世代瀏覽。</p>
+        </a>
+        <a class="home-link-card" href="color.html?slug=bulbasaur">
+          <h3 class="home-link-title">單一色盤</h3>
+          <p class="home-link-num">#001</p>
+          <p class="home-link-desc">逐隻查看佔比最高的 12 色、色碼與設計用明暗階。</p>
         </a>
         <span class="home-link-card is-planned">
           <h3 class="home-link-title">超級進化</h3>
