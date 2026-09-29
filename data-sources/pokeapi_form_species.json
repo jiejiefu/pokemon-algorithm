@@ -1,0 +1,2277 @@
+{
+  "10001": {
+    "base_id": 386,
+    "form_name_en": "deoxys-attack",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10001
+  },
+  "10002": {
+    "base_id": 386,
+    "form_name_en": "deoxys-defense",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10002
+  },
+  "10003": {
+    "base_id": 386,
+    "form_name_en": "deoxys-speed",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10003
+  },
+  "10004": {
+    "base_id": 413,
+    "form_name_en": "wormadam-sandy",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10004
+  },
+  "10005": {
+    "base_id": 413,
+    "form_name_en": "wormadam-trash",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10005
+  },
+  "10006": {
+    "base_id": 492,
+    "form_name_en": "shaymin-sky",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10006
+  },
+  "10007": {
+    "base_id": 487,
+    "form_name_en": "giratina-origin",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10007
+  },
+  "10008": {
+    "base_id": 479,
+    "form_name_en": "rotom-heat",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10008
+  },
+  "10009": {
+    "base_id": 479,
+    "form_name_en": "rotom-wash",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10009
+  },
+  "10010": {
+    "base_id": 479,
+    "form_name_en": "rotom-frost",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10010
+  },
+  "10011": {
+    "base_id": 479,
+    "form_name_en": "rotom-fan",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10011
+  },
+  "10012": {
+    "base_id": 479,
+    "form_name_en": "rotom-mow",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10012
+  },
+  "10013": {
+    "base_id": 351,
+    "form_name_en": "castform-sunny",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10013
+  },
+  "10014": {
+    "base_id": 351,
+    "form_name_en": "castform-rainy",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10014
+  },
+  "10015": {
+    "base_id": 351,
+    "form_name_en": "castform-snowy",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10015
+  },
+  "10016": {
+    "base_id": 550,
+    "form_name_en": "basculin-blue-striped",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10016
+  },
+  "10017": {
+    "base_id": 555,
+    "form_name_en": "darmanitan-zen",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10017
+  },
+  "10018": {
+    "base_id": 648,
+    "form_name_en": "meloetta-pirouette",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10018
+  },
+  "10019": {
+    "base_id": 641,
+    "form_name_en": "tornadus-therian",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10019
+  },
+  "10020": {
+    "base_id": 642,
+    "form_name_en": "thundurus-therian",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10020
+  },
+  "10021": {
+    "base_id": 645,
+    "form_name_en": "landorus-therian",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10021
+  },
+  "10022": {
+    "base_id": 646,
+    "form_name_en": "kyurem-black",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10022
+  },
+  "10023": {
+    "base_id": 646,
+    "form_name_en": "kyurem-white",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10023
+  },
+  "10024": {
+    "base_id": 647,
+    "form_name_en": "keldeo-resolute",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10024
+  },
+  "10025": {
+    "base_id": 678,
+    "form_name_en": "meowstic-female",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10025
+  },
+  "10026": {
+    "base_id": 681,
+    "form_name_en": "aegislash-blade",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10026
+  },
+  "10027": {
+    "base_id": 710,
+    "form_name_en": "pumpkaboo-small",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10027
+  },
+  "10028": {
+    "base_id": 710,
+    "form_name_en": "pumpkaboo-large",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10028
+  },
+  "10029": {
+    "base_id": 710,
+    "form_name_en": "pumpkaboo-super",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10029
+  },
+  "10030": {
+    "base_id": 711,
+    "form_name_en": "gourgeist-small",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10030
+  },
+  "10031": {
+    "base_id": 711,
+    "form_name_en": "gourgeist-large",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10031
+  },
+  "10032": {
+    "base_id": 711,
+    "form_name_en": "gourgeist-super",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10032
+  },
+  "10033": {
+    "base_id": 3,
+    "form_name_en": "venusaur-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10033
+  },
+  "10034": {
+    "base_id": 6,
+    "form_name_en": "charizard-mega-x",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10034
+  },
+  "10035": {
+    "base_id": 6,
+    "form_name_en": "charizard-mega-y",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10035
+  },
+  "10036": {
+    "base_id": 9,
+    "form_name_en": "blastoise-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10036
+  },
+  "10037": {
+    "base_id": 65,
+    "form_name_en": "alakazam-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10037
+  },
+  "10038": {
+    "base_id": 94,
+    "form_name_en": "gengar-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10038
+  },
+  "10039": {
+    "base_id": 115,
+    "form_name_en": "kangaskhan-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10039
+  },
+  "10040": {
+    "base_id": 127,
+    "form_name_en": "pinsir-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10040
+  },
+  "10041": {
+    "base_id": 130,
+    "form_name_en": "gyarados-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10041
+  },
+  "10042": {
+    "base_id": 142,
+    "form_name_en": "aerodactyl-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10042
+  },
+  "10043": {
+    "base_id": 150,
+    "form_name_en": "mewtwo-mega-x",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10043
+  },
+  "10044": {
+    "base_id": 150,
+    "form_name_en": "mewtwo-mega-y",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10044
+  },
+  "10045": {
+    "base_id": 181,
+    "form_name_en": "ampharos-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10045
+  },
+  "10046": {
+    "base_id": 212,
+    "form_name_en": "scizor-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10046
+  },
+  "10047": {
+    "base_id": 214,
+    "form_name_en": "heracross-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10047
+  },
+  "10048": {
+    "base_id": 229,
+    "form_name_en": "houndoom-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10048
+  },
+  "10049": {
+    "base_id": 248,
+    "form_name_en": "tyranitar-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10049
+  },
+  "10050": {
+    "base_id": 257,
+    "form_name_en": "blaziken-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10050
+  },
+  "10051": {
+    "base_id": 282,
+    "form_name_en": "gardevoir-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10051
+  },
+  "10052": {
+    "base_id": 303,
+    "form_name_en": "mawile-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10052
+  },
+  "10053": {
+    "base_id": 306,
+    "form_name_en": "aggron-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10053
+  },
+  "10054": {
+    "base_id": 308,
+    "form_name_en": "medicham-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10054
+  },
+  "10055": {
+    "base_id": 310,
+    "form_name_en": "manectric-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10055
+  },
+  "10056": {
+    "base_id": 354,
+    "form_name_en": "banette-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10056
+  },
+  "10057": {
+    "base_id": 359,
+    "form_name_en": "absol-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10057
+  },
+  "10058": {
+    "base_id": 445,
+    "form_name_en": "garchomp-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10058
+  },
+  "10059": {
+    "base_id": 448,
+    "form_name_en": "lucario-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10059
+  },
+  "10060": {
+    "base_id": 460,
+    "form_name_en": "abomasnow-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10060
+  },
+  "10061": {
+    "base_id": 670,
+    "form_name_en": "floette-eternal",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10061
+  },
+  "10062": {
+    "base_id": 380,
+    "form_name_en": "latias-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10062
+  },
+  "10063": {
+    "base_id": 381,
+    "form_name_en": "latios-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10063
+  },
+  "10064": {
+    "base_id": 260,
+    "form_name_en": "swampert-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10064
+  },
+  "10065": {
+    "base_id": 254,
+    "form_name_en": "sceptile-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10065
+  },
+  "10066": {
+    "base_id": 302,
+    "form_name_en": "sableye-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10066
+  },
+  "10067": {
+    "base_id": 334,
+    "form_name_en": "altaria-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10067
+  },
+  "10068": {
+    "base_id": 475,
+    "form_name_en": "gallade-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10068
+  },
+  "10069": {
+    "base_id": 531,
+    "form_name_en": "audino-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10069
+  },
+  "10070": {
+    "base_id": 319,
+    "form_name_en": "sharpedo-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10070
+  },
+  "10071": {
+    "base_id": 80,
+    "form_name_en": "slowbro-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10071
+  },
+  "10072": {
+    "base_id": 208,
+    "form_name_en": "steelix-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10072
+  },
+  "10073": {
+    "base_id": 18,
+    "form_name_en": "pidgeot-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10073
+  },
+  "10074": {
+    "base_id": 362,
+    "form_name_en": "glalie-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10074
+  },
+  "10075": {
+    "base_id": 719,
+    "form_name_en": "diancie-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10075
+  },
+  "10076": {
+    "base_id": 376,
+    "form_name_en": "metagross-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10076
+  },
+  "10077": {
+    "base_id": 382,
+    "form_name_en": "kyogre-primal",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10077
+  },
+  "10078": {
+    "base_id": 383,
+    "form_name_en": "groudon-primal",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10078
+  },
+  "10079": {
+    "base_id": 384,
+    "form_name_en": "rayquaza-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10079
+  },
+  "10080": {
+    "base_id": 25,
+    "form_name_en": "pikachu-rock-star",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10080
+  },
+  "10081": {
+    "base_id": 25,
+    "form_name_en": "pikachu-belle",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10081
+  },
+  "10082": {
+    "base_id": 25,
+    "form_name_en": "pikachu-pop-star",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10082
+  },
+  "10083": {
+    "base_id": 25,
+    "form_name_en": "pikachu-phd",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10083
+  },
+  "10084": {
+    "base_id": 25,
+    "form_name_en": "pikachu-libre",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10084
+  },
+  "10085": {
+    "base_id": 25,
+    "form_name_en": "pikachu-cosplay",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10085
+  },
+  "10086": {
+    "base_id": 720,
+    "form_name_en": "hoopa-unbound",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10086
+  },
+  "10087": {
+    "base_id": 323,
+    "form_name_en": "camerupt-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10087
+  },
+  "10088": {
+    "base_id": 428,
+    "form_name_en": "lopunny-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10088
+  },
+  "10089": {
+    "base_id": 373,
+    "form_name_en": "salamence-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10089
+  },
+  "10090": {
+    "base_id": 15,
+    "form_name_en": "beedrill-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10090
+  },
+  "10091": {
+    "base_id": 19,
+    "form_name_en": "rattata-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10091
+  },
+  "10092": {
+    "base_id": 20,
+    "form_name_en": "raticate-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10092
+  },
+  "10093": {
+    "base_id": 20,
+    "form_name_en": "raticate-totem-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10093
+  },
+  "10094": {
+    "base_id": 25,
+    "form_name_en": "pikachu-original-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10094
+  },
+  "10095": {
+    "base_id": 25,
+    "form_name_en": "pikachu-hoenn-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10095
+  },
+  "10096": {
+    "base_id": 25,
+    "form_name_en": "pikachu-sinnoh-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10096
+  },
+  "10097": {
+    "base_id": 25,
+    "form_name_en": "pikachu-unova-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10097
+  },
+  "10098": {
+    "base_id": 25,
+    "form_name_en": "pikachu-kalos-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10098
+  },
+  "10099": {
+    "base_id": 25,
+    "form_name_en": "pikachu-alola-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10099
+  },
+  "10100": {
+    "base_id": 26,
+    "form_name_en": "raichu-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10100
+  },
+  "10101": {
+    "base_id": 27,
+    "form_name_en": "sandshrew-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10101
+  },
+  "10102": {
+    "base_id": 28,
+    "form_name_en": "sandslash-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10102
+  },
+  "10103": {
+    "base_id": 37,
+    "form_name_en": "vulpix-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10103
+  },
+  "10104": {
+    "base_id": 38,
+    "form_name_en": "ninetales-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10104
+  },
+  "10105": {
+    "base_id": 50,
+    "form_name_en": "diglett-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10105
+  },
+  "10106": {
+    "base_id": 51,
+    "form_name_en": "dugtrio-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10106
+  },
+  "10107": {
+    "base_id": 52,
+    "form_name_en": "meowth-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10107
+  },
+  "10108": {
+    "base_id": 53,
+    "form_name_en": "persian-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10108
+  },
+  "10109": {
+    "base_id": 74,
+    "form_name_en": "geodude-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10109
+  },
+  "10110": {
+    "base_id": 75,
+    "form_name_en": "graveler-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10110
+  },
+  "10111": {
+    "base_id": 76,
+    "form_name_en": "golem-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10111
+  },
+  "10112": {
+    "base_id": 88,
+    "form_name_en": "grimer-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10112
+  },
+  "10113": {
+    "base_id": 89,
+    "form_name_en": "muk-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10113
+  },
+  "10114": {
+    "base_id": 103,
+    "form_name_en": "exeggutor-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10114
+  },
+  "10115": {
+    "base_id": 105,
+    "form_name_en": "marowak-alola",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10115
+  },
+  "10116": {
+    "base_id": 658,
+    "form_name_en": "greninja-battle-bond",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10116
+  },
+  "10117": {
+    "base_id": 658,
+    "form_name_en": "greninja-ash",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10117
+  },
+  "10118": {
+    "base_id": 718,
+    "form_name_en": "zygarde-10-power-construct",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10118
+  },
+  "10119": {
+    "base_id": 718,
+    "form_name_en": "zygarde-50-power-construct",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10119
+  },
+  "10120": {
+    "base_id": 718,
+    "form_name_en": "zygarde-complete",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10120
+  },
+  "10121": {
+    "base_id": 735,
+    "form_name_en": "gumshoos-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10121
+  },
+  "10122": {
+    "base_id": 738,
+    "form_name_en": "vikavolt-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10122
+  },
+  "10123": {
+    "base_id": 741,
+    "form_name_en": "oricorio-pom-pom",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10123
+  },
+  "10124": {
+    "base_id": 741,
+    "form_name_en": "oricorio-pau",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10124
+  },
+  "10125": {
+    "base_id": 741,
+    "form_name_en": "oricorio-sensu",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10125
+  },
+  "10126": {
+    "base_id": 745,
+    "form_name_en": "lycanroc-midnight",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10126
+  },
+  "10127": {
+    "base_id": 746,
+    "form_name_en": "wishiwashi-school",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10127
+  },
+  "10128": {
+    "base_id": 754,
+    "form_name_en": "lurantis-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10128
+  },
+  "10129": {
+    "base_id": 758,
+    "form_name_en": "salazzle-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10129
+  },
+  "10130": {
+    "base_id": 774,
+    "form_name_en": "minior-orange-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10130
+  },
+  "10131": {
+    "base_id": 774,
+    "form_name_en": "minior-yellow-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10131
+  },
+  "10132": {
+    "base_id": 774,
+    "form_name_en": "minior-green-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10132
+  },
+  "10133": {
+    "base_id": 774,
+    "form_name_en": "minior-blue-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10133
+  },
+  "10134": {
+    "base_id": 774,
+    "form_name_en": "minior-indigo-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10134
+  },
+  "10135": {
+    "base_id": 774,
+    "form_name_en": "minior-violet-meteor",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10135
+  },
+  "10136": {
+    "base_id": 774,
+    "form_name_en": "minior-red",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10136
+  },
+  "10137": {
+    "base_id": 774,
+    "form_name_en": "minior-orange",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10137
+  },
+  "10138": {
+    "base_id": 774,
+    "form_name_en": "minior-yellow",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10138
+  },
+  "10139": {
+    "base_id": 774,
+    "form_name_en": "minior-green",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10139
+  },
+  "10140": {
+    "base_id": 774,
+    "form_name_en": "minior-blue",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10140
+  },
+  "10141": {
+    "base_id": 774,
+    "form_name_en": "minior-indigo",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10141
+  },
+  "10142": {
+    "base_id": 774,
+    "form_name_en": "minior-violet",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10142
+  },
+  "10143": {
+    "base_id": 778,
+    "form_name_en": "mimikyu-busted",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10143
+  },
+  "10144": {
+    "base_id": 778,
+    "form_name_en": "mimikyu-totem-disguised",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10144
+  },
+  "10145": {
+    "base_id": 778,
+    "form_name_en": "mimikyu-totem-busted",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10145
+  },
+  "10146": {
+    "base_id": 784,
+    "form_name_en": "kommo-o-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10146
+  },
+  "10147": {
+    "base_id": 801,
+    "form_name_en": "magearna-original",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10147
+  },
+  "10148": {
+    "base_id": 25,
+    "form_name_en": "pikachu-partner-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10148
+  },
+  "10149": {
+    "base_id": 105,
+    "form_name_en": "marowak-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10149
+  },
+  "10150": {
+    "base_id": 743,
+    "form_name_en": "ribombee-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10150
+  },
+  "10151": {
+    "base_id": 744,
+    "form_name_en": "rockruff-own-tempo",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10151
+  },
+  "10152": {
+    "base_id": 745,
+    "form_name_en": "lycanroc-dusk",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10152
+  },
+  "10153": {
+    "base_id": 752,
+    "form_name_en": "araquanid-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10153
+  },
+  "10154": {
+    "base_id": 777,
+    "form_name_en": "togedemaru-totem",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10154
+  },
+  "10155": {
+    "base_id": 800,
+    "form_name_en": "necrozma-dusk",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10155
+  },
+  "10156": {
+    "base_id": 800,
+    "form_name_en": "necrozma-dawn",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10156
+  },
+  "10157": {
+    "base_id": 800,
+    "form_name_en": "necrozma-ultra",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10157
+  },
+  "10158": {
+    "base_id": 25,
+    "form_name_en": "pikachu-starter",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10158
+  },
+  "10159": {
+    "base_id": 133,
+    "form_name_en": "eevee-starter",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10159
+  },
+  "10160": {
+    "base_id": 25,
+    "form_name_en": "pikachu-world-cap",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10160
+  },
+  "10161": {
+    "base_id": 52,
+    "form_name_en": "meowth-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10161
+  },
+  "10162": {
+    "base_id": 77,
+    "form_name_en": "ponyta-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10162
+  },
+  "10163": {
+    "base_id": 78,
+    "form_name_en": "rapidash-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10163
+  },
+  "10164": {
+    "base_id": 79,
+    "form_name_en": "slowpoke-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10164
+  },
+  "10165": {
+    "base_id": 80,
+    "form_name_en": "slowbro-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10165
+  },
+  "10166": {
+    "base_id": 83,
+    "form_name_en": "farfetchd-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10166
+  },
+  "10167": {
+    "base_id": 110,
+    "form_name_en": "weezing-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10167
+  },
+  "10168": {
+    "base_id": 122,
+    "form_name_en": "mr-mime-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10168
+  },
+  "10169": {
+    "base_id": 144,
+    "form_name_en": "articuno-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10169
+  },
+  "10170": {
+    "base_id": 145,
+    "form_name_en": "zapdos-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10170
+  },
+  "10171": {
+    "base_id": 146,
+    "form_name_en": "moltres-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10171
+  },
+  "10172": {
+    "base_id": 199,
+    "form_name_en": "slowking-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10172
+  },
+  "10173": {
+    "base_id": 222,
+    "form_name_en": "corsola-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10173
+  },
+  "10174": {
+    "base_id": 263,
+    "form_name_en": "zigzagoon-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10174
+  },
+  "10175": {
+    "base_id": 264,
+    "form_name_en": "linoone-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10175
+  },
+  "10176": {
+    "base_id": 554,
+    "form_name_en": "darumaka-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10176
+  },
+  "10177": {
+    "base_id": 555,
+    "form_name_en": "darmanitan-galar-standard",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10177
+  },
+  "10178": {
+    "base_id": 555,
+    "form_name_en": "darmanitan-galar-zen",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10178
+  },
+  "10179": {
+    "base_id": 562,
+    "form_name_en": "yamask-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10179
+  },
+  "10180": {
+    "base_id": 618,
+    "form_name_en": "stunfisk-galar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10180
+  },
+  "10181": {
+    "base_id": 718,
+    "form_name_en": "zygarde-10",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10181
+  },
+  "10182": {
+    "base_id": 845,
+    "form_name_en": "cramorant-gulping",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10182
+  },
+  "10183": {
+    "base_id": 845,
+    "form_name_en": "cramorant-gorging",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10183
+  },
+  "10184": {
+    "base_id": 849,
+    "form_name_en": "toxtricity-low-key",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10184
+  },
+  "10185": {
+    "base_id": 875,
+    "form_name_en": "eiscue-noice",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10185
+  },
+  "10186": {
+    "base_id": 876,
+    "form_name_en": "indeedee-female",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10186
+  },
+  "10187": {
+    "base_id": 877,
+    "form_name_en": "morpeko-hangry",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10187
+  },
+  "10188": {
+    "base_id": 888,
+    "form_name_en": "zacian-crowned",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10188
+  },
+  "10189": {
+    "base_id": 889,
+    "form_name_en": "zamazenta-crowned",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10189
+  },
+  "10190": {
+    "base_id": 890,
+    "form_name_en": "eternatus-eternamax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10190
+  },
+  "10191": {
+    "base_id": 892,
+    "form_name_en": "urshifu-rapid-strike",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10191
+  },
+  "10192": {
+    "base_id": 893,
+    "form_name_en": "zarude-dada",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10192
+  },
+  "10193": {
+    "base_id": 898,
+    "form_name_en": "calyrex-ice",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10193
+  },
+  "10194": {
+    "base_id": 898,
+    "form_name_en": "calyrex-shadow",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10194
+  },
+  "10195": {
+    "base_id": 3,
+    "form_name_en": "venusaur-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10195
+  },
+  "10196": {
+    "base_id": 6,
+    "form_name_en": "charizard-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10196
+  },
+  "10197": {
+    "base_id": 9,
+    "form_name_en": "blastoise-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10197
+  },
+  "10198": {
+    "base_id": 12,
+    "form_name_en": "butterfree-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10198
+  },
+  "10199": {
+    "base_id": 25,
+    "form_name_en": "pikachu-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10199
+  },
+  "10200": {
+    "base_id": 52,
+    "form_name_en": "meowth-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10200
+  },
+  "10201": {
+    "base_id": 68,
+    "form_name_en": "machamp-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10201
+  },
+  "10202": {
+    "base_id": 94,
+    "form_name_en": "gengar-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10202
+  },
+  "10203": {
+    "base_id": 99,
+    "form_name_en": "kingler-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10203
+  },
+  "10204": {
+    "base_id": 131,
+    "form_name_en": "lapras-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10204
+  },
+  "10205": {
+    "base_id": 133,
+    "form_name_en": "eevee-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10205
+  },
+  "10206": {
+    "base_id": 143,
+    "form_name_en": "snorlax-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10206
+  },
+  "10207": {
+    "base_id": 569,
+    "form_name_en": "garbodor-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10207
+  },
+  "10208": {
+    "base_id": 809,
+    "form_name_en": "melmetal-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10208
+  },
+  "10209": {
+    "base_id": 812,
+    "form_name_en": "rillaboom-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10209
+  },
+  "10210": {
+    "base_id": 815,
+    "form_name_en": "cinderace-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10210
+  },
+  "10211": {
+    "base_id": 818,
+    "form_name_en": "inteleon-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10211
+  },
+  "10212": {
+    "base_id": 823,
+    "form_name_en": "corviknight-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10212
+  },
+  "10213": {
+    "base_id": 826,
+    "form_name_en": "orbeetle-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10213
+  },
+  "10214": {
+    "base_id": 834,
+    "form_name_en": "drednaw-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10214
+  },
+  "10215": {
+    "base_id": 839,
+    "form_name_en": "coalossal-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10215
+  },
+  "10216": {
+    "base_id": 841,
+    "form_name_en": "flapple-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10216
+  },
+  "10217": {
+    "base_id": 842,
+    "form_name_en": "appletun-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10217
+  },
+  "10218": {
+    "base_id": 844,
+    "form_name_en": "sandaconda-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10218
+  },
+  "10219": {
+    "base_id": 849,
+    "form_name_en": "toxtricity-amped-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10219
+  },
+  "10220": {
+    "base_id": 851,
+    "form_name_en": "centiskorch-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10220
+  },
+  "10221": {
+    "base_id": 858,
+    "form_name_en": "hatterene-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10221
+  },
+  "10222": {
+    "base_id": 861,
+    "form_name_en": "grimmsnarl-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10222
+  },
+  "10223": {
+    "base_id": 869,
+    "form_name_en": "alcremie-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10223
+  },
+  "10224": {
+    "base_id": 879,
+    "form_name_en": "copperajah-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10224
+  },
+  "10225": {
+    "base_id": 884,
+    "form_name_en": "duraludon-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10225
+  },
+  "10226": {
+    "base_id": 892,
+    "form_name_en": "urshifu-single-strike-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10226
+  },
+  "10227": {
+    "base_id": 892,
+    "form_name_en": "urshifu-rapid-strike-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10227
+  },
+  "10228": {
+    "base_id": 849,
+    "form_name_en": "toxtricity-low-key-gmax",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10228
+  },
+  "10229": {
+    "base_id": 58,
+    "form_name_en": "growlithe-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10229
+  },
+  "10230": {
+    "base_id": 59,
+    "form_name_en": "arcanine-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10230
+  },
+  "10231": {
+    "base_id": 100,
+    "form_name_en": "voltorb-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10231
+  },
+  "10232": {
+    "base_id": 101,
+    "form_name_en": "electrode-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10232
+  },
+  "10233": {
+    "base_id": 157,
+    "form_name_en": "typhlosion-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10233
+  },
+  "10234": {
+    "base_id": 211,
+    "form_name_en": "qwilfish-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10234
+  },
+  "10235": {
+    "base_id": 215,
+    "form_name_en": "sneasel-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10235
+  },
+  "10236": {
+    "base_id": 503,
+    "form_name_en": "samurott-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10236
+  },
+  "10237": {
+    "base_id": 549,
+    "form_name_en": "lilligant-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10237
+  },
+  "10238": {
+    "base_id": 570,
+    "form_name_en": "zorua-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10238
+  },
+  "10239": {
+    "base_id": 571,
+    "form_name_en": "zoroark-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10239
+  },
+  "10240": {
+    "base_id": 628,
+    "form_name_en": "braviary-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10240
+  },
+  "10241": {
+    "base_id": 705,
+    "form_name_en": "sliggoo-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10241
+  },
+  "10242": {
+    "base_id": 706,
+    "form_name_en": "goodra-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10242
+  },
+  "10243": {
+    "base_id": 713,
+    "form_name_en": "avalugg-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10243
+  },
+  "10244": {
+    "base_id": 724,
+    "form_name_en": "decidueye-hisui",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10244
+  },
+  "10245": {
+    "base_id": 483,
+    "form_name_en": "dialga-origin",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10245
+  },
+  "10246": {
+    "base_id": 484,
+    "form_name_en": "palkia-origin",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10246
+  },
+  "10247": {
+    "base_id": 550,
+    "form_name_en": "basculin-white-striped",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10247
+  },
+  "10248": {
+    "base_id": 902,
+    "form_name_en": "basculegion-female",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10248
+  },
+  "10249": {
+    "base_id": 905,
+    "form_name_en": "enamorus-therian",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10249
+  },
+  "10250": {
+    "base_id": 128,
+    "form_name_en": "tauros-paldea-combat-breed",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10250
+  },
+  "10251": {
+    "base_id": 128,
+    "form_name_en": "tauros-paldea-blaze-breed",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10251
+  },
+  "10252": {
+    "base_id": 128,
+    "form_name_en": "tauros-paldea-aqua-breed",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10252
+  },
+  "10253": {
+    "base_id": 194,
+    "form_name_en": "wooper-paldea",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10253
+  },
+  "10254": {
+    "base_id": 916,
+    "form_name_en": "oinkologne-female",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10254
+  },
+  "10255": {
+    "base_id": 982,
+    "form_name_en": "dudunsparce-three-segment",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10255
+  },
+  "10256": {
+    "base_id": 964,
+    "form_name_en": "palafin-hero",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10256
+  },
+  "10257": {
+    "base_id": 925,
+    "form_name_en": "maushold-family-of-three",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10257
+  },
+  "10258": {
+    "base_id": 978,
+    "form_name_en": "tatsugiri-droopy",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10258
+  },
+  "10259": {
+    "base_id": 978,
+    "form_name_en": "tatsugiri-stretchy",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10259
+  },
+  "10260": {
+    "base_id": 931,
+    "form_name_en": "squawkabilly-blue-plumage",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10260
+  },
+  "10261": {
+    "base_id": 931,
+    "form_name_en": "squawkabilly-yellow-plumage",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10261
+  },
+  "10262": {
+    "base_id": 931,
+    "form_name_en": "squawkabilly-white-plumage",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10262
+  },
+  "10263": {
+    "base_id": 999,
+    "form_name_en": "gimmighoul-roaming",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10263
+  },
+  "10264": {
+    "base_id": 1007,
+    "form_name_en": "koraidon-limited-build",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10264
+  },
+  "10265": {
+    "base_id": 1007,
+    "form_name_en": "koraidon-sprinting-build",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10265
+  },
+  "10266": {
+    "base_id": 1007,
+    "form_name_en": "koraidon-swimming-build",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10266
+  },
+  "10267": {
+    "base_id": 1007,
+    "form_name_en": "koraidon-gliding-build",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10267
+  },
+  "10268": {
+    "base_id": 1008,
+    "form_name_en": "miraidon-low-power-mode",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10268
+  },
+  "10269": {
+    "base_id": 1008,
+    "form_name_en": "miraidon-drive-mode",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10269
+  },
+  "10270": {
+    "base_id": 1008,
+    "form_name_en": "miraidon-aquatic-mode",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10270
+  },
+  "10271": {
+    "base_id": 1008,
+    "form_name_en": "miraidon-glide-mode",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10271
+  },
+  "10272": {
+    "base_id": 901,
+    "form_name_en": "ursaluna-bloodmoon",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10272
+  },
+  "10273": {
+    "base_id": 1017,
+    "form_name_en": "ogerpon-wellspring-mask",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10273
+  },
+  "10274": {
+    "base_id": 1017,
+    "form_name_en": "ogerpon-hearthflame-mask",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10274
+  },
+  "10275": {
+    "base_id": 1017,
+    "form_name_en": "ogerpon-cornerstone-mask",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10275
+  },
+  "10276": {
+    "base_id": 1024,
+    "form_name_en": "terapagos-terastal",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10276
+  },
+  "10277": {
+    "base_id": 1024,
+    "form_name_en": "terapagos-stellar",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10277
+  },
+  "10278": {
+    "base_id": 36,
+    "form_name_en": "clefable-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10278
+  },
+  "10279": {
+    "base_id": 71,
+    "form_name_en": "victreebel-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10279
+  },
+  "10280": {
+    "base_id": 121,
+    "form_name_en": "starmie-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10280
+  },
+  "10281": {
+    "base_id": 149,
+    "form_name_en": "dragonite-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10281
+  },
+  "10282": {
+    "base_id": 154,
+    "form_name_en": "meganium-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10282
+  },
+  "10283": {
+    "base_id": 160,
+    "form_name_en": "feraligatr-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10283
+  },
+  "10284": {
+    "base_id": 227,
+    "form_name_en": "skarmory-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10284
+  },
+  "10285": {
+    "base_id": 478,
+    "form_name_en": "froslass-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10285
+  },
+  "10286": {
+    "base_id": 500,
+    "form_name_en": "emboar-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10286
+  },
+  "10287": {
+    "base_id": 530,
+    "form_name_en": "excadrill-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10287
+  },
+  "10288": {
+    "base_id": 545,
+    "form_name_en": "scolipede-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10288
+  },
+  "10289": {
+    "base_id": 560,
+    "form_name_en": "scrafty-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10289
+  },
+  "10290": {
+    "base_id": 604,
+    "form_name_en": "eelektross-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10290
+  },
+  "10291": {
+    "base_id": 609,
+    "form_name_en": "chandelure-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10291
+  },
+  "10292": {
+    "base_id": 652,
+    "form_name_en": "chesnaught-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10292
+  },
+  "10293": {
+    "base_id": 655,
+    "form_name_en": "delphox-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10293
+  },
+  "10294": {
+    "base_id": 658,
+    "form_name_en": "greninja-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10294
+  },
+  "10295": {
+    "base_id": 668,
+    "form_name_en": "pyroar-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10295
+  },
+  "10296": {
+    "base_id": 670,
+    "form_name_en": "floette-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10296
+  },
+  "10297": {
+    "base_id": 687,
+    "form_name_en": "malamar-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10297
+  },
+  "10298": {
+    "base_id": 689,
+    "form_name_en": "barbaracle-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10298
+  },
+  "10299": {
+    "base_id": 691,
+    "form_name_en": "dragalge-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10299
+  },
+  "10300": {
+    "base_id": 701,
+    "form_name_en": "hawlucha-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10300
+  },
+  "10301": {
+    "base_id": 718,
+    "form_name_en": "zygarde-mega",
+    "has_front": false,
+    "has_shiny": false,
+    "id": 10301
+  },
+  "10302": {
+    "base_id": 780,
+    "form_name_en": "drampa-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10302
+  },
+  "10303": {
+    "base_id": 870,
+    "form_name_en": "falinks-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10303
+  },
+  "10304": {
+    "base_id": 26,
+    "form_name_en": "raichu-mega-x",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10304
+  },
+  "10305": {
+    "base_id": 26,
+    "form_name_en": "raichu-mega-y",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10305
+  },
+  "10306": {
+    "base_id": 358,
+    "form_name_en": "chimecho-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10306
+  },
+  "10307": {
+    "base_id": 359,
+    "form_name_en": "absol-mega-z",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10307
+  },
+  "10308": {
+    "base_id": 398,
+    "form_name_en": "staraptor-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10308
+  },
+  "10309": {
+    "base_id": 445,
+    "form_name_en": "garchomp-mega-z",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10309
+  },
+  "10310": {
+    "base_id": 448,
+    "form_name_en": "lucario-mega-z",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10310
+  },
+  "10311": {
+    "base_id": 485,
+    "form_name_en": "heatran-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10311
+  },
+  "10312": {
+    "base_id": 491,
+    "form_name_en": "darkrai-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10312
+  },
+  "10313": {
+    "base_id": 623,
+    "form_name_en": "golurk-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10313
+  },
+  "10314": {
+    "base_id": 678,
+    "form_name_en": "meowstic-male-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10314
+  },
+  "10315": {
+    "base_id": 740,
+    "form_name_en": "crabominable-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10315
+  },
+  "10316": {
+    "base_id": 768,
+    "form_name_en": "golisopod-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10316
+  },
+  "10317": {
+    "base_id": 801,
+    "form_name_en": "magearna-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10317
+  },
+  "10318": {
+    "base_id": 801,
+    "form_name_en": "magearna-original-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10318
+  },
+  "10319": {
+    "base_id": 807,
+    "form_name_en": "zeraora-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10319
+  },
+  "10320": {
+    "base_id": 952,
+    "form_name_en": "scovillain-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10320
+  },
+  "10321": {
+    "base_id": 970,
+    "form_name_en": "glimmora-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10321
+  },
+  "10322": {
+    "base_id": 978,
+    "form_name_en": "tatsugiri-curly-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10322
+  },
+  "10323": {
+    "base_id": 978,
+    "form_name_en": "tatsugiri-droopy-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10323
+  },
+  "10324": {
+    "base_id": 978,
+    "form_name_en": "tatsugiri-stretchy-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10324
+  },
+  "10325": {
+    "base_id": 998,
+    "form_name_en": "baxcalibur-mega",
+    "has_front": true,
+    "has_shiny": true,
+    "id": 10325
+  }
+}

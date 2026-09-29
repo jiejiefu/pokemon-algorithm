@@ -198,14 +198,16 @@ const baseStages = (p) => {
   if (!chain) return 0;
   // A form row is `-Mega` / `-Gmax` / a numeric variant id. Counting them as
   // stages is what makes 妙蛙草's chain read 3 evolutions instead of 2.
-  const isBase = (row) => !/-/.test(row.name) && typeof row.id === 'number' && row.id <= 1025;
-  const main = (chain.main_line || []).filter(isBase);
-  // 杖尾鱗甲龍 (#784, chain 408) has `main_line: []` and its three real stages
-  // in `special_forms.other`. This is the gotcha-37 `{}`-is-truthy family: an
-  // empty array is truthy, so `main.length || other.length` is the correct
-  // fallback and `chain.main_line || other` would silently yield nothing.
-  if (main.length) return main.length;
-  return ((chain.special_forms || {}).other || []).filter(isBase).length;
+  //
+  // Base-vs-form is the id-authoritative rule from gotcha 15, NOT a name test.
+  // This used to be `!/-/.test(row.name)`, which is the same hyphen bug C0 fixed
+  // in the generator: it silently classified Nidoran-F, Mr-Mime and Ho-Oh as
+  // forms. It passed only because none of the 600族 names contain a hyphen.
+  const isBase = (row) => typeof row.id === 'number' && row.id <= 1025;
+  // No fallback to special_forms.other. It was here solely because chain 408
+  // used to have an empty main_line, and it would now hide the next regression
+  // of exactly that kind rather than reporting it.
+  return (chain.main_line || []).filter(isBase).length;
 };
 
 for (const p of pseudoMembers) {
@@ -214,7 +216,7 @@ for (const p of pseudoMembers) {
   // line would make this pass by coincidence, so require both.
   ok(stages === 3, `#${p.id} ${p.names.zh} has ${stages} base stages in chain ${p.evolution_chain_id}, expected 3 (two evolutions)`);
   const chain = chains[p.evolution_chain_id];
-  const last = [...(chain.main_line || []), ...((chain.special_forms || {}).other || [])]
+  const last = (chain.main_line || [])
     .filter((row) => typeof row.id === 'number' && row.id <= 1025)
     .at(-1);
   ok(last?.id === p.id, `#${p.id} is not the final stage of chain ${p.evolution_chain_id} (last is #${last?.id})`);
