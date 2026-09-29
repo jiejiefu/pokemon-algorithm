@@ -15,8 +15,8 @@
  *    have no detail page, plus 54 species whose CSV spelling drifted from
  *    pokemon_data.json's names.en) resolved to a URL that 404s. `base_name_en`
  *    is the field that fixes it, so it is asserted to resolve for all 1350.
- *    That count is now 378, because the Nidoran slug split gave node 32 a slug
- *    of its own; see the assertion in this file for why that is not drift.
+ *    That count is now 377, because the Nidoran slug split gave both halves a
+ *    slug of their own; see the assertion in this file for why that is not drift.
  *  - All 1025 species must answer to a distinct slug. Nidoran♀ and Nidoran♂
  *    differed by nothing but a symbol, and ♀/♂ are stripped by the slug filter,
  *    so both resolved to `nidoran` and first-match-wins sent every request to
@@ -67,16 +67,23 @@ const slugName = (name) => name
 
 /** ♀/♂ are dropped by slugName() above, so Nidoran♀ and Nidoran♂ collide on
  *  `nidoran` and find() answers 尼多蘭 for both. Ported from SYMBOL_SLUGS in
- *  shared.js; ♀ deliberately keeps the bare slug so existing URLs still work. */
+ *  shared.js. Both halves carry an explicit letter, so neither slug asserts
+ *  less than the data does; `nidoran` is deliberately not kept as an alias. */
 const SYMBOL_SLUGS = new Map([
-  ['Nidoran♀', 'nidoran'],
+  ['Nidoran♀', 'nidoran-f'],
   ['Nidoran♂', 'nidoran-m'],
 ]);
 
 /** Name-level form of pokemonSlug(). Every resolution below goes through this
  *  rather than slugName(), because base_name_en is a raw name that can be
  *  `Nidoran♂` -- and slugName() strips that symbol straight back to the shared
- *  `nidoran`, which is the collision the table exists to end. */
+ *  `nidoran`, which is the collision the table exists to end.
+ *
+ *  The chain file spells the pair with ASCII hyphens (`Nidoran-F`), so its
+ *  base_name_en values miss the table and fall through to slugName() -- which
+ *  happens to derive the same two slugs, because a hyphen is a separator there
+ *  too. That is why `nidoran-f` has to stay the generic rule's own output for
+ *  this pair and not merely a table lookup. */
 const slugFor = (name) => SYMBOL_SLUGS.get(name) || slugName(name);
 
 // The real pokemonSlug() takes a pokemon and reads names.en || name_en || id.
@@ -209,10 +216,14 @@ const dupeSlugs = allSlugs.filter((s, i) => {
 });
 eq([...new Set(dupeSlugs)], [], 'slugs claimed by more than one species');
 // The pair itself, pinned by id so a rename cannot make this pass silently.
-eq(byId.get(29) && pokemonSlug(byId.get(29)), 'nidoran', '尼多蘭 slug');
+eq(byId.get(29) && pokemonSlug(byId.get(29)), 'nidoran-f', '尼多蘭 slug');
 eq(byId.get(32) && pokemonSlug(byId.get(32)), 'nidoran-m', '尼多朗 slug');
-eq(slugToId.get('nidoran'), 29, '?slug=nidoran resolves to 尼多蘭');
+eq(slugToId.get('nidoran-f'), 29, '?slug=nidoran-f resolves to 尼多蘭');
 eq(slugToId.get('nidoran-m'), 32, '?slug=nidoran-m resolves to 尼多朗');
+// The bare spelling is gone on purpose, so it must NOT resolve. Without this the
+// rename could pass while a stale `nidoran` alias quietly kept answering 尼多蘭,
+// which is the state the user ruled against.
+eq(slugToId.has('nidoran'), false, 'bare ?slug=nidoran is not an alias for 尼多蘭');
 // A missing base_name_en must read as a FAIL, not an abort: pokemonSlug(undefined)
 // throws, and a stack trace sends the reader to the wrong file (gotcha 38).
 const noBaseNameEn = nodes.filter(n => typeof n.base_name_en !== 'string');
@@ -222,18 +233,27 @@ const unresolvable = linkable.filter(n => !slugToId.has(slugFor(n.base_name_en))
 eq(unresolvable.map(n => n.id), [], 'nodes whose base_name_en has no detail page');
 // The old field must still be broken, or this check has stopped testing anything.
 const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
-// 379 before the Nidoran split, 378 after: node 32 spells itself `Nidoran-M`
-// (ASCII hyphen) in this file, so the new `nidoran-m` resolves it. That is the
-// split working, not the count drifting -- 325 form nodes plus 53 species whose
-// CSV spelling drifted from pokemon_data.json is where the other 378 come from.
-eq(deadByNameEn.length, 378, 'nodes still unresolvable via name_en (the bug being fixed)');
+// 379 before the Nidoran split, 378 after, 377 after ♀ became `nidoran-f`.
+// Both moves are the split working, not the count drifting -- 325 form nodes
+// plus the species whose CSV spelling drifted from pokemon_data.json is where
+// the rest come from. The second move is worth spelling out, because it is not
+// obvious: this probe bypasses SYMBOL_SLUGS, yet the *key set* it tests against
+// is built by pokemonSlug(), which uses it. Nodes 29 and 32 both spell
+// themselves with ASCII hyphens (`Nidoran-F`, `Nidoran-M`), so slugName derives
+// `nidoran-f` / `nidoran-m` for them. While ♀ answered to the bare `nidoran`,
+// node 29's derived slug matched nothing and node 32's matched the table; giving
+// both halves an explicit letter put `nidoran-f` in the key set too, so node 29
+// stopped being a casualty. That is why the expected number follows the rename
+// rather than staying put.
+eq(deadByNameEn.length, 377, 'nodes still unresolvable via name_en (the bug being fixed)');
 // Form nodes must point at their base, not at themselves.
 eq(linkable.filter(n => n.form !== null
       && slugToId.get(slugFor(n.base_name_en)) !== n.base_id).map(n => n.id),
    [], 'form nodes not pointing at their base species');
 // Base nodes must point at themselves. This used to need SLUG_COLLISIONS = {32},
 // because Nidoran♂ slugged to `nidoran` and first-match-wins sent it to 29; that
-// exception is deleted rather than kept, so the pair has to keep resolving.
+// exception is deleted rather than kept, so the pair has to keep resolving under
+// both the symbol spelling and the ASCII-hyphen spelling the chain file uses.
 eq(linkable.filter(n => n.form === null
       && slugToId.get(slugFor(n.base_name_en)) !== n.id).map(n => n.id),
    [], 'base nodes not pointing at their own species');
@@ -260,8 +280,8 @@ eq(badHref.map(n => n.id), [], 'nodes whose rendered href would 404');
 // And prove the probe is live: the same expression over the old field must still
 // fail, otherwise this section has stopped testing anything.
 const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.name_en } })));
-// Same 379 -> 378 as above, for the same reason.
-eq(badIfNameEn.length, 378, 'nodes that would 404 if the renderer used name_en');
+// Same 379 -> 378 -> 377 as above, for the same reason.
+eq(badIfNameEn.length, 377, 'nodes that would 404 if the renderer used name_en');
 // The URL must be the ?slug= form the local dev server can actually serve, not
 // the clean /detail/<slug> path that Live Server 404s (gotcha 8).
 eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,

@@ -160,14 +160,22 @@ const nameEn = pokemon => pokemon?.names?.en || pokemon?.name_en || String(pokem
  * A Map rather than an object literal so a name that happens to be a
  * prototype key (`toString`) cannot resolve to an inherited function.
  *
- * ♀ keeps the bare `nidoran` on purpose. Every `?slug=nidoran` and
- * `/detail/nidoran` URL in the wild already addresses 尼多蘭, and a split only
- * helps if the half that already had a working address keeps it; ♂ takes the
- * new `nidoran-m`. Measured over all 1025: 1024 distinct slugs before this
- * table, 1025 after, with 尼多蘭/尼多朗 the only colliding pair either way.
+ * The suffix is `f`/`m` on both sides rather than a bare `nidoran` for ♀. The
+ * bare form was tried first and rejected: it addresses 尼多蘭 correctly but
+ * says nothing about which of the two it is, so the URL asserts less than the
+ * data does — the same defect as a colour dot filled from `pokemon.rgb` sitting
+ * next to the word "Green" (gotcha 10). Symmetry also means a symbol-bearing
+ * name extends by the same rule rather than needing a one-off.
+ *
+ * This costs the `?slug=nidoran` and `/detail/nidoran` addresses, which are
+ * live and do resolve to 尼多蘭. The user's call was to break them rather than
+ * carry a permanent alias, so there is deliberately no alias table: the only
+ * surviving spelling of the female is `nidoran-f`. Measured over all 1025:
+ * 1024 distinct slugs before this table, 1025 after, with 尼多蘭/尼多朗 the
+ * only colliding pair either way.
  */
 const SYMBOL_SLUGS = new Map([
-  ['Nidoran♀', 'nidoran'],
+  ['Nidoran♀', 'nidoran-f'],
   ['Nidoran♂', 'nidoran-m']
 ]);
 
@@ -1164,9 +1172,12 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
   // pokemon_data.json's names.en (Mr. Mime, Nidoran-F, Ho. Oh, Type: Null).
   // `base_name_en` is the base species' real name, written by
   // extract_evolution_chains.py and asserted to resolve by
-  // scripts/check_evolution_chains.mjs. Nidoran-M is the one case it does not
-  // round-trip, because both Nidoran records slug to `nidoran` (gotcha 30) -- it
-  // lands on Nidoran-F rather than on nothing.
+  // scripts/check_evolution_chains.mjs. The Nidorans are the one pair whose
+  // `base_name_en` does not round-trip: the chain file spells them with ASCII
+  // hyphens (`Nidoran-F`) while pokemon_data.json carries the symbols
+  // (`Nidoran♀`), so neither spelling is a key in SYMBOL_SLUGS. They still land
+  // on the right species, because `nidoran-f`/`nidoran-m` are also what the
+  // generic rule derives from the ASCII spelling.
   const nodeHref = (node) =>
     pokemonDetailUrl({ names: { en: node.base_name_en || node.name_en } });
 

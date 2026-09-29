@@ -534,13 +534,12 @@ export function anchorIndex(anchorStep) {
 /**
  * Find a Pokémon by `?slug=`, falling back to `?id=`.
  *
- * The `?id=` fallback is not redundant. `pokemonSlug()` normalises `names.en`
- * to `[a-z0-9]`, which strips `Nidoran♀` / `Nidoran♂` — both slug to `nidoran`
- * and `find()` returns the first match, so id 32 is unreachable by slug. That
- * collision is pre-existing and documented in AGENTS.md gotcha 30; fixing it
- * means changing the URL scheme, which also touches the clean-URL contract.
- * Until then every page keyed on a slug accepts the numeric form, exactly as
- * detail.html does.
+ * The `?id=` fallback is not redundant, but its original reason no longer
+ * applies. It used to be there because `pokemonSlug()` stripped `Nidoran♀` /
+ * `Nidoran♂` to the same `nidoran` and `find()` answered 尼多蘭 for both, so id
+ * 32 was unreachable by slug; that collision is fixed (gotcha 30). The fallback
+ * stays for the legacy numeric form that `detail.html` still accepts, so the two
+ * pages accept exactly the same set of addresses.
  */
 export function findBySlug(pokemon, slug, id) {
   if (id != null && String(id) !== '') {
