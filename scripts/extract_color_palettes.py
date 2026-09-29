@@ -59,7 +59,7 @@ costs nothing -- but do not cite "12 colours" as a measured property of the
 roster, because it is not one.
 
 Five palettes have only 5 distinct colours and cannot reach the floor:
-#201 Wobbuffet (normal + shiny), #643 Genesect (normal), #868 Salandit
+#201 Unown (normal + shiny), #643 Reshiram (normal), #868 Milcery
 (normal + shiny). Their sprites genuinely contain five colours. They are stored
 with five, and the UI renders a five-segment strip rather than inventing a
 sixth -- padding a palette would be a fabricated colour presented as a
