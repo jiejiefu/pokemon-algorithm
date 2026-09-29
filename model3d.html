@@ -712,8 +712,13 @@
       });
       autoBtn.addEventListener('click', () => {
         const on = autoBtn.getAttribute('aria-pressed') !== 'true';
+        // One writer for the mode, on both sides of it. This handler used to
+        // call setAutoRotate AND then assign viewer.state.autoRotating itself,
+        // because the key was missing from the viewer's state literal; it is
+        // declared there now, so the second write is not just redundant, it was
+        // the thing that let the button and the scene drift apart. See
+        // setAutoRotate() in assets/js/model3d-viewer.js.
         viewer.setAutoRotate(on);
-        viewer.state.autoRotating = on;
         paintPlaybackButtons(viewer.state);
       });
       resetBtn.addEventListener('click', () => {

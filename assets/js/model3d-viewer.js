@@ -287,6 +287,8 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
     activeIndex: -1,
     pivot: null,
     loop: true,
+    // Was absent, and the page wrote it in anyway — see setAutoRotate below.
+    autoRotating: false,
     playing: false,
     timeScale: 1,
     reduced: prefersReducedMotion(),
@@ -653,8 +655,37 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
     applyLoopMode(action);
   }
 
+  /**
+   * The only writer of the auto-rotate mode, on BOTH sides of it.
+   *
+   * `autoRotating` sits in the state literal next to `loop` and `playing` and is
+   * set here, not by the page, so it is the same kind of value as those two. It
+   * was not, and the split is worth naming because it worked by luck:
+   *
+   *   - `controls.autoRotate` is three.js's own field, written only here.
+   *   - `state.autoRotating` is what `paintPlaybackButtons` reads for the label
+   *     and `aria-pressed` — and the key was not in the literal at all, so
+   *     `model3d.html` assigned it onto the returned state object from its own
+   *     click handler.
+   *
+   * The two therefore only agreed because the one caller that flipped the mode
+   * also re-painted the button from the state it had just written, and it wrote
+   * both in the same tick. Anything that changed the mode without going through
+   * that handler desynchronised them with no error: the scene would spin while
+   * the button read 自動旋轉, or the button would read 旋轉中 over a still
+   * model. `resetView()` and `disposeModel()` are the near misses — neither
+   * touches auto-rotate today, which is why this sat unfixed, but the invariant
+   * was "don't write that field from out there" rather than "there is one way
+   * to do it".
+   *
+   * Writing the state first means the value `controls` ends up with is derived
+   * from the same normalisation as the state, so a truthy non-boolean cannot
+   * split them. `disposeModel()` deliberately does NOT reset this: rotation is
+   * a viewer preference that outlives a model, exactly like `loop`.
+   */
   function setAutoRotate(on) {
-    controls.autoRotate = !!on;
+    state.autoRotating = !!on;
+    controls.autoRotate = state.autoRotating;
     controls.autoRotateSpeed = 1.6;
   }
 
