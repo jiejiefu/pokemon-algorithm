@@ -258,6 +258,32 @@
       }
     }
   </script>
+  <!-- This is the ONLY page on the site that loads a third-party origin, so there
+       is no house convention to copy — and it loads a lot from it. The importmap
+       is resolved by the browser at module-graph time, so the four addons below
+       are four separate files, not one bundle: five requests to unpkg, the first
+       of which pays DNS + TCP + TLS while the visitor is already looking at an
+       empty stage.
+
+       gstatic is a SECOND origin, not a second file: DRACO_DECODER_PATH in
+       model3d-viewer.js is `www.gstatic.com`, and it is a real round trip of its
+       own. It is the one that is not visible, because it fires when the Draco
+       worker starts, i.e. after the 541 KB GLB has already landed — so its cost
+       is attributed to the model and never to the network. Both GLBs declare
+       KHR_draco_mesh_compression in extensionsRequired, so this is not optional
+       and check_glb.mjs fails if that ever stops being true.
+
+       `preconnect` and not `modulepreload`, deliberately: a modulepreload would
+       have to restate the unpkg URL, and the module header's whole claim is that
+       repointing the importmap at vendored copies is a change to this block
+       alone. An origin-level hint survives that edit; a hardcoded URL beside it
+       would not. `crossorigin` is required, not decorative — without it the
+       connection is opened in a mode the subsequent CORS fetches cannot reuse.
+       Both origins answer with Access-Control-Allow-Origin: *, which the
+       importmap strictly requires and which the Draco decoder requires for the
+       same reason: it is instantiated with WebAssembly.instantiateStreaming. -->
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 </head>
 <body>
   <header class="header header-3d">
