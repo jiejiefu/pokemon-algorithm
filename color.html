@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>色彩頁 · 寶可夢演算法實驗室</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="單一寶可夢的完整色盤、明暗階、種族值與主題配色匯出。">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/colors.css">
+  <style>
+    .cp-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 16px 64px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-colors">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
+      <div class="header-title header-title-large">色彩頁</div>
+    </div>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="cp-page" id="main">
+    <div id="status" role="status" aria-live="polite" class="cp-results-note" style="padding:24px 0">載入中…</div>
+
+    <div id="content" hidden>
+      <div id="hero"></div>
+
+      <div class="cp-picker">
+        <a id="pager" class="btn" href="colors-explore.html">色彩探索</a>
+        <a id="detail-link" class="btn" href="detail.html">完整資料頁</a>
+        <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">閃亮外觀</button>
+      </div>
+
+      <section class="cp-section" aria-labelledby="sec-identity">
+        <h2 id="sec-identity">身分卡</h2>
+        <div id="identity"></div>
+      </section>
+
+      <section class="cp-section" aria-labelledby="sec-palette">
+        <h2 id="sec-palette">色盤</h2>
+        <p class="cp-prose">點選任一色即可複製色碼。</p>
+        <div id="palette"></div>
+      </section>
+
+      <section class="cp-section" aria-labelledby="sec-scale">
+        <h2 id="sec-scale">明暗階</h2>
+        <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相推導。</p>
+        <div id="scale"></div>
+      </section>
+
+      <section class="cp-section" aria-labelledby="sec-stats">
+        <h2 id="sec-stats">種族值</h2>
+        <p class="cp-prose">
+          背後是這隻寶可夢官方圖鑑圖的黑色剪影，為本站的呈現方式。
+        </p>
+        <div id="stats"></div>
+      </section>
+
+      <section class="cp-section" aria-labelledby="sec-export">
+        <h2 id="sec-export">匯出主題</h2>
+        <div class="cp-actions">
+          <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
+          <button id="copy-json" class="btn" type="button">複製 JSON</button>
+        </div>
+        <pre id="theme-code" class="cp-code"></pre>
+      </section>
+    </div>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        寶可夢演算法實驗室 · 色彩資料取自 PokéAPI（Pokémon sprites / official artwork）· 色盤演算法對應參考實作 pokemonpalette
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import {
+      loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+      pokemonDetailUrl, typeBadgeSmHtml,
+    } from './assets/js/shared.js';
+    import {
+      loadColorPalettes, paletteRows, primaryOf, secondaryOf,
+      spriteUrl, artworkUrl, silhouetteStyle, identityCardHtml, heroHtml,
+      paletteGridHtml, paletteStripHtml, generateTailwindScale, anchorIndex,
+      findBySlug, paletteUrl, swatchStyle,
+    } from './assets/js/color-palette.js';
+
+    initThemeToggle();
+    initHeaderNav('color.html');
+
+    const els = {
+      status: document.getElementById('status'),
+      content: document.getElementById('content'),
+      hero: document.getElementById('hero'),
+      identity: document.getElementById('identity'),
+      palette: document.getElementById('palette'),
+      scale: document.getElementById('scale'),
+      stats: document.getElementById('stats'),
+      themeCode: document.getElementById('theme-code'),
+      shiny: document.getElementById('shiny-toggle'),
+      detailLink: document.getElementById('detail-link'),
+      copyTheme: document.getElementById('copy-theme'),
+      copyJson: document.getElementById('copy-json'),
+    };
+
+    // Six stats, the site's own labels, in the order the detail page uses.
+    const STAT_ROWS = [
+      ['hp', 'HP'], ['attack', '攻擊'], ['defense', '防禦'],
+      ['sp_attack', '特攻'], ['sp_defense', '特防'], ['speed', '速度'],
+    ];
+    const STAT_MAX = 255;
+
+    let pokemon = [];
+    let palettes = null;
+    let current = null;
+    // Default to shiny when the URL says so, so a shared link reproduces.
+    let shiny = new URLSearchParams(location.search).get('variant') === 'shiny';
+
+    function render() {
+      const rows = paletteRows(palettes, current.id, shiny);
+      const primary = primaryOf(palettes, current.id, shiny);
+      const secondary = secondaryOf(palettes, current.id, shiny);
+      const variant = shiny ? 's' : 'n';
+      const art = artworkUrl(current.id, shiny);
+      const sprite = spriteUrl(current.id, shiny);
+
+      // The clean path is only resolvable on GitHub Pages; `?slug=` is the form
+      // every local workflow and the nav links use (AGENTS.md gotcha 8).
+      history.replaceState(null, '', paletteUrl(current) + (shiny ? '&variant=shiny' : ''));
+
+      els.detailLink.href = pokemonDetailUrl(current);
+      els.shiny.setAttribute('aria-pressed', String(shiny));
+
+      els.hero.innerHTML = heroHtml({
+        primary, secondary, artUrl: art,
+        bodyHtml: `
+          <img class="cp-hero-sprite" src="${sprite}" alt="" width="96" height="96" decoding="async">
+          <p class="cp-hero-id">#${formatPokemonId(current.id)}</p>
+          <h1 class="cp-hero-name">${current.names.zh}</h1>
+          <p class="cp-hero-name-en">${current.names.en}</p>
+          <div class="cp-hero-types">${(current.types || []).map(t => typeBadgeSmHtml(t)).join('')}</div>`,
+      });
+
+      els.identity.innerHTML = identityCardHtml({
+        primary, secondary, artUrl: art,
+        bodyHtml: `
+          <div>
+            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 閃亮' : ''}</p>
+            <h3 class="cp-idcard-name">${current.names.zh}</h3>
+            <p class="cp-idcard-name-en">${current.names.en}</p>
+          </div>
+          <div id="identity-strip"></div>`,
+      });
+      els.identity.querySelector('#identity-strip').innerHTML = paletteStripHtml(rows);
+
+      els.palette.innerHTML = paletteGridHtml(rows, { id: current.id, variant });
+
+      const { scale, anchor } = generateTailwindScale(primary);
+      const ai = anchorIndex(anchor);
+      els.scale.innerHTML = '<div class="cp-scale">' +
+        Object.entries(scale).map(([step, hex], i) => `
+          <button type="button" class="cp-shade${i === ai ? ' is-anchor' : ''}"
+                  style="${swatchStyle(hex)}" data-cp-copy="${hex}"
+                  title="複製 ${hex}" aria-label="複製 ${step} 階 ${hex}">
+            <span class="cp-shade-hex">${hex}</span>
+            <span class="cp-shade-step">${step}</span>
+          </button>`).join('') + '</div>';
+
+      // Base Stats: the official artwork as a black silhouette behind the bars.
+      // The mask comes from the module so the fill and the mask-image pair ship
+      // together; a page that set only `background` would get a black box.
+      const stats = current.stats || {};
+      els.stats.innerHTML = `
+        <div class="cp-stats">
+          <div class="cp-stats-art" style="${silhouetteStyle('#000000', art)}"></div>
+          <div class="cp-stat-rows">
+            ${STAT_ROWS.map(([key, label]) => {
+              const value = Number(stats[key] || 0);
+              const pct = Math.round((value / STAT_MAX) * 100);
+              return `<div class="cp-stat">
+                <span class="cp-stat-label">${label}</span>
+                <span class="cp-stat-track"><span class="cp-stat-fill" style="width:${pct}%"></span></span>
+                <span class="cp-stat-value">${value}</span>
+              </div>`;
+            }).join('')}
+            <div class="cp-stat is-total">
+              <span class="cp-stat-label">總和</span>
+              <span class="cp-stat-track"><span class="cp-stat-fill" style="width:${Math.round((Number(stats.total || 0) / (STAT_MAX * 6)) * 100)}%"></span></span>
+              <span class="cp-stat-value">${Number(stats.total || 0)}</span>
+            </div>
+          </div>
+        </div>`;
+
+      els.themeCode.textContent = themeCss(rows, scale);
+      document.title = `${current.names.zh} 色盤 · 寶可夢演算法實驗室`;
+    }
+
+    function themeCss(rows, scale) {
+      const hexes = rows.map(r => r[0]);
+      return [
+        `/* 色彩頁匯出 · #${formatPokemonId(current.id)} ${current.names.en}${shiny ? ' 閃亮' : ''} */`,
+        ':root {',
+        ...Object.entries(scale).map(([step, hex]) => `  --cp-${step}: ${hex};`),
+        `  --cp-primary: ${hexes[0]};`,
+        `  --cp-secondary: ${hexes[1] || hexes[0]};`,
+        '  /* 完整色盤，依占比排序 */',
+        `  --cp-palette: ${hexes.join(', ')};`,
+        '}',
+      ].join('\n');
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    document.addEventListener('click', async event => {
+      const btn = event.target.closest('[data-cp-copy]');
+      if (!btn) return;
+      if (!await copyText(btn.dataset.cpCopy)) return;
+      btn.classList.add('is-copied');
+      const label = btn.querySelector('.cp-cell-hex, .cp-shade-hex');
+      if (label) {
+        const was = label.textContent;
+        label.textContent = '已複製';
+        setTimeout(() => { label.textContent = was; btn.classList.remove('is-copied'); }, 1400);
+      }
+    });
+
+    els.copyTheme.addEventListener('click', async () => {
+      await copyText(els.themeCode.textContent);
+      els.copyTheme.textContent = '已複製';
+      setTimeout(() => { els.copyTheme.textContent = '複製 CSS 變數'; }, 1400);
+    });
+
+    els.copyJson.addEventListener('click', async () => {
+      const rows = paletteRows(palettes, current.id, shiny);
+      await copyText(JSON.stringify({
+        id: current.id, name: current.names.en, variant: shiny ? 's' : 'n',
+        palette: Object.fromEntries(rows),
+      }, null, 2));
+      els.copyJson.textContent = '已複製';
+      setTimeout(() => { els.copyJson.textContent = '複製 JSON'; }, 1400);
+    });
+
+    els.shiny.addEventListener('click', () => {
+      shiny = !shiny;
+      render();
+    });
+
+    async function init() {
+      try {
+        [pokemon, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        const params = new URLSearchParams(location.search);
+        current = findBySlug(pokemon, params.get('slug'), params.get('id'));
+
+        if (!current) {
+          // An unknown slug is a 404 in spirit, but this site has no per-page
+          // 404 for query-driven pages and detail.html falls back the same way.
+          // The message names what was asked for, because "找不到寶可夢" on its
+          // own sends the reader looking at the roster instead of the URL.
+          els.status.innerHTML =
+            `<div class="cp-empty"><p>找不到這個寶可夢。</p>` +
+            `<p>網址中的 <code>${(params.get('slug') || params.get('id') || '（空白）').slice(0, 60)}</code> 不在 1–1025 範圍內。</p>` +
+            `<p><a href="colors-explore.html">前往色彩探索</a>，或改用國號瀏覽。</p></div>`;
+          return;
+        }
+
+        render();
+        els.status.hidden = true;
+        els.content.hidden = false;
+      } catch (error) {
+        els.status.textContent = '載入失敗，請確認是否以 HTTP 伺服器開啟（' + error.message + '）';
+        console.error(error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

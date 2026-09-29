@@ -39,6 +39,14 @@
   --bg-header-maze: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
   --bg-header-dex: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
   --bg-header-3d: linear-gradient(135deg, #6d28d9 0%, #3730a3 100%);
+  /* 700-step teal→indigo, because the header title is white text ON the
+     ramp and gotcha 39's rule is that the check is the LIGHTEST stop: the
+     teal end measures 5.47:1 and the indigo end 7.90:1, so both clear
+     4.5:1. A 500-level version of the same hues fails the teal end, which
+     is the failure mode gotcha 39 exists to prevent. Teal is also the
+     site's own palette colour (Bulbasaur's primary is #399494), so the
+     brand headers and the colour pages share a hue family. */
+  --bg-header-colors: linear-gradient(135deg, #0f766e 0%, #4338ca 100%);
   --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   /* Same hue, two roles: as a *fill* it takes white text, as *text* it has to
      clear 4.5:1 on a near-white page. #e3b341 does both in dark (#14110a on it
@@ -169,6 +177,10 @@
   --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
   --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
+  /* Light uses a pale tint, not a lighter saturated step: the dark rules put
+     white text on the ramp, and a 300-level teal with white text is 2.4:1.
+     A tint keeps the hue and lets the header keep --text-primary. */
+  --bg-header-colors: linear-gradient(135deg, #ccfbf1 0%, #e0e7ff 100%);
   --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   --text-primary: #1f2328;
@@ -367,6 +379,7 @@ body {
 .header-maze { background: var(--bg-header-maze); }
 .header-dex { background: var(--bg-header-dex); position: sticky; top: 0; z-index: 100; }
 .header-3d { background: var(--bg-header-3d); position: sticky; top: 0; z-index: 100; }
+.header-colors { background: var(--bg-header-colors); position: sticky; top: 0; z-index: 100; }
 
 /* ===== Controls / Buttons ===== */
 .controls {
@@ -873,7 +886,8 @@ canvas.maze-canvas {
    itself stays `position: absolute`, so nothing about the 3 pages that have no
    nav changes — they have no `.site-nav` to lay out in a row. */
 .header-dex,
-.header-3d {
+.header-3d,
+.header-colors {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1182,10 +1196,12 @@ a.site-nav-item:focus-visible,
 
 @media (max-width: 1024px) {
   .header-dex .site-nav,
-  .header-3d .site-nav { display: none; }
+  .header-3d .site-nav,
+  .header-colors .site-nav { display: none; }
   .site-nav-toggle { display: flex; margin-left: auto; }
   .header-dex,
-  .header-3d { padding-right: 62px; }
+  .header-3d,
+  .header-colors { padding-right: 62px; }
 }
 
 @media print {
@@ -1247,6 +1263,7 @@ a.site-nav-item:focus-visible,
     --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
     --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
+    --bg-header-colors: linear-gradient(135deg, #ccfbf1 0%, #e0e7ff 100%);
     --header-title-shadow: none;
     color-scheme: light;
   }

@@ -101,6 +101,20 @@ export const ASSETS = {
   // because the roster is 2 of 1025 and a per-id request would leave a console
   // error for the other 1023.
   glbs: 'assets/glbs/',
+  // A fourth sibling, same reasoning. The colour pages need the 96x96 front
+  // sprite and not the artwork, and the reason is the data: a sprite holds 11.8
+  // distinct colours on average, the artwork 5532, and the reference extractor
+  // has no nearest-duplicate collapse — fed artwork its top 6 for Bulbasaur is
+  // four shades of one pale mint. The `shiny` subdirectory is a real directory
+  // here, unlike the flat artwork set, so spriteUrl() joins it rather than
+  // switching the parent directory the way the artwork paths do.
+  sprites: 'assets/images/sprite/',
+  // 254 KB raw / 74 KB gzip for all 2050 palettes, so this one loads eagerly
+  // with the page — unlike learnsets.json (223 KB gzip) and generations.json,
+  // which earn a separate file and a fetch gate. Every colour page needs all of
+  // it: the generator page steps through ids, the explore grid lists hundreds,
+  // and the detail page is one lookup. Cached on window like every other loader.
+  palettes: 'assets/data/color_palettes.json',
   data: 'assets/data/pokemon_data.json',
   generations: 'assets/data/generations.json',
   sortingAlgos: 'assets/js/sorting-algorithms.js'
@@ -319,6 +333,13 @@ const ICON_PATHS = {
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
   close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
   sparkle: 'M12 2l2.4 6.2L21 10l-6.6 1.8L12 18l-2.4-6.2L3 10l6.6-1.8L12 2z',
+  // The nav's 色彩 trigger. It is here rather than as static markup in the three
+  // colour pages because initHeaderNav() draws it — the same reason `book`,
+  // `layers`, `sort` and `home` are in this map, and the exception to that
+  // comment's `shuffle` / `back` / `forward` list. A swatch fan rather than a
+  // literal paint roller: at 16px the roller's handle and ferrule collapse into
+  // the body outline, while three offset swatches stay three distinct shapes.
+  palette: 'M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.4-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-1.1.9-2 2-2h2.1A6 6 0 0 0 23 8.7C23 5.4 18 3 12 3zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
   // model3d.html. `view_in_ar` rather than a literal cube: it reads as a
   // viewable 3D object at 16px, where an isometric cube outline flattens into a
   // hexagon next to the other five.
@@ -512,12 +533,15 @@ export function createFeatureCard({ href, icon, title, desc, className }) {
    that a focusable element which does nothing when activated is worse than a
    non-focusable one, and ?cat= accepts only the 9 real slugs.
 
-   Six pages mount this — index, pokedex, collections, category, generations,
-   model3d. The other three deliberately do not: sorting and maze have a control
-   bar where a nav would go (see maze.html's `.controls-maze`, whose leftmost
-   child is the logo for that reason, gotcha 51c), and detail is a single scroll
-   whose header is the three-column top card. `rg -l site-nav *.html` is the
-   check; a page added without it loses the nav silently. */
+   Nine pages mount this — index, pokedex, collections, category, generations,
+   model3d, colors, colors-explore, color. The other three deliberately do not:
+   sorting and maze have a control bar where a nav would go (see maze.html's
+   `.controls-maze`, whose leftmost child is the logo for that reason, gotcha
+   51c), and detail is a single scroll whose header is the three-column top card.
+   `rg -l site-nav *.html` is the check; a page added without it loses the nav
+   silently. The three colour pages pass their own filename to initHeaderNav()
+   so the 色彩 trigger reads as current — including color.html, which has no
+   static nav item of its own and is reached only from a card or the generator. */
 export const NAV = [
   { href: 'index.html', label: '首頁', icon: 'home' },
   {
@@ -573,6 +597,35 @@ export const NAV = [
   // bury the page it links to behind a hover, and the page is reachable from the
   // homepage's 精選系列 grid as well.
   { href: 'model3d.html', label: '3D 模型', icon: 'cube' },
+  // Last in NAV, and the only dropdown whose three pages are a linear sequence
+  // rather than siblings: 色彩生成器 → 探索 → 單一寶可夢頁 is a drill-down, so
+  // the first group lists them as one row each and the second keeps the site's
+  // 計劃中 convention visible instead of hiding three built pages behind a
+  // 4th. `pages` is required for the same reason 特殊分類 needs it — the three
+  // files cannot be told apart by `href` alone, and the dropdown trigger has no
+  // href of its own, so without it none of the three would mark the trigger
+  // current.
+  {
+    id: 'colors',
+    label: '色彩',
+    icon: 'palette',
+    pages: ['colors.html', 'colors-explore.html', 'color.html'],
+    groups: [
+      {
+        items: [
+          { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
+          { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 常規/閃亮的色帶' },
+        ],
+      },
+      {
+        title: '計劃中',
+        items: [
+          { label: '配色遊戲', desc: '看色帶猜是哪一隻', planned: 'color-game.html' },
+          { label: '我的色盤', desc: '收藏與匯出自訂主題', planned: 'saved-palettes.html' },
+        ],
+      },
+    ],
+  },
 ];
 
 /**
@@ -617,6 +670,8 @@ export const PLANNED_PAGES = [
   { slug: 'about.html', title: '關於我們', why: '頁尾連結', data: 'present' },
   { slug: 'privacy.html', title: '隱私權政策', why: '頁尾連結', data: 'present' },
   { slug: 'sitemap.html', title: 'Sitemap', why: '頁尾連結', data: 'present' },
+  { slug: 'color-game.html', title: '配色遊戲', why: '色帶已足夠作答，缺的是出題、計分與難度', data: 'present' },
+  { slug: 'saved-palettes.html', title: '我的色盤', why: '主題匯出已可複製，缺的是收藏與命名', data: 'present' },
 ];
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

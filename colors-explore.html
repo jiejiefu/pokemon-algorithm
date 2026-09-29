@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>色彩探索 · 寶可夢演算法實驗室</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="瀏覽 1025 隻寶可夢常規與閃亮外觀的色盤，可依名稱、屬性、稀有度與世代篩選。">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/colors.css">
+  <style>
+    .cp-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    .cp-intro {
+      margin-bottom: 24px;
+    }
+
+    .cp-intro h1 {
+      font-size: 28px;
+      margin: 0 0 6px;
+    }
+
+    .cp-intro p {
+      margin: 0;
+      max-width: 68ch;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-colors">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
+      <div class="header-title header-title-large">色彩探索</div>
+    </div>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="cp-page">
+    <div class="cp-intro">
+      <h1>色彩探索</h1>
+      <p>
+        1025 隻寶可夢常規與閃亮外觀的完整色盤。搜尋支援國號、繁中名、英文名與日文名，
+        也可依屬性、稀有度與世代篩選；篩選條件會寫進網址，方便直接分享。
+      </p>
+    </div>
+
+    <div class="cp-toolbar">
+      <div class="cp-filters">
+        <label class="sr-only" for="q">搜尋寶可夢</label>
+        <input id="q" type="search" placeholder="搜尋名稱或國號，例如 妙蛙種子、pikachu、025" autocomplete="off">
+      </div>
+      <div class="cp-sort">
+        <label for="sort">排序</label>
+        <select id="sort">
+          <option value="id-asc">國號 由小到大</option>
+          <option value="id-desc">國號 由大到小</option>
+          <option value="name-asc">名稱 A → Z</option>
+          <option value="name-desc">名稱 Z → A</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cp-filters" id="filters" role="group" aria-label="篩選條件"></div>
+
+    <div class="cp-toolbar">
+      <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;flex-wrap:wrap">
+        <button id="shiny-toggle" class="cp-chip" type="button" aria-pressed="false">顯示閃亮外觀</button>
+        <button id="clear-all" class="cp-chip" type="button">清除全部篩選</button>
+      </div>
+      <p class="cp-chipset-count" id="count" role="status" aria-live="polite">載入中…</p>
+    </div>
+
+    <div class="cp-grid" id="grid"></div>
+    <div id="sentinel" class="cp-sentinel" hidden>載入更多…</div>
+    <div id="empty" hidden></div>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        寶可夢演算法實驗室 · 色彩資料取自 PokéAPI（Pokémon sprites / official artwork）· 色盤演算法對應參考實作 pokemonpalette
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import {
+      loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+      TYPE_EN_ZH,
+    } from './assets/js/shared.js';
+    import {
+      loadColorPalettes, paletteRows, primaryOf, spriteUrl,
+      paletteStripHtml, paletteUrl,
+    } from './assets/js/color-palette.js';
+
+    initThemeToggle();
+    initHeaderNav('colors-explore.html');
+
+    const PAGE_SIZE = 60;
+
+    const RARITIES = [
+      ['legendary', '傳說', p => p.is_legendary === true],
+      ['mythical', '幻之', p => p.is_mythical === true],
+      ['baby', '寶寶', p => p.is_baby === true],
+    ];
+
+    // Reference's SORT_LABELS, verbatim as a set: dex both ways, name both
+    // ways. "Name" there is the English name, so the A→Z comparison uses
+    // names.en and not names.zh — sorting by Chinese would need a collator
+    // this page deliberately does not ship.
+    const SORTS = {
+      'id-asc': (a, b) => a.id - b.id,
+      'id-desc': (a, b) => b.id - a.id,
+      'name-asc': (a, b) => a.names.en.localeCompare(b.names.en),
+      'name-desc': (a, b) => b.names.en.localeCompare(a.names.en),
+    };
+
+    const els = {
+      q: document.getElementById('q'),
+      sort: document.getElementById('sort'),
+      filters: document.getElementById('filters'),
+      shiny: document.getElementById('shiny-toggle'),
+      clear: document.getElementById('clear-all'),
+      count: document.getElementById('count'),
+      grid: document.getElementById('grid'),
+      sentinel: document.getElementById('sentinel'),
+      empty: document.getElementById('empty'),
+    };
+
+    let pokemon = [];
+    let palettes = null;
+    let state = { q: '', type: new Set(), rarity: new Set(), gen: new Set(), sort: 'id-asc', shiny: false };
+    let matches = [];
+    let shown = 0;
+    let observer = null;
+
+    /**
+     * Search across the four name fields the site's own pokedex exposes.
+     * A numeric query is matched against the id as a string, so "25" and
+     * "025" both find Pikachu — the padded form is what a player reads off a
+     * Pokédex, and the unpadded form is what a URL carries.
+     */
+    function haystack(p) {
+      const n = p.names;
+      return `${n.zh} ${n.zh_HK} ${n.en} ${n.ja} ${String(p.id).padStart(4, '0')}`.toLowerCase();
+    }
+
+    function apply() {
+      const q = state.q.trim().toLowerCase();
+      const qNum = /^\d+$/.test(q) ? Number(q) : null;
+
+      matches = pokemon.filter(p => {
+        if (q && !haystack(p).includes(q) && !(qNum != null && p.id === qNum)) return false;
+        if (state.type.size && !p.types.some(t => state.type.has(t))) return false;
+        if (state.gen.size && !state.gen.has(String(p.generation))) return false;
+        // OR within a facet, AND across facets. Matched on the facet KEY, which
+        // is what the URL carries, not on the display label.
+        if (state.rarity.size) {
+          const hit = RARITIES.some(([key, , test]) => state.rarity.has(key) && test(p));
+          if (!hit) return false;
+        }
+        return true;
+      });
+
+      matches.sort(SORTS[state.sort] || SORTS['id-asc']);
+      shown = 0;
+      els.grid.innerHTML = '';
+      renderPage();
+    }
+
+    function renderPage() {
+      els.count.textContent = `共 ${matches.length} 隻`;
+      els.sentinel.hidden = shown >= matches.length;
+      els.sentinel.textContent = '載入更多…';
+
+      if (matches.length === 0) {
+        els.empty.hidden = false;
+        els.empty.innerHTML =
+          '<div class="cp-empty"><p>沒有符合條件的寶可夢。</p>' +
+          '<p>可以移除部分篩選條件，或改搜尋其他名稱。</p></div>';
+        return;
+      }
+      els.empty.hidden = true;
+
+      // insertAdjacentHTML, not appendChild: cardHtml() returns a STRING, and
+      // `frag.appendChild(string)` fails with "parameter 1 is not of type
+      // 'Node'". Every interpolation here is from our own pokemon_data.json
+      // (name, id, types) — the search query is only ever compared, never
+      // written into markup — so there is no untrusted string on this path.
+      const end = Math.min(shown + PAGE_SIZE, matches.length);
+      let batch = '';
+      for (let i = shown; i < end; i++) batch += cardHtml(matches[i]);
+      els.grid.insertAdjacentHTML('beforeend', batch);
+      shown = end;
+    }
+
+    function cardHtml(p) {
+      const rows = paletteRows(palettes, p.id, state.shiny);
+      const primary = primaryOf(palettes, p.id, state.shiny);
+      const sprite = spriteUrl(p.id, state.shiny);
+      const name = p.names.zh;
+      return `<a class="cp-card" href="${paletteUrl(p)}" aria-label="${name} 的色彩頁">
+        <div class="cp-card-strip" style="background:${primary}">
+          ${paletteStripHtml(rows)}
+          <img class="cp-card-silhouette" src="${sprite}" alt="" width="96" height="96" loading="lazy" decoding="async">
+          <span class="cp-card-badge">${formatPokemonId(p.id)}</span>
+        </div>
+        <div class="cp-card-body">
+          <p class="cp-card-name">${name}</p>
+          <p class="cp-card-name-en">${p.names.en}</p>
+        </div>
+      </a>`;
+    }
+
+    function renderFilters() {
+      const typeRow = ['屬性', [...new Set(pokemon.flatMap(p => p.types))].sort()
+        .map(t => [t, TYPE_EN_ZH[t] || t])];
+      const rarityRow = ['稀有度', RARITIES.map(([key, label]) => [key, label])];
+      const genRow = ['世代', [...new Set(pokemon.map(p => String(p.generation)))]
+        .sort((a, b) => Number(a) - Number(b))
+        .map(g => [g, `第 ${g} 世代`])];
+
+      // All three are [label, items] PAIRS, so the list is an array of them.
+      // Written as typeRow.concat([rarityRow, genRow]) the first pair got
+      // spliced in as a list, and its two elements were destructured as
+      // (label='屬性', items=undefined) — a TypeError whose message is
+      // "items.map is not a function" and which surfaced only as an empty
+      // filter panel.
+      els.filters.innerHTML = [typeRow, rarityRow, genRow].map(([label, items]) => `
+        <div class="cp-filterrow">
+          <span class="cp-filterrow-label">${label}</span>
+          <div class="cp-chipset">
+            ${items.map(([value, text]) => `
+              <button type="button" class="cp-chip" data-kind="${
+                label === '屬性' ? 'type' : label === '稀有度' ? 'rarity' : 'gen'
+              }" data-value="${value}" aria-pressed="${isOn(label, value)}">${text}</button>`).join('')}
+          </div>
+        </div>`).join('');
+    }
+
+    function isOn(label, value) {
+      const kind = label === '屬性' ? 'type' : label === '稀有度' ? 'rarity' : 'gen';
+      return String(state[kind].has(value));
+    }
+
+    /** The URL is the state, so a filtered view is a shareable link. */
+    function writeUrl() {
+      const params = new URLSearchParams();
+      if (state.q) params.set('q', state.q);
+      if (state.type.size) params.set('type', [...state.type].join(','));
+      if (state.rarity.size) params.set('rarity', [...state.rarity].join(','));
+      if (state.gen.size) params.set('gen', [...state.gen].join(','));
+      if (state.sort !== 'id-asc') params.set('sort', state.sort);
+      if (state.shiny) params.set('variant', 'shiny');
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+    }
+
+    function readUrl() {
+      const p = new URLSearchParams(location.search);
+      const list = key => (p.get(key) || '').split(',').map(s => s.trim()).filter(Boolean);
+      state.q = p.get('q') || '';
+      state.type = new Set(list('type'));
+      state.rarity = new Set(list('rarity'));
+      state.gen = new Set(list('gen'));
+      const sort = p.get('sort');
+      state.sort = Object.prototype.hasOwnProperty.call(SORTS, sort) ? sort : 'id-asc';
+      state.shiny = p.get('variant') === 'shiny';
+    }
+
+    let filterTimer = 0;
+    els.q.addEventListener('input', () => {
+      // Debounced because every keystroke re-sorts and re-renders up to 60
+      // cards; without it a fast typist rebuilds the grid on every key and the
+      // page visibly stutters.
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        state.q = els.q.value;
+        writeUrl();
+        apply();
+      }, 180);
+    });
+
+    els.sort.addEventListener('change', () => {
+      state.sort = els.sort.value;
+      writeUrl();
+      apply();
+    });
+
+    els.filters.addEventListener('click', event => {
+      const chip = event.target.closest('.cp-chip');
+      if (!chip) return;
+      const set = state[chip.dataset.kind];
+      if (set.has(chip.dataset.value)) set.delete(chip.dataset.value);
+      else set.add(chip.dataset.value);
+      chip.setAttribute('aria-pressed', String(set.has(chip.dataset.value)));
+      writeUrl();
+      apply();
+    });
+
+    els.shiny.addEventListener('click', () => {
+      state.shiny = !state.shiny;
+      els.shiny.setAttribute('aria-pressed', String(state.shiny));
+      writeUrl();
+      apply();
+    });
+
+    els.clear.addEventListener('click', () => {
+      state.q = '';
+      state.type.clear();
+      state.rarity.clear();
+      state.gen.clear();
+      state.shiny = false;
+      els.q.value = '';
+      els.shiny.setAttribute('aria-pressed', 'false');
+      renderFilters();
+      writeUrl();
+      apply();
+    });
+
+    function initObserver() {
+      // One observer for the whole grid, rather than one per card: a sentinel
+      // element is the pattern, and a per-card observer on 1025 nodes is a
+      // measurable cost for no benefit.
+      observer = new IntersectionObserver(entries => {
+        if (!entries.some(e => e.isIntersecting)) return;
+        if (shown >= matches.length) return;
+        renderPage();
+      }, { rootMargin: '600px' });
+      observer.observe(els.sentinel);
+    }
+
+    async function init() {
+      try {
+        [pokemon, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        readUrl();
+        els.q.value = state.q;
+        els.sort.value = state.sort;
+        els.shiny.setAttribute('aria-pressed', String(state.shiny));
+        renderFilters();
+        apply();
+        initObserver();
+      } catch (error) {
+        els.count.textContent = '載入失敗，請確認是否以 HTTP 伺服器開啟（' + error.message + '）';
+        console.error(error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

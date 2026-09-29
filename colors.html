@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>色彩生成器 · 寶可夢演算法實驗室</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="輸入寶可夢編號，看它常規與閃亮外觀的 96×96 正面圖集取出的完整色盤、明暗階與主題配色。">
+  <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
+       after the first paint is a visible flash, and a module cannot run early
+       because module scripts are deferred. Identical on all five themed pages
+       and kept in sync with THEME_COLORS in shared.js. See AGENTS.md gotcha 31. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/colors.css">
+  <style>
+    /* Page shell only. Every component rule lives in colors.css, because the
+       three colour pages share them and a copy here would be a second thing to
+       keep in step — the same reasoning that put `.header-colors` in the
+       `.header-dex, .header-3d` selector groups in shared.css. */
+    .cp-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    /* The h1 lives here, not in the header, because this page has a hero-ish
+       intro below it. A page with an h1 in BOTH the header and the body gives
+       a screen reader two top-level headings for one page — see AGENTS.md
+       gotcha 40. */
+    .cp-intro {
+      margin-bottom: 24px;
+    }
+
+    .cp-intro h1 {
+      font-size: 28px;
+      margin: 0 0 6px;
+    }
+
+    .cp-intro p {
+      margin: 0;
+      max-width: 68ch;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-colors">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
+      <div class="header-title header-title-large">色彩生成器</div>
+    </div>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="cp-page">
+    <div class="cp-intro">
+      <h1>色彩生成器</h1>
+      <p>
+        每隻寶可夢的色盤來自它的 96×96 正面圖集，透明像素與近黑色不計入，
+        同一頻率時以圖中最先出現的顏色為先。占比大於 5% 的顏色會被收錄，
+        不足六色時補滿六色。切換閃亮外觀即可看同一隻的閃亮色盤。
+      </p>
+    </div>
+
+    <div class="cp-picker">
+      <label for="pokemon-id">寶可夢編號</label>
+      <input id="pokemon-id" type="number" inputmode="numeric" min="1" max="1025" step="1" value="1"
+             aria-describedby="pokemon-id-hint">
+      <span id="pokemon-id-hint" class="cp-idcard-meta">1 – 1025</span>
+      <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">
+        閃亮外觀
+      </button>
+      <a id="palette-link" class="btn" href="color.html?slug=bulbasaur">查看完整色彩頁</a>
+    </div>
+
+    <div id="status" role="status" aria-live="polite" class="cp-results-note">載入中…</div>
+
+    <section class="cp-section" aria-labelledby="sec-identity">
+      <h2 id="sec-identity">身分卡</h2>
+      <p class="cp-prose">
+        右上角的浮水印是這隻寶可夢的官方圖鑑圖，經過遮罩處理後填上它的主要色，
+        不是另一張圖片。下面的色帶是完整色盤的前五色。
+      </p>
+      <div id="identity"></div>
+    </section>
+
+    <section class="cp-section" aria-labelledby="sec-palette">
+      <h2 id="sec-palette">色盤</h2>
+      <p class="cp-prose">點選任一色即可複製色碼。</p>
+      <div id="palette"></div>
+    </section>
+
+    <section class="cp-section" aria-labelledby="sec-scale">
+      <h2 id="sec-scale">明暗階</h2>
+      <p class="cp-prose">
+        以主要色推導出的十一階明暗梯。標示 ★ 的那一格是主要色本身，
+        其餘各階由同一色相調整明度與飽和度而得。
+      </p>
+      <div id="scale"></div>
+    </section>
+
+    <section class="cp-section" aria-labelledby="sec-stats">
+      <h2 id="sec-stats">色盤組成</h2>
+      <div class="cp-tiles" id="tiles"></div>
+    </section>
+
+    <section class="cp-section" aria-labelledby="sec-export">
+      <h2 id="sec-export">匯出主題</h2>
+      <p class="cp-prose">
+        以主要色推導的 CSS 變數，可直接貼進自己的樣式表。
+      </p>
+      <div class="cp-actions">
+        <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
+        <button id="copy-json" class="btn" type="button">複製 JSON</button>
+      </div>
+      <pre id="theme-code" class="cp-code"></pre>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        寶可夢演算法實驗室 · 色彩資料取自 PokéAPI（Pokémon sprites / official artwork）· 色盤演算法對應參考實作 pokemonpalette
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    // Every named import must exist in shared.js or the module dies at PARSE time
+    // with a SyntaxError and the page silently shows "載入中…" — the failure has
+    // no error of its own to read. Check the import list, not what shared.js
+    // exports: an export nobody imports is not in module scope (AGENTS.md
+    // gotcha 31).
+    import {
+      loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+    } from './assets/js/shared.js';
+    import {
+      loadColorPalettes, paletteRows, primaryOf, secondaryOf,
+      spriteUrl, artworkUrl, identityCardHtml, paletteGridHtml, paletteStripHtml,
+      generateTailwindScale, anchorIndex, describeHex, colorTemperature,
+      TEMPERATURE_ZH, findBySlug, paletteUrl, swatchStyle,
+    } from './assets/js/color-palette.js';
+
+    initThemeToggle();
+    // The third arg is the current page, so the 色彩 trigger marks itself
+    // current on all three colour pages. Without it the dropdown has no href to
+    // match and no item reads as current.
+    initHeaderNav('colors.html');
+
+    const els = {
+      status: document.getElementById('status'),
+      id: document.getElementById('pokemon-id'),
+      shiny: document.getElementById('shiny-toggle'),
+      link: document.getElementById('palette-link'),
+      identity: document.getElementById('identity'),
+      palette: document.getElementById('palette'),
+      scale: document.getElementById('scale'),
+      tiles: document.getElementById('tiles'),
+      themeCode: document.getElementById('theme-code'),
+      copyTheme: document.getElementById('copy-theme'),
+      copyJson: document.getElementById('copy-json'),
+    };
+
+    let pokemon = [];
+    let palettes = null;
+    let shiny = false;
+    let current = null;
+
+    /**
+     * Clamp the input to the roster and report the substitution.
+     *
+     * The number input allows typing 0 or 9999 and the spinner allows it too, so
+     * clamping silently would make the page look like it found something. The
+     * id is echoed back into the field either way, because leaving 9999 on
+     * screen while showing #1025's palette is how a wrong palette gets
+     * screenshotted and believed.
+     */
+    function clampId(raw) {
+      const n = Math.floor(Number(raw));
+      if (!Number.isFinite(n)) return 1;
+      if (n < 1) return 1;
+      if (n > pokemon.length) return pokemon.length;
+      return n;
+    }
+
+    function render() {
+      const rows = paletteRows(palettes, current.id, shiny);
+      const primary = primaryOf(palettes, current.id, shiny);
+      const secondary = secondaryOf(palettes, current.id, shiny);
+      const variant = shiny ? 's' : 'n';
+      const sprite = spriteUrl(current.id, shiny);
+      const art = artworkUrl(current.id, shiny);
+
+      els.status.textContent = '';
+      els.link.href = paletteUrl(current);
+
+      // Identity card. The sprite is `alt=""` on purpose: the name is the
+      // heading immediately after it, so an alt would announce the name twice
+      // (AGENTS.md gotcha 27).
+      els.identity.innerHTML = identityCardHtml({
+        primary,
+        secondary,
+        artUrl: art,
+        bodyHtml: `
+          <img class="cp-idcard-sprite" src="${sprite}" alt="" width="96" height="96" decoding="async">
+          <div>
+            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 閃亮' : ''}</p>
+            <h3 class="cp-idcard-name">${current.names.zh}</h3>
+            <p class="cp-idcard-name-en">${current.names.en}</p>
+          </div>
+          <div id="identity-strip"></div>`,
+      });
+      // The compact strip (top 5 + a +N marker), not the full grid: the card is
+      // a summary, and `.cp-idcard .cp-strip` is sized for it. Built after
+      // insertion only because it is a separate node from the card's own
+      // markup — identityCardHtml takes opaque bodyHtml and does not know that
+      // a strip belongs in it.
+      els.identity.querySelector('#identity-strip').innerHTML =
+        paletteStripHtml(rows);
+
+      els.palette.innerHTML = paletteGridHtml(rows, { id: current.id, variant });
+
+      // Shade scale from the primary colour.
+      const { scale, anchor } = generateTailwindScale(primary);
+      const ai = anchorIndex(anchor);
+      els.scale.innerHTML = `<div class="cp-scale">` +
+        Object.entries(scale).map(([step, hex], i) => `
+          <button type="button" class="cp-shade${i === ai ? ' is-anchor' : ''}"
+                  style="${swatchStyle(hex)}" data-cp-copy="${hex}"
+                  title="複製 ${hex}" aria-label="複製 ${step} 階 ${hex}">
+            <span class="cp-shade-hex">${hex}</span>
+            <span class="cp-shade-step">${step}</span>
+          </button>`).join('') +
+        `</div>`;
+
+      const shown = rows.slice(0, 5);
+      els.tiles.innerHTML = [
+        ['收錄顏色', `${rows.length} 色`],
+        ['前五色合計', `${Math.round(shown.reduce((s, r) => s + r[1], 0))}%`],
+        ['主要色', describeHex(primary)],
+        ['色溫', TEMPERATURE_ZH[colorTemperature(primary)]],
+      ].map(([label, value]) => `
+        <div class="cp-tile">
+          <span class="cp-tile-label">${label}</span>
+          <span class="cp-tile-value">${value}</span>
+        </div>`).join('');
+
+      els.themeCode.textContent = themeCss(current, rows, scale);
+
+      document.title = `${current.names.zh} 色盤 · 色彩生成器`;
+    }
+
+    function themeCss(p, rows, scale) {
+      const hexes = rows.map(r => r[0]);
+      return [
+        '/* 由色彩生成器匯出 · #' + formatPokemonId(p.id) + ' ' + p.names.en + (shiny ? ' 閃亮' : '') + ' */',
+        ':root {',
+        ...Object.entries(scale).map(([step, hex]) => `  --cp-${step}: ${hex};`),
+        `  --cp-primary: ${hexes[0]};`,
+        `  --cp-secondary: ${hexes[1] || hexes[0]};`,
+        '  /* 完整色盤，依占比排序 */',
+        `  --cp-palette: ${hexes.join(', ')};`,
+        '}',
+      ].join('\n');
+    }
+
+    // Copy-to-clipboard, delegated, for palette cells AND shade cells. Both carry
+    // data-cp-copy, so there is one handler rather than two that can drift.
+    document.addEventListener('click', async (event) => {
+      const btn = event.target.closest('[data-cp-copy]');
+      if (!btn) return;
+      const value = btn.dataset.cpCopy;
+      const ok = await copyText(value);
+      if (ok) {
+        btn.classList.add('is-copied');
+        const original = btn.querySelector('.cp-cell-hex, .cp-shade-hex');
+        if (original) {
+          const was = original.textContent;
+          original.textContent = '已複製';
+          setTimeout(() => { original.textContent = was; btn.classList.remove('is-copied'); }, 1400);
+        }
+      }
+    });
+
+    /**
+     * navigator.clipboard needs a secure context, and `file://` is not one —
+     * which is also why this site cannot be opened by double-clicking
+     * index.html (AGENTS.md, "Critical Runtime Requirement"). The try/catch is
+     * therefore not paranoia: it is the documented way this page gets opened.
+     */
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    els.copyTheme.addEventListener('click', async () => {
+      await copyText(els.themeCode.textContent);
+      els.copyTheme.textContent = '已複製';
+      setTimeout(() => { els.copyTheme.textContent = '複製 CSS 變數'; }, 1400);
+    });
+
+    els.copyJson.addEventListener('click', async () => {
+      const rows = paletteRows(palettes, current.id, shiny);
+      await copyText(JSON.stringify({ id: current.id, variant: shiny ? 's' : 'n', palette: Object.fromEntries(rows) }, null, 2));
+      els.copyJson.textContent = '已複製';
+      setTimeout(() => { els.copyJson.textContent = '複製 JSON'; }, 1400);
+    });
+
+    els.id.addEventListener('change', () => {
+      const id = clampId(els.id.value);
+      els.id.value = id;
+      current = pokemon.find(p => p.id === id) || pokemon[0];
+      render();
+    });
+
+    els.shiny.addEventListener('click', () => {
+      shiny = !shiny;
+      els.shiny.setAttribute('aria-pressed', String(shiny));
+      render();
+    });
+
+    async function init() {
+      try {
+        [pokemon, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        const params = new URLSearchParams(location.search);
+        const found = findBySlug(pokemon, params.get('slug'), params.get('id'));
+        current = found || pokemon[0];
+        els.id.value = current.id;
+        render();
+      } catch (error) {
+        // gotcha 23's lesson: a swallowed catch turns a real error into a page
+        // that looks like a server problem. The message names the file.
+        els.status.textContent = '載入失敗，請確認是否以 HTTP 伺服器開啟（' + error.message + '）';
+        console.error(error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

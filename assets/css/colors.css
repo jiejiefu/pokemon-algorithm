@@ -1,0 +1,995 @@
+/* ===========================================================================
+   Colour palette pages — colors.html / colors-explore.html / color.html
+   ---------------------------------------------------------------------------
+   Dark is the BASE here and `[data-theme="light"]` is the override, because
+   shared.css makes `:root` dark. The same inversion applies to every token
+   this file introduces (see AGENTS.md gotcha 41): a rule written as a light
+   value in the base block is a rule that only ever renders in one theme.
+
+   One thing this file deliberately does NOT do: set a `color` on anything
+   sitting on a palette fill. Every swatch here gets its `background` AND its
+   `color` as one inline pair from `badgeStyle()` in color-palette.js, which
+   walks the fill towards black or white in 2% steps until the text clears
+   4.5:1. That pairing is the site's existing answer to mid-tones that reach
+   neither 4.5:1 with white nor near-black. Splitting the two — token for text,
+   computed fill — is what put near-black on Fighting in dark and white on
+   Electric in light, failing both ways. So: layout and geometry here, and
+   nothing that decides a foreground colour over a swatch.
+   ======================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. The identity card — gradient body, top-right masked watermark
+   ---------------------------------------------------------------------------
+   Transcribed from the reference's pokemon-card.tsx:203-225. Three things are
+   load-bearing and each is a wrong answer rather than an error:
+
+   (a) The watermark is a real child element, not a ::before on the card. A
+       pseudo-element on an ancestor cannot be a backdrop for that same
+       ancestor, so the reference needs the extra div for the same reason
+       detail.css needs `.top-hero-card::before` (AGENTS.md gotcha 28). It also
+       buys the `pointer-events: none` and the `overflow: hidden` a mask needs,
+       both of which belong on the wrapper rather than on the masked box.
+   (b) `.cp-idcard-body` carries `position: relative; z-index: 10` and the
+       watermark carries none. Without the z-index the watermark paints over
+       the Pokémon's name, and because it is the first child it would win.
+   (c) The watermark is 40% of the card's width and full height, with the
+       inner box square (aspect-ratio 1) and centred. That is what puts it in
+       the top-right *corner* rather than making it a full-height stripe down
+       the right edge — the inner square's own size relative to the wrapper is
+       the only thing locating it vertically.
+   ------------------------------------------------------------------------ */
+.cp-idcard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.cp-idcard-wm {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cp-idcard-wm > div {
+  width: 100%;
+  aspect-ratio: 1;
+  /* mask-image + -webkit-mask-image are emitted by silhouetteStyle(). No
+     fallback fill is needed here: an unmasked box would paint a solid
+     rectangle, so the element is deliberately empty and the mask is the only
+     thing that puts a shape in it. */
+}
+
+.cp-idcard-body {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.cp-idcard-sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.cp-idcard-id {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 2px;
+}
+
+.cp-idcard-name {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cp-idcard-name-en {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.cp-idcard-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* The strip inside the card is the card's only summary of the palette, so it
+   sits flush against the card's bottom edge with no border of its own. The
+   count of the hidden tail rides along as .cp-seg-more, so truncating the strip
+   does not hide that colours were dropped. */
+.cp-idcard .cp-strip {
+  flex: 1 1 240px;
+  min-width: 180px;
+  height: 40px;
+}
+
+/* ---------------------------------------------------------------------------
+   2a. The full palette — equal cells
+   ---------------------------------------------------------------------------
+   `grid-template-columns` is set inline per render (paletteColumns()) so the 4
+   and 3 column cases need no media query and cannot disagree. The columns are
+   EQUAL, deliberately: a proportional strip would encode the share twice and
+   collapse the rare end of the palette to a few pixels, so the share is text.
+   See paletteGridHtml() for the width arithmetic.
+   ------------------------------------------------------------------------ */
+.cp-palette {
+  display: grid;
+  gap: 10px;
+}
+
+.cp-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 76px;
+  padding: 0 14px;
+  font-family: inherit;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.cp-cell:hover {
+  transform: scale(0.98);
+}
+
+.cp-cell-hex {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-cell-share {
+  font-size: 12px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-cell.is-copied {
+  /* The confirmation is text, not a colour change: the cell's own background is
+     the thing being demonstrated, so recolouring it on copy would prove
+     nothing. A tick next to the value is legible on every fill. */
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+@media (min-width: 768px) {
+  .cp-cell {
+    height: 88px;
+    font-size: 15px;
+  }
+
+  .cp-cell-share {
+    font-size: 13px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2b. The compact strip — cards only
+   ---------------------------------------------------------------------------
+   Five cells plus a `+N` chip. No share text and no hex unless hovered: a card
+   strip is 34px tall and ~190px wide, so 5 cells are 38px each, which fits a
+   9px hex and nothing else.
+   ------------------------------------------------------------------------ */
+.cp-strip {
+  display: flex;
+  align-items: stretch;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cp-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* `flex: 1 1 0`, not just `min-width: 0`. These spans have no intrinsic
+     width — the hex inside is display:none until hover — so `flex-basis: auto`
+     resolves to 0 and, with the default flex-grow of 0, every segment collapses
+     to its 1px right border. Measured: 5 segments across a 180px strip came out
+     1px each. Basis 0 plus grow 1 is what shares the space evenly, and 0 rather
+     than auto is what makes the last segment the same width as the first. */
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-width: 0 1px 0 0;
+}
+
+.cp-seg-hex {
+  display: none;
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-card:hover .cp-seg-hex {
+  display: block;
+}
+
+.cp-seg-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 0 5px;
+  flex: 0 0 auto;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   3. The 11-step shade scale
+   ---------------------------------------------------------------------------
+   One row of 11 equal cells. Equal width, NOT flex-grow by anything: the steps
+   are a lightness ramp, not a frequency distribution, so giving them equal
+   tracks is what makes the ramp read as monotonic. The anchor step keeps the
+   seed's own hex and is marked, so the user can see which cell is theirs.
+   ------------------------------------------------------------------------ */
+.cp-scale {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cp-shade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 10px 2px 8px;
+  min-height: 74px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.cp-shade:hover {
+  transform: translateY(-2px);
+}
+
+.cp-shade:hover .cp-shade-hex,
+.cp-shade:hover .cp-shade-step {
+  /* The fill moves towards white for the light half of the ramp, so a fixed
+     foreground would vanish on steps 50-200. badgeStyle() already computed a
+     readable pair for THIS cell; the hover only boosts weight and opacity so
+     the reveal does not depend on a colour swap. */
+  opacity: 1;
+  font-weight: 700;
+}
+
+.cp-shade-hex,
+.cp-shade-step {
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-shade-hex {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cp-shade-step {
+  font-size: 10px;
+}
+
+.cp-shade.is-anchor {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px var(--accent-gold);
+}
+
+.cp-shade.is-anchor .cp-shade-step::after {
+  content: ' ★';
+  color: inherit;
+}
+
+/* Below 640px an 11-column grid of 74px-tall cells cannot hold a 6-digit hex,
+   so the track count drops rather than the cell shrinking below it. The
+   breakpoint is 640 because that is where a 36px track first fits 6 characters
+   at 10px — measured, not preferred: at 11 columns and 320px the tracks are
+   22px and every hex is clipped to two characters, which is worse than
+   wrapping. */
+@media (max-width: 640px) {
+  .cp-scale {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   4. The generator page
+   ------------------------------------------------------------------------ */
+.cp-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cp-picker label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.cp-picker input,
+.cp-picker select {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+}
+
+.cp-picker input {
+  width: 110px;
+}
+
+.cp-section {
+  margin-top: 32px;
+}
+
+.cp-section h2 {
+  font-size: 19px;
+  margin: 0 0 4px;
+}
+
+.cp-prose {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+
+.cp-prose code {
+  padding: 1px 5px;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The 3 stat tiles under the shade scale. `.coll-stat`'s black scrim rule
+   (AGENTS.md gotcha 39) is why these keep their own background instead of
+   inheriting a translucent one: a translucent tile on a *palette* fill is a
+   third composited surface, and the label's contrast would depend on which
+   colour the tile happened to land on. Opaque, theme-token coloured, so the
+   ratio is fixed. */
+.cp-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cp-tile {
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.cp-tile-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.cp-tile-value {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   5. Export / copy
+   ------------------------------------------------------------------------ */
+.cp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cp-code {
+  margin-top: 12px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* ---------------------------------------------------------------------------
+   6. The explore grid
+   ---------------------------------------------------------------------------
+   A card is `<a>`, so the whole card is the activation target and it carries an
+   aria-label naming the Pokémon. The strip inside it is a sibling <div>, not a
+   link: the reference lets you click an individual stripe to copy, but it does
+   that with a <button> nested inside its own <Link>, which is invalid HTML and
+   leaves the activation target ambiguous. Here the stripes are not clickable on
+   a card at all, and copying lives on the full grid on the two pages where a
+   cell is a real button. (AGENTS.md gotcha 27, and gotcha 54's "single <a>,
+   no nested link".)
+
+   The strip IS the card's hero area, at 128px and 160px from 768px, with the
+   sprite silhouette absolutely centred over it at the same size — transcribed
+   from the reference, where the strip is `h-32 md:h-40` and the silhouette is
+   `w-32 h-32 md:w-40 md:h-40`. An earlier version of this file put the sprite
+   in its own band above a 34px strip, which is a different composition: the
+   colours then never sit behind the Pokémon, which is the whole effect.
+
+   The 96px sprite is drawn at 128/160 and `image-rendering: pixelated`, so it
+   is scaled up by a non-integer factor. That is intended and is what the
+   reference does; the alternative (96px 1:1) is smaller than the artwork the
+   effect is built around, and the sprite is a silhouette so the resampling
+   softens edges that carry no information.
+   ------------------------------------------------------------------------ */
+.cp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.cp-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.cp-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--hairline-strong);
+}
+
+.cp-card-strip {
+  position: relative;
+  height: 128px;
+  overflow: hidden;
+}
+
+/* The strip is a summary, so it drops the rounded corners and the share text
+   that `.cp-strip` uses elsewhere; the hex only appears on hover, and only
+   where there is a card for `:hover` to reach — which is why this rule is
+   scoped to `.cp-card` and not to `.cp-strip` itself. The identity card's own
+   strip therefore keeps its permanent hex-less strip, as intended. */
+.cp-card-strip .cp-strip {
+  height: 100%;
+  border-radius: 0;
+}
+
+.cp-card-silhouette {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  /* brightness(0) crushes the sprite to pure black so it reads as a silhouette
+     over the colours, and the wrapper's opacity sets how far it recedes. A
+     `mask` would be the wrong tool: the sprite is already opaque inside its own
+     outline, so there is nothing to mask. */
+  filter: brightness(0);
+  opacity: 0.4;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.cp-card:hover .cp-card-silhouette {
+  opacity: 0.6;
+}
+
+.cp-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(2px);
+}
+
+.cp-card-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cp-card-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-card-name-en {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The reference's second stop is `md:` = 768px, and the card minmax() is 190px,
+   so at 768px a 160px strip cell band still holds ~5 readable cells. */
+@media (min-width: 768px) {
+  .cp-card-strip { height: 160px; }
+  .cp-card-silhouette { width: 160px; height: 160px; }
+}
+
+.cp-sentinel {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---------------------------------------------------------------------------
+   6b. Base Stats
+   ---------------------------------------------------------------------------
+   The official artwork, masked to a black silhouette, sits behind the bars. The
+   mask is applied by silhouetteStyle() in color-palette.js, because a page
+   that set only `background` gets an opaque black box — the fill and the
+   mask-image have to ship as one inline pair.
+
+   Opacity is low on purpose: this is a watermark behind text, and the artwork's
+   outline is 475×475 on a box a few hundred px tall, so the detail is only
+   legible as a shape. The bars carry the actual reading, and they are opaque.
+   ------------------------------------------------------------------------ */
+/* The container holds only the card. The opacity belongs on the masked
+   artwork's own element, NOT here: `opacity` is a group property, so putting it
+   on the wrapper would fade the bars too, and a child's `opacity: 1` cannot
+   undo a parent's 0.16 — the whole block goes translucent and the bars stop
+   being readable, which is the one thing they exist to do. */
+.cp-stats {
+  position: relative;
+  isolation: isolate;
+  padding: 20px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+/* The masked artwork is a sibling of the bars, absolutely positioned behind
+   them, so its alpha touches nothing but the card surface. The mask leaves the
+   card showing everywhere outside the artwork's own pixels, so the 0.16 reads
+   as a watermark rather than as a tinted panel. */
+.cp-stats-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.cp-stat-rows {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.cp-stat {
+  display: grid;
+  grid-template-columns: 4.6em 1fr 3em;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cp-stat-track {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+
+.cp-stat-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent-gold);
+}
+
+.cp-stat-value {
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.cp-stat.is-total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+
+.cp-stat.is-total .cp-stat-label,
+.cp-stat.is-total .cp-stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The hero's own art and the type row are transcribed from the reference's
+   hero, at 250px and 450px from 768px. The sprite is the 96px pixel-art front
+   sprite, not the artwork — the same sprite/artwork split as the explore
+   cards, for the same reason (a front-facing pose silhouettes and reads
+   better than a 3/4 view). */
+.cp-hero-sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+/* ---------------------------------------------------------------------------
+   7. Filters
+   ------------------------------------------------------------------------ */
+.cp-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.cp-filters input[type='search'] {
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.cp-chipset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.cp-chip {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.cp-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--hairline-strong);
+}
+
+/* aria-pressed, not .is-active, is the state — so a chip is a toggle button and
+   its state is in the accessibility tree. Styling off the attribute means the
+   visual and the announced state cannot drift. */
+.cp-chip[aria-pressed='true'] {
+  background: var(--bg-header-dex);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.cp-results-note {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* The reference's Quick Browse rows are a 80px label followed by chips, and its
+   filter bar is `sticky top-0` with a translucent background. Both are
+   transcribed; the chips here TOGGLE the URL-driven filter state instead of
+   linking to the reference's /type/ and /rarity/ pages, which this site does
+   not have and must not ship as dead links (the same reason gotcha 37's
+   "upcoming" cards are <article> and not <a>). */
+.cp-filterrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cp-filterrow-label {
+  flex: 0 0 80px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-top: 5px;
+}
+
+.cp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cp-toolbar .cp-filters {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+}
+
+.cp-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cp-sort label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cp-sort select {
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+.cp-chipset-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .cp-toolbar { flex-direction: column; align-items: stretch; }
+  .cp-filterrow { flex-direction: column; gap: 6px; }
+  .cp-filterrow-label { flex: none; padding-top: 0; }
+  .cp-chipset-count { margin-left: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   8. The detail page hero
+   ---------------------------------------------------------------------------
+   Transcribed from the reference's `.animated-gradient`: two radial washes in
+   the palette's own colours, a 15s background-size cycle, and a visible
+   official artwork at 250x250 / 450x450. The wash alphas arrive as
+   --cp-wash-1 / --cp-wash-2 from heroHtml(), not from a token, because they are
+   derived from the current Pokémon's palette rather than from a theme.
+   ------------------------------------------------------------------------ */
+.cp-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28px;
+}
+
+.cp-hero-grad {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at top right, var(--cp-wash-1) 0%, transparent 60%),
+    radial-gradient(circle at bottom left, var(--cp-wash-2) 0%, transparent 60%);
+  background-size: 120% 120%;
+  animation: cp-gradient-shift 15s ease infinite;
+  pointer-events: none;
+}
+
+@keyframes cp-gradient-shift {
+  0% { background-size: 120% 120%; }
+  50% { background-size: 200% 200%; }
+  100% { background-size: 120% 120%; }
+}
+
+.cp-hero-content {
+  position: relative;
+  z-index: 10;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+/* `object-fit: contain` rather than `cover`: the artwork is a square PNG with
+   transparent margins, and `cover` on a non-square box would crop its edges. */
+.cp-hero-art {
+  position: relative;
+  z-index: 10;
+  flex: 0 0 auto;
+  width: 250px;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-hero-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (min-width: 768px) {
+  .cp-hero-art {
+    width: 450px;
+    height: 450px;
+  }
+}
+
+/* The hero's wash is decorative, so the animation is paused rather than
+   removed under prefers-reduced-motion: the gradient is part of the page's
+   meaning (it is the palette) and a static version still communicates that. */
+@media (prefers-reduced-motion: reduce) {
+  .cp-hero-grad {
+    animation: none;
+    background-size: 160% 160%;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   9. Shiny toggle
+   ---------------------------------------------------------------------------
+   `aria-pressed` is true in SHINY here, unlike the theme toggle which is true
+   in light. The rule is the same in both: the attribute states what the button
+   now *is*, not what it last did.
+   ------------------------------------------------------------------------ */
+.cp-shiny-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cp-shiny-btn[aria-pressed='true'] {
+  background: var(--accent-gold-surface);
+  border-color: var(--accent-gold);
+  color: var(--on-accent);
+}
+
+/* A dead toggle keeps focus, per the same reasoning as the detail page's shiny
+   button: a focusable control that explains itself is better than a vanished
+   one. `.is-unavailable` must sit in the same selector group as the pressed
+   state above or a dead button still lights up gold on hover. */
+.cp-shiny-btn.is-unavailable,
+.cp-shiny-btn.is-unavailable:hover {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-color: var(--hairline);
+  opacity: 0.6;
+}
+
+/* ---------------------------------------------------------------------------
+   10. Print
+   ---------------------------------------------------------------------------
+   Every section of the detail page is one scroll, so it prints as one document
+   (AGENTS.md gotcha 13). The hero's decorative gradient and the hover lifts are
+   dropped rather than printed, and — as gotcha 44 records — the print block
+   below has to repeat the `[data-theme="light"]` prefix for any rule it means to
+   beat. The one here is a base rule, so the plain selector is enough; adding
+   the prefix would be cargo-culting gotcha 44 onto a selector that has no light
+   counterpart to outrank.
+   ------------------------------------------------------------------------ */
+@media print {
+  .cp-hero-grad,
+  .cp-filters,
+  .cp-actions,
+  .cp-sentinel,
+  .cp-shiny-btn,
+  .site-nav,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  .cp-hero {
+    border: 1px solid #999;
+    padding: 16px;
+  }
+
+  .cp-card,
+  .cp-idcard,
+  .cp-shade {
+    break-inside: avoid;
+  }
+}
