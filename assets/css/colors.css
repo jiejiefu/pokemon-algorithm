@@ -961,7 +961,441 @@
 }
 
 /* ---------------------------------------------------------------------------
-   10. Print
+   10. Showcase — the palette worn by a mock interface
+   ---------------------------------------------------------------------------
+   The four tabs exist to answer a question the swatch grid cannot: does this
+   colour work on a screen, or only in a grid? So every colour below comes from
+   the palette as CSS variables set inline on the panel (--cp-accent, --cp-bd,
+   --cp-ink...) and NOT from the site's theme tokens. That is the whole design:
+   the panels are the *subject*, so they must not inherit the page's own palette
+   and quietly agree with it.
+
+   Text-on-colour surfaces are the exception, and deliberately so — they do NOT
+   come from the scale. They are set inline by `swatchStyle()` at render time,
+   because only a real contrast walk (badgeStyle in shared.js) guarantees 4.5:1
+   for a fill that could be pale Yellow or near-black Fighting navy. No CSS
+   value can do that, and a 50/50 white-or-black guess fails at both ends.
+   This is gotcha 20's problem arriving a third time. A regression test that
+   only greps for a colour here will pass while the showcase is unstyled, which
+   is exactly what happened once: the block below is missing entirely, the
+   panels still rendered (their colours are inline), and only getComputedStyle
+   on `.sc-panel` — not the screenshot — showed `display: block`.
+   ------------------------------------------------------------------------ */
+.sc-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.sc-tab {
+  appearance: none;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  /* --text-secondary, not --text-muted, and for the same reason the move tabs
+     use it (detail.css): --text-muted on a light-theme card surface measures
+     4.31:1, which is under the 4.5:1 floor for this 14px label. */
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sc-tab:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+/* Same three declarations the move tabs use (detail.css `.move-tab
+   [aria-selected="true"]`), because `--accent-gold` is a bright yellow in dark
+   and a dark brown in light (AGENTS.md gotcha 14) — so a hardcoded `#14110a`
+   on it measures 13.95:1 in dark and 2.85:1 in light. `--on-accent` is the
+   theme-aware token for exactly this, and the gold stays on the border. */
+.sc-tab[aria-selected="true"] {
+  color: var(--text-primary);
+  background: var(--bg-header-sort);
+  border-color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.sc-panel {
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: var(--cp-sf);
+  color: var(--cp-ink);
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.sc-panel:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.sc-h3 {
+  margin: 0 0 6px;
+  font-size: 1.375rem;
+  line-height: 1.25;
+}
+
+.sc-h4 {
+  margin: 0 0 4px;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+}
+
+.sc-p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  opacity: 0.86;
+  max-width: 46ch;
+}
+
+.sc-p.sm {
+  font-size: 0.8125rem;
+}
+
+.sc-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.sc-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sc-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cp-ink-soft);
+}
+
+/* Cards tab */
+.sc-spotlight {
+  padding: 24px;
+  border-radius: 14px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sc-tile-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sc-tile {
+  background: var(--cp-sfr);
+  border: 1px solid var(--cp-bd);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sc-tile-k {
+  font-size: 0.6875rem;
+  color: var(--cp-ink-soft);
+}
+
+.sc-tile-v {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.sc-delta {
+  font-size: 0.6875rem;
+  color: var(--cp-ink-soft);
+}
+
+.sc-post {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--cp-sfr);
+  border: 1px solid var(--cp-bd);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.sc-post-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* Charts tab */
+.sc-figure {
+  margin: 0;
+}
+
+.sc-cap {
+  font-size: 0.8125rem;
+  color: var(--cp-ink-soft);
+  margin-bottom: 14px;
+}
+
+.sc-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  height: 200px;
+  border-bottom: 1px solid var(--cp-bd);
+}
+
+.sc-bar-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 0;
+}
+
+.sc-bar-pair {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 172px;
+}
+
+.sc-bar {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+}
+
+.sc-bar-x {
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--cp-ink-soft);
+  padding-top: 6px;
+  white-space: nowrap;
+}
+
+.sc-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: var(--cp-ink-soft);
+  flex-wrap: wrap;
+}
+
+.sc-key {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-left: 10px;
+}
+
+.sc-key:first-child {
+  margin-left: 0;
+}
+
+/* Dashboard tab */
+.sc-meter-row {
+  display: grid;
+  gap: 10px;
+}
+
+.sc-meter {
+  display: grid;
+  grid-template-columns: 3.4em minmax(0, 1fr) 2.6em;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-meter-k {
+  font-size: 0.8125rem;
+  color: var(--cp-ink-soft);
+  white-space: nowrap;
+}
+
+.sc-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--cp-sfr);
+  border: 1px solid var(--cp-bd);
+  overflow: hidden;
+}
+
+.sc-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.sc-meter-v {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--cp-ink-soft);
+}
+
+/* Components tab */
+.sc-field {
+  display: grid;
+  gap: 8px;
+}
+
+.sc-field-k {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cp-ink-soft);
+}
+
+.sc-btn-row,
+.sc-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--cp-accent);
+  color: var(--cp-ink);
+}
+
+.sc-btn.is-outline {
+  background: transparent;
+}
+
+.sc-btn.is-disabled {
+  background: var(--cp-sfr);
+  color: var(--cp-ink-soft);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sc-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sc-input {
+  border: 1px solid var(--cp-bd);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  background: var(--cp-sfr);
+}
+
+.sc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sc-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--cp-bd);
+}
+
+.sc-list-row:last-child {
+  border-bottom: 0;
+}
+
+.sc-list-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.sc-list-t {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sc-list-when {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .sc-panel {
+    padding: 16px;
+  }
+
+  .sc-spotlight {
+    padding: 18px;
+    min-height: 150px;
+  }
+
+  /* Three tiles at 390px is ~104px each, which cannot hold the label plus a
+     6-digit hex. Two columns, and the third tile spans the full width rather
+     than leaving a 1-tile orphan in the second column. */
+  .sc-tile-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sc-tile-row .sc-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .sc-bars {
+    gap: 6px;
+    height: 160px;
+  }
+
+  .sc-bar-pair {
+    height: 134px;
+  }
+
+  .sc-bar {
+    width: 10px;
+  }
+
+  .sc-meter {
+    gap: 8px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   11. Print
    ---------------------------------------------------------------------------
    Every section of the detail page is one scroll, so it prints as one document
    (AGENTS.md gotcha 13). The hero's decorative gradient and the hover lifts are
@@ -989,7 +1423,34 @@
 
   .cp-card,
   .cp-idcard,
-  .cp-shade {
+  .cp-shade,
+  .sc-spotlight,
+  .sc-post {
     break-inside: avoid;
+  }
+
+  /* The showcase's inactive panels carry `hidden`, which is what the tab
+     widget's ARIA needs but what print cannot use — same override the move
+     tabs get, and for the same reason (AGENTS.md gotcha 13). Each panel keeps
+     its own heading so the printed document still has one section per tab. */
+  .sc-tabs {
+    display: none;
+  }
+
+  .sc-panel[hidden] {
+    display: block !important;
+  }
+
+  .sc-panel {
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  .sc-panel::before {
+    content: attr(data-sc-tab-label);
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 10px;
   }
 }

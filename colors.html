@@ -126,6 +126,15 @@
       <div class="cp-tiles" id="tiles"></div>
     </section>
 
+    <section class="cp-section" aria-labelledby="sec-showcase">
+      <h2 id="sec-showcase">套用展示</h2>
+      <p class="cp-prose">
+        同一組色票套進四種常見版面：卡片、圖表、儀表板與元件。
+        文字底色由對比自動取捨，不會因為某隻寶可夢的顏色偏淡或偏深而看不清。
+      </p>
+      <div id="showcase"></div>
+    </section>
+
     <section class="cp-section" aria-labelledby="sec-export">
       <h2 id="sec-export">匯出主題</h2>
       <p class="cp-prose">
@@ -161,6 +170,7 @@
       spriteUrl, artworkUrl, identityCardHtml, paletteGridHtml, paletteStripHtml,
       generateTailwindScale, anchorIndex, describeHex, colorTemperature,
       TEMPERATURE_ZH, findBySlug, paletteUrl, swatchStyle,
+      showcaseHtml, wireShowcaseTabs,
     } from './assets/js/color-palette.js';
 
     initThemeToggle();
@@ -178,6 +188,7 @@
       palette: document.getElementById('palette'),
       scale: document.getElementById('scale'),
       tiles: document.getElementById('tiles'),
+      showcase: document.getElementById('showcase'),
       themeCode: document.getElementById('theme-code'),
       copyTheme: document.getElementById('copy-theme'),
       copyJson: document.getElementById('copy-json'),
@@ -266,6 +277,21 @@
           <span class="cp-tile-label">${label}</span>
           <span class="cp-tile-value">${value}</span>
         </div>`).join('');
+
+      // Showcase. Rebuilt on every palette change (Pokémon switch, shiny
+      // toggle) because the whole point is that it wears THIS palette — the
+      // tab wiring is re-attached each time because innerHTML replaced the
+      // buttons, and the handlers live on the buttons.
+      els.showcase.innerHTML = showcaseHtml({
+        primary,
+        secondary,
+        scale,
+        stats: current.stats,
+        name: current.names.zh,
+        count: rows.length,
+        share: rows[0] ? rows[0][1] : 0,
+      });
+      wireShowcaseTabs(els.showcase);
 
       els.themeCode.textContent = themeCss(current, rows, scale);
 
