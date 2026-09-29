@@ -22,9 +22,11 @@ Why 12 requests, and why positionally:
     Chinese site, but pokedex entries carry names.en, and names.en disagrees
     with PokeAPI's own species name for 15 records (Mr. Mime, Farfetch'd,
     Sirfetch'd, Nidoran♀, Nidoran♂ and others). Matching en -> en is not safe
-    either, because pokemonSlug() normalises to [a-z0-9] and strips the ♀/♂,
-    so both Nidoran species collapse to "nidoran" and find() returns the
-    first match. Positional lookup has no such failure mode.
+    either, because pokemon_data.json spells the Nidorans with a symbol
+    (Nidoran♀ / Nidoran♂) while PokeAPI's national list spells them
+    nidoran-f / nidoran-m, and they are the pair most likely to be collapsed
+    into one row by anything that normalises to [a-z0-9]. Positional lookup has
+    no such failure mode.
 
 Why these 12 dexes:
     First appearance, not every regional list. PokeAPI carries 35 pokedexes

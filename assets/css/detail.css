@@ -404,6 +404,33 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Only ever visible for 尼多蘭 / 尼多朗. Hidden by the `hidden` attribute
+ * rather than display:none so the notice cannot be missed by a screen reader
+ * when the page re-renders onto a species that has no symbol sibling. */
+.symbol-sibling {
+  margin: 0;
+  padding: 6px 10px;
+  max-width: 26em;
+  border: 1px solid rgba(var(--hairline-rgb));
+  border-radius: var(--radius-sm);
+  background: rgba(var(--card-accent-rgb), 0.10);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.symbol-sibling code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.94em;
+  color: var(--text-primary);
+}
+
+.symbol-sibling a {
+  color: var(--accent-gold);
+}
+
 .type-badges {
   display: flex;
   flex-wrap: wrap;

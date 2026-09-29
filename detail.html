@@ -90,6 +90,11 @@
               <span class="hero-title-en" id="pokemon-name-en">—</span>
             </p>
 
+            <!-- Only ever populated for 尼多蘭 / 尼多朗. See
+                 symbolSiblings() in shared.js for why this cannot be a plain
+                 "is this slug ambiguous" test. -->
+            <p class="symbol-sibling" id="pokemon-symbol-sibling" hidden></p>
+
             <div class="sprite-frame" id="sprite-frame">
               <span class="sprite-glow" aria-hidden="true"></span>
               <img id="pokemon-sprite" src="" alt="" loading="eager" decoding="async" width="475" height="475">
@@ -233,7 +238,7 @@
     import {loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
       pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
       loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, readThemeToken,
-      badgeStyle, hexToRgb, capitalize } from './assets/js/shared.js';
+      badgeStyle, hexToRgb, capitalize, symbolSiblings } from './assets/js/shared.js';
     // 5.7 KB of ids, so the toggle can be disabled before a click rather than
     // painting a 404 and swapping back. See the module for why a probe per id
     // is worse.
@@ -363,6 +368,37 @@
         .join('');
     }
 
+    /**
+     * 尼多蘭 and 尼多朗 are the only two species whose English names differ by
+     * nothing but a symbol, and both symbols are dropped by the slug filter, so
+     * before `SYMBOL_SLUGS` split them they shared `?slug=nidoran` and the
+     * lookup silently answered 尼多蘭. Now that the slugs differ, nothing on
+     * the page would ever mention 尼多朗 for 尼多蘭 — each has its own URL, but
+     * a reader who searched 「Nidoran」 has no way back, and Nidoran♂ is the
+     * only record in the whole set with no slug of its own in the wild.
+     *
+     * The trigger is the *pre-split* slug, not a hardcoded id pair, so it is
+     * the collision rule itself that decides rather than this page's knowledge
+     * of two ids. Empty for 1023 of the 1025.
+     */
+    function renderSymbolSibling(p) {
+      const box = el('pokemon-symbol-sibling');
+      const siblings = pokemonData.length ? symbolSiblings(pokemonData, p) : [];
+      // Only ever 0 or 1: a third record with the same stripped name would be
+      // its own slug collision, which scripts/check_evolution_chains.mjs fails.
+      if (!siblings.length) {
+        box.hidden = true;
+        box.innerHTML = '';
+        return;
+      }
+      const other = siblings[0];
+      box.hidden = false;
+      box.innerHTML =
+        `注意：<code>${escapeHtml(p.names.en)}</code> 與 ` +
+        `<a href="${pokemonDetailUrl(other)}"><code>${escapeHtml(other.names.en)}</code></a> ` +
+        `在英文名稱上只差性別符號。另一隻是 ${other.names.zh}（${formatPokemonId(other.id)}）。`;
+    }
+
     function renderDetail() {
       const p = currentPokemon;
 
@@ -379,6 +415,7 @@
       el('pokemon-id').textContent = formatPokemonId(p.id);
       el('pokemon-name-zh').textContent = p.names.zh;
       el('pokemon-name-en').textContent = p.names.en;
+      renderSymbolSibling(p);
 
       // The card's glass has to refract something, and the page background is a
       // flat #121212, so the card paints its own tinted aurora behind the

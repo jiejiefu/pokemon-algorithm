@@ -141,13 +141,74 @@ export function formatPokemonId(id) {
   return String(id).padStart(4, '0');
 }
 
+/**
+ * `pokemonSlug()` reads the English name, so the two shapes it is handed are
+ * a real record (`{ names: { en } }`) and an evolution-chain node
+ * (`{ name_en }`); both must resolve to the same slug or a chain node's link
+ * and its species page disagree.
+ */
+const nameEn = pokemon => pokemon?.names?.en || pokemon?.name_en || String(pokemon?.id || '');
+
+/**
+ * ♀ and ♂ survive neither `NFKD` nor the `[^a-z0-9]` filter, so the generic
+ * rule below collapses `Nidoran♀` and `Nidoran♂` onto the single slug
+ * `nidoran` and the `find()` in `detail.html` then answers 尼多蘭 for every
+ * request. They are the only pair among the 1025 whose `names.en` differs by
+ * nothing but a symbol — every other slug is unique — and here the symbol
+ * carries the identity, so the pair is mapped explicitly.
+ *
+ * A Map rather than an object literal so a name that happens to be a
+ * prototype key (`toString`) cannot resolve to an inherited function.
+ *
+ * ♀ keeps the bare `nidoran` on purpose. Every `?slug=nidoran` and
+ * `/detail/nidoran` URL in the wild already addresses 尼多蘭, and a split only
+ * helps if the half that already had a working address keeps it; ♂ takes the
+ * new `nidoran-m`. Measured over all 1025: 1024 distinct slugs before this
+ * table, 1025 after, with 尼多蘭/尼多朗 the only colliding pair either way.
+ */
+const SYMBOL_SLUGS = new Map([
+  ['Nidoran♀', 'nidoran'],
+  ['Nidoran♂', 'nidoran-m']
+]);
+
 export function pokemonSlug(pokemon) {
-  const name = pokemon?.names?.en || pokemon?.name_en || String(pokemon?.id || '');
+  const name = nameEn(pokemon);
+  const symbolSlug = SYMBOL_SLUGS.get(name);
+  if (symbolSlug) return symbolSlug;
   return name
     .normalize('NFKD')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * The slug the generic rule *would* have produced, i.e. with ♀/♂ removed.
+ *
+ * Once `SYMBOL_SLUGS` splits the Nidorans there is no longer a slug that two
+ * records answer to, so a resolver that looks for a colliding slug never fires
+ * and the relationship between the two becomes invisible. Comparing the
+ * pre-split slug recovers the condition that used to collide, which is what
+ * lets the detail page offer a link to the other record without hardcoding an
+ * id pair.
+ */
+function symbolStrippedSlug(name) {
+  return String(name)
+    .replace(/[♀♂]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Other species that `symbolStrippedSlug()` cannot tell apart from `pokemon`.
+ * Empty for all 1024 species that have no symbol sibling, and for every form
+ * node, whose `name_en` is the form's own label rather than a species name.
+ */
+export function symbolSiblings(data, pokemon) {
+  const key = symbolStrippedSlug(nameEn(pokemon));
+  if (!key) return [];
+  return data.filter(p => p.id !== pokemon.id && symbolStrippedSlug(nameEn(p)) === key);
 }
 
 export function pokemonDetailPath(pokemon) {

@@ -15,6 +15,14 @@
  *    have no detail page, plus 54 species whose CSV spelling drifted from
  *    pokemon_data.json's names.en) resolved to a URL that 404s. `base_name_en`
  *    is the field that fixes it, so it is asserted to resolve for all 1350.
+ *    That count is now 378, because the Nidoran slug split gave node 32 a slug
+ *    of its own; see the assertion in this file for why that is not drift.
+ *  - All 1025 species must answer to a distinct slug. Nidoran♀ and Nidoran♂
+ *    differed by nothing but a symbol, and ♀/♂ are stripped by the slug filter,
+ *    so both resolved to `nidoran` and first-match-wins sent every request to
+ *    尼多蘭. Uniqueness is asserted over all 1025 rather than as a special case
+ *    for the pair, because a regression that dropped the fix would leave every
+ *    other link check in this file passing.
  *
  * Like the other check_*.mjs scripts it reads only committed files: no network,
  * and no re-derivation from the CSV, which is the generator's job.
@@ -57,10 +65,27 @@ const slugName = (name) => name
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '');
 
+/** ♀/♂ are dropped by slugName() above, so Nidoran♀ and Nidoran♂ collide on
+ *  `nidoran` and find() answers 尼多蘭 for both. Ported from SYMBOL_SLUGS in
+ *  shared.js; ♀ deliberately keeps the bare slug so existing URLs still work. */
+const SYMBOL_SLUGS = new Map([
+  ['Nidoran♀', 'nidoran'],
+  ['Nidoran♂', 'nidoran-m'],
+]);
+
+/** Name-level form of pokemonSlug(). Every resolution below goes through this
+ *  rather than slugName(), because base_name_en is a raw name that can be
+ *  `Nidoran♂` -- and slugName() strips that symbol straight back to the shared
+ *  `nidoran`, which is the collision the table exists to end. */
+const slugFor = (name) => SYMBOL_SLUGS.get(name) || slugName(name);
+
 // The real pokemonSlug() takes a pokemon and reads names.en || name_en || id.
 // The fallback is the whole reason the 379 dead links were silent: a chain node
 // has no `names`, so it slid through to name_en and produced a plausible slug.
-const pokemonSlug = (p) => slugName(p?.names?.en || p?.name_en || String(p?.id || ''));
+const pokemonSlug = (p) => {
+  const name = p?.names?.en || p?.name_en || String(p?.id || '');
+  return SYMBOL_SLUGS.get(name) || slugName(name);
+};
 const pokemonDetailUrl = (p) => `detail.html?slug=${encodeURIComponent(pokemonSlug(p))}`;
 
 const chains = read('assets/data/evolution_chains.json');
@@ -164,32 +189,53 @@ console.log('every link target resolves to a real detail page');
 // Nidoran records looks broken.
 const slugToId = new Map();
 for (const p of data) {
-  const s = slugName(p.names.en);
+  const s = pokemonSlug(p);
   if (!slugToId.has(s)) slugToId.set(s, p.id);
 }
+
+// Every species must answer to its own slug. This is the assertion that
+// distinguishes "the split is in place" from "the split is in place and only
+// happens to work": the 1025 records are unique on names.en except for the
+// Nidoran pair, so a regression that drops SYMBOL_SLUGS takes this to 1024
+// distinct slugs while every other link check in this file keeps passing --
+// first-match-wins on `nidoran` still resolves, it just resolves to 29.
+const allSlugs = data.map(pokemonSlug);
+eq(new Set(allSlugs).size, 1025, 'distinct species slugs');
+const seenSlug = new Map();
+const dupeSlugs = allSlugs.filter((s, i) => {
+  if (seenSlug.has(s)) return true;
+  seenSlug.set(s, i);
+  return false;
+});
+eq([...new Set(dupeSlugs)], [], 'slugs claimed by more than one species');
+// The pair itself, pinned by id so a rename cannot make this pass silently.
+eq(byId.get(29) && pokemonSlug(byId.get(29)), 'nidoran', '尼多蘭 slug');
+eq(byId.get(32) && pokemonSlug(byId.get(32)), 'nidoran-m', '尼多朗 slug');
+eq(slugToId.get('nidoran'), 29, '?slug=nidoran resolves to 尼多蘭');
+eq(slugToId.get('nidoran-m'), 32, '?slug=nidoran-m resolves to 尼多朗');
 // A missing base_name_en must read as a FAIL, not an abort: pokemonSlug(undefined)
 // throws, and a stack trace sends the reader to the wrong file (gotcha 38).
 const noBaseNameEn = nodes.filter(n => typeof n.base_name_en !== 'string');
 eq(noBaseNameEn.map(n => n.id), [], 'nodes with no base_name_en field');
 const linkable = nodes.filter(n => typeof n.base_name_en === 'string');
-const unresolvable = linkable.filter(n => !slugToId.has(slugName(n.base_name_en)));
+const unresolvable = linkable.filter(n => !slugToId.has(slugFor(n.base_name_en)));
 eq(unresolvable.map(n => n.id), [], 'nodes whose base_name_en has no detail page');
 // The old field must still be broken, or this check has stopped testing anything.
 const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
-eq(deadByNameEn.length, 379, 'nodes still unresolvable via name_en (the bug being fixed)');
+// 379 before the Nidoran split, 378 after: node 32 spells itself `Nidoran-M`
+// (ASCII hyphen) in this file, so the new `nidoran-m` resolves it. That is the
+// split working, not the count drifting -- 325 form nodes plus 53 species whose
+// CSV spelling drifted from pokemon_data.json is where the other 378 come from.
+eq(deadByNameEn.length, 378, 'nodes still unresolvable via name_en (the bug being fixed)');
 // Form nodes must point at their base, not at themselves.
 eq(linkable.filter(n => n.form !== null
-      && slugToId.get(slugName(n.base_name_en)) !== n.base_id).map(n => n.id),
+      && slugToId.get(slugFor(n.base_name_en)) !== n.base_id).map(n => n.id),
    [], 'form nodes not pointing at their base species');
-// Base nodes must point at themselves. Nidoran♂ (32) is the one exception and is
-// a known pre-existing collision, not a regression: pokemonSlug() strips the ♂
-// symbol so both Nidoran records slug to `nidoran`, and find() returns 29 first,
-// so 32's link lands on Nidoran♀. See gotcha 30 -- Nidoran♂ is reachable only
-// via detail.html?id=32.
-const SLUG_COLLISIONS = new Set([32]);
+// Base nodes must point at themselves. This used to need SLUG_COLLISIONS = {32},
+// because Nidoran♂ slugged to `nidoran` and first-match-wins sent it to 29; that
+// exception is deleted rather than kept, so the pair has to keep resolving.
 eq(linkable.filter(n => n.form === null
-      && !SLUG_COLLISIONS.has(n.id)
-      && slugToId.get(slugName(n.base_name_en)) !== n.id).map(n => n.id),
+      && slugToId.get(slugFor(n.base_name_en)) !== n.id).map(n => n.id),
    [], 'base nodes not pointing at their own species');
 
 console.log('sprites');
@@ -214,7 +260,8 @@ eq(badHref.map(n => n.id), [], 'nodes whose rendered href would 404');
 // And prove the probe is live: the same expression over the old field must still
 // fail, otherwise this section has stopped testing anything.
 const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.name_en } })));
-eq(badIfNameEn.length, 379, 'nodes that would 404 if the renderer used name_en');
+// Same 379 -> 378 as above, for the same reason.
+eq(badIfNameEn.length, 378, 'nodes that would 404 if the renderer used name_en');
 // The URL must be the ?slug= form the local dev server can actually serve, not
 // the clean /detail/<slug> path that Live Server 404s (gotcha 8).
 eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,
