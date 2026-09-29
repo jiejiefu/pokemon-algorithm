@@ -562,6 +562,34 @@
 
     async function show(id) {
       current = id;
+      // `picker.value = String(id)` below is unguarded ON PURPOSE, and the obvious
+      // "fix" is a real regression. A model-less id — `?id=999`, or a deep link
+      // from a detail page for a Pokémon we ship no GLB for — has no option in
+      // this list, and the stage overlay is what explains that (這隻寶可夢還沒有
+      // 3D 模型).
+      //
+      // MEASURED, because the obvious reading of the spec is wrong here. The HTML
+      // spec does say a single-select with nothing selected takes its "default
+      // state" at index 0, which reads as though a non-matching assignment would
+      // silently fall back to 妙蛙種子 and the visitor would never notice. It
+      // does not. Driving Chrome over CDP with the option list populated:
+      //
+      //     guarded, on cold load        selectedIndex  0   value "1"   #0001 妙蛙種子
+      //     picker.value = '999'         selectedIndex -1   value ""    (nothing shown)
+      //     picker.value = '1'           selectedIndex  0   value "1"   #0001 妙蛙種子
+      //
+      // so a rejected value paints a BLANK control, not a fallback. The index-0
+      // rule is about `:default` and about which option is selected before any
+      // assignment — not about what a rejected value renders.
+      //
+      // Blank is the honest state and is left as one. Guarding the assignment
+      // looks tidier and is worse: it leaves the last real option showing, so a
+      // cold deep link to `?id=999` puts #0001 妙蛙種子 in the select under a
+      // document titled "#0999 索財靈 3D 模型" — the select asserting an identity
+      // the title and the identity row have already contradicted. Blank admits
+      // it cannot show this one. A placeholder option is the only third answer
+      // and is a design decision, not a cleanup; re-decide it deliberately or
+      // leave this line alone.
       picker.value = String(id);
       const p = data.find(d => d.id === id);
       if (p) {
