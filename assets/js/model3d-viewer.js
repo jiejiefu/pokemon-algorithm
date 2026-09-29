@@ -373,27 +373,6 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   // evidence that THIS term is what moved the highlights. Re-measure before
   // quoting them as the model's current luma.
   scene.environmentIntensity = 0.5;
-  // The room, dialled back. RoomEnvironment is BRIGHT — a lit interior built to
-  // be a neutral studio probe — and at its default intensity 1.0 it contributed
-  // more light than the key, laying broad specular glare across every surface.
-  // This is the term that answers "刺眼" (glaring), and it is why the fix lives
-  // here rather than in the exposure: cutting the room's bright broad-source
-  // contribution removes glare, where cutting exposure only dims the whole image
-  // toward flat grey (measured — see the exposure comment above).
-  //
-  // Swept 0.4 / 0.5 / 0.55 / 0.8 against key 1.8-3.2 and fill 0.5-1.05. 0.5 with
-  // key 2.4 / fill 0.7 measured median 0.545-0.647, p90 0.714-0.803 across both
-  // models and both themes, against 0.787-0.821 / 0.887-0.913 before — the top
-  // stopped being pinned against the ceiling, which was the actual complaint.
-  // 0.4 is only a shade darker again (median 0.500-0.619); 0.5 is the value that
-  // was looked at, so it is the one committed.
-  //
-  // Those medians were taken at exposure 0.9, which is no longer the value in use
-  // — exposure has since moved to 0.6, so the model's absolute luma is now lower
-  // than the table says. They are kept because the comparison they support is
-  // like-for-like (one sweep, one knob varied at a time) and because they are the
-  // evidence that THIS term is what moved the highlights. Re-measure before
-  // quoting them as the model's current luma.
   pmrem.dispose();
 
   /** Release everything the current model owns. Called before the next load so
