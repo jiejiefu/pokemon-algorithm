@@ -51,11 +51,17 @@ const eq = (got, want, msg) =>
  *  If the two ever diverge this check stops proving anything, so the body is
  *  duplicated rather than imported -- shared.js pulls in the whole DOM-side
  *  module graph, which a node script cannot load. */
-const pokemonSlug = (name) => name
+const slugName = (name) => name
   .normalize('NFKD')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '');
+
+// The real pokemonSlug() takes a pokemon and reads names.en || name_en || id.
+// The fallback is the whole reason the 379 dead links were silent: a chain node
+// has no `names`, so it slid through to name_en and produced a plausible slug.
+const pokemonSlug = (p) => slugName(p?.names?.en || p?.name_en || String(p?.id || ''));
+const pokemonDetailUrl = (p) => `detail.html?slug=${encodeURIComponent(pokemonSlug(p))}`;
 
 const chains = read('assets/data/evolution_chains.json');
 const data = read('assets/data/pokemon_data.json');
@@ -87,7 +93,7 @@ for (const n of nodes) {
   ok(typeof n.filename === 'string' && n.filename.endsWith('.png'), `node #${n.id} has a .png filename`);
 }
 
-// ------------------------------------------- the 76 misfiled species (C0)
+// ------------------ the 76 hyphenated base species are not misfiled as forms
 console.log('species are never filed as forms');
 const misfiled = nodes.filter(n => n.id <= MAX_ID && n.form !== null);
 eq(misfiled.map(n => n.id), [], 'species carrying a non-null form');
@@ -158,7 +164,7 @@ console.log('every link target resolves to a real detail page');
 // Nidoran records looks broken.
 const slugToId = new Map();
 for (const p of data) {
-  const s = pokemonSlug(p.names.en);
+  const s = slugName(p.names.en);
   if (!slugToId.has(s)) slugToId.set(s, p.id);
 }
 // A missing base_name_en must read as a FAIL, not an abort: pokemonSlug(undefined)
@@ -166,14 +172,14 @@ for (const p of data) {
 const noBaseNameEn = nodes.filter(n => typeof n.base_name_en !== 'string');
 eq(noBaseNameEn.map(n => n.id), [], 'nodes with no base_name_en field');
 const linkable = nodes.filter(n => typeof n.base_name_en === 'string');
-const unresolvable = linkable.filter(n => !slugToId.has(pokemonSlug(n.base_name_en)));
+const unresolvable = linkable.filter(n => !slugToId.has(slugName(n.base_name_en)));
 eq(unresolvable.map(n => n.id), [], 'nodes whose base_name_en has no detail page');
 // The old field must still be broken, or this check has stopped testing anything.
-const deadByNameEn = nodes.filter(n => !slugToId.has(pokemonSlug(n.name_en)));
+const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
 eq(deadByNameEn.length, 379, 'nodes still unresolvable via name_en (the bug being fixed)');
 // Form nodes must point at their base, not at themselves.
 eq(linkable.filter(n => n.form !== null
-      && slugToId.get(pokemonSlug(n.base_name_en)) !== n.base_id).map(n => n.id),
+      && slugToId.get(slugName(n.base_name_en)) !== n.base_id).map(n => n.id),
    [], 'form nodes not pointing at their base species');
 // Base nodes must point at themselves. Nidoran♂ (32) is the one exception and is
 // a known pre-existing collision, not a regression: pokemonSlug() strips the ♂
@@ -183,13 +189,36 @@ eq(linkable.filter(n => n.form !== null
 const SLUG_COLLISIONS = new Set([32]);
 eq(linkable.filter(n => n.form === null
       && !SLUG_COLLISIONS.has(n.id)
-      && slugToId.get(pokemonSlug(n.base_name_en)) !== n.id).map(n => n.id),
+      && slugToId.get(slugName(n.base_name_en)) !== n.id).map(n => n.id),
    [], 'base nodes not pointing at their own species');
 
 console.log('sprites');
 for (const n of nodes.filter(n => n.form === null)) {
   eq(n.filename, byId.get(n.id)?.filename ?? `${n.id}.png`, `base node #${n.id} filename`);
 }
+
+// ------------------------------------------ the href the chain section renders
+// shared.js's renderEvolutionChain() does NOT pass a node to pokemonSlug()
+// directly -- a node has name_en, not names.en, so pokemonSlug() silently falls
+// back to name_en and a form slugs to "venusaur-mega", a page that does not
+// exist. That is how 379 dead links shipped without a single console error. The
+// renderer now builds the href from base_name_en:
+//
+//   nodeHref = (node) => pokemonDetailUrl({ names: { en: node.base_name_en || node.name_en } })
+//
+// This replicates that expression so a regression in EITHER the data or the
+// renderer is caught here rather than by clicking 1350 links.
+const nodeHref = (node) => pokemonDetailUrl({ names: { en: node.base_name_en || node.name_en } });
+const badHref = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.base_name_en || n.name_en } })));
+eq(badHref.map(n => n.id), [], 'nodes whose rendered href would 404');
+// And prove the probe is live: the same expression over the old field must still
+// fail, otherwise this section has stopped testing anything.
+const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.name_en } })));
+eq(badIfNameEn.length, 379, 'nodes that would 404 if the renderer used name_en');
+// The URL must be the ?slug= form the local dev server can actually serve, not
+// the clean /detail/<slug> path that Live Server 404s (gotcha 8).
+eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,
+   'every rendered href is a ?slug= URL');
 
 console.log('');
 if (problems.length) {

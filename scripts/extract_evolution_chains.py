@@ -169,7 +169,9 @@ def resolve_qualifier(pokemon_id: int, name_en: str, base_name_en: str) -> Optio
     """Recover the qualifier from `<base name>-<qualifier>`.
 
     Returns None for base species. Raises rather than guessing, because a wrong
-    qualifier silently produces a wrong Chinese name (see C2).
+    qualifier silently produces a wrong Chinese name (form names are
+    `<base_name_zh><qualifier>`, so "Mega" and "X" both look plausible in the
+    string and neither is checkable from it alone).
     """
     if pokemon_id in QUALIFIER_OVERRIDES:
         return QUALIFIER_OVERRIDES[pokemon_id]

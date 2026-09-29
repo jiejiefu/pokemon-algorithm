@@ -200,9 +200,10 @@ const baseStages = (p) => {
   // stages is what makes 妙蛙草's chain read 3 evolutions instead of 2.
   //
   // Base-vs-form is the id-authoritative rule from gotcha 15, NOT a name test.
-  // This used to be `!/-/.test(row.name)`, which is the same hyphen bug C0 fixed
-  // in the generator: it silently classified Nidoran-F, Mr-Mime and Ho-Oh as
-  // forms. It passed only because none of the 600族 names contain a hyphen.
+  // This used to be `!/-/.test(row.name)`, the same name-based classifier the
+  // evolution generator used until it was repaired: it silently classified
+  // Nidoran-F, Mr-Mime and Ho-Oh as forms. It passed only because none of the
+  // 600族 names contain a hyphen.
   const isBase = (row) => typeof row.id === 'number' && row.id <= 1025;
   // No fallback to special_forms.other. It was here solely because chain 408
   // used to have an empty main_line, and it would now hide the next regression

@@ -1095,13 +1095,27 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
 
   let html = '<div class="evolution-chain">';
 
+  // A chain node is not a pokemon record: it carries `name_en` / `base_name_en`,
+  // not `names.en`. pokemonSlug() copes by falling back to `name_en`, which is
+  // how this shipped dead links instead of throwing -- for a form that slugs to
+  // "venusaur-mega", which no detail page answers to. 379 of the 1350 nodes were
+  // dead that way: all 325 forms, plus 54 species whose CSV spelling drifted from
+  // pokemon_data.json's names.en (Mr. Mime, Nidoran-F, Ho. Oh, Type: Null).
+  // `base_name_en` is the base species' real name, written by
+  // extract_evolution_chains.py and asserted to resolve by
+  // scripts/check_evolution_chains.mjs. Nidoran-M is the one case it does not
+  // round-trip, because both Nidoran records slug to `nidoran` (gotcha 30) -- it
+  // lands on Nidoran-F rather than on nothing.
+  const nodeHref = (node) =>
+    pokemonDetailUrl({ names: { en: node.base_name_en || node.name_en } });
+
   // Main line
   chainData.main_line.forEach(pokemon => {
     const currentClass = pokemon.id === currentPokemonId ? 'evolution-current' : '';
 
     html += `
       <div class="evolution-stage ${currentClass}">
-        <a href="${pokemonDetailUrl(pokemon)}" class="evolution-link">
+        <a href="${nodeHref(pokemon)}" class="evolution-link">
           <img class="evolution-sprite" src="${ASSETS.images}${pokemon.filename}" alt="${pokemon.name_zh}" loading="lazy">
           <span class="evolution-name">${pokemon.name_zh}</span>
           ${pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : ''}
@@ -1120,7 +1134,7 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
       pokemons.forEach(p => {
         html += `
           <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
-            <a href="${pokemonDetailUrl(p)}" class="evolution-link">
+            <a href="${nodeHref(p)}" class="evolution-link">
               <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
               <span class="evolution-name">${p.name_zh}</span>
             </a>
@@ -1139,7 +1153,7 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
         pokemons.forEach(p => {
           html += `
             <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
-              <a href="${pokemonDetailUrl(p)}" class="evolution-link">
+              <a href="${nodeHref(p)}" class="evolution-link">
                 <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
                 <span class="evolution-name">${p.name_zh}</span>
               </a>
