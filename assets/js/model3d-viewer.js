@@ -42,7 +42,7 @@ import {
   Scene, PerspectiveCamera, WebGLRenderer, Group,
   Box3, Vector3, Color, DirectionalLight, HemisphereLight,
   Mesh, CircleGeometry, ShadowMaterial, ACESFilmicToneMapping, SRGBColorSpace,
-  PCFSoftShadowMap, MathUtils, AnimationMixer, LoopOnce, LoopRepeat,
+  PCFShadowMap, MathUtils, AnimationMixer, LoopOnce, LoopRepeat,
   PMREMGenerator
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -51,8 +51,39 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /** Pinned in the importmap. Bumping three.js is a version-bump decision, not a
- *  silent one — the addon paths move between releases. */
-export const THREE_VERSION = '0.180.0';
+ *  silent one — the addon paths move between releases.
+ *
+ *  0.180.0 → 0.186.1 was not a lint fix, it was a landmine removal. r186
+ *  deleted the `PCF_SOFT` branch from the shadow shader, and
+ *  `WebGLProgram.js` now resolves the type through:
+ *
+ *      const shadowMapTypeDefines = {
+ *        [ PCFShadowMap ]: 'SHADOWMAP_TYPE_PCF',
+ *        [ VSMShadowMap  ]: 'SHADOWMAP_TYPE_VSM'
+ *      };
+ *      shadowMapTypeDefines[ type ] || 'SHADOWMAP_TYPE_BASIC'
+ *
+ *  `PCFSoftShadowMap` (2) is no longer in that table, so on r186 it silently
+ *  compiles as `SHADOWMAP_TYPE_BASIC` — a single unfiltered tap. The renderer
+ *  does not import the constant at all. No error, no warning, just a hard
+ *  shadow. `check_glb.mjs` now fails if it ever comes back.
+ *
+ *  The deprecation squiggle that prompted this was itself a false alarm about
+ *  the *runtime*: this repo has no `package.json` / `jsconfig.json` /
+ *  `node_modules`, so the editor type-checked against a three outside the
+ *  workspace (r186+) while the page loaded 0.180.0, where the constant is not
+ *  deprecated. Bumping pins the editor to the version that actually runs.
+ *  That `PCFSoftShadowMap` was the *only* deprecation reported across this
+ *  file's whole API surface is the evidence that the rest survives r186 —
+ *  `PMREMGenerator.fromScene( scene, sigma, near, far, options )` gained a
+ *  5th param (additive), and `RoomEnvironment` is still a no-arg constructor
+ *  on the same path.
+ *
+ *  `key.shadow.radius` stays unset on purpose. r180's `PCF_SOFT` was a fixed
+ *  ±1-texel 9-tap that ignored the radius; r186's `PCF` defaults to radius 1,
+ *  so leaving it alone is the faithful port. Raise to 2 only if the edge
+ *  reads harder than the old soft shadow. */
+export const THREE_VERSION = '0.186.1';
 
 /** Draco decoder, served from gstatic. Both models declare
  *  `KHR_draco_mesh_compression` in `extensionsRequired`, so this is not
@@ -193,7 +224,7 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   // Measured across both themes and both models; see the commit for the table.
   renderer.toneMappingExposure = 0.6;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  renderer.shadowMap.type = PCFShadowMap;
   renderer.domElement.className = 'm3d-canvas';
   mount.appendChild(renderer.domElement);
 

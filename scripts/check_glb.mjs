@@ -426,6 +426,63 @@ ok(/isContentEditable[\s\S]{0,120}input\|textarea\|select/.test(page),
 ok(/syncZoomButtons\(\);/.test(page) && /onFrame[\s\S]{0,400}syncZoomButtons/.test(page),
   'aria-disabled tracks the WHEEL too, not only button clicks — both move the camera');
 
+// === 6. the three.js pin, and the shadow constant it has to be paired with ===
+
+/**
+ * Nothing in this file used to mention the pinned version, which is exactly why
+ * the pin could drift out from under the importmap with no test going red.
+ *
+ * The load-bearing half is `PCFSoftShadowMap`. From r186 it is not merely
+ * deprecated — it is *unreachable*. `WebGLProgram.js` resolves the type through
+ *
+ *     shadowMapTypeDefines[ type ] || 'SHADOWMAP_TYPE_BASIC'
+ *
+ * and the table holds only PCF and VSM, so the constant silently compiles to a
+ * single unfiltered tap: a hard shadow, no error, no console warning. Asserting
+ * the constant is *absent* is therefore the whole point; asserting it is
+ * *present* is the boring half, and without it a deletion would also pass.
+ */
+const pinCore = page.match(/"three":\s*"https:\/\/unpkg\.com\/three@([^/"]+)\//);
+const pinAddons = page.match(/"three\/addons\/":\s*"https:\/\/unpkg\.com\/three@([^/"]+)\//);
+const pinConst = viewer.match(/THREE_VERSION\s*=\s*'([^']+)'/);
+const pins = [pinCore?.[1], pinAddons?.[1], pinConst?.[1]];
+const allPinsFound = pins.every(v => typeof v === 'string');
+// Each of these names all three values rather than a Set size: a bare "got 2,
+// want 1" and a "got 0.186.1" that reads fine while the check is red both send
+// the reader to the wrong file, which is the trap gotcha 38 is about.
+ok(allPinsFound,
+  `all three three.js pins parse (importmap x2 + THREE_VERSION); got ${JSON.stringify(pins)}`);
+ok(allPinsFound && new Set(pins).size === 1,
+  `the importmap and THREE_VERSION name the same three.js release; core=${pinCore?.[1]} addons=${pinAddons?.[1]} const=${pinConst?.[1]}`);
+ok(allPinsFound && parseInt(pinCore?.[1]?.split('.')[1], 10) >= 186,
+  `the core pin is at r186 or newer, where PCFShadowMap is the only soft path; core=${pinCore?.[1]} addons=${pinAddons?.[1]} const=${pinConst?.[1]}`);
+
+/**
+ * Strips comments, because the constant's NAME has to appear in the prose on
+ * purpose — the block comment on THREE_VERSION is the record of why it went, and
+ * AGENTS.md wants that reasoning to outlive this conversation. So the checks
+ * below count *uses in code*, not mentions in text. `//` preceded by `:` is left
+ * alone so the Draco decoder URL on the DRACO_DECODER_PATH line survives,
+ * harmless either way since that URL never mentions the constant.
+ */
+const stripComments = src => src
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+const viewerCode = stripComments(viewer);
+const pageCode = stripComments(page);
+
+const softRefs = [...viewerCode.matchAll(/PCFSoftShadowMap/g)].length
+               + [...pageCode.matchAll(/PCFSoftShadowMap/g)].length;
+ok(softRefs === 0,
+  'PCFSoftShadowMap is used nowhere in code — r186 drops the shader branch, so it renders a hard shadow silently');
+ok(/\bPCFShadowMap\b/.test(viewerCode) && /renderer\.shadowMap\.type\s*=\s*PCFShadowMap/.test(viewerCode),
+  'the shadow type is PCFShadowMap, imported and actually assigned');
+// r180's PCF_SOFT was a fixed ±1-texel 9-tap that ignored the radius, and r186's
+// PCF defaults to radius 1, so leaving it unset is the faithful port. This is
+// here to make a deliberate raise cost one line, not to forbid it.
+ok(!/shadow\.radius\s*=/.test(viewerCode),
+  'key.shadow.radius is still unset (default 1 matches the old soft filter) — if you raised it on purpose, update the comment on THREE_VERSION and drop this line');
+
 if (problems.length) {
   for (const p of problems.slice(0, 30)) console.error(`  FAIL ${p}`);
   if (problems.length > 30) console.error(`  ... and ${problems.length - 30} more`);
