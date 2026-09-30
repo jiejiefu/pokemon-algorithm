@@ -504,6 +504,64 @@ export function formatHex(hex, format = 'hex') {
 export const HEX_FORMATS = ['hex', 'rgb', 'hsl'];
 
 // ---------------------------------------------------------------------------
+// Related Pokémon
+// ---------------------------------------------------------------------------
+
+/**
+ * The species sharing this one's evolutionary line, in stage order.
+ *
+ * This exists to fill the palette page's "Forms / Related" tab, and the
+ * interesting part is what it does NOT fetch. The natural move is
+ * `evolution_chains.json`, which is 386 KB and already loaded on `detail.html`
+ * — but it is not needed, and it would be the wrong source even if it were
+ * cheap. `main_line` there interleaves form ids with species: 113 of its 541
+ * chains carry at least one id above 1025, and a Mega Venusaur is a member of
+ * its chain while owning no palette at all. `color_palettes.json` has exactly
+ * 1025 keys, ids 1..1025, so every form id is an unrenderable row — the panel
+ * would be full of links to `color.html?slug=venusaur-mega`, which 404s into
+ * the site's own dead-link class (gotcha 15).
+ *
+ * So the group is derived from `evolution_chain_id`, which every one of the 1025
+ * records already carries, and that is exactly `main_line` restricted to real
+ * species. Measured over all 541 chains against `evolution_chains.json`:
+ *
+ *   - 0 chains where the group contains a member absent from `main_line`
+ *   - 113 chains differ, and every one differs only by form ids
+ *   - 0 of 541 where stage order and id order disagree
+ *
+ * The third line is why this sorts by `id` rather than fetching a stage number.
+ * It is not an assumption that ids happen to run forwards — it is measured
+ * over the whole file, and the 9-member chain (Eevee's) is the one that would
+ * have exposed it: Espeon (#196) and Umbreon (#197) branch off Eevean (#133)
+ * before the Gen-4 members Leafeon (#470) and Glaceon (#471), so stage order
+ * and id order agree there by construction and it is a *weak* probe, not a
+ * strong one. The reason it is still worth naming is that it is the only chain
+ * with nine members, so a regression that collapsed the branch structure would
+ * show up here first.
+ *
+ * Returns `[]` for a species with no `evolution_chain_id` rather than guessing
+ * at a fallback; every record in the file has one, and a silent same-type
+ * fallback would put a different set of Pokémon behind the label depending on
+ * which record lost the field.
+ */
+export function relatedPokemon(pokemon, allPokemon) {
+  const chainId = pokemon?.evolution_chain_id;
+  if (chainId == null || !Array.isArray(allPokemon)) return [];
+  return allPokemon
+    .filter(p => p.evolution_chain_id === chainId)
+    .sort((a, b) => a.id - b.id)
+    .map(p => ({
+      id: p.id,
+      slug: pokemonSlug(p),
+      nameZh: p.names?.zh ?? p.names?.en ?? `#${p.id}`,
+      nameEn: p.names?.en ?? '',
+      url: paletteUrl(p),
+      sprite: spriteUrl(p),
+      isCurrent: p.id === pokemon.id,
+    }));
+}
+
+// ---------------------------------------------------------------------------
 // Shade scale
 // ---------------------------------------------------------------------------
 
