@@ -464,6 +464,46 @@ export function colorTemperature(hex) {
 export const TEMPERATURE_ZH = { warm: '暖色', cool: '冷色', neutral: '中性' };
 
 // ---------------------------------------------------------------------------
+// Colour notation
+// ---------------------------------------------------------------------------
+
+/**
+ * A hex in the notation the reader picked: `hex` / `rgb` / `hsl`.
+ *
+ * Transcribed from the reference's `convertColor` in
+ * `pokemon-palette-display.tsx:20`, which is the same `hex → hsl` math as
+ * `hexToHsl()` here, written out a second time inside the component. Reusing
+ * ours is the better half of the transcription, but not all of it: the
+ * reference rounds h/s/l to integers before printing, and that rounding is
+ * visible in the string a reader might paste into another tool, so this goes
+ * through the same private `roundedHsl()` the theme port uses.
+ *
+ * The rounding is why this is not just `hexToHsl()` inline, and the reason it
+ * must not be folded into `hexToHsl()` either. `hexToHsl()` is exported and
+ * returns floats on purpose — the palette strip and the shade scale read the
+ * exact values, and rounding there would move the scale's anchor by a step on
+ * the colours nearest a target boundary. So the float form stays exported and
+ * exact, and the display form rounds. Two functions, one algorithm, no
+ * duplicated arithmetic.
+ *
+ * An unparseable hex returns `''` rather than a `NaN`-bearing string: these
+ * values go straight into a `<code>` the user can copy, and `rgb(NaN, 0, 0)` is
+ * a string that looks like a colour and is not one.
+ */
+export function formatHex(hex, format = 'hex') {
+  if (format === 'hex') return hex || '';
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '';
+  if (format === 'rgb') return `rgb(${rgb.join(', ')})`;
+  const hsl = roundedHsl(hex);
+  if (!hsl) return '';
+  return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+}
+
+/** The three notations, in the order the reference's `<Select>` lists them. */
+export const HEX_FORMATS = ['hex', 'rgb', 'hsl'];
+
+// ---------------------------------------------------------------------------
 // Shade scale
 // ---------------------------------------------------------------------------
 
@@ -1024,10 +1064,62 @@ export function themeCssVar(key) {
  *
  * @returns {{h:number,s:number,l:number}|null}
  */
+/**
+ * The reference's integer HSL, which is what every derived token is built on.
+ *
+ * This is a transcription of the reference's own `hexToHsl`
+ * (`theme-export.ts:81`), not `hexToHsl()` with a `Math.round` bolted on, and
+ * the duplication is load-bearing. The reference keeps hue as a 0..1 fraction
+ * and rounds it in one step — `Math.round(fraction * 360)` — whereas
+ * `hexToHsl()` here folds the 60 in and returns degrees. Those two values are
+ * algebraically equal and numerically different, and the difference is not a
+ * rounding detail: it is a unit in the last place, and at an exact half-degree
+ * it decides the integer.
+ *
+ * Recovering the fraction afterwards does not work, and both obvious attempts
+ * were measured before this was written down. Over the 8,137 distinct colours
+ * in `color_palettes.json`:
+ *
+ *   Math.round(degrees)             4 wrong    (hides a ULP the reference loses)
+ *   Math.round(degrees / 360 * 360) 5 wrong    (the divide/multiply is not
+ *                                               an identity in binary floats)
+ *
+ * and the real input set is larger than the palette colours. A token is
+ * usually `withSL(secondary, 15, 45)` — a *derived* hex fed back through the
+ * conversion — so sweeping the 8,137 palette colours alone, which is what the
+ * first two attempts were checked against, leaves the actual use case
+ * unmeasured. Widening the sweep to every `(s, l)` pair the token builder
+ * reaches, 97,644 derived conversions, the surviving candidates disagree on 19.
+ *
+ * What makes this worth the duplicated arithmetic is the size of the residue.
+ * It is 1 of 255 in a single channel, so no screenshot and no contrast sweep
+ * will ever show it. The reference publishes
+ * `--muted-foreground: #62847b`; the half-up path produced `#62847a` and would
+ * have shipped a token that differs from the page being ported, invisibly and
+ * irreproducibly. So the golden test pins all 64 values, and
+ * `check_color_theme_tokens.mjs` additionally pins the conversion itself over
+ * the real roster — because the three fixture colours (#399494, #62d5b4,
+ * #73ac31) are not among the affected ones, and "64/64 passes" is therefore
+ * NOT a reason to simplify this back to `Math.round(hexToHsl(hex).h)`.
+ */
 function roundedHsl(hex) {
-  const hsl = hexToHsl(hex);
-  if (!hsl) return null;
-  return { h: Math.round(hsl.h), s: Math.round(hsl.s), l: Math.round(hsl.l) };
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const [rn, gn, bn] = rgb.map(v => v / 255);
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+    else if (max === gn) h = (bn - rn) / d + 2;
+    else h = (rn - gn) / d + 4;
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
 const clamp01 = n => Math.min(1, Math.max(0, n));

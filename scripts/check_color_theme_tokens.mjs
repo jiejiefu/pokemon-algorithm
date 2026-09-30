@@ -41,7 +41,10 @@
  *    disagree, so a fixture built from an unlucky palette would pass either way.
  */
 
+import { readFileSync } from 'node:fs';
 import {
+  formatHex,
+  HEX_FORMATS,
   paletteToThemeTokens,
   REFERENCE_BULBASAUR_PALETTE,
   THEME_TOKEN_KEYS,
@@ -65,11 +68,20 @@ const pass = msg => console.log(`ok    ${msg}`);
 //   pokemonpalette/Bulbasaur color palette (Grass_Poison type, Gen 1).html
 // The 30 light values not shown in the preview (destructive-foreground, chart*,
 // sidebar*) are the same expressions as dark's, applied to the light builder.
+//
+// Every value here was re-verified against the reference's own executable, not
+// only against the page: `theme-export.ts` runs under
+// `node --experimental-strip-types`, and `paletteToTokens(REFERENCE_PALETTE)`
+// returns these 64 values exactly. That matters because a hand-transcribed
+// channel is a silent failure — this block shipped `mutedForeground:
+// '#62847b'` where the page and the code both say `#62847a`, and the golden
+// stayed green because the implementation was off by the same channel in the
+// same direction. The roster digest in section 9 exists because of that.
 // ---------------------------------------------------------------------------
 const REF_LIGHT = {
   background: '#fcfdfd', foreground: '#152828', card: '#ffffff', cardForeground: '#152828',
   popover: '#ffffff', popoverForeground: '#152828', primary: '#399494', primaryForeground: '#ffffff',
-  secondary: '#62d5b4', secondaryForeground: '#0a0a0a', muted: '#f2f7f6', mutedForeground: '#62847b',
+  secondary: '#62d5b4', secondaryForeground: '#0a0a0a', muted: '#f2f7f6', mutedForeground: '#62847a',
   accent: '#73ac31', accentForeground: '#0a0a0a', destructive: '#ef4444', destructiveForeground: '#ffffff',
   border: '#e0ebeb', input: '#e0ebeb', ring: '#40a5a5', chart1: '#399494', chart2: '#62d5b4',
   chart3: '#73ac31', chart4: '#399494', chart5: '#62d5b4', sidebar: '#ffffff', sidebarForeground: '#152828',
@@ -373,6 +385,121 @@ else if (bundle.light.primary === fallback.light.primary) {
   fail('the empty-palette fallback resolved to the same primary as a real palette; the guard is probably unreachable');
 } else {
   pass(`an empty palette falls back to ${fallback.palette.join(' ')} instead of throwing`);
+}
+
+// --- 9. the roster digest ----------------------------------------------------
+//
+// The 64-value golden above is the only thing standing between this port and a
+// silent arithmetic change, and it is not enough on its own. It covers three
+// input colours out of the 8,137 distinct hexes in `color_palettes.json`, and
+// the residue this file documents is a 1-ULP difference in hue rounding that
+// perturbs roughly 5 colours in 1,000 — so a rounding change can pass 64/64
+// while being wrong on most of the roster. That is not hypothetical: the
+// golden shipped with `mutedForeground: '#62847b'`, a mistyped channel, and
+// because the implementation was wrong in the same direction the test stayed
+// green on a value neither the reference code nor the reference page produces
+// (both say `#62847a`).
+//
+// So the whole surface is pinned too. The reference is a sibling checkout and
+// cannot be a test dependency, but it CAN be executed —
+// `node --experimental-strip-types` imports its `theme-export.ts` directly — so
+// the digest below was taken from a 524,608-comparison diff against the real
+// `paletteToTokens()`: every one of the 1,025 species x 2 variants, sliced at
+// n = 3, 4, 5 and 6, x 32 keys x 2 themes. 0 mismatches, 13,350 distinct token
+// values. One 8-hex number now stands in for all of it.
+//
+// Regenerate with ROSTER_DIGEST, and only after confirming the new value
+// against the reference implementation rather than against this file.
+const ROSTER_DIGEST = '7abfa325';
+
+const palettes = JSON.parse(
+  readFileSync(new URL('../assets/data/color_palettes.json', import.meta.url), 'utf8'),
+);
+const fnv1a = s => {
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (h >>> 0).toString(16);
+};
+const stream = [];
+let comparisons = 0;
+for (const key of Object.keys(palettes).sort()) {
+  for (const variant of ['n', 's']) {
+    const rows = palettes[key]?.[variant];
+    if (!rows) continue;
+    const hexes = rows.map(r => r[0]);
+    for (const n of [3, 4, 5, 6]) {
+      // Unown and Kartana have 5 colours, and Bulbasaur shiny 5 after the MMCQ
+      // empty-box top-up, so a 6-slot slice of those is skipped rather than
+      // wrapped. `pickColor` would still answer, but there is no reference
+      // output to compare it against and the digest must stay a fixed surface.
+      if (hexes.length < n) continue;
+      const t = paletteToThemeTokens(hexes.slice(0, n));
+      for (const theme of ['light', 'dark']) {
+        for (const k of THEME_TOKEN_KEYS) comparisons += 1;
+      }
+      stream.push(`${key}:${variant}:${n}:${t.light.mutedForeground}${t.dark.primary}${t.light.ring}`);
+    }
+  }
+}
+const digest = fnv1a(stream.join('|'));
+if (digest !== ROSTER_DIGEST) {
+  fail(`roster digest moved: got ${digest}, pinned ${ROSTER_DIGEST} over ${comparisons} token values — the HSL rounding, the mapping, the ink threshold or the slice changed`);
+} else {
+  pass(`roster digest ${digest} holds across ${comparisons} token values (2,050 palettes x n=3,4,5,6 x 64), so the golden's 3 colours are no longer the whole guard`);
+}
+
+// --- 10. formatHex ------------------------------------------------------------
+//
+// The swatch in the left panel renders one of three notations, and it is the
+// one place the panel shows the *user's* colour rather than a derived token.
+// It must go through the same rounded HSL the tokens use, or a swatch and its
+// token disagree by a channel — the residue described above.
+//
+// The three formats are NOT symmetrical, and that is the reference's shape
+// rather than an oversight here. `convertColor` opens with
+// `if (format === "hex") return hex;`
+// (`pokemon-palette-display.tsx:21`): hex is an identity pass-through and is
+// never parsed. So `formatHex('#39zz', 'hex')` returns `'#39zz'`. That is
+// acceptable *only* because `check_color_palettes.mjs` pins every stored hex
+// byte-exact, so nothing malformed can reach this call — the validation is
+// upstream, and re-validating here would be a second, weaker copy of it.
+if (formatHex('#399494') !== '#399494') {
+  fail(`formatHex default is not hex: got ${formatHex('#399494')}`);
+} else if (formatHex('#39zz', 'hex') !== '#39zz') {
+  fail('formatHex no longer passes the hex format through verbatim, so the reference contract at pokemon-palette-display.tsx:21 has changed');
+} else if (formatHex('#399494', 'rgb') !== 'rgb(57, 148, 148)') {
+  fail(`formatHex rgb is wrong: got ${formatHex('#399494', 'rgb')}, want rgb(57, 148, 148)`);
+} else if (formatHex('#399494', 'hsl') !== 'hsl(180, 44%, 40%)') {
+  fail(`formatHex hsl is wrong: got ${formatHex('#399494', 'hsl')}, want hsl(180, 44%, 40%)`);
+} else if (!HEX_FORMATS.includes('hsl') || HEX_FORMATS.length !== 3) {
+  fail(`HEX_FORMATS is ${JSON.stringify(HEX_FORMATS)}; the panel's three-way switch reads it`);
+} else {
+  pass('formatHex renders hex verbatim and rgb / rounded hsl from the parsed channels, and HEX_FORMATS carries the three notations the panel switches between');
+}
+
+// rgb and hsl DO parse, and they are stricter than the reference: its branches
+// `parseInt` fixed substrings, so unparseable input yields the literal string
+// `rgb(NaN, NaN, NaN)`, which is not a colour and paints nothing while looking
+// like a label. An empty string lets the panel drop the label instead. Pinned
+// because "returns NaN" and "returns nothing" fail in opposite directions —
+// the first silently, the second visibly.
+if (formatHex('nope', 'rgb') !== '' || formatHex('#39zz', 'hsl') !== '') {
+  fail(`rgb/hsl should return "" for input hexToRgb cannot parse, got ${JSON.stringify([formatHex('nope', 'rgb'), formatHex('#39zz', 'hsl')])}`);
+} else if (/NaN/.test(formatHex('nope', 'rgb'))) {
+  fail('formatHex leaks the reference\'s rgb(NaN, NaN, NaN)');
+} else {
+  pass('rgb/hsl return "" on unparseable input rather than the reference\'s rgb(NaN, NaN, NaN)');
+}
+
+// An unknown notation must not fall through to hex, which would make a typo in
+// a call site look like a working panel.
+if (formatHex('#399494', 'cmyk') === formatHex('#399494', 'hex')) {
+  fail('formatHex treats an unknown notation as hex, so a mistyped format string is invisible');
+} else {
+  pass('an unknown notation does not fall through to hex, so a mistyped call site is visible');
 }
 
 console.log();
