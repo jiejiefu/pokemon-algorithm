@@ -228,7 +228,7 @@
       const name = p.names.zh;
       return `<a class="cp-card" href="${paletteUrl(p)}" aria-label="${name} 的色彩頁">
         <div class="cp-card-strip" style="background:${primary}">
-          ${paletteStripHtml(rows)}
+          ${paletteStripHtml(rows, { showRemainder: false })}
           <img class="cp-card-silhouette" src="${sprite}" alt="" width="96" height="96" loading="lazy" decoding="async">
           <span class="cp-card-badge">${formatPokemonId(p.id)}</span>
         </div>

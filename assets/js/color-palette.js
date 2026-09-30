@@ -1,8 +1,12 @@
 /**
  * Colour-palette data access, colour naming, and the two silhouette techniques.
  *
- * The data is precomputed by `scripts/extract_color_palettes.py` into
- * `assets/data/color_palettes.json` (254 KB raw / 74 KB gzip, 2050 palettes).
+ * The data is precomputed by `scripts/extract_color_palettes_mmcq.py` into
+ * `assets/data/color_palettes.json` — 2050 palettes, 6 colours each, written
+ * with indent=2 so every hex/share pair is reviewable in a diff. The sibling
+ * `scripts/extract_color_palettes.py` transcribes the reference project's Canvas
+ * `getImageData` scan and is kept for comparison; it is not what produced this
+ * file, and its >5%-share rule is not the rule behind the data here.
  * Nothing here decodes a canvas: the extractor already fixed the sampling, and
  * a runtime version would be a second implementation of a measurement.
  *
@@ -274,14 +278,21 @@ export function paletteGridHtml(rows, options = {}) {
 }
 
 /**
- * How many colours a card's compact strip draws, and what it does with the
- * rest. A card is ~190px wide and 34px tall, so 11 cells would be 17px each; the
- * strip caps at 5 and renders the remainder as a `+N` chip.
+ * How many colours a compact strip draws, and whether the remainder is announced.
+ * A card is ~190px wide and 34px tall, so 11 cells would be 17px each; the strip
+ * caps at 5.
  *
- * The marker is the part that is not optional. A 6-colour palette shown as 5
- * silently loses its rarest colour and the card claims to be the whole
- * palette; `+1` is the only thing that says otherwise. The count is also in the
- * card's aria-label, so the information is not carried by the chip alone.
+ * `+N` is a per-call-site decision rather than a constant, because the consumers
+ * want different things. The two single-Pokémon pages pass no options and keep
+ * the chip — their strip is the full width of an identity card, and there the
+ * sixth colour is worth pointing at. `colors-explore.html` opts out and draws 5
+ * bare cells, since it renders 1,025 cards at once and the chip costs a cell in
+ * every one of them.
+ *
+ * Either way the count reaches the aria-label ("共 6 色，主要 5 色"), so dropping
+ * the chip does not remove from a screen-reader user the information the chip was
+ * carrying. What it does remove is the visual hint, and Bulbasaur is the case to
+ * remember: its sixth colour is the red `#ac0031`, invisible on the explore grid.
  */
 export const VISIBLE_STRIP_COLORS = 5;
 
@@ -291,11 +302,12 @@ export const VISIBLE_STRIP_COLORS = 5;
  * makes the activation target ambiguous (AGENTS.md gotcha 27).
  *
  * @param {Array<[string, number]>} rows
- * @param {Object} [options] - { limit }
+ * @param {Object} [options] - { limit, showRemainder }
  * @returns {string}
  */
 export function paletteStripHtml(rows, options = {}) {
   const limit = options.limit ?? VISIBLE_STRIP_COLORS;
+  const showRemainder = options.showRemainder ?? true;
   if (!rows.length) return '';
   const shown = rows.slice(0, limit);
   const rest = rows.length - shown.length;
@@ -305,7 +317,8 @@ export function paletteStripHtml(rows, options = {}) {
         `<span class="cp-seg" style="${swatchStyle(hex)}" title="${hex} · ${formatShare(share)}"><span class="cp-seg-hex">${hex}</span></span>`
     )
     .join('');
-  const more = rest > 0 ? `<span class="cp-seg-more">+${rest}</span>` : '';
+  const more =
+    showRemainder && rest > 0 ? `<span class="cp-seg-more">+${rest}</span>` : '';
   return `<div class="cp-strip" role="img" aria-label="色盤，共 ${rows.length} 色，主要 ${shown.length} 色">${segments}${more}</div>`;
 }
 

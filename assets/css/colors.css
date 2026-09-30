@@ -113,7 +113,11 @@
 /* The strip inside the card is the card's only summary of the palette, so it
    sits flush against the card's bottom edge with no border of its own. The
    count of the hidden tail rides along as .cp-seg-more, so truncating the strip
-   does not hide that colours were dropped. */
+   does not hide that colours were dropped — on the two identity cards, which is
+   what this rule annotates. The chip is opt-out: `colors-explore.html` passes
+   `showRemainder: false`, and `.cp-seg` is `flex: 1 1 0`, so its 5 segments
+   simply widen by the chip's 26px instead of making room for it. Nothing here
+   needs to know which of the two happened. */
 .cp-idcard .cp-strip {
   flex: 1 1 240px;
   min-width: 180px;
