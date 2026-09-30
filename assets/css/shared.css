@@ -410,10 +410,43 @@ body {
   margin-left: 0.3em;
 }
 
+/* ===== Page identity =====
+   Six headers, one fill, and identity moved from the fill to a 3px rule on the
+   top edge. Before this, `.header-dex` / `-sort` / `-maze` / `-3d` / `-colors`
+   were five separate saturated gradients and the title was gold text on top of
+   them — so every page carried two competing identities and each gradient had
+   to be light enough for white-ish title text to stay legal, which is what
+   gotcha 39's lightest-stop rule was being paid for on all five.
+
+   The rule colours are deliberately NOT held to 4.5:1 or 3:1. WCAG 1.4.11
+   governs boundaries that identify a control; a 3px band of decoration with no
+   text on it is not one, and holding four saturated hues to 3:1 against a
+   neutral header would force them toward the greys that removed the signal.
+
+   Eight of the twelve headers are `position: sticky`, so on those pages the
+   rule scrolls out of view after the first few pixels and the title colour is
+   the only identity left in-scrolled state. That is a consequence of the
+   stickiness, not of this rule, and it is why the fallback on `.header` is
+   red: `.header-dex` covers five pages, so a header with no `--page-accent`
+   still gets the site's default identity rather than none. */
+.header {
+  border-top: 3px solid var(--page-accent, var(--rule-red));
+}
+.header-dex { --page-accent: var(--rule-red); }
+.header-detail { --page-accent: var(--rule-red); }
+.header-sort { --page-accent: var(--rule-gold); }
+.header-maze { --page-accent: var(--rule-cyan); }
+.header-3d { --page-accent: var(--rule-violet); }
+.header-colors { --page-accent: var(--rule-cyan); }
+
 .header-sort { background: var(--bg-header-sort); }
 .header-maze { background: var(--bg-header-maze); }
 .header-dex { background: var(--bg-header-dex); position: sticky; top: 0; z-index: 100; }
 .header-3d { background: var(--bg-header-3d); position: sticky; top: 0; z-index: 100; }
+/* Was stranded 20 lines below this block, after the footer rules, for no reason
+   a reader could reconstruct. It is the third sticky header, so it belongs with
+   the other two. */
+.header-colors { background: var(--bg-header-colors); position: sticky; top: 0; z-index: 100; }
 
 /* ---------- Site footer chrome ----------
    These three rules were, until now, inline in index.html only — so the three
@@ -434,7 +467,6 @@ body {
 }
 .home-footer-line a { color: var(--accent-gold); text-decoration: none; }
 .home-footer-line a:hover { text-decoration: underline; }
-.header-colors { background: var(--bg-header-colors); position: sticky; top: 0; z-index: 100; }
 
 /* ===== Controls / Buttons ===== */
 .controls {
