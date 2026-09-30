@@ -99,6 +99,11 @@
   --btn-bg: rgba(238, 241, 251, 0.08);
   --btn-fg: #eef1fb;
   --btn-border: rgba(238, 241, 251, 0.45);
+  /* WCAG 1.4.11 Non-text Contrast asks 3:1 against BOTH neighbours, and an
+     outline has two: the surface it sits on and whatever is behind it. --btn-bg
+     is the harder one in dark (a ghost over --bg-card), so the ring is gold
+     rather than the page's red. */
+  --focus-ring: #f5c542;
 
   /* Glass — the detail page's top card */
   --glass-bg: rgba(22, 30, 56, 0.58);
@@ -244,6 +249,16 @@
      1.47:1, an existing WCAG 1.4.11 failure. 0.55 measures 3.66:1 on the page,
      3.40:1 on --bg-controls and 3.25:1 on --surface-raised; check all three. */
   --btn-border: rgba(15, 23, 48, 0.55);
+  /* The same Poké Ball red --accent-gold resolves to, and deliberately NOT the
+     --accent-yellow amber above. Both clear WCAG 1.4.11's 3:1 here, but the red
+     measures 6.34-6.92:1 against the light surfaces the ring actually lands on
+     where the amber measures 3.11-3.82:1 — a 0.11 margin on a requirement that
+     has no partial credit. The amber's own comment argues it is the focus/hover
+     role because "a red fill would read as an error state", and that objection
+     is about a filled button; a 3px outline is a mark, not a state. Choosing the
+     red also means the per-component focus rules below, which already name
+     var(--accent-gold) and so were red in light all along, change nothing. */
+  --focus-ring: #b3122a;
   --btn-bg: #ffffff;
   --btn-fg: #0f1730;
 
@@ -380,7 +395,42 @@ body {
 
 .site-logo:hover { opacity: .85; }
 .site-logo:active { transform: scale(.96); }
-.site-logo:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
+/* ===== Focus visibility =====
+   One ring for the whole site, in the shared layer, because the only global
+   `:focus-visible` rule lived in detail.css — which loads on exactly one of the
+   twelve pages. Measured by dispatching real Tab keypresses (programmatic
+   .focus() never matches :focus-visible, so a probe that calls it reports
+   `outline-style: none` on elements that are in fact ringed, and
+   `1px auto rgb(0,95,204)` on ones that are not — `auto` is Chrome's own ring
+   and it *does* paint, so the ring/no-ring test has to look for the absence of a
+   style, not for the absence of a solid):
+
+   - 11 of 12 pages had NO site ring at all. Their controls fell through to
+     Chrome's default `auto` ring, which paints, but in `rgb(0,95,204)` — a 1990s
+     web blue against a gold-and-navy palette, and a different colour again in
+     every other browser.
+   - pokedex.html's two filter controls painted NOTHING. `outline: none` at
+     pokedex.html:52 and :90, with no replacement rule, so tabbing from
+     .site-nav-trigger straight past #genFilter left the caret on an invisible
+     box. That is a plain WCAG 2.4.7 Focus Visible failure.
+   - detail.css's copy carried `border-radius: 4px`, which beat each element's
+     own radius and squared off its corners on focus: .site-logo measured 10px at
+     rest and 4px focused, .shiny-btn and .breadcrumb-link likewise. Measured,
+     not assumed — and the reason this rule has no border-radius line at all.
+     An outline follows the element's existing curve on its own. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.site-logo:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+
 
 /* maze.html is the one page whose header carries no title — it is a control
    bar — so its logo is the bar's first child rather than a `.header-brand` row
@@ -666,7 +716,7 @@ body {
 }
 
 .card-link:focus-visible {
-  outline: 3px solid var(--accent-gold);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -913,7 +963,6 @@ canvas.maze-canvas {
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 16px;
-  outline: none;
   transition: border-color var(--transition-fast);
 }
 
@@ -1068,7 +1117,7 @@ a.site-nav-item:focus-visible,
 .site-nav-trigger:focus-visible,
 .site-nav-toggle:focus-visible,
 .site-nav-row:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -1366,6 +1415,13 @@ a.site-nav-item:focus-visible,
     --accent-gold: #b3122a;
     --accent-gold-surface: #b3122a;
     --accent-gold-rgb: 179, 18, 42;
+    /* The focus ring, for the reason the paragraph above gives for
+       --accent-gold: a token that exists in both themes and is set in neither
+       print resolves to whichever theme the page was in, and dark's #f5c542
+       measures 1.44:1 on white paper. It is listed separately from the amber
+       --accent-yellow two lines below, which is the hover/focus *fill*; the
+       ring is a mark and takes the Poké Ball red, as in light. */
+    --focus-ring: #b3122a;
     --error-text: #b3261e;
     --hero-tint: rgba(179, 18, 42, 0.04);
     --hero-title-shadow: none;

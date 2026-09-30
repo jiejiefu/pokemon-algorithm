@@ -143,7 +143,7 @@ body {
 }
 
 .breadcrumb-link:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -721,7 +721,7 @@ body {
 }
 
 .move-tab:focus-visible {
-  outline: 3px solid var(--accent-gold);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -737,7 +737,7 @@ body {
 }
 
 .move-panel:focus-visible {
-  outline: 3px solid var(--accent-gold);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
   border-radius: var(--radius-sm);
 }
@@ -1398,14 +1398,12 @@ body {
   border-top: 1px solid rgba(var(--hairline-rgb), 0.08);
 }
 
-/* ===== Focus visibility ===== */
-a:focus-visible,
-button:focus-visible,
-[tabindex]:focus-visible {
-  outline: 3px solid var(--accent-gold);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
+/* Focus visibility moved to shared.css, which every page loads. It also had a
+   `border-radius: 4px` here, which outranked each element's own radius and
+   squared off its corners on focus — .site-logo measured 10px at rest and 4px
+   focused. An outline inherits the element's curve; there was no reason to set
+   one. Keeping a page-local copy of a shared rule is how the other eleven pages
+   ended up with no ring at all. */
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
