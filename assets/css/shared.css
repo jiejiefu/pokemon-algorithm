@@ -1405,7 +1405,8 @@ a.site-nav-item:focus-visible,
 
    - `transform: none` is NOT set, though it is the reflexive advice. This site's
      transform is not only motion: .theme-toggle is `position: absolute; top: 50%`
-     with `transform: translateY(-50%)` (shared.css:996), so overriding transform
+     with `transform: translateY(-50%)` (the .theme-toggle rule, 26 lines below
+     the --font-sans token), so overriding transform
      to none would drop the theme toggle by half its 34px height — 17px — on
      every one of the twelve pages, to fix an animation the site barely has.
      A transform can be a centring mechanism, and `none` is not a neutral value
