@@ -920,3 +920,490 @@ export function wireShowcaseTabs(container) {
     });
   });
 }
+
+// ---------------------------------------------------------------------------
+// shadcn token generation
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a 6-colour palette to a full shadcn token set, in a light and a dark
+ * variant, transcribed from the reference project's `src/lib/theme-export.ts`.
+ *
+ * WHAT IS TRANSCRIBED AND WHAT IS NOT — read this before "fixing" a value that
+ * does not match the reference page.
+ *
+ * The *algorithm* is a faithful port, down to the integer HSL rounding and the
+ * `> 0.55` luminance threshold. The *data* is ours and deliberately differs.
+ * The reference measured Bulbasaur as
+ *   #399494, #62d5b4, #73ac31, #a4d541, #5cb7a1, #ee2039
+ * and we measure the same sprite as
+ *   #399494, #62d5b4, #83eec5, #73ac31, #bdff73, #ac0031
+ * — the first two agree and the other four do not, because the reference's
+ * numbers come from the Canvas `getImageData` scan in
+ * `scripts/extract_color_palettes.py`, which this repo keeps for comparison
+ * only and which is NOT what produced `color_palettes.json`. Our file is the
+ * MMCQ 6-colour partition (see the header comment) and is pinned byte-exact by
+ * `scripts/check_color_palettes.mjs`. So `--accent` here is `#83eec5` where the
+ * reference shows `#73ac31`, and that is the correct result of the correct
+ * algorithm on the correct data. Matching the reference's hexes would mean
+ * re-running the abandoned extractor and discarding 2050 pinned palettes.
+ *
+ * `REFERENCE_BULBASAUR_PALETTE` below is the reference's own list, kept only so
+ * `scripts/check_color_page.mjs` can prove the port is faithful: feeding it must
+ * reproduce the reference's own published light and dark values byte-for-byte.
+ * It is a test fixture, not a data source, and nothing on a page reads it.
+ */
+
+/** The reference's own Bulbasaur palette. Test fixture only — see above. */
+export const REFERENCE_BULBASAUR_PALETTE = [
+  '#399494', '#62d5b4', '#73ac31', '#a4d541', '#5cb7a1', '#ee2039',
+];
+
+/** @type {Array<{key: string, label: string, cssVar: string}>} */
+export const THEME_PREVIEW_ROWS = [
+  { key: 'primary', label: '主要色', cssVar: '--primary' },
+  { key: 'secondary', label: '次要色', cssVar: '--secondary' },
+  { key: 'accent', label: '強調色', cssVar: '--accent' },
+  { key: 'background', label: '背景', cssVar: '--background' },
+  { key: 'foreground', label: '前景', cssVar: '--foreground' },
+  { key: 'muted', label: '靜音背景', cssVar: '--muted' },
+  { key: 'border', label: '邊框', cssVar: '--border' },
+  { key: 'card', label: '卡片', cssVar: '--card' },
+];
+
+/** Emission order of the exported CSS, which is also the shadcn document order. */
+export const THEME_TOKEN_KEYS = [
+  'background', 'foreground', 'card', 'cardForeground', 'popover', 'popoverForeground',
+  'primary', 'primaryForeground', 'secondary', 'secondaryForeground',
+  'muted', 'mutedForeground', 'accent', 'accentForeground',
+  'destructive', 'destructiveForeground', 'border', 'input', 'ring',
+  'chart1', 'chart2', 'chart3', 'chart4', 'chart5',
+  'sidebar', 'sidebarForeground', 'sidebarPrimary', 'sidebarPrimaryForeground',
+  'sidebarAccent', 'sidebarAccentForeground', 'sidebarBorder', 'sidebarRing',
+];
+
+/**
+ * CSS variable name for a token key. shadcn's naming is camelCase in the object
+ * and kebab-case in CSS, and the chart/sidebar groups are not a flat kebab
+ * conversion — `chart1` is `--chart-1`, which is why this is a switch and not
+ * `key.replace(/([A-Z])/g, '-$1').toLowerCase()`.
+ */
+export function themeCssVar(key) {
+  switch (key) {
+    case 'cardForeground': return '--card-foreground';
+    case 'popoverForeground': return '--popover-foreground';
+    case 'primaryForeground': return '--primary-foreground';
+    case 'secondaryForeground': return '--secondary-foreground';
+    case 'mutedForeground': return '--muted-foreground';
+    case 'accentForeground': return '--accent-foreground';
+    case 'destructiveForeground': return '--destructive-foreground';
+    case 'chart1': case 'chart2': case 'chart3': case 'chart4': case 'chart5':
+      return `--chart-${key.slice(-1)}`;
+    case 'sidebar': return '--sidebar';
+    case 'sidebarForeground': return '--sidebar-foreground';
+    case 'sidebarPrimary': return '--sidebar-primary';
+    case 'sidebarPrimaryForeground': return '--sidebar-primary-foreground';
+    case 'sidebarAccent': return '--sidebar-accent';
+    case 'sidebarAccentForeground': return '--sidebar-accent-foreground';
+    case 'sidebarBorder': return '--sidebar-border';
+    case 'sidebarRing': return '--sidebar-ring';
+    default: return `--${key}`;
+  }
+}
+
+/**
+ * HSL with each channel rounded to a whole degree / percent.
+ *
+ * This exists because the reference's `hexToHsl` rounds, and its `withL` /
+ * `withSL` feed those rounded integers straight back into `hslToHex` — so the
+ * rounding is on the data path, not cosmetic. The `hexToHsl` exported above
+ * deliberately does NOT round (the palette strip and `describeHex` want the
+ * true value), which is why this is a second function rather than a flag.
+ * Reusing the unrounded one here shifts every derived token by 1–2 per channel
+ * and produces a palette that looks right and is not the reference's.
+ *
+ * @returns {{h:number,s:number,l:number}|null}
+ */
+function roundedHsl(hex) {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return null;
+  return { h: Math.round(hsl.h), s: Math.round(hsl.s), l: Math.round(hsl.l) };
+}
+
+const clamp01 = n => Math.min(1, Math.max(0, n));
+
+/** `hslToHex` with the reference's clamp, which our version omits. */
+function hslToHexClamped({ h, s, l }) {
+  return hslToHex({ h, s: clamp01(s / 100) * 100, l: clamp01(l / 100) * 100 });
+}
+
+/** Replace lightness, keeping the rounded hue and saturation. */
+function withL(hex, l) {
+  const hsl = roundedHsl(hex);
+  if (!hsl) return hex;
+  return hslToHexClamped({ h: hsl.h, s: hsl.s, l });
+}
+
+/** Replace saturation and lightness, keeping the rounded hue. */
+function withSL(hex, s, l) {
+  const hsl = roundedHsl(hex);
+  if (!hsl) return hex;
+  return hslToHexClamped({ h: hsl.h, s, l });
+}
+
+/**
+ * Ink for a fill, by perceived luminance. The threshold is 0.55, not 0.5, and
+ * the direction is `L > 0.55 -> near-black`, `L <= 0.55 -> white`.
+ *
+ * That is the reference's number and it is load-bearing rather than
+ * house-style: measured over all 12,297 palette entries in
+ * `color_palettes.json`, **943 colours (7.67%, 682 distinct hexes) sit in the
+ * band `0.50 < L <= 0.55`** — the only band where the two thresholds disagree —
+ * the commonest being `#838383` (L 0.514, 29 occurrences) and `#808080`
+ * (L 0.502, 11). Lowering the threshold to 0.5 flips all 943 from white ink to
+ * near-black ink, so it is a visible change to a seventh of the roster, not a
+ * refinement. Keep 0.55, because 0.55 is what the reference publishes.
+ *
+ * TWO TRAPS, both of which cost a real hole in the first version of the
+ * checker. **It is not observable from the golden fixture**: all three of the
+ * reference palette's colours sit outside the band, so all 64 golden values are
+ * identical under either threshold, and the closest — accent `#73ac31` at
+ * L 0.5527 — misses the line by 0.0027. A checker that only compares the golden
+ * block therefore guards nothing here, which is why this function is exported
+ * as `themeInkFor` and asserted directly. And **a checker must not re-derive
+ * the constant in the test**: the first version computed `> 0.55` and `> 0.5`
+ * inside the test file, so it agreed with the source whatever the source said,
+ * and a mutation of the source passed. Assert through this function or the
+ * assertion is decoration.
+ */
+export function themeInkFor(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '#ffffff';
+  const [r, g, b] = rgb;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? '#0a0a0a' : '#ffffff';
+}
+
+function pickColor(colors, i) {
+  if (colors.length === 0) return '#6366f1';
+  return colors[i % colors.length] ?? '#6366f1';
+}
+
+/** Light variant. Surfaces stay near white; the palette tints them faintly. */
+function buildLightTokens(colors) {
+  const primary = pickColor(colors, 0);
+  const secondary = pickColor(colors, 1);
+  const accent = pickColor(colors, 2);
+
+  const background = withSL(primary, 20, 99);
+  const foreground = withSL(primary, 30, 12);
+  const card = withSL(primary, 15, 100);
+  const muted = withSL(secondary, 25, 96);
+  const mutedForeground = withSL(secondary, 15, 45);
+  const border = withSL(primary, 20, 90);
+  const ring = withL(primary, Math.max(45, Math.min(65, roundedHsl(primary).l)));
+
+  return {
+    background,
+    foreground,
+    card,
+    cardForeground: foreground,
+    popover: card,
+    popoverForeground: foreground,
+    primary,
+    primaryForeground: themeInkFor(primary),
+    secondary,
+    secondaryForeground: themeInkFor(secondary),
+    muted,
+    mutedForeground,
+    accent,
+    accentForeground: themeInkFor(accent),
+    destructive: '#ef4444',
+    destructiveForeground: '#ffffff',
+    border,
+    input: border,
+    ring,
+    chart1: pickColor(colors, 0),
+    chart2: pickColor(colors, 1),
+    chart3: pickColor(colors, 2),
+    chart4: pickColor(colors, 3),
+    chart5: pickColor(colors, 4),
+    sidebar: card,
+    sidebarForeground: foreground,
+    sidebarPrimary: primary,
+    sidebarPrimaryForeground: themeInkFor(primary),
+    sidebarAccent: muted,
+    sidebarAccentForeground: foreground,
+    sidebarBorder: border,
+    sidebarRing: ring,
+  };
+}
+
+/**
+ * Dark variant. Surfaces are built from the primary at low lightness, and
+ * primary/secondary/accent are *lifted* to at least 55% lightness so a Pokémon
+ * whose palette is too dark to read still has a usable accent on a dark
+ * surface. The lift is why the reference's dark `--primary` is `#5abfbf` where
+ * its light one is `#399494`.
+ */
+function buildDarkTokens(colors) {
+  const primary = pickColor(colors, 0);
+  const secondary = pickColor(colors, 1);
+  const accent = pickColor(colors, 2);
+
+  const background = withSL(primary, 15, 9);
+  const foreground = withSL(primary, 10, 96);
+  const card = withSL(primary, 18, 13);
+  const muted = withSL(secondary, 20, 18);
+  const mutedForeground = withSL(secondary, 15, 65);
+  const border = withSL(primary, 20, 22);
+  const ring = withL(primary, Math.max(55, Math.min(70, roundedHsl(primary).l)));
+
+  const liftPrimary = withL(primary, Math.max(55, roundedHsl(primary).l));
+  const liftSecondary = withL(secondary, Math.max(55, roundedHsl(secondary).l));
+  const liftAccent = withL(accent, Math.max(55, roundedHsl(accent).l));
+
+  return {
+    background,
+    foreground,
+    card,
+    cardForeground: foreground,
+    popover: card,
+    popoverForeground: foreground,
+    primary: liftPrimary,
+    primaryForeground: themeInkFor(liftPrimary),
+    secondary: liftSecondary,
+    secondaryForeground: themeInkFor(liftSecondary),
+    muted,
+    mutedForeground,
+    accent: liftAccent,
+    accentForeground: themeInkFor(liftAccent),
+    destructive: '#dc2626',
+    destructiveForeground: '#ffffff',
+    border,
+    input: border,
+    ring,
+    chart1: pickColor(colors, 0),
+    chart2: pickColor(colors, 1),
+    chart3: pickColor(colors, 2),
+    chart4: pickColor(colors, 3),
+    chart5: pickColor(colors, 4),
+    sidebar: card,
+    sidebarForeground: foreground,
+    sidebarPrimary: liftPrimary,
+    sidebarPrimaryForeground: themeInkFor(liftPrimary),
+    sidebarAccent: muted,
+    sidebarAccentForeground: foreground,
+    sidebarBorder: border,
+    sidebarRing: ring,
+  };
+}
+
+/**
+ * @param {string[]} colors palette hexes. **The caller slices this to the
+ *   palette size, and the default is 3 — not 6.**
+ * @returns {{light: Object, dark: Object, palette: string[]}}
+ *
+ * The slice is the one non-obvious contract in this file, and it is invisible
+ * unless you check the reference's own output. Only `chart4` and `chart5` can
+ * observe it, because they are the only tokens built from `pickColor(colors, 3)`
+ * and `pickColor(colors, 4)`; every other token reads `colors[0..2]`. The
+ * reference's published dark block has `--chart-4: #399494` and
+ * `--chart-5: #62d5b4`, which are `colors[0]` and `colors[1]` — so its array had
+ * period 3 and therefore length 3, even though the palette display beside it
+ * shows six. Feed this function all six and the first 28 tokens come out
+ * identical while `chart4`/`chart5` silently become colours 4 and 5, which is
+ * the kind of divergence a page never renders visibly.
+ *
+ * So the page calls `paletteToThemeTokens(hexes.slice(0, n))`, and `n` is the
+ * palette-size select, default 3, persisted per the reference under
+ * `localStorage['pokemonpalette-palette-size']`.
+ */
+export function paletteToThemeTokens(colors) {
+  const safe = colors.length > 0 ? colors : ['#6366f1', '#818cf8', '#c7d2fe'];
+  return { light: buildLightTokens(safe), dark: buildDarkTokens(safe), palette: safe };
+}
+
+// ---- serialisers -----------------------------------------------------------
+
+function emitVarBlock(tokens, formatValue, indent = '  ') {
+  return THEME_TOKEN_KEYS
+    .map(k => `${indent}${themeCssVar(k)}: ${formatValue(tokens[k])};`)
+    .join('\n');
+}
+
+/** `@theme inline` alias block, the Tailwind v4 way of wiring the tokens up. */
+const THEME_INLINE_BLOCK = `@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}`;
+
+export function themeToTailwindV4Css(bundle, opts = {}) {
+  const name = opts.pokemonName || 'Pokemon';
+  return [
+    `/* ${name} theme - generated by 寶可夢演算法 */`,
+    '',
+    '/* globals.css */',
+    '@layer base {',
+    '  :root {',
+    emitVarBlock(bundle.light, v => v, '    '),
+    '  }',
+    '',
+    '  .dark {',
+    emitVarBlock(bundle.dark, v => v, '    '),
+    '  }',
+    '}',
+    '',
+    THEME_INLINE_BLOCK,
+    '',
+  ].join('\n');
+}
+
+function toHslTriplet(hex) {
+  const hsl = roundedHsl(hex);
+  return `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+}
+
+export function themeToTailwindV3Config(bundle, opts = {}) {
+  const raw = opts.pokemonName || 'Pokemon';
+  const name = raw.charAt(0).toUpperCase() + raw.slice(1);
+  const cssBlock = [
+    '/* globals.css */',
+    '@layer base {',
+    '  :root {',
+    emitVarBlock(bundle.light, toHslTriplet, '    '),
+    '  }',
+    '',
+    '  .dark {',
+    emitVarBlock(bundle.dark, toHslTriplet, '    '),
+    '  }',
+    '}',
+  ].join('\n');
+
+  return [
+    `/* ${name} theme - generated by 寶可夢演算法 */`,
+    '',
+    cssBlock,
+    '',
+    '// tailwind.config.js',
+    "/** @type {import('tailwindcss').Config} */",
+    'module.exports = {',
+    '  darkMode: ["class"],',
+    '  content: ["./**/*.{html,js}"],',
+    '  theme: {',
+    '    extend: {',
+    '      colors: {',
+    '        border: "hsl(var(--border))",',
+    '        input: "hsl(var(--input))",',
+    '        ring: "hsl(var(--ring))",',
+    '        background: "hsl(var(--background))",',
+    '        foreground: "hsl(var(--foreground))",',
+    '        primary: {',
+    '          DEFAULT: "hsl(var(--primary))",',
+    '          foreground: "hsl(var(--primary-foreground))",',
+    '        },',
+    '        secondary: {',
+    '          DEFAULT: "hsl(var(--secondary))",',
+    '          foreground: "hsl(var(--secondary-foreground))",',
+    '        },',
+    '        destructive: {',
+    '          DEFAULT: "hsl(var(--destructive))",',
+    '          foreground: "hsl(var(--destructive-foreground))",',
+    '        },',
+    '        muted: {',
+    '          DEFAULT: "hsl(var(--muted))",',
+    '          foreground: "hsl(var(--muted-foreground))",',
+    '        },',
+    '        accent: {',
+    '          DEFAULT: "hsl(var(--accent))",',
+    '          foreground: "hsl(var(--accent-foreground))",',
+    '        },',
+    '        popover: {',
+    '          DEFAULT: "hsl(var(--popover))",',
+    '          foreground: "hsl(var(--popover-foreground))",',
+    '        },',
+    '        card: {',
+    '          DEFAULT: "hsl(var(--card))",',
+    '          foreground: "hsl(var(--card-foreground))",',
+    '        },',
+    '        chart: {',
+    '          1: "hsl(var(--chart-1))",',
+    '          2: "hsl(var(--chart-2))",',
+    '          3: "hsl(var(--chart-3))",',
+    '          4: "hsl(var(--chart-4))",',
+    '          5: "hsl(var(--chart-5))",',
+    '        },',
+    '        sidebar: {',
+    '          DEFAULT: "hsl(var(--sidebar))",',
+    '          foreground: "hsl(var(--sidebar-foreground))",',
+    '          primary: "hsl(var(--sidebar-primary))",',
+    '          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",',
+    '          accent: "hsl(var(--sidebar-accent))",',
+    '          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",',
+    '          border: "hsl(var(--sidebar-border))",',
+    '          ring: "hsl(var(--sidebar-ring))",',
+    '        },',
+    '      },',
+    '    },',
+    '  },',
+    '  plugins: [require("tailwindcss-animate")],',
+    '};',
+    '',
+  ].join('\n');
+}
+
+export function themeToJson(bundle, opts = {}) {
+  const name = (opts.pokemonName || 'pokemon').toLowerCase();
+  return JSON.stringify({
+    name: `${name}-theme`,
+    generatedBy: 'pokemon-algorithm',
+    palette: bundle.palette,
+    light: bundle.light,
+    dark: bundle.dark,
+  }, null, 2);
+}
+
+/**
+ * The token set as a CSS custom-property declaration string, for the live
+ * preview's `style` attribute. Includes the `--color-*` aliases because the
+ * preview box is styled with Tailwind utilities in the reference, and ours uses
+ * the same utilities — without the aliases `bg-background` resolves to nothing.
+ *
+ * @returns {string} e.g. `--primary: #399494; --color-primary: #399494;`
+ */
+export function themeVarBlock(tokens) {
+  const pairs = THEME_TOKEN_KEYS.map(k => `${themeCssVar(k)}: ${tokens[k]}`);
+  return pairs
+    .concat(pairs.map(p => p.replace(/^--/, '--color-')))
+    .join('; ');
+}
