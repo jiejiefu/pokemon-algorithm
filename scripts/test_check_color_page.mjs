@@ -1,0 +1,227 @@
+/**
+ * Negative tests for check_color_page.mjs — it must FAIL, and name the right
+ * reason, for every invariant it claims to police.
+ *
+ *   node scripts/test_check_color_page.mjs
+ *
+ * WHY THIS FILE EXISTS. Every check in the checker is a source-level regex or a
+ * table invariant, and a regex that no longer matches its target passes for the
+ * wrong reason: `node --check` succeeds, the page still renders, and the check
+ * reports green while policing nothing. That is the trap the repo already hit
+ * twice — gotcha 15's dead-link probe (which passed while `pokemonSlug()` had
+ * changed underneath it) and gotcha 25's "check what runs, not what exists".
+ * A probe that passes for the wrong reason is worse than no probe, because it
+ * is read as coverage.
+ *
+ * So each case below breaks ONE invariant in a scratch copy of the tree, runs
+ * the real checker against it, and requires a non-zero exit AND a specific
+ * substring in the output. Asserting only the exit code would pass on a
+ * checker that crashed for an unrelated reason, which is how a typo becomes a
+ * "passing" test.
+ *
+ * The harness runs the checker from a temp tree rather than mutating the repo,
+ * so a failed case can never leave the working tree modified.
+ */
+
+import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'color.html'];
+const CHECKER = 'scripts/check_color_page.mjs';
+
+let failures = 0;
+const pass = (m) => console.log(`  ok   ${m}`);
+const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
+
+/** Build a scratch tree containing only what the checker reads, then mutate it. */
+function makeTree(mutate) {
+  const dir = join(tmpdir(), `ccp-neg-${Math.random().toString(36).slice(2)}`);
+  mkdirSync(join(dir, 'assets/js'), { recursive: true });
+  mkdirSync(join(dir, 'assets/css'), { recursive: true });
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  for (const f of SRC) cpSync(join(ROOT, f), join(dir, f));
+  cpSync(join(ROOT, CHECKER), join(dir, CHECKER));
+  // The checker resolves every NAV href against its own ROOT, and 16 of the 18
+  // targets are pages this case does not copy. Symlink the real ones rather
+  // than copying: the baseline run then proves the harness itself is sound,
+  // instead of every case failing on "missing index.html".
+  for (const f of readdirSync(ROOT)) {
+    if (f.endsWith('.html') && !existsSync(join(dir, f))) symlinkSync(join(ROOT, f), join(dir, f));
+  }
+  if (mutate) {
+    for (const f of SRC) {
+      const p = join(dir, f);
+      const before = readFileSync(p, 'utf8');
+      // `undefined` means "this case does not target this file". A returned
+      // string IDENTICAL to the input means the anchor is stale, and the case
+      // would then pass for the wrong reason — so it is an error, not a no-op.
+      const after = mutate(f, before);
+      if (after === undefined) continue;
+      if (after === before) {
+        throw new Error(`mutation for ${f} did not change the file — the anchor string is stale, so this case would pass for the wrong reason`);
+      }
+      writeFileSync(p, after);
+    }
+  }
+  return dir;
+}
+
+function run(dir) {
+  try {
+    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { code: 0, out };
+  } catch (e) {
+    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
+  }
+}
+
+// Baseline first: if the unmutated copy does not pass, every case below would be
+// measuring the harness rather than the checker.
+{
+  const dir = makeTree(null);
+  const { code, out } = run(dir);
+  code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
+             : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
+  rmSync(dir, { recursive: true, force: true });
+}
+
+const cases = [
+  {
+    name: 'deleting the [hidden] companion restores the reported second-sidebar bug',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace(/\.cp-rail-sub\[hidden\]\s*,\s*\.cp-nav-drawer\[hidden\]\s*\{\s*display:\s*none;\s*\}/, '.cp-rail-sub[hidden], .cp-nav-drawer[hidden] { /* gone */ }')
+      : undefined,
+    expect: 'companion rule is gone',
+  },
+  {
+    name: 'removing the drawer\'s own display:flex makes the companion rule redundant',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace(/(\.cp-nav-drawer\s*\{[^}]*?)display:\s*flex;/s, '$1/* no display */;')
+      : undefined,
+    expect: 'no longer sets display:flex',
+  },
+  {
+    name: 'hardcoding the disclosure closed hides the page you are on',
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace('aria-expanded="${open}"', 'aria-expanded="false"')
+      : undefined,
+    expect: 'hardcodes',
+  },
+  {
+    name: 'an always-closed panel is as wrong as an always-open one',
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace("id=\"${panelId}\"${open ? '' : ' hidden'}", 'id="${panelId}" hidden')
+      : undefined,
+    expect: 'hardcodes',
+  },
+  {
+    name: 'removing the color.html nav row leaves that page claiming nothing',
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace(/\s*\{ href: 'color\.html', label: '單一寶可夢色盤'[^\n]*\n/, '\n')
+      : undefined,
+    expect: 'claimed by exactly one element',
+  },
+  {
+    name: 'widening the claim to a bare isActive puts aria-current on a group trigger too',
+    // Opposite failure mode of the same expression: the trigger would claim the
+    // page as well as the row, and the trigger's claim is invisible whenever the
+    // group is collapsed.
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace('const claimsCurrent = isGroup ? item.href === currentPage : isActive;', 'const claimsCurrent = isActive;')
+      : undefined,
+    expect: 'not the two-branch form',
+  },
+  {
+    name: 'narrowing the claim to href === page drops category.html\'s aria-current',
+    // The regression this file's own first run caught: 特殊分類 lists
+    // category.html in `pages` and has no groups, so requiring href equality
+    // leaves that page with `.is-active` and no aria-current. The TABLE-level
+    // ownership checks cannot see this — they read NAV, not the renderer.
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace('const claimsCurrent = isGroup ? item.href === currentPage : isActive;', 'const claimsCurrent = item.href === currentPage;')
+      : undefined,
+    expect: 'not the two-branch form',
+  },
+  {
+    name: 'passing the wrong page name to initColorRail marks nothing current',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace("initColorRail('color.html')", "initColorRail('colors.html')") : undefined,
+    expect: 'passes the wrong page',
+  },
+  {
+    name: 'un-exporting initColorRail is a parse-time SyntaxError for every importer',
+    mutate: (f, s) => f.endsWith('shared.js') ? s.replace('export function initColorRail', 'function initColorRail') : undefined,
+    expect: 'is not exported',
+  },
+  {
+    name: 're-adding the old header nav means the rail was added beside the old chrome',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace('<div class="cp-app"', '<nav class="site-nav"></nav>\n    <div class="cp-app"') : undefined,
+    expect: 'old header nav',
+  },
+  {
+    name: 'a drawer mount that ships unhidden paints over the desktop rail',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace('<div class="cp-nav-drawer" data-rail-drawer hidden></div>', '<div class="cp-nav-drawer" data-rail-drawer></div>') : undefined,
+    expect: 'does not ship hidden',
+  },
+  {
+    name: 'a skip link relocated out of first position is not the first Tab stop',
+    // The first attempt at this case appended text AFTER the link, which the
+    // old offset comparison happily accepted — the mutation did not break the
+    // invariant it claimed to break, so the case would have passed for the wrong
+    // reason. The check now demands the link be the first child of .cp-app.
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace(/(<a class="cp-skip"[\s\S]*?<\/a>)/, '$1PLACEHOLDER') && (() => {
+          const m = s.match(/(<a class="cp-skip"[\s\S]*?<\/a>)[\s\S]*?(<div class="cp-scroll")/);
+          return m ? s.replace(m[0], '$2') : undefined;
+        })()
+      : undefined,
+    expect: 'not the first child',
+  },
+  {
+    name: 'an unnamed <nav> is announced only as "navigation"',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace('<nav class="cp-rail" data-rail aria-label="主選單">', '<nav class="cp-rail" data-rail>') : undefined,
+    expect: 'missing or unnamed',
+  },
+  {
+    name: 'a nav row with no rule is announced but not shown',
+    mutate: (f, s) => f.endsWith('colors.css') ? s.replace('.cp-rail-sub-row.is-active,', '.cp-rail-sub-row.was-active,') : undefined,
+    expect: 'announced but not shown',
+  },
+  {
+    name: 'a planned row whose target PLANNED_PAGES does not list is a broken promise',
+    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("planned: 'moves.html'", "planned: 'moves2.html'") : undefined,
+    expect: 'PLANNED_PAGES does not list',
+  },
+  {
+    name: 'a nav href to a file that does not exist is a dead link',
+    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("href: 'model3d.html'", "href: 'model3dx.html'") : undefined,
+    expect: 'missing files',
+  },
+];
+
+console.log(`\n${cases.length} negative cases, each must exit non-zero AND name its reason\n`);
+
+for (const c of cases) {
+  let dir;
+  try {
+    dir = makeTree(c.mutate);
+  } catch (e) {
+    fail(`${c.name}\n    harness: ${e.message}`);
+    continue;
+  }
+  const { code, out } = run(dir);
+  rmSync(dir, { recursive: true, force: true });
+  if (code === 0) fail(`${c.name}\n    checker exited 0 — the invariant is not actually policed`);
+  else if (!out.includes(c.expect)) fail(`${c.name}\n    exited ${code} but the output never said "${c.expect}"; it said:\n${out.split('\n').filter((l) => l.includes('FAIL')).join('\n') || '      (no FAIL line at all)'}`);
+  else pass(c.name);
+}
+
+console.log();
+if (failures) {
+  console.log(`${failures} of ${cases.length} negative case(s) did not hold`);
+  process.exit(1);
+}
+console.log(`all ${cases.length} negative cases held: each broke the checker with the right reason`);

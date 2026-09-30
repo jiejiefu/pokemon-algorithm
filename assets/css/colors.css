@@ -182,6 +182,263 @@
 }
 
 /* ---------------------------------------------------------------------------
+   0. The rail — transcribed from the reference's collapsible-sidebar.tsx
+   ---------------------------------------------------------------------------
+   64px collapsed / 256px expanded, `border-r`, and the site nav. It is a SIBLING
+   of `.cp-scroll` inside `.cp-shell`, not a child of it: the scroll container
+   must be able to shrink to 0 and the rail must not scroll away with it.
+
+   (a) NO `position: sticky`, unlike the reference. The reference scrolls the
+       DOCUMENT and pins the sidebar to the viewport; here `.cp-app` is 100dvh
+       and `.cp-scroll` is the scroller, so the page never scrolls and the rail
+       is already stationary. `align-items: stretch` on `.cp-shell` gives it the
+       full height for free, and a sticky rule would be dead weight that reads
+       as load-bearing.
+   (b) The width transition is `var(--transition-med)`, not a literal. It is
+       0.3s, so it IS the reference's `duration-300` — but the token is what
+       makes the two themes and the reduced-motion block (gotcha 60) apply to
+       it, and a literal here would opt this one element out of both.
+   (c) The 外 appearance row carries `.theme-toggle`, and that class is
+       `position: absolute; top: 50%; transform: translateY(-50%)` in
+       shared.css for the header. Inside the rail those values are not a
+       centring mechanism but a BUG: absolute positioning resolves against the
+       nearest positioned ancestor, which is not the rail, so the button would
+       float out into the page. Hence the reset below.
+   (d) `.cp-rail-label` is `hidden` when collapsed, which is the reference's
+       `group-data-[collapsed=true]:hidden` — the width alone would squeeze the
+       text to an unreadable sliver rather than removing it.
+   ------------------------------------------------------------------------ */
+.cp-rail {
+  flex: 0 0 auto;
+  width: 256px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--hairline);
+  transition: width var(--transition-med);
+}
+
+.cp-rail.is-collapsed { width: 64px; padding-left: 8px; padding-right: 8px; }
+.cp-rail.is-collapsed .cp-rail-label,
+.cp-rail.is-collapsed .cp-rail-caret,
+.cp-rail.is-collapsed .cp-rail-badge { display: none; }
+
+.cp-rail-top { padding: 8px 0 16px; }
+
+.cp-rail-toggle,
+.cp-rail-link,
+.cp-rail-trigger,
+.cp-rail-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cp-rail.is-collapsed .cp-rail-top,
+.cp-rail.is-collapsed .cp-rail-link,
+.cp-rail.is-collapsed .cp-rail-trigger,
+.cp-rail.is-collapsed .cp-rail-appearance { justify-content: center; }
+
+.cp-rail-link:hover,
+.cp-rail-trigger:hover,
+.cp-rail-sub-row:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+.cp-rail-link.is-active,
+.cp-rail-sub-row.is-active,
+.cp-rail-item.is-active > .cp-rail-trigger {
+  background: var(--bg-header-sort);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent-gold);
+}
+
+.cp-rail .icon,
+.cp-rail-toggle .icon {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* The caret is a separate glyph from the item's own icon, so it is pushed to
+   the far end of the expanded row the way the header nav's is. */
+.cp-rail-caret {
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition-fast);
+}
+
+.cp-rail-trigger[aria-expanded="true"] .cp-rail-caret { transform: rotate(90deg); }
+
+/* The UA sheet's `[hidden] { display: none }` is a normal declaration, so ANY
+   author `display` beats it regardless of source order — `hidden` is not a
+   "strong" attribute here. Both rules below set `display: flex` on an element
+   that JS hides with the `hidden` attribute, which left the 256px drawer
+   painted on the right edge of every desktop viewport, and every collapsed
+   disclosure sub-panel painted open at once. These companion rules are
+   (0,2,0) against (0,1,0), so they win and `hidden` works as authored. */
+.cp-rail-sub[hidden],
+.cp-nav-drawer[hidden] {
+  display: none;
+}
+
+.cp-rail-sub { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 6px; }
+
+.cp-rail-sub-row {
+  padding-left: 38px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.cp-rail-sub-row.is-planned { cursor: default; }
+.cp-rail-sub-row.is-planned .cp-rail-label { color: var(--text-muted); }
+
+.cp-rail-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cp-rail-appearance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-top: auto;
+}
+
+.cp-rail-appearance-label { font-size: 14px; color: var(--text-secondary); }
+
+/* (c) The shared `.theme-toggle` is absolutely positioned for the header. That
+   is a centring mechanism there and a positioning bug in here, so it is reset
+   to flow. NOTE this does not invalidate gotcha 60: the nine other pages still
+   position their toggle absolutely with `translateY(-50%)`, which is why the
+   reduced-motion block must keep NOT setting `transform: none`. */
+.cp-rail .theme-toggle,
+.cp-nav-drawer .theme-toggle {
+  position: static;
+  top: auto;
+  right: auto;
+  transform: none;
+  flex: 0 0 auto;
+}
+
+/* Skip link. Off-screen until focused, then pinned to the top-left — the
+   reference has no equivalent because it has no header to skip past. */
+.cp-skip {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 60;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+  border: 1px solid var(--accent-gold);
+}
+
+.cp-skip:focus { top: 8px; }
+
+/* The mobile menu button lives in `.header` (see initColorRail, departure 4),
+   so it needs no `position: fixed`; `margin-left: auto` is what right-aligns it
+   in the header's COLUMN flex, and is the same trick the old
+   `.site-nav-toggle` used. */
+.cp-rail-open {
+  display: none;
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.cp-rail-open .icon { width: 18px; height: 18px; margin: 0; }
+
+.cp-rail-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.cp-nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  width: 256px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 8px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--hairline);
+  transition: transform var(--transition-med);
+}
+
+.cp-drawer-top { display: flex; justify-content: flex-end; padding: 8px 0 16px; }
+
+.cp-drawer-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cp-drawer-close:hover { background: var(--surface-hover); color: var(--text-primary); }
+.cp-drawer-close .icon { width: 18px; height: 18px; margin: 0; }
+
+/* Below the reference's `md` (768px) the rail is 64px of a 375px screen — 17%
+   of the viewport for six icons — so it is replaced by the overlay drawer. Both
+   are in the DOM from first paint and only this query chooses, which is what
+   keeps the rail from being painted wide and then pulled back. */
+@media (max-width: 767.98px) {
+  .cp-rail { display: none; }
+  .cp-rail-open { display: flex; }
+}
+
+/* shared.css:1392 gives `.header-colors` 62px of right padding at <=1024px to
+   clear the hamburger and the absolutely positioned theme toggle. Both of those
+   are gone from this page's header, so the reservation is 62px of dead width
+   that pushes the title off-centre for no reason. `.cp-rail-open` is in the
+   header's own flow and needs no clearance. Restored to the base `.header`
+   padding so the header is symmetric again; colors.css loads after shared.css
+   and both selectors are (0,1,0), so source order decides. */
+@media (max-width: 1024px) {
+  .header-colors { padding-right: 20px; }
+}
+
+/* ---------------------------------------------------------------------------
    1. The identity card — gradient body, top-right masked watermark
    ---------------------------------------------------------------------------
    Transcribed from the reference's pokemon-card.tsx:203-225. Three things are
@@ -1580,7 +1837,12 @@
   .cp-sentinel,
   .cp-shiny-btn,
   .site-nav,
-  .theme-toggle {
+  .theme-toggle,
+  .cp-rail,
+  .cp-rail-open,
+  .cp-rail-scrim,
+  .cp-nav-drawer,
+  .cp-skip {
     display: none !important;
   }
 

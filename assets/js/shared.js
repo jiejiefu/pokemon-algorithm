@@ -520,20 +520,40 @@ function systemTheme() {
  *  for. The earlier draft swapped the label to "switch to dark theme" while
  *  also setting aria-pressed; that makes the button announce two contradictory
  *  things. The sun/moon glyph carries the current state visually and
- *  CSS shows one of the two, so the icon and the ARIA state agree. */
+ *  CSS shows one of the two, so the icon and the ARIA state agree.
+ *
+ *  A NodeList, not a single element. Every page until the colour rail shipped had
+ *  exactly one toggle, so `querySelector` was equivalent to a loop and nothing
+ *  tested the difference. The three colour pages now carry TWO — one in the
+ *  desktop rail, one in the mobile drawer, exactly one visible per viewport, as
+ *  the reference does it — and a single-element read silently syncs whichever is
+ *  first in the document and leaves the other's aria-pressed describing the
+ *  previous theme. The glyph does NOT have this problem and must not be "fixed"
+ *  in JS to match: `.theme-toggle .icon-sun` / `-moon` are swapped by
+ *  `[data-theme]` in CSS, so both buttons follow the theme on their own. Only the
+ *  ARIA state needed the loop. */
 function syncToggle() {
-  const btn = document.querySelector('.theme-toggle');
-  if (!btn) return;
   const isLight = currentTheme() === 'light';
-  btn.setAttribute('aria-pressed', String(isLight));
+  for (const btn of document.querySelectorAll('.theme-toggle')) {
+    btn.setAttribute('aria-pressed', String(isLight));
+  }
 }
 
+/** Whether the one document-wide `prefers-color-scheme` listener is installed. */
+let themeSystemListenerWired = false;
+
 /**
- * Mount the header theme toggle. The button is static markup in each page's
- * header rather than nav markup: only index.html and pokedex.html have a
- * .header-nav, and initHeaderNav() assigns that container's innerHTML
- * unconditionally, so a button placed there would not survive first paint.
- * @param {HTMLElement} [root]
+ * Mount a theme toggle inside `root`. Static markup, not nav markup: only
+ * index.html and pokedex.html have a .header-nav, and initHeaderNav() assigns
+ * that container's innerHTML unconditionally, so a button placed there would
+ * not survive first paint.
+ *
+ * One toggle PER CALL, and `root` is how a page wires more than one: the colour
+ * page has a desktop rail and a mobile drawer, so it calls this twice with each
+ * container and the per-button `dataset.wired` guard keeps the two apart. The
+ * document-wide part (syncToggle + the OS listener) is shared, so a second call
+ * adds a button and nothing else.
+ * @param {HTMLElement|Document} [root]
  */
 export function initThemeToggle(root = document) {
   const btn = root.querySelector('.theme-toggle');
@@ -550,6 +570,17 @@ export function initThemeToggle(root = document) {
   // they click, that choice wins and the listener goes quiet — otherwise it
   // would undo an explicit selection on the next OS change, and the setting
   // would not actually persist.
+  //
+  // Registered ONCE for the document, not once per call. initThemeToggle()
+  // takes a root so a page with a toggle in two containers can wire both, and
+  // that is exactly how the colour page uses it: without the guard the colour
+  // page's two scoped calls would install two `prefers-color-scheme`
+  // listeners, and every OS change would call setTheme() twice and dispatch
+  // `themechange` twice. Nothing listens on those pages today, so the symptom
+  // would have been invisible — the cost of the duplication is a trap for the
+  // first canvas or showcase that does listen (gotcha 31).
+  if (themeSystemListenerWired) return;
+  themeSystemListenerWired = true;
   const mq = window.matchMedia('(prefers-color-scheme: light)');
   const hasPreference = () => {
     try { return !!localStorage.getItem(THEME_KEY); } catch (e) { return false; }
@@ -698,6 +729,7 @@ export const NAV = [
         items: [
           { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
           { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 常規/閃亮的色帶' },
+          { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
         ],
       },
       {
@@ -932,6 +964,305 @@ function initMobileNav() {
   // A resize past the breakpoint must not leave a body scroll lock behind.
   window.addEventListener('resize', () => {
     if (window.innerWidth > 1024) closeMobileNav();
+  });
+}
+
+/* ===== Colour-page rail (transcribed from the reference's collapsible-sidebar)
+   ---------------------------------------------------------------------------
+   Transcribed from pokemonpalette's collapsible-sidebar.tsx (390 lines),
+   sidebar-state-provider.tsx and keyboard-shortcuts.tsx, with FOUR structural
+   departures that this site forces. Each was a decision, not an oversight:
+
+   (1) THE HEADER NAV IS REMOVED ON THIS PAGE, so the rail IS the primary nav.
+       That is what makes the transcription honest rather than a duplicate: the
+       reference has no `.header` at all (its logo lives inside the sidebar,
+       collapsible-sidebar.tsx:205-218), so its rail IS its whole navigation. We
+       keep `.header` for the logo and title, so the rail takes over the nav and
+       color.html drops `<nav class="site-nav">`, the hamburger and the old
+       `.site-nav-drawer` — leaving exactly one nav per page. This is why
+       `initColorRail` renders NAV itself instead of reusing `initHeaderNav`:
+       the two mount different markup for the same list, and sharing the
+       `<a>`/`<button>` shell would drag the hover-dropdown behaviour along.
+   (2) NO LOGO, NO WORDMARK in the rail's top row. The reference puts both there
+       because it has no header. We do, so transcribing them would put two logos
+       and two site names on one page. The top row carries the collapse toggle
+       alone, and the reference's `pt-6 pb-2 px-2` collapsed padding is kept so
+       the toggle still sits where the logo used to be.
+   (3) NO `border-t` FOOTER. The reference's holds `<UserProfile />` and a
+       buymeacoffee button. This site has neither a user account nor donations,
+       and inventing a placeholder would be worse than the omission, so the rail
+       ends after the 外觀 row.
+   (4) THE MOBILE MENU BUTTON IS IN THE HEADER, not `fixed top-4 right-4`. The
+       reference floats it over the viewport corner precisely because it has no
+       header to live in; here that position lands on top of `.header` and
+       covers the title. It is appended to `.header` and right-aligned with
+       `margin-left: auto` — the same trick `.site-nav-toggle` already used.
+
+   The two shared bits of state are independent and must stay that way: the
+   RAIL's collapsed flag is a cookie (it is layout, and the reference reads it
+   server-side to avoid a hydration flash), while the colour PANEL's collapsed
+   flag is `pokemon-menu-collapsed` in localStorage. Two keys, two mechanisms,
+   no interaction.
+
+   The breakpoint is the reference's `md` = 768px, kept as-is: at 64px the rail
+   costs 17% of a 375px screen, which is why the reference swaps to an overlay
+   drawer there. The CSS uses `max-width: 767.98px` and this module queries
+   `(min-width: 767.98px)` rather than 767/768, because a fractional viewport
+   width between the two integers matches NEITHER query and the page would be
+   left with no nav at all. */
+const RAIL_COOKIE = 'sidebar_collapsed';
+const RAIL_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days, as the reference
+const RAIL_VISIBLE_MQ = '(min-width: 767.98px)';
+
+/** The reference's `parseSidebarCookie`: absent cookie means COLLAPSED. */
+function parseRailCookie(value) {
+  if (value === undefined) return true;
+  return value === 'true';
+}
+
+function readRailCookie() {
+  const hit = document.cookie.split('; ').find(c => c.startsWith(RAIL_COOKIE + '='));
+  return parseRailCookie(hit ? decodeURIComponent(hit.slice(RAIL_COOKIE.length + 1)) : undefined);
+}
+
+function writeRailCookie(collapsed) {
+  // Wrapped because a cookie write can throw in a sandboxed/split-context
+  // document, and a failed write must not take the toggle down with it — the
+  // state is still correct for this page view.
+  try {
+    document.cookie = `${RAIL_COOKIE}=${collapsed}; path=/; max-age=${RAIL_COOKIE_MAX_AGE}; samesite=lax`;
+  } catch (e) { /* preference simply does not persist */ }
+}
+
+/**
+ * One rail sub-row. A planned destination is a <span>, never an <a> — see NAV.
+ *
+ * The current page's own row is the element that carries `aria-current="page"`,
+ * not the group's trigger. A trigger stands for a whole group, so marking it
+ * current says "you are somewhere in here"; marking the row says "you are
+ * here". Two elements claiming `aria-current` is ambiguous, and the row's
+ * version is invisible while the group is collapsed — which is exactly why the
+ * group auto-opens (see `railNavHtml`).
+ *
+ * `role="presentation"` on the planned span is deliberate and is NOT the gotcha 37
+ * "no role at all" rule: that rule exists so a focusable element is not faked.
+ * A non-focusable span has no implicit role to strip, and naming it
+ * presentation keeps a screen reader from announcing a phantom list item.
+ */
+function railSubRowHtml(item, currentPage) {
+  if (item.planned) {
+    return `<span class="cp-rail-sub-row is-planned" role="presentation">
+        <span class="cp-rail-label">${esc(item.label)}</span>
+        <span class="cp-rail-badge">敬請期待</span>
+      </span>`;
+  }
+  const active = item.href === currentPage;
+  return `<a class="cp-rail-sub-row${active ? ' is-active' : ''}" href="${esc(item.href)}"${active ? ' aria-current="page"' : ''}><span class="cp-rail-label">${esc(item.label)}</span></a>`;
+}
+
+/**
+ * The nav list for one rail container.
+ *
+ * A top-level item with `groups` becomes a DISCLOSURE, not a hover panel: a 64px
+ * rail has nowhere to put a panel, and gotcha 52 is a whole paragraph about how
+ * the header's hover dropdown went unreachable across an 8px gap. Click and
+ * keyboard both work, and touch has no hover to lose. Every sub-list stays in
+ * the DOM with `hidden` on the closed ones — the same argument as the detail
+ * page's moves tablist (gotcha 13): the closed panels must exist for the ARIA
+ * relationship to mean anything.
+ */
+function railNavHtml(currentPage, uid) {
+  return NAV.map((item, i) => {
+    const isActive = item.href === currentPage || (item.pages || []).includes(currentPage);
+    const icon = iconSvg(item.icon);
+    const isGroup = !!(item.groups && item.groups.length);
+    // Who claims `aria-current`, and this is the one rule in the rail that is
+    // easy to get backwards:
+    //
+    // - A NO-GROUPS item is a single link, so `pages` may grant it the claim.
+    //   `category.html` is a CHILD of `collections.html`, reachable only from
+    //   it, and the two pages' headers are identical — so `href` alone cannot
+    //   tell them apart and `pages` exists precisely so this page is not left
+    //   claiming nothing. Narrowing the claim to `href === page` silently
+    //   dropped it, and the page looked fine because it still had `.is-active`.
+    // - A GROUP is claimed by its exact sub-row, because a trigger stands for a
+    //   whole group. Its trigger gets `aria-expanded` and nothing more — unless
+    //   the group root is itself the current page, in which case there is no row
+    //   to put it on.
+    const claimsCurrent = isGroup ? item.href === currentPage : isActive;
+    const current = claimsCurrent ? ' aria-current="page"' : '';
+
+    if (!isGroup) {
+      return `<a class="cp-rail-link${isActive ? ' is-active' : ''}" href="${esc(item.href)}"${current}>${icon}<span class="cp-rail-label">${esc(item.label)}</span></a>`;
+    }
+
+    const panelId = `cp-rail-sub-${uid}-${i}`;
+    const subs = item.groups.map(group => group.items.map(it => railSubRowHtml(it, currentPage)).join('')).join('');
+    // Auto-open ONLY the group holding the current page. Starting every group
+    // open would be a wall of text (the reason the homepage FAQ renders closed,
+    // gotcha 50), but starting them all CLOSED hides the one row that answers
+    // "where am I" — and with `aria-current` now on that row, a collapsed group
+    // puts it off-screen entirely.
+    const open = isActive;
+    return `<div class="cp-rail-item${isActive ? ' is-active' : ''}">
+        <button type="button" class="cp-rail-trigger" aria-expanded="${open}" aria-controls="${panelId}"${current}>
+          ${icon}<span class="cp-rail-label">${esc(item.label)}</span>${iconSvg('chevron', 'cp-rail-caret')}
+        </button>
+        <div class="cp-rail-sub" id="${panelId}"${open ? '' : ' hidden'}>${subs}</div>
+      </div>`;
+  }).join('');
+}
+
+/** The rail's whole inner markup: top row, nav, 外觀. Shared by rail + drawer. */
+function railBodyHtml(currentPage, uid) {
+  return `<div class="cp-rail-top">
+        <button class="cp-rail-toggle" type="button" data-rail-toggle aria-expanded="true" aria-label="收合側邊欄">${iconSvg('chevron')}</button>
+      </div>
+      <nav class="cp-rail-nav" aria-label="主選單">${railNavHtml(currentPage, uid)}</nav>
+      <div class="cp-rail-appearance">
+        <span class="cp-rail-label cp-rail-appearance-label">外觀</span>
+        <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+      </div>`;
+}
+
+/**
+ * Mount the colour page's rail: desktop rail, mobile drawer, collapse state,
+ * disclosures, shortcuts and both theme toggles.
+ *
+ * @param {string} [currentPage] - defaults to the current filename
+ */
+export function initColorRail(currentPage) {
+  const page = currentPage || (location.pathname.split('/').pop() || 'color.html');
+  const rail = document.querySelector('[data-rail]');
+  const drawer = document.querySelector('[data-rail-drawer]');
+  if (!rail || !drawer) return;
+
+  rail.innerHTML = railBodyHtml(page, 'r');
+  drawer.innerHTML = railBodyHtml(page, 'd') + `
+        <div class="cp-drawer-top">
+          <button class="cp-drawer-close" type="button" data-drawer-close aria-label="關閉選單">${iconSvg('close')}</button>
+        </div>`;
+
+  // Two containers, so two scoped roots: initThemeToggle() wires ONE toggle per
+  // root and bails on a second, and each of these holds exactly one.
+  initThemeToggle(rail);
+  initThemeToggle(drawer);
+
+  // --- collapse state -------------------------------------------------------
+  let collapsed = readRailCookie();
+  // The reference skips its first effect so hydration does not immediately
+  // rewrite the cookie that just seeded it. Same reason: a first write would
+  // turn "the user has never expressed a preference" into a stored one.
+  let firstSync = true;
+  const applyCollapsed = () => {
+    rail.classList.toggle('is-collapsed', collapsed);
+    const t = rail.querySelector('[data-rail-toggle]');
+    t.setAttribute('aria-expanded', String(!collapsed));
+    t.setAttribute('aria-label', collapsed ? '展開側邊欄' : '收合側邊欄');
+    // Collapsed hides labels with CSS; `title` is what names an icon-only link,
+    // so it is written here rather than left in the markup to go stale.
+    for (const el of rail.querySelectorAll('.cp-rail-link, .cp-rail-trigger')) {
+      el.title = collapsed ? (el.querySelector('.cp-rail-label')?.textContent || '') : '';
+    }
+    if (firstSync) { firstSync = false; return; }
+    writeRailCookie(collapsed);
+  };
+  applyCollapsed();
+
+  const setCollapsed = next => { collapsed = next; applyCollapsed(); };
+  for (const btn of [rail, drawer].map(c => c.querySelector('[data-rail-toggle]'))) {
+    btn.addEventListener('click', () => setCollapsed(!collapsed));
+  }
+
+  // --- disclosures ----------------------------------------------------------
+  for (const item of document.querySelectorAll('.cp-rail-item')) {
+    const trigger = item.querySelector('.cp-rail-trigger');
+    const panel = item.querySelector('.cp-rail-sub');
+    trigger.addEventListener('click', () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      trigger.setAttribute('aria-expanded', String(open));
+    });
+  }
+
+  // --- mobile drawer --------------------------------------------------------
+  // The reference renders BOTH the desktop rail and the mobile overlay
+  // unconditionally and lets `md:` hide one, because a JS `isMobile` state
+  // defaults false during SSR and paints a 256px sidebar on phones before
+  // hydration swaps it — a layout shift that dominated its CLS budget. Same
+  // reason here: both are in the DOM from first paint and only CSS decides.
+  const openBtn = document.createElement('button');
+  openBtn.className = 'cp-rail-open';
+  openBtn.type = 'button';
+  openBtn.setAttribute('aria-expanded', 'false');
+  openBtn.setAttribute('aria-label', '開啟選單');
+  openBtn.setAttribute('aria-controls', 'cp-rail-drawer');
+  openBtn.innerHTML = iconSvg('menu');
+  document.querySelector('.header')?.appendChild(openBtn);
+
+  const scrim = document.createElement('div');
+  scrim.className = 'cp-rail-scrim';
+  scrim.hidden = true;
+  drawer.before(scrim);
+  drawer.id = 'cp-rail-drawer';
+
+  const setDrawer = open => {
+    drawer.hidden = !open;
+    scrim.hidden = !open;
+    openBtn.setAttribute('aria-expanded', String(open));
+    openBtn.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+    openBtn.innerHTML = iconSvg(open ? 'close' : 'menu');
+  };
+  openBtn.addEventListener('click', () => setDrawer(drawer.hidden));
+  scrim.addEventListener('click', () => setDrawer(false));
+  drawer.querySelector('[data-drawer-close]')?.addEventListener('click', () => setDrawer(false));
+  drawer.addEventListener('click', e => { if (e.target.closest('a')) setDrawer(false); });
+  // A resize past the breakpoint must not leave the scrim behind.
+  window.addEventListener('resize', () => { if (!window.matchMedia(RAIL_VISIBLE_MQ).matches) setDrawer(false); });
+
+  // --- Escape, shared with the disclosures ----------------------------------
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!drawer.hidden) { setDrawer(false); openBtn.focus(); return; }
+    for (const item of document.querySelectorAll('.cp-rail-item')) {
+      const trigger = item.querySelector('.cp-rail-trigger');
+      const panel = item.querySelector('.cp-rail-sub');
+      if (panel.hidden) continue;
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.focus();
+      return;
+    }
+  });
+
+  // --- shortcuts ------------------------------------------------------------
+  // Transcribed from keyboard-shortcuts.tsx. The editable guard is the load-
+  // bearing half: without it Ctrl+B inside a contenteditable would toggle the
+  // rail instead of bolding, and Ctrl+Shift+L inside an <input> would swap the
+  // theme mid-typing.
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t) {
+      const tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+          || t.isContentEditable || t.getAttribute('role') === 'textbox') return;
+    }
+
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+      return;
+    }
+
+    if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+      // Read per keydown rather than cached, so a live resize is picked up
+      // without re-binding the listener. matchMedia inverts the reference's
+      // test: it asks whether the RAIL is showing, not whether the screen is
+      // small, which is the actual precondition for the shortcut.
+      if (!window.matchMedia(RAIL_VISIBLE_MQ).matches) return;
+      e.preventDefault();
+      setCollapsed(!collapsed);
+    }
   });
 }
 
