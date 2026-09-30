@@ -87,6 +87,10 @@ Static HTML/JS/CSS site (GitHub Pages ready) visualizing algorithms with 1025 Po
 │   ├── check_categories.mjs      # 9 category configs + hub table drift + hero contrast + card-tint/tag-tone composited contrast (node scripts/check_categories.mjs)
 │   ├── check_evolution_chains.mjs # chain invariants: 0 empty main_line, 0 species-as-form, sequential stages, form base_id 1..1025, base_name_en slug resolves (node scripts/check_evolution_chains.mjs)
 │   ├── extract_evolution_chains.py # Build evolution_chains.json from CSV. Base-vs-form is id-authoritative (id <= 1025 = species) and needs data-sources/pokeapi_form_species.json
+│   ├── extract_color_palettes_mmcq.py # MMCQ 6-colour partition of the 96x96 front sprites → assets/data/color_palettes.json (2,050 palettes, 12,297 entries). --dry-run measures without writing
+│   ├── extract_color_palettes.py  # Transcribes the reference project's Canvas getImageData scan. Comparison only — it did not produce the file and its >5% rule is not the rule behind the data
+│   ├── check_color_palettes.mjs   # 6-colour contract: roster vs pokemon_data.json, entry count, {5:3,6:2047}, share sums + median, Bulbasaur n/s pinned byte-exact, sprite existence
+│   ├── test_check_color_palettes.mjs # Negative tests for the checker: 10 mutations, each must exit non-zero AND name the right reason
 │   ├── download_variant_sprites.py # Download variant artwork from PokeAPI
 │   └── pokemon_preprocessing_script.py  # RGB/HSV computation from images
 ├── data-sources/             # Raw CSV/XLSX (not used at runtime)
@@ -161,7 +165,9 @@ Each entry now includes:
 | **Test evolution chains** | `node scripts/check_evolution_chains.mjs` — **run this after editing `extract_evolution_chains.py`, the `evolution_chains.json` shape, or any evolution renderer** (gotcha 15) |
 | Rebuild evolution chains | `python scripts/extract_evolution_chains.py` |
 | Download variant sprites | `python scripts/download_variant_sprites.py` |
-| Regenerate color data | `python scripts/pokemon_preprocessing_script.py` (requires Pillow, numpy) |
+| **Rebuild colour palettes** | `python scripts/extract_color_palettes_mmcq.py` (Pillow, numpy, colorthief; reads all 2,050 sprites, ~2 min) — add `--dry-run` to measure and write nothing. Deterministic: two runs are byte-identical |
+| **Test colour palettes** | `node scripts/check_color_palettes.mjs` — **run this after editing the extractor, the palette shape, or `paletteStripHtml()`**. Then `node scripts/test_check_color_palettes.mjs` to prove the guards still fire |
+| Recompute sprite RGB/HSV | `python scripts/pokemon_preprocessing_script.py` (requires Pillow, numpy) — writes `rgb`/`hsv` into `pokemon_data.json` and **does not** touch `color_palettes.json`; that row used to be labelled "Regenerate color data", which is what made the two look interchangeable |
 | Deploy to GitHub Pages | Push to `main` branch; enable Pages from root folder |
 
 ## Git Workflow
