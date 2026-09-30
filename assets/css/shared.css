@@ -177,8 +177,38 @@
   --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
   --shadow-header: 0 4px 12px rgba(0, 0, 0, 0.5);
 
+  /* Typography. The stack is CJK-FIRST, which is the whole point of it, and the
+     old value was a Windows-only list on a Traditional Chinese site:
+     `'Segoe UI', Tahoma, Geneva, Verdana, sans-serif` named two Microsoft faces
+     and no CJK face at all. Measured with CSS.getPlatformFontsForNode on
+     detail.html?slug=bulbasaur at HEAD, the zh-TW `<h1>` rendered in PingFang TC
+     and the English `.hero-title-en` in Tahoma — because 'Segoe UI' is absent on
+     macOS, Tahoma (the second entry) is what answered, and the CJK glyphs had no
+     named family to fall through to and simply took the OS default. So the
+     majority of the site's text was rendering in an unnamed, per-OS face while
+     the Latin half was pinned to a screen-hinted Windows face that does not
+     exist on two of the three major desktop platforms. Naming the TC faces first
+     fixes both halves at once: zh-TW gets an explicit, cross-platform choice, and
+     Latin falls to the same family's own Latin, so a mixed line is one
+     typeface's design rather than two unrelated ones grafted together.
+     PingFang TC leads because it is the macOS/iOS system face and its Latin is a
+     clean grotesque; Noto Sans TC covers Android and Linux, and is also the one
+     most likely to be installed by hand elsewhere; Microsoft JhengHei is the
+     Traditional Chinese face on Windows (YaHei is Simplified, so not that one).
+     `system-ui` sits after them rather than first on purpose — first, it would
+     resolve to San Francisco or Segoe UI, neither of which has any CJK, and we
+     would be back to the two-fonts-per-line mismatch with the Latin half chosen
+     by the OS instead. Keep this list before the generic `sans-serif`. The two
+     monospace stacks in detail.css and colors.css are deliberately NOT folded
+     into a token: they render hex codes and ids, which are Latin and digits
+     only, so a CJK face in that list would be dead weight. */
+  --font-sans:
+    'PingFang TC', 'Noto Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei',
+    'Heiti TC', 'Hiragino Sans CNS', system-ui, -apple-system, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+
   /* Geometry & motion — unchanged; the palette work did not adopt the reference
-     schemes' radius changes, which were a layout decision rather than a colour
+     schemes' radius changes, which was a layout decision rather than a colour
      one. */
   --radius-sm: 12px;
   --radius-md: 15px;
@@ -321,7 +351,7 @@ body {
   padding: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ===== Header =====
