@@ -591,6 +591,27 @@ body {
   background-color: var(--accent-yellow);
 }
 
+/* A size modifier, not a button of its own — it stays a `.btn` so it inherits
+   the hover lift, the pressed state and `aria-pressed` for free. maze.html used
+   `class="btn-sm"` on six buttons and NO rule defined that class anywhere in the
+   repo, so all six rendered as unstyled UA defaults: measured at 41x21 with
+   `#efefef` fill, a 2px black border, 0px radius and the 13.3px UA font, sitting
+   in the same control bar as five themed pills. Six of eleven buttons on the
+   page looked like a different website.
+
+   Written as `.controls-maze .btn-sm` rather than a bare `.btn-sm` because
+   `.controls-maze .btn` above is the rule this has to beat and both are
+   (0,2,0) — a bare `.btn-sm` is (0,1,0) and loses, so the preset row would come
+   out 8px/16px and 14px, identical to the numbered buttons beside it. Source
+   order then settles it. Kept to size only: no colour, border or radius of its
+   own, because those are `.btn`'s tokens and a second copy of them is a third
+   place to keep correct (gotcha 39's rule about duplicated palettes). */
+.controls-maze .btn-sm {
+  padding: 5px 11px;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
 /* ===== Cards ===== */
 .card {
   background: var(--bg-card);

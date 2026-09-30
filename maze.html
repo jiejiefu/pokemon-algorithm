@@ -53,17 +53,17 @@
         <span id="speedValue" style="font-weight:bold; min-width:38px;">1.0x</span>
       </div>
       <div style="display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
-        <button class="btn-sm" onclick="setSpeed(0)">0.1x</button>
-        <button class="btn-sm" onclick="setSpeed(20)">0.5x</button>
-        <button class="btn-sm" onclick="setSpeed(30)">1.0x</button>
-        <button class="btn-sm" onclick="setSpeed(49)">2.5x</button>
-        <button class="btn-sm" onclick="setSpeed(100)">10.0x</button>
+        <button class="btn btn-sm" onclick="setSpeed(0)">0.1x</button>
+        <button class="btn btn-sm" onclick="setSpeed(20)">0.5x</button>
+        <button class="btn btn-sm" onclick="setSpeed(30)">1.0x</button>
+        <button class="btn btn-sm" onclick="setSpeed(49)">2.5x</button>
+        <button class="btn btn-sm" onclick="setSpeed(100)">10.0x</button>
       </div>
       <!-- 👇 新增：寶可夢 ID 輸入框 (支援 Enter 鍵觸發) -->
       <div class="pokemon-id-control" style="display:inline-flex; align-items:center; gap:6px; font-size:14px; margin-left:8px;">
         <label for="pokemonIdInput">寶可夢 ID：</label>
         <input type="number" id="pokemonIdInput" min="1" max="1025" placeholder="隨機" style="width:65px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; text-align:center;" onkeydown="if(event.key==='Enter') loadPokemonMaze(false)">
-        <button class="btn-sm" onclick="loadPokemonMaze(false)">套用 ID</button>
+        <button class="btn btn-sm" onclick="loadPokemonMaze(false)">套用 ID</button>
       </div>
       <!-- 👇 隨機迷宮 Toggle 與 Seed 輸入框 -->
       <div class="seed-control" style="display:inline-flex; align-items:center; gap:8px; font-size:14px; margin-left:8px;">
