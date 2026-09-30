@@ -307,7 +307,7 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
    * load, or switching themes leaves a dark canvas on a light page.
    */
   function applyTheme() {
-    renderer.setClearColor(tokenColor('--bg-primary', '#0d1117'));
+    renderer.setClearColor(tokenColor('--bg-primary', '#0b1020'));
     // NOT themed, and this is the second time this file has got it wrong. A light
     // source's colour is the colour of the light — its temperature — not a token
     // describing the page's text. Binding the key light to `--text-primary` looks

@@ -6,7 +6,7 @@
   <title id="page-title">寶可夢詳細資料 — 寶可夢演算法</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0b1020">
   <!-- Blocking, inline, and before the stylesheet on purpose. It has to resolve a
        theme before the first paint so the page never flashes one palette and then
        repaints in the other; a module in shared.js cannot do this because module
@@ -28,7 +28,7 @@
       } catch (e) { /* private mode / storage disabled: stay on the default */ }
       document.documentElement.dataset.theme = theme;
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'light' ? '#f6f8fa' : '#0d1117');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
     })();
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">

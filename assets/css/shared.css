@@ -503,8 +503,9 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-/* Light mode paints a white pill on a #f6f8fa page, which is all but invisible
-   without an edge, so the border is a token rather than `none`. */
+/* Light mode paints a white pill on a #f3f5fa page, which is all but invisible
+   without an edge, so the border is a token rather than `none`. In dark the pill
+   is a ghost and the edge carries the boundary instead — see --btn-border. */
 
 .btn:hover {
   background-color: var(--accent-gold-surface);

@@ -3,6 +3,12 @@
  * Common functions for loading data, creating cards, etc.
  */
 
+// `form-names.js` imports only the generated portal cache, so this edge stays
+// acyclic. Keep it that way: pokemon-lexicon.js imports THIS module, so
+// importing the lexicon from here would be a cycle, and a missing export in a
+// module graph is a parse-time SyntaxError that kills every page at once.
+import { formNameZh } from './form-names.js';
+
 // Type EN → ZH mapping
 export const TYPE_EN_ZH = {
   "Normal": "一般", "Fire": "火", "Water": "水", "Electric": "電",
@@ -463,7 +469,7 @@ export function iconSvg(name, extraClass = '') {
      3. This module handles what happens AFTER first paint: the toggle, the
         system listener, and notifying canvas renderers. */
 const THEME_KEY = 'pokemon-theme';
-const THEME_COLORS = { light: '#f6f8fa', dark: '#0d1117' };
+const THEME_COLORS = { light: '#f3f5fa', dark: '#0b1020' };
 
 /** The active theme. Reflects the DOM rather than a local variable, so it cannot
  *  drift from what the user actually sees. */
@@ -1189,6 +1195,34 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
   const nodeHref = (node) =>
     pokemonDetailUrl({ names: { en: node.base_name_en || node.name_en } });
 
+  // A form's display name. Only 127 of the 325 form nodes carry a Chinese
+  // `name_zh` of their own; the other 198 hold the English name pasted back, which
+  // a zh-TW page used to render verbatim. formNameZh() resolves the rest from the
+  // official portal table, falling back to the stored name so the 93 mega and 34
+  // gmax rows the portal does not list keep what they already had. Species nodes
+  // pass through untouched.
+  const nodeName = (node) => (node.form ? formNameZh(node) : node.name_zh);
+
+  // Four form nodes have no sprite of their own: Koraidon's Limited and Swimming
+  // builds (10264/10266) and Miraidon's Low Power and Aquatic modes
+  // (10268/10270). All four are alternate postures of the same Pokémon rather
+  // than distinct artwork, so each falls back to its base sprite plus a badge.
+  //
+  // This list is driven by the FILESYSTEM and not by the node's `has_art` flag,
+  // which is wrong in 5 of its 9 false cases -- 10301 (Zygarde-Mega) and
+  // 10265/10267/10269/10271 are all flagged false while their sprites sit on
+  // disk. Keying off the flag would quietly replace five forms that do have
+  // artwork with their base. scripts/check_form_names.mjs pins this list against
+  // the directory, so a regeneration that changes which files exist fails here.
+  const SPRITE_LESS_FORMS = new Set([10264, 10266, 10268, 10270]);
+  const nodeSpriteHtml = (node) => {
+    if (!node.form || !SPRITE_LESS_FORMS.has(node.id)) {
+      return `<img class="evolution-sprite" src="${ASSETS.images}${node.filename}" alt="${nodeName(node)}" loading="lazy">`;
+    }
+    return `<img class="evolution-sprite is-form-fallback" src="${ASSETS.images}${node.base_id}.png" alt="${nodeName(node)}" loading="lazy">`
+      + `<span class="evolution-form-badge">型態</span>`;
+  };
+
   // Main line
   chainData.main_line.forEach(pokemon => {
     const currentClass = pokemon.id === currentPokemonId ? 'evolution-current' : '';
@@ -1196,8 +1230,8 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
     html += `
       <div class="evolution-stage ${currentClass}">
         <a href="${nodeHref(pokemon)}" class="evolution-link">
-          <img class="evolution-sprite" src="${ASSETS.images}${pokemon.filename}" alt="${pokemon.name_zh}" loading="lazy">
-          <span class="evolution-name">${pokemon.name_zh}</span>
+          ${nodeSpriteHtml(pokemon)}
+          <span class="evolution-name">${nodeName(pokemon)}</span>
           ${pokemon.form ? `<span class="evolution-form-badge">${pokemon.form.toUpperCase()}</span>` : ''}
         </a>
       </div>
@@ -1215,8 +1249,8 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
         html += `
           <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
             <a href="${nodeHref(p)}" class="evolution-link">
-              <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
-              <span class="evolution-name">${p.name_zh}</span>
+              ${nodeSpriteHtml(p)}
+              <span class="evolution-name">${nodeName(p)}</span>
             </a>
           </div>`;
       });
@@ -1234,8 +1268,8 @@ export function renderEvolutionChain(container, chainData, currentPokemonId) {
           html += `
             <div class="evolution-stage ${p.id === currentPokemonId ? 'evolution-current' : ''}">
               <a href="${nodeHref(p)}" class="evolution-link">
-                <img class="evolution-sprite" src="${ASSETS.images}${p.filename}" alt="${p.name_zh}" loading="lazy">
-                <span class="evolution-name">${p.name_zh}</span>
+                ${nodeSpriteHtml(p)}
+                <span class="evolution-name">${nodeName(p)}</span>
               </a>
             </div>`;
         });
