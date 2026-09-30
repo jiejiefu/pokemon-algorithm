@@ -25,74 +25,85 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card: #21262d;
-  --bg-controls: #161b22;
-  --surface-raised: #262c33;
-  --surface-hover: rgba(240, 246, 252, 0.06);
-  --on-surface: #f0f6fc;
+  /* Surfaces — ink navy. The whole UI is this one hue family so that the only
+     saturated things on the page are the Pokémon themselves. */
+  --bg-primary: #0b1020;
+  --bg-secondary: #111830;
+  --bg-card: #161e38;
+  --bg-controls: #111830;
+  --surface-raised: #1f2a4d;
+  --surface-hover: rgba(238, 241, 251, 0.06);
+  --on-surface: #eef1fb;
 
-  /* Brand headers */
-  --bg-header-sort: linear-gradient(135deg, #be123c 0%, #881337 100%);
-  --bg-header-maze: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  --bg-header-dex: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
-  --bg-header-3d: linear-gradient(135deg, #6d28d9 0%, #3730a3 100%);
-  /* 700-step teal→indigo, because the header title is white text ON the
-     ramp and gotcha 39's rule is that the check is the LIGHTEST stop: the
-     teal end measures 5.47:1 and the indigo end 7.90:1, so both clear
-     4.5:1. A 500-level version of the same hues fails the teal end, which
-     is the failure mode gotcha 39 exists to prevent. Teal is also the
-     site's own palette colour (Bulbasaur's primary is #399494), so the
-     brand headers and the colour pages share a hue family. */
-  --bg-header-colors: linear-gradient(135deg, #0f766e 0%, #4338ca 100%);
-  --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-  /* Same hue, two roles: as a *fill* it takes white text, as *text* it has to
-     clear 4.5:1 on a near-white page. #e3b341 does both in dark (#14110a on it
-     is 9.68:1, it on #0d1117 is 9.72:1); no single light value does, hence the
-     pair. #f1e05a rather than #e3b341 because .status-text sits on the
-     saturated blue header, where #e3b341 only reaches 3.44:1. */
-  --accent-yellow-text: #f1e05a;
+  /* Brand headers — all five are the SAME neutral navy, and page identity moved
+     to a 3px rule on the header's top edge (--page-accent, see the .header
+     rule). Four saturated gradients plus a gold title fought each other, and
+     gotcha 39's lightest-stop rule was being paid for on all four ramps just to
+     keep white title text legal. */
+  --header-base: linear-gradient(180deg, #182046 0%, #111834 100%);
+  --bg-header-sort: var(--header-base);
+  --bg-header-maze: var(--header-base);
+  --bg-header-dex: var(--header-base);
+  --bg-header-3d: var(--header-base);
+  --bg-header-colors: var(--header-base);
+  /* The four identity rules. Saturated, but only ever a 3px line with no text
+     on them, so WCAG 1.4.11 does not apply (it governs boundaries that identify
+     a control, not decoration). */
+  --rule-red: #ff5c6c;
+  --rule-cyan: #4cc9f0;
+  --rule-violet: #a78bfa;
+  --rule-gold: #f5c542;
+  --header-title-shadow: none;
 
   /* Text */
-  --text-primary: #f0f6fc;
-  --text-secondary: #c9d1d9;
-  --text-muted: #8b949e;
+  --text-primary: #eef1fb;
+  --text-secondary: #c5cce3;
+  --text-muted: #94a1c6;
 
-  /* Accents */
-  --accent-gold-rgb: 241, 224, 90;
+  /* Accents. ONE amber, not five: --accent-gold, --accent-yellow,
+     --accent-yellow-text, --canvas-text and --divider-glow are all #f5c542.
+     The old set spread one hue across #f1e05a / #e3b341 / #ffb300 / #ffde00 /
+     rgba(255,221,0,…), which is why the page read as several yellows rather
+     than as one accent. Measured on --bg-card: gold-as-text 10.14:1,
+     --on-accent on gold 11.62:1. */
+  --accent-gold-rgb: 245, 197, 66;
   --accent-gold: rgb(var(--accent-gold-rgb));          /* as text */
   --accent-gold-surface: rgb(var(--accent-gold-rgb));  /* as a fill */
-  --stat-fill-end: #ffb300;
-  --accent-yellow: #e3b341;
-  --accent-green: #238636;
-  --accent-green-hover: #1f883d;    /* deepens rather than lifts: the lighter
-                                       greens all drop white text under 4.5:1 */
+  --stat-fill-end: #f5c542;
+  --accent-yellow: #f5c542;
+  --accent-yellow-text: #f5c542;
+  /* Teal, not the old GitHub green #238636: white text on that was 4.63:1,
+     this is 5.47:1, and teal is the site's own palette hue family. */
+  --accent-green: #0f766e;
+  --accent-green-hover: #115e59;
   --on-accent: #14110a;            /* text on gold or any light accent fill */
 
   /* Lines & raised fills */
-  /* The one value that is already correct in both themes, so it is defined
-     once instead of per-theme. The old hardcoded #444 sat at 1.56:1 against
-     --bg-card #21262d, so the input boundary failed WCAG 1.4.11 (3:1) in dark
-     while looking far too heavy in light. #868d96 gives 4.54:1 / 3.35:1. */
-  --border-input: #868d96;
-  --error-text: #ff6b6b;          /* 6.82:1 on --bg-primary; light needs 6.14 */
-  --hero-tint: rgba(204, 0, 0, 0.15);
-  --hero-title-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
-  --divider-glow: rgba(255, 221, 0, 0.3);
+  --border-input: #8592b8;    /* 6.13:1 on --bg-primary, 5.33:1 on --bg-card */
+  --error-text: #ff7a85;
+  --hero-tint: rgba(217, 43, 63, 0.10);
+  --hero-title-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  --divider-glow: rgba(245, 197, 66, 0.28);
   --sticky-surface: rgba(255, 255, 255, 0.02);
-  --hairline-rgb: 240, 246, 252;
+  --hairline-rgb: 238, 241, 251;
   --hairline: rgba(var(--hairline-rgb), 0.10);
   --hairline-strong: rgba(var(--hairline-rgb), 0.20);
-  --btn-border: transparent;   /* a white pill needs no edge on a dark page */
-  --btn-bg: #ffffff;           /* the primary button is white in BOTH themes: */
-  --btn-fg: #1f2328;           /* 14.6:1, and only the edge differs in light */
+  /* Buttons are ghost pills, not white pills: white was the loudest thing on a
+     dark page and belonged to the text. The FILL therefore carries no boundary
+     (1.20:1 against the page, by design) and the EDGE carries all of it, which
+     is why --btn-border is not a whisper. 0.18 cleared nothing — it measured
+     1.64:1 against --bg-primary and failed WCAG 1.4.11; 0.45 measures 3.73:1
+     against the worst of the seven surfaces a .btn can sit on (--bg-primary,
+     --bg-secondary, --bg-card, --surface-raised, both header gradient stops,
+     and the detail page's glass). Re-sweep all seven if this moves. */
+  --btn-bg: rgba(238, 241, 251, 0.08);
+  --btn-fg: #eef1fb;
+  --btn-border: rgba(238, 241, 251, 0.45);
 
   /* Glass — the detail page's top card */
-  --glass-bg: rgba(33, 38, 45, 0.58);
-  --glass-border: rgba(240, 246, 252, 0.14);
-  --glass-fallback: rgba(33, 38, 45, 0.94);
+  --glass-bg: rgba(22, 30, 56, 0.58);
+  --glass-border: rgba(238, 241, 251, 0.14);
+  --glass-fallback: rgba(22, 30, 56, 0.94);
   --accent-border: 0.28;   /* the card's 1px edge in the Pokemon's own RGB;
                               a white Pokemon on a white card needs more */
   --aurora-1: 0.32;   /* radial tint over the card, from --card-accent-rgb */
@@ -109,12 +120,20 @@
   /* Canvas. CSS cannot paint inside a <canvas>, so these are read by JS via
      readThemeTokens() — that is the only bridge, and it keeps one source of
      truth rather than a JS-side copy of the palette. */
-  --canvas-bg: #010409;
-  --canvas-wall: 50, 50, 50;       /* RGB triplet, unquoted, for template use */
-  --canvas-grid: rgba(240, 246, 252, 0.5);
-  --canvas-text: #e3b341;
+  --canvas-bg: #060a16;
+  /* RGB triplet, unquoted, for template use. NOT the near-white #b4c4f8 the
+     reference proposed: at 1.25:1 the 0.5-alpha --canvas-grid stroke vanished
+     against it, so a pale Pokémon's cell lost its walls. 63,74,114 is the
+     value that keeps all three maze surfaces readable at once — grid stroke
+     3.24:1, lit path 2.29:1 (was 1.54), explored trail 1.40:1 (was 1.19) — a
+     strict improvement on the old #323232 on every one. Re-sweep all three
+     before changing it; no single wall colour clears 3:1 for both the stroke
+     and the trail, which is why the trail is the one that gives. */
+  --canvas-wall: 63, 74, 114;
+  --canvas-grid: rgba(238, 241, 251, 0.5);
+  --canvas-text: #f5c542;
   /* The radar's polygon wash, as an alpha over --accent-gold-rgb. Per theme
-     because the gold is a bright yellow here and a dark brown in light, so a
+     because the gold is a bright amber here and a Poké Ball red in light, so a
      single shared value is a warm glow in one theme and a mud wash in the
      other. Kept very low on purpose: this fill sits *under* the stat polygon,
      and anything above ~0.15 stops reading as a tint and starts reading as a
@@ -124,22 +143,29 @@
 
   /* Data colours. These are TEXT, so unlike the brand header gradients they are
      held to 4.5:1 in each theme rather than kept identical. The dark values are
-     the originals; the light values are corrected (see the light block). */
+     the originals; the light values are corrected (see the light block). Every
+     one of the ten re-measures against the new --surface-panel lightest stop
+     (#1f2a4d, was #2a2a2a) and still clears 4.5:1 — --eff-4x is the tightest at
+     4.51, so this panel is now the binding surface for the dark data palette. */
   --gender-male: #7fb3ff;
   --gender-female: #ff9ec4;
   --move-physical: #dddddd;
   --move-special: #5cb3f7;
   --move-status: #ffa726;
-  --stat-total-from: #ffffff;
+  --stat-total-from: #eef1fb;
   --stat-total-to: #aab6c2;
-  --surface-panel: linear-gradient(150deg, #2a2a30 0%, #17171a 100%);
+  --surface-panel: linear-gradient(150deg, #1f2a4d 0%, #111830 100%);
   /* Type-effectiveness multipliers, rendered as 17px/800 text — under the
      18.66px large-text cut-off, so 4.5:1. All five clear it on --bg-card. */
   --eff-4x: #ff5470;
   --eff-2x: #ff9f45;
   --eff-half: #4cc9f0;
   --eff-quarter: #7bcf6b;
-  --eff-immune: #ffde00;
+  /* 免疫 was the fifth yellow on the site (#ffde00). It is the one multiplier
+     that is semantically neutral, so folding it into the single accent is
+     correct rather than a loss of distinction — and it is still 8.65:1 on the
+     panel against --eff-2x's orange. */
+  --eff-immune: #f5c542;
 
   /* Shadows */
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -159,67 +185,74 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg-primary: #f6f8fa;
+  /* Cold paper. The same navy hue family as the dark theme, at the other end —
+     so a header or a card reads as the same surface in both themes. */
+  --bg-primary: #f3f5fa;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
-  --bg-controls: #eff1f3;
-  --surface-raised: #e8eaed;
-  --surface-hover: rgba(31, 35, 40, 0.05);
-  --on-surface: #1f2328;
+  --bg-controls: #e9edf6;
+  --surface-raised: #e3e8f3;
+  --surface-hover: rgba(15, 23, 48, 0.05);
+  --on-surface: #0f1730;
 
-  /* Headers keep their saturation in both themes — they carry the Pokédex red
-     identity, and a pale header reads as a disabled one. */
-  /* Pale, not saturated. The dark gradients below are too light for white text
-     (2.14:1 on #fb7185) and too dark for this theme's own near-black text
-     tokens -- the title measured 1.00:1. A pale tint keeps the brand hue and
-     lets the header use --text-primary / --accent-gold unchanged. */
-  --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-  --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-  --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
-  /* Light uses a pale tint, not a lighter saturated step: the dark rules put
-     white text on the ramp, and a 300-level teal with white text is 2.4:1.
-     A tint keeps the hue and lets the header keep --text-primary. */
-  --bg-header-colors: linear-gradient(135deg, #ccfbf1 0%, #e0e7ff 100%);
-  --header-title-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  /* Headers are cold paper in both themes, and identity is carried by the
+     --page-accent rule on the header's top edge, not by the fill. The old
+     light set was four pale pink/blue/lilac tints; a title in gold on pale
+     pink is a second identity competing with the rule. */
+  --header-base: linear-gradient(180deg, #eef1f9 0%, #e6ebf6 100%);
+  --bg-header-sort: var(--header-base);
+  --bg-header-maze: var(--header-base);
+  --bg-header-dex: var(--header-base);
+  --bg-header-3d: var(--header-base);
+  --bg-header-colors: var(--header-base);
 
-  --text-primary: #1f2328;
-  --text-secondary: #424a53;
-  --text-muted: #656d76;
+  --text-primary: #0f1730;
+  --text-secondary: #38425f;
+  --text-muted: #5b678c;
 
-  --accent-gold-rgb: 156, 65, 6;
+  /* Poké Ball red is the light theme's gold. Measured on --bg-card: 6.92:1
+     white on it, 6.03:1 crimson on it, and crimson as text 6.92:1 — so the one
+     value works in all three of the roles dark's amber had to be split across. */
+  --accent-gold-rgb: 179, 18, 42;
   --accent-gold: rgb(var(--accent-gold-rgb));
   --accent-gold-surface: rgb(var(--accent-gold-rgb));
-  --stat-fill-end: #c2410c;   /* #ffb300 is 1.79:1 on white; the bar's right end
-                                 simply vanished. 3:1 applies here (non-text). */
-  --accent-yellow: #b45309;
+  --stat-fill-end: #b3122a;
+  /* Warm amber, kept distinct from the Poké Ball red above: this is the hover
+     / focus fill, where a red fill would read as an error state. The reference
+     proposed #d97706, which measures 2.92:1 on --bg-primary and 2.72:1 on
+     --bg-controls and so failed WCAG 1.4.11 on the 13px maze buttons and the
+     model3d picker focus border; #c76a06 measures 3.51 / 3.26 and #14110a on it
+     4.93. Do not raise it without re-measuring all three. */
+  --accent-yellow: #c76a06;
   --accent-yellow-text: #92400e;
-  --accent-green: #1a7f37;
-  --accent-green-hover: #116329;
+  --accent-green: #0f766e;
+  --accent-green-hover: #115e59;
   --on-accent: #ffffff;
 
-  /* #ff6b6b is the dark theme's error colour and only reaches 2.61:1 here, so
-     the pair is genuinely per-theme rather than one value with an alpha. */
   --error-text: #b3261e;
-  --hero-tint: rgba(204, 0, 0, 0.06);
-  --hero-title-shadow: 3px 3px 6px rgba(31, 35, 40, 0.22);
-  --divider-glow: rgba(156, 65, 6, 0.3);
-  --sticky-surface: rgba(255, 255, 255, 0.72);
+  --hero-tint: rgba(179, 18, 42, 0.06);
+  --hero-title-shadow: 0 2px 10px rgba(15, 23, 48, 0.10);
+  --divider-glow: rgba(179, 18, 42, 0.16);
+  --sticky-surface: rgba(255, 255, 255, 0.78);
   --radar-fill: 0.06;
   --radar-stroke: 0.6;
-  --hairline-rgb: 31, 35, 40;
+  --hairline-rgb: 15, 23, 48;
   --hairline: rgba(var(--hairline-rgb), 0.12);
   --hairline-strong: rgba(var(--hairline-rgb), 0.22);
-  --btn-border: var(--hairline-strong);   /* white on #f6f8fa needs an edge */
+  /* Light buttons are white pills on cold paper, which is 1.09:1 — so the edge
+     carries the boundary, and the old --hairline-strong (0.22) only reached
+     1.47:1, an existing WCAG 1.4.11 failure. 0.55 measures 3.66:1 on the page,
+     3.40:1 on --bg-controls and 3.25:1 on --surface-raised; check all three. */
+  --btn-border: rgba(15, 23, 48, 0.55);
   --btn-bg: #ffffff;
-  --btn-fg: #1f2328;
+  --btn-fg: #0f1730;
 
   /* The light glass is *darker* than nothing at all but lighter than the page,
      so the same override gotcha 28 documents is needed, pointing the other
      way: a pale gold-grey like #656d76 measures 2.34:1 on an aurora-tinted
      card. #3f3f46 holds 6.18:1 at the reduced aurora below. */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(31, 35, 40, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(15, 23, 48, 0.12);
   --glass-fallback: rgba(255, 255, 255, 0.96);
   --accent-border: 0.55;
   --aurora-1: 0.22;   /* 0.32 would let a black Pokémon drag the card to
@@ -229,12 +262,12 @@
 
   --glow-1: 0.28;
   --glow-2: 0.18;
-  --glow-border: rgba(var(--card-accent-rgb, 31, 35, 40), 0.45);
+  --glow-border: rgba(var(--card-accent-rgb, 15, 23, 48), 0.45);
 
   --canvas-bg: #ffffff;
-  --canvas-wall: 31, 35, 40;
-  --canvas-grid: rgba(31, 35, 40, 0.22);
-  --canvas-text: #b45309;
+  --canvas-wall: 15, 23, 48;
+  --canvas-grid: rgba(15, 23, 48, 0.22);
+  --canvas-text: #92400e;   /* the S/G glyphs sit on their own fills; see gotcha 35 */
 
   /* Corrected, not copied. Every one of the five dark values above fails as text
      on a white card: --gender-male 2.14:1 and --gender-female 1.92:1, and all
@@ -247,8 +280,10 @@
   --move-special: #0369a1;
   --move-status: #92400e;
   --stat-total-from: #424a53;
-  --stat-total-to: #8a929c;   /* #b0b8c0 = 2.06:1 on white */
-  --surface-panel: linear-gradient(150deg, #ffffff 0%, #eef0f2 100%);
+  --stat-total-to: #8a929c;   /* held to 3:1 non-text: every navy-tinted
+                                 candidate (#98a2c4 and lighter) drops to 2.53
+                                 or below, so this bar stays neutral grey. */
+  --surface-panel: linear-gradient(150deg, #ffffff 0%, #eef1f9 100%);
   /* Every dark bucket colour is 1.34-3.11:1 on white, so the light set is a
      different palette, not a reuse. All five clear 4.5:1. */
   --eff-4x: #b42318;
@@ -257,9 +292,9 @@
   --eff-quarter: #166534;
   --eff-immune: #a16207;
 
-  --shadow-card: 0 1px 3px rgba(31, 35, 40, 0.08);
-  --shadow-card-hover: 0 8px 20px rgba(31, 35, 40, 0.12);
-  --shadow-header: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(15, 23, 48, 0.08);
+  --shadow-card-hover: 0 8px 20px rgba(15, 23, 48, 0.12);
+  --shadow-header: 0 1px 3px rgba(15, 23, 48, 0.05);
 }
 
 * {
@@ -1264,26 +1299,32 @@ a.site-nav-item:focus-visible,
     --hairline-strong: rgba(0, 0, 0, 0.4);
     --btn-border: rgba(0, 0, 0, 0.4);
     --btn-bg: #ffffff;
-    --btn-fg: #1f2328;
+    --btn-fg: #0f1730;
     --glow-border: transparent;
     /* Brand colours are not `color`, so they survive into print on their own.
-       Without these, printing from the dark theme lays #f1e05a text on white
-       paper. The header gradients are background-images, so they need the same
-       treatment -- they are pale here for the same reason as in light mode. */
-    --accent-gold: #9c4106;
+       Without these, printing from the dark theme lays #f5c542 text on white
+       paper. --accent-gold-rgb is re-set alongside --accent-gold because the
+       two are independent tokens, not derived: the light block also has to set
+       both, and a print block that set only one left the radar wash and the
+       card glow drawing from the dark triplet on white paper. The header
+       gradients are background-images, so they need the same treatment -- they
+       are pale here for the same reason as in light mode. */
+    --accent-gold: #b3122a;
+    --accent-gold-surface: #b3122a;
+    --accent-gold-rgb: 179, 18, 42;
     --error-text: #b3261e;
-    --hero-tint: rgba(204, 0, 0, 0.04);
+    --hero-tint: rgba(179, 18, 42, 0.04);
     --hero-title-shadow: none;
-    --divider-glow: rgba(31, 35, 40, 0.25);
+    --divider-glow: rgba(15, 23, 48, 0.25);
     --sticky-surface: #ffffff;
-    --accent-gold-rgb: 156, 65, 6;
-    --accent-yellow: #b45309;
+    --accent-yellow: #c76a06;
     --accent-yellow-text: #92400e;
-    --bg-header-sort: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-    --bg-header-maze: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    --bg-header-dex: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-    --bg-header-3d: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
-    --bg-header-colors: linear-gradient(135deg, #ccfbf1 0%, #e0e7ff 100%);
+    --header-base: linear-gradient(180deg, #f6f8fc 0%, #eef1f7 100%);
+    --bg-header-sort: var(--header-base);
+    --bg-header-maze: var(--header-base);
+    --bg-header-dex: var(--header-base);
+    --bg-header-3d: var(--header-base);
+    --bg-header-colors: var(--header-base);
     --header-title-shadow: none;
     color-scheme: light;
   }
