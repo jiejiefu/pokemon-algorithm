@@ -1449,14 +1449,6 @@ body {
   }
 }
 
-/* ===== Reduced motion ===== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* Reduced motion moved to shared.css, which all twelve pages load. detail.html
+   has no animation and no scroll container of its own, so it inherited the rule
+   without appearing to use it — which is why nothing here ever needed it. */

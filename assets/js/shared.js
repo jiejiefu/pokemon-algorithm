@@ -951,7 +951,31 @@ export class PokemonNode {
     this.size = 24;
   }
 
+  /**
+   * @param {number} speed  lerp factor per frame, 0.15 by default
+   *
+   * Under prefers-reduced-motion the node snaps to its target instead of easing
+   * toward it. This is the only place either canvas page's motion can be
+   * controlled, because both of them drive 1,025 sprites from a
+   * requestAnimationFrame loop and a CSS media query cannot reach a canvas — so
+   * a site-wide @media block would have left the two most motion-heavy pages on
+   * the site honouring nothing.
+   *
+   * Snapping rather than slowing keeps the frames' *meaning* intact: the
+   * algorithms here are taught by watching the sprites travel, and a slower lerp
+   * would still be the animation, just longer. The result is that a run still
+   * shows the same sequence of positions, one per frame instead of ~13.
+   *
+   * The media query is read per call rather than cached, so toggling the OS
+   * setting takes effect without a reload, matching the themechange pattern.
+   */
   update(speed = 0.15) {
+    if (typeof window !== 'undefined'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.x = this.targetX;
+      this.y = this.targetY;
+      return;
+    }
     this.x += (this.targetX - this.x) * speed;
     this.y += (this.targetY - this.y) * speed;
   }

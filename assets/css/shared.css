@@ -1368,6 +1368,47 @@ a.site-nav-item:focus-visible,
   .site-nav-drawer { display: none !important; }
 }
 
+/* ===== Reduced motion =====
+   One site-wide block, here rather than in detail.css, which loaded on 1 of 12
+   pages and so left the other 11 honouring nothing. Two properties are
+   deliberately absent, and the reasons are the point:
+
+   - `transform: none` is NOT set, though it is the reflexive advice. This site's
+     transform is not only motion: .theme-toggle is `position: absolute; top: 50%`
+     with `transform: translateY(-50%)` (shared.css:996), so overriding transform
+     to none would drop the theme toggle by half its 34px height — 17px — on
+     every one of the twelve pages, to fix an animation the site barely has.
+     A transform can be a centring mechanism, and `none` is not a neutral value
+     for it. The two real transform hovers are handled where they live instead:
+     index.html keeps its own block for .home-pick's scale(1.01).
+   - The canvas pages' motion is not here at all. maze.html and sorting.html lerp
+     1,025 sprites toward their targets every frame from a requestAnimationFrame
+     loop, which no media query can reach; the guard is in PokemonNode.update() in
+     shared.js, which both pages share.
+
+   Measured inventory, so the block is not speculative: our own CSS declares
+   exactly ONE @keyframes (cp-gradient-shift, colors.css:874, 15s infinite) and
+   28 `transition:` declarations, all 0.2s colour/border/shadow. So this block is
+   mostly insurance for motion that does not exist yet — which is the correct
+   reason to add it, provided it does not damage what does.
+
+   Colors.css keeps its own block and must: it does not merely stop the gradient,
+   it sets a static `background-size: 160% 160%` so the wash still communicates
+   the palette. This one has no way to know that number. Likewise nothing here
+   fights it: the shared rule sets duration and iteration-count, never
+   `animation-name`, so colors.css's `animation: none` still decides which
+   animation exists. Verified by measurement, not by reading the cascade. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ===== Footer / Bottom ===== */
 .footer-note {
   text-align: center;
