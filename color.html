@@ -26,80 +26,81 @@
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <link rel="stylesheet" href="assets/css/colors.css">
-  <style>
-    .cp-page {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 0 16px 64px;
-    }
-  </style>
 </head>
 <body>
-  <header class="header header-colors">
-    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
-    <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
-      <div class="header-title header-title-large">色彩頁</div>
-    </div>
-    <nav class="site-nav" data-nav aria-label="主選單"></nav>
-    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
-    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
-  </header>
-
-  <main class="cp-page" id="main">
-    <div id="status" role="status" aria-live="polite" class="cp-results-note" style="padding:24px 0">載入中…</div>
-
-    <div id="content" hidden>
-      <div id="hero"></div>
-
-      <div class="cp-picker">
-        <a id="pager" class="btn" href="colors-explore.html">色彩探索</a>
-        <a id="detail-link" class="btn" href="detail.html">完整資料頁</a>
-        <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">閃亮外觀</button>
+  <div class="cp-app">
+    <header class="header header-colors">
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+      <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="160" height="128" decoding="async"></a>
+        <div class="header-title header-title-large">色彩頁</div>
       </div>
+      <nav class="site-nav" data-nav aria-label="主選單"></nav>
+      <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+      <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+    </header>
 
-      <section class="cp-section" aria-labelledby="sec-identity">
-        <h2 id="sec-identity">身分卡</h2>
-        <div id="identity"></div>
-      </section>
+    <div class="cp-shell">
+      <div class="cp-scroll">
+        <aside class="cp-panel" aria-label="色盤檢視選項">
+          <div class="cp-picker">
+            <a id="pager" class="btn" href="colors-explore.html">色彩探索</a>
+            <a id="detail-link" class="btn" href="detail.html">完整資料頁</a>
+            <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">閃亮外觀</button>
+          </div>
+        </aside>
 
-      <section class="cp-section" aria-labelledby="sec-palette">
-        <h2 id="sec-palette">色盤</h2>
-        <p class="cp-prose">點選任一色即可複製色碼。</p>
-        <div id="palette"></div>
-      </section>
+        <main class="cp-main" id="main">
+          <div id="status" role="status" aria-live="polite" class="cp-results-note" style="padding:24px 0">載入中…</div>
 
-      <section class="cp-section" aria-labelledby="sec-scale">
-        <h2 id="sec-scale">明暗階</h2>
-        <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相推導。</p>
-        <div id="scale"></div>
-      </section>
+          <div id="content" hidden>
+            <div id="hero"></div>
 
-      <section class="cp-section" aria-labelledby="sec-stats">
-        <h2 id="sec-stats">種族值</h2>
-        <p class="cp-prose">
-          背後是這隻寶可夢官方圖鑑圖的黑色剪影，為本站的呈現方式。
-        </p>
-        <div id="stats"></div>
-      </section>
+            <section class="cp-section" aria-labelledby="sec-identity">
+              <h2 id="sec-identity">身分卡</h2>
+              <div id="identity"></div>
+            </section>
 
-      <section class="cp-section" aria-labelledby="sec-export">
-        <h2 id="sec-export">匯出主題</h2>
-        <div class="cp-actions">
-          <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
-          <button id="copy-json" class="btn" type="button">複製 JSON</button>
-        </div>
-        <pre id="theme-code" class="cp-code"></pre>
-      </section>
+            <section class="cp-section" aria-labelledby="sec-palette">
+              <h2 id="sec-palette">色盤</h2>
+              <p class="cp-prose">點選任一色即可複製色碼。</p>
+              <div id="palette"></div>
+            </section>
+
+            <section class="cp-section" aria-labelledby="sec-scale">
+              <h2 id="sec-scale">明暗階</h2>
+              <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相推導。</p>
+              <div id="scale"></div>
+            </section>
+
+            <section class="cp-section" aria-labelledby="sec-stats">
+              <h2 id="sec-stats">種族值</h2>
+              <p class="cp-prose">
+                背後是這隻寶可夢官方圖鑑圖的黑色剪影，為本站的呈現方式。
+              </p>
+              <div id="stats"></div>
+            </section>
+
+            <section class="cp-section" aria-labelledby="sec-export">
+              <h2 id="sec-export">匯出主題</h2>
+              <div class="cp-actions">
+                <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
+                <button id="copy-json" class="btn" type="button">複製 JSON</button>
+              </div>
+              <pre id="theme-code" class="cp-code"></pre>
+            </section>
+          </div>
+
+          <footer class="home-footer">
+            <div class="home-footer-inner">
+              <p class="home-footer-line">
+                寶可夢演算法實驗室 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
+              </p>
+            </div>
+          </footer>
+        </main>
+      </div>
     </div>
-  </main>
-
-  <footer class="home-footer">
-    <div class="home-footer-inner">
-      <p class="home-footer-line">
-        寶可夢演算法實驗室 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
-      </p>
-    </div>
-  </footer>
+  </div>
 
   <script type="module">
     import {

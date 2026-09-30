@@ -18,6 +18,170 @@
    ======================================================================== */
 
 /* ---------------------------------------------------------------------------
+   0. The colour page shell — app frame, sticky editor panel, scroll column
+   ---------------------------------------------------------------------------
+   Transcribed from the reference's pokemon-page-client.tsx:110-151, with ONE
+   structural change the port forces. The reference root is
+   `flex h-screen overflow-hidden` and it has no site header at all: its logo
+   lives inside the sidebar (collapsible-sidebar.tsx:205-218), so the viewport
+   is the whole frame. This site keeps `.header`, so the frame is a flex COLUMN
+   with the header as one item and the shell as the other — never a hardcoded
+   `100dvh - <n>px`. The header's height is not a constant: `.header` is
+   `flex-direction: column` and its nav collapses into a drawer toggle below the
+   site breakpoint, so any magic number is correct at exactly one width.
+
+   Two declarations are load-bearing rather than habitual:
+
+   (a) `min-height: 0` on the shell. A flex item's default `min-height: auto`
+       refuses to shrink below its content, so without it the shell grows to the
+       right column's full height, the DOCUMENT becomes the scroll container,
+       and the sticky panel pins to a page that scrolls away from under it.
+       That is the failure the reference's own comment at line 113 records from
+       the earlier per-column `overflow-auto` version.
+   (b) `min-width: 0` on the right column, the reference's `md:min-w-0`. The
+       shade scale is 11 columns of hex text and the palette grid is up to 4
+       equal cells; at their min-content width a flex item refuses to shrink and
+       the row overflows the frame horizontally instead of the grid wrapping.
+
+   ONE scroll container, per the reference: the panel and the right column are
+   siblings inside `.cp-scroll` rather than two independently scrolling columns.
+
+   The panel is `position: sticky; top: 0` with `max-height: 100%` and its own
+   `overflow-y: auto`. The `max-height` is what makes the panel's own scrollbar
+   reachable — a sticky element taller than its scrollport pins at the top and
+   its lower half can never be scrolled to, which is the reason the inner
+   overflow is here rather than left off as the reference leaves it.
+   ------------------------------------------------------------------------ */
+.cp-app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.cp-app > .header {
+  flex: 0 0 auto;
+}
+
+.cp-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.cp-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.cp-panel {
+  flex: 0 0 280px;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  /* A surface, not just a rule. The reference's aside carries `bg-sidebar`; a
+     transparent panel here would leave the 1px border as the only thing
+     separating 280px of controls from the column beside it. `--bg-secondary`
+     rather than `--bg-card` because the page surface is `--bg-primary`, so this
+     is the site's own one-step lift, and the panel's `.btn` children carry
+     their own fills anyway.
+
+     Measured by decoding a screenshot, not by reading the token: the painted
+     panel is `#111830` dark / `#ffffff` light — exactly `--bg-secondary` — and
+     the rule composites to `#272e45` / `#e2e3e6` against it, distinct from
+     both the panel and the page at all 8 layout x theme combinations. The
+     surface itself is only 1.08:1 against the page, so the rule is what
+     actually separates the two columns; the fill is what makes the panel read
+     as a plane rather than a gap. Do not drop the fill expecting the rule to
+     carry it alone. */
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--hairline);
+}
+
+.cp-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 24px 64px;
+}
+
+/* Below 1024px the row becomes a column: the panel leaves the side and becomes
+   a full-width block above the content, and it stops being sticky — with the
+   panel in flow the whole frame is one scroller, so a sticky panel would pin
+   over the hero it is supposed to sit beside.
+
+   1023px, not the reference's `md` 767px, and the number is arithmetic rather
+   than preference. The right column is `viewport - 280 (panel) - 48 (padding)`
+   on desktop, and its widest fixed-content section — the 11-column shade scale —
+   measures **574px** of min-content (11 hex cells; the identity card is 230 and
+   nothing else reaches 300). So a 767px row would leave 767-328 = 439px and clip
+   the scale; 1024 leaves 696px and nothing is tight. Measured, not asserted:
+   probe the column with the panel hidden and read each section's min-content.
+
+   This is also what keeps `.cp-scale`'s own `max-width: 640px` six-column rule
+   VALID. That rule is keyed to viewport width, which the frame breaks — the
+   column is 328px narrower than the viewport at every desktop width, so a
+   viewport-keyed rule and a column-width-dependent layout disagree by 328px.
+   Above 1024 the column is always ≥696px, so the scale never wants to drop to 6
+   columns; at 1023 and below the panel has stacked, column = `viewport - 32`, and
+   the 640px rule is measuring almost exactly what it was written to measure. The
+   general rule for this file: inside `.cp-main`, size things by COLUMN width, so
+   prefer a `@container` query over a viewport one.
+
+   The direction lives on `.cp-scroll` and NOT on `flex-direction: column`
+   applied once at the base, because the base is the desktop case: writing the
+   column direction as the default and overriding to `row` at the breakpoint
+   inverts the rule to the one that is not the common case.
+
+   `align-items: stretch` is load-bearing on the panel, and it has to be spelled
+   twice. `.cp-scroll`'s base `align-items: flex-start` is a ROW-axis property,
+   so in the column layout it stops both children stretching on their cross axis
+   and `.cp-main` collapses to its 606px max-content width at every phone
+   viewport — invisible, because `.cp-scroll`'s `overflow-x: hidden` clips the
+   damage instead of reporting it. The container is reset to `stretch` here AND
+   the panel carries its own `align-self: stretch`, which the base rule's
+   `align-self: flex-start` would otherwise win over: on desktop that
+   flex-start is what makes the sticky panel hug its content height instead of
+   stretching to the full 833px scrollport.
+   ------------------------------------------------------------------------ */
+@media (max-width: 1023px) {
+  .cp-scroll {
+    flex-direction: column;
+    align-items: stretch;
+    /* `overflow-x` cannot be `visible` alongside `overflow-y: auto` — the spec
+       forces the visible axis to compute to `auto`. Which is the outcome we want
+       anyway, and it is a deliberate one: `SPAN.cp-cell-share` overflows its
+       swatch cell by 13.7px at 320px, which is PRE-EXISTING (measured at HEAD
+       with the frame removed: document scrollWidth 334 against a 320 viewport,
+       two such spans). The frame's `overflow-x: hidden` would have made that
+       defect unreachable rather than fixed — a 14px horizontal scroller on the
+       inner container keeps it readable and takes it off the document. */
+    overflow-x: auto;
+  }
+
+  .cp-panel {
+    flex: 0 0 auto;
+    align-self: stretch;
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .cp-main {
+    padding: 0 16px 48px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    1. The identity card — gradient body, top-right masked watermark
    ---------------------------------------------------------------------------
    Transcribed from the reference's pokemon-card.tsx:203-225. Three things are
