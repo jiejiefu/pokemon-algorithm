@@ -126,6 +126,170 @@
       background: var(--bg-controls);
       border-bottom: 1px solid var(--hairline);
     }
+
+    /* ===== Page hero =====
+       The third instance of this site's hero pattern, after .gen-hero
+       (generations.html) and .coll-hero (collections.html). Both of those are
+       transcriptions of InfoPoke's pokedex hero, so the structure — gradient,
+       black scrim, centred title, lede, span, four stat tiles — is copied rather
+       than reinvented, and only the tokens below differ.
+
+       THE GRADIENT IS DARKER THAN THE SOURCE ON PURPOSE. InfoPoke's hero is
+       `from-blue-500 via-purple-500 to-pink-500` over a `bg-black/10` scrim.
+       Measured through that scrim, the three stops give white text 4.43:1 /
+       4.77:1 / 4.27:1, and an rgba(255,255,255,.8) stat label 3.72:1 / 4.00:1 /
+       3.58:1 — every one of those below the 4.5:1 that WCAG AA sets for body
+       text. Stepping the same hues down to blue-600 / violet-500 / pink-600
+       gives white 6.10:1 / 6.34:1 / 5.49:1 and the .8 label 5.11:1 / 5.32:1 /
+       4.60:1, so the worst cell clears AA with 0.10 to spare. The hue path, and
+       therefore the InfoPoke feel, is unchanged.
+
+       `.gen-hero` got here first and documents the same correction on its own
+       block ("black/10, not the source's white/10 ... the 3.58:1 that decided
+       it"). Copying its NUMBERS is what makes this safe; copying InfoPoke's
+       colours is not.
+
+       `position: relative` + `isolation: isolate` and the explicit z-index pair
+       are load-bearing, not decoration: the scrim is a ::before, and ::before
+       with z-index auto paints in tree order — i.e. ON TOP of the h1. See
+       generations.html's .gen-hero block for the full argument. */
+    .dex-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #2563eb 0%, #9333ea 50%, #db2777 100%);
+      color: #fff;
+      /* Less vertical padding than .gen-hero's 80px: this page's next row is the
+         search box, and the hero is the one thing standing between the header and
+         the control the page exists for. */
+      padding: 56px 16px;
+      margin: 24px auto 36px;
+      max-width: 1180px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .dex-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .dex-hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .dex-hero-title {
+      margin: 0 0 16px;
+      font-size: 36px;
+      line-height: 1.2;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: var(--header-title-shadow);
+    }
+
+    .dex-hero-lede {
+      margin: 0 auto 16px;
+      max-width: 768px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .dex-hero-span {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    /* 2 tiles on mobile, 4 from 640px — named rather than left to auto-fit, so
+       the column count is a decision on record. Same reasoning as .gen-hero-stats. */
+    .dex-hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 40px auto 0;
+      max-width: 768px;
+      padding: 0;
+      list-style: none;
+    }
+
+    /* black/10, not InfoPoke's white/10. A white scrim LIGHTENS the fill, and
+       these are white numbers on it — it would push them further below AA, not
+       closer. The white/18 border is kept because a darker tile on a lighter
+       gradient needs its edge, and it is what the print rule below restates. */
+    .dex-hero-stats li {
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .dex-hero-stats strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: bold;
+    }
+
+    .dex-hero-stats span {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    @media (min-width: 640px) {
+      .dex-hero { padding: 64px 24px; }
+      .dex-hero-title { font-size: 48px; }
+      .dex-hero-lede { font-size: 20px; }
+      .dex-hero-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (min-width: 1024px) {
+      .dex-hero-title { font-size: 60px; }
+    }
+
+    /* Print is a third palette (shared.css's own @media print block). This
+       gradient cannot survive it: browsers drop background colours unless the
+       user ticks "background graphics", which would leave white text on white
+       paper.
+
+       The scrim has to be hidden EXPLICITLY. `.dex-hero { background: none }`
+       does nothing to a ::before that paints its own background, so the
+       black/10 would print as a 10% grey rectangle sitting on top of the text.
+       `.dex-hero > *` needs no rule — z-index on positioned elements is a paint
+       hint, and with both the ::before and the gradient gone there is nothing
+       left to occlude. */
+    @media print {
+      .dex-hero::before { display: none; }
+
+      .dex-hero {
+        background: none;
+        color: var(--text-primary);
+        box-shadow: none;
+        padding: 0 0 24px;
+      }
+
+      .dex-hero-title,
+      .dex-hero-lede,
+      .dex-hero-span,
+      .dex-hero-stats span {
+        color: var(--text-primary);
+        text-shadow: none;
+      }
+
+      .dex-hero-stats li {
+        background: none;
+        border-color: var(--hairline);
+      }
+    }
   </style>
 </head>
 <body>
@@ -143,7 +307,29 @@
     <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
-  <h1 class="page-h1">1025 全國寶可夢圖鑑</h1>
+  <!-- The page's single h1. Same structure as gen-hero (generations.html) and
+     coll-hero (collections.html) — both are transcriptions of InfoPoke's pokedex
+     hero, so this is the third instance of one pattern, not a new layout. The
+     gradient is the same HUE PATH as InfoPoke's blue→purple→pink but stepped down
+     to -600/-700: InfoPoke's own -500 stops measure 4.43:1 for the lede and 3.58:1
+     for a stat label under a black/10 scrim, so a verbatim copy fails WCAG AA.
+     These stops measure 5.11:1 and 5.32:1 at their lightest. See the block
+     comment on .dex-hero below. -->
+  <section class="dex-hero" aria-labelledby="dex-hero-title">
+    <h1 class="dex-hero-title" id="dex-hero-title">1025 全國寶可夢圖鑑</h1>
+    <p class="dex-hero-lede">1,025 隻寶可夢的完整圖鑑，涵蓋 9 個世代、18 種屬性。</p>
+    <p class="dex-hero-span">從關都 (1996) 到帕底亞 (2022) — 26 年的寶可夢進化史</p>
+    <!-- A <ul>, like gen-hero: these four numbers are a list of facts about the
+         page, and a <ul>/<li> says so where a grid of <div>s would not. The "—"
+         is deliberate — a number only lands here once it is real, so a tile can
+         never show a placeholder that turns out to be wrong. -->
+    <ul class="dex-hero-stats">
+      <li><strong id="dex-stat-total">—</strong><span>寶可夢總數</span></li>
+      <li><strong id="dex-stat-gens">—</strong><span>世代</span></li>
+      <li><strong id="dex-stat-types">—</strong><span>屬性</span></li>
+      <li><strong id="dex-stat-legendary">—</strong><span>傳說＋幻之</span></li>
+    </ul>
+  </section>
 
   <div class="search-controls">
     <input type="text" id="searchInput" class="search-input" 
@@ -241,11 +427,41 @@
       history.replaceState(null, '', url);
     }
 
+    /* The hero's four tiles. Every number is derived from the array already in
+       hand — no second fetch, which is the same move .gen-hero makes. That also
+       means the lede and the span above the tiles, which quote 1,025 / 9 / 18 in
+       prose, cannot drift from the tiles: if the dataset ever changes, the
+       counts move together and the static text is what needs revisiting.
+
+       傳說＋幻之 is one tile, not two: .dex-hero-stats is a 4-column grid at every
+       breakpoint above 640px, and five tiles would leave an orphan on its own
+       row. 幻之 is this site's word for mythical everywhere else — the
+       colors-explore facet list pairs 傳說/幻之 and index.html's quick link says
+       幻之寶可夢. is_legendary and is_mythical are separate booleans in
+       pokemon_data.json (71 and 23 respectively, 94 together). */
+    function renderHeroStats() {
+      const gens = new Set(allPokemonData.map(p => p.generation)).size;
+      const tiles = {
+        'dex-stat-total': allPokemonData.length.toLocaleString('en-US'),
+        'dex-stat-gens': gens,
+        // TYPE_EN_ZH is the site's own 18-key map, already imported above for the
+        // filter dropdown, so the tile and the dropdown cannot disagree on how
+        // many types there are.
+        'dex-stat-types': Object.keys(TYPE_EN_ZH).length,
+        'dex-stat-legendary': allPokemonData.filter(p => p.is_legendary || p.is_mythical).length,
+      };
+      for (const [id, value] of Object.entries(tiles)) {
+        document.getElementById(id).textContent = value;
+      }
+    }
+
     async function fetchPokedex() {
       try {
         allPokemonData = await loadPokemonData();
         loading.style.display = 'none';
-        
+
+        renderHeroStats();
+
         // Populate datalist for autocomplete
         populateDatalist();
         
