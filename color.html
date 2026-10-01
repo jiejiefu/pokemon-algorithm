@@ -39,11 +39,96 @@
     <div class="cp-shell">
       <nav class="cp-rail" data-rail aria-label="主選單"></nav>
       <div class="cp-scroll">
-        <aside class="cp-panel" aria-label="色盤檢視選項">
-          <div class="cp-picker">
-            <a id="pager" class="btn" href="colors-explore.html">色彩探索</a>
-            <a id="detail-link" class="btn" href="detail.html">完整資料頁</a>
-            <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">閃亮外觀</button>
+        <aside class="cp-panel" id="cp-panel" aria-label="寶可夢選單與色盤">
+          <!-- Sits inside the panel but before anything that renders, so a
+               screen reader has the region mounted before the first write. -->
+          <p class="sr-only" id="cp-announce" role="status" aria-live="polite"></p>
+
+          <!-- 1. Top Pokemon Overview Header -->
+          <div class="cp-menu-header" id="menu-header"></div>
+
+          <!-- 2. National Dex Stepper -->
+          <form class="cp-panel-group" id="dex-form" novalidate>
+            <label class="cp-panel-label sr-only" for="dex-input">國號</label>
+            <div class="cp-panel-row">
+              <button type="button" class="cp-dex-step-btn" id="dex-prev" title="上一隻寶可夢" aria-label="上一隻寶可夢">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <input type="text" id="dex-input" class="cp-dex" inputmode="numeric"
+                     placeholder="#" maxlength="4" autocomplete="off" spellcheck="false" title="輸入國號">
+              <button type="button" class="cp-dex-step-btn" id="dex-next" title="下一隻寶可夢" aria-label="下一隻寶可夢">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+              </button>
+              <button type="submit" class="cp-btn sr-only" id="dex-go">前往</button>
+            </div>
+            <p class="cp-panel-error" id="dex-error" role="alert" hidden></p>
+          </form>
+
+          <!-- 3. Search Autocomplete -->
+          <div class="cp-menu-search">
+            <div class="cp-search-box">
+              <svg class="cp-search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="menu-search-input" class="cp-search-field" placeholder="搜尋寶可夢 / Search..." autocomplete="off">
+              <button type="button" id="menu-search-clear" class="cp-search-clear" title="清除" hidden>×</button>
+            </div>
+            <div class="cp-search-results" id="menu-search-results" hidden></div>
+          </div>
+
+          <!-- 4. Action Row (Randomize + Shiny Toggle) -->
+          <div class="cp-menu-actions">
+            <button type="button" id="btn-randomize" class="cp-action-btn cp-random-btn" title="隨機挑選一隻寶可夢">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg>
+              <span>隨機</span>
+            </button>
+            <button type="button" id="shiny-toggle" class="cp-action-btn cp-shiny-toggle" aria-pressed="false" title="切換閃亮外觀 (Shiny)">
+              <svg class="cp-sparkle-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              <span>閃亮</span>
+            </button>
+          </div>
+
+          <!-- 5. Tabs (Palette vs Forms/Related) -->
+          <div class="cp-menu-tabs">
+            <div class="cp-tab-triggers" role="tablist">
+              <button type="button" class="cp-tab-btn is-active" id="tab-btn-palette" role="tab" aria-selected="true" aria-controls="pane-palette">
+                色盤 (Palette)
+              </button>
+              <button type="button" class="cp-tab-btn" id="tab-btn-forms" role="tab" aria-selected="false" aria-controls="pane-forms">
+                型態 / 相關
+              </button>
+            </div>
+
+            <!-- Tab 1: Palette Swatches -->
+            <div class="cp-tab-pane is-active" id="pane-palette" role="tabpanel" aria-labelledby="tab-btn-palette">
+              <fieldset class="cp-format">
+                <legend class="cp-panel-label sr-only">色碼格式</legend>
+                <div class="cp-format-bar">
+                  <span class="cp-format-label">格式</span>
+                  <div class="cp-format-tabs">
+                    <label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="hex" checked><span>HEX</span></label>
+                    <label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="rgb"><span>RGB</span></label>
+                    <label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="hsl"><span>HSL</span></label>
+                  </div>
+                </div>
+              </fieldset>
+              <div class="cp-menu-swatches" id="menu-swatches"></div>
+            </div>
+
+            <!-- Tab 2: Forms & Evolution Chain -->
+            <div class="cp-tab-pane" id="pane-forms" role="tabpanel" aria-labelledby="tab-btn-forms" hidden>
+              <div class="cp-menu-forms" id="menu-forms"></div>
+            </div>
+          </div>
+
+          <!-- Menu Footer Links -->
+          <div class="cp-menu-footer">
+            <a id="detail-link" class="cp-menu-link" href="detail.html">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>完整資料頁</span>
+            </a>
+            <a id="pager" class="cp-menu-link" href="colors-explore.html">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 14.83 4.24 4.24"/></svg>
+              <span>色彩探索</span>
+            </a>
           </div>
         </aside>
 
@@ -53,33 +138,41 @@
           <div id="content" hidden>
             <div id="hero"></div>
 
-            <section class="cp-section" aria-labelledby="sec-identity">
-              <h2 id="sec-identity">身分卡</h2>
-              <div id="identity"></div>
-            </section>
+            <section class="cp-section cp-info-section" aria-labelledby="sec-info" id="info-section"></section>
 
             <section class="cp-section" aria-labelledby="sec-palette">
-              <h2 id="sec-palette">色盤</h2>
-              <p class="cp-prose">點選任一色即可複製色碼。</p>
+              <div class="cp-section-header">
+                <div>
+                  <h2 id="sec-palette" class="cp-section-title">色盤 · Color Palette</h2>
+                  <p class="cp-prose" style="margin:4px 0 0">點選任一色塊即可複製色碼。</p>
+                </div>
+                <div class="cp-format-tabs" role="radiogroup" aria-label="色碼格式">
+                  <label class="sc-tab"><input class="cp-tab-input cp-inline-format" type="radio" name="cp-format-inline" value="hex" checked><span>HEX</span></label>
+                  <label class="sc-tab"><input class="cp-tab-input cp-inline-format" type="radio" name="cp-format-inline" value="rgb"><span>RGB</span></label>
+                  <label class="sc-tab"><input class="cp-tab-input cp-inline-format" type="radio" name="cp-format-inline" value="hsl"><span>HSL</span></label>
+                </div>
+              </div>
               <div id="palette"></div>
             </section>
 
+            <section class="cp-section" aria-labelledby="sec-pkcard">
+              <div id="pokemon-card"></div>
+            </section>
+
             <section class="cp-section" aria-labelledby="sec-scale">
-              <h2 id="sec-scale">明暗階</h2>
-              <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相推導。</p>
+              <h2 id="sec-scale" class="cp-section-title">明暗階 · Shade Scale</h2>
+              <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相調整明度與飽和度推導而出。</p>
               <div id="scale"></div>
             </section>
 
-            <section class="cp-section" aria-labelledby="sec-stats">
-              <h2 id="sec-stats">種族值</h2>
-              <p class="cp-prose">
-                背後是這隻寶可夢官方圖鑑圖的黑色剪影，為本站的呈現方式。
-              </p>
-              <div id="stats"></div>
+            <section class="cp-section" aria-labelledby="sec-showcase">
+              <h2 id="sec-showcase" class="cp-section-title">套用展示 · See your palette in action</h2>
+              <p class="cp-prose">同一組色票套進四種常見版面：卡片、圖表、儀表板與元件。</p>
+              <div id="showcase"></div>
             </section>
 
             <section class="cp-section" aria-labelledby="sec-export">
-              <h2 id="sec-export">匯出主題</h2>
+              <h2 id="sec-export" class="cp-section-title">匯出主題 · Export Theme</h2>
               <div class="cp-actions">
                 <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
                 <button id="copy-json" class="btn" type="button">複製 JSON</button>
@@ -104,14 +197,20 @@
   <script type="module">
     import {
       loadPokemonData, formatPokemonId, initColorRail,
-      pokemonDetailUrl, typeBadgeSmHtml,
+      pokemonDetailUrl, TYPE_EN_ZH, loadEvolutionChains,
     } from './assets/js/shared.js';
     import {
       loadColorPalettes, paletteRows, primaryOf, secondaryOf,
-      spriteUrl, artworkUrl, silhouetteStyle, identityCardHtml, heroHtml,
-      paletteGridHtml, paletteStripHtml, generateTailwindScale, anchorIndex,
-      findBySlug, paletteUrl, swatchStyle,
+      artworkUrl, silhouetteStyle,
+      paletteGridHtml, generateTailwindScale, anchorIndex,
+      findBySlug, paletteUrl, swatchStyle, HEX_FORMATS,
+      showcaseHtml, wireShowcaseTabs,
+      describeHex, colorTemperature, TEMPERATURE_ZH,
+      formatHex,
+      paletteToThemeTokens, themeToTailwindV4Css, themeToTailwindV3Config,
+      themeToJson, THEME_PREVIEW_ROWS, themeVarBlock,
     } from './assets/js/color-palette.js';
+    import { genusZh } from './assets/js/pokemon-lexicon.js';
 
     initColorRail('color.html');
 
@@ -119,18 +218,36 @@
       status: document.getElementById('status'),
       content: document.getElementById('content'),
       hero: document.getElementById('hero'),
-      identity: document.getElementById('identity'),
       palette: document.getElementById('palette'),
+      pokemonCard: document.getElementById('pokemon-card'),
       scale: document.getElementById('scale'),
-      stats: document.getElementById('stats'),
+      showcase: document.getElementById('showcase'),
       themeCode: document.getElementById('theme-code'),
       shiny: document.getElementById('shiny-toggle'),
       detailLink: document.getElementById('detail-link'),
       copyTheme: document.getElementById('copy-theme'),
       copyJson: document.getElementById('copy-json'),
+      dexForm: document.getElementById('dex-form'),
+      dexInput: document.getElementById('dex-input'),
+      dexError: document.getElementById('dex-error'),
+      dexPrev: document.getElementById('dex-prev'),
+      dexNext: document.getElementById('dex-next'),
+      btnRandomize: document.getElementById('btn-randomize'),
+      menuHeader: document.getElementById('menu-header'),
+      menuSearchInput: document.getElementById('menu-search-input'),
+      menuSearchClear: document.getElementById('menu-search-clear'),
+      menuSearchResults: document.getElementById('menu-search-results'),
+      tabBtnPalette: document.getElementById('tab-btn-palette'),
+      tabBtnForms: document.getElementById('tab-btn-forms'),
+      panePalette: document.getElementById('pane-palette'),
+      paneForms: document.getElementById('pane-forms'),
+      menuSwatches: document.getElementById('menu-swatches'),
+      menuForms: document.getElementById('menu-forms'),
+      panel: document.getElementById('cp-panel'),
+      announce: document.getElementById('cp-announce'),
+      infoSection: document.getElementById('info-section'),
     };
 
-    // Six stats, the site's own labels, in the order the detail page uses.
     const STAT_ROWS = [
       ['hp', 'HP'], ['attack', '攻擊'], ['defense', '防禦'],
       ['sp_attack', '特攻'], ['sp_defense', '特防'], ['speed', '速度'],
@@ -139,9 +256,148 @@
 
     let pokemon = [];
     let palettes = null;
+    let abilitiesZh = {};
+    let chains = null;
     let current = null;
-    // Default to shiny when the URL says so, so a shared link reproduces.
     let shiny = new URLSearchParams(location.search).get('variant') === 'shiny';
+    let format = 'hex';
+    let activeMenuTab = 'palette';
+
+    function syncFormatInputs(newFormat) {
+      format = newFormat;
+      document.querySelectorAll('input[name="cp-format"], input[name="cp-format-inline"]').forEach(r => {
+        r.checked = (r.value === newFormat);
+      });
+    }
+
+    function renderMenu(rows, primary, secondary) {
+      // 1. Menu Header
+      const spriteImg = shiny ? `assets/images/shiny/${current.id}.png` : `assets/images/pokemon/${current.id}.png`;
+      const fallbackSprite = `assets/images/pokemon/${current.id}.png`;
+      els.menuHeader.innerHTML = `
+        <div class="cp-menu-sprite-wrap">
+          <img class="cp-menu-sprite" src="${spriteImg}" alt="${current.names.zh}"
+               onerror="if(this.src!=='${fallbackSprite}'){this.src='${fallbackSprite}';}">
+        </div>
+        <h2 class="cp-menu-name">
+          <span>${current.names.zh}</span>
+          <span class="en-sub">${current.names.en}</span>
+        </h2>
+        <p class="cp-menu-genus">${genusZh(current)}</p>
+      `;
+
+      // 2. Stepper status
+      els.dexPrev.disabled = current.id <= 1;
+      els.dexNext.disabled = current.id >= pokemon.length;
+      els.dexInput.value = current.id;
+
+      // 3. Shiny toggle styling
+      els.shiny.setAttribute('aria-pressed', String(shiny));
+      if (shiny) {
+        els.shiny.classList.add('is-active');
+      } else {
+        els.shiny.classList.remove('is-active');
+      }
+
+      // 4. Accent on sidebar
+      els.panel.style.setProperty('--menu-accent', primary);
+      const r = parseInt(primary.slice(1, 3), 16);
+      const g = parseInt(primary.slice(3, 5), 16);
+      const b = parseInt(primary.slice(5, 7), 16);
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      els.panel.style.setProperty('--menu-accent-text', lum > 0.55 ? '#111827' : '#ffffff');
+
+      // 5. Palette Tab swatches
+      els.menuSwatches.innerHTML = rows.map(([hex, share]) => {
+        const text = formatHex(hex, format);
+        const tip = `${text} · 占比 ${Math.round(share)}%`;
+        return `
+          <div class="cp-menu-swatch" style="${swatchStyle(hex)}" data-cp-copy="${text}" title="${tip}">
+            <div class="cp-menu-swatch-left">
+              <svg class="cp-menu-swatch-grip" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/>
+                <circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+              </svg>
+              <span class="cp-menu-swatch-val">${text}</span>
+              <span class="cp-menu-swatch-share">${Math.round(share)}%</span>
+            </div>
+            <button type="button" class="cp-menu-swatch-copy" title="複製 ${text}" aria-label="複製 ${text}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // 6. Forms & Evolution Tab
+      const chain = chains?.[String(current.evolution_chain_id)];
+      const baseNodes = (chain?.main_line || []).filter(n => n.id <= 1025);
+      const stagesMap = new Map();
+      baseNodes.forEach(node => {
+        const st = node.stage || 1;
+        if (!stagesMap.has(st)) stagesMap.set(st, []);
+        stagesMap.get(st).push(node);
+      });
+      const sortedStages = Array.from(stagesMap.keys()).sort((a, b) => a - b);
+
+      let chainHtml = '<div class="cp-forms-group"><h4 class="cp-forms-title">進化鏈 · Evolution Chain</h4><div class="cp-evo-chain">';
+      if (baseNodes.length <= 1) {
+        chainHtml += `
+          <div class="cp-evo-level">
+            <div class="cp-evo-card is-current">
+              <img src="${shiny ? 'assets/images/shiny/' + current.id + '.png' : 'assets/images/pokemon/' + current.id + '.png'}" alt="${current.names.zh}" onerror="this.src='assets/images/pokemon/${current.id}.png'">
+              <span class="cp-evo-card-id">#${formatPokemonId(current.id)}</span>
+              <span class="cp-evo-card-name">${current.names.zh}</span>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;text-align:center;">單一階段（無進化鏈）</p>
+        `;
+      } else {
+        sortedStages.forEach((st, idx) => {
+          const nodes = stagesMap.get(st);
+          chainHtml += '<div class="cp-evo-level">';
+          nodes.forEach(node => {
+            const isCur = node.id === current.id;
+            const spriteSrc = shiny ? `assets/images/shiny/${node.id}.png` : `assets/images/pokemon/${node.id}.png`;
+            chainHtml += `
+              <button type="button" class="cp-evo-card ${isCur ? 'is-current' : ''}" data-nav-id="${node.id}">
+                <img src="${spriteSrc}" alt="${node.name_zh}" onerror="this.src='assets/images/pokemon/${node.id}.png'">
+                <span class="cp-evo-card-id">#${formatPokemonId(node.id)}</span>
+                <span class="cp-evo-card-name">${node.name_zh}</span>
+              </button>
+            `;
+          });
+          chainHtml += '</div>';
+          if (idx < sortedStages.length - 1) {
+            chainHtml += '<div class="cp-evo-arrow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>';
+          }
+        });
+      }
+      chainHtml += '</div></div>';
+
+      // Forms / Mega / G-Max / Regional
+      const formNodes = (chain?.main_line || []).filter(n => n.id > 1025);
+      let formsHtml = '';
+      if (formNodes.length > 0) {
+        formsHtml += '<div class="cp-forms-group" style="margin-top:12px;"><h4 class="cp-forms-title">特殊形態 · Forms</h4><div class="cp-form-cards">';
+        formNodes.forEach(f => {
+          const tag = f.form === 'mega' ? 'Mega' : f.form === 'gmax' ? 'G-Max' : '型態';
+          formsHtml += `
+            <div class="cp-form-card" title="${f.name_zh}">
+              <img src="assets/images/pokemon/${f.id}.png" alt="${f.name_zh}" onerror="this.style.display='none'">
+              <div class="cp-form-info">
+                <span class="cp-form-name">${f.name_zh}</span>
+                <span class="cp-form-tag">${tag}</span>
+              </div>
+            </div>
+          `;
+        });
+        formsHtml += '</div></div>';
+      }
+      els.menuForms.innerHTML = chainHtml + formsHtml;
+    }
 
     function render() {
       const rows = paletteRows(palettes, current.id, shiny);
@@ -149,39 +405,193 @@
       const secondary = secondaryOf(palettes, current.id, shiny);
       const variant = shiny ? 's' : 'n';
       const art = artworkUrl(current.id, shiny);
-      const sprite = spriteUrl(current.id, shiny);
 
-      // The clean path is only resolvable on GitHub Pages; `?slug=` is the form
-      // every local workflow and the nav links use (AGENTS.md gotcha 8).
       history.replaceState(null, '', paletteUrl(current) + (shiny ? '&variant=shiny' : ''));
+
+      renderMenu(rows, primary, secondary);
 
       els.detailLink.href = pokemonDetailUrl(current);
       els.shiny.setAttribute('aria-pressed', String(shiny));
+      syncFormatInputs(format);
 
-      els.hero.innerHTML = heroHtml({
-        primary, secondary, artUrl: art,
-        bodyHtml: `
-          <img class="cp-hero-sprite" src="${sprite}" alt="" width="96" height="96" decoding="async">
-          <p class="cp-hero-id">#${formatPokemonId(current.id)}</p>
-          <h1 class="cp-hero-name">${current.names.zh}</h1>
-          <p class="cp-hero-name-en">${current.names.en}</p>
-          <div class="cp-hero-types">${(current.types || []).map(t => typeBadgeSmHtml(t)).join('')}</div>`,
-      });
-
-      els.identity.innerHTML = identityCardHtml({
-        primary, secondary, artUrl: art,
-        bodyHtml: `
-          <div>
-            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 閃亮' : ''}</p>
-            <h3 class="cp-idcard-name">${current.names.zh}</h3>
-            <p class="cp-idcard-name-en">${current.names.en}</p>
+      // 1. Hero: mirrors PokemonHero.tsx
+      els.hero.innerHTML = `
+        <div class="cp-hero" style="--cp-wash-1:${primary}70;--cp-wash-2:${secondary}25">
+          <div class="cp-hero-grad" aria-hidden="true"></div>
+          <div class="cp-hero-content">
+            <div class="cp-hero-pill-badge">#${formatPokemonId(current.id)}${shiny ? ' · 閃亮' : ''}</div>
+            <h1 class="cp-hero-title">
+              Your website — inspired by
+              <span class="cp-hero-grad-name" style="--hero-primary:${primary}">${current.names.zh}</span>
+            </h1>
+            <p class="cp-hero-subtitle">
+              提取自 #${formatPokemonId(current.id)} ${current.names.en} 的 ${rows.length} 色代表色盤。點選色塊即可複製色碼，並預覽元件與主題套用。
+            </p>
+            <div class="cp-hero-actions">
+              <button id="hero-shiny-btn" class="btn cp-shiny-btn" type="button" aria-pressed="${shiny}">
+                ${shiny ? '✨ 閃亮外觀（已開啟）' : '✨ 閃亮外觀'}
+              </button>
+              <a class="btn" href="${pokemonDetailUrl(current)}">查看完整圖鑑資料</a>
+              <a class="btn" href="colors-explore.html">探索更多色盤</a>
+            </div>
           </div>
-          <div id="identity-strip"></div>`,
-      });
-      els.identity.querySelector('#identity-strip').innerHTML = paletteStripHtml(rows);
+          <div class="cp-hero-art">
+            <img src="${art}" alt="${current.names.zh}" width="450" height="450" decoding="async">
+          </div>
+        </div>`;
 
-      els.palette.innerHTML = paletteGridHtml(rows, { id: current.id, variant });
+      const heroShiny = document.getElementById('hero-shiny-btn');
+      if (heroShiny) {
+        heroShiny.addEventListener('click', () => {
+          shiny = !shiny;
+          render();
+        });
+      }
 
+      // 1b. Info section: mirrors reference's SEO article
+      const colorDesc = describeHex(primary);
+      const temp = colorTemperature(primary);
+      const tempZh = TEMPERATURE_ZH[temp] || '中性';
+      const description = current.descriptions?.zh || current.descriptions?.zh_text2 || current.descriptions?.en_flavor || '暫無說明。';
+      const typesStr = (current.types || []).map(t => TYPE_EN_ZH[t] || t).join('/');
+      const genNum = current.generation || 1;
+
+      const infoHexList = rows.map(([hex, share]) => `
+        <li class="cp-info-color">
+          <span class="cp-info-swatch" aria-hidden="true" style="${swatchStyle(hex)}"></span>
+          <span class="cp-info-color-meta">
+            <code>${hex}</code>
+            <span class="cp-info-color-share">${Math.round(share)}%</span>
+          </span>
+        </li>`).join('');
+
+      els.infoSection.innerHTML = `
+        <article class="cp-info-article">
+          <h2 id="sec-info" class="cp-info-heading">
+            ${current.names.zh}色盤 — 以${colorDesc}為主的${tempZh}配色
+          </h2>
+          <p class="cp-info-desc">
+            ${current.names.zh}是第 ${genNum} 世代的${typesStr}屬性寶可夢。
+            官方圖像提取出 ${rows.length} 色均衡色盤，主色為
+            <code class="cp-info-code" style="${swatchStyle(primary)}">${primary}</code>（${colorDesc}）。
+            所有色碼皆可以 HEX、RGB 或 HSL 格式複製，適用於設計、品牌配色或數位創作。
+          </p>
+          <blockquote class="cp-info-quote">${description}</blockquote>
+          <h3 class="cp-info-sub">${current.names.zh}色盤一覽</h3>
+          <ul class="cp-info-colors">${infoHexList}</ul>
+        </article>`;
+
+      // 2. Palette Display: mirrors PokemonPaletteDisplay.tsx
+      els.palette.innerHTML = paletteGridHtml(rows, { id: current.id, variant, format });
+
+      // 3. PokemonCard: mirrors PokemonCard.tsx
+      const stats = current.stats || {};
+      // description already declared above (info section)
+      const genus = genusZh(current);
+
+      const typesHtml = (current.types || []).map((t, i) => {
+        const c = rows[i % rows.length]?.[0] || primary;
+        const style = swatchStyle(c);
+        return `<span class="cp-pkcard-badge" style="${style}">${TYPE_EN_ZH[t] || t}</span>`;
+      }).join('');
+
+      const abilitiesHtml = (current.abilities || []).map((ab, i) => {
+        const c = rows[(i + (current.types || []).length) % rows.length]?.[0] || secondary;
+        const style = swatchStyle(c);
+        const zh = abilitiesZh[ab]?.zh || ab;
+        return `<span class="cp-pkcard-badge" style="${style}">${zh}</span>`;
+      }).join('') + (current.hidden_ability ? (() => {
+        const c = rows[((current.abilities || []).length + (current.types || []).length) % rows.length]?.[0] || secondary;
+        const style = swatchStyle(c);
+        const zh = abilitiesZh[current.hidden_ability]?.zh || current.hidden_ability;
+        return `<span class="cp-pkcard-badge cp-badge-hidden" style="${style}">${zh} <span class="cp-hidden-tag">(隱藏)</span></span>`;
+      })() : '');
+
+      const statsRowsHtml = STAT_ROWS.map(([key, label]) => {
+        const value = Number(stats[key] || 0);
+        const pct = Math.min(100, Math.round((value / STAT_MAX) * 100));
+        return `
+          <div class="cp-pkcard-stat-row">
+            <div class="cp-pkcard-stat-head">
+              <span class="cp-pkcard-stat-name">${label}</span>
+              <span class="cp-pkcard-stat-val">${value}</span>
+            </div>
+            <div class="cp-pkcard-track">
+              <div class="cp-pkcard-bar" style="width:${pct}%;background-color:${primary}"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      els.pokemonCard.innerHTML = `
+        <article class="cp-pkcard" style="--card-wash-1:${primary}18;--card-wash-2:${secondary}10">
+          <div class="cp-pkcard-wm" aria-hidden="true">
+            <div style="${silhouetteStyle(primary, art)}"></div>
+          </div>
+          <div class="cp-pkcard-inner">
+            <div class="cp-pkcard-header">
+              <div>
+                <div class="cp-pkcard-title-row">
+                  <h2 class="cp-pkcard-name">${current.names.zh}</h2>
+                  <span class="cp-pkcard-name-en">${current.names.en}</span>
+                  <span class="cp-pkcard-id">#${formatPokemonId(current.id)}</span>
+                </div>
+                <p class="cp-pkcard-genus">${genus}</p>
+                <div class="cp-pkcard-types">
+                  ${typesHtml}
+                </div>
+              </div>
+              <div class="cp-pkcard-actions">
+                <a class="btn cp-pkcard-btn" href="${pokemonDetailUrl(current)}" target="_blank" rel="noopener">
+                  <span>完整圖鑑資料</span>
+                  <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div class="cp-pkcard-grid">
+              <div class="cp-pkcard-col">
+                <div>
+                  <h3 class="cp-pkcard-subtitle">圖鑑說明 · Pokédex Entry</h3>
+                  <p class="cp-pkcard-desc">${description}</p>
+                </div>
+                <div>
+                  <h3 class="cp-pkcard-subtitle">身體特徵 · Physical Traits</h3>
+                  <div class="cp-pkcard-traits">
+                    <div class="cp-pkcard-trait-item">
+                      <span class="cp-pkcard-trait-label">身高</span>
+                      <span class="cp-pkcard-trait-val">${current.height_m ?? '—'} m</span>
+                    </div>
+                    <div class="cp-pkcard-trait-item">
+                      <span class="cp-pkcard-trait-label">體重</span>
+                      <span class="cp-pkcard-trait-val">${current.weight_kg ?? '—'} kg</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="cp-pkcard-subtitle">特性 · Abilities</h3>
+                  <div class="cp-pkcard-abilities">
+                    ${abilitiesHtml}
+                  </div>
+                </div>
+              </div>
+
+              <div class="cp-pkcard-col">
+                <h3 class="cp-pkcard-subtitle">種族值 · Base Stats</h3>
+                <div class="cp-pkcard-stats">
+                  ${statsRowsHtml}
+                  <div class="cp-pkcard-stat-total">
+                    <span>能力總和 Total</span>
+                    <span>${Number(stats.total || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>`;
+
+      // 4. Shade scale
       const { scale, anchor } = generateTailwindScale(primary);
       const ai = anchorIndex(anchor);
       els.scale.innerHTML = '<div class="cp-scale">' +
@@ -193,32 +603,21 @@
             <span class="cp-shade-step">${step}</span>
           </button>`).join('') + '</div>';
 
-      // Base Stats: the official artwork as a black silhouette behind the bars.
-      // The mask comes from the module so the fill and the mask-image pair ship
-      // together; a page that set only `background` would get a black box.
-      const stats = current.stats || {};
-      els.stats.innerHTML = `
-        <div class="cp-stats">
-          <div class="cp-stats-art" style="${silhouetteStyle('#000000', art)}"></div>
-          <div class="cp-stat-rows">
-            ${STAT_ROWS.map(([key, label]) => {
-              const value = Number(stats[key] || 0);
-              const pct = Math.round((value / STAT_MAX) * 100);
-              return `<div class="cp-stat">
-                <span class="cp-stat-label">${label}</span>
-                <span class="cp-stat-track"><span class="cp-stat-fill" style="width:${pct}%"></span></span>
-                <span class="cp-stat-value">${value}</span>
-              </div>`;
-            }).join('')}
-            <div class="cp-stat is-total">
-              <span class="cp-stat-label">總和</span>
-              <span class="cp-stat-track"><span class="cp-stat-fill" style="width:${Math.round((Number(stats.total || 0) / (STAT_MAX * 6)) * 100)}%"></span></span>
-              <span class="cp-stat-value">${Number(stats.total || 0)}</span>
-            </div>
-          </div>
-        </div>`;
+      // 5. Showcase: mirrors ColorShowcase.tsx
+      els.showcase.innerHTML = showcaseHtml({
+        primary,
+        secondary,
+        scale,
+        stats: current.stats,
+        name: current.names.zh,
+        count: rows.length,
+        share: Math.round(rows[0]?.[1] || 0),
+      });
+      wireShowcaseTabs(els.showcase);
 
+      // 6. Export Theme
       els.themeCode.textContent = themeCss(rows, scale);
+      els.dexInput.value = current.id;
       document.title = `${current.names.zh} 色盤 · 寶可夢演算法實驗室`;
     }
 
@@ -274,22 +673,215 @@
       setTimeout(() => { els.copyJson.textContent = '複製 JSON'; }, 1400);
     });
 
+    function selectPokemon(p, targetShiny = shiny) {
+      if (!p) return;
+      current = p;
+      shiny = targetShiny;
+      els.dexError.hidden = true;
+      render();
+      announce(`已切換至 #${formatPokemonId(p.id)} ${p.names.zh}`);
+    }
+
     els.shiny.addEventListener('click', () => {
       shiny = !shiny;
       render();
     });
 
+    els.dexPrev.addEventListener('click', () => {
+      if (!current || current.id <= 1) return;
+      const prev = pokemon.find(p => p.id === current.id - 1);
+      if (prev) selectPokemon(prev);
+    });
+
+    els.dexNext.addEventListener('click', () => {
+      if (!current || current.id >= pokemon.length) return;
+      const next = pokemon.find(p => p.id === current.id + 1);
+      if (next) selectPokemon(next);
+    });
+
+    els.btnRandomize.addEventListener('click', () => {
+      if (!pokemon.length) return;
+      const randIndex = Math.floor(Math.random() * pokemon.length);
+      selectPokemon(pokemon[randIndex]);
+    });
+
+    function updateSearchResults() {
+      const query = (els.menuSearchInput.value || '').trim().toLowerCase();
+      if (!query) {
+        els.menuSearchResults.hidden = true;
+        els.menuSearchResults.innerHTML = '';
+        els.menuSearchClear.hidden = true;
+        return;
+      }
+      els.menuSearchClear.hidden = false;
+      const matches = pokemon.filter(p => {
+        const idStr = String(p.id);
+        const padId = idStr.padStart(3, '0');
+        const pad4Id = idStr.padStart(4, '0');
+        const zh = (p.names?.zh || '').toLowerCase();
+        const en = (p.names?.en || '').toLowerCase();
+        return idStr.includes(query) || padId.includes(query) || pad4Id.includes(query) || zh.includes(query) || en.includes(query);
+      }).slice(0, 12);
+
+      if (matches.length === 0) {
+        els.menuSearchResults.innerHTML = '<div class="cp-search-empty">找不到相關寶可夢</div>';
+        els.menuSearchResults.hidden = false;
+        return;
+      }
+
+      els.menuSearchResults.innerHTML = matches.map(p => `
+        <button type="button" class="cp-search-item" data-search-id="${p.id}">
+          <img src="assets/images/pokemon/${p.id}.png" alt="${p.names.zh}" loading="lazy">
+          <div class="cp-search-item-info">
+            <span class="cp-search-item-name">${p.names.zh}</span>
+            <span class="cp-search-item-en">${p.names.en}</span>
+          </div>
+          <span class="cp-search-item-id">#${formatPokemonId(p.id)}</span>
+        </button>
+      `).join('');
+      els.menuSearchResults.hidden = false;
+    }
+
+    els.menuSearchInput.addEventListener('input', updateSearchResults);
+    els.menuSearchInput.addEventListener('focus', () => {
+      if (els.menuSearchInput.value.trim()) updateSearchResults();
+    });
+
+    els.menuSearchClear.addEventListener('click', () => {
+      els.menuSearchInput.value = '';
+      els.menuSearchResults.hidden = true;
+      els.menuSearchResults.innerHTML = '';
+      els.menuSearchClear.hidden = true;
+      els.menuSearchInput.focus();
+    });
+
+    els.menuSearchResults.addEventListener('click', event => {
+      const btn = event.target.closest('[data-search-id]');
+      if (!btn) return;
+      const targetId = Number(btn.dataset.searchId);
+      const found = pokemon.find(p => p.id === targetId);
+      if (found) {
+        els.menuSearchInput.value = '';
+        els.menuSearchResults.hidden = true;
+        els.menuSearchResults.innerHTML = '';
+        els.menuSearchClear.hidden = true;
+        selectPokemon(found);
+      }
+    });
+
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.cp-menu-search')) {
+        els.menuSearchResults.hidden = true;
+      }
+    });
+
+    function switchMenuTab(tabName) {
+      activeMenuTab = tabName;
+      const isPalette = tabName === 'palette';
+      els.tabBtnPalette.classList.toggle('is-active', isPalette);
+      els.tabBtnPalette.setAttribute('aria-selected', String(isPalette));
+      els.tabBtnForms.classList.toggle('is-active', !isPalette);
+      els.tabBtnForms.setAttribute('aria-selected', String(!isPalette));
+
+      els.panePalette.hidden = !isPalette;
+      els.panePalette.classList.toggle('is-active', isPalette);
+      els.paneForms.hidden = isPalette;
+      els.paneForms.classList.toggle('is-active', !isPalette);
+    }
+
+    els.tabBtnPalette.addEventListener('click', () => switchMenuTab('palette'));
+    els.tabBtnForms.addEventListener('click', () => switchMenuTab('forms'));
+
+    els.menuForms.addEventListener('click', event => {
+      const btn = event.target.closest('[data-nav-id]');
+      if (!btn) return;
+      const targetId = Number(btn.dataset.navId);
+      const found = pokemon.find(p => p.id === targetId);
+      if (found) selectPokemon(found);
+    });
+
+    window.addEventListener('popstate', () => {
+      const params = new URLSearchParams(location.search);
+      const targetShiny = params.get('variant') === 'shiny';
+      const found = findBySlug(pokemon, params.get('slug'), params.get('id'));
+      if (found && (found.id !== current?.id || targetShiny !== shiny)) {
+        current = found;
+        shiny = targetShiny;
+        render();
+      }
+    });
+
+    // Format listeners: synchronize sidebar and inline header radio groups
+    document.addEventListener('change', event => {
+      const target = event.target;
+      if (target.name === 'cp-format' || target.name === 'cp-format-inline') {
+        if (!target.checked) return;
+        syncFormatInputs(target.value);
+        render();
+      }
+    });
+
+    function showDexError(message) {
+      els.dexError.textContent = message;
+      els.dexError.hidden = false;
+    }
+
+    function announce(message) {
+      els.announce.textContent = '';
+      requestAnimationFrame(() => { els.announce.textContent = message; });
+    }
+
+    els.dexForm.addEventListener('submit', event => {
+      event.preventDefault();
+      els.dexError.hidden = true;
+      const raw = els.dexInput.value.trim();
+      if (!raw) {
+        showDexError('請輸入國號，例如 001。');
+        els.dexInput.focus();
+        return;
+      }
+      if (!/^\d+$/.test(raw)) {
+        showDexError('國號只能是數字。');
+        els.dexInput.focus();
+        return;
+      }
+      const id = Number(raw);
+      const found = pokemon.find(p => Number(p.id) === id);
+      if (!found) {
+        showDexError(`沒有 #${id} 這個寶可夢，國號範圍是 1–${pokemon.length}。`);
+        els.dexInput.select();
+        return;
+      }
+      selectPokemon(found, false);
+    });
+
     async function init() {
       try {
-        [pokemon, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        const [pokemonData, paletteData, abilitiesData, chainData] = await Promise.all([
+          loadPokemonData(),
+          loadColorPalettes(),
+          fetch('assets/data/abilities_zh.json').then(r => r.ok ? r.json() : {}).catch(() => ({})),
+          loadEvolutionChains().catch(() => ({})),
+        ]);
+        pokemon = pokemonData;
+        palettes = paletteData;
+        abilitiesZh = abilitiesData;
+        chains = chainData;
+
+        // Runtime check: format sync guard
+        document.querySelectorAll('input[name="cp-format"]').forEach(r => {
+          if (!HEX_FORMATS.includes(r.value)) console.warn(`unknown format ${r.value}`);
+        });
+        HEX_FORMATS.forEach(f => {
+          if (!document.querySelector(`input[name="cp-format"][value="${f}"]`)) {
+            console.warn(`HEX_FORMATS declares ${f} but no radio offers it`);
+          }
+        });
+
         const params = new URLSearchParams(location.search);
         current = findBySlug(pokemon, params.get('slug'), params.get('id'));
 
         if (!current) {
-          // An unknown slug is a 404 in spirit, but this site has no per-page
-          // 404 for query-driven pages and detail.html falls back the same way.
-          // The message names what was asked for, because "找不到寶可夢" on its
-          // own sends the reader looking at the roster instead of the URL.
           els.status.innerHTML =
             `<div class="cp-empty"><p>找不到這個寶可夢。</p>` +
             `<p>網址中的 <code>${(params.get('slug') || params.get('id') || '（空白）').slice(0, 60)}</code> 不在 1–1025 範圍內。</p>` +

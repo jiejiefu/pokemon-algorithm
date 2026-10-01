@@ -255,18 +255,34 @@ export function paletteColumns(n) {
  * keeps every colour readable, and the share is the precise channel.
  *
  * @param {Array<[string, number]>} rows
- * @param {Object} [options] - { id, variant }
+ * @param {Object} [options] - { id, variant, format }
  * @returns {string}
  */
 export function paletteGridHtml(rows, options = {}) {
   if (!rows.length) return '<p class="cp-empty">此寶可夢沒有色盤資料</p>';
+  // `format` is the NOTATION the cells speak, and it has to reach the copy
+  // payload as well as the label. The click handler is delegated and reads
+  // `data-cp-copy`, so writing the converted value into that attribute is what
+  // makes copy follow the display — reference behaviour, at
+  // pokemon-palette-display.tsx:105 (`handleCopy(colorValue)`) feeding on
+  // :159 (`colorValue = convertColor(color, colorFormat)`). Copying the raw hex
+  // while RGB is on screen would be the one thing a format switch must not do.
+  //
+  // It also reaches `title` and `aria-label`: a swatch whose pixels say
+  // `rgb(76, 175, 80)` but whose accessible name says `#4CAF50` tells a screen
+  // reader something different from what the sighted user is reading.
+  //
+  // Defaults to 'hex' so the callers this change is not touching
+  // (colors.html:252,254 and colors-explore.html:231) render byte-identically.
+  const format = options.format || 'hex';
   const cols = paletteColumns(rows.length);
   const cells = rows
     .map(([hex, share]) => {
       const shareText = formatShare(share);
-      const tip = `${hex} · 占比 ${shareText}`;
-      return `<button type="button" class="cp-cell" style="${swatchStyle(hex)}" title="${tip}" data-cp-copy="${hex}" aria-label="複製 ${tip}">
-              <span class="cp-cell-hex">${hex}</span>
+      const text = formatHex(hex, format);
+      const tip = `${text} · 占比 ${shareText}`;
+      return `<button type="button" class="cp-cell" style="${swatchStyle(hex)}" title="${tip}" data-cp-copy="${text}" aria-label="複製 ${tip}">
+              <span class="cp-cell-hex">${text}</span>
               <span class="cp-cell-share">${shareText}</span>
             </button>`;
     })
@@ -302,19 +318,24 @@ export const VISIBLE_STRIP_COLORS = 5;
  * makes the activation target ambiguous (AGENTS.md gotcha 27).
  *
  * @param {Array<[string, number]>} rows
- * @param {Object} [options] - { limit, showRemainder }
+ * @param {Object} [options] - { limit, showRemainder, format }
  * @returns {string}
  */
 export function paletteStripHtml(rows, options = {}) {
   const limit = options.limit ?? VISIBLE_STRIP_COLORS;
   const showRemainder = options.showRemainder ?? true;
+  // Same notation rule as the grid, and for the same reason: the strip's
+  // `title` is a tooltip reading the SAME value as the swatch it describes, so
+  // leaving it hex would put two different answers to "what colour is this" in
+  // one 34px-tall element.
+  const format = options.format || 'hex';
   if (!rows.length) return '';
   const shown = rows.slice(0, limit);
   const rest = rows.length - shown.length;
   const segments = shown
     .map(
       ([hex, share]) =>
-        `<span class="cp-seg" style="${swatchStyle(hex)}" title="${hex} · ${formatShare(share)}"><span class="cp-seg-hex">${hex}</span></span>`
+        `<span class="cp-seg" style="${swatchStyle(hex)}" title="${formatHex(hex, format)} · ${formatShare(share)}"><span class="cp-seg-hex">${formatHex(hex, format)}</span></span>`
     )
     .join('');
   const more =
@@ -394,61 +415,37 @@ function hueFamily(h) {
 }
 
 /**
- * A short human-readable name for a hex, used in the generator page's prose
- * ("以 #399494 為主的深青色"). Deterministic on purpose: the same hex must
- * produce the same words on every load, so this buckets by HSL rather than
- * consulting a nearest-named-colour table.
- *
- * Transcribed from the reference's color-name.ts with the hue-family names
- * localised. The bucket boundaries are the reference's and are not re-tuned:
- * they are prose, and a re-tuned boundary changes every sentence on the page
- * for no measurable gain.
+ * Human-readable Chinese name for a hex color.
+ * Uses HSL hue + lightness to pick a descriptive label.
+ * @param {string} hex - e.g. '#399494'
+ * @returns {string} e.g. '深青'
  */
 export function describeHex(hex) {
-  const hsl = hexToHsl(hex);
-  if (!hsl) return '色彩';
-  const { h, s, l } = hsl;
-
-  if (l >= 96) return '近白';
-  if (l <= 6) return '近黑';
-
-  if (s < 8) {
-    if (l < 25) return '極深灰';
-    if (l < 45) return '深灰';
-    if (l < 65) return '灰';
-    if (l < 85) return '淺灰';
-    return '灰白';
+  if (!hex || typeof hex !== 'string') return '色彩';
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return '色彩';
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  if (max !== min) {
+    const d = max - min;
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
   }
-
-  // The brown band: low-to-mid lightness at an orange/amber hue with
-  // mid saturation reads as brown rather than orange. Eevee and Bidoof are
-  // entirely inside it, which is why the band is checked before the hue family.
-  if (h >= 15 && h <= 50 && l < 45 && s < 70) {
-    return l < 22 ? '深棕' : '棕';
+  const prefix = l < 0.3 ? '深' : l > 0.75 ? '淺' : '';
+  if (l < 0.08) return '黑';
+  if (l > 0.93) return '白';
+  const hueNames = [
+    [15, '紅'], [40, '橙'], [65, '黃'], [150, '綠'],
+    [195, '青'], [260, '藍'], [290, '紫'], [340, '粉紅'],
+  ];
+  for (const [limit, name] of hueNames) {
+    if (h < limit) return prefix + name;
   }
-
-  const family = hueFamily(h);
-
-  // The two modifiers are computed independently and then one is chosen,
-  // rather than an if/else chain. The distinction is not cosmetic: the
-  // reference's chain and an exclusive one happen to agree on all 13,767
-  // colours we store, because the "vivid" condition (s > 80 with 35 < l < 70)
-  // is itself bounded to the lightness range where neither lightness modifier
-  // fires. They would diverge the moment a threshold moved — a vivid-pale
-  // colour, say — and the reason to keep them separate is that the *intent* is
-  // "prefer the more informative modifier", not "stop at the first match".
-  let lightnessMod = '';
-  if (l < 22) lightnessMod = '深';
-  else if (l < 35) lightnessMod = '暗';
-  else if (l > 78) lightnessMod = '淡';
-  else if (l > 65) lightnessMod = '淺';
-
-  let satMod = '';
-  if (s < 25) satMod = '柔';
-  else if (s > 80 && l > 35 && l < 70) satMod = '鮮';
-
-  const mod = lightnessMod || satMod;
-  return mod ? `${mod}${family}` : family;
+  return prefix + '紅';
 }
 
 /** warm / cool / neutral, for the mood line under a palette. */
@@ -491,13 +488,33 @@ export const TEMPERATURE_ZH = { warm: '暖色', cool: '冷色', neutral: '中性
  * a string that looks like a colour and is not one.
  */
 export function formatHex(hex, format = 'hex') {
-  if (format === 'hex') return hex || '';
+  if (format === 'hex' || !hex) return hex || '';
   const rgb = hexToRgb(hex);
-  if (!rgb) return '';
+  if (!rgb) return fallbackHex(hex, format);
   if (format === 'rgb') return `rgb(${rgb.join(', ')})`;
   const hsl = roundedHsl(hex);
-  if (!hsl) return '';
+  if (!hsl) return fallbackHex(hex, format);
   return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+}
+
+/**
+ * The raw hex, for a notation that could not be produced.
+ *
+ * `formatHex()` returned `''` for anything `hexToRgb()` could not read, and
+ * before this was reachable from a swatch that was merely untidy. It is not
+ * untidy now: the grid writes the formatted value into BOTH the label and
+ * `data-cp-copy`, so an unconvertible colour renders a blank cell and copies an
+ * EMPTY STRING. An empty string is the one clipboard result the user cannot
+ * notice they got wrong — there is nothing to look at and nothing to paste.
+ * Showing the hex is the smallest failure that stays truthful.
+ *
+ * Every hex in `color_palettes.json` is 6-digit (12,297 of them, checked), so
+ * this is a guard against a future caller rather than a fix for today. `#FFF`
+ * is the case that reaches it: 3-digit shorthand, which `hexToRgb()` rejects.
+ */
+function fallbackHex(hex, format) {
+  console.warn(`formatHex: cannot express ${hex} as ${format}; showing the hex instead`);
+  return hex;
 }
 
 /** The three notations, in the order the reference's `<Select>` lists them. */
@@ -624,10 +641,10 @@ export function generateTailwindScale(seedHex) {
       target.step === anchor
         ? `#${seedHex.replace('#', '').toLowerCase()}`
         : hslToHex({
-            h,
-            s: Math.max(0, Math.min(100, s * target.sScale)),
-            l: target.l,
-          });
+          h,
+          s: Math.max(0, Math.min(100, s * target.sScale)),
+          l: target.l,
+        });
   }
   return { scale, anchor };
 }
@@ -813,37 +830,128 @@ function rgbToHex(rgb) {
  * @param {number} [options.count]   - how many colours this palette has
  * @param {number} [options.share]   - the primary colour's share, in percent
  */
+function decorativeCurvesSvg(color) {
+  return `<svg aria-hidden="true" class="sc-curves" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid slice">
+    <g stroke="${color}" stroke-width="1.5" fill="none" opacity="0.6">
+      <circle cx="380" cy="40" r="220" />
+      <circle cx="380" cy="40" r="170" />
+      <circle cx="380" cy="40" r="120" />
+      <circle cx="380" cy="40" r="70" />
+    </g>
+  </svg>`;
+}
+
+function donutChartHtml(segments, primaryColor) {
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const circles = segments.map(seg => {
+    const fraction = seg.value / total;
+    const dash = fraction * circumference;
+    const circle = `<circle cx="50" cy="50" r="${radius}" fill="none"
+      stroke="${seg.color}" stroke-width="14"
+      stroke-dasharray="${dash.toFixed(2)} ${(circumference - dash).toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}" />`;
+    offset += dash;
+    return circle;
+  }).join('');
+
+  return `
+    <div class="sc-donut-wrapper">
+      <div class="sc-donut-svg-box">
+        <svg viewBox="0 0 100 100" class="sc-donut-svg">
+          ${circles}
+        </svg>
+        <div class="sc-donut-center">
+          <span class="sc-donut-sub" style="color:${primaryColor}">總計</span>
+          <span class="sc-donut-val">$${total.toLocaleString()}</span>
+        </div>
+      </div>
+      <ul class="sc-donut-legend">
+        ${segments.map(seg => `
+          <li class="sc-donut-item">
+            <span class="sc-donut-label">
+              <span class="sc-donut-dot" style="background:${seg.color}"></span>
+              <span>${seg.label}</span>
+            </span>
+            <span class="sc-donut-item-val">$${seg.value.toLocaleString()}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>`;
+}
+
+function sparklineSvg(primaryColor, secondaryColor, scale) {
+  const primarySeries = [22, 30, 28, 42, 38, 55, 48, 64, 70, 62, 78, 88];
+  const secondarySeries = [18, 20, 24, 30, 28, 34, 38, 40, 46, 52, 55, 58];
+  const width = 800;
+  const height = 160;
+  const stepX = width / (primarySeries.length - 1);
+
+  const toPath = series => series.map((v, i) => {
+    const x = i * stepX;
+    const y = height - (v / 100) * height;
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+
+  const toArea = series => {
+    const path = toPath(series);
+    return `${path} L${width} ${height} L0 ${height} Z`;
+  };
+
+  const id = `spark-${Math.abs(primaryColor.replace('#', ''))}`;
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" class="sc-sparkline-svg" role="img" aria-label="活躍用戶走勢圖">
+      <defs>
+        <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${primaryColor}" stop-opacity="0.38" />
+          <stop offset="100%" stop-color="${primaryColor}" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="${toArea(primarySeries)}" fill="url(#${id})" />
+      <path d="${toPath(secondarySeries)}" fill="none" stroke="${secondaryColor}" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round" opacity="0.75" />
+      <path d="${toPath(primarySeries)}" fill="none" stroke="${primaryColor}" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="0" y1="${height - 0.5}" x2="${width}" y2="${height - 0.5}" stroke="${scale['200'] || scale['300']}" stroke-width="1" />
+    </svg>`;
+}
+
 export function showcaseHtml({
   primary, secondary, scale, stats, name = '', count = 0, share = 0,
 }) {
   const S = step => scale[step] || primary;
-  // The three surfaces every panel paints on, derived from the scale rather than
-  // from site tokens: the point is to show THIS palette, not the site's theme.
-  const surface = S('50');
-  const surfaceRaised = S('100');
-  const border = S('300');
-  const ink = S('950');
-  // Muted ink is WALKED, not read off the scale: a generated scale's own
-  // 700-on-50 pairing fails 4.5:1 on some palettes (Bulbasaur measures 3.39).
-  // It is walked against the DARKER of the two surfaces it lands on, because
-  // `--cp-ink-soft` is used both on the panel (`--cp-sf`) and inside the tiles,
-  // tracks and inputs (`--cp-sfr`), and one ink has to serve both — walking
-  // against the lighter one leaves the darker tile 0.4:1 short.
-  const inkBase = luminance(hexToRgb(surface)) <= luminance(hexToRgb(surfaceRaised))
-    ? surface : surfaceRaised;
-  const inkSoft = readableInk(inkBase, S('700'));
-  const accent = S('500');
-  const accentSoft = S('200');
 
-  // Text on a coloured fill. swatchStyle() also returns the background, so it
-  // is the single source for both halves of the pair.
-  const onPrimary = swatchStyle(primary);
-  const onAccent = swatchStyle(accent);
-  const onSoft = swatchStyle(accentSoft);
+  // Light surfaces
+  const sfLight = S('50');
+  const sfrLight = S('100');
+  const bdLight = S('200');
+  const inkLight = S('950');
+  const inkSoftLight = readableInk(sfLight, S('700'));
+
+  // Dark surfaces
+  const sfDark = S('950');
+  const sfrDark = S('900');
+  const bdDark = S('800');
+  const inkDark = S('50');
+  const inkSoftDark = readableInk(sfDark, S('300'));
+
+  const isDark = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark';
+  const surface = isDark ? sfDark : sfLight;
+  const surfaceRaised = isDark ? sfrDark : sfrLight;
+  const border = isDark ? bdDark : bdLight;
+  const ink = isDark ? inkDark : inkLight;
+  const inkSoft = isDark ? inkSoftDark : inkSoftLight;
+  const accent = isDark ? S('400') : S('500');
+  const accentSoft = isDark ? S('800') : S('200');
+  const onPrimaryColor = themeInkFor(primary);
+  const onAccentColor = themeInkFor(accent);
 
   const vars = `--cp-sf:${surface};--cp-sfr:${surfaceRaised};--cp-bd:${border};` +
     `--cp-ink:${ink};--cp-ink-soft:${inkSoft};--cp-accent:${accent};--cp-accent-soft:${accentSoft};` +
-    `--cp-primary:${primary};--cp-secondary:${secondary};`;
+    `--cp-primary:${primary};--cp-secondary:${secondary};` +
+    `--cp-sf-light:${sfLight};--cp-sfr-light:${sfrLight};--cp-bd-light:${bdLight};--cp-ink-light:${inkLight};--cp-ink-soft-light:${inkSoftLight};` +
+    `--cp-sf-dark:${sfDark};--cp-sfr-dark:${sfrDark};--cp-bd-dark:${bdDark};--cp-ink-dark:${inkDark};--cp-ink-soft-dark:${inkSoftDark};`;
 
   const tabs = [
     ['cards', '卡片'],
@@ -852,132 +960,301 @@ export function showcaseHtml({
     ['components', '元件'],
   ];
 
-  // ---- panel bodies --------------------------------------------------------
+  // 1. Cards Tab (Faithful port of pokemonpalette CardsTab)
   const cards = `
-      <article class="sc-card sc-spotlight" style="${onPrimary}">
-        <p class="sc-eyebrow">精選</p>
-        <h3 class="sc-h3">${name || '這隻寶可夢'}</h3>
-        <p class="sc-p">主要色 ${primary.toUpperCase()} 佔整張圖 ${share}%，在卡片上以本色作底，白字或黑字由對比自動取捨。</p>
-        <span class="sc-cta">查看色盤 <span aria-hidden="true">→</span></span>
-      </article>
-      <div class="sc-tile-row">
-        ${[['色票數', `${count} 色`], ['主要色', primary.toUpperCase()], ['次要色', secondary.toUpperCase()]]
-          .map(([k, v]) => `
-        <div class="sc-tile">
-          <span class="sc-tile-k">${k}</span>
-          <span class="sc-tile-v">${v}</span>
-        </div>`).join('')}
-      </div>
-      <article class="sc-card sc-post">
-        <div class="sc-post-dot" style="background:${secondary}" aria-hidden="true"></div>
-        <div>
-          <p class="sc-eyebrow" style="color:${accent}">筆記 · 4 分鐘</p>
-          <h3 class="sc-h4">用單一主色做版面</h3>
-          <p class="sc-p sm">以次要色點綴其餘區塊，確認對比後再大面積使用。</p>
+    <div class="sc-grid-2">
+      <!-- Feature card with curved gradient backdrop -->
+      <article class="sc-feature-card" style="background:${S('100')};color:${S('900')}">
+        ${decorativeCurvesSvg(S('300'))}
+        <div class="sc-feature-content">
+          <span class="sc-badge-pill" style="background:${S('200')};color:${S('800')}">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+            ★ 精選
+          </span>
+          <h3 class="sc-h2">${name || '寶可夢'} 色彩美學</h3>
+          <p class="sc-p-lead" style="color:${S('700')}">
+            主要色 ${primary.toUpperCase()} 佔比 ${share}%，在版面上以同色系明暗階層層展開，營造自然和諧的視覺節奏。
+          </p>
+          <span class="sc-card-link" style="color:${S('800')}">
+            深入探索 <span aria-hidden="true">→</span>
+          </span>
         </div>
-      </article>`;
+      </article>
 
-  // Two series across six months, the reference's own numbers.
+      <!-- Saturated CTA card -->
+      <article class="sc-cta-card" style="background:${primary};color:${onPrimaryColor}">
+        ${decorativeCurvesSvg(onPrimaryColor === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')}
+        <div class="sc-cta-top">
+          <span class="sc-cta-tag">PRIMARY THEME</span>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" opacity="0.9"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </div>
+        <div class="sc-cta-bottom">
+          <h3 class="sc-h2">掌控色彩主題</h3>
+          <p class="sc-p-lead" style="opacity:0.9">
+            靈活運用單一主色，自動適應白字黑字高對比，打造頂級體驗。
+          </p>
+          <button type="button" class="sc-cta-btn" style="background:${onPrimaryColor};color:${primary}">
+            立即套用
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- Blog preview card spanning full width -->
+      <article class="sc-chart-card sc-span-2 sc-blog-card">
+        <div class="sc-blog-media" style="background:${S('100')}">
+          ${decorativeCurvesSvg(S('300'))}
+          <div class="sc-blog-icon-wrap" style="background:${primary};color:${onPrimaryColor}">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+          </div>
+        </div>
+        <div class="sc-blog-body">
+          <span class="sc-blog-meta" style="color:${primary}">設計筆記 · 4 分鐘閱讀</span>
+          <h3 class="sc-h3">以單一品牌色為核心的介面設計</h3>
+          <p class="sc-p" style="color:var(--text-secondary)">
+            探索如何僅靠一組寶可夢提取色盤，推導完整明暗階與對比關係，在不增加繁瑣配色的情況下維持極致質感。
+          </p>
+          <div class="sc-blog-author">
+            <span class="sc-author-dot" style="background:${secondary}"></span>
+            <span>作者：<strong style="color:var(--text-primary)">演算法實驗室</strong> · 今日發布</span>
+          </div>
+        </div>
+      </article>
+    </div>`;
+
+  // 2. Charts Tab (Faithful port of pokemonpalette ChartsTab)
   const bars = [
-    { label: '1 月', a: 56, b: 92 },
-    { label: '2 月', a: 40, b: 70 },
-    { label: '3 月', a: 62, b: 28 },
-    { label: '4 月', a: 80, b: 60 },
-    { label: '5 月', a: 70, b: 96 },
-    { label: '6 月', a: 54, b: 78 },
+    { label: '1 月', values: [56, 92] },
+    { label: '2 月', values: [40, 70] },
+    { label: '3 月', values: [62, 28] },
+    { label: '4 月', values: [80, 60] },
+    { label: '5 月', values: [70, 96] },
+    { label: '6 月', values: [54, 78] },
   ];
+
+  const donut = [
+    { label: '生鮮食材', value: 4973, color: primary },
+    { label: '居家用品', value: 4973, color: S('400') },
+    { label: '休閒旅遊', value: 4973, color: S('200') },
+  ];
+
   const charts = `
-      <figure class="sc-figure">
-        <figcaption class="sc-cap">每月色票用量（示意數據）</figcaption>
-        <div class="sc-bars" role="img"
-             aria-label="六個月的兩組長條圖，數值為示意，非真實統計">
+    <div class="sc-grid-2">
+      <!-- 1. Bar chart card -->
+      <article class="sc-chart-card">
+        <header class="sc-card-head">
+          <p class="sc-card-k">支出統計 · Expenses</p>
+          <p class="sc-card-val">$12,543</p>
+        </header>
+        <div class="sc-bars" role="img" aria-label="六個月的雙色長條圖">
           ${bars.map(b => `
             <div class="sc-bar-col">
               <div class="sc-bar-pair">
-                <span class="sc-bar" style="height:${b.a}%;background:${accent}"></span>
-                <span class="sc-bar" style="height:${b.b}%;background:${secondary}"></span>
+                <span class="sc-bar" style="height:${b.values[0]}%;background:${S('300')}"></span>
+                <span class="sc-bar" style="height:${b.values[1]}%;background:${primary}"></span>
               </div>
               <span class="sc-bar-x">${b.label}</span>
             </div>`).join('')}
         </div>
-        <p class="sc-legend">
-          <span class="sc-key" style="background:${accent}"></span>主要色階
-          <span class="sc-key" style="background:${secondary}"></span>次要色
-        </p>
-      </figure>`;
+      </article>
 
-  // The dashboard tab uses the Pokémon's REAL base stats rather than more mock
-  // numbers — the same seven the detail page shows, painted in this palette.
-  const statRows = stats
-    ? [['hp', '體力'], ['attack', '攻擊'], ['defense', '防禦'],
-       ['sp_attack', '特攻'], ['sp_defense', '特防'], ['speed', '速度']]
-      .map(([key, label]) => ({ label, value: stats[key] }))
-    : [];
-  const peak = statRows.length ? Math.max(...statRows.map(s => s.value)) : 255;
+      <!-- 2. Donut chart card -->
+      <article class="sc-chart-card">
+        <header class="sc-card-head">
+          <p class="sc-card-k">分類佔比 · Breakdown</p>
+          <p class="sc-card-val">$14,919</p>
+        </header>
+        ${donutChartHtml(donut, primary)}
+      </article>
+
+      <!-- 3. Trend line card spanning full width -->
+      <article class="sc-chart-card sc-span-2">
+        <header class="sc-chart-trend-head">
+          <div>
+            <p class="sc-card-k">活躍用戶 · Active Users</p>
+            <p class="sc-card-val">12,438</p>
+            <p class="sc-trend-delta" style="color:${primary}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 17 10-10M7 7h10v10"/></svg>
+              +12.4% 比上週增長
+            </p>
+          </div>
+          <div class="sc-trend-badges">
+            <span class="sc-badge-outline" style="border:1px solid ${border};color:${secondary}">
+              <span class="sc-badge-dot" style="background:${secondary}"></span>
+              上週
+            </span>
+            <span class="sc-badge-soft" style="background:${accentSoft};color:${primary}">
+              <span class="sc-badge-dot" style="background:${primary}"></span>
+              本週
+            </span>
+          </div>
+        </header>
+        ${sparklineSvg(primary, secondary, scale)}
+      </article>
+    </div>`;
+
+  // 3. Dashboard Tab (Faithful port of pokemonpalette DashboardTab)
+  const kpiStats = [
+    { label: '年度營收', value: '$42,318', delta: '+8.2%' },
+    { label: '活躍用戶', value: '12,438', delta: '+12.4%' },
+    { label: '轉換率', value: '3.6%', delta: '+0.4%' },
+  ];
+
   const dashboard = `
-      <div class="sc-tile-row">
-        ${statRows.slice(0, 3).map(s => `
-        <div class="sc-tile">
-          <span class="sc-tile-k">${s.label}</span>
-          <span class="sc-tile-v">${s.value}</span>
-          <span class="sc-delta">／${peak}</span>
-        </div>`).join('')}
-      </div>
-      <div class="sc-meter-row">
-        ${statRows.map(s => `
-        <div class="sc-meter">
-          <span class="sc-meter-k">${s.label}</span>
-          <span class="sc-track"><span class="sc-fill" style="width:${Math.round(s.value / peak * 100)}%;background:${accent}"></span></span>
-          <span class="sc-meter-v">${s.value}</span>
-        </div>`).join('')}
-        ${statRows.length ? '' : '<p class="sc-p sm">此頁未載入能力值資料。</p>'}
-      </div>
-      <p class="sc-note">長條使用實際能力值，非示意資料。色票全部取自上方色盤與明暗階。</p>`;
+    <div class="sc-grid-3">
+      ${kpiStats.map(s => `
+        <article class="sc-chart-card sc-kpi-card">
+          <div class="sc-kpi-top">
+            <p class="sc-card-k">${s.label}</p>
+            <div class="sc-kpi-icon" style="background:${accentSoft};color:${primary}">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 6l-9.5 9.5-5-5L1 18"/></svg>
+            </div>
+          </div>
+          <p class="sc-card-val">${s.value}</p>
+          <p class="sc-trend-delta" style="color:${primary}">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 17 10-10M7 7h10v10"/></svg>
+            ${s.delta}
+          </p>
+        </article>
+      `).join('')}
 
-  const components = `
-      <div class="sc-field">
-        <span class="sc-field-k">按鈕</span>
-        <div class="sc-btn-row">
-          <span class="sc-btn" style="${onAccent}">主要動作</span>
-          <span class="sc-btn is-soft" style="${onSoft}">次要</span>
-          <span class="sc-btn is-outline" style="border-color:${accent};color:${accent}">外框</span>
-          <span class="sc-btn is-disabled">停用</span>
+      <!-- Big hero progress card spanning 2 columns -->
+      <article class="sc-chart-card sc-span-2-desktop">
+        <header class="sc-progress-head">
+          <div>
+            <p class="sc-card-k">本月支出 · This Month</p>
+            <p class="sc-card-val">$14,919</p>
+          </div>
+          <button type="button" class="sc-action-btn" style="background:${primary};color:${onPrimaryColor}">
+            匯出報表
+            <span aria-hidden="true">→</span>
+          </button>
+        </header>
+        <div class="sc-prog-list">
+          ${[
+            { label: '生鮮食材', value: 78 },
+            { label: '居家用品', value: 60 },
+            { label: '休閒旅遊', value: 45 },
+            { label: '訂閱服務', value: 32 },
+          ].map(row => `
+            <div class="sc-prog-item">
+              <div class="sc-prog-labels">
+                <span class="sc-prog-k">${row.label}</span>
+                <span class="sc-prog-v">${row.value}%</span>
+              </div>
+              <div class="sc-prog-track" style="background:${S('100')}">
+                <div class="sc-prog-fill" style="width:${row.value}%;background:${primary}"></div>
+              </div>
+            </div>
+          `).join('')}
         </div>
-      </div>
-      <div class="sc-field">
-        <span class="sc-field-k">標籤</span>
-        <div class="sc-tag-row">
-          ${[primary, secondary, accent, S('700'), S('300')].map((hex, i) => `
-          <span class="sc-tag" style="${swatchStyle(hex)}">色票 ${i + 1}</span>`).join('')}
-        </div>
-      </div>
-      <div class="sc-field">
-        <span class="sc-field-k">輸入框</span>
-        <div class="sc-input" role="img" aria-label="輸入框示意">
-          <span style="color:${inkSoft}">搜尋寶可夢…</span>
-        </div>
-      </div>
-      <div class="sc-field">
-        <span class="sc-field-k">動態</span>
-        <ul class="sc-list">
-          ${['已匯出 CSS 變數', '已複製主要色', '明暗階重新計算', '色盤組成更新']
-            .map((t, i) => `
-          <li class="sc-list-row">
-            <span class="sc-list-dot" style="background:${i === 0 ? accent : border}"></span>
-            <span class="sc-list-t">${t}</span>
-            <span class="sc-list-when" style="color:${inkSoft}">${i === 0 ? '剛剛' : (i + 1) * 7 + ' 分鐘前'}</span>
-          </li>`).join('')}
+      </article>
+
+      <!-- Activity feed card -->
+      <article class="sc-chart-card">
+        <header class="sc-card-head mb-3">
+          <h3 class="sc-card-k">即時動態 · Activity</h3>
+        </header>
+        <ul class="sc-feed-list">
+          ${[
+            { title: '小霞 發表了新評論', time: '2 分鐘前' },
+            { title: '小剛 邀請了 3 位訓練家', time: '18 分鐘前' },
+            { title: '週報數據已自動生成', time: '1 小時前' },
+            { title: '色盤已儲存至收藏庫', time: '3 小時前' },
+          ].map((item, idx) => `
+            <li class="sc-feed-item">
+              <span class="sc-feed-dot" style="background:${idx === 0 ? primary : S('300')}"></span>
+              <div class="sc-feed-text">
+                <p class="sc-feed-t">${item.title}</p>
+                <p class="sc-feed-time">${item.time}</p>
+              </div>
+            </li>
+          `).join('')}
         </ul>
-      </div>`;
+      </article>
+    </div>`;
+
+  // 4. Components Tab (Faithful port of pokemonpalette ComponentsTab)
+  const components = `
+    <div class="sc-grid-2">
+      <!-- Buttons + inputs card -->
+      <article class="sc-chart-card">
+        <header class="sc-card-head mb-3">
+          <h3 class="sc-card-k">按鈕元件 · Buttons</h3>
+          <p class="sc-card-desc">主要、外框、柔和與幽靈按鈕</p>
+        </header>
+        <div class="sc-btn-row">
+          <button type="button" class="sc-btn" style="background:${primary};color:${onPrimaryColor}">主要按鈕</button>
+          <button type="button" class="sc-btn is-outline" style="border:1px solid ${primary};color:${primary}">外框按鈕</button>
+          <button type="button" class="sc-btn is-soft" style="background:${accentSoft};color:${primary}">柔和底色</button>
+          <button type="button" class="sc-btn is-ghost" style="color:${primary}">幽靈按鈕 →</button>
+        </div>
+        <div class="sc-input-box mt-4">
+          <label class="sc-input-label">搜尋框範例</label>
+          <div class="sc-mock-search" style="border:1px solid ${border}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span>搜尋寶可夢名稱或編號…</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Badges + labels card -->
+      <article class="sc-chart-card">
+        <header class="sc-card-head mb-3">
+          <h3 class="sc-card-k">標籤與類別 · Badges</h3>
+          <p class="sc-card-desc">狀態、屬性與分類指示器</p>
+        </header>
+        <div class="sc-tag-row">
+          <span class="sc-badge-pill" style="background:${primary};color:${onPrimaryColor}">主要</span>
+          <span class="sc-badge-pill" style="background:${secondary};color:${themeInkFor(secondary)}">次要</span>
+          <span class="sc-badge-pill" style="background:${accentSoft};color:${primary}">柔和</span>
+          <span class="sc-badge-pill" style="border:1px solid ${primary};color:${primary}">外框</span>
+          <span class="sc-badge-pill" style="background:${accentSoft};color:${primary}">✓ 啟用中</span>
+        </div>
+        <div class="sc-type-list mt-4">
+          ${[
+            { label: '草屬性 Grass', color: primary },
+            { label: '水屬性 Water', color: secondary },
+            { label: '火屬性 Fire', color: S('400') },
+          ].map(r => `
+            <div class="sc-type-row" style="background:${S('50')}">
+              <span class="sc-type-item">
+                <span class="sc-type-dot" style="background:${r.color}"></span>
+                ${r.label}
+              </span>
+              <span class="sc-type-arrow" style="color:${S('400')}">→</span>
+            </div>
+          `).join('')}
+        </div>
+      </article>
+
+      <!-- Notification banner spanning full width -->
+      <article class="sc-chart-card sc-span-2 sc-banner-card" style="background:${S('50')};border:1px solid ${S('200')}">
+        <div class="sc-banner-icon" style="background:${primary};color:${onPrimaryColor}">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+        </div>
+        <div class="sc-banner-body">
+          <p class="sc-banner-t">您的色彩主題已就緒</p>
+          <p class="sc-banner-desc" style="color:${S('700')}">
+            在上方微調任何明暗階，或直接前往下方匯出完整的 Tailwind 與 CSS 主題代碼。
+          </p>
+        </div>
+        <a href="#sec-export" class="sc-banner-btn" style="background:${primary};color:${onPrimaryColor}">
+          前往匯出
+          <span aria-hidden="true">→</span>
+        </a>
+      </article>
+    </div>`;
 
   const bodies = { cards, charts, dashboard, components };
 
   return `
     <div class="sc-tabs" role="tablist" aria-label="套用展示">
       ${tabs.map(([key, label], i) => `
-      <button type="button" role="tab" class="sc-tab" id="sc-tab-${key}"
+      <button type="button" role="tab" class="sc-tab${i === 0 ? ' is-active' : ''}" id="sc-tab-${key}"
               aria-controls="sc-panel-${key}" aria-selected="${i === 0}"
-              tabindex="${i === 0 ? 0 : -1}" data-sc-tab="${key}">${label}</button>`).join('')}
+              tabindex="${i === 0 ? 0 : -1}" data-sc-tab="${key}"
+              style="${i === 0 ? `background:${primary};color:${onPrimaryColor};border-color:${primary};` : ''}">${label}</button>`).join('')}
     </div>
     ${tabs.map(([key, label], i) => `
     <div role="tabpanel" class="sc-panel" id="sc-panel-${key}"
@@ -986,26 +1263,54 @@ export function showcaseHtml({
 }
 
 /**
- * WAI-ARIA tab keyboard support, same contract as the move tabs in shared.js:
- * arrows move between tabs, Home/End jump to the ends, only the selected tab is
- * in the tab order (roving tabindex), and every panel is in the DOM with the
- * inactive ones carrying `hidden` (AGENTS.md gotcha 13 — the ARIA relationships
- * need the panels to exist, and that is also what `@media print` reveals).
+ * WAI-ARIA tab keyboard support and robust click switching for showcase tabs.
  */
 export function wireShowcaseTabs(container) {
+  if (!container) return;
   const tabs = [...container.querySelectorAll('[data-sc-tab]')];
+  const panels = [...container.querySelectorAll('.sc-panel')];
+
   const select = tab => {
-    for (const other of tabs) {
-      const on = other === tab;
-      other.setAttribute('aria-selected', String(on));
-      other.tabIndex = on ? 0 : -1;
-      const panel = container.querySelector(`#sc-panel-${other.dataset.scTab}`);
-      if (panel) panel.hidden = !on;
-    }
-    tab.focus();
+    const targetKey = tab.dataset.scTab;
+    const activeBg = tab.dataset.activeBg || '';
+    const activeFg = tab.dataset.activeFg || '';
+
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.classList.toggle('is-active', on);
+      t.tabIndex = on ? 0 : -1;
+      if (on && activeBg) {
+        t.style.backgroundColor = activeBg;
+        t.style.color = activeFg;
+        t.style.borderColor = activeBg;
+      } else if (!on) {
+        t.style.backgroundColor = '';
+        t.style.color = '';
+        t.style.borderColor = '';
+      }
+    });
+
+    panels.forEach(p => {
+      const isTarget = p.id === `sc-panel-${targetKey}`;
+      p.hidden = !isTarget;
+      if (isTarget) {
+        p.removeAttribute('hidden');
+        p.style.display = 'grid';
+      } else {
+        p.setAttribute('hidden', '');
+        p.style.display = 'none';
+      }
+    });
+
+    try { tab.focus(); } catch (e) { /* ignore */ }
   };
+
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => select(tab));
+    tab.addEventListener('click', event => {
+      event.preventDefault();
+      select(tab);
+    });
     tab.addEventListener('keydown', event => {
       let next = null;
       if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
@@ -1016,6 +1321,15 @@ export function wireShowcaseTabs(container) {
       event.preventDefault();
       select(next);
     });
+  });
+
+  // Delegated click listener to catch all clicks reliably
+  container.addEventListener('click', event => {
+    const tab = event.target.closest('[data-sc-tab]');
+    if (tab && container.contains(tab)) {
+      event.preventDefault();
+      select(tab);
+    }
   });
 }
 
@@ -1557,3 +1871,4 @@ export function themeVarBlock(tokens) {
     .concat(pairs.map(p => p.replace(/^--/, '--color-')))
     .join('; ');
 }
+

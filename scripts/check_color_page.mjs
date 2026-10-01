@@ -68,6 +68,7 @@ const check = (cond, ok, bad) => {
 const shared = read('assets/js/shared.js');
 const css = read('assets/css/colors.css');
 const colorHtml = read('color.html');
+const paletteSrc = read('assets/js/color-palette.js');
 
 // NAV and PLANNED_PAGES are evaluated rather than regex-scraped, so this file
 // tests the table the page actually renders from. Importing shared.js in Node
@@ -312,6 +313,152 @@ check(
   !/class="site-nav"|initHeaderNav|class="theme-toggle"|initThemeToggle/.test(colorHtml),
   'the old header nav and theme toggle are gone from color.html',
   () => 'color.html still mounts the old header nav/theme toggle — the rail was added alongside the old chrome instead of replacing it'
+);
+
+console.log('');
+console.log('panel controls');
+
+// The format notation reaches BOTH the swatch label and `data-cp-copy`. Neither
+// implies the other: a grid that renders `rgb(...)` and copies `#4CAF50` looks
+// entirely correct and silently pastes the wrong value, which is the one thing
+// the copy-follows-display rule exists to prevent. The label is checked
+// separately below, in the browser probe, because a regex cannot tell what a
+// page actually rendered.
+const gridSource = paletteSrc.match(/export function paletteGridHtml[\s\S]*?\n}\n/)?.[0] || '';
+const stripSource = paletteSrc.match(/export function paletteStripHtml[\s\S]*?\n}\n/)?.[0] || '';
+for (const [label, src, fn] of [
+  ['the grid', gridSource, 'paletteGridHtml'],
+  ['the strip', stripSource, 'paletteStripHtml'],
+]) {
+  check(
+    /const format = options\.format \|\| 'hex'/.test(src),
+    `${label} accepts a format, defaulting to hex so colors.html and colors-explore.html render byte-identically`,
+    () => `${fn} has no 'format' option defaulting to hex — the default is not pinned, so a caller that omits it gets undefined`
+  );
+  check(
+    /formatHex\(hex, format\)/.test(src),
+    `${label} converts its labels through formatHex rather than printing the raw hex`,
+    () => `${fn} ignores the format option and prints raw hex regardless`
+  );
+}
+check(
+  /data-cp-copy="\$\{text\}"/.test(gridSource),
+  "the grid's data-cp-copy carries the FORMATTED value, so the delegated click handler copies what is on screen",
+  () => "the grid writes the raw hex into data-cp-copy while displaying another notation — copy would silently disagree with the screen"
+);
+// The tip string is what both title and aria-label interpolate. If it is built
+// from the raw hex, a screen reader is told a different colour than the eye sees
+// — and the visible label says a third thing.
+check(
+  /const tip = `\$\{text\} · /.test(gridSource) && /aria-label="複製 \$\{tip\}"/.test(gridSource),
+  "the grid's title AND aria-label are built from the formatted value, not the hex",
+  () => 'the grid title/aria-label still describe the hex while the cell shows another notation — sighted and screen-reader users get different colours'
+);
+check(
+  /class="cp-shade-hex">\$\{hex\}</.test(colorHtml),
+  'the shade scale stays on hex whatever the grid is showing, because hex is the stable identity of a derived ramp',
+  () => 'the shade scale follows the format switch, so a ramp step can no longer be found by the hex it is documented with'
+);
+
+const radioValues = [...colorHtml.matchAll(/class="cp-tab-input"[^>]*value="([a-z]+)"/g)].map(m => m[1]);
+check(
+  /import\s*\{[^}]*\bHEX_FORMATS\b[^}]*\}\s*from\s*'\.\/assets\/js\/color-palette\.js'/.test(colorHtml),
+  'color.html imports HEX_FORMATS rather than re-typing the three notations',
+  () => 'color.html does not import HEX_FORMATS, so the panel and the formatter each carry their own list of notations'
+);
+check(
+  radioValues.length === 3 && ['hex', 'rgb', 'hsl'].every(v => radioValues.includes(v)),
+  'the panel offers exactly the three notations HEX_FORMATS declares',
+  () => `the panel's radios are [${radioValues.join(', ')}], expected hex, rgb, hsl — a fourth or a missing one means the control and the list disagree`
+);
+// Both directions, because the two lists are edited by hand in different files:
+// a notation added to HEX_FORMATS alone leaves a tab that does nothing, and one
+// removed from it leaves a tab that cannot format anything. Either way the page
+// must say so, because nothing else will.
+// Compare the two lists rather than only asserting the guard's source text is
+// present. The lists live in different files and are edited by hand, so drift is
+// a matter of time; and each direction of drift is silent — a tab that does
+// nothing, or one that cannot format anything. The runtime `console.warn` makes
+// it visible to a developer with the console open; this makes it a build
+// failure for everyone, including whoever never opens devtools.
+const declaredFormats = [...(paletteSrc.match(/HEX_FORMATS\s*=\s*\[([^\]]*)\]/) || [, ''])[0]
+  .matchAll(/['"]([a-z]+)['"]/g)].map(m => m[1]);
+const orphans = declaredFormats.filter(f => !radioValues.includes(f));
+const unbacked = radioValues.filter(v => !declaredFormats.includes(v));
+check(
+  declaredFormats.length > 0 && orphans.length === 0 && unbacked.length === 0,
+  `the panel's radios and HEX_FORMATS are the same set (${radioValues.join(', ')}), so no tab can be inert or unbacked`,
+  () => {
+    const bits = [];
+    if (orphans.length) bits.push(`HEX_FORMATS declares ${orphans.join(', ')} with no radio to reach it`);
+    if (unbacked.length) bits.push(`radios offer ${unbacked.join(', ')} that HEX_FORMATS does not declare`);
+    if (!declaredFormats.length) bits.push('HEX_FORMATS could not be parsed out of color-palette.js');
+    return bits.join('; ');
+  }
+);
+// ...and the page must be the thing that notices at runtime, since the checker
+// only runs in this repo and the page runs everywhere else.
+check(
+  /HEX_FORMATS\.includes\(r\.value\)/.test(colorHtml) && /no radio offers it/.test(colorHtml),
+  'color.html warns at startup for a one-sided edit, so the failure is visible in the console of a deployed page too',
+  () => 'color.html never compares its radios against HEX_FORMATS, so a deployed page fails silently when the lists drift'
+);
+check(
+  /name="cp-format"/.test(colorHtml) && [...radioValues].every(v => colorHtml.includes(`value="${v}"`)),
+  'the three radios share one name, so the browser enforces mutual exclusion',
+  () => "the format radios do not share a name, so more than one can be checked and 'which notation is this' stops having one answer"
+);
+
+// A display:none input leaves the tab order: three tabs become zero controls for
+// a keyboard user while the markup still looks complete. That is the failure a
+// "the markup contains a radio" check cannot see.
+check(
+  /\.cp-tab-input\s*\{[^}]*clip-path:\s*inset\(50%\)/.test(css)
+    && !/display:\s*none/.test((css.match(/\.cp-tab-input\s*\{[^}]*\}/) || [''])[0]),
+  'the format radios are clipped, not display:none, so they stay in the tab order',
+  () => 'the format radios are display:none or unclipped, which takes them out of the tab order'
+);
+// ...and the ring must be painted on the LABEL, because the input is 1px across
+// and a 1px outline is a ring nobody can see.
+check(
+  /\.cp-format-tabs \.sc-tab:has\(\.cp-tab-input:focus-visible\)\s*\{[^}]*outline:/.test(css),
+  'the focus ring is painted on the LABEL, since the input it belongs to is clipped to 1px',
+  () => 'no focus-visible outline targets the label, so keyboard focus on a clipped radio shows no ring'
+);
+
+check(
+  /<form class="cp-panel-group" id="dex-form"/.test(colorHtml),
+  'the dex control is a real <form>, so Enter submits without a hand-rolled keydown',
+  () => 'the dex control is not a <form>, so Enter-to-submit is not guaranteed'
+);
+// type=number inside an overflow-y:auto panel eats the scroll wheel to change
+// its own value, so hovering the field to scroll the panel silently edits it.
+check(
+  /id="dex-input"[\s\S]{0,140}?inputmode="numeric"/.test(colorHtml),
+  'the dex field is a text input with inputmode=numeric',
+  () => 'the dex field has no inputmode=numeric, so phones raise the full keyboard instead of the numeric pad'
+);
+check(
+  !/type="number"[^>]*id="dex-input"|id="dex-input"[^>]*type="number"/.test(colorHtml),
+  'the dex field is NOT type=number, whose wheel handler would edit the value while the reader scrolls this scrollport',
+  () => 'the dex field is type=number inside a scrollable panel'
+);
+// All-digits and in-range are two failures with two messages. A `{1,4}` regex
+// answered "國號只能是數字" for 99999, which is a perfectly good number.
+check(
+  /!\/\^\\d\+\$\/\.test\(raw\)/.test(colorHtml),
+  'the digits test is /^\\d+$/, so a 5-digit value reports RANGE rather than "not a number"',
+  () => 'the digits test bounds the length, misreporting an out-of-range dex as a non-numeric one'
+);
+check(
+  /國號範圍是 1–\$\{pokemon\.length\}/.test(colorHtml),
+  'the range error names the real upper bound from the loaded data',
+  () => 'the out-of-range message hardcodes or omits the range'
+);
+check(
+  /class="sr-only"[^>]*id="cp-announce"[^>]*role="status"[^>]*aria-live="polite"/.test(colorHtml),
+  'a polite sr-only live region announces a successful jump',
+  () => 'no polite sr-only live region announces the jump, so the content change is silent for a screen reader — or visible, which is a label the reader must go hunting for'
 );
 
 console.log();

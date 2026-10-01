@@ -30,7 +30,7 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'color.html'];
+const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'color.html', 'assets/js/color-palette.js'];
 const CHECKER = 'scripts/check_color_page.mjs';
 
 let failures = 0;
@@ -199,6 +199,147 @@ const cases = [
     name: 'a nav href to a file that does not exist is a dead link',
     mutate: (f, s) => f.endsWith('shared.js') ? s.replace("href: 'model3d.html'", "href: 'model3dx.html'") : undefined,
     expect: 'missing files',
+  },
+
+  // ---------------------------------------------------------------- panel
+  {
+    name: 'a grid that displays one notation and copies another looks perfectly correct',
+    // The headline bug this unit exists to prevent. The cell renders whatever
+    // formatHex returns, so only data-cp-copy betrays it — a screenshot review
+    // would pass this.
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace('data-cp-copy="${text}"', 'data-cp-copy="${hex}"')
+      : undefined,
+    expect: 'silently disagree with the screen',
+  },
+  {
+    name: 'a title/aria-label built from the hex tells a screen reader a different colour than the eye sees',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace('const tip = `${text} · ', 'const tip = `${hex} · ')
+      : undefined,
+    expect: 'different colours',
+  },
+  {
+    name: 'dropping the format option default lets a caller that omits it get undefined',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace("const format = options.format || 'hex';\n  const cols", 'const cols')
+      : undefined,
+    expect: "no 'format' option defaulting to hex",
+  },
+  {
+    name: 'a format option that is accepted but ignored leaves every caller on hex',
+    // The subtlety: the default is still pinned by the case above, so removing
+    // only the *use* of the option passes that check and renders rgb pages back
+    // as hex with nothing to show for it.
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace("const text = formatHex(hex, format);", 'const text = hex;')
+      : undefined,
+    expect: 'ignores the format option',
+  },
+  {
+    name: 'a shade scale that follows the format switch loses its stable hex identity',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<span class="cp-shade-hex">${hex}</span>', '<span class="cp-shade-hex">${format}</span>')
+      : undefined,
+    expect: 'shade scale follows the format switch',
+  },
+  {
+    name: 'four radios means the control and HEX_FORMATS have drifted apart',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="hsl">',
+                  '<label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="lab"><span>LAB</span></label>\n              <label class="sc-tab"><input class="cp-tab-input" type="radio" name="cp-format" value="hsl">')
+      : undefined,
+    expect: 'expected hex, rgb, hsl',
+  },
+  {
+    name: 'radios without a shared name can be checked together, so "the notation" stops having one answer',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace(/name="cp-format"/g, 'name="cp-format-x"') : undefined,
+    expect: 'do not share a name',
+  },
+  {
+    name: 'display:none on the radios removes all three from the tab order',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-tab-input {\n  position: absolute;', '.cp-tab-input {\n  display: none;\n  position: absolute;')
+      : undefined,
+    expect: 'takes them out of the tab order',
+  },
+  {
+    // The companion case: clipping kept the input reachable, so only the ring
+    // was left. A 1px clipped input shows no ring at all, so focus appears to do
+    // nothing — which is why the ring is asserted on the label.
+    name: 'a 1px clipped radio with the ring only on the input shows keyboard focus doing nothing',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-format-tabs .sc-tab:has(.cp-tab-input:focus-visible) {\n  outline: 2px solid currentColor;\n  outline-offset: 2px;\n}', '.cp-tab-input:focus-visible {\n  outline: 2px solid currentColor;\n}')
+      : undefined,
+    expect: 'shows no ring',
+  },
+  {
+    name: 'a dex field that is a div of buttons loses Enter-to-submit',
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace('<form class="cp-panel-group" id="dex-form"', '<div class="cp-panel-group" id="dex-form"') : undefined,
+    expect: 'not a <form>',
+  },
+  {
+    name: 'type=number in a scrollport panel lets the wheel edit the dex number',
+    // The tag spans two lines, so a one-line anchor moves type="number" onto line
+    // 1 and leaves inputmode="numeric" sitting on line 2. The mutation "worked"
+    // and still failed the wrong check — the same shape of error as the skip-link
+    // case earlier. The whole tag is replaced.
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace(/<input type="text" id="dex-input" class="cp-dex" inputmode="numeric"\n(\s*)placeholder/, '<input type="number" id="dex-input" class="cp-dex"\n$1placeholder')
+      : undefined,
+    expect: 'type=number inside a scrollable panel',
+  },
+  {
+    name: 'a {1,4} digit test misreports an out-of-range dex as a non-numeric one',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('!/^\\d+$/.test(raw)', '!/^\\d{1,4}$/.test(raw)')
+      : undefined,
+    expect: 'misreporting an out-of-range dex',
+  },
+  {
+    name: 'a range message that omits the upper bound sends the reader hunting for a roster',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('國號範圍是 1–${pokemon.length}。', '這個寶可夢不存在。')
+      : undefined,
+    expect: 'hardcodes or omits the range',
+  },
+  {
+    name: 'an announcer without aria-live says nothing to a screen reader',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<p class="sr-only" id="cp-announce" role="status" aria-live="polite"></p>', '<p class="sr-only" id="cp-announce"></p>')
+      : undefined,
+    expect: 'no polite sr-only live region',
+  },
+  {
+    // The two lists live in different files and are edited by hand, so drift is
+    // a matter of time. Each of these is silent: the page renders, nothing
+    // throws, and a tab either does nothing or cannot format anything.
+    name: 'HEX_FORMATS gaining a notation no radio offers leaves a tab that does nothing',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace("['hex', 'rgb', 'hsl']", "['hex', 'rgb', 'hsl', 'lab']")
+      : undefined,
+    expect: 'HEX_FORMATS declares lab with no radio to reach it',
+  },
+  {
+    name: 'a radio offering a notation HEX_FORMATS dropped leaves a tab that formats nothing',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace("export const HEX_FORMATS = ['hex', 'rgb', 'hsl'];", "export const HEX_FORMATS = ['hex', 'hsl'];")
+      : undefined,
+    expect: 'radios offer rgb that HEX_FORMATS does not declare',
+  },
+  {
+    name: 're-typing the notations inline instead of importing them lets the two lists drift',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace(', swatchStyle, HEX_FORMATS,', ', swatchStyle,')
+      : undefined,
+    expect: 'does not import HEX_FORMATS',
+  },
+  {
+    name: 'a VISIBLE announcer is a label the reader must go hunting for, not an announcement',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<p class="sr-only" id="cp-announce" role="status" aria-live="polite"></p>', '<p class="cp-results-note" id="cp-announce" role="status" aria-live="polite"></p>')
+      : undefined,
+    expect: 'no polite sr-only live region',
   },
 ];
 

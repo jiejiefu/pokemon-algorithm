@@ -483,15 +483,32 @@ if (formatHex('#399494') !== '#399494') {
 // rgb and hsl DO parse, and they are stricter than the reference: its branches
 // `parseInt` fixed substrings, so unparseable input yields the literal string
 // `rgb(NaN, NaN, NaN)`, which is not a colour and paints nothing while looking
-// like a label. An empty string lets the panel drop the label instead. Pinned
-// because "returns NaN" and "returns nothing" fail in opposite directions —
-// the first silently, the second visibly.
-if (formatHex('nope', 'rgb') !== '' || formatHex('#39zz', 'hsl') !== '') {
-  fail(`rgb/hsl should return "" for input hexToRgb cannot parse, got ${JSON.stringify([formatHex('nope', 'rgb'), formatHex('#39zz', 'hsl')])}`);
+// like a label. The bare return value is `''`. Pinned because "returns NaN" and
+// "returns nothing" fail in opposite directions — the first silently, the
+// second visibly.
+//
+// What is NOT `''` any more is the value a SWATCH shows. This check used to own
+// that decision alone, on the reasoning that an empty label lets the panel drop
+// it. It cannot: `paletteGridHtml` writes the formatted value into the label AND
+// `data-cp-copy`, so an unconvertible colour would render a blank cell and copy
+// an EMPTY STRING — the one clipboard result the reader cannot notice they got
+// wrong, because there is nothing to look at and nothing to paste. `formatHex`
+// now falls back to the raw hex and warns, and this check asserts the fallback
+// rather than the drop.
+//
+// The two live together: `''` for input that has no colour at all, the hex for
+// input that has a colour in a notation this formatter cannot express (`#FFF`).
+if (formatHex('nope', 'rgb') !== 'nope' || formatHex('#39zz', 'hsl') !== '#39zz') {
+  fail(`an unconvertible hex should fall back to the hex, not to "" (which copies empty); got ${JSON.stringify([formatHex('nope', 'rgb'), formatHex('#39zz', 'hsl')])}`);
 } else if (/NaN/.test(formatHex('nope', 'rgb'))) {
   fail('formatHex leaks the reference\'s rgb(NaN, NaN, NaN)');
+} else if (formatHex('#FFF', 'rgb') !== '#FFF' || formatHex('#FFF', 'hsl') !== '#FFF') {
+  // 3-digit shorthand is the case that actually reaches the fallback:
+  // `hexToRgb` rejects it, and every hex in color_palettes.json is 6-digit
+  // (12,297 of them), so without this the guard is unpinned by any live data.
+  fail(`shorthand #FFF must fall back to the hex; got ${JSON.stringify([formatHex('#FFF', 'rgb'), formatHex('#FFF', 'hsl')])}`);
 } else {
-  pass('rgb/hsl return "" on unparseable input rather than the reference\'s rgb(NaN, NaN, NaN)');
+  pass('an unconvertible hex falls back to the hex instead of "" (which would render a blank cell and copy an empty string), and never leaks rgb(NaN, NaN, NaN)');
 }
 
 // An unknown notation must not fall through to hex, which would make a typo in
