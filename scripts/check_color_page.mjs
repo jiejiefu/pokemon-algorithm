@@ -493,14 +493,14 @@ check(
   () => 'the dex field is type=number inside a scrollable panel'
 );
 // All-digits and in-range are two failures with two messages. A `{1,4}` regex
-// answered "國號只能是數字" for 99999, which is a perfectly good number.
+// answered "全國編號只能是數字" for 99999, which is a perfectly good number.
 check(
   /!\/\^\\d\+\$\/\.test\(raw\)/.test(colorHtml),
   'the digits test is /^\\d+$/, so a 5-digit value reports RANGE rather than "not a number"',
   () => 'the digits test bounds the length, misreporting an out-of-range dex as a non-numeric one'
 );
 check(
-  /國號範圍是 1–\$\{pokemon\.length\}/.test(colorHtml),
+  /全國編號範圍是 1–\$\{pokemon\.length\}/.test(colorHtml),
   'the range error names the real upper bound from the loaded data',
   () => 'the out-of-range message hardcodes or omits the range'
 );

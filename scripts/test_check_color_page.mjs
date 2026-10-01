@@ -321,7 +321,7 @@ const cases = [
   {
     name: 'a range message that omits the upper bound sends the reader hunting for a roster',
     mutate: (f, s) => f.endsWith('color.html')
-      ? s.replace('國號範圍是 1–${pokemon.length}。', '這個寶可夢不存在。')
+      ? s.replace('全國編號範圍是 1–${pokemon.length}。', '這個寶可夢不存在。')
       : undefined,
     expect: 'hardcodes or omits the range',
   },
