@@ -392,10 +392,12 @@ body {
 }
 
 .header-title {
-  /* `margin: 0` because this class is also applied to the <h1> on pokedex.html
-     and model3d.html, which carry the UA's default 0.67em block margin. Inside
-     `.header-brand` that margin would push the ball off the flex row's centre
-     line. A <div> title never had the margin, so this changes nothing there. */
+  /* Every page now carries the same string here — 寶可夢演算法, the site brand —
+     so this is never a page name and never an <h1>. The two pages that used to
+     hang their <h1> off the header (pokedex, model3d) moved theirs into the
+     content area as `.page-h1`. `margin: 0` is kept anyway: it costs nothing on
+     a <div> and means a future <h1> here cannot push the ball off the flex row's
+     centre line. */
   margin: 0;
   font-size: 20px;
   font-weight: bold;
@@ -415,6 +417,25 @@ body {
 .header-title-large {
   font-size: 28px;
   letter-spacing: 2px;
+}
+
+/* ===== In-page h1 =====
+   The header brand is 寶可夢演算法 on every page, so the page that names itself
+   needs a heading somewhere else. Only pokedex.html and model3d.html use it —
+   both had their <h1> in the header and now carry one in the content area. Pages
+   with a hero (index, colors, collections, category, generations, detail) get
+   their h1 from that hero instead and must not add one of these.
+   Sized to read as a page title, not as a second brand mark: flat text colour
+   rather than the header's gradient clip, so the two never compete. */
+.page-h1 {
+  margin: 8px auto 16px;
+  max-width: 1180px;
+  padding: 0 16px;
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  text-align: center;
 }
 
 /* Fallback for engines without background-clip: text. Without this the title
@@ -477,17 +498,18 @@ body {
   width: auto;
 }
 
-/* Two selectors, not one, on purpose. `.site-logo:hover` alone is kept because
-   maze.html puts the logo straight into `.controls` with no `.header-brand` and
-   no title, so it is still its own link there; dropping the standalone rule
-   would silently kill its hover feedback. The `.header-brand:hover` pair is what
-   makes the TITLE a hit target, so hovering the word dims the ball too — the
-   InfoPoke `group-hover:scale-110` idea, at 1.06 so it stays subtle at 40px. */
+/* Two selectors, not one, on purpose. `.site-logo:hover` keeps the standalone
+   rule alive for any logo that is not inside a `.header-brand`; the
+   `.header-brand:hover` pair is what makes the TITLE a hit target, so hovering
+   the word dims the ball too — the InfoPoke `group-hover:scale-110` idea, at 1.06
+   so it stays subtle at 40px. Every page now wraps its logo in a `.header-brand`,
+   but the standalone rule is load-bearing for that future case rather than dead. */
 .site-logo:hover { opacity: .85; }
 .site-logo:active { transform: scale(.96); }
 .header-brand:hover .site-logo { opacity: .85; }
 .header-brand:hover .header-title { opacity: .88; }
 .header-brand:active .site-logo { transform: scale(.96); }
+
 /* ===== Focus visibility =====
    One ring for the whole site, in the shared layer, because the only global
    `:focus-visible` rule lived in detail.css — which loads on exactly one of the
@@ -523,13 +545,6 @@ summary:focus-visible,
 }
 
 .site-logo:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
-
-
-/* maze.html is the one page whose header carries no title — it is a control
-   bar — so its logo is the bar's first child rather than a `.header-brand` row
-   of its own, which would otherwise be a lone centred line above the buttons.
-   Sized to the button height so it does not stretch the row. */
-.controls-maze .site-logo img { height: 32px; }
 
 /* ===== Icons =====
    Every icon on the site is an inline `<svg class="icon">` — emoji are banned
@@ -1581,6 +1596,7 @@ a.site-nav-item:focus-visible,
 @media (max-width: 768px) {
   .header-title { font-size: 18px; }
   .header-title-large { font-size: 22px; }
+  .page-h1 { font-size: 21px; margin: 4px auto 12px; }
   .btn { padding: 6px 12px; font-size: 12px; }
   .controls-maze .btn { padding: 6px 12px; font-size: 13px; }
   .feature-grid { grid-template-columns: 1fr; }

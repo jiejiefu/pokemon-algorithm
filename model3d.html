@@ -163,8 +163,9 @@
 
     /* Identity row: the sprite is a thumbnail of the SAME pokemon whose model
        is on screen, which is what makes the page read as a Pokémon page rather
-       than a bare model viewer. The name is the <h1> (see gotcha 40 — this page
-       has no hero, so the header keeps its heading, and this is a <p>). */
+       than a bare model viewer. The name is a <p> because the page's <h1> is
+       `.page-h1` above the stage — the header title is the site brand, not a
+       heading. */
     .m3d-identity { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .m3d-identity img { width: 56px; height: 56px; image-rendering: auto; }
     .m3d-identity p { margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; }
@@ -289,7 +290,11 @@
   <header class="header header-3d">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
-      <h1 class="header-title">3D 模型播放器</h1>
+      <!-- A div, not an <h1>: the header title is the site brand (寶可夢演算法)
+           on every page, so the page's own <h1> lives inside <main> below.
+           Two h1s on one page remains the one combination that appears nowhere
+           in the site. -->
+      <div class="header-title header-title-large">寶可夢演算法</div>
     </a>
     <nav class="site-nav" data-nav aria-label="主選單"></nav>
     <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
@@ -298,6 +303,7 @@
 
   <main class="m3d-layout">
     <div>
+      <h1 class="page-h1">3D 模型播放器</h1>
       <div class="m3d-stage" id="stage">
         <!-- Static markup, so the two glyphs stay OUT of ICON_PATHS: that map
              exists for icons shared.js paints at runtime, and per the nav's own
