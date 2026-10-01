@@ -87,6 +87,116 @@
     .filter-select:focus {
       border-color: var(--accent-yellow);
     }
+    /* ===== Generation filter =====
+       The generation <select> used to sit inside .filter-group beside the type
+       and colour selects. It is now a row of buttons under .filter-group,
+       transcribing infopoke_net_pokemon.html:334-390 — the same row InfoPoke
+       shows above its grid, and the same one .gen-hero (generations.html) and
+       .coll-hero were both built from. A <select> cannot show a generation's
+       region name next to its number without becoming a two-column table, which
+       is the whole reason the row exists.
+
+       Two visual sources meet here and the division is deliberate. Layout is
+       InfoPoke's: a stacked button, "第 1 世代" over "關都", with the region
+       dropping out below `lg` for the same reason it does there — ten stacked
+       buttons with two lines each is 10 short wraps on a phone. Surface is this
+       site's: .cat-filter's pill (category.html:255), which is already the
+       established shape for a single-select filter row. The rounded-md squares
+       of the source would sit next to a pill row as a visible mismatch.
+
+       Buttons, not anchors: they filter what is already on the page and do not
+       navigate, so they are not links. `aria-pressed` carries the state, the
+       same call category.html:240 makes for .cat-filter. Radio semantics
+       (role="radiogroup" + aria-checked) would be the more correct vocabulary
+       for a single-select, and it buys arrow-key navigation -- but it would be
+       the only radiogroup in the site, and aria-pressed is what every other
+       filter row here already speaks. Consistency won.
+
+       The active fill is #2563eb, the hero's own blue-600 mid-stop, so the row
+       and the gradient above it read as one surface. Measured: white on it is
+       5.17:1. NOT InfoPoke's blue-500 (#3b82f6), which gives white 3.68:1 --
+       the same failure .gen-hero documents at generations.html:190, hit from the
+       other direction. */
+    .gen-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 20px 12px;
+      background: var(--sticky-surface);
+    }
+    /* The visible heading doubles as the group's accessible name, so the label
+       is announced and read. aria-labelledby on the bar below points here. */
+    .gen-filter-label {
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    /* A rule between "all" and the nine. `--hairline`, not InfoPoke's hard-coded
+       gray-300, which is a fixed colour that has no dark-theme value. */
+    .gen-filter-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--hairline);
+      margin: 0 4px;
+    }
+    .gen-filter {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 2px solid var(--border-input);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.25;
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast),
+                  border-color var(--transition-fast);
+    }
+    .gen-filter:hover { color: var(--text-primary); }
+    /* Distinguished by fill AND border, not colour alone -- the reason
+       category.html:262 gives for .cat-filter. */
+    .gen-filter[aria-pressed="true"] {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+    .gen-filter:focus-visible {
+      outline: 3px solid var(--accent-gold);
+      outline-offset: 2px;
+    }
+    /* "all" is the reset, so it is a peer of the nine rather than one of them:
+       different shape, same row. It has no region line, which is what
+       distinguishes it at a glance. */
+    .gen-filter-all { padding: 6px 16px; justify-content: center; }
+    /* Below `lg` the region name is dropped, exactly as InfoPoke does it. The
+       button keeps its height because the region span is hidden, not removed.
+
+       NO opacity here, though the source uses opacity-75 on this line and its
+       active state is white on blue too — so it measures the same 3.76:1 this
+       row would have. Measured on a rendered screenshot: white at 0.78 alpha
+       composites to rgb(207,220,250) over #2563eb, which is 3.76:1, under AA's
+       4.5:1 for text this size. Hierarchy comes from font-size (10px against
+       13px) and weight (500 against 600) instead, which cost nothing and are
+       two properties the contrast rule cannot touch. That is the third
+       WCAG failure traced to this one source file — see the hero's gradient
+       above and generations.html:190. */
+    .gen-filter-region {
+      font-size: 10px;
+      font-weight: 500;
+    }
+    @media (max-width: 1023px) {
+      .gen-filter-region { display: none; }
+      .gen-filter-divider { display: none; }
+    }
     /* Colour-page entries. These are a second axis onto the same 1,025 — the
        filter row above narrows by Pokemon attributes, these browse by the
        palette a sprite actually contains — so they get their own row instead of
@@ -289,6 +399,25 @@
         background: none;
         border-color: var(--hairline);
       }
+
+      /* The selected generation button fails the same way the hero's gradient
+         does, and shared.css's print block has no rule that rescues it -- it
+         only re-sets tokens, so `background: #2563eb` is dropped as a
+         background colour while `color: #fff` survives it. That prints white
+         text on white paper: the one piece of filter state a printed pokedex
+         most needs is the piece that disappears.
+
+         So on paper the fill is dropped and the SELECTION IS CARRIED BY BORDER
+         WEIGHT instead: 2px -> 3px, plus the ink border token. Weight rather
+         than colour because a printer's greyscale is not obliged to reproduce
+         #2563eb as anything a reader can distinguish from its neighbours, and
+         this has to survive a mono laser printer as well as an inkjet. */
+      .gen-filter[aria-pressed="true"] {
+        background: none;
+        color: var(--text-primary);
+        border-color: var(--text-primary);
+        border-width: 3px;
+      }
     }
   </style>
 </head>
@@ -355,19 +484,16 @@
       <option value="white">白色</option>
       <option value="gray">灰色</option>
     </select>
-    <select id="genFilter" class="filter-select">
-      <option value="all">所有世代</option>
-      <option value="1">第 1 世代 (關都)</option>
-      <option value="2">第 2 世代 (城都)</option>
-      <option value="3">第 3 世代 (豐緣)</option>
-      <option value="4">第 4 世代 (神奧)</option>
-      <option value="5">第 5 世代 (合眾)</option>
-      <option value="6">第 6 世代 (卡洛斯)</option>
-      <option value="7">第 7 世代 (阿羅拉)</option>
-      <option value="8">第 8 世代 (伽勒爾)</option>
-      <option value="9">第 9 世代 (帕底亞)</option>
-    </select>
     <button id="clearFilters" class="filter-select" style="background:var(--accent-gold);color:var(--on-accent);border:none;font-weight:bold;">清除篩選</button>
+  </div>
+
+  <!-- Generation filter. The buttons are built by renderGenFilters() from
+       GEN_FILTERS rather than written out here, so the region name, the dex
+       range in the title, and the set of values ?gen= accepts all come from one
+       array and cannot drift apart. This shell is what remains without JS: a
+       labelled, empty group. -->
+  <div class="gen-filter-bar" role="group" aria-labelledby="gen-filter-label">
+    <span class="gen-filter-label" id="gen-filter-label">按寶可夢世代篩選</span>
   </div>
 
   <div class="filter-extras">
@@ -397,32 +523,124 @@
     const datalist = document.getElementById('pokemon-suggestions');
     const typeFilter = document.getElementById('typeFilter');
     const colorFilter = document.getElementById('colorFilter');
-    const genFilter = document.getElementById('genFilter');
+    const genFilterBar = document.querySelector('.gen-filter-bar');
     const clearBtn = document.getElementById('clearFilters');
     const resultsInfo = document.getElementById('resultsInfo');
     
     let allPokemonData = [];
 
-    // generations.html deep-links here as pokedex.html?gen=N. The value is
-    // validated before it reaches the <select> because a hand-edited or stale
-    // link can carry anything, and assigning genFilter.value = '99' would
-    // silently render the unfiltered 1025 while the URL claims a generation.
+    /* The nine generations, in one place. This array is the ONLY source for the
+       buttons' labels, their region names, the dex range in each `title`, and
+       the set of values `?gen=` accepts — previously those were a <select>'s ten
+       <option>s, the string regex /^[1-9]$/, and InfoPoke's own markup, none of
+       which could see each other. Deriving the validator from the array means a
+       tenth generation cannot be added to the UI while the deep-link still
+       rejects it.
+
+       `range` is the national-dex span, copied from the source row
+       (infopoke_net_pokemon.html:353) and verified against
+       assets/data/pokemon_data.json: min/max id per generation is
+       1-151, 152-251, 252-386, 387-493, 494-649, 650-721, 722-809, 810-905,
+       906-1025. It is tooltip text, not a filter input — the filter runs on
+       `pokemon.generation`, never on an id comparison — so a range that drifts
+       would be a cosmetic lie in a tooltip rather than wrong results. */
+    const GEN_FILTERS = [
+      { gen: 1, region: '關都',   range: '#1-#151'   },
+      { gen: 2, region: '城都',   range: '#152-#251' },
+      { gen: 3, region: '豐緣',   range: '#252-#386' },
+      { gen: 4, region: '神奧',   range: '#387-#493' },
+      { gen: 5, region: '合眾',   range: '#494-#649' },
+      { gen: 6, region: '卡洛斯', range: '#650-#721' },
+      { gen: 7, region: '阿羅拉', range: '#722-#809' },
+      { gen: 8, region: '伽勒爾', range: '#810-#905' },
+      { gen: 9, region: '帕底亞', range: '#906-#1025' },
+    ];
+
+    // `selectedGen` replaces the <select>'s `.value`. 'all' is the reset state,
+    // not a member of GEN_FILTERS, which is why the checks below are written as
+    // "is this a known generation" rather than "is this in the array".
+    let selectedGen = 'all';
+
+    /* Builds the row. Two spans per generation button, stacked, the way the
+       source stacks them (infopoke_net_pokemon.html:353): the number is what a
+       reader scans for, the region is what they remember the generation by. The
+       region span is hidden by CSS below `lg`, not omitted, so the button keeps
+       its identity at every width.
+
+       textContent throughout, never innerHTML: these strings are content and
+       every other renderer in this file treats them that way. */
+    function renderGenFilters() {
+      const frag = document.createDocumentFragment();
+
+      // "All" is a peer of the nine, not a member of them — a reset is a
+      // different kind of act from a choice, and it has no region line, which is
+      // what tells the two apart at a glance.
+      const all = document.createElement('button');
+      all.type = 'button';
+      all.className = 'gen-filter gen-filter-all';
+      all.dataset.gen = 'all';
+      all.textContent = '所有世代';
+      all.setAttribute('aria-label', '所有世代');
+      frag.appendChild(all);
+
+      const divider = document.createElement('span');
+      divider.className = 'gen-filter-divider';
+      divider.setAttribute('aria-hidden', 'true');
+      frag.appendChild(divider);
+
+      for (const g of GEN_FILTERS) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'gen-filter';
+        btn.dataset.gen = String(g.gen);
+        btn.title = `第 ${g.gen} 世代: ${g.region} (${g.range})`;
+        btn.setAttribute('aria-label', `第 ${g.gen} 世代 - ${g.region}`);
+
+        const name = document.createElement('span');
+        name.textContent = `第 ${g.gen} 世代`;
+        const region = document.createElement('span');
+        region.className = 'gen-filter-region';
+        region.textContent = g.region;
+        btn.append(name, region);
+
+        frag.appendChild(btn);
+      }
+
+      genFilterBar.appendChild(frag);
+    }
+
+    /* One place that writes the pressed state, so the row cannot disagree with
+       `selectedGen`. Called after a click, after clearFilters(), and once the
+       deep-link below has been resolved. */
+    function syncGenButtons() {
+      for (const btn of genFilterBar.querySelectorAll('.gen-filter')) {
+        btn.setAttribute('aria-pressed', String(btn.dataset.gen === selectedGen));
+      }
+    }
+
+    renderGenFilters();
+
+    // generations.html and detail.html deep-link here as pokedex.html?gen=N. The
+    // value is validated against GEN_FILTERS before it becomes state because a
+    // hand-edited or stale link can carry anything, and showing the unfiltered
+    // 1025 while the URL claims a generation is a claim the page cannot back.
     // The application is deliberately NOT here: filterPokedex() needs
     // allPokemonData, so the param is applied once the fetch resolves below.
     const genParam = new URLSearchParams(location.search).get('gen');
-    if (genParam && /^[1-9]$/.test(genParam)) {
-      genFilter.value = genParam;
+    if (genParam && GEN_FILTERS.some(g => String(g.gen) === genParam)) {
+      selectedGen = genParam;
     }
+    syncGenButtons();
 
     // Keep ?gen= in the address bar so a filtered view can be shared or
     // reloaded. replaceState, not pushState: this is a refinement of the view
     // the user is already on, not a navigation they should have to go back to.
     function syncUrl() {
       const url = new URL(location.href);
-      if (genFilter.value === 'all') {
+      if (selectedGen === 'all') {
         url.searchParams.delete('gen');
       } else {
-        url.searchParams.set('gen', genFilter.value);
+        url.searchParams.set('gen', selectedGen);
       }
       history.replaceState(null, '', url);
     }
@@ -539,7 +757,10 @@
       const searchText = searchInput.value.toLowerCase().trim();
       const selectedType = typeFilter.value;
       const selectedColor = colorFilter.value;
-      const selectedGen = genFilter.value;
+      // No local `selectedGen` here on purpose. There was one, reading the
+      // <select>'s .value, and it shadowed the module-level state the buttons
+      // write -- so renaming the state alone would have compiled and then
+      // filtered on a stale copy. The outer variable is the single source.
 
       const filteredData = allPokemonData.filter(pokemon => {
         // Search match
@@ -581,7 +802,12 @@
       searchInput.value = '';
       typeFilter.value = 'all';
       colorFilter.value = 'all';
-      genFilter.value = 'all';
+      selectedGen = 'all';
+      // The buttons are visible state, not a readout of the grid: without this
+      // the row would still show the pressed generation while the unfiltered
+      // 1025 were back on screen, which is the same unbacked claim the
+      // deep-link guard above exists to prevent.
+      syncGenButtons();
       renderGrid(allPokemonData);
       syncUrl();
     }
@@ -590,9 +816,24 @@
     searchInput.addEventListener('input', filterPokedex);
     typeFilter.addEventListener('change', filterPokedex);
     colorFilter.addEventListener('change', filterPokedex);
-    // Only the generation select writes the URL — doing it from filterPokedex()
-    // would rewrite the address bar on every keystroke in the search box.
-    genFilter.addEventListener('change', () => { filterPokedex(); syncUrl(); });
+    /* One delegated listener on the row, not one per button. The buttons are
+       built in JS, so binding at load time would miss them; and a delegated
+       handler is the only version that survives the row being re-rendered.
+
+       Only a generation click writes the URL — doing it from filterPokedex()
+       would rewrite the address bar on every keystroke in the search box.
+
+       `closest` rather than iterating: the click target for a two-span button is
+       the SPAN, not the button, and ten buttons x two spans is exactly the shape
+       where event.target is the wrong node. */
+    genFilterBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.gen-filter');
+      if (!btn) return;
+      selectedGen = btn.dataset.gen;
+      syncGenButtons();
+      filterPokedex();
+      syncUrl();
+    });
     clearBtn.addEventListener('click', clearFilters);
 
     // Allow Enter key on search to focus first result
