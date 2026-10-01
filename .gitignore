@@ -37,6 +37,14 @@ build/
 .DS_Store
 Thumbs.db
 
+# AGENTS.md.bak holds the 348-line predecessor of AGENTS.md, including the 34
+# gotchas that were dropped when the file was condensed. Kept on disk as
+# read-only history, deliberately NOT tracked: it is superseded, and leaving it
+# untracked-but-unignored meant a `git add -A` would have swept it into some
+# unrelated commit. The *.json.bak rule above covers pokemon_data.json.bak; this
+# one is here because the two backups are not the same kind of file.
+AGENTS.md.bak
+
 # IDE settings
 .idea/
 .vscode/*
