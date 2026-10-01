@@ -282,6 +282,14 @@ body {
   max-width: 100%;
 }
 
+.hero-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.cry-btn,
 .shiny-btn {
   display: inline-flex;
   align-items: center;
@@ -299,14 +307,17 @@ body {
     border-color var(--transition-fast);
 }
 
+.cry-btn svg,
 .shiny-btn svg { width: 19px; height: 19px; fill: currentColor; }
 
+.cry-btn:hover,
 .shiny-btn:hover {
   color: var(--accent-gold);
   border-color: rgba(var(--accent-gold-rgb), 0.45);
   background: rgba(var(--accent-gold-rgb), 0.12);
 }
 
+.cry-btn.is-playing,
 .shiny-btn.is-active {
   color: var(--on-accent);
   background: var(--accent-gold);
