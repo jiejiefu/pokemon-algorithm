@@ -379,7 +379,7 @@
     }
 
     /* ------------------------------------------------------------------
-       Blocks 5-8: the link-card family. 精選系列 (now 12 cards, 3 across),
+       Blocks 5-8: the link-card family. 精選系列 (9 cards, 3 across),
        寶可夢遊戲 and 對戰工具
        are the same shape in the source — a title, a big number, a sentence —
        so they share one rule and differ only in grid density and accent.
@@ -396,10 +396,13 @@
        across the nine rendered as 5 rows with a 1-card orphan, which read as a
        layout fault rather than as a grid. So `.is-dense` is not "smaller
        padding" or "tighter" — it is the 4-count variant, and a new section with a
-       5th or 7th card count wants its own stop, not this one. */
+       5th or 7th card count wants its own stop, not this one.
+       精選系列 was 12 while the three colour cards lived here; removing them put
+       it back on 9, which is the count this comment was written for. */
     @media (min-width: 1024px) { .home-link-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (min-width: 1024px) { .home-link-grid.is-dense { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     .home-link-card {
+      position: relative;
       display: block;
       padding: 24px;
       background: var(--bg-card);
@@ -409,6 +412,54 @@
       transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     }
     a.home-link-card:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+
+    /* 精選系列 only: each card carries its category's own hue, read from
+       COLLECTION_TINTS (assets/js/categories.js) — the same table collections.html
+       uses, so the two pages cannot drift apart. The 8px inset keeps the 4px
+       rule clear of the card's rounded corner, which otherwise paints a square
+       over it.
+
+       InfoPoke's values are `from-{hue}-50 to-{hue}-50` with a `{hue}-200` edge,
+       transcribed verbatim for the light theme. InfoPoke is light-only and its
+       -50 stops are near-white, so the DARK theme substitutes the same hues at
+       -950 under alpha over --bg-card — copying the hexes would produce nine
+       glowing white tiles on a dark page. The inversion is forced by shared.css,
+       where :root is dark and [data-theme="light"] is the override.
+
+       The vars are stamped per card by the loop at the bottom of this file, so
+       all nine read from one table rather than nine hand-written gradients. */
+    .home-link-card.is-tinted {
+      border-color: rgba(var(--link-tint-border-rgb, 148 163 184), var(--link-tint-border-a, 0.35));
+      background-image: linear-gradient(135deg,
+        rgba(var(--link-tint-from-rgb, 33 38 45), var(--link-tint-from-a, 0.55)),
+        rgba(var(--link-tint-to-rgb, 33 38 45), var(--link-tint-to-a, 0.4)));
+    }
+    [data-theme="light"] .home-link-card.is-tinted {
+      border-color: var(--link-tint-border, var(--hairline));
+      background-image: linear-gradient(135deg,
+        var(--link-tint-from, var(--bg-card)),
+        var(--link-tint-to, var(--bg-card)));
+    }
+    /* The category's own accent as a 4px top rule, from config.accent[0] — a
+       700-level shade, dark enough to read as a border on --bg-card in both
+       themes without carrying text. Kept alongside the tinted border on purpose:
+       the wash says "this hue", the rule says "this category". */
+    .home-link-card.is-tinted::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--link-accent, var(--text-muted));
+    }
+    a.home-link-card.is-tinted:hover {
+      border-color: rgba(var(--link-tint-border-rgb, 148 163 184), var(--link-tint-border-hover-a, 0.7));
+    }
+    [data-theme="light"] a.home-link-card.is-tinted:hover {
+      border-color: var(--link-tint-border-hover, var(--border-input));
+    }
     .home-link-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px; }
     .home-link-num { font-size: 28px; font-weight: 700; color: var(--accent-gold); margin: 0 0 8px; line-height: 1.1; }
     .home-link-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
@@ -706,72 +757,51 @@
       <h2 id="series-title" class="home-section-title">精選系列</h2>
       <p class="home-section-sub">探索稀有和獨特的寶可夢系列</p>
       <div class="home-link-grid">
-        <a class="home-link-card" href="category.html?cat=legendary">
+        <a class="home-link-card" data-cat="legendary" href="category.html?cat=legendary">
           <h3 class="home-link-title">傳說寶可夢</h3>
           <p class="home-link-num">71</p>
           <p class="home-link-desc">發現所有擁有獨特力量和傳說的傳說寶可夢。包括封面神獸和三神組合。</p>
         </a>
-        <a class="home-link-card" href="category.html?cat=mythical">
+        <a class="home-link-card" data-cat="mythical" href="category.html?cat=mythical">
           <h3 class="home-link-title">幻之寶可夢</h3>
           <p class="home-link-num">23</p>
           <p class="home-link-desc">探索像夢幻、時拉比、基拉祈和阿爾宙斯這樣稀有的活動限定幻之寶可夢。</p>
         </a>
-        <a class="home-link-card" href="category.html?cat=starter">
+        <a class="home-link-card" data-cat="starter" href="category.html?cat=starter">
           <h3 class="home-link-title">最初的夥伴</h3>
           <p class="home-link-num">27</p>
           <p class="home-link-desc">第 1-9 世代的所有最初的夥伴。來自每個地區的草、火和水屬性。</p>
         </a>
-        <a class="home-link-card" href="category.html?cat=shiny">
+        <a class="home-link-card" data-cat="shiny" href="category.html?cat=shiny">
           <h3 class="home-link-title">異色型態</h3>
           <p class="home-link-num">1,025</p>
           <p class="home-link-desc">包含替代配色的完整異色圖鑑。查看所有異色型態和變體。</p>
         </a>
-        <!-- Three colour views, which is what makes this count 12 rather than 9.
-             The grid is 3 across, and gotcha 49 records that the even division
-             is the ONLY reason that column count exists, so 12 keeps 3 clean
-             rows... er, 4. Placing them here rather than in 對戰工具 & 指南 is
-             deliberate too: that grid's 4 cards divide evenly across 4 columns,
-             and 7 would not, which gotcha 49 says wants its own breakpoint. -->
-        <a class="home-link-card" href="colors.html">
-          <h3 class="home-link-title">色彩生成器</h3>
-          <p class="home-link-num">1,025</p>
-          <p class="home-link-desc">從每隻寶可夢的圖片算出真實色盤，輸出 11 階明暗與 CSS 變數。</p>
-        </a>
-        <a class="home-link-card" href="colors-explore.html">
-          <h3 class="home-link-title">色彩探索</h3>
-          <p class="home-link-num">2,050</p>
-          <p class="home-link-desc">一般與閃亮共 2,050 組色盤，依屬性、稀有度與世代瀏覽。</p>
-        </a>
-        <a class="home-link-card" href="color.html?slug=bulbasaur">
-          <h3 class="home-link-title">單一色盤</h3>
-          <p class="home-link-num">#001</p>
-          <p class="home-link-desc">逐隻查看佔比最高的 12 色、色碼與設計用明暗階。</p>
-        </a>
-        <span class="home-link-card is-planned">
+        <span class="home-link-card is-planned" data-cat="mega">
           <h3 class="home-link-title">超級進化</h3>
           <p class="home-link-num">46</p>
           <p class="home-link-desc">第 6 世代的所有超級進化型態。戰鬥中強大的暫時變身。</p>
           <span class="home-tag-badge">敬請期待</span>
         </span>
-        <span class="home-link-card is-planned">
+        <span class="home-link-card is-planned" data-cat="gigantamax">
           <h3 class="home-link-title">超極巨化</h3>
           <p class="home-link-num">32</p>
           <p class="home-link-desc">第 8 世代具有獨特超極巨招式和外觀的特殊超極巨化型態。</p>
           <span class="home-tag-badge">敬請期待</span>
         </span>
-        <span class="home-link-card is-planned">
+        <span class="home-link-card is-planned" data-cat="regional">
           <h3 class="home-link-title">地區型態</h3>
           <p class="home-link-num">60+</p>
           <p class="home-link-desc">具有新屬性和特性的阿羅拉、伽勒爾、洗翠和帕底亞地區變體。</p>
           <span class="home-tag-badge">敬請期待</span>
         </span>
-        <span class="home-link-card is-planned">
+        <span class="home-link-card is-planned" data-cat="ultra-beast">
           <h3 class="home-link-title">究極異獸</h3>
           <p class="home-link-num">11</p>
           <p class="home-link-desc">來自究極空間的神秘異次元生物，具有獨特的設計和種族值。</p>
           <span class="home-tag-badge">敬請期待</span>
         </span>
-        <span class="home-link-card is-planned">
+        <span class="home-link-card is-planned" data-cat="paradox">
           <h3 class="home-link-title">悖謬寶可夢</h3>
           <p class="home-link-num">16</p>
           <p class="home-link-desc">朱/紫中的古代和未來悖謬型態。穿越時空的變體。</p>
@@ -942,7 +972,7 @@
     // For getCategory() only, so the daily pick reads the real member selectors
     // rather than a fourth transcription of 傳說 / 幻之 / 600族. The 18.7 KB gz
     // is ~3% on top of the 614 KB of pokemon_data.json this page already loads.
-    import {getCategory} from './assets/js/categories.js';
+    import {getCategory, COLLECTION_TINTS, cardTintVars} from './assets/js/categories.js';
     // genusZh() for the card's 分類 tile. pokemon_data.json carries only the
     // English genus, and the zh map is GENERATED by extract_genus_zh.py, so it is
     // imported from the generator's output rather than transcribed here.
@@ -951,6 +981,37 @@
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
     initHeaderNav();
+
+    // ---- 精選系列: one tint per card, from COLLECTION_TINTS ------------------
+    // The nine cards are static markup, but their fills are not written inline:
+    // each one is stamped with the CSS custom properties that
+    // `cardTintVars(COLLECTION_TINTS[slug])` returns — the SAME function and table
+    // collections.html uses, so the homepage and the hub cannot drift apart. Nine
+    // hand-written gradients here would be a fourth copy of a table that already
+    // exists, which is what gotcha 38 is about.
+    //
+    // The property names are rewritten from `--coll-*` to `--link-*` because the
+    // two pages' cards are different components with different padding, corner
+    // radius and hover behaviour. The VALUES are untouched.
+    //
+    // `is-tinted` is added by JS rather than being in the markup so a card whose
+    // slug has no entry keeps the plain `.home-link-card` surface: an untinted
+    // card reads as unstyled, which is the honest state for one with no hue.
+    for (const card of document.querySelectorAll('.home-link-card[data-cat]')) {
+      const tint = COLLECTION_TINTS[card.dataset.cat];
+      const config = getCategory(card.dataset.cat);
+      if (!tint) continue;
+      for (const [prop, value] of Object.entries(cardTintVars(tint))) {
+        card.style.setProperty(prop.replace('--coll-', '--link-'), value);
+      }
+      // accent[0] is a 700-level shade: dark enough to read as a 4px rule on
+      // --bg-card in both themes without carrying any text. Same value
+      // collections.html stamps on .coll-card::before.
+      if (config && config.accent && config.accent.length) {
+        card.style.setProperty('--link-accent', config.accent[0]);
+      }
+      card.classList.add('is-tinted');
+    }
 
     const popularGrid = document.getElementById('popular-grid');
     const dailySlot = document.getElementById('daily-slot');

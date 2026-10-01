@@ -126,6 +126,12 @@ console.log('NAV integrity');
 // Every href a NAV row can send the user to must resolve, or be registered as
 // planned. A typo'd href is a dead link that renders identically to a good one.
 const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
+// 11 site pages reach the nav: the 5 top-level hrefs, pokedex / generations /
+// collections / category under 圖鑑, sorting / maze under 演算法, and the 色彩
+// trio. A NUMBER, not a list on purpose — a list here would be a fourth copy of
+// NAV that could be edited to agree with a broken NAV, whereas a count can only
+// be changed by someone deciding the site's page set changed.
+const EXPECTED_NAV_PAGES = 11;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;
@@ -141,6 +147,13 @@ for (const item of NAV) {
         );
       } else {
         rowTargets.push({ from: `${label} > ${it.label}`, href: it.href, kind: 'group row' });
+        // A row's `pages` are real destinations too, and they have to resolve
+        // for the same reason the row's own href does: 特殊分類 lists
+        // category.html so that page can mark itself current from one row
+        // instead of needing a row of its own.
+        for (const page of it.pages || []) {
+          rowTargets.push({ from: `${label} > ${it.label}`, href: page, kind: 'group row pages[]' });
+        }
       }
     }
   }
@@ -165,6 +178,19 @@ check(
 // special-cased for the colour trio, because a per-page assertion passes for
 // exactly the page it was written for.
 const everyPage = [...new Set(rowTargets.map((t) => t.href))];
+// The table must not SHRINK. Every check below is computed over `everyPage`,
+// which is built from what NAV mentions — so a page that quietly stops being
+// mentioned leaves the table and turns every claim check green while marking
+// nothing current. That is not hypothetical: 特殊分類's row-level `pages` is
+// the only thing that mentions category.html, and deleting that one array is a
+// one-token edit that no other assertion here would notice. Pinning the size
+// is the blunt instrument that turns that silence into a failure, and the count
+// only moves when a page is genuinely added to or removed from the site.
+check(
+  everyPage.length === EXPECTED_NAV_PAGES,
+  `the claim table holds all ${EXPECTED_NAV_PAGES} site pages`,
+  () => `everyPage has ${everyPage.length} entries, expected ${EXPECTED_NAV_PAGES} — a page has stopped being mentioned by NAV, so the checks below no longer cover it`
+);
 const claims = new Map();
 const triggerPages = new Map();
 for (const page of everyPage) {
@@ -174,7 +200,7 @@ for (const page of everyPage) {
     const inPages = (item.pages || []).includes(page);
     const isGroup = !!(item.groups && item.groups.length);
     const groupRows = isGroup
-      ? item.groups.flatMap((g) => g.items).filter((it) => !it.planned && it.href === page)
+      ? item.groups.flatMap((g) => g.items).filter((it) => !it.planned && (it.href === page || (it.pages || []).includes(page)))
       : [];
     if (!isGroup) {
       // Mirrors railNavHtml: a single link may be claimed through `pages`, which
@@ -206,6 +232,29 @@ check(
   [...triggerPages.keys()].length === 0,
   'no group trigger carries aria-current: the exact row claims the page',
   () => `trigger-level claims: ${[...triggerPages.keys()].join(', ')}`
+);
+
+// A row that claims a page ALSO needs the group to open on that page, or the
+// aria-current it just gained is inside a `[hidden]` panel. The group opens on
+// `pages`, so a page claimed by a row but missing from its group's `pages` is
+// claimed and invisible at the same time. The two lists look redundant —
+// category.html is in both of 圖鑑's — and they are, but for different jobs:
+// `group.pages` opens the disclosure, the row's `pages` carries the claim.
+const unopenedGroups = [];
+for (const item of NAV) {
+  if (!item.groups) continue;
+  for (const g of item.groups) {
+    for (const it of g.items) {
+      for (const page of (it.pages || []).concat(it.href ? [it.href] : [])) {
+        if (!(item.pages || []).includes(page)) unopenedGroups.push(`${item.label} > ${it.label} claims ${page}, which the group does not list`);
+      }
+    }
+  }
+}
+check(
+  unopenedGroups.length === 0,
+  'every group row is reachable: the group opens on the pages its rows claim',
+  () => unopenedGroups.join(' | ')
 );
 
 // The two ownership checks above are properties of the TABLE, computed from NAV

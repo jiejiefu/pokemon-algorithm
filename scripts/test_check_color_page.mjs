@@ -126,6 +126,28 @@ const cases = [
     expect: 'claimed by exactly one element',
   },
   {
+    name: 'dropping 特殊分類\'s row-level pages strands category.html',
+    // The row, not the group, is what claims category.html. Remove its `pages`
+    // and the group is left claiming a page no row owns, which is the
+    // "no row of its own" rule. The claim-table count below it drops to 10 in
+    // the same run, so this deletion is caught twice.
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace("{ href: 'collections.html', pages: ['category.html'], label: '特殊分類'", "{ href: 'collections.html', label: '特殊分類'")
+      : undefined,
+    expect: 'no row of its own',
+  },
+  {
+    name: 'a row-claimed page missing from the group\'s pages sits inside a closed panel',
+    // The other half of the same decision, and the failure the closed-panel
+    // section of the checker's own header describes. 圖鑑's `pages` has to list
+    // category.html or the group renders collapsed on that page, taking the
+    // aria-current it just gained with it — claimed and invisible at once.
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace("pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html'],", "pages: ['pokedex.html', 'generations.html', 'collections.html'],")
+      : undefined,
+    expect: 'the group does not list',
+  },
+  {
     name: 'widening the claim to a bare isActive puts aria-current on a group trigger too',
     // Opposite failure mode of the same expression: the trigger would claim the
     // page as well as the row, and the trigger's claim is invisible whenever the

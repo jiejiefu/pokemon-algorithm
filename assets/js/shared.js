@@ -663,14 +663,28 @@ export const NAV = [
     label: '圖鑑',
     icon: 'book',
     // `pages` is what makes a dropdown mark itself current: the trigger has no
-    // href of its own, so without this neither 完整圖鑑 nor 世代指南 would light
-    // up the 圖鑑 button.
-    pages: ['pokedex.html', 'generations.html'],
+    // href of its own, so without this none of 完整圖鑑 / 世代指南 / 特殊分類
+    // would light up the 圖鑑 button.
+    //
+    // 'category.html' is in BOTH this list and the 特殊分類 row's, and the two
+    // jobs are different. This list decides whether the group OPENS: a closed
+    // panel hides the row that carries aria-current, so the reader would be on
+    // category.html with nothing marking it and nothing visible to find. The
+    // row's `pages` decides who carries aria-current — a group may not claim a
+    // page through `pages` alone (check_color_page.mjs:222), and category.html
+    // has a header identical to collections.html, so it needs a row either way.
+    // 色彩's three pages each have a row for the same reason; none of them ride
+    // along on a group.
+    pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html'],
     groups: [
       {
         items: [
           { href: 'pokedex.html', label: '所有寶可夢', desc: '完整 1025 隻全國圖鑑' },
           { href: 'generations.html', label: '按世代', desc: '第 1 到第 9 世代對照表' },
+          // `pages` on a ROW, not a category.html row of its own: category.html?cat=
+          // is a dynamic list of 9 slugs and has no single label worth showing,
+          // so it rides along with the hub it is a child of.
+          { href: 'collections.html', pages: ['category.html'], label: '特殊分類', desc: '稀有系列與特殊形態' },
         ],
       },
       {
@@ -698,14 +712,11 @@ export const NAV = [
       },
     ],
   },
-  // `pages` is needed even though this item has no `groups`: category.html is
-  // a CHILD of collections.html, reached only from it, and without listing it
-  // here the nav marks nothing current on that page — the one page of the five
-  // whose header is identical to the hub's and therefore cannot tell them
-  // apart by title. `href` alone cannot do it, and the check is
-  // `href === page || pages.includes(page)`, so an item with no groups still
-  // honours it.
-  { href: 'collections.html', pages: ['category.html'], label: '特殊分類', icon: 'layers' },
+  // 特殊分類 was a top-level row until the user moved it into the 圖鑑 dropdown,
+  // where it belongs: it is a way of browsing the dex by rarity/lineage rather
+  // than by number or generation, so it is a THIRD way into the same 1025 and not
+  // a subject area like 演算法 or 色彩. Five top-level rows remain: 首頁 / 圖鑑 /
+  // 演算法 / 3D 模型 / 色彩.
   // Third in the 演算法 group conceptually (it is another visualiser), but a
   // top-level item because its own controls are the content — a dropdown would
   // bury the page it links to behind a hover, and the page is reachable from the
@@ -715,7 +726,7 @@ export const NAV = [
   // rather than siblings: 色彩生成器 → 探索 → 單一寶可夢頁 is a drill-down, so
   // the first group lists them as one row each and the second keeps the site's
   // 計劃中 convention visible instead of hiding three built pages behind a
-  // 4th. `pages` is required for the same reason 特殊分類 needs it — the three
+  // 4th. `pages` is required for the same reason 圖鑑's own list is — the three
   // files cannot be told apart by `href` alone, and the dropdown trigger has no
   // href of its own, so without it none of the three would mark the trigger
   // current.
@@ -792,7 +803,7 @@ export const PLANNED_PAGES = [
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** One dropdown row. A planned row is a <span>, never an <a> — see NAV. */
-function navRowHtml(item) {
+function navRowHtml(item, currentPage) {
   if (item.planned) {
     return `<span class="site-nav-row is-planned" role="presentation">
         <span class="site-nav-row-label">${esc(item.label)}</span>
@@ -800,7 +811,14 @@ function navRowHtml(item) {
         <span class="site-nav-row-badge">敬請期待</span>
       </span>`;
   }
-  return `<a class="site-nav-row" href="${esc(item.href)}">
+  // A ROW may carry `pages` for the same reason a top-level item may: a child
+  // page whose header is identical to the parent's cannot be told apart by
+  // href, and the one rule is "aria-current goes on the exact row". 特殊分類
+  // needs it for category.html — see its own comment. `currentPage` is passed
+  // through so both renderers decide identically; when it is undefined the
+  // row still links, it just does not claim anything.
+  const active = !!currentPage && (item.href === currentPage || (item.pages || []).includes(currentPage));
+  return `<a class="site-nav-row${active ? ' is-active' : ''}" href="${esc(item.href)}"${active ? ' aria-current="page"' : ''}>
       <span class="site-nav-row-label">${esc(item.label)}</span>
       <span class="site-nav-row-desc">${esc(item.desc || '')}</span>
     </a>`;
@@ -818,7 +836,7 @@ function navItemHtml(item, currentPage) {
   const panel = item.groups.map(group => `
       <div class="site-nav-group${group.title ? ' has-title' : ''}">
         ${group.title ? `<p class="site-nav-group-title">${esc(group.title)}</p>` : ''}
-        ${group.items.map(navRowHtml).join('')}
+        ${group.items.map(it => navRowHtml(it, currentPage)).join('')}
       </div>`).join('');
 
   return `<div class="site-nav-item site-nav-item-has-panel${isActive ? ' is-active' : ''}">
@@ -1056,7 +1074,10 @@ function railSubRowHtml(item, currentPage) {
         <span class="cp-rail-badge">敬請期待</span>
       </span>`;
   }
-  const active = item.href === currentPage;
+  // Mirrors navRowHtml's `pages` branch — one rule, two renderers. A row that
+  // claims a child page through `pages` is still the EXACT row for that page,
+  // which is what keeps `aria-current` off the group trigger.
+  const active = item.href === currentPage || (item.pages || []).includes(currentPage);
   return `<a class="cp-rail-sub-row${active ? ' is-active' : ''}" href="${esc(item.href)}"${active ? ' aria-current="page"' : ''}><span class="cp-rail-label">${esc(item.label)}</span></a>`;
 }
 
