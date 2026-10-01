@@ -49,13 +49,13 @@
 
           <!-- 2. National Dex Stepper -->
           <form class="cp-panel-group" id="dex-form" novalidate>
-            <label class="cp-panel-label sr-only" for="dex-input">國號</label>
+            <label class="cp-panel-label sr-only" for="dex-input">編號</label>
             <div class="cp-panel-row">
               <button type="button" class="cp-dex-step-btn" id="dex-prev" title="上一隻寶可夢" aria-label="上一隻寶可夢">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               <input type="text" id="dex-input" class="cp-dex" inputmode="numeric"
-                     placeholder="#" maxlength="4" autocomplete="off" spellcheck="false" title="輸入國號">
+                     placeholder="#" maxlength="4" autocomplete="off" spellcheck="false" title="輸入編號">
               <button type="button" class="cp-dex-step-btn" id="dex-next" title="下一隻寶可夢" aria-label="下一隻寶可夢">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
               </button>
@@ -836,19 +836,19 @@
       els.dexError.hidden = true;
       const raw = els.dexInput.value.trim();
       if (!raw) {
-        showDexError('請輸入國號，例如 001。');
+        showDexError('請輸入全國編號，例如 001。');
         els.dexInput.focus();
         return;
       }
       if (!/^\d+$/.test(raw)) {
-        showDexError('國號只能是數字。');
+        showDexError('全國編號只能是數字。');
         els.dexInput.focus();
         return;
       }
       const id = Number(raw);
       const found = pokemon.find(p => Number(p.id) === id);
       if (!found) {
-        showDexError(`沒有 #${id} 這個寶可夢，國號範圍是 1–${pokemon.length}。`);
+        showDexError(`沒有 #${id} 這個寶可夢，全國編號範圍是 1–${pokemon.length}。`);
         els.dexInput.select();
         return;
       }
@@ -885,7 +885,7 @@
           els.status.innerHTML =
             `<div class="cp-empty"><p>找不到這個寶可夢。</p>` +
             `<p>網址中的 <code>${(params.get('slug') || params.get('id') || '（空白）').slice(0, 60)}</code> 不在 1–1025 範圍內。</p>` +
-            `<p><a href="colors-explore.html">前往色彩探索</a>，或改用國號瀏覽。</p></div>`;
+            `<p><a href="colors-explore.html">前往色彩探索</a>，或改用全國編號瀏覽。</p></div>`;
           return;
         }
 
