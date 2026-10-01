@@ -50,7 +50,7 @@ import { SHINY_IDS } from './shiny-index.js';
 const REGION_ZH = {
   alola: '阿羅拉',
   galar: '伽勒爾',
-  hisui: '他思岐',
+  hisui: '洗翠',
   paldea: '帕底亞',
 };
 
@@ -491,7 +491,7 @@ export const CATEGORIES = {
     title: '地區型態',
     titleEn: 'Regional Forms',
     subtitle: '58 個地區型態完整名單',
-    note: '阿羅拉、伽勒爾、他思岐與帕底亞的在地變體',
+    note: '阿羅拉、伽勒爾、洗翠與帕底亞的在地變體',
     accent: ['#0f766e', '#047857', '#0e7490'],
     needs: ['pokemon', 'chains'],
     members: regionalMembers(),
@@ -503,10 +503,10 @@ export const CATEGORIES = {
       [m.length, '地區型態'],
       [m.filter((p) => p.regionKey === 'alola').length, '阿羅拉'],
       [m.filter((p) => p.regionKey === 'galar').length, '伽勒爾'],
-      [m.filter((p) => p.regionKey === 'hisui').length, '他思岐'],
+      [m.filter((p) => p.regionKey === 'hisui').length, '洗翠'],
     ],
     prose:
-      '地區型態是指某個寶可夢在特定地區演化或存在時所呈現的不同樣貌，屬性與能力值都可能與原版大相逕庭。阿羅拉的妙蛙種子因為適應了日照而變得擅長吸收光能，伽勒爾的喵喵則因為金屬與都市環境而改變了原本的生活方式；他思岐的型態大多體型巨大、性情溫順，與關都的印象截然不同。本頁的 58 個型態以名稱中的地區標記判定，並排除妖裝型態。',
+      '地區型態是指某個寶可夢在特定地區演化或存在時所呈現的不同樣貌，屬性與能力值都可能與原版大相逕庭。阿羅拉的妙蛙種子因為適應了日照而變得擅長吸收光能，伽勒爾的喵喵則因為金屬與都市環境而改變了原本的生活方式；洗翠的型態大多體型巨大、性情溫順，與關都的印象截然不同。本頁的 58 個型態以名稱中的地區標記判定，並排除妖裝型態。',
   },
   'pseudo-legendary': {
     title: '600族寶可夢',
@@ -797,7 +797,7 @@ export const COLLECTION_GROUPS = [
     items: [
       { slug: 'mega', count: 48, stats: [[46, '對應寶可夢', 'baseSpecies'], [6, '涵蓋世代', 'spans'], [18, '涉及屬性', 'breadth']] },
       { slug: 'gigantamax', count: 32, stats: [[32, '對應寶可夢', 'baseSpecies'], [4, '涵蓋世代', 'spans'], ['第 8 世代', '伽勒爾地區', 'galar']] },
-      { slug: 'regional', count: 58, stats: [[18, '阿羅拉', 'alola'], [20, '伽勒爾', 'galar'], [16, '他思岐', 'hisui']] },
+      { slug: 'regional', count: 58, stats: [[18, '阿羅拉', 'alola'], [20, '伽勒爾', 'galar'], [16, '洗翠', 'hisui']] },
     ],
   },
 ];

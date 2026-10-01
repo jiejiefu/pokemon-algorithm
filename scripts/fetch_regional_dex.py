@@ -33,7 +33,7 @@ Why these 12 dexes:
     (updated-johto, black-2-white-2-unova, legends-arceus, ...), which is more
     than the detail page can show and more than the reference site lists.
     InfoPoke shows exactly: 全國, 關都, 城都, 豐緣, 神奧, 合眾, 卡洛斯,
-    阿羅拉, 伽勒爾, 他思岐, 帕底亞, 藍莓學園 -- the first regional appearance
+    阿羅拉, 伽勒爾, 洗翠, 帕底亞, 藍莓學園 -- the first regional appearance
     of each of the nine regions plus 全國 and the Gen 9 Blueberry Academy one.
     Bulbasaur confirms the rule: Johto #226 is original-johto's first entry and
     updated-johto's is #231, so the first-appearance dex is the one to keep.
@@ -48,10 +48,12 @@ Why 全國 is in the list:
 Labels:
     The nine region names are the same strings the site already uses for the
     generations guide, read from assets/data/generations.json. 全國 and 藍莓學園
-    come from the InfoPoke snapshot. 他思岐 is the one in assets/js/categories.js
-    -- NOT 蒼炎, which was a draft label in an earlier probe and appears
-    nowhere else in the repo. 阿羅拉 is the standard form; the categories.js
-    "hisui/galar" region list had it as 阿羅亞, which this work corrects.
+    come from the InfoPoke snapshot. 洗翠 is the one in assets/js/categories.js,
+    and is the site's spelling throughout: it was 他思岐 here and there until
+    the form-name work found the same region carrying two words. NOT 蒼炎, a
+    draft label from an earlier probe that appears nowhere in the repo.
+    阿羅拉 is the standard form; the categories.js "hisui/galar" region list
+    had it as 阿羅亞, which this work corrects.
 
 Ordering:
     Run this AFTER enhance_pokemon_data.py. build_pokemon_entry() assembles a
@@ -98,7 +100,7 @@ DEXES: list[tuple[str, str]] = [
     ("kalos-central", "卡洛斯"),
     ("original-alola", "阿羅拉"),
     ("galar", "伽勒爾"),
-    ("hisui", "他思岐"),
+    ("hisui", "洗翠"),
     ("paldea", "帕底亞"),
     ("blueberry", "藍莓學園"),
 ]
@@ -130,7 +132,7 @@ def region_names_from_generations() -> set[str]:
 
     Used in one direction only. Every region in here must appear among the dex
     labels, or the detail page would ship a region the generations guide has
-    never heard of. The converse is NOT an error: 他思岐 is a Gen 8 sub-region
+    never heard of. The converse is NOT an error: 洗翠 is a Gen 8 sub-region
     and appears nowhere in generations.json, and 全國/藍莓學園 are not regions
     at all.
     """

@@ -32,7 +32,7 @@ const DEXES = [
   ['kalos-central', '卡洛斯'],
   ['original-alola', '阿羅拉'],
   ['galar', '伽勒爾'],
-  ['hisui', '他思岐'],
+  ['hisui', '洗翠'],
   ['paldea', '帕底亞'],
   ['blueberry', '藍莓學園'],
 ];
@@ -109,11 +109,17 @@ ok([...regions].every(r => LABELS.includes(r)),
   'every generations.json region has a dex label');
 // The converse is intentional, and smaller than it looks: 9 of the 12 labels
 // ARE generations.json regions (帕底亞 is gen 9's), so only three are outside --
-// 他思岐, a Gen 8 sub-region, plus 全國 and 藍莓學園, which are not regions.
-eq(LABELS.filter(l => !regions.has(l)).sort(), ['他思岐', '全國', '藍莓學園'].sort(),
+// 洗翠, a Gen 8 sub-region, plus 全國 and 藍莓學園, which are not regions.
+eq(LABELS.filter(l => !regions.has(l)).sort(), ['洗翠', '全國', '藍莓學園'].sort(),
   'the labels outside generations.json are exactly the three expected ones');
 eq(LABELS.filter(l => regions.has(l)).length, 9, 'nine of the twelve labels are regions');
-ok(LABELS.includes('他思岐'), '他思岐 is the Hisui label in use, not 蒼炎');
+ok(LABELS.includes('洗翠'), '洗翠 is the Hisui label in use, not 蒼炎 or 他思岐');
+// The site spells this region one way. It was 他思岐 in both the dex labels and
+// categories.js until the form-name work found the same region rendered under two
+// words, so the whole repo asserts the single spelling rather than fixing one page.
+ok(!LABELS.includes('他思岐'), 'the old 他思岐 label is gone from the dex');
+ok(!/他思岐/.test(readFileSync(join(BASE, 'assets/js/categories.js'), 'utf8')),
+  'categories.js no longer spells Hisui 他思岐');
 
 console.log('the detail page renders every label it stores');
 const detail = readFileSync(join(BASE, 'detail.html'), 'utf8');
