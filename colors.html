@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
-  <meta name="description" content="輸入寶可夢編號，看它常規與閃亮外觀的 96×96 正面圖集取出的完整色盤、明暗階與主題配色。">
+  <meta name="description" content="輸入寶可夢編號，看它一般與異色外觀的 96×96 正面圖集取出的完整色盤、明暗階與主題配色。">
   <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
        after the first paint is a visible flash, and a module cannot run early
        because module scripts are deferred. Identical on all five themed pages
@@ -80,7 +80,7 @@
       <p>
         每隻寶可夢的色盤來自它的 96×96 正面圖集，透明像素與近黑色不計入，
         同一頻率時以圖中最先出現的顏色為先。占比大於 5% 的顏色會被收錄，
-        不足六色時補滿六色。切換閃亮外觀即可看同一隻的閃亮色盤。
+        不足六色時補滿六色。切換異色外觀即可看同一隻的異色色盤。
       </p>
     </div>
 
@@ -90,7 +90,7 @@
              aria-describedby="pokemon-id-hint">
       <span id="pokemon-id-hint" class="cp-idcard-meta">1 – 1025</span>
       <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">
-        閃亮外觀
+        異色外觀
       </button>
       <a id="palette-link" class="btn" href="color.html?slug=bulbasaur">查看完整色彩頁</a>
     </div>
@@ -237,7 +237,7 @@
         bodyHtml: `
           <img class="cp-idcard-sprite" src="${sprite}" alt="" width="96" height="96" decoding="async">
           <div>
-            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 閃亮' : ''}</p>
+            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 異色' : ''}</p>
             <h3 class="cp-idcard-name">${current.names.zh}</h3>
             <p class="cp-idcard-name-en">${current.names.en}</p>
           </div>
@@ -301,7 +301,7 @@
     function themeCss(p, rows, scale) {
       const hexes = rows.map(r => r[0]);
       return [
-        '/* 由色彩生成器匯出 · #' + formatPokemonId(p.id) + ' ' + p.names.en + (shiny ? ' 閃亮' : '') + ' */',
+        '/* 由色彩生成器匯出 · #' + formatPokemonId(p.id) + ' ' + p.names.en + (shiny ? ' 異色' : '') + ' */',
         ':root {',
         ...Object.entries(scale).map(([step, hex]) => `  --cp-${step}: ${hex};`),
         `  --cp-primary: ${hexes[0]};`,

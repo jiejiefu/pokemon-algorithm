@@ -86,7 +86,7 @@
                 </button>
                 <button type="button" class="shiny-btn" id="shiny-toggle" aria-pressed="false">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-                  <span class="sr-only" id="shiny-toggle-label">切換閃亮外觀</span>
+                  <span class="sr-only" id="shiny-toggle-label">切換異色外觀</span>
                 </button>
               </div>
             </div>
@@ -539,7 +539,7 @@
       if (available) {
         btn.setAttribute('aria-pressed', String(shinyOn));
         btn.removeAttribute('aria-disabled');
-        el('shiny-toggle-label').textContent = '切換閃亮外觀';
+        el('shiny-toggle-label').textContent = '切換異色外觀';
       } else {
         // aria-pressed is dropped rather than set to "false": a button that
         // cannot be pressed should not claim a state on the pressed/unpressed
@@ -547,7 +547,7 @@
         // focusable — a control that is disabled and unexplained reads as broken.
         btn.removeAttribute('aria-pressed');
         btn.setAttribute('aria-disabled', 'true');
-        el('shiny-toggle-label').textContent = '此寶可夢沒有閃亮外觀 artwork';
+        el('shiny-toggle-label').textContent = '此寶可夢沒有異色外觀 artwork';
       }
     }
 

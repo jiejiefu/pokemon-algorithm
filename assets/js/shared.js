@@ -739,7 +739,7 @@ export const NAV = [
       {
         items: [
           { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
-          { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 常規/閃亮的色帶' },
+          { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 一般/異色的色帶' },
           { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
         ],
       },
