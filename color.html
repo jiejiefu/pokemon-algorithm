@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>色彩頁 · 寶可夢演算法實驗室</title>
+  <title>色彩頁 · 寶可夢演算法</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
@@ -31,9 +31,9 @@
   <div class="cp-app">
     <a class="cp-skip" href="#main">跳至主要內容</a>
     <header class="header header-colors">
-      <div class="header-brand"><a class="site-logo" href="index.html" aria-label="回到寶可夢演算法首頁"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></a>
-        <div class="header-title header-title-large">色彩頁</div>
-      </div>
+      <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">色彩頁</div>
+    </a>
     </header>
 
     <div class="cp-shell">
@@ -184,7 +184,7 @@
           <footer class="home-footer">
             <div class="home-footer-inner">
               <p class="home-footer-line">
-                寶可夢演算法實驗室 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
+                寶可夢演算法 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
               </p>
             </div>
           </footer>
@@ -618,7 +618,7 @@
       // 6. Export Theme
       els.themeCode.textContent = themeCss(rows, scale);
       els.dexInput.value = current.id;
-      document.title = `${current.names.zh} 色盤 · 寶可夢演算法實驗室`;
+      document.title = `${current.names.zh} 色盤 · 寶可夢演算法`;
     }
 
     function themeCss(rows, scale) {

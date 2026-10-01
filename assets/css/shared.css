@@ -55,6 +55,17 @@
   --rule-gold: #f5c542;
   --header-title-shadow: none;
 
+  /* Brand gradient for the header title. InfoPoke's reference is
+     `from-red-600 to-purple-600`, and the hue pair is kept, but the STOPS are
+     not: measured against this site's header (#182046 → #111834) that pair
+     lands at 2.81:1, under the 3:1 that WCAG 1.4.3 allows even for large text.
+     red-300 → purple-400 measures 5.96:1 across both header stops, and the
+     interpolated midpoint is the worst case at 5.96:1, so the whole ramp is
+     legal rather than just its ends. Raise the light-theme stop by one step at
+     a time and re-measure; do not take the reference's hexes on trust. */
+  --brand-grad-from: #fca5a5;
+  --brand-grad-to: #c084fc;
+
   /* Text */
   --text-primary: #eef1fb;
   --text-secondary: #c5cce3;
@@ -260,6 +271,13 @@
      4.93. Do not raise it without re-measuring all three. */
   --accent-yellow: #c76a06;
   --accent-yellow-text: #92400e;
+  /* Light-theme brand gradient. The dark palette's pastel stops drop to
+     1.48:1 here, so the light header needs the dark end of the same hue pair:
+     red-700 → purple-600 measures 4.50:1 worst-case (the purple end against
+     #e6ebf6), clearing 4.5:1 for body text rather than relying on the 3:1
+     large-text allowance. */
+  --brand-grad-from: #b91c1c;
+  --brand-grad-to: #9333ea;
   --accent-green: #0f766e;
   --accent-green-hover: #115e59;
   --on-accent: #ffffff;
@@ -374,16 +392,40 @@ body {
 }
 
 .header-title {
+  /* `margin: 0` because this class is also applied to the <h1> on pokedex.html
+     and model3d.html, which carry the UA's default 0.67em block margin. Inside
+     `.header-brand` that margin would push the ball off the flex row's centre
+     line. A <div> title never had the margin, so this changes nothing there. */
+  margin: 0;
   font-size: 20px;
   font-weight: bold;
   letter-spacing: 1px;
+  /* Gradient-clipped text. `color: transparent` is required for the clip to
+     show, and `-webkit-text-fill-color` is what Safari and iOS actually honour
+     for it. Both are declared because the two properties are not
+     interchangeable: without the -webkit- one, iOS renders solid gold. */
   color: var(--accent-gold);
-  text-shadow: var(--header-title-shadow);
+  background-image: linear-gradient(90deg, var(--brand-grad-from), var(--brand-grad-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: opacity var(--transition-fast);
 }
 
 .header-title-large {
   font-size: 28px;
   letter-spacing: 2px;
+}
+
+/* Fallback for engines without background-clip: text. Without this the title
+   would be fully transparent and therefore invisible, which is worse than not
+   having the gradient. Colour-thief-style extraction and the palette exports
+   both read the computed colour off this element. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .header-title {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
 }
 
 /* ===== Site logo =====
@@ -398,6 +440,15 @@ body {
    than beside it. The wrapper is the flex row; `.header` still centres the
    pair as one unit.
 
+   `.header-brand` is now the anchor itself rather than a <div> wrapping one
+   separate logo link, matching the reference (InfoPoke puts the ball and the
+   word inside a single <a>). That is what makes the TITLE clickable to the
+   homepage, which the previous markup could not do — the title was a bare
+   <div>, so only the logo was a link. `text-decoration: none` is required
+   because the default underline would draw a line through the gradient-clipped
+   text; `color: inherit` stops the UA's link blue from winning the cascade
+   over the gradient.
+
    `alt=""` is deliberate. The link carries `aria-label`, so an alt on the img
    would announce the site's name twice — the same rule as `.icon` in gotcha
    27, where the accessible name lives on the interactive element and the
@@ -407,6 +458,9 @@ body {
   align-items: center;
   gap: 12px;
   max-width: 100%;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
 }
 
 .site-logo {
@@ -423,8 +477,17 @@ body {
   width: auto;
 }
 
+/* Two selectors, not one, on purpose. `.site-logo:hover` alone is kept because
+   maze.html puts the logo straight into `.controls` with no `.header-brand` and
+   no title, so it is still its own link there; dropping the standalone rule
+   would silently kill its hover feedback. The `.header-brand:hover` pair is what
+   makes the TITLE a hit target, so hovering the word dims the ball too — the
+   InfoPoke `group-hover:scale-110` idea, at 1.06 so it stays subtle at 40px. */
 .site-logo:hover { opacity: .85; }
 .site-logo:active { transform: scale(.96); }
+.header-brand:hover .site-logo { opacity: .85; }
+.header-brand:hover .header-title { opacity: .88; }
+.header-brand:active .site-logo { transform: scale(.96); }
 /* ===== Focus visibility =====
    One ring for the whole site, in the shared layer, because the only global
    `:focus-visible` rule lived in detail.css — which loads on exactly one of the

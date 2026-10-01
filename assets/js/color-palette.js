@@ -1016,7 +1016,7 @@ export function showcaseHtml({
           </p>
           <div class="sc-blog-author">
             <span class="sc-author-dot" style="background:${secondary}"></span>
-            <span>作者：<strong style="color:var(--text-primary)">演算法實驗室</strong> · 今日發布</span>
+            <span>作者：<strong style="color:var(--text-primary)">寶可夢演算法</strong> · 今日發布</span>
           </div>
         </div>
       </article>
