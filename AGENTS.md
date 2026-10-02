@@ -24,7 +24,7 @@
 | [`maze.html`](./maze.html) | Pathfinding lab: BFS / DFS maze traversal on pixelated Pokémon sprites (40×40 grid) with seedable RNG and speed controls |
 | [`colors.html`](./colors.html) | Color Palette Generator & Component Showcase (interactive Card, Chart, Dashboard, Component previews) |
 | [`colors-explore.html`](./colors-explore.html) | 1,025 Pokémon color palette gallery with infinite scroll and URL filters |
-| [`color.html`](./color.html) | Single Pokémon color palette page (`?slug=`): hero card, palette grid, shade scales, base stats, and theme exporter |
+| [`color.html`](./color.html) | Single Pokémon color palette page (`?slug=`): hero card, palette grid, shade scales, base stats, and theme exporter. A **bare** `color.html` (no `?slug`/`?id`) shows the same seeded daily pick as the homepage's 今日推薦寶可夢, not the not-found error — one draw, one seed, two callers |
 | [`model3d.html`](./model3d.html) | GLB 3D model viewer driven by `model3d-viewer.js`; the file roster is generated into `glb-index.js` and the models live in `assets/glbs/` |
 | [`collections.html`](./collections.html) | Special collections hub: 11 cards in 4 groups (稀有與傳說 / 熱門分類 / 遊戲與活動 / 特殊形態), 2 of which are `upcoming` and render as non-links |
 | [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`) |
@@ -45,6 +45,7 @@ pokemon-algorithm/
 │   ├── js/
 │   │   ├── shared.js              # Core utilities, data loader, theme toggle, type badges, slug helpers
 │   │   ├── color-palette.js       # Palette extraction readers, shade scale generator, copy handlers
+│   │   ├── daily-pick.js          # Seeded daily draw shared by index.html and color.html (one seed, two callers)
 │   │   ├── categories.js          # Category data definitions, hub configuration, tag tone mappings
 │   │   ├── form-names.js          # Official zh-TW names for the 325 evolution-chain form nodes
 │   │   ├── pokemon-lexicon.js     # Traditional Chinese lexicon (genus, habitat, shapes, egg groups)
@@ -114,6 +115,11 @@ node scripts/test_check_color_palettes.mjs
 
 # Verify category definitions, hub card sync & contrast
 node scripts/check_categories.mjs
+
+# Verify the seeded daily Pokémon draw (bucket parity, Taipei day key, one
+# draw shared by index/color with no per-page seed, and the bare-URL fallback)
+node scripts/check_color_daily.mjs
+node scripts/test_check_color_daily.mjs
 
 # Verify evolution chains and slug integrity
 node scripts/check_evolution_chains.mjs
