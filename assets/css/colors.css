@@ -572,17 +572,52 @@
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: transform 0.1s ease;
+  /* No transform on hover. Scaling a swatch is a lie about the colour: the
+     thing being demonstrated is the fill, and shrinking it under the cursor
+     both misreports the palette and moves the target the reader is aiming at.
+     Feedback is the glyph instead — see paletteGridHtml() for why it is a
+     span and not a second button. */
+  transition: border-color 0.15s ease;
 }
 
 .cp-cell:hover {
-  transform: scale(0.98);
+  border-color: var(--hairline-strong);
 }
 
 .cp-cell-hex {
   font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* currentColor, because swatchStyle() has already put an AA-correct ink on the
+   cell for this exact fill — a hardcoded #fff reads as white-on-pale on roughly
+   a third of any given palette.
+
+   opacity stays at 1 rather than dimmed. Translucency blends the glyph toward
+   the fill it sits on, and for a mid-tone that costs more contrast than it
+   looks like: 0.55 measures 2.37:1 and 0.75 only 3.21:1 against the greys where
+   black and white are nearest tied, which is the worst case for ANY ink. Fully
+   opaque is 4.27:1 there — the ceiling for a black-or-white glyph, since no
+   third colour does better on those fills. Hover signals on the tint below
+   instead of on the glyph's own opacity. */
+.cp-cell-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-right: -6px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+/* Tint rather than a box-shadow ring: the fill IS the content, so anything
+   drawn on top of it has to be a wash of its own ink to stay legible. */
+.cp-cell-copy:hover {
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
 }
 
 .cp-cell-share {

@@ -131,6 +131,45 @@ const cases = [
     expect: 'marker is gone',
   },
   {
+    // The hover this replaced. A screenshot review would have called it
+    // "fine, it has hover feedback", so it has to be a named case.
+    name: 'putting the scale back on the swatch',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-cell:hover {\n  border-color: var(--hairline-strong);', '.cp-cell:hover {\n  transform: scale(0.98);')
+      : undefined,
+    expect: 'scales under the cursor',
+  },
+  {
+    name: 'dimming the copy glyph to a decorative 0.55',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('  color: inherit;\n  transition: background-color 0.15s ease;\n}', '  color: inherit;\n  opacity: 0.55;\n  transition: background-color 0.15s ease;\n}')
+      : undefined,
+    expect: 'is at opacity 0.55',
+  },
+  {
+    name: 'dropping the copy glyph, leaving a bare swatch to click',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace(/\s*<span class="cp-cell-copy" aria-hidden="true">[\s\S]*?<\/span>/, '')
+      : undefined,
+    expect: 'renders no copy glyph',
+  },
+  {
+    // What the reference project does, and what cannot be copied here.
+    name: 'nesting a real button inside the cell button, as the reference does',
+    mutate: (f, s) => f.endsWith('color-palette.js')
+      ? s.replace('<span class="cp-cell-copy" aria-hidden="true">', '<button type="button" class="cp-cell-copy">')
+          .replace(/<\/svg>\n\s*<\/span>/, '</svg>\n              </button>')
+      : undefined,
+    expect: 'nested inside the cell',
+  },
+  {
+    name: 'hardcoding the glyph white instead of inheriting the AA-corrected ink',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('  color: inherit;\n  transition: background-color 0.15s ease;\n}', '  color: #ffffff;\n  transition: background-color 0.15s ease;\n}')
+      : undefined,
+    expect: 'sets its own colour',
+  },
+  {
     name: 'deleting the [hidden] companion restores the reported second-sidebar bug',
     mutate: (f, s) => f.endsWith('colors.css')
       ? s.replace(/\.cp-rail-sub\[hidden\]\s*,\s*\.cp-nav-drawer\[hidden\]\s*\{\s*display:\s*none;\s*\}/, '.cp-rail-sub[hidden], .cp-nav-drawer[hidden] { /* gone */ }')

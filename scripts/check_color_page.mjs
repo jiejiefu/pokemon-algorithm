@@ -395,6 +395,61 @@ check(
   "the grid's data-cp-copy carries the FORMATTED value, so the delegated click handler copies what is on screen",
   () => "the grid writes the raw hex into data-cp-copy while displaying another notation — copy would silently disagree with the screen"
 );
+
+// The copy affordance is a glyph in a SPAN inside the cell button, matching
+// pokemon-palette-display.tsx:186 in spirit but not in markup: it nests a real
+// <button>, which is invalid inside a <button> and unreachable by keyboard
+// anyway. Both properties are load-bearing, so both are pinned.
+check(
+  /class="cp-cell-copy"/.test(gridSource) && /<svg[^>]*>/.test(gridSource),
+  'the grid emits the copy glyph, so the right-hand affordance is not left to a background-image or a ::after',
+  () => 'paletteGridHtml renders no copy glyph — the reader is told to click a swatch with nothing on it showing that'
+);
+check(
+  /aria-hidden="true"/.test(gridSource),
+  'the copy glyph is aria-hidden, because the cell button already carries the name 複製 <value>',
+  () => 'the glyph is exposed to assistive tech as a second, redundant control'
+);
+check(
+  /<span class="cp-cell-copy"[^>]*>\s*<svg/.test(gridSource) && !/<button[^>]*class="cp-cell-copy"/.test(gridSource),
+  'the glyph is a span, not a nested button — one focus stop, one accessible name, valid HTML',
+  () => 'the glyph is a <button> nested inside the cell <button>, which is invalid HTML and adds a keyboard-reachable duplicate of the same action'
+);
+
+// The hover feedback. Scaling a swatch misreports the very thing the page exists
+// to show, and it moves the target out from under the cursor.
+const cellRule = css.match(/(?:^|\n)\.cp-cell\s*\{[^}]*\}/)?.[0] || '';
+const cellHover = css.match(/(?:^|\n)\.cp-cell:hover\s*\{[^}]*\}/)?.[0] || '';
+check(
+  !/transform\s*:\s*scale/.test(cellRule) && !/transform\s*:\s*scale/.test(cellHover),
+  'the cell never scales on hover — the fill is the content, and a transform moves the target',
+  () => '`.cp-cell` scales under the cursor, which misreports the colour and shifts the swatch while you aim at it'
+);
+check(
+  /transition:\s*border-color/.test(cellRule) && !/transition:[^;]*transform/.test(cellRule),
+  'the cell transitions border-color rather than transform, so any later scale cannot be reintroduced smoothly by accident',
+  () => 'the cell still transitions `transform` — a leftover from the scaling hover'
+);
+// An icon at reduced opacity blends toward the fill it sits on. 0.55 measures
+// 2.37:1 against the greys where black and white are nearest tied; this project
+// asks 3:1 of UI components.
+const copyRule = css.match(/(?:^|\n)\.cp-cell-copy\s*\{[^}]*\}/)?.[0] || '';
+const copyOpacity = copyRule.match(/opacity:\s*([\d.]+)/)?.[1];
+check(
+  copyOpacity === undefined || Number(copyOpacity) >= 1,
+  'the copy glyph is fully opaque, the only way it clears 3:1 on every fill',
+  () => `.cp-cell-copy is at opacity ${copyOpacity}; the glyph blends toward its own fill and drops under the 3:1 floor for UI components`
+);
+check(
+  /color:\s*inherit/.test(copyRule),
+  "the copy glyph inherits the cell's ink, which swatchStyle() already made AA-correct for that exact fill",
+  () => '.cp-cell-copy sets its own colour — a hardcoded #fff is white-on-pale over roughly a third of any palette'
+);
+check(
+  /\.cp-cell-copy:hover\s*\{[^}]*color-mix\(in srgb, currentColor/.test(css),
+  'the glyph hover tints with its own ink, so the feedback is legible on any fill',
+  () => '.cp-cell-copy:hover has no currentColor wash, so the hover feedback is invisible on light fills'
+);
 // The tip string is what both title and aria-label interpolate. If it is built
 // from the raw hex, a screen reader is told a different colour than the eye sees
 // — and the visible label says a third thing.

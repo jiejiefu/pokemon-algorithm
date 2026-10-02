@@ -272,6 +272,15 @@ export function paletteGridHtml(rows, options = {}) {
   // `rgb(76, 175, 80)` but whose accessible name says `#4CAF50` tells a screen
   // reader something different from what the sighted user is reading.
   //
+  // The trailing copy glyph is a SPAN inside the button, not a second button,
+  // unlike pokemon-palette-display.tsx:186 which nests one. Two reasons: a
+  // <button> inside a <button> is invalid HTML and the inner control is then
+  // unreachable by keyboard anyway, whereas here the cell is already the
+  // control, its accessible name already reads 複製 <value>, and clicking the
+  // glyph copies exactly like clicking the rest of the cell. One focus stop,
+  // one name, no duplicated hit target — `aria-hidden` because the name is
+  // already on the button.
+  //
   // Defaults to 'hex' so the callers this change is not touching
   // (colors.html:252,254 and colors-explore.html:231) render byte-identically.
   const format = options.format || 'hex';
@@ -283,6 +292,9 @@ export function paletteGridHtml(rows, options = {}) {
       const tip = `${text} · 占比 ${shareText}`;
       return `<button type="button" class="cp-cell" style="${swatchStyle(hex)}" title="${tip}" data-cp-copy="${text}" aria-label="複製 ${tip}">
               <span class="cp-cell-hex">${text}</span>
+              <span class="cp-cell-copy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </span>
             </button>`;
     })
     .join('');
