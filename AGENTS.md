@@ -1,12 +1,19 @@
 # 寶可夢演算法 — AGENTS.md
 
 > **Environment Requirements**
-> - **Python Virtualenv**: `../.venv` (or `.venv`)
+> - **Python Virtualenv**: `/Users/jiejiefu/Documents/Visual_Studio_Code/.venv` (i.e. `../.venv` from the repo root; a repo-local `.venv` also works)
 > - **Execution Style**: `i-have-adhd` (High scannability, concise chunks, explicit bullet points, actionable commands)
 >   - This project is developed with **opencode**. Every session must load the `i-have-adhd` skill before the first reply and keep its formatting for the whole session, without waiting to be asked again.
 >   - The trigger is the user naming the skill at all — e.g. typing `skill：i-have-adhd`, 「使用skill」, or just「使用skill」with no argument. Treat any mention of「使用skill」as a request to load `i-have-adhd` specifically, since it is the only skill this project pins.
 >   - It turns off only when the user says「stop adhd mode」or「normal mode」, confirmed in one line. Nothing else — a topic change, a new task, a mode change in the harness — does not turn it off.
-> - **Runtime Server**: Must be served via HTTP (e.g. `npx serve`, VS Code Live Server, or `python -m http.server`). Direct `file://` fails due to CORS on JSON and image fetching.
+> - **Runtime Server**: Must be served via HTTP. Direct `file://` fails due to CORS on JSON and image fetching.
+>   - **One server: port 5500, VS Code Live Server** (`ritwickdey.liveserver`). Start it from Live Server in the editor, or `python -m http.server 5500` from the repo root.
+>   - **Do not start another `python -m http.server` on a fresh port.** `http.server` does not exit with its terminal — it reparents to launchd (PPID 1) and keeps the port forever, so each stray run leaves an orphan that only shows up as a duplicate in `lsof`. That is how five accumulated here (8123, 8731, 8811, and 8899 twice — one IPv6 wildcard, one IPv4-only, both live).
+>   - Auditing before you start one:
+>     ```bash
+>     lsof -nP -iTCP -sTCP:LISTEN | rg ':(5500|8000|8123|8731|8811|8899)\s'
+>     ```
+>   - **Port 8000 is not this project** — it is a `uvicorn main:app` for `~/Documents/Opencode/tw_stocker`. Leave it alone.
 
 ---
 
@@ -145,7 +152,7 @@ When rebuilding data files, always execute scripts in the correct order:
 
 ```bash
 # Activate environment
-source ../.venv/bin/activate  # or source .venv/bin/activate
+source ../.venv/bin/activate  # /Users/jiejiefu/Documents/Visual_Studio_Code/.venv
 
 # 1. Base Data: Merge CSVs and extract master JSON
 python scripts/enhance_pokemon_data.py
