@@ -3450,7 +3450,7 @@
 @media (min-width: 1024px) { .cp-theme-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); } }
 
 .cp-theme-preview { display: flex; flex-direction: column; border: 1px solid var(--hairline-strong); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--shadow-card); }
-.cp-theme-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--hairline); background: var(--bg-card); }
+.cp-theme-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--hairline); background: var(--bg-card); flex: none; }
 .cp-theme-preview-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .cp-theme-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-gold), transparent 80%); }
 .cp-theme-mode-toggle { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: var(--bg-controls); border: 1px solid var(--hairline); }
@@ -3459,7 +3459,12 @@
 .cp-mode-btn .icon { opacity: 0.9; }
 
 /* Preview interior — theme tokens, with site fallbacks for the pre-JS paint. */
-.cp-theme-preview-body { display: flex; flex-direction: column; gap: clamp(16px, 3vw, 20px); padding: clamp(16px, 3vw, 20px); min-height: 320px; }
+/* flex:1 is load-bearing, not decoration. `.cp-theme-preview` is a flex column
+   stretched by the grid to match the taller code block beside it, so without a
+   growing child the leftover height collects at the bottom of the box and shows
+   --bg-card instead of the theme background — 91px, 15% of the panel, on any
+   viewport wide enough for the two-column layout. */
+.cp-theme-preview-body { display: flex; flex-direction: column; gap: clamp(16px, 3vw, 20px); padding: clamp(16px, 3vw, 20px); min-height: 320px; flex: 1 1 auto; }
 .cp-theme-card-demo { display: flex; flex-direction: column; gap: 8px; padding: clamp(16px, 3vw, 20px); border: 1px solid var(--border, var(--hairline-strong)); border-radius: 12px; background: var(--card, var(--bg-card)); color: var(--card-foreground, var(--text-primary)); box-shadow: var(--shadow-card); }
 .cp-theme-card-title { font-size: clamp(14px, 2.2vw, 16px); font-weight: 700; line-height: 1.25; margin: 0; }
 .cp-theme-card-sub { font-size: clamp(11px, 2vw, 12px); line-height: 1.6; margin: 0 0 4px; color: var(--muted-foreground, var(--text-secondary)); }
