@@ -154,23 +154,19 @@
       </section>
 
       <!-- Descriptions: directly under the top card, so the card is followed by
-           what the Pokémon is rather than by its numbers. The primary pair
-           (繁中主要 + English short) is what renders; the supplementary pair
-           (繁中補充 + English detailed) sits in a wrapper the toggle opens. -->
+           what the Pokémon is rather than by its numbers. The portal publishes
+           two Traditional Chinese flavor texts per Pokémon (text1/text2), so
+           they are shown one at a time behind a Pokéball version switcher,
+           mirroring tw.portal-pokemon.com rather than a disclose-all panel. -->
       <section class="section" aria-labelledby="desc-title">
         <div class="section-head">
           <h2 class="section-title" id="desc-title">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h9l5 5v13H5zm2 2v14h10V9h-4V5z"/></svg>
             圖鑑描述
           </h2>
-          <button type="button" class="btn btn-utility desc-toggle" id="desc-toggle"
-                  aria-expanded="false" aria-controls="description-extra">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5z"/></svg>
-            <span id="desc-toggle-label">顯示更多描述</span>
-          </button>
+          <div class="desc-versions" id="desc-versions" role="tablist" aria-label="描述版本"></div>
         </div>
         <div id="description-content"></div>
-        <div id="description-extra" hidden></div>
       </section>
 
       <!-- Stats -->
@@ -341,9 +337,6 @@
         renderDetail();
         el('cry-toggle').addEventListener('click', playCry);
         el('shiny-toggle').addEventListener('click', toggleShiny);
-        el('desc-toggle').addEventListener('click', () => {
-          setDescriptionsExpanded(el('description-extra').hidden);
-        });
         if (params.get('from404') === '1') {
           history.replaceState(null, '', pokemonDetailPath(currentPokemon));
         }
@@ -904,54 +897,90 @@
       observer.observe(el('moves-section'));
     }
 
-    // Two tiers. The primary pair is the short form of each language and is what
-    // renders; the supplementary pair is the long form and lives behind the
-    // toggle. `en_flavor` is deliberately not rendered: it is a one-line Pokédex
-    // quote rather than a description, and it duplicated en_short.
-    const descBlockHtml = (label, text) => `
-            <div class="desc-block">
-              <span class="desc-label">${label}</span>
-              <p class="desc-text">${escapeHtml(text)}</p>
-            </div>`;
+    // The portal publishes two Traditional Chinese flavor texts per Pokémon and
+    // shows them one at a time behind a Pokéball switcher. Only the zh pair is
+    // rendered: `en_short` is a truncated fragment of `en_long` (367 of 1025 do
+    // not even end on sentence punctuation) and `en_flavor` is a one-line quote
+    // that duplicated it, so the English columns added length without adding
+    // information.
+    const DESC_POKE_BALL = '<svg class="desc-ball" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+      + '<g class="desc-ball-shell">'
+      + '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>'
+      + '<path d="M3.6 12h5.2m6.4 0h5.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      + '</g>'
+      + '<circle class="desc-ball-dot" cx="12" cy="12" r="3.2" fill="currentColor"/></svg>';
 
     function renderDescriptions(p) {
       const desc = p.descriptions || {};
-      const primary = [
-        { label: '繁體中文描述（主要）', text: desc.zh },
-        { label: 'English (short)', text: desc.en_short }
-      ].filter(b => b.text);
-      const extra = [
-        { label: '繁體中文描述（補充）', text: desc.zh_text2 },
-        { label: 'English (detailed)', text: desc.en_long }
-      ].filter(b => b.text);
+      // text1 then text2. A record with only one flavor text has it duplicated
+      // across both fields (27 records: #13-18, #29-34, #114, #144, #145...), so
+      // the dedupe is what turns two identical buttons into one.
+      const texts = [desc.zh, desc.zh_text2]
+        .map(text => (text || '').trim())
+        .filter(Boolean)
+        .filter((text, index, all) => all.indexOf(text) === index);
 
-      el('description-content').innerHTML = primary.length
-        ? primary.map(b => descBlockHtml(b.label, b.text)).join('')
-        : '<p class="eff-neutral">暫無描述資料</p>';
+      const bar = el('desc-versions');
+      bar.hidden = texts.length < 2;
 
-      el('description-extra').innerHTML = extra.map(b => descBlockHtml(b.label, b.text)).join('');
-
-      // The button is meaningless with nothing behind it. All 1025 records
-      // carry every field today, so this is a guard, not a live branch.
-      const toggle = el('desc-toggle');
-      toggle.hidden = extra.length === 0;
-      if (extra.length === 0) {
-        el('description-extra').hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
-      } else {
-        // Reset closed: renderDescriptions() also runs on the pager, so without
-        // this a 上一隻/下一隻 would inherit the previous Pokémon's open state.
-        setDescriptionsExpanded(false);
+      if (!texts.length) {
+        el('description-content').innerHTML = '<p class="eff-neutral">暫無描述資料</p>';
+        bar.innerHTML = '';
+        return;
       }
+
+      el('description-content').innerHTML = texts.map((text, index) => `
+        <div role="tabpanel" class="desc-panel" id="desc-panel-${index}"
+            aria-labelledby="desc-tab-${index}" tabindex="0"${index === 0 ? '' : ' hidden'}>
+          <span class="desc-label">描述 ${index + 1}</span>
+          <p class="desc-text">${escapeHtml(text)}</p>
+        </div>`).join('');
+
+      bar.innerHTML = texts.map((_, index) => `
+        <button type="button" role="tab" class="desc-version" id="desc-tab-${index}"
+            aria-controls="desc-panel-${index}" aria-selected="${index === 0}"
+            tabindex="${index === 0 ? 0 : -1}" aria-label="描述 ${index + 1}">
+          ${DESC_POKE_BALL}
+        </button>`).join('');
+
+      wireDescVersions(texts.length);
+
+      // Always back to version 1: renderDescriptions() also runs from the pager,
+      // so without this a 上一隻/下一隻 inherits the previous Pokémon's selection.
     }
 
-    function setDescriptionsExpanded(open) {
-      el('description-extra').hidden = !open;
-      const toggle = el('desc-toggle');
-      toggle.setAttribute('aria-expanded', String(open));
-      el('desc-toggle-label').textContent = open ? '收合描述' : '顯示更多描述';
-      // The chevron points down when closed, up when open.
-      toggle.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+    /**
+     * WAI-ARIA tab keyboard support, mirroring wireMoveTabs() in shared.js:
+     * arrows wrap, Home/End jump to the ends, and only the selected tab is in the
+     * tab order (roving tabindex).
+     */
+    function wireDescVersions(count) {
+      const bar = el('desc-versions');
+      const tabs = [...bar.querySelectorAll('.desc-version')];
+      const select = tab => {
+        for (const other of tabs) {
+          const selected = other === tab;
+          other.setAttribute('aria-selected', String(selected));
+          other.tabIndex = selected ? 0 : -1;
+          const panel = el(`desc-panel-${other.id.split('-').pop()}`);
+          if (panel) panel.hidden = !selected;
+        }
+        tab.focus();
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', event => {
+          let next = null;
+          if (event.key === 'ArrowRight') next = tabs[(index + 1) % count];
+          else if (event.key === 'ArrowLeft') next = tabs[(index - 1 + count) % count];
+          else if (event.key === 'Home') next = tabs[0];
+          else if (event.key === 'End') next = tabs[count - 1];
+          if (!next) return;
+          event.preventDefault();
+          select(next);
+        });
+      });
     }
 
     // The canvas is sized from its rendered box, so redraw when that box changes.

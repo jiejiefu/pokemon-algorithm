@@ -1362,10 +1362,9 @@ body {
 }
 
 /* ===== Descriptions ===== */
-.desc-block + .desc-block {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(var(--hairline-rgb), 0.07);
+.desc-panel:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 6px;
 }
 
 .desc-label {
@@ -1383,30 +1382,79 @@ body {
   color: var(--text-secondary);
 }
 
-/* The disclosure that opens the long-form pair. Sits in .section-head, which is
-   a baseline-aligned flex row, so it needs the same optical size as the
-   .section-note beside it rather than the full .btn padding. */
-.desc-toggle {
-  font-size: 12px;
-  padding: 4px 10px;
-  white-space: nowrap;
+/* Version switcher, mirroring tw.portal-pokemon.com's Pokéball pager: the
+   selected version is a Pokéball and the others shrink to dots, so the control
+   needs no text. It sits in .section-head, which is a baseline-aligned flex
+   row, hence the explicit centring and the gap rather than a margin. */
+.desc-versions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.desc-toggle .icon {
-  transition: transform var(--transition-fast);
+.desc-version {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The artwork is 22px and the collapsed dot is its centre circle (~6px), so
+     the box is sized independently of which state is showing. It still clears
+     the WCAG 2.5.8 24x24 pointer-target minimum. */
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-/* The supplementary pair is collapsed by the `hidden` attribute, which is what
-   aria-expanded describes. Print gets both tiers: a printed page cannot be
-   toggled, so the long descriptions would otherwise be silently dropped. The
-   button itself is hidden because it would have nothing left to do. */
+.desc-version:hover {
+  color: var(--accent-gold);
+}
+
+.desc-version:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Driven by aria-selected so the visual state cannot drift from the a11y state,
+   the same way .move-tab does it. */
+.desc-version[aria-selected="true"] {
+  color: var(--accent-gold);
+  background: var(--bg-header-sort);
+}
+
+/* The ball collapses to its centre dot when it is not the current version, the
+   same trick the portal uses. Only the shell is faded, so the artwork keeps one
+   size and the row never reflows as the selection moves. */
+.desc-ball {
+  width: 22px;
+  height: 22px;
+}
+
+.desc-ball-shell {
+  transition: opacity var(--transition-fast);
+}
+
+.desc-version:not([aria-selected="true"]) .desc-ball-shell {
+  opacity: 0;
+}
+
+/* A printed page cannot be switched, so every panel prints and the switcher is
+   dropped rather than left dangling over a version the reader cannot change. */
 @media print {
-  #description-extra[hidden] {
+  .desc-panel[hidden] {
     display: block !important;
   }
 
-  .desc-toggle {
+  .desc-versions {
     display: none !important;
+  }
+
+  .desc-panel + .desc-panel {
+    margin-top: 18px;
   }
 }
 
