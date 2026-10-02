@@ -1,0 +1,2137 @@
+{
+  "source": {
+    "site": "https://infopoke.net",
+    "page": "https://infopoke.net/zh-tw/types/normal",
+    "chunk": "https://infopoke.net/_nuxt/CKRncLts.js",
+    "fetchedAt": "2026-10-02T11:42:27+00:00",
+    "simplifiedToTraditional": "OpenCC s2twp",
+    "note": "InfoPoke publishes no zh-TW catalog for this route; its own zh-TW pages render raw i18n keys. Descriptions and trainers are English upstream, effect text is Simplified Chinese upstream and converted here, trainer role labels are this project's own translations."
+  },
+  "types": {
+    "normal": {
+      "blurbEn": "The Normal type is the most basic type of Pokémon. They are very common and appear from the very first route you visit. Most Normal Pokémon are single type, but there is a large contingent having a second type of Flying. Normal-type Pokémon tend to have well-rounded stats without any particular specialty.",
+      "battleTipsEn": "Normal types have no super effective matchups but also have only one weakness (Fighting). They are immune to Ghost-type moves, making them useful against Ghost-type opponents. Consider using moves like Return or Body Slam for consistent STAB damage.",
+      "categoryNoteEn": "In Generations 1-3, all Normal type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "膽量",
+          "effect": "允許一般和格鬥屬性招式命中幽靈屬性。"
+        },
+        {
+          "category": "ability",
+          "name": "一般化",
+          "effect": "將寶可夢的所有招式變為一般屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "飛行皮膚",
+          "effect": "將一般屬性招式變為飛行屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "妖精皮膚",
+          "effect": "將一般屬性招式變為妖精屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "冰凍皮膚",
+          "effect": "將一般屬性招式變為冰屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "電氣皮膚",
+          "effect": "將一般屬性招式變為電屬性，並提升20%威力。"
+        },
+        {
+          "category": "move",
+          "name": "識破 / 嗅覺",
+          "effect": "允許一般和格鬥屬性招式命中幽靈屬性。"
+        },
+        {
+          "category": "item",
+          "name": "絲綢圍巾",
+          "effect": "提升一般屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "一般寶石",
+          "effect": "一次性提升一般屬性招式30%威力，使用後消耗。"
+        },
+        {
+          "category": "item",
+          "name": "奇蓮果",
+          "effect": "減半一次一般屬性攻擊傷害，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "move",
+          "name": "Foresight / Odor Sleuth",
+          "effect": "Allow Normal and Fighting moves to hit Ghost types."
+        },
+        {
+          "category": "ability",
+          "name": "Scrappy",
+          "effect": "Allows Normal and Fighting moves to hit Ghost types."
+        },
+        {
+          "category": "ability",
+          "name": "Normalize",
+          "effect": "Changes all of the Pokémon's moves to Normal type and boosts their power by 20%."
+        },
+        {
+          "category": "ability",
+          "name": "Aerilate",
+          "effect": "Changes Normal moves to Flying type and boosts power by 20%."
+        },
+        {
+          "category": "ability",
+          "name": "Pixilate",
+          "effect": "Changes Normal moves to Fairy type and boosts power by 20%."
+        },
+        {
+          "category": "ability",
+          "name": "Refrigerate",
+          "effect": "Changes Normal moves to Ice type and boosts power by 20%."
+        },
+        {
+          "category": "ability",
+          "name": "Galvanize",
+          "effect": "Changes Normal moves to Electric type and boosts power by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Silk Scarf",
+          "effect": "Boosts Normal type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Normal Gem",
+          "effect": "One-time 30% boost to a Normal move, then consumed."
+        },
+        {
+          "category": "item",
+          "name": "Chilan Berry",
+          "effect": "Halves damage from one Normal type attack, then consumed."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Whitney",
+          "roleZh": "道館館主",
+          "location": "Goldenrod City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Norman",
+          "roleZh": "道館館主",
+          "location": "Petalburg City",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Lenora",
+          "roleZh": "道館館主",
+          "location": "Nacrene City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Cheren",
+          "roleZh": "道館館主",
+          "location": "Aspertia City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Ilima",
+          "roleZh": "試煉隊長",
+          "location": "Verdant Cavern",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Larry",
+          "roleZh": "道館館主",
+          "location": "Medali",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "fire": {
+      "blurbEn": "Fire-type Pokémon are known for their high offensive power and association with flames and heat. They are often found in volcanic areas or sunny environments. Fire types tend to have high Attack or Special Attack stats, making them excellent offensive choices.",
+      "battleTipsEn": "Fire types are super effective against Grass, Ice, Bug, and Steel. However, they are weak to Water, Ground, and Rock. Fire types are immune to burns and often have abilities that boost Fire moves in sunny weather.",
+      "categoryNoteEn": "In Generations 1-3, all Fire type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "猛火",
+          "effect": "HP低於1/3時，火屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "引火",
+          "effect": "免疫火屬性；被火屬性招式擊中時，自身火屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "日照",
+          "effect": "召喚大晴天，火屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "火焰之軀",
+          "effect": "接觸攻擊有30%機率使攻擊者灼傷。"
+        },
+        {
+          "category": "move",
+          "name": "大晴天",
+          "effect": "火屬性招式威力提升50%，水屬性招式威力降低50%。"
+        },
+        {
+          "category": "item",
+          "name": "木炭",
+          "effect": "提升火屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "火之寶石",
+          "effect": "一次性提升火屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Blaze",
+          "effect": "Boosts Fire moves by 50% when HP is below 1/3."
+        },
+        {
+          "category": "ability",
+          "name": "Flash Fire",
+          "effect": "Immune to Fire; boosts own Fire moves by 50% when hit."
+        },
+        {
+          "category": "ability",
+          "name": "Drought",
+          "effect": "Summons harsh sunlight, boosting Fire moves by 50%."
+        },
+        {
+          "category": "ability",
+          "name": "Flame Body",
+          "effect": "30% chance to burn attackers on contact."
+        },
+        {
+          "category": "item",
+          "name": "Charcoal",
+          "effect": "Boosts Fire type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Fire Gem",
+          "effect": "One-time 30% boost to a Fire move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Sunny Day",
+          "effect": "Boosts Fire moves by 50% and weakens Water moves by 50%."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Blaine",
+          "roleZh": "道館館主",
+          "location": "Cinnabar Island",
+          "generations": "Gen 1, 3, 4, 7"
+        },
+        {
+          "name": "Flannery",
+          "roleZh": "道館館主",
+          "location": "Lavaridge Town",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Flint",
+          "roleZh": "四天王",
+          "location": "Sinnoh",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Chili",
+          "roleZh": "道館館主",
+          "location": "Striaton City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Kiawe",
+          "roleZh": "試煉隊長",
+          "location": "Wela Volcano Park",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Mela",
+          "roleZh": "巨星隊隊長",
+          "location": "Paldea",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "water": {
+      "blurbEn": "Water-type Pokémon are among the most common types, found in oceans, rivers, and lakes throughout the Pokémon world. They are versatile battlers with access to a wide movepool. Water is one of the three starter types along with Fire and Grass.",
+      "battleTipsEn": "Water types are super effective against Fire, Ground, and Rock. They resist Fire, Water, Ice, and Steel moves. Water types often learn Ice-type moves like Ice Beam, giving them excellent coverage against Grass and Dragon types.",
+      "categoryNoteEn": "In Generations 1-3, all Water type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "激流",
+          "effect": "HP低於1/3時，水屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "儲水",
+          "effect": "免疫水屬性；被水屬性招式擊中時回覆25%HP。"
+        },
+        {
+          "category": "ability",
+          "name": "降雨",
+          "effect": "召喚下雨天氣，水屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "悠遊自如",
+          "effect": "下雨時速度翻倍。"
+        },
+        {
+          "category": "move",
+          "name": "祈雨",
+          "effect": "水屬性招式威力提升50%，火屬性招式威力降低50%。"
+        },
+        {
+          "category": "item",
+          "name": "神秘水滴",
+          "effect": "提升水屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "水之寶石",
+          "effect": "一次性提升水屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Torrent",
+          "effect": "Boosts Water moves by 50% when HP is below 1/3."
+        },
+        {
+          "category": "ability",
+          "name": "Water Absorb",
+          "effect": "Immune to Water; heals 25% HP when hit by Water moves."
+        },
+        {
+          "category": "ability",
+          "name": "Drizzle",
+          "effect": "Summons rain, boosting Water moves by 50%."
+        },
+        {
+          "category": "ability",
+          "name": "Swift Swim",
+          "effect": "Doubles Speed in rain."
+        },
+        {
+          "category": "item",
+          "name": "Mystic Water",
+          "effect": "Boosts Water type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Water Gem",
+          "effect": "One-time 30% boost to a Water move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Rain Dance",
+          "effect": "Boosts Water moves by 50% and weakens Fire moves by 50%."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Misty",
+          "roleZh": "道館館主",
+          "location": "Cerulean City",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Juan",
+          "roleZh": "道館館主",
+          "location": "Sootopolis City",
+          "generations": "Gen 3"
+        },
+        {
+          "name": "Wallace",
+          "roleZh": "冠軍",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Crasher Wake",
+          "roleZh": "道館館主",
+          "location": "Pastoria City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Marlon",
+          "roleZh": "道館館主",
+          "location": "Humilau City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Nessa",
+          "roleZh": "道館館主",
+          "location": "Hulbury",
+          "generations": "Gen 8"
+        },
+        {
+          "name": "Kofu",
+          "roleZh": "道館館主",
+          "location": "Cascarrafa",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "electric": {
+      "blurbEn": "Electric-type Pokémon harness the power of electricity and lightning. They are typically fast Pokémon with high Speed and Special Attack stats. Electric types are common in power plants and urban areas.",
+      "battleTipsEn": "Electric types are super effective against Water and Flying, two very common types. They have only one weakness (Ground) and are immune to paralysis. However, Ground-type Pokémon are completely immune to Electric moves.",
+      "categoryNoteEn": "In Generations 1-3, all Electric type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "蓄電",
+          "effect": "免疫電屬性；被擊中時回覆25%HP。"
+        },
+        {
+          "category": "ability",
+          "name": "電氣引擎",
+          "effect": "免疫電屬性；被擊中時速度提升一級。"
+        },
+        {
+          "category": "ability",
+          "name": "避雷針",
+          "effect": "吸引電屬性招式；免疫並提升特攻。"
+        },
+        {
+          "category": "ability",
+          "name": "電氣製造者",
+          "effect": "出場時展開電氣場地。"
+        },
+        {
+          "category": "move",
+          "name": "電氣場地",
+          "effect": "提升電屬性招式30%威力，防止地上的寶可夢入睡。"
+        },
+        {
+          "category": "item",
+          "name": "磁鐵",
+          "effect": "提升電屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "電之寶石",
+          "effect": "一次性提升電屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Volt Absorb",
+          "effect": "Immune to Electric; heals 25% HP when hit."
+        },
+        {
+          "category": "ability",
+          "name": "Motor Drive",
+          "effect": "Immune to Electric; boosts Speed by one stage when hit."
+        },
+        {
+          "category": "ability",
+          "name": "Lightning Rod",
+          "effect": "Draws in Electric moves; immune and boosts Sp. Atk."
+        },
+        {
+          "category": "ability",
+          "name": "Electric Surge",
+          "effect": "Sets Electric Terrain on entry."
+        },
+        {
+          "category": "item",
+          "name": "Magnet",
+          "effect": "Boosts Electric type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Electric Gem",
+          "effect": "One-time 30% boost to an Electric move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Electric Terrain",
+          "effect": "Boosts Electric moves by 30% and prevents sleep for grounded Pokémon."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Lt. Surge",
+          "roleZh": "道館館主",
+          "location": "Vermilion City",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Wattson",
+          "roleZh": "道館館主",
+          "location": "Mauville City",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Volkner",
+          "roleZh": "道館館主",
+          "location": "Sunyshore City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Elesa",
+          "roleZh": "道館館主",
+          "location": "Nimbasa City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Clemont",
+          "roleZh": "道館館主",
+          "location": "Lumiose City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Sophocles",
+          "roleZh": "試煉隊長",
+          "location": "Hokulani Observatory",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Iono",
+          "roleZh": "道館館主",
+          "location": "Levincia",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "grass": {
+      "blurbEn": "Grass-type Pokémon draw their power from nature and plant life. They are one of the three starter types and are common in forests and meadows. Grass types often have access to status moves like Sleep Powder and Leech Seed.",
+      "battleTipsEn": "Grass types are super effective against Water, Ground, and Rock. They have many weaknesses (Fire, Ice, Poison, Flying, Bug) but also many resistances. Grass types are immune to powder and spore moves and Leech Seed.",
+      "categoryNoteEn": "In Generations 1-3, all Grass type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "茂盛",
+          "effect": "HP低於1/3時，草屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "葉綠素",
+          "effect": "大晴天時速度翻倍。"
+        },
+        {
+          "category": "ability",
+          "name": "青草製造者",
+          "effect": "出場時展開青草場地。"
+        },
+        {
+          "category": "ability",
+          "name": "食草",
+          "effect": "免疫草屬性；被草屬性招式擊中時攻擊提升。"
+        },
+        {
+          "category": "move",
+          "name": "青草場地",
+          "effect": "提升草屬性招式30%威力，每回合回覆地上寶可夢的HP。"
+        },
+        {
+          "category": "item",
+          "name": "奇蹟種子",
+          "effect": "提升草屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "草之寶石",
+          "effect": "一次性提升草屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Overgrow",
+          "effect": "Boosts Grass moves by 50% when HP is below 1/3."
+        },
+        {
+          "category": "ability",
+          "name": "Chlorophyll",
+          "effect": "Doubles Speed in harsh sunlight."
+        },
+        {
+          "category": "ability",
+          "name": "Grassy Surge",
+          "effect": "Sets Grassy Terrain on entry."
+        },
+        {
+          "category": "ability",
+          "name": "Sap Sipper",
+          "effect": "Immune to Grass; boosts Attack when hit by Grass moves."
+        },
+        {
+          "category": "item",
+          "name": "Miracle Seed",
+          "effect": "Boosts Grass type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Grass Gem",
+          "effect": "One-time 30% boost to a Grass move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Grassy Terrain",
+          "effect": "Boosts Grass moves by 30% and heals grounded Pokémon each turn."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Erika",
+          "roleZh": "道館館主",
+          "location": "Celadon City",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Gardenia",
+          "roleZh": "道館館主",
+          "location": "Eterna City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Cilan",
+          "roleZh": "道館館主",
+          "location": "Striaton City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Ramos",
+          "roleZh": "道館館主",
+          "location": "Coumarine City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Mallow",
+          "roleZh": "試煉隊長",
+          "location": "Lush Jungle",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Milo",
+          "roleZh": "道館館主",
+          "location": "Turffield",
+          "generations": "Gen 8"
+        },
+        {
+          "name": "Brassius",
+          "roleZh": "道館館主",
+          "location": "Artazon",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "ice": {
+      "blurbEn": "Ice-type Pokémon thrive in cold environments like frozen caves and snowy mountains. While they have excellent offensive coverage, Ice types are considered fragile due to their many weaknesses. They are particularly effective against Dragon types.",
+      "battleTipsEn": "Ice types are super effective against Grass, Ground, Flying, and Dragon - four very important types competitively. However, they only resist Ice and are weak to Fire, Fighting, Rock, and Steel. Consider using Ice types primarily for offensive pressure.",
+      "categoryNoteEn": "In Generations 1-3, all Ice type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "雪隱",
+          "effect": "冰雹/下雪時閃避率提升20%。"
+        },
+        {
+          "category": "ability",
+          "name": "撥雪",
+          "effect": "冰雹/下雪時速度翻倍。"
+        },
+        {
+          "category": "ability",
+          "name": "降雪",
+          "effect": "出場時召喚下雪天氣。"
+        },
+        {
+          "category": "ability",
+          "name": "冰凍之軀",
+          "effect": "冰雹/下雪時每回合回覆1/16 HP。"
+        },
+        {
+          "category": "move",
+          "name": "冰雹/下雪",
+          "effect": "每回合對非冰屬性寶可夢造成傷害，或提升冰屬性防禦。"
+        },
+        {
+          "category": "item",
+          "name": "不融冰",
+          "effect": "提升冰屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "冰之寶石",
+          "effect": "一次性提升冰屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Snow Cloak",
+          "effect": "Boosts evasion by 20% in hail/snow."
+        },
+        {
+          "category": "ability",
+          "name": "Slush Rush",
+          "effect": "Doubles Speed in hail/snow."
+        },
+        {
+          "category": "ability",
+          "name": "Ice Body",
+          "effect": "Heals 1/16 HP each turn in hail/snow."
+        },
+        {
+          "category": "ability",
+          "name": "Snow Warning",
+          "effect": "Summons hail/snow on entry."
+        },
+        {
+          "category": "item",
+          "name": "Never-Melt Ice",
+          "effect": "Boosts Ice type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Ice Gem",
+          "effect": "One-time 30% boost to an Ice move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Snowscape",
+          "effect": "Boosts Ice-type Defense by 50%."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Lorelei",
+          "roleZh": "四天王",
+          "location": "Indigo Plateau",
+          "generations": "Gen 1, 3, 7"
+        },
+        {
+          "name": "Pryce",
+          "roleZh": "道館館主",
+          "location": "Mahogany Town",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Glacia",
+          "roleZh": "四天王",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Candice",
+          "roleZh": "道館館主",
+          "location": "Snowpoint City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Brycen",
+          "roleZh": "道館館主",
+          "location": "Icirrus City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Wulfric",
+          "roleZh": "道館館主",
+          "location": "Snowbelle City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Melony",
+          "roleZh": "道館館主",
+          "location": "Circhester",
+          "generations": "Gen 8 (Shield)"
+        },
+        {
+          "name": "Grusha",
+          "roleZh": "道館館主",
+          "location": "Glaseado",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "fighting": {
+      "blurbEn": "Fighting-type Pokémon are martial artists and physical powerhouses. They typically have high Attack stats and excel at close combat. Fighting types are the primary counter to Normal and Steel types.",
+      "battleTipsEn": "Fighting types are super effective against Normal, Ice, Rock, Dark, and Steel - five types! They are weak to Flying, Psychic, and Fairy. Fighting types often have access to priority moves like Mach Punch and Bullet Punch.",
+      "categoryNoteEn": "In Generations 1-3, all Fighting type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "鐵拳",
+          "effect": "拳擊類招式威力提升20%。"
+        },
+        {
+          "category": "ability",
+          "name": "捨身",
+          "effect": "附帶反作用力的招式威力提升20%。"
+        },
+        {
+          "category": "ability",
+          "name": "不屈之心",
+          "effect": "被畏縮時速度大幅提升。"
+        },
+        {
+          "category": "ability",
+          "name": "正義之心",
+          "effect": "被惡屬性招式擊中時攻擊提升。"
+        },
+        {
+          "category": "move",
+          "name": "識破",
+          "effect": "允許一般和格鬥屬性招式命中幽靈屬性。"
+        },
+        {
+          "category": "item",
+          "name": "黑帶",
+          "effect": "提升格鬥屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "格鬥寶石",
+          "effect": "一次性提升格鬥屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Iron Fist",
+          "effect": "Boosts punching moves by 20%."
+        },
+        {
+          "category": "ability",
+          "name": "Scrappy",
+          "effect": "Allows Fighting moves to hit Ghost types."
+        },
+        {
+          "category": "ability",
+          "name": "No Guard",
+          "effect": "All moves by and against this Pokémon always hit."
+        },
+        {
+          "category": "item",
+          "name": "Black Belt",
+          "effect": "Boosts Fighting type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Fighting Gem",
+          "effect": "One-time 30% boost to a Fighting move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Foresight",
+          "effect": "Allows Normal and Fighting moves to hit Ghost types."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Bruno",
+          "roleZh": "四天王",
+          "location": "Indigo Plateau",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Chuck",
+          "roleZh": "道館館主",
+          "location": "Cianwood City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Brawly",
+          "roleZh": "道館館主",
+          "location": "Dewford Town",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Maylene",
+          "roleZh": "道館館主",
+          "location": "Veilstone City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Marshal",
+          "roleZh": "四天王",
+          "location": "Unova",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Korrina",
+          "roleZh": "道館館主",
+          "location": "Shalour City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Bea",
+          "roleZh": "道館館主",
+          "location": "Stow-on-Side",
+          "generations": "Gen 8 (Sword)"
+        }
+      ]
+    },
+    "poison": {
+      "blurbEn": "Poison-type Pokémon use toxins and venom in battle. They were relatively weak offensively until Generation 6 when they became super effective against Fairy types. Poison types are immune to being poisoned.",
+      "battleTipsEn": "Poison types are super effective against Grass and Fairy. They are weak to Ground and Psychic. Poison types excel at wearing down opponents with Toxic and other status moves. Steel types are completely immune to Poison moves.",
+      "categoryNoteEn": "In Generations 1-3, all Poison type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "毒刺",
+          "effect": "接觸攻擊有30%機率使攻擊者中毒。"
+        },
+        {
+          "category": "ability",
+          "name": "毒療",
+          "effect": "中毒時每回合回覆1/8 HP而非受到傷害。"
+        },
+        {
+          "category": "ability",
+          "name": "腐蝕",
+          "effect": "可以使鋼屬性和毒屬性寶可夢中毒。"
+        },
+        {
+          "category": "ability",
+          "name": "惡臭",
+          "effect": "攻擊時有10%機率使對手畏縮。"
+        },
+        {
+          "category": "move",
+          "name": "劇毒",
+          "effect": "使目標陷入劇毒狀態，傷害逐回合增加。"
+        },
+        {
+          "category": "item",
+          "name": "毒針",
+          "effect": "提升毒屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "毒之寶石",
+          "effect": "一次性提升毒屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Poison Point",
+          "effect": "30% chance to poison attackers on contact."
+        },
+        {
+          "category": "ability",
+          "name": "Poison Touch",
+          "effect": "30% chance to poison when using contact moves."
+        },
+        {
+          "category": "ability",
+          "name": "Corrosion",
+          "effect": "Can poison Steel and Poison types."
+        },
+        {
+          "category": "ability",
+          "name": "Merciless",
+          "effect": "Always critical hits against poisoned targets."
+        },
+        {
+          "category": "item",
+          "name": "Poison Barb",
+          "effect": "Boosts Poison type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Poison Gem",
+          "effect": "One-time 30% boost to a Poison move, then consumed."
+        },
+        {
+          "category": "item",
+          "name": "Black Sludge",
+          "effect": "Heals Poison types 1/16 HP; damages others."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Koga",
+          "roleZh": "道館館主 / 四天王",
+          "location": "Fuchsia City / Indigo Plateau",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Janine",
+          "roleZh": "道館館主",
+          "location": "Fuchsia City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Roxie",
+          "roleZh": "道館館主",
+          "location": "Virbank City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Plumeria",
+          "roleZh": "枯骨幫幹部",
+          "location": "Alola",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Klara",
+          "roleZh": "勁敵",
+          "location": "Isle of Armor",
+          "generations": "Gen 8 (Sword DLC)"
+        },
+        {
+          "name": "Atticus",
+          "roleZh": "巨星隊隊長",
+          "location": "Paldea",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "ground": {
+      "blurbEn": "Ground-type Pokémon are connected to the earth and often live underground or in desert environments. Ground is one of the best offensive types, being super effective against five types including Electric.",
+      "battleTipsEn": "Ground types are super effective against Fire, Electric, Poison, Rock, and Steel. They are immune to Electric moves and sandstorm damage. Ground types are weak to Water, Grass, and Ice. Earthquake is one of the most powerful and reliable moves in the game.",
+      "categoryNoteEn": "In Generations 1-3, all Ground type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "沙之力",
+          "effect": "沙暴時岩石、地面、鋼屬性招式威力提升30%。"
+        },
+        {
+          "category": "ability",
+          "name": "揚沙",
+          "effect": "出場時召喚沙暴天氣。"
+        },
+        {
+          "category": "ability",
+          "name": "沙隱",
+          "effect": "沙暴時閃避率提升20%。"
+        },
+        {
+          "category": "ability",
+          "name": "沙泳",
+          "effect": "沙暴時速度翻倍。"
+        },
+        {
+          "category": "move",
+          "name": "沙暴",
+          "effect": "每回合對非岩石/地面/鋼屬性寶可夢造成傷害。"
+        },
+        {
+          "category": "item",
+          "name": "柔軟沙子",
+          "effect": "提升地面屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "地面寶石",
+          "effect": "一次性提升地面屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Sand Veil",
+          "effect": "Boosts evasion by 20% in sandstorm."
+        },
+        {
+          "category": "ability",
+          "name": "Sand Rush",
+          "effect": "Doubles Speed in sandstorm."
+        },
+        {
+          "category": "ability",
+          "name": "Sand Stream",
+          "effect": "Summons sandstorm on entry."
+        },
+        {
+          "category": "ability",
+          "name": "Arena Trap",
+          "effect": "Prevents grounded opponents from fleeing."
+        },
+        {
+          "category": "item",
+          "name": "Soft Sand",
+          "effect": "Boosts Ground type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Ground Gem",
+          "effect": "One-time 30% boost to a Ground move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Gravity",
+          "effect": "Grounds all Pokémon, removing Flying immunity to Ground."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Giovanni",
+          "roleZh": "道館館主 / 火箭隊隊長",
+          "location": "Viridian City",
+          "generations": "Gen 1, 3, 4, 7"
+        },
+        {
+          "name": "Bertha",
+          "roleZh": "四天王",
+          "location": "Sinnoh",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Clay",
+          "roleZh": "道館館主",
+          "location": "Driftveil City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Hapu",
+          "roleZh": "島嶼卡胡納",
+          "location": "Poni Island",
+          "generations": "Gen 7"
+        }
+      ]
+    },
+    "flying": {
+      "blurbEn": "Flying-type Pokémon can soar through the skies and are often based on birds or winged creatures. Almost all Flying types are dual-typed, with pure Flying types being extremely rare. They are immune to Ground-type moves.",
+      "battleTipsEn": "Flying types are super effective against Grass, Fighting, and Bug. They are weak to Electric, Ice, and Rock. Flying types are immune to Ground moves and entry hazards like Spikes. Many Flying types have access to the powerful move Brave Bird.",
+      "categoryNoteEn": "In Generations 1-3, all Flying type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "疾風之翼",
+          "effect": "滿HP時飛行屬性招式優先度+1。"
+        },
+        {
+          "category": "ability",
+          "name": "飛行皮膚",
+          "effect": "將一般屬性招式變為飛行屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "浮游",
+          "effect": "免疫地面屬性招式。"
+        },
+        {
+          "category": "ability",
+          "name": "大翼",
+          "effect": "提升大範圍招式的威力。"
+        },
+        {
+          "category": "move",
+          "name": "順風",
+          "effect": "4回合內己方速度翻倍。"
+        },
+        {
+          "category": "item",
+          "name": "銳利鳥嘴",
+          "effect": "提升飛行屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "飛行寶石",
+          "effect": "一次性提升飛行屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Gale Wings",
+          "effect": "Gives priority to Flying moves at full HP."
+        },
+        {
+          "category": "ability",
+          "name": "Aerilate",
+          "effect": "Changes Normal moves to Flying type (+20% power)."
+        },
+        {
+          "category": "ability",
+          "name": "Delta Stream",
+          "effect": "Removes Flying weaknesses while active."
+        },
+        {
+          "category": "item",
+          "name": "Sharp Beak",
+          "effect": "Boosts Flying type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Flying Gem",
+          "effect": "One-time 30% boost to a Flying move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Tailwind",
+          "effect": "Doubles team Speed for 4 turns."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Falkner",
+          "roleZh": "道館館主",
+          "location": "Violet City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Winona",
+          "roleZh": "道館館主",
+          "location": "Fortree City",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Skyla",
+          "roleZh": "道館館主",
+          "location": "Mistralton City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Kahili",
+          "roleZh": "四天王",
+          "location": "Alola",
+          "generations": "Gen 7"
+        }
+      ]
+    },
+    "psychic": {
+      "blurbEn": "Psychic-type Pokémon possess powerful mental abilities including telekinesis and telepathy. They were dominant in Generation 1 due to limited counters. Psychic types typically have high Special Attack and Speed.",
+      "battleTipsEn": "Psychic types are super effective against Fighting and Poison. They are weak to Bug, Ghost, and Dark. Dark types are completely immune to Psychic moves. Many Psychic types can learn support moves like Calm Mind and Recover.",
+      "categoryNoteEn": "In Generations 1-3, all Psychic type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "同步",
+          "effect": "將中毒、麻痺、灼傷狀態傳遞給對手。"
+        },
+        {
+          "category": "ability",
+          "name": "精神力",
+          "effect": "防止畏縮。"
+        },
+        {
+          "category": "ability",
+          "name": "魔法守護",
+          "effect": "只會受到直接攻擊的傷害。"
+        },
+        {
+          "category": "ability",
+          "name": "精神場地製造者",
+          "effect": "出場時展開精神場地。"
+        },
+        {
+          "category": "move",
+          "name": "精神場地",
+          "effect": "提升超能力屬性招式30%威力，防止先制招式。"
+        },
+        {
+          "category": "item",
+          "name": "彎曲湯匙",
+          "effect": "提升超能力屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "超能力寶石",
+          "effect": "一次性提升超能力屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Psychic Surge",
+          "effect": "Sets Psychic Terrain on entry."
+        },
+        {
+          "category": "ability",
+          "name": "Magic Guard",
+          "effect": "Only takes damage from direct attacks."
+        },
+        {
+          "category": "ability",
+          "name": "Synchronize",
+          "effect": "Passes burns, poison, and paralysis to the attacker."
+        },
+        {
+          "category": "item",
+          "name": "Twisted Spoon",
+          "effect": "Boosts Psychic type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Psychic Gem",
+          "effect": "One-time 30% boost to a Psychic move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Psychic Terrain",
+          "effect": "Boosts Psychic moves by 30% and blocks priority moves against grounded Pokémon."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Sabrina",
+          "roleZh": "道館館主",
+          "location": "Saffron City",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Will",
+          "roleZh": "四天王",
+          "location": "Johto",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Tate & Liza",
+          "roleZh": "道館館主",
+          "location": "Mossdeep City",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Lucian",
+          "roleZh": "四天王",
+          "location": "Sinnoh",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Caitlin",
+          "roleZh": "四天王",
+          "location": "Unova",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Olympia",
+          "roleZh": "道館館主",
+          "location": "Anistar City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Tulip",
+          "roleZh": "道館館主",
+          "location": "Alfornada",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "bug": {
+      "blurbEn": "Bug-type Pokémon are based on insects and arachnids. They typically evolve quickly and are often available early in the game. While many Bug types have lower stats, some like Scizor and Volcarona are competitively viable.",
+      "battleTipsEn": "Bug types are super effective against Grass, Psychic, and Dark. They have many weaknesses (Fire, Flying, Rock) and many resistances. Bug types often have access to U-turn, an excellent move for maintaining momentum.",
+      "categoryNoteEn": "In Generations 1-3, all Bug type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "蟲之預感",
+          "effect": "HP低於1/3時，蟲屬性招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "有色眼鏡",
+          "effect": "效果不佳的招式造成正常傷害。"
+        },
+        {
+          "category": "ability",
+          "name": "複眼",
+          "effect": "命中率提升30%。"
+        },
+        {
+          "category": "ability",
+          "name": "鱗粉",
+          "effect": "免疫附加效果。"
+        },
+        {
+          "category": "move",
+          "name": "蛛網",
+          "effect": "阻止目標逃跑或替換。"
+        },
+        {
+          "category": "item",
+          "name": "銀粉",
+          "effect": "提升蟲屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "蟲之寶石",
+          "effect": "一次性提升蟲屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Swarm",
+          "effect": "Boosts Bug moves by 50% when HP is below 1/3."
+        },
+        {
+          "category": "ability",
+          "name": "Tinted Lens",
+          "effect": "Doubles damage of not very effective moves."
+        },
+        {
+          "category": "ability",
+          "name": "Compound Eyes",
+          "effect": "Boosts accuracy by 30%."
+        },
+        {
+          "category": "item",
+          "name": "Silver Powder",
+          "effect": "Boosts Bug type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Bug Gem",
+          "effect": "One-time 30% boost to a Bug move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "U-turn",
+          "effect": "Attacks then switches out, maintaining momentum."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Bugsy",
+          "roleZh": "道館館主",
+          "location": "Azalea Town",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Aaron",
+          "roleZh": "四天王",
+          "location": "Sinnoh",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Burgh",
+          "roleZh": "道館館主",
+          "location": "Castelia City",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Viola",
+          "roleZh": "道館館主",
+          "location": "Santalune City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Guzma",
+          "roleZh": "枯骨幫幫主",
+          "location": "Alola",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Katy",
+          "roleZh": "道館館主",
+          "location": "Cortondo",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "rock": {
+      "blurbEn": "Rock-type Pokémon are tough and durable, often resembling stones or fossils. They gain a Special Defense boost in sandstorm weather. Rock types are strong offensively but have many weaknesses.",
+      "battleTipsEn": "Rock types are super effective against Fire, Ice, Flying, and Bug. They are weak to Water, Grass, Fighting, Ground, and Steel. Rock types benefit greatly from sandstorm, which boosts their Special Defense by 50%.",
+      "categoryNoteEn": "In Generations 1-3, all Rock type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "沙之力",
+          "effect": "沙暴時岩石、地面、鋼屬性招式威力提升30%。"
+        },
+        {
+          "category": "ability",
+          "name": "揚沙",
+          "effect": "出場時召喚沙暴天氣。"
+        },
+        {
+          "category": "ability",
+          "name": "堅硬腦袋",
+          "effect": "不受反作用力傷害。"
+        },
+        {
+          "category": "ability",
+          "name": "結實",
+          "effect": "滿HP時必定能承受一擊。"
+        },
+        {
+          "category": "move",
+          "name": "沙暴",
+          "effect": "每回合對非岩石/地面/鋼屬性寶可夢造成傷害，提升岩石屬性特防50%。"
+        },
+        {
+          "category": "item",
+          "name": "硬石頭",
+          "effect": "提升岩石屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "岩石寶石",
+          "effect": "一次性提升岩石屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Sand Stream",
+          "effect": "Summons sandstorm, boosting Rock Sp. Def by 50%."
+        },
+        {
+          "category": "ability",
+          "name": "Solid Rock",
+          "effect": "Reduces super effective damage by 25%."
+        },
+        {
+          "category": "ability",
+          "name": "Sturdy",
+          "effect": "Survives any hit at full HP with 1 HP remaining."
+        },
+        {
+          "category": "item",
+          "name": "Hard Stone",
+          "effect": "Boosts Rock type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Rock Gem",
+          "effect": "One-time 30% boost to a Rock move, then consumed."
+        },
+        {
+          "category": "item",
+          "name": "Smooth Rock",
+          "effect": "Extends sandstorm duration to 8 turns."
+        },
+        {
+          "category": "move",
+          "name": "Stealth Rock",
+          "effect": "Entry hazard dealing Rock-type damage based on weakness."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Brock",
+          "roleZh": "道館館主",
+          "location": "Pewter City",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Roxanne",
+          "roleZh": "道館館主",
+          "location": "Rustboro City",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Roark",
+          "roleZh": "道館館主",
+          "location": "Oreburgh City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Grant",
+          "roleZh": "道館館主",
+          "location": "Cyllage City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Olivia",
+          "roleZh": "島嶼卡胡納",
+          "location": "Akala Island",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Gordie",
+          "roleZh": "道館館主",
+          "location": "Circhester",
+          "generations": "Gen 8 (Sword)"
+        }
+      ]
+    },
+    "ghost": {
+      "blurbEn": "Ghost-type Pokémon are mysterious spirits often associated with the supernatural. They have unique immunities to Normal and Fighting moves. Ghost types are the only type that is super effective against itself.",
+      "battleTipsEn": "Ghost types are super effective against Psychic and Ghost. They are immune to Normal and Fighting moves, giving them excellent defensive utility. Ghost types are weak to Ghost and Dark. Many Ghost types can learn Will-O-Wisp to cripple physical attackers.",
+      "categoryNoteEn": "In Generations 1-3, all Ghost type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "詛咒之軀",
+          "effect": "被攻擊時有30%機率封印對手使用的招式。"
+        },
+        {
+          "category": "ability",
+          "name": "穿透",
+          "effect": "無視對手的特性。"
+        },
+        {
+          "category": "ability",
+          "name": "飄浮",
+          "effect": "免疫地面屬性招式。"
+        },
+        {
+          "category": "ability",
+          "name": "膽怯",
+          "effect": "被幽靈或惡屬性招式擊中時速度提升。"
+        },
+        {
+          "category": "move",
+          "name": "詛咒",
+          "effect": "幽靈屬性使用時犧牲HP施加詛咒。"
+        },
+        {
+          "category": "item",
+          "name": "咒語之符",
+          "effect": "提升幽靈屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "幽靈寶石",
+          "effect": "一次性提升幽靈屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Cursed Body",
+          "effect": "30% chance to disable moves that hit."
+        },
+        {
+          "category": "ability",
+          "name": "Infiltrator",
+          "effect": "Bypasses Substitute, Light Screen, Reflect, etc."
+        },
+        {
+          "category": "ability",
+          "name": "Shadow Tag",
+          "effect": "Prevents opponents from switching (except Ghosts)."
+        },
+        {
+          "category": "item",
+          "name": "Spell Tag",
+          "effect": "Boosts Ghost type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Ghost Gem",
+          "effect": "One-time 30% boost to a Ghost move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Phantom Force",
+          "effect": "Disappears for one turn, then attacks bypassing protection."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Agatha",
+          "roleZh": "四天王",
+          "location": "Indigo Plateau",
+          "generations": "Gen 1, 3, 7"
+        },
+        {
+          "name": "Morty",
+          "roleZh": "道館館主",
+          "location": "Ecruteak City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Phoebe",
+          "roleZh": "四天王",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Fantina",
+          "roleZh": "道館館主",
+          "location": "Hearthome City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Shauntal",
+          "roleZh": "四天王",
+          "location": "Unova",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Acerola",
+          "roleZh": "試煉隊長 / 四天王",
+          "location": "Alola",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Allister",
+          "roleZh": "道館館主",
+          "location": "Stow-on-Side",
+          "generations": "Gen 8 (Shield)"
+        },
+        {
+          "name": "Ryme",
+          "roleZh": "道館館主",
+          "location": "Montenevera",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "dragon": {
+      "blurbEn": "Dragon-type Pokémon are rare and powerful, often considered among the strongest in the game. They resist all four starter types (Fire, Water, Grass, Electric). Dragon types typically have high base stat totals.",
+      "battleTipsEn": "Dragon types are only super effective against other Dragons. They resist Fire, Water, Grass, and Electric. Dragon types are weak to Ice, Dragon, and Fairy (immune to Dragon). Many Dragon types are pseudo-legendary with 600 base stat totals.",
+      "categoryNoteEn": "In Generations 1-3, all Dragon type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "多重鱗片",
+          "effect": "滿HP時受到的傷害減半。"
+        },
+        {
+          "category": "ability",
+          "name": "龍之顎",
+          "effect": "咬類招式威力提升50%。"
+        },
+        {
+          "category": "ability",
+          "name": "碎裂氣場",
+          "effect": "削弱仙氣護衛。"
+        },
+        {
+          "category": "ability",
+          "name": "龍鱗",
+          "effect": "接觸攻擊時有30%機率使對手畏縮。"
+        },
+        {
+          "category": "move",
+          "name": "龍之舞",
+          "effect": "攻擊和速度各提升一級。"
+        },
+        {
+          "category": "item",
+          "name": "龍之牙",
+          "effect": "提升龍屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "龍之寶石",
+          "effect": "一次性提升龍屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Multiscale",
+          "effect": "Halves damage when at full HP."
+        },
+        {
+          "category": "ability",
+          "name": "Marvel Scale",
+          "effect": "Boosts Defense by 50% when statused."
+        },
+        {
+          "category": "item",
+          "name": "Dragon Fang",
+          "effect": "Boosts Dragon type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Dragon Gem",
+          "effect": "One-time 30% boost to a Dragon move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Dragon Dance",
+          "effect": "Boosts Attack and Speed by one stage each."
+        },
+        {
+          "category": "move",
+          "name": "Outrage",
+          "effect": "Powerful move that locks user for 2-3 turns, then confuses."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Lance",
+          "roleZh": "四天王 / 冠軍",
+          "location": "Indigo Plateau",
+          "generations": "Gen 1, 2, 3, 4, 7"
+        },
+        {
+          "name": "Clair",
+          "roleZh": "道館館主",
+          "location": "Blackthorn City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Drake",
+          "roleZh": "四天王",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Iris",
+          "roleZh": "道館館主 / 冠軍",
+          "location": "Opelucid City / Unova",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Drasna",
+          "roleZh": "四天王",
+          "location": "Kalos",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Raihan",
+          "roleZh": "道館館主",
+          "location": "Hammerlocke",
+          "generations": "Gen 8"
+        },
+        {
+          "name": "Hassel",
+          "roleZh": "四天王",
+          "location": "Paldea",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "dark": {
+      "blurbEn": "Dark-type Pokémon were introduced in Generation 2 to balance Psychic types. They represent darkness, trickery, and underhanded tactics. Dark types are immune to Psychic moves and often have access to priority moves.",
+      "battleTipsEn": "Dark types are super effective against Psychic and Ghost. They are immune to Psychic moves and resist Ghost and Dark. Dark types are weak to Fighting, Bug, and Fairy. Many Dark types learn Knock Off, one of the best utility moves.",
+      "categoryNoteEn": "In Generations 1-3, all Dark type moves were categorized as Special.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "惡作劇之心",
+          "effect": "變化招式優先度+1。"
+        },
+        {
+          "category": "ability",
+          "name": "正義之心",
+          "effect": "被惡屬性招式擊中時攻擊提升。"
+        },
+        {
+          "category": "ability",
+          "name": "暗黑氣場",
+          "effect": "惡屬性招式威力提升33%。"
+        },
+        {
+          "category": "ability",
+          "name": "狙擊手",
+          "effect": "擊中要害時傷害更高。"
+        },
+        {
+          "category": "move",
+          "name": "挑釁",
+          "effect": "3回合內對手只能使用攻擊招式。"
+        },
+        {
+          "category": "item",
+          "name": "黑色眼鏡",
+          "effect": "提升惡屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "惡之寶石",
+          "effect": "一次性提升惡屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Dark Aura",
+          "effect": "Boosts Dark moves for all Pokémon by 33%."
+        },
+        {
+          "category": "ability",
+          "name": "Prankster",
+          "effect": "Gives priority to status moves (fails against Dark types)."
+        },
+        {
+          "category": "ability",
+          "name": "Justified",
+          "effect": "Boosts Attack when hit by Dark moves."
+        },
+        {
+          "category": "item",
+          "name": "Black Glasses",
+          "effect": "Boosts Dark type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Dark Gem",
+          "effect": "One-time 30% boost to a Dark move, then consumed."
+        },
+        {
+          "category": "item",
+          "name": "Dread Plate",
+          "effect": "Boosts Dark type moves by 20%."
+        },
+        {
+          "category": "move",
+          "name": "Knock Off",
+          "effect": "Removes held item and deals 50% more damage if item removed."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Karen",
+          "roleZh": "四天王",
+          "location": "Johto",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Sidney",
+          "roleZh": "四天王",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Grimsley",
+          "roleZh": "四天王",
+          "location": "Unova",
+          "generations": "Gen 5"
+        },
+        {
+          "name": "Nanu",
+          "roleZh": "島嶼卡胡納",
+          "location": "Ula'ula Island",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Piers",
+          "roleZh": "道館館主",
+          "location": "Spikemuth",
+          "generations": "Gen 8"
+        }
+      ]
+    },
+    "steel": {
+      "blurbEn": "Steel-type Pokémon were introduced in Generation 2 and have the most resistances of any type (10 resistances plus immunity to Poison). They are often defensive powerhouses used to wall opponents.",
+      "battleTipsEn": "Steel types are super effective against Ice, Rock, and Fairy. They have an incredible 10 resistances and immunity to Poison. Steel types are weak to Fire, Fighting, and Ground. They lost their resistance to Ghost and Dark in Generation 6.",
+      "categoryNoteEn": "In Generations 1-3, all Steel type moves were categorized as Physical.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "沙之力",
+          "effect": "沙暴時岩石、地面、鋼屬性招式威力提升30%。"
+        },
+        {
+          "category": "ability",
+          "name": "輕金屬",
+          "effect": "體重減半。"
+        },
+        {
+          "category": "ability",
+          "name": "重金屬",
+          "effect": "體重翻倍。"
+        },
+        {
+          "category": "ability",
+          "name": "堅硬頭盔",
+          "effect": "接觸攻擊時對攻擊者造成1/6 HP傷害。"
+        },
+        {
+          "category": "move",
+          "name": "鐵壁",
+          "effect": "防禦大幅提升。"
+        },
+        {
+          "category": "item",
+          "name": "金屬膜",
+          "effect": "提升鋼屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "鋼之寶石",
+          "effect": "一次性提升鋼屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Steelworker",
+          "effect": "Boosts Steel moves by 50%."
+        },
+        {
+          "category": "ability",
+          "name": "Magnet Pull",
+          "effect": "Prevents Steel types from switching."
+        },
+        {
+          "category": "ability",
+          "name": "Heavy Metal",
+          "effect": "Doubles weight, affecting weight-based moves."
+        },
+        {
+          "category": "ability",
+          "name": "Light Metal",
+          "effect": "Halves weight."
+        },
+        {
+          "category": "item",
+          "name": "Metal Coat",
+          "effect": "Boosts Steel type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Steel Gem",
+          "effect": "One-time 30% boost to a Steel move, then consumed."
+        },
+        {
+          "category": "item",
+          "name": "Iron Plate",
+          "effect": "Boosts Steel type moves by 20%."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Jasmine",
+          "roleZh": "道館館主",
+          "location": "Olivine City",
+          "generations": "Gen 2, 4"
+        },
+        {
+          "name": "Steven",
+          "roleZh": "冠軍",
+          "location": "Hoenn",
+          "generations": "Gen 3, 6"
+        },
+        {
+          "name": "Byron",
+          "roleZh": "道館館主",
+          "location": "Canalave City",
+          "generations": "Gen 4"
+        },
+        {
+          "name": "Wikstrom",
+          "roleZh": "四天王",
+          "location": "Kalos",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Molayne",
+          "roleZh": "四天王",
+          "location": "Alola",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Peony",
+          "roleZh": "前任冠軍",
+          "location": "Crown Tundra",
+          "generations": "Gen 8 DLC"
+        },
+        {
+          "name": "Ortega",
+          "roleZh": "巨星隊隊長",
+          "location": "Paldea",
+          "generations": "Gen 9"
+        }
+      ]
+    },
+    "fairy": {
+      "blurbEn": "Fairy-type Pokémon were introduced in Generation 6 to balance Dragon types. They are immune to Dragon moves and represent magic and whimsy. Many previously Normal or other typed Pokémon were reclassified as Fairy.",
+      "battleTipsEn": "Fairy types are super effective against Fighting, Dragon, and Dark - three powerful offensive types. They are immune to Dragon moves. Fairy types are weak to Poison and Steel. Moves like Moonblast and Play Rough are reliable STAB options.",
+      "categoryNoteEn": "Fairy type was introduced in Generation 6 (X/Y), so it has no Generation 1-3 category.",
+      "entries": [
+        {
+          "category": "ability",
+          "name": "妖精皮膚",
+          "effect": "將一般屬性招式變為妖精屬性，並提升20%威力。"
+        },
+        {
+          "category": "ability",
+          "name": "仙氣護衛",
+          "effect": "妖精屬性招式威力提升33%。"
+        },
+        {
+          "category": "ability",
+          "name": "花幕",
+          "effect": "陽光強烈時己方草屬效能力提升，防止異常狀態。"
+        },
+        {
+          "category": "ability",
+          "name": "迷人之軀",
+          "effect": "被普通招式擊中時有30%機率魅惑對手。"
+        },
+        {
+          "category": "move",
+          "name": "薄霧場地",
+          "effect": "龍屬性招式威力減半，防止異常狀態。"
+        },
+        {
+          "category": "item",
+          "name": "妖精羽毛",
+          "effect": "提升妖精屬性招式20%威力。"
+        },
+        {
+          "category": "item",
+          "name": "妖精寶石",
+          "effect": "一次性提升妖精屬性招式30%威力，使用後消耗。"
+        }
+      ],
+      "entriesEn": [
+        {
+          "category": "ability",
+          "name": "Fairy Aura",
+          "effect": "Boosts Fairy moves for all Pokémon by 33%."
+        },
+        {
+          "category": "ability",
+          "name": "Pixilate",
+          "effect": "Changes Normal moves to Fairy type (+20% power)."
+        },
+        {
+          "category": "ability",
+          "name": "Misty Surge",
+          "effect": "Sets Misty Terrain on entry."
+        },
+        {
+          "category": "item",
+          "name": "Pixie Plate",
+          "effect": "Boosts Fairy type moves by 20%."
+        },
+        {
+          "category": "item",
+          "name": "Fairy Gem",
+          "effect": "One-time 30% boost to a Fairy move, then consumed."
+        },
+        {
+          "category": "move",
+          "name": "Misty Terrain",
+          "effect": "Reduces Dragon damage by 50% and prevents status for grounded Pokémon."
+        }
+      ],
+      "trainers": [
+        {
+          "name": "Valerie",
+          "roleZh": "道館館主",
+          "location": "Laverre City",
+          "generations": "Gen 6"
+        },
+        {
+          "name": "Mina",
+          "roleZh": "試煉隊長",
+          "location": "Seafolk Village",
+          "generations": "Gen 7"
+        },
+        {
+          "name": "Opal",
+          "roleZh": "道館館主",
+          "location": "Ballonlea",
+          "generations": "Gen 8"
+        },
+        {
+          "name": "Bede",
+          "roleZh": "道館館主",
+          "location": "Ballonlea",
+          "generations": "Gen 8 (Post-game)"
+        }
+      ]
+    }
+  }
+}
