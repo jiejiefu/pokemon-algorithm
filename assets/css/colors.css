@@ -580,7 +580,7 @@
 }
 
 .cp-cell-hex {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -603,6 +603,10 @@
   .cp-cell {
     height: 88px;
     font-size: 15px;
+  }
+
+  .cp-cell-hex {
+    font-size: 18px;
   }
 
   .cp-cell-share {
@@ -644,7 +648,7 @@
 
 .cp-seg-hex {
   display: none;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

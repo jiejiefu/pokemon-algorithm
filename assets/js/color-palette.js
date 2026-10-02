@@ -283,7 +283,6 @@ export function paletteGridHtml(rows, options = {}) {
       const tip = `${text} · 占比 ${shareText}`;
       return `<button type="button" class="cp-cell" style="${swatchStyle(hex)}" title="${tip}" data-cp-copy="${text}" aria-label="複製 ${tip}">
               <span class="cp-cell-hex">${text}</span>
-              <span class="cp-cell-share">${shareText}</span>
             </button>`;
     })
     .join('');
@@ -459,6 +458,220 @@ export function colorTemperature(hex) {
 }
 
 export const TEMPERATURE_ZH = { warm: '暖色', cool: '冷色', neutral: '中性' };
+
+/** 將 hex 轉成 [r,g,b] 0-255 */
+function hexToRgbArray(hex) {
+  if (!hex || typeof hex !== 'string') return null;
+  let h = hex.trim();
+  if (h.startsWith('#')) h = h.slice(1);
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6) return null;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+  return [r, g, b];
+}
+
+/** 歐幾里得距離（RGB） */
+function rgbDistance(a, b) {
+  const dr = a[0] - b[0];
+  const dg = a[1] - b[1];
+  const db = a[2] - b[2];
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+/**
+ * 常用顏色名稱對照表（100種，保留常用色，含中英文）
+ */
+export const CHINESE_COLOR_NAMES = [
+  // 黑白灰 (10)
+  { zh: '黑色', en: 'Black', hex: '#000000' },
+  { zh: '墨黑', en: 'Dark Charcoal', hex: '#111111' },
+  { zh: '深灰', en: 'Dim Gray', hex: '#696969' },
+  { zh: '灰色', en: 'Gray', hex: '#808080' },
+  { zh: '淺灰', en: 'Light Gray', hex: '#D3D3D3' },
+  { zh: '銀色', en: 'Silver', hex: '#C0C0C0' },
+  { zh: '白色', en: 'White', hex: '#FFFFFF' },
+  { zh: '雪白', en: 'Snow', hex: '#FFFAFA' },
+  { zh: '象牙白', en: 'Ivory', hex: '#FFFFF0' },
+  { zh: '米白', en: 'Beige', hex: '#F5F5DC' },
+
+  // 紅粉系 (16)
+  { zh: '紅色', en: 'Red', hex: '#FF0000' },
+  { zh: '猩紅', en: 'Scarlet', hex: '#FF2400' },
+  { zh: '朱紅', en: 'Vermilion', hex: '#FF4D00' },
+  { zh: '深紅', en: 'Dark Red', hex: '#8B0000' },
+  { zh: '酒紅', en: 'Burgundy', hex: '#800020' },
+  { zh: '磚紅', en: 'Firebrick', hex: '#B22222' },
+  { zh: '緋紅', en: 'Crimson', hex: '#DC143C' },
+  { zh: '洋紅', en: 'Magenta', hex: '#FF00FF' },
+  { zh: '桃紅', en: 'Hot Pink', hex: '#FF69B4' },
+  { zh: '深桃紅', en: 'Deep Pink', hex: '#FF1493' },
+  { zh: '粉紅', en: 'Pink', hex: '#FFC0CB' },
+  { zh: '淺粉紅', en: 'Light Pink', hex: '#FFB6C1' },
+  { zh: '櫻桃紅', en: 'Cherry Red', hex: '#DE3163' },
+  { zh: '珊瑚紅', en: 'Coral', hex: '#FF7F50' },
+  { zh: '鮭魚色', en: 'Salmon', hex: '#FA8072' },
+  { zh: '亮珊瑚', en: 'Light Coral', hex: '#F08080' },
+
+  // 橙黃系 (12)
+  { zh: '橙色', en: 'Orange', hex: '#FFA500' },
+  { zh: '暗橙', en: 'Dark Orange', hex: '#FF8C00' },
+  { zh: '橘紅', en: 'Orange Red', hex: '#FF4500' },
+  { zh: '橘色', en: 'Tangerine', hex: '#FF6600' },
+  { zh: '琥珀色', en: 'Amber', hex: '#FFBF00' },
+  { zh: '金色', en: 'Gold', hex: '#FFD700' },
+  { zh: '黃色', en: 'Yellow', hex: '#FFFF00' },
+  { zh: '淺黃色', en: 'Light Yellow', hex: '#FFFFE0' },
+  { zh: '檸檬黃', en: 'Lemon Chiffon', hex: '#FFFACD' },
+  { zh: '香檳黃', en: 'Champagne', hex: '#FFFF99' },
+  { zh: '鵝黃', en: 'Canary Yellow', hex: '#FFF143' },
+  { zh: '芥末黃', en: 'Mustard Yellow', hex: '#CCCC4D' },
+
+  // 綠系 (18)
+  { zh: '檸檬綠', en: 'Chartreuse', hex: '#CCFF00' },
+  { zh: '黃綠色', en: 'Yellow Green', hex: '#9ACD32' },
+  { zh: '草綠色', en: 'Lawn Green', hex: '#7CFC00' },
+  { zh: '嫩綠', en: 'Tender Green', hex: '#BDDD22' },
+  { zh: '蘋果綠', en: 'Apple Green', hex: '#8CE600' },
+  { zh: '綠色', en: 'Lime', hex: '#00FF00' },
+  { zh: '淺綠', en: 'Light Green', hex: '#90EE90' },
+  { zh: '淡綠色', en: 'Pale Green', hex: '#98FB98' },
+  { zh: '春綠', en: 'Spring Green', hex: '#00FF7F' },
+  { zh: '海綠', en: 'Sea Green', hex: '#2E8B57' },
+  { zh: '森林綠', en: 'Forest Green', hex: '#228B22' },
+  { zh: '深綠', en: 'Dark Green', hex: '#006400' },
+  { zh: '墨綠', en: 'Dark Olive Green', hex: '#556B2F' },
+  { zh: '橄欖色', en: 'Olive', hex: '#808000' },
+  { zh: '橄欖綠', en: 'Olive Drab', hex: '#6B8E23' },
+  { zh: '孔雀綠', en: 'Peacock Green', hex: '#00A15C' },
+  { zh: '翡翠綠', en: 'Emerald Green', hex: '#50C878' },
+  { zh: '薄荷綠', en: 'Mint Green', hex: '#22C32E' },
+
+  // 藍青系 (24)
+  { zh: '青色', en: 'Cyan', hex: '#00FFFF' },
+  { zh: '淺青色', en: 'Light Cyan', hex: '#E0FFFF' },
+  { zh: '淺藍綠', en: 'Light Sea Green', hex: '#20B2AA' },
+  { zh: '青綠色', en: 'Turquoise', hex: '#40E0D0' },
+  { zh: '土耳其藍', en: 'Medium Turquoise', hex: '#48D1CC' },
+  { zh: '深青色', en: 'Dark Cyan', hex: '#008B8B' },
+  { zh: '水鴨色', en: 'Teal', hex: '#008080' },
+  { zh: '藍綠色', en: 'Aquamarine', hex: '#7FFFD4' },
+  { zh: '水色', en: 'Aqua', hex: '#AFDFE4' },
+  { zh: '天空藍', en: 'Sky Blue', hex: '#87CEEB' },
+  { zh: '淺天空藍', en: 'Light Sky Blue', hex: '#87CEFA' },
+  { zh: '深天藍', en: 'Deep Sky Blue', hex: '#00BFFF' },
+  { zh: '矢車菊藍', en: 'Cornflower Blue', hex: '#6495ED' },
+  { zh: '鋼藍色', en: 'Steel Blue', hex: '#4682B4' },
+  { zh: '淺鋼藍', en: 'Light Steel Blue', hex: '#B0C4DE' },
+  { zh: '淺藍色', en: 'Light Blue', hex: '#ADD8E6' },
+  { zh: '寶藍色', en: 'Royal Blue', hex: '#4169E1' },
+  { zh: '藍色', en: 'Blue', hex: '#0000FF' },
+  { zh: '深藍色', en: 'Dark Blue', hex: '#00008B' },
+  { zh: '藏青色', en: 'Navy Blue', hex: '#000080' },
+  { zh: '午夜藍', en: 'Midnight Blue', hex: '#191970' },
+  { zh: '普魯士藍', en: 'Prussian Blue', hex: '#003153' },
+  { zh: '蔚藍色', en: 'Azure', hex: '#007FFF' },
+  { zh: '群青色', en: 'Ultramarine', hex: '#4D9DE0' },
+
+  // 紫系 (12)
+  { zh: '薰衣草紫', en: 'Lavender', hex: '#E6E6FA' },
+  { zh: '淡紫色', en: 'Thistle', hex: '#D8BFD8' },
+  { zh: '李子色', en: 'Plum', hex: '#DDA0DD' },
+  { zh: '紫羅蘭', en: 'Violet', hex: '#EE82EE' },
+  { zh: '蘭花色', en: 'Orchid', hex: '#DA70D6' },
+  { zh: '中紫色', en: 'Medium Purple', hex: '#9370DB' },
+  { zh: '暗紫色', en: 'Dark Violet', hex: '#9400D3' },
+  { zh: '靛藍色', en: 'Indigo', hex: '#4B0082' },
+  { zh: '藍紫色', en: 'Blue Violet', hex: '#8A2BE2' },
+  { zh: '紫色', en: 'Purple', hex: '#800080' },
+  { zh: '深紫色', en: 'Dark Purple', hex: '#660066' },
+  { zh: '紫丁香', en: 'Lilac', hex: '#B399FF' },
+
+  // 棕褐系 (8)
+  { zh: '棕色', en: 'Brown', hex: '#A52A2A' },
+  { zh: '馬鞍棕', en: 'Saddle Brown', hex: '#8B4513' },
+  { zh: '巧克力色', en: 'Chocolate', hex: '#D2691E' },
+  { zh: '黃褐色', en: 'Burlywood', hex: '#DEB887' },
+  { zh: '小麥色', en: 'Wheat', hex: '#F5DEB3' },
+  { zh: '駝色', en: 'Tan', hex: '#D2B48C' },
+  { zh: '卡其色', en: 'Khaki', hex: '#F0E68C' },
+  { zh: '咖啡色', en: 'Coffee', hex: '#4D1F00' },
+];
+
+/** 找出最接近的中文顏色名稱（RGB 歐幾里得距離） */
+export function findClosestChineseColorName(hex) {
+  const rgb = hexToRgbArray(hex);
+  if (!rgb) return null;
+  let best = CHINESE_COLOR_NAMES[0];
+  let bestDist = rgbDistance(rgb, hexToRgbArray(best.hex));
+  for (let i = 1; i < CHINESE_COLOR_NAMES.length; i++) {
+    const c = CHINESE_COLOR_NAMES[i];
+    const crgb = hexToRgbArray(c.hex);
+    if (!crgb) continue;
+    const d = rgbDistance(rgb, crgb);
+    if (d < bestDist - 1e-6) {
+      bestDist = d;
+      best = c;
+      if (bestDist < 5) break;
+    }
+  }
+  if (bestDist > 60) {
+    const fallback = describeHex(hex);
+    if (fallback && fallback !== '色彩') return fallback;
+  }
+  return best.zh;
+}
+
+const colorNameCache = new Map();
+
+/** 取得中文顏色名稱（優先常用表，次用 describeHex） */
+export function chineseColorName(hex) {
+  const key = (hex || '').trim().toUpperCase();
+  if (colorNameCache.has(`zh:${key}`)) return colorNameCache.get(`zh:${key}`);
+  const name = findClosestChineseColorName(hex);
+  const result = name || describeHex(hex) || '色彩';
+  colorNameCache.set(`zh:${key}`, result);
+  return result;
+}
+
+/** 取得中文+英文顏色名稱（格式：中文 英文 或僅中文） */
+export function chineseColorNameWithEn(hex, sep = ' ') {
+  const key = (hex || '').trim().toUpperCase();
+  const cacheKey = `zh-en:${key}:${sep}`;
+  if (colorNameCache.has(cacheKey)) return colorNameCache.get(cacheKey);
+  const rgb = hexToRgbArray(hex);
+  if (!rgb) {
+    const fallback = describeHex(hex);
+    const result = fallback || '色彩';
+    colorNameCache.set(cacheKey, result);
+    return result;
+  }
+  let best = CHINESE_COLOR_NAMES[0];
+  let bestDist = rgbDistance(rgb, hexToRgbArray(best.hex));
+  for (let i = 1; i < CHINESE_COLOR_NAMES.length; i++) {
+    const c = CHINESE_COLOR_NAMES[i];
+    const crgb = hexToRgbArray(c.hex);
+    if (!crgb) continue;
+    const d = rgbDistance(rgb, crgb);
+    if (d < bestDist - 1e-6) {
+      bestDist = d;
+      best = c;
+      if (bestDist < 5) break;
+    }
+  }
+  if (bestDist > 60) {
+    const fallback = describeHex(hex);
+    if (fallback && fallback !== '色彩') {
+      colorNameCache.set(cacheKey, fallback);
+      return fallback;
+    }
+  }
+  const result = best.en ? `${best.zh}${sep}${best.en}` : best.zh;
+  colorNameCache.set(cacheKey, result);
+  return result;
+}
 
 // ---------------------------------------------------------------------------
 // Colour notation

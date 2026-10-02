@@ -206,7 +206,7 @@
       findBySlug, paletteUrl, swatchStyle, HEX_FORMATS,
       showcaseHtml, wireShowcaseTabs,
       describeHex, colorTemperature, TEMPERATURE_ZH,
-      formatHex,
+      formatHex, chineseColorName,
       paletteToThemeTokens, themeToTailwindV4Css, themeToTailwindV3Config,
       themeToJson, THEME_PREVIEW_ROWS, themeVarBlock,
     } from './assets/js/color-palette.js';
@@ -489,7 +489,7 @@
           <span class="cp-info-swatch" aria-hidden="true" style="${swatchStyle(hex)}"></span>
           <span class="cp-info-color-meta">
             <code>${hex}</code>
-            <span class="cp-info-color-share">${Math.round(share)}%</span>
+            <span class="cp-info-color-share">${chineseColorName(hex)} ${Math.round(share)}%</span>
           </span>
         </li>`).join('');
 
