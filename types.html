@@ -762,16 +762,16 @@
       <section class="types-section" aria-labelledby="sec-resources">
         <div class="types-section-head">
           <h2 id="sec-resources">相關工具與資源</h2>
-          <p>全方位的寶可夢資料庫，包含所有世代寶可夢的詳細資訊、屬性、招式、道具、進化鏈和屬性相剋表。</p>
+          <p>延伸閱讀：從全國圖鑑查到每隻寶可夢的屬性、招式與戰鬥數值，或回頭看屬性與世代的沿革。</p>
         </div>
         <div class="resource-grid">
-          <a class="resource-card" href="https://infopoke.net/zh-tw/damage-calculator" rel="noopener noreferrer" target="_blank">
-            <h3>傷害計算器 ›</h3>
-            <p>輸入招式與對手，試算實際傷害倍數（本頁相剋資料的來源站）。</p>
-          </a>
           <a class="resource-card" href="pokedex.html">
             <h3>寶可夢圖鑑 ›</h3>
             <p>本站 1,025 隻全國圖鑑，可依世代與屬性瀏覽。</p>
+          </a>
+          <a class="resource-card" href="generations.html">
+            <h3>世代指南 ›</h3>
+            <p>9 個世代、38 款遊戲與 27 隻御三家，含各世代新增的屬性。</p>
           </a>
         </div>
       </section>
@@ -1017,7 +1017,7 @@
           <div class="eff-groups">${effHtml}</div>
 
           <details class="type-detail-en">
-            <summary>原文說明（英文，InfoPoke 未提供繁體中文版）</summary>
+            <summary>原文說明（英文，官方未提供繁體中文版）</summary>
             <div class="type-detail-en-body">
               <p>${escapeHtml(profile.battleTipsEn)}</p>
               ${profile.categoryNoteEn ? `<p>${escapeHtml(profile.categoryNoteEn)}</p>` : ''}
@@ -1070,7 +1070,7 @@
 
           <div class="type-detail-block">
             <h3>訓練家 <span class="fx-item-meta">${profile.trainers.length} 位</span></h3>
-            ${chipRow('姓名與城市沿用 InfoPoke 的英文原文，職責為本站翻譯。')}
+            ${chipRow('姓名與城市沿用英文原文，職責為本站翻譯。')}
             ${profile.trainers.length ? `<ul class="fx-list">
               ${profile.trainers.map(t => effectRow(t.name, `${t.roleZh}・${t.location}・${t.generations}`, '')).join('')}
             </ul>` : '<p class="type-empty">此屬性沒有已記錄的訓練家。</p>'}
