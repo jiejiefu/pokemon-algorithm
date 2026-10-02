@@ -30,7 +30,10 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'color.html', 'assets/js/color-palette.js'];
+// assets/css/shared.css is here because check_color_page.mjs resolves the
+// Theme Exporter's var() targets against it — a checker that reads a file the
+// harness does not copy fails its own baseline and takes all 36 cases with it.
+const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'assets/css/shared.css', 'color.html', 'assets/js/color-palette.js'];
 const CHECKER = 'scripts/check_color_page.mjs';
 
 let failures = 0;
@@ -90,6 +93,43 @@ function run(dir) {
 }
 
 const cases = [
+  {
+    // The bug this whole group exists for: the Export Theme rebuild left three
+    // `els` keys pointing at ids the new markup no longer had, all null, and
+    // `els.copyTheme.addEventListener` threw at module top level — killing the
+    // module before init(), so the page never loaded a Pokémon. Every other
+    // check stayed green because a null *reference* is legal JS.
+    name: 'an els entry pointing at an id the markup no longer declares',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('      themeFilename: document.getElementById', '      themeFilename: null || document.getElementById')
+          .replace("getElementById('theme-filename')", "getElementById('theme-filename-gone')")
+      : undefined,
+    expect: 'never declares',
+  },
+  {
+    name: 'the exporter emitting a class the stylesheet never styles',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-theme-token-var {', '.cp-theme-token-var-RENAMED {')
+      : undefined,
+    expect: 'but colors.css never styles them',
+  },
+  {
+    // --surface-1 is the reference project\'s shadcn name. Nothing here defines
+    // it, so `background: var(--surface-1)` is dropped at computed-value time
+    // and the element goes transparent with no error in any console.
+    name: 'the Theme Exporter reaching for a custom property nobody defines',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-theme-code-block {', '.cp-theme-code-block { background: var(--surface-1);')
+      : undefined,
+    expect: 'no stylesheet defines',
+  },
+  {
+    name: 'the Theme Exporter CSS block losing its marker',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('/* ── Theme Exporter', '/* Theme Exporter')
+      : undefined,
+    expect: 'marker is gone',
+  },
   {
     name: 'deleting the [hidden] companion restores the reported second-sidebar bug',
     mutate: (f, s) => f.endsWith('colors.css')

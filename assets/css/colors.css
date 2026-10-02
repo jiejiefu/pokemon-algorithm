@@ -3425,3 +3425,99 @@
     margin-bottom: 10px;
   }
 }
+
+
+/* ── Theme Exporter ───────────────────────────────────────────────────────
+   Two token vocabularies live in this block and mixing them is the trap:
+
+   Site chrome (the section frame, the tab strip, the window header) uses the
+   shared.css vocabulary — --bg-card, --hairline-strong, --text-muted. These
+   live OUTSIDE #theme-preview, which is the only element the exporter script
+   paints theme tokens onto.
+
+   The preview interior (card demo, badges, progress, token grid) uses the
+   generated shadcn tokens — --primary, --card, --muted — so the box shows the
+   real theme rather than an approximation. Every one of those falls back to a
+   site token, because the markup paints before the first render() lands.
+   ───────────────────────────────────────────────────────────────────────── */
+.cp-theme-section { margin-top: clamp(40px, 6vw, 80px); }
+.cp-theme-wrapper { display: flex; flex-direction: column; gap: clamp(16px, 4vw, 24px); }
+.cp-theme-header { display: flex; flex-direction: column; gap: 8px; }
+.cp-theme-chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600; letter-spacing: 0.01em; border: 1px solid var(--hairline-strong); background: var(--surface-raised); color: var(--text-primary); }
+.cp-theme-chip .icon { opacity: 0.95; }
+.cp-theme-desc { color: var(--text-secondary); font-size: clamp(14px, 2.2vw, 15px); line-height: 1.8; max-width: 72ch; }
+.cp-theme-layout { display: grid; grid-template-columns: 1fr; gap: clamp(16px, 4vw, 24px); }
+@media (min-width: 1024px) { .cp-theme-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); } }
+
+.cp-theme-preview { display: flex; flex-direction: column; border: 1px solid var(--hairline-strong); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--shadow-card); }
+.cp-theme-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--hairline); background: var(--bg-card); }
+.cp-theme-preview-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.cp-theme-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-gold), transparent 80%); }
+.cp-theme-mode-toggle { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: var(--bg-controls); border: 1px solid var(--hairline); }
+.cp-mode-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; white-space: nowrap; }
+.cp-mode-btn.is-active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 1px 2px var(--hairline-strong); }
+.cp-mode-btn .icon { opacity: 0.9; }
+
+/* Preview interior — theme tokens, with site fallbacks for the pre-JS paint. */
+.cp-theme-preview-body { display: flex; flex-direction: column; gap: clamp(16px, 3vw, 20px); padding: clamp(16px, 3vw, 20px); min-height: 320px; }
+.cp-theme-card-demo { display: flex; flex-direction: column; gap: 8px; padding: clamp(16px, 3vw, 20px); border: 1px solid var(--border, var(--hairline-strong)); border-radius: 12px; background: var(--card, var(--bg-card)); color: var(--card-foreground, var(--text-primary)); box-shadow: var(--shadow-card); }
+.cp-theme-card-title { font-size: clamp(14px, 2.2vw, 16px); font-weight: 700; line-height: 1.25; margin: 0; }
+.cp-theme-card-sub { font-size: clamp(11px, 2vw, 12px); line-height: 1.6; margin: 0 0 4px; color: var(--muted-foreground, var(--text-secondary)); }
+.cp-theme-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cp-theme-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; line-height: 1; white-space: nowrap; border: 1px solid transparent; }
+.cp-badge-primary { background: var(--primary, var(--accent-gold)); color: var(--primary-foreground, var(--on-accent)); }
+.cp-badge-secondary { background: var(--secondary, var(--surface-raised)); color: var(--secondary-foreground, var(--text-primary)); }
+.cp-badge-accent { border-color: var(--accent, var(--accent-green)); color: var(--accent-foreground, var(--accent-green)); background: color-mix(in oklch, var(--accent, var(--accent-green)), transparent 92%); }
+.cp-theme-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.cp-theme-progress-track { flex: 1; height: 6px; border-radius: var(--radius-pill); background: var(--muted, var(--bg-controls)); overflow: hidden; }
+.cp-theme-progress-bar { height: 100%; width: 66%; border-radius: var(--radius-pill); background: var(--primary, var(--accent-gold)); }
+.cp-theme-progress-text { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--muted-foreground, var(--text-secondary)); }
+.cp-theme-tokens-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 480px) { .cp-theme-tokens-grid { grid-template-columns: repeat(3, 1fr); } }
+.cp-theme-token-btn { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 8px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left; transition: background-color 0.15s ease, border-color 0.15s ease; }
+.cp-theme-token-btn:hover { background: var(--surface-hover); border-color: var(--hairline-strong); }
+.cp-theme-token-btn:active { transform: scale(0.995); }
+.cp-theme-token-swatch { width: 100%; display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 8px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; border: 1px solid var(--hairline-strong); }
+.cp-theme-token-label { font-size: 10px; font-weight: 600; color: var(--foreground, var(--text-primary)); line-height: 1.2; }
+.cp-theme-token-var { font-family: var(--font-mono); font-size: 9px; color: var(--muted-foreground, var(--text-muted)); line-height: 1.2; }
+
+.cp-theme-code-block { display: flex; flex-direction: column; border: 1px solid var(--hairline-strong); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--shadow-card); }
+.cp-theme-tabs { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--hairline); background: var(--bg-card); flex-wrap: wrap; }
+.cp-theme-tab { padding: 5px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; white-space: nowrap; }
+.cp-theme-tab.is-active { background: var(--surface-raised); color: var(--text-primary); }
+.cp-theme-lines { margin-left: auto; font-size: 10px; color: var(--text-muted); padding: 4px 6px; font-variant-numeric: tabular-nums; }
+.cp-theme-code-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-bottom: 1px solid var(--hairline); background: var(--bg-controls); }
+.cp-theme-dots { display: flex; align-items: center; gap: 6px; }
+.cp-theme-dots span { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--hairline-strong); }
+.cp-theme-dots span:nth-child(1) { background: #ff5f57; }
+.cp-theme-dots span:nth-child(2) { background: #febc2e; }
+.cp-theme-dots span:nth-child(3) { background: #28c840; }
+.cp-theme-filename { font-size: 11px; font-weight: 600; color: var(--text-secondary); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-theme-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.cp-theme-action { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); background: transparent; border: 1px solid transparent; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.cp-theme-action:hover { background: var(--surface-hover); border-color: var(--hairline-strong); color: var(--text-primary); }
+.cp-theme-action .icon { opacity: 0.9; }
+.cp-theme-code-pre { margin: 0; padding: clamp(12px, 2vw, 16px); overflow: auto; max-height: clamp(360px, 60vh, 520px); background: var(--bg-card); }
+.cp-theme-code-pre:focus-visible { outline: 2px solid var(--focus-ring, var(--accent-gold)); outline-offset: -2px; }
+.cp-theme-code-pre code { display: block; white-space: pre; font-family: var(--font-mono); font-size: clamp(11px, 1.8vw, 12.5px); line-height: 1.9; color: var(--text-primary); }
+
+/* Syntax colours for the three exported languages. Ratios measured against
+   --bg-card (#ffffff light / #161e38 dark): key 6.92 / 10.14, string 5.47 /
+   9.44, number 7.09 / 7.27, comment 5.58 / 6.40 — all past AA for body text. */
+.cp-comment { color: var(--text-muted); font-style: italic; }
+.cp-key { color: var(--accent-gold); font-weight: 600; }
+.cp-string { color: var(--accent-green); }
+.cp-num { color: var(--accent-yellow-text); }
+[data-theme="dark"] .cp-string { color: #4ade80; }
+[data-theme="dark"] .cp-num { color: #fb923c; }
+.cp-hex { display: inline-flex; align-items: center; gap: 4px; }
+.cp-hex-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; border: 1px solid var(--hairline-strong); }
+
+.cp-theme-footer { padding: 4px 2px; }
+.cp-theme-tip { color: var(--text-muted); font-size: 12px; line-height: 1.8; }
+.cp-theme-tip code { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--surface-raised); border: 1px solid var(--hairline); }
+
+/* One toast, reused by the exporter's copy and download. Fixed rather than
+   absolute: it survives the section scrolling out from under it. */
+.cp-toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); z-index: 90; max-width: min(92vw, 480px); padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--hairline-strong); background: var(--bg-card); color: var(--text-primary); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-card); opacity: 0; visibility: hidden; transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s; }
+.cp-toast.is-visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); }

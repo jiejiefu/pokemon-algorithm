@@ -510,6 +510,92 @@ check(
   () => 'no polite sr-only live region announces the jump, so the content change is silent for a screen reader — or visible, which is a label the reader must go hunting for'
 );
 
+// ── every getElementById in color.html resolves ──────────────────────────────
+// This is the check that was missing when the Export Theme section was rebuilt.
+// Three `els` keys survived the rewrite pointing at ids the new markup no longer
+// had (#theme-code, #copy-theme, #copy-json), all three resolved to null, and
+// `els.copyTheme.addEventListener` threw at module top level — which aborted the
+// module before init(), so the page never loaded a Pokémon at all. Every other
+// check here was green throughout, because a null *reference* is legal JS and
+// only the browser could see it. Static checks are all that is available without
+// one, so this asserts the invariant that would have held: an id that is looked
+// up by name must exist in the same document.
+const lookups = [...colorHtml.matchAll(/getElementById\(\s*'([^']+)'\s*\)/g)].map(m => m[1]);
+const declaredIds = new Set([...colorHtml.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
+// `theme-preview` and friends are written by the exporter too, but a duplicate
+// querySelectorAll is not a lookup failure, so only the ids matter here.
+const dangling = [...new Set(lookups)].filter(id => !declaredIds.has(id));
+check(
+  dangling.length === 0,
+  `all ${new Set(lookups).size} getElementById targets exist in color.html`,
+  () => `getElementById looks up ${dangling.map(id => `\`#${id}\``).join(', ')}, which color.html never declares — each resolves to null and the first .addEventListener on one throws, killing the rest of the module (including init())`
+);
+check(
+  lookups.length > 0,
+  'the id-completeness check found something to check',
+  () => 'no getElementById calls were found, so the check above is vacuously green — its regex probably no longer matches'
+);
+
+// Every class the exporter's generated markup emits must be styled, or the
+// preview silently falls back to unstyled text. Cheaper than opening a browser
+// and cheaper than noticing a week later.
+const EXPORTER_CLASSES = [
+  'cp-theme-token-swatch', 'cp-theme-token-label', 'cp-theme-token-var',
+  'cp-theme-token-btn', 'cp-badge-primary', 'cp-badge-secondary', 'cp-badge-accent',
+  'cp-theme-progress-track', 'cp-theme-progress-bar', 'cp-theme-progress-text',
+  'cp-theme-card-demo', 'cp-theme-card-title', 'cp-theme-card-sub',
+  'cp-comment', 'cp-key', 'cp-string', 'cp-num', 'cp-hex', 'cp-hex-dot', 'cp-toast',
+];
+// A boundary is required on the class name, not a substring: `.cp-theme-token-var`
+// is contained in `.cp-theme-token-var-RENAMED`, so a plain includes() reports a
+// renamed-away rule as still styled. Same trap as the data-cp-copy case below.
+const unstyled = EXPORTER_CLASSES.filter(c => !new RegExp(`\\.${c}(?![a-zA-Z0-9_-])`).test(css));
+check(
+  unstyled.length === 0,
+  `all ${EXPORTER_CLASSES.length} exporter classes are styled`,
+  () => `the exporter emits ${unstyled.map(c => `.\`${c}\``).join(', ')} but colors.css never styles them`
+);
+
+// A var() naming a custom property that no stylesheet defines is not an error
+// the browser reports — the declaration is simply dropped at computed-value
+// time, so the property falls back to inherited/initial with no error anywhere.
+// The first Theme Exporter draft was written against the reference project's
+// shadcn vocabulary (--surface-1, --surface-2, --border, --text-tertiary,
+// --shadow-sm), none of which exist in shared.css, so half the section was
+// rendering unstyled and invisible.
+//
+// Scoped to the exporter block on purpose. The rest of this 3,500-line file has
+// its own pre-existing gaps, and a check that reports those would be red on a
+// clean tree and get ignored, which is the same fate as the check that should
+// have caught this.
+const exporterCss = (css.match(/\/\* ── Theme Exporter[\s\S]*$/) || [''])[0];
+check(
+  exporterCss.length > 0,
+  'the Theme Exporter CSS block is locatable',
+  () => 'the `/* ── Theme Exporter` marker is gone from colors.css, so the two checks scoped to it are vacuously green'
+);
+const definedVars = new Set([
+  ...[...read('assets/css/shared.css').matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]),
+  ...[...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]),
+]);
+// Written from JS: themeVarBlock() stamps every shadcn token onto #theme-preview.
+const jsSupplied = new Set(['--background', '--foreground', '--card', '--card-foreground', '--popover',
+  '--popover-foreground', '--primary', '--primary-foreground', '--secondary', '--secondary-foreground',
+  '--muted', '--muted-foreground', '--accent', '--accent-foreground', '--destructive', '--border',
+  '--input', '--ring']);
+// --font-mono is read across the whole site and declared nowhere, so every
+// var(--font-mono) in this repo is already a no-op. It predates this block and
+// defining it belongs in shared.css; until then it is exempted here rather than
+// allowed to mask a genuinely new bad var.
+const KNOWN_UNDEFINED = new Set(['--font-mono']);
+const exporterVars = [...exporterCss.matchAll(/var\(\s*(--[a-z0-9-]+)\s*(?:,|\))/g)].map(m => m[1]);
+const undefinedVars = [...new Set(exporterVars)].filter(v => !definedVars.has(v) && !jsSupplied.has(v) && !KNOWN_UNDEFINED.has(v));
+check(
+  undefinedVars.length === 0,
+  `all ${new Set(exporterVars).size} custom properties read by the Theme Exporter are defined (or supplied by themeVarBlock)`,
+  () => `the Theme Exporter reads ${undefinedVars.map(v => `\`var(${v})\``).join(', ')}, which no stylesheet defines — each of those declarations is dropped at computed-value time and the element falls back to inherited/initial with no error logged`
+);
+
 console.log();
 if (failures) {
   console.log(`${failures} check(s) failed`);

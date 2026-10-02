@@ -2085,3 +2085,36 @@ export function themeVarBlock(tokens) {
     .join('; ');
 }
 
+
+
+export function getContrastHex(hex) {
+  if (!hex || typeof hex !== "string") return "#ffffff";
+  let h = hex.trim().replace("#", "");
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  if (h.length !== 6) return "#ffffff";
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return "#ffffff";
+  // WCAG relative luminance, not the BT.601 luma this used to average, and no
+  // fixed cut-off: the only correct answer is whichever of black/white actually
+  // contrasts more. A 0.55 luma threshold returned white for #399494 (3.6:1,
+  // under AA) when black gives 5.9:1 — the swatch label is 11px text, so that
+  // is a real failure, not a rounding detail.
+  const lin = c => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const vsWhite = 1.05 / (L + 0.05);
+  const vsBlack = (L + 0.05) / 0.05;
+  return vsBlack >= vsWhite ? "#0a0a0a" : "#ffffff";
+}
+
+export function slugifyName(name) {
+  if (!name) return "pokemon";
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "pokemon";
+}

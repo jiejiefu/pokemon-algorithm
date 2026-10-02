@@ -55,6 +55,8 @@ import {
   themeToTailwindV3Config,
   themeToJson,
   themeInkFor,
+  getContrastHex,
+  slugifyName,
 } from '../assets/js/color-palette.js';
 
 let failures = 0;
@@ -517,6 +519,80 @@ if (formatHex('#399494', 'cmyk') === formatHex('#399494', 'hex')) {
   fail('formatHex treats an unknown notation as hex, so a mistyped format string is invisible');
 } else {
   pass('an unknown notation does not fall through to hex, so a mistyped call site is visible');
+}
+
+// ── getContrastHex ─────────────────────────────────────────────────────────
+// It paints the exporter's token swatch labels — 11px hex text — so its answer
+// has to clear AA, not merely be legible. Derived independently from the WCAG
+// definition on purpose: re-using a threshold constant from the source would
+// let both drift together and agree on a wrong answer.
+
+const relLum = hex => {
+  const ch = i => {
+    const s = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5);
+};
+const contrast = (a, b) => {
+  const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const bestInk = hex => (contrast(hex, '#0a0a0a') >= contrast(hex, '#ffffff') ? '#0a0a0a' : '#ffffff');
+
+// The regression: #399494 is Bulbasaur's own primary. Averaging BT.601 luma and
+// cutting at 0.55 called it dark enough to need light ink, and white on it is
+// 3.59:1 — under AA for the 11px label.
+const swatchCases = ['#399494', '#62d5b4', '#83eec5', '#73ac31', '#bdff73', '#ac0031', '#152828', '#fcfdfd', '#808080', '#4a4a4a'];
+const wrongSwatch = swatchCases.filter(h => getContrastHex(h) !== bestInk(h));
+if (wrongSwatch.length) {
+  fail(`getContrastHex disagrees with the WCAG optimum on ${wrongSwatch.map(h => `${h} (got ${getContrastHex(h)}, want ${bestInk(h)}: ${contrast(h, getContrastHex(h)).toFixed(2)}:1)`).join(', ')}`);
+} else {
+  pass(`getContrastHex picks the higher-contrast ink on all ${swatchCases.length} sampled colours, including #399494 at ${contrast('#399494', bestInk('#399494')).toFixed(2)}:1 where white would have given ${contrast('#399494', '#ffffff').toFixed(2)}:1`);
+}
+
+// #399494 is the case the old threshold actually broke, so pin the number too —
+// if someone restores the luma average this has to fail, not drift.
+const b47 = contrast('#399494', getContrastHex('#399494'));
+if (b47 < 4.5) {
+  fail(`getContrastHex("#399494") returns ${getContrastHex('#399494')}, which only reaches ${b47.toFixed(2)}:1 — under AA for the 11px swatch label`);
+} else {
+  pass(`getContrastHex("#399494") clears AA for the swatch label at ${b47.toFixed(2)}:1`);
+}
+
+// A short or malformed input must not produce a colour that breaks the label.
+const junkInk = [undefined, null, '', 'nope', '#12', '#12345', '123456', '#gggggg'].map(getContrastHex);
+if (junkInk.some(v => v !== '#ffffff' && v !== '#0a0a0a')) {
+  fail(`getContrastHex must answer white or black for unparseable input, got ${JSON.stringify(junkInk)}`);
+} else {
+  pass('an unparseable hex answers a literal ink colour rather than NaN or ""');
+}
+
+// 3-digit shorthand is the same colour, so it must make the same choice.
+const shorthand = ['#fff', '#000', '#abc', '#399494'].every(h => getContrastHex(h) === getContrastHex(h.length === 4 ? `#${h.slice(1)}` : h));
+if (!shorthand) {
+  fail('getContrastHex does not expand 3-digit shorthand, so #abc and #aabbcc get different ink');
+} else {
+  pass('3-digit shorthand expands, so #abc and #aabbcc pick the same ink');
+}
+
+// slugifyName feeds the download filename, and it is the same function the old
+// inline slug() used, so a mismatch would rename every export.
+const slugCases = [
+  ['Bulbasaur', 'bulbasaur'], ['Pikachu', 'pikachu'], ['Mr. Mime', 'mr-mime'],
+  ['Nidoran♀', 'nidoran'], ['Farfetch’d', 'farfetch-d'],
+];
+const wrongSlug = slugCases.filter(([input, want]) => slugifyName(input) !== want);
+if (wrongSlug.length) {
+  fail(`slugifyName drifted: ${wrongSlug.map(([i, w]) => `${i} -> ${slugifyName(i)} (want ${w})`).join(', ')}`);
+} else {
+  pass(`slugifyName holds on ${slugCases.length} names, including punctuation and the ♀/’ glyphs`);
+}
+// A CJK-only name has no ASCII to keep, and must not become an empty filename.
+if (slugifyName('妙蛙種子') !== 'pokemon') {
+  fail(`slugifyName("妙蛙種子") must fall back to "pokemon", got ${JSON.stringify(slugifyName('妙蛙種子'))} — that is an empty download filename`);
+} else {
+  pass('a CJK-only name falls back to "pokemon" instead of producing an empty filename');
 }
 
 console.log();
