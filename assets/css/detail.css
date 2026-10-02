@@ -532,32 +532,45 @@ body {
 /* 培育 and 生蛋 sit side by side inside column 3, as in InfoPoke's breeding block,
    with 地區圖鑑 below them across the full width of the card.
 
-   The divider is drawn as a background gradient rather than a border on the second
-   group, because Tailwind's divide-x (and any border equivalent) takes width out
-   of the track it sits on: at 1024px column 3 is 373.33px, so a 1px border plus
-   12px of padding would leave the two tracks unequal at 173.66px and 160.66px and
-   buy nothing. A gradient at calc(50% ± 0.5px) leaves both at exactly 173.66px.
+   Nothing is drawn between the two groups. The 1px vertical line this block used to
+   paint at calc(50% ± 0.5px) is gone, and the tracks are separated by an 18px
+   column gap instead -- the same column gap .fact-grid uses between 身高 and 體重,
+   so the block reads as one run of facts rather than as two boxed halves. The gap
+   also breaks the .fact border-bottom rules in the middle, which the line used to
+   run straight through.
 
-   The floor is 480px, measured: below it the hero is one full-width column, each
-   track drops under 189px, and at 390px Dragonite wraps 性別比例 (52px label +
-   111px value) while at 320px three rows wrap (the value column reaches 85px).
-   Two 109px columns are not a two-column layout, so they stack there. */
+   Kept as a note for anyone tempted to put the line back: a border (or Tailwind's
+   divide-x) takes its 1px plus 12px of padding out of the track it sits on, which
+   at 1024px leaves the two tracks unequal at 173.66px and 160.66px and buys
+   nothing. A background gradient was the only divider that left both at 173.66px,
+   but now that the gap is doing the separating, there is nothing left to draw.
+
+   14px row gap in the stacked case: at one column the two groups are rows in this
+   grid, and at 0 the last 性別比例/孵化 row sat flush against 生蛋's title.
+
+   The floor is 480px: below it the hero is one full-width column and two narrow
+   tracks stop being a two-column layout, so they stack.
+
+   The tightest two-column case is not the phone but the 1024px three-column hero,
+   because .hero-grid only splits into 3fr 4fr 5fr at 1024px and column 3 is only
+   373.33px there (5fr of 896px). Its tracks are (347.33 - 18) / 2 = 164.67px, down
+   from 173.66px. Measured before/after at 1180 / 1024 / 561 / 480 / 390, no row in
+   either group changes its line count. The one wrap in that range is the widest
+   性別比例 text, "♂87.5% ♀12.5%" at gender_rate 1 (115.34px), which needs
+   115.34 + 52 label + 8 gap = 175.34px to stay on one line: it already wrapped at
+   1024px before the gap widened and still does, and it is clean at every other
+   width. The widest 蛋群組 row across all 1025 is 146.8px, inside the 164.67px
+   track, and .egg-groups has overflow-wrap: anywhere regardless. */
 .breed-split {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0;
+  gap: 14px;
 }
 
 @media (min-width: 480px) {
   .breed-split {
     grid-template-columns: 1fr 1fr;
-    background-image: linear-gradient(
-      to right,
-      transparent calc(50% - 0.5px),
-      rgba(var(--hairline-rgb), 0.1) calc(50% - 0.5px),
-      rgba(var(--hairline-rgb), 0.1) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px)
-    );
+    gap: 14px 18px;
   }
 }
 
