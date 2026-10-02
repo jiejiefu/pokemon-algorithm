@@ -70,8 +70,7 @@ pokemon-algorithm/
 │   │   ├── moves_zh.json          # 782 referenced moves with traditional Chinese names & stats
 │   │   ├── learnsets.json         # Complete move learnsets unioned across generations
 │   │   ├── generations.json       # 9 generations: 38 games, 27 starters, mechanics, new types
-│   │   ├── abilities_zh.json      # 284 official Traditional Chinese ability names
-│   │   └── descriptions_zh.json   # 1,025 official Traditional Chinese Pokédex descriptions
+│   │   └── abilities_zh.json      # 284 official Traditional Chinese ability names
 │   ├── glbs/                      # 3D model binaries for model3d.html (1.glb, 25.glb)
 │   └── images/
 │       ├── pokemon/               # 1,347 front sprites (1.png ... 1025.png + variants)
@@ -175,7 +174,13 @@ python scripts/fetch_form_names.py
 # 7. Moves & Learnsets: Union move data across all generations
 python scripts/fetch_moves.py
 
-# 8. Color Palettes: Rebuild 2,050 MMCQ palettes from front sprites
+# 8. Chinese Descriptions: Fill descriptions.zh / zh_text2 from tw.portal-pokemon.com
+#    MUST run after step 1 — enhance_pokemon_data.py writes zh: "" for every
+#    record. Writes straight into pokemon_data.json; use --ids 899,901 to
+#    re-scrape a subset and --dry-run to parse without writing.
+python scripts/scrape_zh_descriptions.py
+
+# 9. Color Palettes: Rebuild 2,050 MMCQ palettes from front sprites
 python scripts/extract_color_palettes_mmcq.py
 ```
 
