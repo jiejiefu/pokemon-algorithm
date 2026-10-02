@@ -916,9 +916,14 @@
   gap: 2px;
   margin-bottom: 4px;
 }
+/* 96px, the sprite's native size, so it rasterises 1:1 with no resampling at
+   all -- the crispest the pixel art can be. Any other box scales by a
+   non-integer factor (180/96 = 1.875) and `image-rendering: pixelated` then
+   renders blocks of unequal size. If this ever needs to read larger, step it by
+   whole multiples only: 192px (2x), 288px (3x). */
 .cp-menu-sprite-wrap {
-  width: 180px;
-  height: 180px;
+  width: 96px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -201,7 +201,7 @@
     } from './assets/js/shared.js';
     import {
       loadColorPalettes, paletteRows, primaryOf, secondaryOf,
-      artworkUrl, silhouetteStyle,
+      spriteUrl, artworkUrl, silhouetteStyle,
       paletteGridHtml, generateTailwindScale, anchorIndex,
       findBySlug, paletteUrl, swatchStyle, HEX_FORMATS,
       showcaseHtml, wireShowcaseTabs,
@@ -279,12 +279,26 @@
 
     function renderMenu(rows, primary, secondary) {
       // 1. Menu Header
-      const spriteImg = shiny ? `assets/images/shiny/${current.id}.png` : `assets/images/pokemon/${current.id}.png`;
-      const fallbackSprite = `assets/images/pokemon/${current.id}.png`;
+      //
+      // This is the 96x96 front sprite, not the 475x475 artwork the right-hand
+      // column shows -- the two are deliberately different renderings of the same
+      // Pokémon. The CSS already asked for pixel art (`image-rendering:
+      // pixelated` on .cp-menu-sprite and every thumbnail below it); the markup
+      // was handing it official artwork, so it arrived as a crunchy upscale of a
+      // painted image instead of pixel art.
+      //
+      // spriteUrl() owns the shiny mapping because shiny is a real
+      // SUBdirectory (assets/images/sprite/shiny/), not a filename. Both sprite
+      // sets hold the same 1341 ids and cover 1..1025 in full, so there is no
+      // fallback here -- an onerror that can never fire is just a second thing to
+      // keep true.
+      //
+      // `alt=""` on purpose: the <h2> immediately below announces the name, so an
+      // alt would read it twice (AGENTS.md gotcha 27).
       els.menuHeader.innerHTML = `
         <div class="cp-menu-sprite-wrap">
-          <img class="cp-menu-sprite" src="${spriteImg}" alt="${current.names.zh}"
-               onerror="if(this.src!=='${fallbackSprite}'){this.src='${fallbackSprite}';}">
+          <img class="cp-menu-sprite" src="${spriteUrl(current.id, shiny)}" alt=""
+               width="96" height="96" decoding="async">
         </div>
         <h2 class="cp-menu-name">
           <span>${current.names.zh}</span>
@@ -354,7 +368,7 @@
         chainHtml += `
           <div class="cp-evo-level">
             <div class="cp-evo-card is-current">
-              <img src="${shiny ? 'assets/images/shiny/' + current.id + '.png' : 'assets/images/pokemon/' + current.id + '.png'}" alt="${current.names.zh}" onerror="this.src='assets/images/pokemon/${current.id}.png'">
+              <img src="${spriteUrl(current.id, shiny)}" alt="" width="48" height="48" loading="lazy">
               <span class="cp-evo-card-id">#${formatPokemonId(current.id)}</span>
               <span class="cp-evo-card-name">${current.names.zh}</span>
             </div>
@@ -367,10 +381,9 @@
           chainHtml += '<div class="cp-evo-level">';
           nodes.forEach(node => {
             const isCur = node.id === current.id;
-            const spriteSrc = shiny ? `assets/images/shiny/${node.id}.png` : `assets/images/pokemon/${node.id}.png`;
             chainHtml += `
               <button type="button" class="cp-evo-card ${isCur ? 'is-current' : ''}" data-nav-id="${node.id}">
-                <img src="${spriteSrc}" alt="${node.name_zh}" onerror="this.src='assets/images/pokemon/${node.id}.png'">
+                <img src="${spriteUrl(node.id, shiny)}" alt="" width="48" height="48" loading="lazy">
                 <span class="cp-evo-card-id">#${formatPokemonId(node.id)}</span>
                 <span class="cp-evo-card-name">${node.name_zh}</span>
               </button>
@@ -391,9 +404,17 @@
         formsHtml += '<div class="cp-forms-group" style="margin-top:12px;"><h4 class="cp-forms-title">特殊形態 · Forms</h4><div class="cp-form-cards">';
         formNodes.forEach(f => {
           const tag = f.form === 'mega' ? 'Mega' : f.form === 'gmax' ? 'G-Max' : '型態';
+          // The one place a sprite fallback is real. baseNodes covers 1..1025,
+          // which the sprite set holds in full, but forms live above 1025 and 129
+          // of the referenced form ids are not all present -- #10301 超級基格爾德
+          // has artwork and no 96x96 sprite. Falling back to the normal-colour
+          // artwork (not shiny) is the lesser wrong: a Zygarde-Mega in normal
+          // colours beats a broken-image icon, and hiding the image left the card
+          // reading as a row of text with a mysterious gap in it.
           formsHtml += `
             <div class="cp-form-card" title="${f.name_zh}">
-              <img src="assets/images/pokemon/${f.id}.png" alt="${f.name_zh}" onerror="this.style.display='none'">
+              <img src="${spriteUrl(f.id, shiny)}" alt="" width="40" height="40" loading="lazy"
+                   onerror="this.src='${artworkUrl(f.id, false)}'">
               <div class="cp-form-info">
                 <span class="cp-form-name">${f.name_zh}</span>
                 <span class="cp-form-tag">${tag}</span>
@@ -736,9 +757,14 @@
         return;
       }
 
+      // Thumbnails follow the toggle without any extra wiring: `shiny` is the
+      // module-scoped flag read here at render time, and the only way this
+      // dropdown reopens is the focus handler below, which re-renders. Clicking
+      // 異色 cannot leave it open -- that click lands outside .cp-menu-search,
+      // so the outside-click handler hides the results first.
       els.menuSearchResults.innerHTML = matches.map(p => `
         <button type="button" class="cp-search-item" data-search-id="${p.id}">
-          <img src="assets/images/pokemon/${p.id}.png" alt="${p.names.zh}" loading="lazy">
+          <img src="${spriteUrl(p.id, shiny)}" alt="" width="32" height="32" loading="lazy">
           <div class="cp-search-item-info">
             <span class="cp-search-item-name">${p.names.zh}</span>
             <span class="cp-search-item-en">${p.names.en}</span>
