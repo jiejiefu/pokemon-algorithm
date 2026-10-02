@@ -211,6 +211,13 @@
       themeToJson, THEME_PREVIEW_ROWS, themeVarBlock,
     } from './assets/js/color-palette.js';
     import { genusZh } from './assets/js/pokemon-lexicon.js';
+    // The seeded daily draw, shared with index.html's 今日推薦寶可夢. A bare
+    // color.html has no ?slug to read, so it falls back to one day-stable pick
+    // rather than the 找不到這個寶可夢 error — and it is deliberately the SAME
+    // Pokémon the homepage featured today, so the card a reader just saw is the
+    // palette they land on. See daily-pick.js for why the draw is bucketed and
+    // Taipei-keyed.
+    import { pickDailyPokemon } from './assets/js/daily-pick.js';
 
     initColorRail('color.html');
 
@@ -879,7 +886,23 @@
         });
 
         const params = new URLSearchParams(location.search);
+        const requested = params.get('slug') || params.get('id');
         current = findBySlug(pokemon, params.get('slug'), params.get('id'));
+
+        // A bare color.html (no ?slug / ?id) is a real entry: the nav, the 色彩
+        // dropdown and any shared link land here. Showing 找不到這個寶可夢 for it
+        // meant the page looked broken to anyone who arrived without a slug, so an
+        // absent id falls back to the daily draw. A slug that IS present but
+        // unresolvable stays an error — that is a bad link, not a missing one, and
+        // silently substituting a different Pokémon would hide the typo.
+        //
+        // No replaceState here: render() already rewrites the URL to this pick's
+        // slug on every render, so the pick is shareable without this branch
+        // duplicating that line — and it keeps `shiny` (from ?variant=shiny) in
+        // the URL, which the fallback must not silently drop.
+        if (!current && !requested) {
+          current = pickDailyPokemon(pokemon);
+        }
 
         if (!current) {
           els.status.innerHTML =
