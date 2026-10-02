@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢屬性相剋表 — 全 18 種屬性詳解</title>
+  <meta name="description" content="寶可夢 18 種屬性的完整相剋對照表：每種屬性的剋制、弱點、抗性與免疫對象，各屬性寶可夢、招式、特性、道具與訓練家一覽。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Blocking, inline, and before the stylesheet on purpose: the page has to
+       resolve a theme before the first paint so the 18×18 chart never flashes
+       the wrong palette. Same block, same reason, and same "always writes a
+       concrete value" rule as every other page — see generations.html. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    /* ===== Types page =====
+       Page-specific only, by the same convention detail.css follows: the
+       18×18 chart is the only component on the site with a cell per
+       type×type pair, so its geometry and the multiplier palette live here
+       rather than bloating shared.css for eleven pages that have no chart. */
+
+    .types-page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 20px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--text-primary); text-decoration: underline; }
+    .breadcrumb [aria-current] { color: var(--text-primary); font-weight: 600; }
+    .breadcrumb .sep { color: var(--text-muted); }
+
+    /* ===== Hero ===== */
+    .types-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 40px 28px 32px;
+      margin-bottom: 36px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--shadow-card);
+    }
+    .types-hero::before {
+      content: "";
+      position: absolute;
+      inset: -40% -10% auto -10%;
+      height: 220px;
+      /* One wash per page, tinted by the selected type through --hero-tint when
+         ?type= is present. Kept at low alpha so --text-primary keeps its
+         contrast; the chips below carry the colour, not the background. */
+      background: radial-gradient(60% 100% at 50% 0%, var(--hero-tint, var(--glow-1)) 0%, transparent 70%);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+    .types-hero > * { position: relative; }
+    .types-hero-kicker {
+      margin: 0 0 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+    }
+    .types-hero-title {
+      margin: 0 0 12px;
+      font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .types-hero-lede {
+      max-width: 68ch;
+      margin: 0 0 24px;
+      font-size: 1.0625rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .types-hero-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .types-hero-stats li {
+      min-width: 104px;
+      padding: 12px 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-raised);
+    }
+    .types-hero-stats strong {
+      display: block;
+      font-size: 1.5rem;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .types-hero-stats span {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== Sections ===== */
+    .types-section { margin-bottom: 48px; }
+    .types-section-head { margin-bottom: 20px; }
+    .types-section-head h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
+      color: var(--text-primary);
+    }
+    .types-section-head p {
+      max-width: 74ch;
+      margin: 0;
+      line-height: 1.75;
+      color: var(--text-secondary);
+    }
+    .types-prose p {
+      max-width: 74ch;
+      margin: 0 0 14px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+    .types-prose p:last-child { margin-bottom: 0; }
+    .types-prose strong { color: var(--text-primary); }
+
+    /* ===== Type cards (overview grid) ===== */
+    .type-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .type-card {
+      display: block;
+      padding: 16px;
+      border: 1px solid var(--glass-border);
+      border-left: 4px solid var(--type-color, var(--accent-gold));
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: inherit;
+      text-decoration: none;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .type-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+    .type-card[aria-current="page"] {
+      box-shadow: 0 0 0 2px var(--type-color, var(--accent-gold));
+    }
+    .type-card-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .type-card-en {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .type-card-counts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .type-card-counts b {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== 18×18 chart ===== */
+    .chart-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .chart-field { display: flex; flex-direction: column; gap: 4px; }
+    .chart-field label { font-size: 0.8125rem; color: var(--text-muted); }
+    .chart-field select {
+      min-width: 132px;
+      padding: 8px 10px;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-sm);
+      background: var(--bg-controls);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.9375rem;
+    }
+    .chart-readout {
+      flex: 1 1 260px;
+      margin: 0;
+      padding: 10px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-raised);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .chart-readout b { color: var(--text-primary); }
+
+    /* 18 columns plus the corner needs ~1000px before cells stop being legible,
+       so the scroller is the layout rather than a 18-row stack on phones. */
+    .chart-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+    }
+    .chart-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 940px;
+      font-variant-numeric: tabular-nums;
+    }
+    .chart-table caption {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .chart-table th,
+    .chart-table td {
+      padding: 0;
+      border-right: 1px solid var(--hairline);
+      border-bottom: 1px solid var(--hairline);
+      text-align: center;
+      font-size: 0.8125rem;
+    }
+    .chart-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--surface-raised);
+    }
+    .chart-table thead th:first-child,
+    .chart-table tbody th {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--surface-raised);
+    }
+    .chart-table thead th:first-child { z-index: 3; }
+    .chart-head-link {
+      display: block;
+      padding: 8px 4px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .chart-head-link:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .chart-cell {
+      display: block;
+      width: 100%;
+      min-height: 34px;
+      padding: 8px 2px;
+      background: none;
+      border: 0;
+      color: var(--text-muted);
+      font: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+    .chart-cell:hover { background: var(--surface-hover); }
+    .chart-cell[data-mult="4"]   { color: var(--eff-4x); font-weight: 800; }
+    .chart-cell[data-mult="2"]   { color: var(--eff-2x); font-weight: 700; }
+    .chart-cell[data-mult="0.5"] { color: var(--eff-half); }
+    .chart-cell[data-mult="0.25"]{ color: var(--eff-quarter); }
+    .chart-cell[data-mult="0"]   { color: var(--eff-immune); font-weight: 700; }
+    .chart-cell.is-sel-col { background: var(--surface-hover); }
+    .chart-cell.is-sel-row { background: var(--surface-hover); }
+    .chart-cell.is-sel { box-shadow: inset 0 0 0 2px var(--focus-ring); }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .chart-legend li { display: flex; align-items: center; gap: 6px; }
+    .chart-legend b { font-variant-numeric: tabular-nums; }
+    .chart-legend .lg-4 b    { color: var(--eff-4x); }
+    .chart-legend .lg-2 b    { color: var(--eff-2x); }
+    .chart-legend .lg-half b { color: var(--eff-half); }
+    .chart-legend .lg-qtr b  { color: var(--eff-quarter); }
+    .chart-legend .lg-imm b  { color: var(--eff-immune); }
+
+    .chart-source {
+      margin: 14px 0 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .chart-source a { color: var(--text-secondary); }
+
+    /* ===== History ===== */
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .history-card {
+      padding: 18px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+    }
+    .history-card h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+    .history-card .history-span {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 0.8125rem;
+      color: var(--accent-gold);
+    }
+    .history-card ul { margin: 0; padding-left: 20px; }
+    .history-card li {
+      margin-bottom: 6px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .history-card li:last-child { margin-bottom: 0; }
+    .types-trivia {
+      margin: 14px 0 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--accent-gold);
+      border-radius: var(--radius-sm);
+      background: var(--accent-gold-surface);
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .types-trivia b { color: var(--text-primary); }
+
+    /* ===== FAQ ===== */
+    .faq-list { display: grid; gap: 10px; }
+    .faq-item {
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+    }
+    .faq-item summary {
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: "+";
+      flex: none;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .faq-item[open] summary::after { content: "−"; }
+    .faq-item .faq-body {
+      padding: 0 18px 16px;
+      font-size: 0.9375rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Resources ===== */
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .resource-card {
+      display: block;
+      padding: 18px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: inherit;
+      text-decoration: none;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .resource-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+    .resource-card h3 { margin: 0 0 6px; font-size: 1rem; color: var(--text-primary); }
+    .resource-card p { margin: 0; font-size: 0.875rem; line-height: 1.65; color: var(--text-secondary); }
+
+    /* ===== Per-type detail ===== */
+    .type-detail-back {
+      display: inline-block;
+      margin-bottom: 16px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .type-detail-back:hover { color: var(--text-primary); text-decoration: underline; }
+
+    .type-detail-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .type-detail-head h2 {
+      margin: 0;
+      font-size: clamp(1.5rem, 1.2rem + 1.6vw, 2.1rem);
+      color: var(--text-primary);
+    }
+    .type-detail-head .type-detail-en {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* Effectiveness chips reuse the chart's multiplier palette so the hero and
+       the grid below it cannot disagree about what 2× looks like. */
+    .eff-groups { display: grid; gap: 12px; margin-bottom: 24px; }
+    .eff-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .eff-group-label {
+      min-width: 76px;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .eff-group[data-mult="4"] .eff-group-label   { color: var(--eff-4x); }
+    .eff-group[data-mult="2"] .eff-group-label   { color: var(--eff-2x); }
+    .eff-group[data-mult="0.5"] .eff-group-label { color: var(--eff-half); }
+    .eff-group[data-mult="0.25"] .eff-group-label{ color: var(--eff-quarter); }
+    .eff-group[data-mult="0"] .eff-group-label   { color: var(--eff-immune); }
+
+    .type-detail-block { margin-bottom: 28px; }
+    .type-detail-block > h3 {
+      margin: 0 0 4px;
+      font-size: 1.0625rem;
+      color: var(--text-primary);
+    }
+    .type-detail-block > .type-detail-note {
+      margin: 0 0 12px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    /* Sub-heading inside a block: the "here are the ones that have an effect
+       explanation" line. h4 so it stays under the block's h3 in the outline. */
+    .type-detail-sub {
+      margin: 18px 0 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .type-detail-sub .fx-item-meta { font-weight: 400; }
+
+    .chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+    .chip-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-pill);
+      background: var(--surface-raised);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    a.chip-item { text-decoration: none; }
+    a.chip-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .chip-item img { width: 28px; height: 28px; }
+    .chip-item .chip-num {
+      font-variant-numeric: tabular-nums;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Rows carry an effect line, so they get a definition list rather than a
+       chip — a chip cannot hold two lines of text without becoming a box. */
+    .fx-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .fx-item {
+      padding: 10px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+    }
+    .fx-item-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .fx-item-name { font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); }
+    .fx-item-meta { font-size: 0.75rem; color: var(--text-muted); }
+    .fx-item-effect { margin: 0; font-size: 0.875rem; line-height: 1.65; color: var(--text-secondary); }
+
+    /* InfoPoke ships no zh-TW catalogue for this route, so the per-type prose is
+       English upstream. It is shown in a collapsed block and labelled as such
+       rather than passed off as a translation of ours. */
+    .type-detail-en {
+      margin: 0 0 24px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+    }
+    .type-detail-en summary {
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .type-detail-en .type-detail-en-body {
+      padding: 0 16px 16px;
+      font-size: 0.9375rem;
+      line-height: 1.75;
+      color: var(--text-secondary);
+    }
+    .type-detail-en .type-detail-en-body p { margin: 0 0 10px; }
+    .type-detail-en .type-detail-en-body p:last-child { margin-bottom: 0; }
+
+    .type-empty {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+    }
+
+    .types-error {
+      padding: 16px 18px;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-sm);
+      color: var(--error-text);
+    }
+
+    @media (max-width: 640px) {
+      .types-page { padding: 20px 12px 36px; }
+      .types-hero { padding: 28px 18px 24px; }
+      .types-hero-stats li { min-width: 92px; padding: 10px 12px; }
+      .types-hero-stats strong { font-size: 1.25rem; }
+      .chart-toolbar { flex-direction: column; align-items: stretch; }
+      .chart-field select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="types-page">
+    <nav class="breadcrumb" aria-label="麵包屑導覽">
+      <a href="index.html">首頁</a>
+      <span class="sep" aria-hidden="true">›</span>
+      <a href="pokedex.html">寶可夢圖鑑</a>
+      <span class="sep" aria-hidden="true">›</span>
+      <span id="crumb-current" aria-current="page">屬性相剋</span>
+    </nav>
+
+    <section class="types-hero" aria-labelledby="types-hero-title">
+      <p class="types-hero-kicker" id="types-hero-kicker">全 18 種屬性</p>
+      <h1 class="types-hero-title" id="types-hero-title">寶可夢屬性相剋表</h1>
+      <p class="types-hero-lede" id="types-hero-lede">掌握所有寶可夢屬性的優勢、弱點和對戰策略。</p>
+      <ul class="types-hero-stats" id="types-hero-stats"></ul>
+    </section>
+
+    <div id="type-detail-root"></div>
+
+    <p class="loading-text" id="types-loading">讀取屬性資料中…</p>
+
+    <div id="types-content" hidden>
+      <section class="types-section types-prose" aria-labelledby="sec-about">
+        <div class="types-section-head">
+          <h2 id="sec-about">關於寶可夢屬性</h2>
+        </div>
+        <p>所有寶可夢及其招式都被分配了18種屬性中的一種或兩種。每種屬性在攻擊和防禦上都有特定的優勢和劣勢。了解屬性相剋對於競技對戰甚至休閒遊戲都至關重要。</p>
+        <p>單屬性剋制（例如：水攻擊火）造成 <strong>2倍</strong>傷害。雙重剋制（例如：水攻擊火/地面）造成 <strong>4倍</strong>傷害。此時遊戲中會顯示「效果絕佳！」。</p>
+        <p>相反，屬性不利會減少傷害：單重抵抗 = <strong>½倍</strong>傷害，雙重抵抗 = <strong>¼倍</strong>傷害。此時遊戲中會顯示「效果不好...」。</p>
+        <p><strong>屬性一致加成 (STAB)</strong>：當寶可夢使用與其自身屬性相同的招式時，招式威力提升 <strong>1.5倍</strong>。例如，水屬性寶可夢對地面/岩石寶可夢使用衝浪（水屬性招式），將造成 6倍傷害 (2 × 2 × 1.5)！</p>
+      </section>
+
+      <section class="types-section" aria-labelledby="sec-types">
+        <div class="types-section-head">
+          <h2 id="sec-types">全18種寶可夢屬性</h2>
+          <p>點選任一屬性，查看它的剋制對象、弱點、抵抗與免疫，以及該屬性的寶可夢、招式、特性、道具與訓練家。</p>
+        </div>
+        <div class="type-card-grid" id="type-card-grid"></div>
+      </section>
+
+      <section class="types-section" aria-labelledby="sec-chart">
+        <div class="types-section-head">
+          <h2 id="sec-chart">完整屬性相剋表</h2>
+          <p>互動式屬性相剋網格 — 點擊任意單元格查看詳情。橫向為防禦方、縱向為攻擊方；表頭與側邊的屬性名稱可直接連到該屬性的詳細頁。</p>
+        </div>
+
+        <div class="chart-toolbar">
+          <div class="chart-field">
+            <label for="chart-attacker">攻擊屬性（縱向）</label>
+            <select id="chart-attacker"></select>
+          </div>
+          <div class="chart-field">
+            <label for="chart-defender">防禦屬性（橫向）</label>
+            <select id="chart-defender"></select>
+          </div>
+          <p class="chart-readout" id="chart-readout" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="chart-scroll" tabindex="0" role="region" aria-labelledby="sec-chart">
+          <table class="chart-table" id="chart-table">
+            <caption>攻擊 ↓ / 防禦 →。數字為傷害倍率，1 為正常、0 為完全無效。</caption>
+          </table>
+        </div>
+
+        <ul class="chart-legend">
+          <li class="lg-4"><b>4×</b> 雙重剋制</li>
+          <li class="lg-2"><b>2×</b> 剋制</li>
+          <li class="lg-1"><b>1×</b> 正常</li>
+          <li class="lg-half"><b>½×</b> 抵抗</li>
+          <li class="lg-qtr"><b>¼×</b> 雙重抵抗</li>
+          <li class="lg-imm"><b>0×</b> 完全無效</li>
+        </ul>
+
+        <p class="chart-source" id="chart-source"></p>
+      </section>
+
+      <section class="types-section" aria-labelledby="sec-history">
+        <div class="types-section-head">
+          <h2 id="sec-history">屬性相剋表歷史變遷</h2>
+          <p>寶可夢世代更迭中的屬性相剋變化。</p>
+        </div>
+        <div class="history-grid">
+          <article class="history-card">
+            <h3>第六世代及以後 (X/Y 起) - 當前版本</h3>
+            <span class="history-span">本頁採用的版本</span>
+            <p class="type-detail-note">包含妖精屬性在內的所有18種屬性的當前相剋表。此版本適用於：</p>
+            <ul>
+              <li>寶可夢 X/Y, 歐米加紅寶石/阿爾法藍寶石, 太陽/月亮, 究極之日/究極之月</li>
+              <li>劍/盾, 晶燦鑽石/明亮珍珠</li>
+              <li>傳說 阿爾宙斯, 朱/紫</li>
+              <li>Pokémon GO, Pokémon HOME</li>
+            </ul>
+          </article>
+          <article class="history-card">
+            <h3>第二至第五世代 (金/銀 到 黑2/白2)</h3>
+            <span class="history-span">15 種屬性</span>
+            <p class="type-detail-note">與當前圖表的主要區別：</p>
+            <ul>
+              <li>無妖精屬性 - 妖精屬性是在第六世代引入的</li>
+              <li>幽靈 &amp; 惡 vs 鋼 - 原為「效果不好」(½×)，現為正常效果</li>
+            </ul>
+          </article>
+          <article class="history-card">
+            <h3>第一世代 (紅/藍/黃)</h3>
+            <span class="history-span">僅 15 種屬性</span>
+            <p class="type-detail-note">最初的屬性相剋表有幾個顯著差異：</p>
+            <ul>
+              <li>無惡、鋼、妖精屬性 - 當時只有15種屬性</li>
+              <li>幽靈 vs 超能力 - 原為無效(0×)而非效果絕佳（這是遊戲中的Bug）</li>
+              <li>蟲 ↔ 毒 - 互相剋制（效果絕佳）</li>
+              <li>冰 vs 火 - 原為正常效果而非效果不好</li>
+            </ul>
+          </article>
+        </div>
+        <p class="types-trivia"><b>趣聞：</b>金黃市的一個NPC說「超能力寶可夢只怕幽靈和蟲！」——但這在第一世代的代碼中其實並不成立！</p>
+      </section>
+
+      <section class="types-section" aria-labelledby="sec-faq">
+        <div class="types-section-head">
+          <h2 id="sec-faq">常見問題</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>什麼是本系加成 (STAB)？</summary>
+            <div class="faq-body">STAB 代表「同屬性攻擊加成」(Same Type Attack Bonus)。當寶可夢使用與其自身屬性相同的招式時（例如：火屬性寶可夢使用噴射火焰），招式威力會提升50%（1.5倍）。此加成可與屬性剋制疊加。</div>
+          </details>
+          <details class="faq-item">
+            <summary>雙屬性剋制是如何計算的？</summary>
+            <div class="faq-body">攻擊雙屬性寶可夢時，剋制效果會相乘。例如，水屬性招式攻擊火/地面屬性，會造成4倍傷害（對火2倍 × 對地面2倍）。同樣，抵抗效果也會疊加：電屬性招式攻擊草/龍屬性只造成¼倍傷害。</div>
+          </details>
+          <details class="faq-item">
+            <summary>哪個屬性的抗性最多？</summary>
+            <div class="faq-body">鋼屬性擁有最多的抗性，它抵抗10種屬性（一般、草、冰、飛行、超能力、蟲、岩石、龍、鋼、妖精），並且免疫毒屬性。這使得鋼屬性成為極佳的防守屬性。</div>
+          </details>
+          <details class="faq-item">
+            <summary>哪個屬性的弱點最少？</summary>
+            <div class="faq-body">一般屬性只有一個弱點（格鬥）。然而，一般屬性在攻擊時也沒有剋制的屬性，並且對幽靈屬性無效。電屬性也只有一個弱點（地面）。</div>
+          </details>
+          <details class="faq-item">
+            <summary>妖精屬性是什麼時候加入的？</summary>
+            <div class="faq-body">妖精屬性是在第六世代（寶可夢 X/Y，2013年）引入的。加入它是為了平衡屬性相剋，特別是為了剋制之前過於強勢的龍屬性。一些現有的寶可夢如皮皮和胖丁被追溯賦予了妖精屬性。</div>
+          </details>
+        </div>
+      </section>
+
+      <section class="types-section" aria-labelledby="sec-resources">
+        <div class="types-section-head">
+          <h2 id="sec-resources">相關工具與資源</h2>
+          <p>全方位的寶可夢資料庫，包含所有世代寶可夢的詳細資訊、屬性、招式、道具、進化鏈和屬性相剋表。</p>
+        </div>
+        <div class="resource-grid">
+          <a class="resource-card" href="https://infopoke.net/zh-tw/damage-calculator" rel="noopener noreferrer" target="_blank">
+            <h3>傷害計算器 ›</h3>
+            <p>輸入招式與對手，試算實際傷害倍數（本頁相剋資料的來源站）。</p>
+          </a>
+          <a class="resource-card" href="pokedex.html">
+            <h3>寶可夢圖鑑 ›</h3>
+            <p>本站 1,025 隻全國圖鑑，可依世代與屬性瀏覽。</p>
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <p class="footer-note">寶可夢資料來自 PokeAPI 與官方寶可夢圖鑑・共 1,025 隻・相剋表取自維基百科</p>
+
+  <script type="module">
+    import {
+      ASSETS, TYPE_EN_ZH, TYPE_COLORS, loadPokemonData, pokemonDetailUrl,
+      typeBadgeSmHtml, initThemeToggle, initHeaderNav
+    } from './assets/js/shared.js';
+    import { TYPE_CHART, TYPE_CHART_ORDER, TYPE_CHART_SOURCE } from './assets/js/type-chart.js';
+    import { typeEffectiveness } from './assets/js/pokemon-lexicon.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    const loadingEl = document.getElementById('types-loading');
+    const contentEl = document.getElementById('types-content');
+    const detailRoot = document.getElementById('type-detail-root');
+    const cardGridEl = document.getElementById('type-card-grid');
+    const chartTableEl = document.getElementById('chart-table');
+    const chartSourceEl = document.getElementById('chart-source');
+    const attackerSel = document.getElementById('chart-attacker');
+    const defenderSel = document.getElementById('chart-defender');
+    const readoutEl = document.getElementById('chart-readout');
+    const heroEl = document.querySelector('.types-hero');
+    const heroKicker = document.getElementById('types-hero-kicker');
+    const heroTitle = document.getElementById('types-hero-title');
+    const heroLede = document.getElementById('types-hero-lede');
+    const heroStats = document.getElementById('types-hero-stats');
+    const crumbEl = document.getElementById('crumb-current');
+
+    /* TYPE_CHART_ORDER is TitleCase ('Normal'), which is also how pokemon_data
+       stores `types` and `types_zh` indexes, so no slug conversion is needed
+       anywhere below. type_profiles.json, by contrast, is keyed by POKEAPI slug
+       (lowercase) — slugFor() is the one place that difference is handled. */
+    const slugFor = titleCase => titleCase.toLowerCase();
+
+    const MULT_TEXT = { 4: '4×', 2: '2×', 1: '1×', 0.5: '½×', 0.25: '¼×', 0: '0×' };
+    const MULT_WORDS = {
+      4: '雙重剋制，造成 4 倍傷害',
+      2: '剋制，造成 2 倍傷害',
+      1: '正常效果，造成 1 倍傷害',
+      0.5: '抵抗，只造成 ½ 倍傷害',
+      0.25: '雙重抵抗，只造成 ¼ 倍傷害',
+      0: '完全無效，造成 0 倍傷害'
+    };
+
+    const escapeHtml = value => String(value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    const fetchJson = async path => {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+      return res.json();
+    };
+
+    /* ?type= is user input, so it is validated against the chart rather than
+       trusted: an unknown slug falls back to the overview instead of rendering
+       an empty detail block. */
+    const requested = new URLSearchParams(location.search).get('type');
+    const activeType = TYPE_CHART_ORDER.find(t => slugFor(t) === String(requested || '').toLowerCase()) || null;
+
+    document.title = activeType
+      ? `${TYPE_EN_ZH[activeType]}屬性 — 寶可夢屬性相剋表`
+      : '寶可夢屬性相剋表 — 全 18 種屬性詳解';
+    crumbEl.textContent = activeType ? `${TYPE_EN_ZH[activeType]}屬性` : '屬性相剋';
+
+    /* ---------------------------------------------------------- overview hero */
+    function renderHero(stats) {
+      heroStats.innerHTML = stats
+        .map(s => `<li><strong>${escapeHtml(String(s.value))}</strong><span>${escapeHtml(s.label)}</span></li>`)
+        .join('');
+    }
+
+    /* ------------------------------------------------------------- type cards */
+    function renderTypeCards(pokemonByType) {
+      cardGridEl.innerHTML = TYPE_CHART_ORDER.map(t => {
+        const slug = slugFor(t);
+        const list = pokemonByType.get(t) || [];
+        const current = activeType === t ? ' aria-current="page"' : '';
+        const single = list.filter(p => p.types.length === 1).length;
+        return `<a class="type-card" href="types.html?type=${slug}" style="--type-color:${TYPE_COLORS[t]}"${current}>
+          <span class="type-card-name">${typeBadgeSmHtml(t, TYPE_EN_ZH[t])}<span class="type-card-en">${t}</span></span>
+          <span class="type-card-counts">
+            <span>寶可夢 <b>${list.length}</b></span>
+            <span>單屬性 <b>${single}</b></span>
+          </span>
+        </a>`;
+      }).join('');
+    }
+
+    /* ------------------------------------------------------------------ chart */
+    function renderChart() {
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      headRow.innerHTML = `<th scope="col"><span class="chart-head-link">攻擊 ↓ / 防禦 →</span></th>` +
+        TYPE_CHART_ORDER
+          .map(d => `<th scope="col"><a class="chart-head-link" href="types.html?type=${slugFor(d)}">${escapeHtml(TYPE_EN_ZH[d])}</a></th>`)
+          .join('');
+      thead.appendChild(headRow);
+
+      const tbody = document.createElement('tbody');
+      for (const a of TYPE_CHART_ORDER) {
+        const tr = document.createElement('tr');
+        const row = TYPE_CHART[a] || {};
+        tr.innerHTML = `<th scope="row"><a class="chart-head-link" href="types.html?type=${slugFor(a)}">${escapeHtml(TYPE_EN_ZH[a])}</a></th>` +
+          TYPE_CHART_ORDER.map(d => {
+            const mult = row[d] === undefined ? 1 : row[d];
+            const label = `${TYPE_EN_ZH[a]}屬性招式攻擊${TYPE_EN_ZH[d]}屬性：${MULT_WORDS[mult]}`;
+            return `<td><button type="button" class="chart-cell" data-attacker="${a}" data-defender="${d}" data-mult="${mult}" aria-label="${escapeHtml(label)}">${MULT_TEXT[mult]}</button></td>`;
+          }).join('');
+        tbody.appendChild(tr);
+      }
+
+      chartTableEl.innerHTML = '';
+      chartTableEl.appendChild(thead);
+      chartTableEl.appendChild(tbody);
+
+      for (const sel of [attackerSel, defenderSel]) {
+        sel.innerHTML = TYPE_CHART_ORDER
+          .map(t => `<option value="${t}">${escapeHtml(TYPE_EN_ZH[t])}屬性</option>`)
+          .join('');
+      }
+
+      chartTableEl.addEventListener('click', event => {
+        const cell = event.target.closest('.chart-cell');
+        if (!cell) return;
+        attackerSel.value = cell.dataset.attacker;
+        defenderSel.value = cell.dataset.defender;
+        syncChart();
+      });
+      attackerSel.addEventListener('change', syncChart);
+      defenderSel.addEventListener('change', syncChart);
+
+      const src = TYPE_CHART_SOURCE || {};
+      chartSourceEl.innerHTML =
+        `相剋資料來源：${escapeHtml(src.title || '維基百科')}・` +
+        `<a href="${escapeHtml(src.url || '#')}" rel="noopener noreferrer" target="_blank">${escapeHtml(src.section || '原文')}</a>` +
+        `${src.revid ? `・版本 ${escapeHtml(String(src.revid))}` : ''}`;
+
+      syncChart();
+    }
+
+    /* A clickable cell is a mouse convenience, not the only way in: the two
+       selects above the table drive the same state, so the readout is reachable
+       by keyboard without putting 324 cells in the tab order. */
+    function syncChart() {
+      const a = attackerSel.value;
+      const d = defenderSel.value;
+      const mult = (TYPE_CHART[a] || {})[d] === undefined ? 1 : TYPE_CHART[a][d];
+      readoutEl.innerHTML =
+        `<b>${escapeHtml(TYPE_EN_ZH[a])}</b> 屬性招式攻擊 <b>${escapeHtml(TYPE_EN_ZH[d])}</b> 屬性 — ${escapeHtml(MULT_WORDS[mult])}。` +
+        ` <a href="types.html?type=${slugFor(d)}">查看${escapeHtml(TYPE_EN_ZH[d])}屬性詳情 ›</a>`;
+
+      for (const cell of chartTableEl.querySelectorAll('.chart-cell')) {
+        cell.classList.toggle('is-sel-col', cell.dataset.defender === d);
+        cell.classList.toggle('is-sel-row', cell.dataset.attacker === a);
+        cell.classList.toggle('is-sel', cell.dataset.attacker === a && cell.dataset.defender === d);
+      }
+    }
+
+    /* ------------------------------------------------------------ type detail */
+    function renderTypeDetail(ctx) {
+      if (!activeType) { detailRoot.innerHTML = ''; return; }
+      const slug = slugFor(activeType);
+      const zh = TYPE_EN_ZH[activeType];
+      const profile = ctx.profiles.types[slug];
+      const list = ctx.pokemonByType.get(activeType) || [];
+
+      heroKicker.textContent = '屬性詳解';
+      heroTitle.textContent = `${zh}屬性`;
+      heroLede.textContent = profile.blurbEn;
+      heroEl.style.setProperty('--hero-tint', TYPE_COLORS[activeType]);
+
+      /* Effectiveness first: it is the one thing every reader came for. */
+      const effHtml = typeEffectiveness([activeType]).map(bucket =>
+        `<div class="eff-group" data-mult="${bucket.multiplier}">
+           <span class="eff-group-label">${escapeHtml(bucket.suffix)} ${escapeHtml(bucket.label)}</span>
+           ${bucket.types.map(t => typeBadgeSmHtml(t.en, t.zh)).join('')}
+         </div>`
+      ).join('');
+
+      /* Abilities come from OUR data (pokemon_data `abilities` +
+       * abilities_zh), not from the scrape: InfoPoke's zh-TW ability names are
+       * their own translations (悠遊自如 for Swift Swim, 仙氣護衛 for Fairy Aura)
+       * and a few of its entries are not real abilities at all. Only the effect
+       * text is borrowed, and only on an exact name match. */
+      const tally = new Map();
+      for (const p of list) {
+        for (const a of p.abilities || []) tally.set(a, (tally.get(a) || 0) + 1);
+        if (p.hidden_ability) tally.set(p.hidden_ability, (tally.get(p.hidden_ability) || 0) + 1);
+      }
+      const abilities = [...tally.entries()]
+        .map(([key, count]) => ({
+          key,
+          count,
+          zh: ctx.abilities[key]?.zh || key,
+          effect: ctx.effects.ability[ctx.abilities[key]?.zh] || ''
+        }))
+        .sort((x, y) => y.count - x.count || x.zh.localeCompare(y.zh, 'zh-Hant'));
+
+      const moves = Object.entries(ctx.moves)
+        .filter(([key, m]) => key !== '_meta' && m && m.type === slug)
+        .map(([key, m]) => ({
+          key, zh: m.zh, class: m.class, power: m.power,
+          effect: ctx.effects.move[m.zh] || ''
+        }))
+        .sort((x, y) => (y.power || 0) - (x.power || 0) || x.zh.localeCompare(y.zh, 'zh-Hant'));
+
+      const items = profile.entries.filter(e => e.category === 'item');
+
+      /* Effect text is shown once, under the list it belongs to, rather than as
+       * a "有說明" badge that points at nothing. These two lists are the only
+       * rows that carry one. */
+      const movesWithEffect = moves.filter(m => m.effect);
+      const abilitiesWithEffect = abilities.filter(a => a.effect);
+
+      const effectRow = (name, meta, effect) =>
+        `<li class="fx-item">
+           <span class="fx-item-head">
+             <span class="fx-item-name">${escapeHtml(name)}</span>
+             ${meta ? `<span class="fx-item-meta">${escapeHtml(meta)}</span>` : ''}
+           </span>
+           ${effect ? `<p class="fx-item-effect">${escapeHtml(effect)}</p>` : ''}
+         </li>`;
+
+      const chipRow = text => `<p class="type-detail-note">${escapeHtml(text)}</p>`;
+
+      detailRoot.innerHTML = `
+        <a class="type-detail-back" href="types.html">← 返回全部 18 種屬性</a>
+        <section class="types-section" aria-labelledby="detail-title">
+          <div class="type-detail-head">
+            <h2 id="detail-title">${escapeHtml(zh)}屬性詳解</h2>
+            <span class="type-detail-en">${escapeHtml(activeType)}</span>
+          </div>
+
+          <h3 class="sr-only">相剋關係</h3>
+          <div class="eff-groups">${effHtml}</div>
+
+          <details class="type-detail-en">
+            <summary>原文說明（英文，InfoPoke 未提供繁體中文版）</summary>
+            <div class="type-detail-en-body">
+              <p>${escapeHtml(profile.battleTipsEn)}</p>
+              ${profile.categoryNoteEn ? `<p>${escapeHtml(profile.categoryNoteEn)}</p>` : ''}
+            </div>
+          </details>
+
+          <div class="type-detail-block">
+            <h3>寶可夢 <span class="fx-item-meta">${list.length} 隻</span></h3>
+            ${chipRow('含此屬性的所有寶可夢，單屬性與雙屬性皆包含。')}
+            <ul class="chip-grid">
+              ${list.map(p => `<li><a class="chip-item" href="${pokemonDetailUrl(p)}">
+                <img src="${ASSETS.images}${p.filename}" alt="" loading="lazy" width="28" height="28" decoding="async">
+                <span>${escapeHtml(p.names.zh)}</span></a></li>`).join('')}
+            </ul>
+          </div>
+
+          <div class="type-detail-block">
+            <h3>招式 <span class="fx-item-meta">${moves.length} 個</span></h3>
+            ${chipRow('本站 moves_zh.json 全量，依威力排序。')}
+            <ul class="chip-grid">
+              ${moves.map(m => `<li><span class="chip-item">
+                <span>${escapeHtml(m.zh)}</span>
+                ${m.power ? `<span class="chip-num">${m.power}</span>` : ''}
+              </span></li>`).join('')}
+            </ul>
+            ${movesWithEffect.length ? `
+            <h4 class="type-detail-sub">招式效果說明 <span class="fx-item-meta">${movesWithEffect.length} 個</span></h4>
+            <ul class="fx-list">${movesWithEffect.map(m => effectRow(m.zh, m.power ? `威力 ${m.power}` : '', m.effect)).join('')}</ul>` : ''}
+          </div>
+
+          <div class="type-detail-block">
+            <h3>特性 <span class="fx-item-meta">${abilities.length} 種</span></h3>
+            ${chipRow('由該屬性寶可夢的 ability 欄位彙整，×數字為可持有的寶可夢數。名稱一律採官方繁體中文。')}
+            <ul class="chip-grid">
+              ${abilities.map(a => `<li><span class="chip-item">
+                <span>${escapeHtml(a.zh)}</span>
+                <span class="chip-num">×${a.count}</span>
+              </span></li>`).join('')}
+            </ul>
+            ${abilitiesWithEffect.length ? `
+            <h4 class="type-detail-sub">特性效果說明 <span class="fx-item-meta">${abilitiesWithEffect.length} 種</span></h4>
+            <ul class="fx-list">${abilitiesWithEffect.map(a => effectRow(a.zh, `可持有 ×${a.count}`, a.effect)).join('')}</ul>` : ''}
+          </div>
+
+          <div class="type-detail-block">
+            <h3>道具 <span class="fx-item-meta">${items.length} 件</span></h3>
+            ${items.length ? `<ul class="fx-list">${items.map(i => effectRow(i.name, '', i.effect)).join('')}</ul>`
+              : '<p class="type-empty">本站沒有此屬性的道具資料。</p>'}
+          </div>
+
+          <div class="type-detail-block">
+            <h3>訓練家 <span class="fx-item-meta">${profile.trainers.length} 位</span></h3>
+            ${chipRow('姓名與城市沿用 InfoPoke 的英文原文，職責為本站翻譯。')}
+            ${profile.trainers.length ? `<ul class="fx-list">
+              ${profile.trainers.map(t => effectRow(t.name, `${t.roleZh}・${t.location}・${t.generations}`, '')).join('')}
+            </ul>` : '<p class="type-empty">此屬性沒有已記錄的訓練家。</p>'}
+          </div>
+        </section>`;
+
+      renderHero([
+        { value: list.length, label: `${zh}屬性寶可夢` },
+        { value: moves.length, label: '招式' },
+        { value: abilities.length, label: '特性' },
+        { value: profile.trainers.length, label: '訓練家' }
+      ]);
+      attackerSel.value = activeType;
+      defenderSel.value = activeType;
+      syncChart();
+    }
+
+    /* ------------------------------------------------------------------- boot */
+    (async () => {
+      try {
+        const [profiles, pokemon, moves, abilities] = await Promise.all([
+          fetchJson('assets/data/type_profiles.json'),
+          loadPokemonData(),
+          fetchJson('assets/data/moves_zh.json'),
+          fetchJson('assets/data/abilities_zh.json')
+        ]);
+
+        const pokemonByType = new Map(TYPE_CHART_ORDER.map(t => [t, []]));
+        for (const p of pokemon) {
+          for (const t of p.types || []) {
+            if (pokemonByType.has(t)) pokemonByType.get(t).push(p);
+          }
+        }
+        // The grid reads as a catalogue, so order it the way the dex does.
+        for (const list of pokemonByType.values()) list.sort((x, y) => x.id - y.id);
+
+        /* Effect text is looked up by the Chinese label, and InfoPoke writes
+           some names as an alias list ("識破 / 嗅覺"), so index both the whole
+           string and its first label. */
+        const effects = { ability: {}, move: {}, item: {} };
+        const activeProfile = activeType ? profiles.types[slugFor(activeType)] : null;
+        if (activeProfile) {
+          for (const row of activeProfile.entries) {
+            const bucket = effects[row.category];
+            if (!bucket) continue;
+            bucket[row.name] = row.effect;
+            const first = row.name.split('/')[0].trim();
+            if (first) bucket[first] = row.effect;
+          }
+        }
+
+        const ctx = { profiles, pokemonByType, moves, abilities, effects };
+
+        renderChart();
+        renderTypeCards(pokemonByType);
+        renderTypeDetail(ctx);
+
+        if (!activeType) {
+          renderHero([
+            { value: TYPE_CHART_ORDER.length, label: '屬性' },
+            { value: pokemon.length, label: '寶可夢' },
+            { value: Object.keys(moves).filter(k => k !== '_meta').length, label: '招式' },
+            { value: TYPE_CHART_ORDER.length * TYPE_CHART_ORDER.length, label: '相剋組合' }
+          ]);
+        }
+
+        loadingEl.remove();
+        contentEl.hidden = false;
+      } catch (err) {
+        console.error(err);
+        loadingEl.remove();
+        detailRoot.innerHTML = `<p class="types-error">屬性資料載入失敗：${escapeHtml(err.message)}</p>`;
+      }
+    })();
+  </script>
+</body>
+</html>

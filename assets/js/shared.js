@@ -675,7 +675,7 @@ export const NAV = [
     // has a header identical to collections.html, so it needs a row either way.
     // 色彩's three pages each have a row for the same reason; none of them ride
     // along on a group.
-    pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html'],
+    pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],
     groups: [
       {
         items: [
@@ -685,12 +685,16 @@ export const NAV = [
           // is a dynamic list of 9 slugs and has no single label worth showing,
           // so it rides along with the hub it is a child of.
           { href: 'collections.html', pages: ['category.html'], label: '特殊分類', desc: '稀有系列與特殊形態' },
+          // Was a 計劃中 row until types.html shipped. It sits last because it is
+          // the only one of the four that is a *reference table* rather than a
+          // way of browsing the 1025 — you arrive to look up a matchup, not to
+          // scroll a list.
+          { href: 'types.html', label: '按屬性', desc: '18 種屬性與相剋表' },
         ],
       },
       {
         title: '計劃中',
         items: [
-          { label: '按屬性', desc: '18 種屬性與相剋表', planned: 'types.html' },
           { label: '特性', desc: '284 種特性資料庫', planned: 'abilities.html' },
           { label: '招式', desc: '783 個招式資料庫', planned: 'moves.html' },
           { label: '性格', desc: '25 種性格與能力修正', planned: 'natures.html' },
@@ -771,7 +775,6 @@ export const NAV = [
  * @type {Array<{slug: string, title: string, why: string, data: 'present'|'absent'}>}
  */
 export const PLANNED_PAGES = [
-  { slug: 'types.html', title: '按屬性', why: '18 種屬性，type-chart.js 已有相剋表，缺的是瀏覽頁', data: 'present' },
   { slug: 'abilities.html', title: '特性', why: '284 種特性散在各筆 abilities 欄位，缺的是彙整頁', data: 'present' },
   { slug: 'moves.html', title: '招式', why: 'moves_zh.json 已有 783 筆，缺的是可搜尋的瀏覽頁', data: 'present' },
   { slug: 'natures.html', title: '性格', why: '25 種性格，連資料都沒有 — PokeAPI 的 /pokemon-species 不帶 nature', data: 'absent' },
