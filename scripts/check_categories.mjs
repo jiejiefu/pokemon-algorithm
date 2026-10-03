@@ -24,6 +24,8 @@
  *   - every card has a Traditional Chinese title and a detail-page target,
  *     because a form card links to its BASE species (form ids like 10033 have no
  *     record in pokemon_data.json and detail.html could not resolve them);
+ *   - the shiny page's cards are real artwork on disk and not a CSS filter, and
+ *     shared.js still points them at assets/images/shiny/;
  *   - every declared filter selects at least one member, so a renamed or
  *     retuned predicate cannot leave a chip that filters to nothing;
  *   - the tiles() pair shapes are renderable, with no undefined/NaN.
@@ -50,6 +52,7 @@ import {
   getCategory,
   passesFilter,
 } from '../assets/js/categories.js';
+import { SHINY_IDS, hasShiny } from '../assets/js/shiny-index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -62,6 +65,22 @@ function ok(condition, message) {
     failures += 1;
     console.error(`  FAIL  ${message}`);
   }
+}
+
+/**
+ * Source with its comments removed, for the guards below that assert on what the
+ * code DOES rather than what it says.
+ *
+ * Stripping is not politeness — it is the whole point. Both files document the
+ * filter they no longer apply, by name and by value, precisely so the next person
+ * does not "restore" it: shared.css's replacement comment still says
+ * `hue-rotate(-28deg) saturate(165%)`, and shared.js's still says the option
+ * "used to apply" one. A guard that matched raw text would fail on those comments
+ * and could only be satisfied by deleting the explanation, which is the wrong
+ * trade. Line comments, block comments and CSS /* *\/ blocks all go.
+ */
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
 const pokemon = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json'), 'utf8'));
@@ -157,12 +176,67 @@ for (const slug of CATEGORY_SLUGS) {
 // A card is rendered with `href`, `badge` and `shiny`; a name that does not exist
 // on a config would render no badge at all rather than fail, so the flags are
 // pinned to the categories that are supposed to carry them.
-ok(CATEGORIES.shiny.disclaimer === true, 'shiny must carry the placeholder-artwork disclaimer');
 ok(CATEGORIES.mega.members !== CATEGORIES.gigantamax.members, 'mega and gigantamax share one selector');
 for (const slug of ['mega', 'gigantamax', 'regional']) {
   const withBadge = CATEGORIES[slug].members(SLOTS.pokemon, SLOTS.gens, SLOTS.chains).filter((m) => m.formBadge);
   ok(withBadge.length > 0, `${slug}: no member carries a form badge`);
 }
+
+// ---------------------------------------------------------------------------
+// The shiny page shows REAL artwork, and that is now a claim with a check behind
+// it. It used to be the opposite: the cards were recoloured by a CSS filter and
+// the page said so in a banner, which is why the assertion here used to be
+// `disclaimer === true` — the disclaimer WAS the contract.
+//
+// The new contract is that all 1025 cards point at assets/images/shiny/. Three
+// ways that can rot, one assertion each:
+//   1. a file goes missing -> a broken <img>, invisible to any JSON-only check,
+//      so the same existsSync test the normal artwork gets is run per member;
+//   2. a future `needs` or selector change quietly shrinks the roster -> the
+//      index is the source of truth, not the count on the page;
+//   3. someone reinstates the filter as a "cheap" alternative to 1025 real files
+//      -> source-text guards, same shape as check_sv_index.mjs greps in
+//      types.html. A recoloured sprite is not a shiny, and the mistake is
+//      invisible in a screenshot because it still looks like a Pokémon.
+// ---------------------------------------------------------------------------
+console.log('shiny page: real artwork, not a filter');
+
+const shinyMembers = CATEGORIES.shiny.members(SLOTS.pokemon, SLOTS.gens, SLOTS.chains);
+const noShinyArt = shinyMembers.filter((m) => !existsSync(join(ROOT, 'assets/images/shiny', m.filename)));
+ok(
+  noShinyArt.length === 0,
+  `shiny: ${noShinyArt.length} members with no real shiny artwork on disk (e.g. #${noShinyArt[0]?.id} → ${noShinyArt[0]?.filename})`
+);
+// The index and the disk are generated from each other, so this is really a check
+// that nobody hand-edited shiny-index.js — but it is the number the page's 3rd
+// tile prints, so it is worth asserting that every one of the page's own members
+// is in it, not merely that the index is non-empty.
+const notInIndex = shinyMembers.filter((m) => !hasShiny(m.id));
+ok(notInIndex.length === 0, `shiny: ${notInIndex.length} members missing from shiny-index.js (e.g. #${notInIndex[0]?.id})`);
+ok(SHINY_IDS.size >= shinyMembers.length, `shiny-index.js holds ${SHINY_IDS.size} ids, fewer than the page's ${shinyMembers.length} members`);
+
+const sharedJs = stripComments(readFileSync(join(ROOT, 'assets/js/shared.js'), 'utf8'));
+ok(
+  /useShiny\s*=\s*.*hasShiny\(pokemon\.id\)/.test(sharedJs),
+  'shared.js: createPokemonCard no longer gates its shiny src on hasShiny() — a member without a shiny file would paint a broken image'
+);
+ok(
+  /useShiny\s*\?\s*ASSETS\.shiny\s*:\s*ASSETS\.images/.test(sharedJs),
+  'shared.js: createPokemonCard does not point shiny cards at ASSETS.shiny'
+);
+
+const sharedCss = stripComments(readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8'));
+ok(!/is-shiny/.test(sharedCss), 'shared.css: a `.card.is-shiny` rule is back — the shiny page no longer emits that class');
+ok(!/hue-rotate/.test(sharedCss), 'shared.css: hue-rotate is back — the placeholder recolour has returned');
+
+// The disclaimer mechanism is gone rather than merely unused: `disclaimer: true`
+// on a config is what used to render the yellow banner, and a config carrying it
+// again would render nothing at all now that renderDisclaimer() is deleted.
+ok(
+  !CATEGORY_SLUGS.some((slug) => CATEGORIES[slug].disclaimer !== undefined),
+  'a config still sets `disclaimer`, but the banner that rendered it has been deleted'
+);
+console.log(`  ${shinyMembers.length} members, all with real artwork (index holds ${SHINY_IDS.size} ids)\n`);
 
 // ---------------------------------------------------------------------------
 // The 600族 roster, pinned. The page's 4th tile claims all ten need two
