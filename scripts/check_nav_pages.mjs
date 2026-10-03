@@ -1,0 +1,246 @@
+/**
+ * Every page that should carry the shared nav is asserted to mount it — the one
+ * direction the NAV checker cannot see.
+ *
+ *   node scripts/check_nav_pages.mjs
+ *
+ * WHY THIS FILE EXISTS. check_color_page.mjs owns NAV and guards it hard: 761
+ * checks over the table, lifted out of shared.js and evaluated rather than
+ * scraped, covering every link target, every page claimed by exactly one
+ * element, no trigger wearing aria-current, and the [hidden] companion rules.
+ * All of that is NAV's internal integrity. It reads exactly ONE page —
+ * `read('color.html')` — because a claim about the table says nothing about the
+ * documents that consume it, and the set of consumers is what actually renders.
+ *
+ * So the failure this guards against is a page whose nav container is empty at
+ * runtime. `initHeaderNav()` writes the container's innerHTML, which means
+ * deleting the call is not a syntax error, not a 404, and not a broken link: the
+ * header still lays out, the theme toggle still works, the logo still links
+ * home, and the only visible symptom is that 演算法 / 色彩 / 3D 模型 are missing
+ * from a page that is one of them. Measured, not assumed: in a scratch copy of
+ * the tree, deleting `initHeaderNav();` from sorting.html left
+ * check_color_page.mjs exiting 0 with all 761 checks passing.
+ *
+ * WHY NOT THE GREP. assets/js/shared.js tells the reader to verify with
+ * `rg -l initHeaderNav *.html`, and that grep cannot answer the question it is
+ * cited for. It matches imports and comments as readily as calls. Deleting
+ * sorting.html's call leaves the file listed, because the import still names the
+ * symbol; and two pages contain the bare token inside a COMMENT — maze.html:110
+ * ("so initHeaderNav()'s default filename match is enough") and detail.html:45
+ * ("`initHeaderNav('pokedex.html')` below marks 圖鑑"). A `src.includes(
+ * 'initHeaderNav(')` test would therefore report both of those pages as mounting
+ * the nav with the call deleted — on the two pages where it was added last. So
+ * every assertion here looks for a STATEMENT (a line that starts with the call)
+ * and for the import that makes the symbol real, never for a substring.
+ *
+ * WHAT IS ASSERTED. The page set is derived from the directory, not written
+ * down: `readdirSync` over the root, minus three documented kinds of non-page.
+ * That is what makes this future-proof — a new page is covered the moment it
+ * exists, with no list to update and no count to bump, which is the same
+ * reasoning behind EXPECTED_NAV_PAGES being a number rather than a list. The
+ * cost of a derived set is that the exclusions can rot into a place to hide a
+ * regression, so each exclusion is itself asserted to still be doing its job:
+ * 404.html must still be a redirect stub, and color.html must still mount the
+ * rail that replaces the nav.
+ *
+ * NOT ASSERTED HERE, DELIBERATELY: that a mounting page is CLAIMED by NAV, i.e.
+ * that it marks something current. That direction needs NAV evaluated, and the
+ * comment-masking table-lifter that does it is private to check_color_page.mjs.
+ * Copying it would create a second copy of tricky code to keep in sync, and
+ * hoisting it would edit a 36KB checker that is currently green — for a gap that
+ * degrades to a nav that renders with nothing marked rather than no nav at all.
+ */
+
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+
+let failures = 0;
+const pass = (msg) => console.log(`  ok   ${msg}`);
+const fail = (msg) => { failures++; console.log(`  FAIL ${msg}`); };
+// A FAIL that prints an empty message is worse than no check: it reads as a
+// blank line, and `1 check(s) failed` with nothing to act on sends the reader
+// looking in the wrong file (gotcha 42). The reason is never allowed to be
+// empty — which is also how a mis-written predicate gets caught, because the
+// computed offender list comes back empty precisely when the message and the
+// condition disagree.
+const check = (cond, ok, bad) => {
+  if (cond) return pass(ok);
+  const why = typeof bad === 'function' ? bad() : bad;
+  fail(why ? why : `${ok} — the check failed but the detail was empty (predicate disagrees with its own message)`);
+};
+
+/* A hook attribute name, matched as a WHOLE attribute. `\b` is not enough:
+   `data-nav` sits inside `data-nav-toggle` and `data-nav-drawer`, and between
+   `nav` and the following `-` there is a word boundary, so /\bdata-nav\b/
+   matches all three. color.html is full of `data-nav-id` for its evolution
+   chain, which makes the same mistake twice. */
+const hook = (name) => new RegExp(`\\b${name}(?![\\w-])`);
+/** Every opening tag in `html` carrying `name`, e.g. the one `<button>` that
+ *  owns data-nav-toggle. Order-independent on purpose: the assertions below
+ *  care that the hook sits on an element of the right kind, not that an
+ *  attribute kept its column. */
+const tagsWith = (html, name) =>
+  [...html.matchAll(new RegExp(`<([a-z]+)\\b[^>]*${hook(name).source}[^>]*>`, 'gi'))].map((m) => m[0]);
+
+/* A real invocation is a STATEMENT, so it has to start its line. Comments in
+   this repo quote the call verbatim — maze.html and detail.html both do — which
+   is exactly why a substring test is not good enough. */
+const CALL = /^[ \t]*initHeaderNav\(/m;
+const callCount = (html) => (html.match(/^[ \t]*initHeaderNav\(/gm) || []).length;
+/* The import is what makes the symbol real, in the shape check_sv_index.mjs
+   already uses for hasSv/svUrl. `[^}]*` is a character class, so it crosses the
+   newlines that eight of these pages wrap their imports across, while being
+   unable to escape one import block into the next. */
+const IMPORT = /import\s*\{[^}]*\binitHeaderNav\b[^}]*\}\s*from\s*['"][^'"]*assets\/js\/shared\.js['"]/;
+
+// --- the page set, derived --------------------------------------------------
+
+// Three kinds of root html that are not pages this check governs. Each entry
+// carries its reason, because an unexplained exclusion is indistinguishable
+// from a bug, and the reasons are asserted to still hold below.
+const NON_PAGES = new Map([
+  ['404.html', 'a location.replace stub for /detail/<slug> — it has no header at all'],
+  ['color.html', "its rail REPLACES the nav rather than joining it (initColorRail)"],
+]);
+/* The InfoPoke page captures the generators parse — 17 files, 3.1MB of
+   third-party markup, ignored at .gitignore for exactly that reason. They are
+   matched as a PREFIX rather than listed so a newly fetched capture cannot
+   become a failing page. */
+const isCapture = (f) => f.startsWith('infopoke_net_') && f.endsWith('.html');
+
+const htmlFiles = readdirSync(ROOT).filter((f) => f.endsWith('.html')).sort();
+const sitePages = htmlFiles.filter((f) => !NON_PAGES.has(f) && !isCapture(f));
+const captures = htmlFiles.filter(isCapture);
+
+console.log('page set');
+
+check(sitePages.length > 0, `${sitePages.length} pages mount the shared nav`,
+  () => `no page was classified as a site page — the classification is broken, not the site (root html: ${htmlFiles.join(', ')})`);
+
+// An exclusion naming a file that is gone is a stale exemption: it would keep
+// working while quietly covering a future page of the same name.
+const deadExclusions = [...NON_PAGES.keys()].filter((f) => !htmlFiles.includes(f));
+check(deadExclusions.length === 0, 'every named exclusion is still a file on disk',
+  () => `exclusion names a file that no longer exists: ${deadExclusions.join(', ')} — it would silently exempt a future page of that name`);
+
+// --- every page mounts it ---------------------------------------------------
+
+console.log('\nmounting');
+
+const sources = new Map(sitePages.map((f) => [f, read(f)]));
+const noCall = sitePages.filter((f) => !CALL.test(sources.get(f)));
+check(noCall.length === 0, `all ${sitePages.length} pages call initHeaderNav()`,
+  () => `pages with no initHeaderNav() call: ${noCall.join(', ')} — the nav container stays empty, so the header renders with no nav at all (an import or a comment mentioning the call does not mount it). If a page is deliberately nav-less, give it a reason in NON_PAGES above rather than deleting the check.`);
+
+const manyCalls = sitePages.filter((f) => callCount(sources.get(f)) !== 1);
+check(manyCalls.length === 0, 'every page calls initHeaderNav() exactly once',
+  () => `pages whose call count is not one: ${manyCalls.map((f) => `${f} (${callCount(sources.get(f))})`).join(', ')} — a second call re-renders the trigger's current state onto a DOM that already has it`);
+
+const noImport = sitePages.filter((f) => !IMPORT.test(sources.get(f)));
+check(noImport.length === 0, `all ${sitePages.length} pages import initHeaderNav from shared.js`,
+  () => `pages that call it without importing it: ${noImport.join(', ')} — that is a ReferenceError at module scope, so the rest of the page's script never runs either`);
+
+// --- the mount points -------------------------------------------------------
+
+console.log('\nmount points');
+
+const missingHook = [];
+const badToggle = [];
+const badDrawer = [];
+const handWritten = [];
+for (const [file, html] of sources) {
+  const navTags = tagsWith(html, 'data-nav').filter((t) => /^<nav\b/.test(t));
+  const toggles = tagsWith(html, 'data-nav-toggle');
+  const drawers = tagsWith(html, 'data-nav-drawer');
+
+  if (navTags.length !== 1) missingHook.push(`${file} (${navTags.length} <nav data-nav>)`);
+  if (toggles.length !== 1) missingHook.push(`${file} (${toggles.length} [data-nav-toggle])`);
+  if (drawers.length !== 1) missingHook.push(`${file} (${drawers.length} [data-nav-drawer])`);
+
+  // The button is what a phone has to reach the nav, so it is asserted as a
+  // button of the right class carrying both aria hooks: aria-expanded is what
+  // tells a screen reader whether the drawer is open, and the label is the only
+  // accessible name on an icon-only control. Matched as whole attributes —
+  // `includes('aria-label')` is also satisfied by aria-labelledby, which names
+  // no control of its own and would leave the button unnamed.
+  const t = toggles[0] || '';
+  if (toggles.length === 1 && !(/^<button\b/.test(t) && t.includes('site-nav-toggle')
+    && hook('aria-expanded').test(t) && hook('aria-label').test(t))) {
+    badToggle.push(`${file} [${t.trim()}]`);
+  }
+
+  // `hidden` is a UA rule at (0,1,0); a drawer that is not hidden paints over
+  // the page on desktop until CSS outranks it. The runtime opens and closes the
+  // drawer by assigning `drawer.hidden` (shared.js:1043), so `hidden` is the
+  // attribute that has to be there — and it is matched as a bare boolean, since
+  // `aria-hidden` contains it after a hyphen and would satisfy /\bhidden\b/.
+  const d = drawers[0] || '';
+  if (drawers.length === 1 && !(/^<div\b/.test(d) && d.includes('site-nav-drawer')
+    && /\shidden(?=[\s>/])/.test(d))) {
+    badDrawer.push(`${file} [${d.trim()}]`);
+  }
+
+  // The regression the NAV comment describes: five hand-maintained copies of the
+  // same <nav> drifting into three link sets. initHeaderNav() fills this
+  // container, so anything authored inside it is either overwritten or doubled.
+  const block = html.match(/<nav class="site-nav"[^>]*>([\s\S]*?)<\/nav>/);
+  if (block && /<a\b/.test(block[1])) handWritten.push(file);
+}
+
+check(missingHook.length === 0, 'every page carries exactly one of each mount hook',
+  () => `missing or duplicated mount hooks: ${missingHook.join('; ')} — initHeaderNav() writes every element with these hooks, so a missing one is a part of the nav that never appears`);
+check(badToggle.length === 0, 'every toggle is a classed <button> with aria-expanded and an accessible name',
+  () => `unusable toggle: ${badToggle.join('; ')}`);
+check(badDrawer.length === 0, `every drawer is a classed <div data-nav-drawer hidden>`,
+  () => `unusable drawer: ${badDrawer.join('; ')}`);
+check(handWritten.length === 0, 'no page hand-writes links inside its nav container',
+  () => `pages with <a> inside <nav class="site-nav">: ${handWritten.join(', ')} — initHeaderNav() owns that container's contents`);
+
+// --- the call's argument ----------------------------------------------------
+
+console.log('\ncurrent-page argument');
+
+/* Three pages pass a filename: colors and colors-explore pass their own, and
+   detail passes 'pokedex.html' because it appears in no `href` and no `pages`.
+   So the argument is not required to be the page's own name — but it IS a
+   filename the runtime matches on, and a typo in it fails silently: the nav
+   renders, nothing lights up, and nothing throws. Hence the existence check. */
+const badArgs = [];
+for (const [file, html] of sources) {
+  const arg = (html.match(/^[ \t]*initHeaderNav\(([^)]*)\)/m) || ['', ''])[1].trim();
+  if (!arg) continue;
+  const quoted = /^'([^']+)'|^"([^"]+)"$/.exec(arg);
+  const target = quoted ? (quoted[1] ?? quoted[2]) : null;
+  if (!target || !target.endsWith('.html') || !existsSync(join(ROOT, target))) {
+    badArgs.push(`${file} -> ${arg}`);
+  }
+}
+check(badArgs.length === 0, 'every filename passed to initHeaderNav() names a real page',
+  () => `arguments that are not an existing .html filename: ${badArgs.join(', ')} — a miss here is silent: the nav renders with nothing marked current`);
+
+// --- the exclusions still hold ---------------------------------------------
+
+console.log('\nexclusions');
+
+// These two are the whole reason a derived page set is safe. If 404.html grew a
+// header or color.html dropped its rail, the nav would be the wrong answer for
+// it — and the exclusion would keep the checker green through both.
+const html404 = read('404.html');
+check(/location\.replace/.test(html404), '404.html is still a redirect stub',
+  () => '404.html no longer contains location.replace — if it grew a header it needs the nav, and the exclusion above is now hiding that');
+
+const colorHtml = read('color.html');
+check(/^[ \t]*initColorRail\(/m.test(colorHtml), 'color.html still mounts its rail in place of the nav',
+  () => 'color.html no longer calls initColorRail() — either it now needs the nav, or the page it was excluded for has changed');
+
+console.log(`\n  pages: ${sitePages.length} mounting, ${NON_PAGES.size} excluded, ${captures.length} captures ignored`);
+
+if (failures) {
+  console.log(`\nFAIL  ${failures} check(s) failed\n`);
+  process.exit(1);
+}
+console.log('\nPASS  every governed page mounts the nav');
