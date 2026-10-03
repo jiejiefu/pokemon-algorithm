@@ -244,6 +244,108 @@ const dragonish = pseudoMembers.filter((p) => p.types.includes('Dragon')).length
 ok(dragonish === 8, `600族 has ${dragonish} Dragon-type members, expected 8 (the accent ramp assumes a warm page)`);
 
 // ---------------------------------------------------------------------------
+// The Dragon page's roster and every number its `prose` states.
+//
+// The tiles are functions, so they cannot rot on their own — but `prose` is a
+// hand-written paragraph of hard numbers, and a paragraph is exactly the kind of
+// content that outlives the data it describes. Each `ok` below is one sentence
+// from that paragraph, so regenerating `pokemon_data.json` fails here with the
+// claim named, instead of the page quietly contradicting itself.
+// ---------------------------------------------------------------------------
+console.log('\n龍屬性寶可夢 roster + prose claims');
+
+const DRAGON = 'dragon';
+const dragonMembers = CATEGORIES[DRAGON].members(SLOTS.pokemon, SLOTS.gens, SLOTS.chains);
+const dragonIds = dragonMembers.map((p) => p.id);
+
+ok(dragonMembers.length === 70, `龍屬性寶可夢 roster is ${dragonMembers.length}, prose claims 70`);
+ok(
+  new Set(dragonIds).size === 70,
+  `龍屬性寶可夢 has duplicate ids: ${dragonIds.length - new Set(dragonIds).size} repeats`
+);
+
+// The membership rule itself. `dragonMembers` is `types.includes('Dragon')`, and
+// the two ways that can be wrong are silent: a lowercase 'dragon' yields an EMPTY
+// roster, and testing `types[0]` yields a roster missing every dual type that
+// lists the other type first (三首惡龍 is Dark/Dragon and would drop). Asserting
+// both known shapes pins the rule without pinning all 70 ids, which would make
+// this file a second copy of the roster.
+const darkDragon = dragonMembers.filter((p) => p.id === 635);
+ok(
+  darkDragon.length === 1 && darkDragon[0].types[0] === 'Dark',
+  '三首惡龍 (#635) must be a member even though its FIRST type is Dark — `types.includes`, not `types[0]`'
+);
+const monoDragons = dragonMembers.filter((p) => p.types.length === 1);
+ok(
+  monoDragons.length === 13 && monoDragons.every((p) => p.types[0] === 'Dragon'),
+  `prose claims 13 pure-Dragon members — found ${monoDragons.length}`
+);
+
+// Non-members that a name-based rule would have swept in. The second note on the
+// page exists precisely because these are not Dragon-type, so the roster has to
+// disagree with their names.
+for (const [id, why] of [
+  [6, '噴火龍 is Fire/Flying'],
+  [130, '暴鯨龍 is Water/Flying'],
+  [142, '化石翼龍 is Rock/Flying'],
+  [181, '電龍 is Electric'],
+]) {
+  ok(!dragonIds.includes(id), `#${id} ${why} — it must NOT be a 龍屬性 member`);
+}
+
+const dragonGens = new Set(dragonMembers.map((p) => p.generation));
+ok(dragonGens.size === 9, `龍屬性 spans ${dragonGens.size} generations, prose claims 9`);
+ok(
+  [...dragonGens].sort((a, b) => a - b).join(',') === '1,2,3,4,5,6,7,8,9',
+  `龍屬性 generations are ${[...dragonGens].sort((a, b) => a - b)}`
+);
+
+// 「第九世代一次新增 14 隻，是九個世代裡最多的」 — the superlative is the claim
+// that rots first when a new generation lands, so it is derived, not restated.
+const perGen = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => dragonMembers.filter((p) => p.generation === g).length);
+const busiestGen = perGen.indexOf(Math.max(...perGen)) + 1;
+ok(
+  busiestGen === 9 && perGen[8] === 14,
+  `prose claims gen 9 is the busiest at 14 — per-generation counts are ${JSON.stringify(perGen)}`
+);
+
+// 「第一世代只有迷你龍、哈克龍與快龍三隻」, and 快龍 is the only final evolution
+// among them. The second half is the interesting one: Dratini and Dragonair are
+// middle stages, so a roster that quietly gained a gen-1 species would not fail
+// a bare count of 3.
+const gen1 = dragonMembers.filter((p) => p.generation === 1).sort((a, b) => a.id - b.id);
+ok(
+  JSON.stringify(gen1.map((p) => p.id)) === JSON.stringify([147, 148, 149]),
+  `gen 1 Dragon members are ${JSON.stringify(gen1.map((p) => `#${p.id} ${p.names.zh}`))}, prose claims 迷你龍/哈克龍/快龍`
+);
+const dragonite = pokemon.find((p) => p.id === 149);
+ok(dragonite?.stats?.total === 600, '#149 快龍 is no longer 600 BST');
+
+// Tile 4 is 12, and the prose walks the 12 → 9 → 8 chain to explain why that is
+// not the 600族 count. All three numbers are asserted: 12 total, 3 of them
+// legendary, and 8 of the 9 non-legendary in the 600族 roster above.
+const bst600 = dragonMembers.filter((p) => p.stats?.total === 600);
+ok(bst600.length === 12, `${bst600.length} Dragon members are 600 BST, tile claims 12`);
+const bst600Legendary = bst600.filter((p) => p.is_legendary);
+ok(
+  bst600Legendary.length === 3 && bst600Legendary.every((p) => p.is_legendary),
+  `prose claims 3 of the 12 are legendary — found ${JSON.stringify(bst600Legendary.map((p) => `#${p.id} ${p.names.zh}`))}`
+);
+const bst600NonLegendary = bst600.filter((p) => !p.is_legendary);
+ok(bst600NonLegendary.length === 9, `prose claims 9 non-legendary 600-BST dragons, found ${bst600NonLegendary.length}`);
+ok(
+  bst600NonLegendary.filter((p) => pseudoIds.includes(p.id)).length === dragonish,
+  'the 8 non-legendary dragons in the 600族 roster and the `dragonish` count above must be the same set'
+);
+
+const dragonLegendary = dragonMembers.filter((p) => p.is_legendary);
+ok(dragonLegendary.length === 14, `${dragonLegendary.length} Dragon members are legendary, tile claims 14`);
+ok(
+  dragonMembers.filter((p) => p.is_mythical).length === 0,
+  'a Dragon-type mythical appeared — prose claims none, and the count is not on the page'
+);
+
+// ---------------------------------------------------------------------------
 // The collections hub duplicates every count and stat triple rather than fetching
 // 900 KB to print "71". This is the assertion that pays for that duplication:
 // the numbers below are recomputed from the real selectors, so the hub table and

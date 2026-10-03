@@ -181,6 +181,29 @@ function formCard(base, form, opts = {}) {
 const speciesFlags = (key) => (data) => data.filter((p) => p[key]);
 
 /**
+ * Dragon-type members — the first category keyed on `types` rather than on a
+ * boolean flag, so `speciesFlags` cannot express it: it tests `p[key]` for
+ * truthiness, and `p.types` is an array, so every species would pass.
+ *
+ * The membership test is `includes('Dragon')` on the array, NOT a match on the
+ * type's position or on its Chinese name. Two reasons:
+ *
+ *   - `types` is TitleCase in `pokemon_data.json` ('Dragon', not 'dragon'), the
+ *     same casing `TYPE_COLORS` / `TYPE_EN_ZH` in shared.js are keyed by. A
+ *     lowercase slug here silently yields 0 members, and 0 members is exactly
+ *     what check_categories.mjs reports as a parameter-order mistake, so the
+ *     failure reads as the wrong bug.
+ *   - Dual types count. 快龍 is Dragon/Flying and belongs here; filtering on
+ *     `types[0]` would drop it and lose a third of the roster.
+ *
+ * The ids come from `pokemon_data.json` alone. `TYPE_CHART` is deliberately not
+ * consulted: this page is a roster of species whose type is Dragon, and the
+ * effectiveness matrix is a different fact with a different owner (see the
+ * type-chart note in AGENTS.md §3.D).
+ */
+const dragonMembers = (data) => data.filter((p) => p.types.includes('Dragon'));
+
+/**
  * The 600 族 ("pseudo-legendary") members.
  *
  * Two rules, not one. A pure `total === 600` filter is *not* sufficient, and the
@@ -549,6 +572,70 @@ export const CATEGORIES = {
       '黏美龍的差異二：牠也是唯一需要天氣條件才能進化的成員。幼體黏美兒不能只靠升級進化，必須在雨天或大霧的環境下才會變成黏美龍。',
     ],
   },
+
+  // Appended, not inserted. Three separate orders have to stay consistent when a
+  // category is added, and they are only consistent if the new slug goes last in
+  // all three: CATEGORIES (this file), CATEGORY_SLUGS, and NON_HUB_SLUGS.
+  // check_categories.mjs asserts hub order against
+  // `CATEGORY_SLUGS.filter((s) => !NON_HUB_SLUGS.includes(s))` with `===` on the
+  // exact array, so dropping `dragon` between two hub categories would force
+  // HUB_SLUGS to be rewritten as well — and a slug that reaches the hub by
+  // omission is exactly what the literal-lists arrangement exists to prevent.
+  dragon: {
+    title: '龍屬性寶可夢',
+    titleEn: 'Dragon-type Pokémon',
+    subtitle: '70 隻龍屬性寶可夢的完整名單',
+    note: '從關都的迷你龍三兄弟到帕底亞一世代新增的 14 隻',
+    // indigo-700 -> violet-700 -> fuchsia-700. The 700 level is the file-wide
+    // rule (header: the hero subtitle is 18-20px normal weight, so it needs
+    // 4.50:1, and six of InfoPoke's 600 shades fall short); the lightest stop
+    // here measures 6.32:1 against white. NOT `TYPE_COLORS.Dragon` (#7038F8,
+    // 5.82:1) — that is the type chart's own swatch, and reusing it here would
+    // make this page look official in a way the other nine pages do not.
+    accent: ['#4338ca', '#6d28d9', '#a21caf'],
+    // Only `pokemon`. Every tile below is computable from the members alone, so
+    // this category does not pull `generations` or `evolution_chains` — which is
+    // what keeps it out of the "re-derive the 600族 rule" problem documented on
+    // pseudoLegendaryMembers.
+    needs: ['pokemon'],
+    members: dragonMembers,
+    filters: [
+      { key: 'all', label: '全部' },
+      ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => ({ key: `gen${g}`, label: `第 ${g} 世代`, test: (m) => m.generation === g })),
+    ],
+    tiles: (m) => [
+      [m.length, '龍屬性寶可夢'],
+      [new Set(m.map((p) => p.generation)).size, '涵蓋世代'],
+      [m.filter((p) => p.is_legendary).length, '其中傳說級'],
+      // "Species whose BST is exactly 600", which is 12 — NOT the 600族 category,
+      // and the gap between those two numbers is the whole comment. 12 = 9
+      // non-legendary + 3 legendary (拉帝亞斯, 拉帝歐斯 and 基格爾德 all sit at
+      // exactly 600). Of the 9 non-legendary, 鋁鋼橋龍 (#1018) reaches 600 in ONE
+      // evolution and so fails the 600族 definition, leaving 8 — which is the
+      // number check_categories.mjs:244 already asserts for the 600族 roster.
+      // Reading 9 off this tile is precisely the confusion that assertion exists
+      // to catch, so the tile counts BST and nothing else.
+      [m.filter((p) => p.stats?.total === 600).length, '種族值總和 600'],
+    ],
+    // ONE string, not two paragraphs. `category.html:477` assigns `config.prose`
+    // to a single `<p id="cat-prose">` via textContent, so an array here would
+    // render as "a,b" with a comma. The other ten categories are all one string
+    // for the same reason; splitting this page into two paragraphs means
+    // changing the template's shared prose region, which is not worth it for
+    // one page.
+    prose:
+      '龍屬性是寶可夢世界裡最具神話色彩的一類，設計靈感來自世界各地的傳說生物——西方的巨龍、東方的神龍、以及早已滅絕的古代爬蟲類。牠們也總是被放在冒險的最後一關：第一世代只有迷你龍、哈克龍與快龍三隻，其中僅有快龍是最終進化形態。走過九個世代，龍屬性從 3 隻擴展到 70 隻，分布也愈來愈密——第九世代帕底亞一次就新增了 14 隻，是九個世代裡最多的。成員中有 13 隻是純龍、57 隻為雙屬性，14 隻屬於傳說級，12 隻的種族值總和達到 600；扣掉傳說級之後的 9 隻裡，又有 8 隻同時滿足 600 族「非傳說、種族值 600、需經兩次進化」的條件——龍屬性與頂級輸出的關聯，可見一斑。龍屬性的優勢也從來不在打擊面廣，而在防守端的抗性搭配高基礎威力的招式：牠們能對其他龍屬性造成 2 倍傷害，自身完美抵抗火、水、草、電四大御三家屬性，是全圖鑑少數能同時扛住四種的組合；代價則是三個弱點——怕冰、怕同屬性的龍、也怕妖精。攻擊面只剩兩條路，打龍系 2 倍、打鋼系 0.5 倍，而妖精屬性完全免疫龍系的攻擊。第 6 世代加入妖精屬性之前，龍系在對戰裡幾乎沒有對手，唯一能擋下牠的鋼屬性反過來又會被火屬性與地面屬性的招式打成 2 倍；妖精系的加入重新平衡了這盤棋，也從此改寫了龍屬性寶可夢的配招邏輯——牠們必須自帶鋼屬性或毒屬性的招式，去處理上場擋招的妖精系對手。',
+    notes: [
+      // Trainer names come from `type_profiles.json`'s `trainers[].roleZh` where
+      // it has them (阿渡、四天王 / 冠軍；小椿、道館館主；艾莉絲、道館館主 / 冠軍；
+      // 奇巴納、道館館主；赫賽爾、四天王). 竹蘭 is deliberately NOT there — the
+      // scrape has no row for her — but she is too central to the type's history to
+      // leave out of an introduction that claims to be the detailed one, so she
+      // appears here on the game's own record rather than on the scrape's.
+      '訓練家：龍屬性向來由實力最強的那批訓練家操控。第一世代關都四天王之首阿渡人稱「龍之使者」，是龍系的起點；城都煙墨道館的小椿是阿渡的表妹，考驗的正是玩家對龍屬性的理解；神奧冠軍竹蘭以烈咬陸鯊成為無數玩家的童年噩夢；合眾冠軍艾莉絲是龍系大師；伽勒爾的奇巴納把龍屬性與天氣戰術結合；帕底亞的四天王赫賽爾則是九個世代裡最後一位以龍系四天王登場的人物。',
+      '叫「龍」卻不是龍屬性：名字或外型像龍，和牠的屬性欄是兩件事。噴火龍是火／飛行的雙屬性、暴鯨龍與海刺龍是水系、化石翼龍是岩石／飛行、變隱龍甚至是一般系，電龍與土龍弟弟也都不帶龍屬性。判斷一隻寶可夢是不是龍屬性，唯一可靠的依據是 `pokemon_data.json` 的 `types`，不是它的名字——這也是 `dragonMembers` 只讀 `types` 的原因。',
+    ],
+  },
 };
 
 /**
@@ -819,6 +906,7 @@ export const CATEGORY_SLUGS = [
   'gigantamax',
   'regional',
   'pseudo-legendary',
+  'dragon',
 ];
 
 /**
@@ -833,8 +921,8 @@ export const CATEGORY_SLUGS = [
  * it is what would force the next category into a hub group it may not belong in.
  *
  * The checker now asserts against this list instead, and additionally asserts
- * that `CATEGORY_SLUGS \ HUB_SLUGS` is exactly `['pseudo-legendary']`, so adding
- * a category still requires a conscious decision about the hub.
+ * that `CATEGORY_SLUGS \ HUB_SLUGS` is exactly `NON_HUB_SLUGS`, so adding a
+ * category still requires a conscious decision about the hub.
  *
  * It is written out as literals rather than derived as
  * `CATEGORY_SLUGS.filter((s) => s !== 'pseudo-legendary')`. A filter is the
@@ -853,8 +941,13 @@ export const CATEGORY_SLUGS = [
  * before HUB_SLUGS on purpose: a filter-derived HUB_SLUGS referencing this is
  * then a *failing* check rather than a ReferenceError, which aborts the run
  * before any assertion is reported.
+ *
+ * `dragon` is here for the same reason `pseudo-legendary` is: the homepage's
+ * 熱門搜尋 row is a real destination for it, but a hub card would be a 12th
+ * card, and that number is asserted (`totalCards === 11`). The site already
+ * links 600族 from exactly that row with no card behind it.
  */
-export const NON_HUB_SLUGS = ['pseudo-legendary'];
+export const NON_HUB_SLUGS = ['pseudo-legendary', 'dragon'];
 
 export const HUB_SLUGS = [
   'legendary',

@@ -34,7 +34,7 @@
 | [`color.html`](./color.html) | Single Pokémon color palette page (`?slug=`): hero card, palette grid, shade scales, base stats, and theme exporter. A **bare** `color.html` (no `?slug`/`?id`) shows the same seeded daily pick as the homepage's 今日推薦寶可夢, not the not-found error — one draw, one seed, two callers |
 | [`model3d.html`](./model3d.html) | GLB 3D model viewer driven by `model3d-viewer.js`; the file roster is generated into `glb-index.js` and the models live in `assets/glbs/` |
 | [`collections.html`](./collections.html) | Special collections hub: 11 cards in 4 groups (稀有與傳說 / 熱門分類 / 遊戲與活動 / 特殊形態), 2 of which are `upcoming` and render as non-links |
-| [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`) |
+| [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`). 11 categories, one per config in `categories.js`; the roster + a zh-Hant introduction. Does not link to `types.html` — see §3.F |
 | [`generations.html`](./generations.html) | Chronological generation guide: 9 generations, 38 games, and 27 regional starters |
 | [`types.html`](./types.html) | Type chart and per-type browser: overview (18 types, full 18×18 chart, history, FAQ) plus `?type=<slug>` pages listing that type's Pokémon, moves, abilities, items, and trainers |
 | [`404.html`](./404.html) | GitHub Pages fallback: cleanly redirects `/detail/<slug>` to `detail.html?slug=<slug>&from404=1` |
@@ -134,6 +134,18 @@ Two consequences worth knowing before editing `types.html`:
 - **The frontend credits PokeAPI only.** `SV_SOURCE` in the generated module names the primary host, and `types.html` must not name the fallback anywhere a reader can see it. The real per-file answer lives in `data-sources/sv-sources.json`, which records which host each id actually came from. That file is deliberately outside `assets/` so it is never served to the browser.
 - The roster is complete today (1,025/1,025), so the stand-in path in `types.html` is dormant: `hasSv()` is true for every species, the ring badge and the stand-in count render nothing, and `.chip-thumb.is-sub` is never applied. The code stays so a future upstream removal degrades to the 96px `assets/images/sprite/` floor instead of a broken image.
 - `node scripts/check_sv_index.mjs` guards all of the above, including that the roster is not stale, that `types.html` still imports both `hasSv` and `svUrl`, that the `onerror` net is intact, that both badge tones exist, and that the count is suppressed at zero. `node scripts/test_check_sv_index.mjs` mutates a scratch copy of the tree to prove each guard can actually fail.
+
+### F. Category Pages vs. `types.html` — Two Different Questions
+
+`category.html?cat=dragon` and `types.html?type=dragon` both exist and both list the same 70 species. **A category page must never link to `types.html`, and must never be merged into it.** Decided by the user when the Dragon page was added; do not re-propose the cross-link.
+
+- A **category page** answers 「有哪些龍屬性寶可夢」 — a roster plus an introduction. Its `prose` and `notes` are this project's own zh-Hant editorial, which is the point: it is the detailed species introduction.
+- **`types.html`** answers 「龍屬性的招式、特性、道具、訓練家與相剋關係」 — battle mechanics, and the only place the effectiveness matrix appears. Its prose is upstream English by design (§3.D), so it is not a substitute for a zh-Hant introduction and must not be given one.
+- The two are complementary, not overlapping, so a reader who needs the mechanics follows the site's own type browser from the nav. Adding a "see also types.html" link to the category template was considered and declined: it would put a battle-mechanics page on the path of someone who asked a species question.
+
+**Adding a category is a three-list edit, in this order.** `CATEGORIES` (append the config), `CATEGORY_SLUGS` (append the slug — it is a literal list, *not* `Object.keys(CATEGORIES)`, and `category.html` falls back to element `[0]` on an unknown slug, so never insert at the front), and `NON_HUB_SLUGS` or `COLLECTION_GROUPS`. All three are literal lists on purpose: `check_categories.mjs` asserts `CATEGORY_SLUGS \ HUB_SLUGS === NON_HUB_SLUGS` and hub order against `CATEGORY_SLUGS.filter(...)` with `===` on the exact array, so a category that reaches the hub by omission is impossible by construction. Appending is the only insertion that leaves both orders untouched.
+
+- `totalCards === 11` in `check_categories.mjs` is a hardcoded count of the hub. Prefer `NON_HUB_SLUGS` (the 600族 and 龍屬性 precedent): the homepage already links both from the 熱門搜尋 row, and the collections hub is a different navigation surface that neither page needs to appear in.
 
 ---
 
