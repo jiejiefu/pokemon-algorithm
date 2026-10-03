@@ -346,6 +346,86 @@ ok(
 );
 
 // ---------------------------------------------------------------------------
+// The homepage's 精選系列 grid.
+//
+// These nine `.home-link-card[data-cat]` cards are the ONLY place a category's
+// member count is shown as static markup — the COLLECTION_TINTS loop tints a card
+// by slug but never writes its number, so a count here is a hand-typed copy of
+// whatever `members()` returned the day the card was written. Four of them had
+// drifted (mega 46 vs 48, regional "60+" vs 58, ultra-beast 11 vs 12, paradox 16
+// vs 22) behind a 敬請期待 badge that no longer had anything to do with the number
+// being wrong. Comparing each against the live selector is the whole guard.
+// ---------------------------------------------------------------------------
+console.log('\n首頁精選系列 cards: links + counts');
+
+const indexHtmlRaw = readFileSync(join(ROOT, 'index.html'), 'utf8');
+// Strip what a reader never sees before matching on markup. This is not
+// tidiness: the CSS comment above `.home-link-badge` and the markup comment above
+// the first card both *quote* `<span class="home-link-card is-planned">`, and a
+// non-greedy card regex that starts inside a comment swallows every real card up
+// to the next `</span>` — five of the nine matched as zero.
+const indexHtml = indexHtmlRaw
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+  .replace(/<script\b[\s\S]*?<\/script>/gi, '');
+// Card blocks, whole: tag name, extra classes, remaining attributes, body.
+const homeCards = [...indexHtml.matchAll(/<(a|span) class="home-link-card([^"]*)"([^>]*)>([\s\S]*?)<\/\1>/g)];
+ok(homeCards.length > 0, 'no .home-link-card blocks matched in index.html — the markup shape changed');
+
+const homeCatCards = homeCards
+  .map((m) => {
+    const slug = m[3].match(/data-cat="([^"]+)"/)?.[1] ?? null;
+    const num = m[4].match(/class="home-link-num">([^<]+)</)?.[1] ?? null;
+    return { tag: m[1], planned: /\bis-planned\b/.test(m[2]), slug, num, body: m[4], href: m[3].match(/href="([^"]+)"/)?.[1] ?? null };
+  })
+  .filter((c) => c.slug);
+
+ok(
+  homeCatCards.length === 9,
+  `the 精選系列 grid has ${homeCatCards.length} category cards, expected 9 (one per HUB_SLUGS entry)`
+);
+
+// Every hub category has a card, and no non-hub category does. This is the
+// invariant behind §3.F in AGENTS.md: 600族 and 龍屬性 are reached from 熱門搜尋
+// instead, so adding either here would break `totalCards === 11` and put a page in
+// two navigation surfaces.
+const homeCardSlugs = homeCatCards.map((c) => c.slug).sort();
+ok(
+  homeCardSlugs.join(',') === [...HUB_SLUGS].sort().join(','),
+  `homepage card slugs are ${homeCardSlugs} — expected exactly HUB_SLUGS ${[...HUB_SLUGS].sort()}`
+);
+for (const slug of NON_HUB_SLUGS) {
+  ok(!homeCardSlugs.includes(slug), `${slug} is NON_HUB_SLUGS and must not have a 精選系列 card`);
+  ok(
+    indexHtml.includes(`category.html?cat=${slug}`),
+    `${slug} is NON_HUB_SLUGS, so it must be linked from the homepage somewhere (熱門搜尋)`
+  );
+}
+
+for (const card of homeCatCards) {
+  const cfg = CATEGORIES[card.slug];
+  ok(cfg !== undefined, `homepage card data-cat="${card.slug}" has no CATEGORIES entry`);
+  ok(card.tag === 'a', `<${card.tag} data-cat="${card.slug}"> should be an <a> — its category page exists`);
+  ok(!card.planned, `data-cat="${card.slug}" is still is-planned`);
+  ok(
+    !card.body.includes('敬請期待'),
+    `data-cat="${card.slug}" still shows a 敬請期待 badge next to a working link`
+  );
+  ok(
+    card.href === `category.html?cat=${card.slug}`,
+    `data-cat="${card.slug}" points at ${card.href}, expected category.html?cat=${card.slug}`
+  );
+  // "1,025" and "60+" both have to survive parsing, so strip the decoration
+  // rather than comparing strings — "60+" is what this assertion exists to reject.
+  const shown = card.num === null ? null : Number(card.num.replace(/[^\d]/g, ''));
+  const actual = cfg.members(SLOTS.pokemon, SLOTS.gens, SLOTS.chains).length;
+  ok(
+    shown === actual,
+    `homepage card ${card.slug} shows ${JSON.stringify(card.num)} but its category has ${actual} members`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // The collections hub duplicates every count and stat triple rather than fetching
 // 900 KB to print "71". This is the assertion that pays for that duplication:
 // the numbers below are recomputed from the real selectors, so the hub table and

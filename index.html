@@ -471,8 +471,12 @@
     .home-link-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
     /* A planned card states what it would have been, then says so. The badge
        is the same .home-tag-badge as the tag panel — one "not built yet"
-       treatment site-wide, not one per section. */
-    .home-link-card.is-planned .home-link-num { color: var(--text-muted); }
+       treatment site-wide, not one per section.
+       These five cards below (傳說 Z-A, 傷害計算器, 性格指南, 進化指南, 屬性相剋)
+       are the ones left, and they have no `.home-link-num` — a planned feature has
+       no member count to show. So the `is-planned` greying of the number is gone
+       with them, the same way the 熱門搜尋 panel lost `.home-tag.is-planned` when
+       龍屬性寶可夢 became a real tag. */
     .home-link-card .home-tag-badge { display: inline-block; margin-top: 12px; }
 
     /* ------------------------------------------------------------------
@@ -780,36 +784,42 @@
           <p class="home-link-num">1,025</p>
           <p class="home-link-desc">包含替代配色的完整異色圖鑑。查看所有異色型態和變體。</p>
         </a>
-        <span class="home-link-card is-planned" data-cat="mega">
+        <!-- These five were `<span class="home-link-card is-planned">` with a 敬請期待 badge
+             while their category pages did not exist. All five exist now, so they are
+             real links, and the counts are the live member counts: mega 46→48,
+             regional "60+"→58, ultra-beast 11→12, paradox 16→22. gigantamax's 32 was
+             already right. The numbers are hand-written markup — the COLLECTION_TINTS
+             loop below tints a card by data-cat but never writes the count, which is
+             how four of them drifted. check_categories.mjs now asserts each against the
+             category's own selector, so the correct ones are guarded too.
+             pseudo-legendary (600族) and dragon are deliberately NOT here: they are
+             NON_HUB_SLUGS reached from 熱門搜尋, and adding a hub card for either would
+             break `totalCards === 11`. -->
+        <a class="home-link-card" data-cat="mega" href="category.html?cat=mega">
           <h3 class="home-link-title">超級進化</h3>
-          <p class="home-link-num">46</p>
+          <p class="home-link-num">48</p>
           <p class="home-link-desc">第 6 世代的所有超級進化型態。戰鬥中強大的暫時變身。</p>
-          <span class="home-tag-badge">敬請期待</span>
-        </span>
-        <span class="home-link-card is-planned" data-cat="gigantamax">
+        </a>
+        <a class="home-link-card" data-cat="gigantamax" href="category.html?cat=gigantamax">
           <h3 class="home-link-title">超極巨化</h3>
           <p class="home-link-num">32</p>
           <p class="home-link-desc">第 8 世代具有獨特超極巨招式和外觀的特殊超極巨化型態。</p>
-          <span class="home-tag-badge">敬請期待</span>
-        </span>
-        <span class="home-link-card is-planned" data-cat="regional">
+        </a>
+        <a class="home-link-card" data-cat="regional" href="category.html?cat=regional">
           <h3 class="home-link-title">地區型態</h3>
-          <p class="home-link-num">60+</p>
+          <p class="home-link-num">58</p>
           <p class="home-link-desc">具有新屬性和特性的阿羅拉、伽勒爾、洗翠和帕底亞地區變體。</p>
-          <span class="home-tag-badge">敬請期待</span>
-        </span>
-        <span class="home-link-card is-planned" data-cat="ultra-beast">
+        </a>
+        <a class="home-link-card" data-cat="ultra-beast" href="category.html?cat=ultra-beast">
           <h3 class="home-link-title">究極異獸</h3>
-          <p class="home-link-num">11</p>
+          <p class="home-link-num">12</p>
           <p class="home-link-desc">來自究極空間的神秘異次元生物，具有獨特的設計和種族值。</p>
-          <span class="home-tag-badge">敬請期待</span>
-        </span>
-        <span class="home-link-card is-planned" data-cat="paradox">
+        </a>
+        <a class="home-link-card" data-cat="paradox" href="category.html?cat=paradox">
           <h3 class="home-link-title">悖謬寶可夢</h3>
-          <p class="home-link-num">16</p>
+          <p class="home-link-num">22</p>
           <p class="home-link-desc">朱/紫中的古代和未來悖謬型態。穿越時空的變體。</p>
-          <span class="home-tag-badge">敬請期待</span>
-        </span>
+        </a>
       </div>
     </section>
 
