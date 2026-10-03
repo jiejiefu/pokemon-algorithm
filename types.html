@@ -208,6 +208,46 @@
     }
 
     /* ===== 18×18 chart ===== */
+    /* Cell fills are literal measured values, not a color-mix() of the hue into
+       --bg-card: shared.css contains no color-mix() anywhere, every colour in
+       this codebase is a literal hex with its measured ratio in a comment, and
+       a tint baked against one card cannot follow the card if it ever moves.
+       14% green / 14% red over the card, number in --text-primary:
+       2x 10.99:1 dark / 16.21:1 light, 0.5x 12.29:1 / 15.08:1.
+       0x is the one cell whose fill is not the same recipe in both themes, and
+       the asymmetry is deliberate.
+       Dark: SOLID near-black. A 14% black tint over --bg-card #161e38 is
+       #131620, a difference nobody can see, so immunity has to be an actual
+       hole in the table. 18.38:1 against white ink.
+       Light: 14% black over the white card, #dbdbdb, 12.79:1 against
+       --text-primary. A solid near-black on a light table is the loudest thing
+       on the page -- it reads as a hole punched through the layout rather than
+       as a cell -- so light mode spends its budget on calm instead. What
+       "absent" looks like has to depend on what it is absent from. The grey is
+       neutral where 1x is white and desaturated where 0.5x is pink, so the two
+       never read as neighbours.
+       The two text hues are the same green and red at full strength, for labels
+       that sit on the card rather than on a tint: 8.61:1 / 7.13:1 and
+       5.29:1 / 6.57:1. */
+    :root {
+      --chart-fill-2x: #24373f;
+      --chart-fill-half: #372640;
+      --chart-fill-immune: #11141e;
+      --chart-ink-immune: #ffffff;
+      --chart-good-text: #7bcf6b;
+      --chart-bad-text: #ff5470;
+    }
+    /* The page had no light-theme block of its own until here: every colour it
+       used came from shared.css, which flips with the theme. The chart's tints
+       are precomputed per theme, which is what makes this block necessary. */
+    [data-theme="light"] {
+      --chart-fill-2x: #edf8ea;
+      --chart-fill-half: #ffe7eb;
+      --chart-good-text: #166534;
+      --chart-bad-text: #b42318;
+      --chart-fill-immune: #dbdbdb;
+      --chart-ink-immune: #0f1730;
+    }
     .chart-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -286,12 +326,23 @@
     .chart-head-link {
       display: block;
       padding: 8px 4px;
-      color: var(--text-secondary);
+      background: var(--tf, transparent);
+      color: var(--ti, inherit);
       font-weight: 600;
       text-decoration: none;
       white-space: nowrap;
     }
-    .chart-head-link:hover { background: var(--surface-hover); color: var(--text-primary); }
+    /* The corner labels both axes and belongs to no type, so it keeps the
+       neutral header surface rather than borrowing a type colour. */
+    .chart-head-link.is-corner {
+      background: var(--surface-raised);
+      color: var(--text-secondary);
+    }
+    /* brightness(), not a background wash. The header fill IS the type's colour
+       and has to stay that colour on hover; the old rule also forced
+       color: var(--text-primary), which is not a 4.5:1 text colour over most of
+       the 18 type fills. */
+    .chart-head-link:hover { filter: brightness(1.1); }
     .chart-cell {
       display: block;
       width: 100%;
@@ -304,15 +355,21 @@
       font-size: 0.8125rem;
       cursor: pointer;
     }
-    .chart-cell:hover { background: var(--surface-hover); }
-    .chart-cell[data-mult="4"]   { color: var(--eff-4x); font-weight: 800; }
-    .chart-cell[data-mult="2"]   { color: var(--eff-2x); font-weight: 700; }
-    .chart-cell[data-mult="0.5"] { color: var(--eff-half); }
-    .chart-cell[data-mult="0.25"]{ color: var(--eff-quarter); }
-    .chart-cell[data-mult="0"]   { color: var(--eff-immune); font-weight: 700; }
-    .chart-cell.is-sel-col { background: var(--surface-hover); }
-    .chart-cell.is-sel-row { background: var(--surface-hover); }
-    .chart-cell.is-sel { box-shadow: inset 0 0 0 2px var(--focus-ring); }
+    .chart-cell:hover { filter: brightness(1.12); }
+    /* 1x stays unstyled: it is 204 of the 324 cells, and leaving it on the card
+       is what makes the other 120 read as exceptions at a glance. */
+    .chart-cell[data-mult="4"]   { background: var(--chart-fill-2x); color: var(--text-primary); font-weight: 800; }
+    .chart-cell[data-mult="2"]   { background: var(--chart-fill-2x); color: var(--text-primary); font-weight: 700; }
+    .chart-cell[data-mult="0.5"] { background: var(--chart-fill-half); color: var(--text-primary); }
+    .chart-cell[data-mult="0.25"]{ background: var(--chart-fill-half); color: var(--text-primary); }
+    .chart-cell[data-mult="0"]   { background: var(--chart-fill-immune); color: var(--chart-ink-immune); font-weight: 700; }
+    /* Selection is a ring, not a wash. It was a 6% background, which looked good
+       but is now the same channel the multiplier fills encode -- two meanings
+       fighting over one property. A 2px inset ring says "you are here" more
+       strongly than a 6% wash did, and leaves the cell's own colour visible. */
+    .chart-cell.is-sel-col,
+    .chart-cell.is-sel-row { box-shadow: inset 0 0 0 2px var(--focus-ring); }
+    .chart-cell.is-sel { box-shadow: inset 0 0 0 3px var(--focus-ring); }
 
     .chart-legend {
       display: flex;
@@ -326,11 +383,27 @@
     }
     .chart-legend li { display: flex; align-items: center; gap: 6px; }
     .chart-legend b { font-variant-numeric: tabular-nums; }
-    .chart-legend .lg-4 b    { color: var(--eff-4x); }
-    .chart-legend .lg-2 b    { color: var(--eff-2x); }
-    .chart-legend .lg-half b { color: var(--eff-half); }
-    .chart-legend .lg-qtr b  { color: var(--eff-quarter); }
-    .chart-legend .lg-imm b  { color: var(--eff-immune); }
+    /* The swatch samples the cell it labels; the number is coloured by what the
+       multiplier means, which is why 0x shows a black swatch beside red text.
+       Both are shown so the legend explains the grid rather than the palette. */
+    .chart-legend .lg-swatch {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--hairline);
+    }
+    .chart-legend .lg-4 .lg-swatch,
+    .chart-legend .lg-2 .lg-swatch { background: var(--chart-fill-2x); }
+    .chart-legend .lg-half .lg-swatch,
+    .chart-legend .lg-qtr .lg-swatch { background: var(--chart-fill-half); }
+    .chart-legend .lg-imm .lg-swatch { background: var(--chart-fill-immune); }
+    .chart-legend .lg-1 .lg-swatch { background: var(--bg-card); }
+    .chart-legend .lg-4 b,
+    .chart-legend .lg-2 b   { color: var(--chart-good-text); }
+    .chart-legend .lg-half b,
+    .chart-legend .lg-qtr b,
+    .chart-legend .lg-imm b  { color: var(--chart-bad-text); }
 
     .chart-source {
       margin: 14px 0 0;
@@ -370,12 +443,20 @@
       color: var(--text-secondary);
     }
     .history-card li:last-child { margin-bottom: 0; }
+    /* A 14% gold wash over the page, NOT --accent-gold-surface. That token is a
+       saturated fill -- #f5c542 dark, #b3122a light -- and pairing it with a
+       theme *text* token measured 1.01:1 in dark and 1.44:1 in light (2.56:1
+       for the bold 趣聞), i.e. invisible in both. These are washed over
+       --bg-primary, which is what .types-section actually leaves behind:
+       9.04:1 / 7.13:1 for the body text, 12.83:1 / 12.70:1 for the bold. */
+    :root { --trivia-wash: #2c2925; }
+    [data-theme="light"] { --trivia-wash: #ead5dd; }
     .types-trivia {
       margin: 14px 0 0;
       padding: 14px 18px;
       border-left: 3px solid var(--accent-gold);
       border-radius: var(--radius-sm);
-      background: var(--accent-gold-surface);
+      background: var(--trivia-wash);
       font-size: 0.9375rem;
       line-height: 1.7;
       color: var(--text-secondary);
@@ -466,8 +547,9 @@
       letter-spacing: 0.04em;
     }
 
-    /* Effectiveness chips reuse the chart's multiplier palette so the hero and
-       the grid below it cannot disagree about what 2× looks like. */
+    /* Effectiveness chips reuse the chart's multiplier colours so the hero and
+       the grid below it cannot disagree about what 2x looks like. These are the
+       label hues (text on the card), not the cell washes. */
     .eff-groups { display: grid; gap: 12px; margin-bottom: 24px; }
     .eff-group {
       display: flex;
@@ -481,11 +563,11 @@
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
-    .eff-group[data-mult="4"] .eff-group-label   { color: var(--eff-4x); }
-    .eff-group[data-mult="2"] .eff-group-label   { color: var(--eff-2x); }
-    .eff-group[data-mult="0.5"] .eff-group-label { color: var(--eff-half); }
-    .eff-group[data-mult="0.25"] .eff-group-label{ color: var(--eff-quarter); }
-    .eff-group[data-mult="0"] .eff-group-label   { color: var(--eff-immune); }
+    .eff-group[data-mult="4"] .eff-group-label,
+    .eff-group[data-mult="2"] .eff-group-label    { color: var(--chart-good-text); }
+    .eff-group[data-mult="0.5"] .eff-group-label,
+    .eff-group[data-mult="0.25"] .eff-group-label,
+    .eff-group[data-mult="0"] .eff-group-label    { color: var(--chart-bad-text); }
 
     .type-detail-block { margin-bottom: 28px; }
     .type-detail-block > h3 {
@@ -679,12 +761,12 @@
         </div>
 
         <ul class="chart-legend">
-          <li class="lg-4"><b>4×</b> 雙重剋制</li>
-          <li class="lg-2"><b>2×</b> 剋制</li>
-          <li class="lg-1"><b>1×</b> 正常</li>
-          <li class="lg-half"><b>½×</b> 抵抗</li>
-          <li class="lg-qtr"><b>¼×</b> 雙重抵抗</li>
-          <li class="lg-imm"><b>0×</b> 完全無效</li>
+          <li class="lg-4"><span class="lg-swatch" aria-hidden="true"></span><b>4×</b> 雙重剋制</li>
+          <li class="lg-2"><span class="lg-swatch" aria-hidden="true"></span><b>2×</b> 剋制</li>
+          <li class="lg-1"><span class="lg-swatch" aria-hidden="true"></span><b>1×</b> 正常</li>
+          <li class="lg-half"><span class="lg-swatch" aria-hidden="true"></span><b>½×</b> 抵抗</li>
+          <li class="lg-qtr"><span class="lg-swatch" aria-hidden="true"></span><b>¼×</b> 雙重抵抗</li>
+          <li class="lg-imm"><span class="lg-swatch" aria-hidden="true"></span><b>0×</b> 完全無效</li>
         </ul>
 
         <p class="chart-source" id="chart-source"></p>
@@ -783,7 +865,7 @@
   <script type="module">
     import {
       ASSETS, TYPE_EN_ZH, TYPE_COLORS, loadPokemonData, pokemonDetailUrl,
-      typeBadgeSmHtml, initThemeToggle, initHeaderNav
+      typeBadgeSmHtml, initThemeToggle, initHeaderNav, typePair
     } from './assets/js/shared.js';
     import { TYPE_CHART, TYPE_CHART_ORDER, TYPE_CHART_SOURCE } from './assets/js/type-chart.js';
     import { typeEffectiveness } from './assets/js/pokemon-lexicon.js';
@@ -813,7 +895,14 @@
        (lowercase) — slugFor() is the one place that difference is handled. */
     const slugFor = titleCase => titleCase.toLowerCase();
 
-    const MULT_TEXT = { 4: '4×', 2: '2×', 1: '1×', 0.5: '½×', 0.25: '¼×', 0: '0×' };
+    /* The visible unit lives in ONE place only: the legend under the table. 324
+       cells each ending in "x" was the noisiest thing on the page, and the
+       colour already encodes the multiplier, so inside a cell the bare numeral
+       is both quieter and unambiguous. The legend below still spells out
+       4x / 2x / 1x / 1/2x / 1/4x / 0x, the hero chips keep their "x" via
+       EFFECT_BUCKETS[].suffix in pokemon-lexicon.js, and every cell keeps the
+       full "x" in its aria-label -- only the glyph on screen goes. */
+    const MULT_TEXT = { 4: '4', 2: '2', 1: '1', 0.5: '½', 0.25: '¼', 0: '0' };
     const MULT_WORDS = {
       4: '雙重剋制，造成 4 倍傷害',
       2: '剋制，造成 2 倍傷害',
@@ -869,12 +958,24 @@
     }
 
     /* ------------------------------------------------------------------ chart */
+    /* Headers are painted in the type's own colour, from the same table every
+       type badge on the site reads (TYPE_COLORS via typePair), so the chart's
+       axes are the same colours as the badges in a Pokémon's stat block. Only
+       the two custom property *values* are inline; the declarations that paint
+       them stay in the stylesheet, which is what lets .is-corner, :hover and the
+       light theme keep working without an inline rule outranking them. */
+    const typeFillVars = key => {
+      const pair = typePair(key);
+      if (!pair) return '';
+      return `--tf:rgb(${pair.fill.join(',')});--ti:rgb(${pair.text.join(',')})`;
+    };
+
     function renderChart() {
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      headRow.innerHTML = `<th scope="col"><span class="chart-head-link">攻擊 ↓ / 防禦 →</span></th>` +
+      headRow.innerHTML = `<th scope="col"><span class="chart-head-link is-corner">攻擊 ↓ / 防禦 →</span></th>` +
         TYPE_CHART_ORDER
-          .map(d => `<th scope="col"><a class="chart-head-link" href="types.html?type=${slugFor(d)}">${escapeHtml(TYPE_EN_ZH[d])}</a></th>`)
+          .map(d => `<th scope="col"><a class="chart-head-link" style="${typeFillVars(d)}" href="types.html?type=${slugFor(d)}">${escapeHtml(TYPE_EN_ZH[d])}</a></th>`)
           .join('');
       thead.appendChild(headRow);
 
@@ -882,7 +983,7 @@
       for (const a of TYPE_CHART_ORDER) {
         const tr = document.createElement('tr');
         const row = TYPE_CHART[a] || {};
-        tr.innerHTML = `<th scope="row"><a class="chart-head-link" href="types.html?type=${slugFor(a)}">${escapeHtml(TYPE_EN_ZH[a])}</a></th>` +
+        tr.innerHTML = `<th scope="row"><a class="chart-head-link" style="${typeFillVars(a)}" href="types.html?type=${slugFor(a)}">${escapeHtml(TYPE_EN_ZH[a])}</a></th>` +
           TYPE_CHART_ORDER.map(d => {
             const mult = row[d] === undefined ? 1 : row[d];
             const label = `${TYPE_EN_ZH[a]}屬性招式攻擊${TYPE_EN_ZH[d]}屬性：${MULT_WORDS[mult]}`;

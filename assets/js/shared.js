@@ -279,23 +279,48 @@ export function hexToRgb(hex) {
  * Electric in light, failing both ways (3.32:1 and 1.49:1). Deriving the pair
  * from the fill is correct in every theme by construction.
  */
-export function badgeStyle(rgb) {
-  if (!Array.isArray(rgb) || rgb.length !== 3) return '';
+export function badgePair(rgb) {
+  if (!Array.isArray(rgb) || rgb.length !== 3) return null;
   const LIGHT = [255, 255, 255];
   const DARK = [20, 17, 10];
   const useLightText = contrast(rgb, LIGHT) >= contrast(rgb, DARK);
-  const textColor = useLightText ? LIGHT : DARK;
+  const text = useLightText ? LIGHT : DARK;
   const towards = useLightText ? [0, 0, 0] : [255, 255, 255];
   let fill = rgb.slice();
   for (let t = 0; t <= 1.0001; t += 0.02) {
     fill = rgb.map((c, i) => Math.round(c + (towards[i] - c) * t));
-    if (contrast(fill, textColor) >= 4.5) break;
+    if (contrast(fill, text) >= 4.5) break;
   }
-  return `background:rgb(${fill.join(', ')});color:rgb(${textColor.join(', ')})`;
+  return { fill, text };
 }
 
+/**
+ * The same pair as a declaration string. Split out from `badgePair` so a caller
+ * that needs the two colours separately -- types.html's chart headers, which
+ * hand them to CSS as custom properties rather than to `style=` -- does not have
+ * to parse this back apart.
+ */
+export function badgeStyle(rgb) {
+  const pair = badgePair(rgb);
+  if (!pair) return '';
+  return `background:rgb(${pair.fill.join(', ')});color:rgb(${pair.text.join(', ')})`;
+}
+
+/** The AA fill/ink pair for a type, as a fallback-tolerant lookup. */
+const typeRgb = key => hexToRgb(TYPE_COLORS[key]) || [119, 119, 119];
+
 /** The inline style for a type badge, AA-correct against its own fill. */
-const typeBadgeStyle = key => badgeStyle(hexToRgb(TYPE_COLORS[key]) || [119, 119, 119]);
+const typeBadgeStyle = key => badgeStyle(typeRgb(key));
+
+/**
+ * The same pair as data rather than as a declaration, for a type-coloured
+ * surface that CSS paints from custom properties (types.html's chart headers).
+ * Keeping the type lookup next to TYPE_COLORS is the point: a caller should
+ * never re-derive the neutral fallback or the pairing rule.
+ */
+export function typePair(key) {
+  return badgePair(typeRgb(key));
+}
 
 /**
  * Create a Pokédex card DOM element
