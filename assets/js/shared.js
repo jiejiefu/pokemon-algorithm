@@ -672,15 +672,21 @@ export function createFeatureCard({ href, icon, title, desc, className }) {
    that a focusable element which does nothing when activated is worse than a
    non-focusable one, and ?cat= accepts only the 9 real slugs.
 
-   Nine pages mount this — index, pokedex, collections, category, generations,
-   model3d, colors, colors-explore, color. The other three deliberately do not:
-   sorting and maze have a control bar where a nav would go (see maze.html's
+   Ten pages mount this — index, pokedex, collections, category, generations,
+   types, model3d, colors, colors-explore and detail. Only two deliberately do
+   not: sorting and maze have a control bar where a nav would go (see maze.html's
    `.controls-maze`, whose leftmost child is the logo for that reason, gotcha
-   51c), and detail is a single scroll whose header is the three-column top card.
+   51c). color.html is not in that list because the rail REPLACES this nav
+   rather than joining it (see initColorRail). detail.html used to be the third
+   exception, on the grounds that it is a single scroll whose header is the
+   three-column top card; it mounts the nav now, and passes `'pokedex.html'`
+   rather than relying on the default because it is in no `href` and no `pages` —
+   the same call the colour pages make, for the same reason: the file the reader
+   came from is what marks the trigger current.
    `rg -l site-nav *.html` is the check; a page added without it loses the nav
-   silently. The three colour pages pass their own filename to initHeaderNav()
-   so the 色彩 trigger reads as current — including color.html, which has no
-   static nav item of its own and is reached only from a card or the generator. */
+   silently. The two colour pages that mount it pass their own filename to
+   initHeaderNav() so the 色彩 trigger reads as current — including
+   colors-explore.html, which is a page of its own with its own static row. */
 export const NAV = [
   { href: 'index.html', label: '首頁', icon: 'home' },
   {

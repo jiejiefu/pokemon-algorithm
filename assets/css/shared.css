@@ -1133,10 +1133,12 @@ canvas.maze-canvas {
 [data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
 /* ===== Site nav =====
-   Six headers carry navigation (index / pokedex / collections / category /
-   generations / model3d); sorting, maze and detail are control bars instead, so
-   the row layout below is scoped to those two classes rather than to `.header`
-   — `.header` stays a centred column for the remaining three pages.
+   Ten headers carry the nav (index / pokedex / collections / category /
+   generations / types / model3d / colors / colors-explore / detail); only
+   sorting and maze are control bars instead — color.html has the rail, which
+   replaces this nav rather than joining it — so the row layout below is scoped
+   to header CLASSES rather than to `.header`, and `.header` stays a centred
+   column for those two pages.
 
    model3d.html joined `.header-dex` in every selector group here rather than
    getting a parallel rule set: the row layout, the 62px right padding that
@@ -1146,14 +1148,24 @@ canvas.maze-canvas {
    at line 265 — a static header does not form a containing block for the
    toggle.
 
+   `.header-detail` joined for the same reason, and it is the case that proves
+   the rule: detail.html used to carry its own `.header-inner` flex row plus a
+   返回大廳 button at the right edge, which is a private copy of this layout
+   with one extra link. It lost the button (the nav's 首頁 duplicates it) and
+   with it the wrapper, so the row now comes from this group — the sticky
+   `z-index: 100` it needs for the dropdown panel lives in detail.css next to
+   the gradient it already owned.
+
    The nav used to be `.header-nav` positioned `absolute; right: 62px`, which
    only cleared the absolutely-positioned theme toggle. Now that the nav is a
    flex child in a row, the toggle is given a flow spacer instead: the toggle
    itself stays `position: absolute`, so nothing about the 3 pages that have no
-   nav changes — they have no `.site-nav` to lay out in a row. */
+   row nav changes — they have no `.site-nav` to lay out in a row (sorting and
+   maze have a control bar, color.html has the rail). */
 .header-dex,
 .header-3d,
-.header-colors {
+.header-colors,
+.header-detail {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1463,11 +1475,13 @@ a.site-nav-item:focus-visible,
 @media (max-width: 1024px) {
   .header-dex .site-nav,
   .header-3d .site-nav,
-  .header-colors .site-nav { display: none; }
+  .header-colors .site-nav,
+  .header-detail .site-nav { display: none; }
   .site-nav-toggle { display: flex; margin-left: auto; }
   .header-dex,
   .header-3d,
-  .header-colors { padding-right: 62px; }
+  .header-colors,
+  .header-detail { padding-right: 62px; }
 }
 
 @media print {

@@ -35,17 +35,24 @@
   <link rel="stylesheet" href="assets/css/detail.css">
 </head>
 <body>
+  <!-- The chrome every nav-bearing page shares, verbatim: the toggle first (it is
+       absolutely positioned, so source order only decides where a screen-reader
+       user meets it), then the brand, then the nav mount, the mobile toggle and
+       the drawer. The 返回大廳 button this header used to park at the right edge
+       is gone — it was the one link the nav duplicates — and with it the
+       `.header-inner` wrapper, because the row layout now comes from shared.css's
+       `.header-dex, .header-3d, .header-colors, .header-detail` group rather than
+       from a private copy here. `initHeaderNav('pokedex.html')` below marks 圖鑑
+       current: detail is not a NAV page of its own, but it is only ever reached
+       from the dex. -->
   <header class="header header-detail">
-    <div class="header-inner">
-      <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
-        <div class="header-title header-title-large">寶可夢演算法</div>
-      </a>
-      <a href="index.html" class="btn btn-nav header-back">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
-        返回大廳
-      </a>
-      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
-    </div>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
   <main class="detail-container">
@@ -56,7 +63,6 @@
     <div id="detail-error" class="notice" hidden>
       <h2>找不到此寶可夢</h2>
       <p>可能是編號錯誤或資料尚未載入</p>
-      <a href="index.html" class="btn btn-nav">返回大廳</a>
     </div>
 
     <div id="detail-content" hidden>
@@ -239,7 +245,7 @@
   <script type="module">
     import {loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
       pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
-      loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, readThemeToken,
+      loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, initHeaderNav, readThemeToken,
       badgeStyle, hexToRgb, capitalize, symbolSiblings } from './assets/js/shared.js';
     // 5.7 KB of ids, so the toggle can be disabled before a click rather than
     // painting a 404 and swapping back. See the module for why a probe per id
@@ -248,6 +254,12 @@
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
+    // 'pokedex.html', not the default: detail.html is in no NAV `href` and no
+    // group `pages`, so the default marks nothing current and the reader who
+    // arrived from the dex sees five inactive chips. Naming the dex lights 圖鑑
+    // and opens nothing, because 圖鑑 is a plain item here — the group claim
+    // lives on pokedex.html itself, which is what this argument stands for.
+    initHeaderNav('pokedex.html');
     import {
       TYPE_EN_ZH, TYPE_COLORS, SHAPE_ZH, HABITAT_ZH, GROWTH_RATE_ZH, EGG_GROUP_ZH,
       COLOR_HEX, STAT_KEYS, STAT_MAX, TOTAL_MAX, STAT_LABELS, EFFECT_BUCKETS, TYPE_CHART_SOURCE,

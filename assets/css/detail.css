@@ -10,48 +10,16 @@ body {
   min-height: 100vh;
 }
 
+/* `z-index: 100` is what the other three sticky headers carry and this one was
+   missing: the nav's dropdown panel and the mobile drawer are absolutely
+   positioned out of the header (z-index 110), so without a stacking order above
+   the scrolled content they would paint underneath the hero card. */
 .header-detail {
   border-bottom: 2px solid var(--accent-gold);
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
   position: sticky;
   top: 0;
-}
-
-.header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
-.header-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-/* The theme toggle is absolutely positioned against .header on the other four
-   pages, where the right edge is either free or holds the nav. Here .header-inner
-   already parks a back link at the right edge, so a pinned toggle would sit on top
-   of it; the toggle joins the inner flex row instead. margin-left:auto on the back
-   link absorbs the free space, which keeps the two controls adjacent at the right
-   instead of spreading them across three space-between slots. */
-.header-back { margin-left: auto; }
-
-.header-inner .theme-toggle {
-  position: static;
-  transform: none;
-  margin-left: 8px;
-}
-
-.header-back svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
+  z-index: 100;
 }
 
 .detail-container {
