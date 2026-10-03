@@ -37,10 +37,21 @@
   <header class="header header-maze">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
-      <div class="header-title header-title-large">寶可夢演算法</div>
+<div class="header-title header-title-large">寶可夢演算法</div>
     </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <!-- The control strip sits OUTSIDE the header on purpose. Inside it, the header
+       is a flex column, so the nav would have needed a row of its own; out here
+       the nav shares the row the brand already had and this page's height is
+       unchanged. See `.control-bar` in shared.css. The 返回大廳 button that used
+       to be this strip's first child is gone — the nav's 首頁 is the same link,
+       which is the same trade detail.html made. -->
+  <div class="control-bar">
     <div class="controls controls-maze">
-      <button class="btn btn-nav" onclick="location.href='index.html'"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>返回大廳</button>
       <button class="btn" onclick="loadPokemonMaze(true)">1. 載入寶可夢迷宮</button>
       <button class="btn" onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
       <button class="btn" onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>
@@ -83,7 +94,7 @@
       </div>
       <span id="status" class="status-text">請先載入迷宮...</span>
     </div>
-  </header>
+  </div>
 
   <div class="canvas-container canvas-container-maze">
     <canvas id="mazeCanvas" class="maze-canvas"></canvas>
@@ -92,13 +103,16 @@
   <!-- This page is otherwise a pair of CLASSIC scripts (inline onclick handlers
        throughout, which resolve on the global object, so the maze code cannot be a
        module without rewriting all of it). One small module is added purely to
-       mount the shared theme toggle, and it coexists with the classic scripts
-       because `type="module"` scripts are deferred. The canvas listens for the
-       'themechange' event that shared.js dispatches on `document`, so a theme
-       switch repaints it from the very same code path. -->
+       mount the shared theme toggle and header nav, and it coexists with the
+       classic scripts because `type="module"` scripts are deferred. The canvas
+       listens for the 'themechange' event that shared.js dispatches on `document`,
+       so a theme switch repaints it from the very same code path. maze.html is in
+       演算法's `pages`, so initHeaderNav()'s default filename match is enough to
+       mark that trigger current. -->
   <script type="module">
-    import { initThemeToggle } from './assets/js/shared.js';
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
     initThemeToggle();
+    initHeaderNav();
   </script>
 
   <script>

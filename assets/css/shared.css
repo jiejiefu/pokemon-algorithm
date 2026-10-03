@@ -627,6 +627,33 @@ summary:focus-visible,
 .home-footer-line a:hover { text-decoration: underline; }
 
 /* ===== Controls / Buttons ===== */
+/* The strip of controls that sorting.html and maze.html put under their header.
+   It exists because those two pages are the only ones with a header taller than
+   the brand row: 11 buttons on one, 12 controls plus a slider and two inputs on
+   the other. Keeping that strip INSIDE the <header> made the header a column,
+   which in turn made the nav impossible to add without a third row — see the
+   row-layout group's note above. Moving the strip out is not only free, it
+   measured 67px SHORTER than the column header it replaced on both pages at
+   1440x900 / 1280x800 / 390x844, because the nav takes the row the brand was
+   already occupying alone.
+
+   `--header-base` rather than a per-page token because both pages' accent
+   backgrounds are already defined as this same value (`--bg-header-sort` and
+   `--bg-header-maze` are both `var(--header-base)`), so one rule paints the
+   bar correctly on both. `box-shadow` repeats the header's, which keeps the
+   single header shadow reading as one edge across two elements instead of a
+   seam between them. Deliberately NOT sticky: on maze.html the bar wraps to
+   2-3 rows at narrow widths, and pinning that much would take a third of the
+   viewport off a 40x40 canvas for the controls you only touch before loading. */
+.control-bar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0 20px 12px;
+  background-color: var(--header-base);
+  box-shadow: var(--shadow-header);
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -724,19 +751,6 @@ summary:focus-visible,
 .btn-color:hover {
   background-color: var(--accent-green-hover);
   color: #fff;
-}
-
-/* Sits on the saturated red/blue header, which is equally saturated in both
-   themes, so this button stays dark in both. */
-.btn-nav {
-  background-color: #21262d !important;
-  color: #f0f6fc !important;
-  border: 1px solid var(--hairline-strong) !important;
-}
-
-.btn-nav:hover {
-  background-color: var(--accent-yellow) !important;
-  color: #14110a !important;
 }
 
 .controls-maze .btn {
@@ -1159,12 +1173,27 @@ canvas.maze-canvas {
    only cleared the absolutely-positioned theme toggle. Now that the nav is a
    flex child in a row, the toggle is given a flow spacer instead: the toggle
    itself stays `position: absolute`, so nothing about the 3 pages that have no
-   row nav changes — they have no `.site-nav` to lay out in a row (sorting and
-   maze have a control bar, color.html has the rail). */
+   row nav changes — they have no `.site-nav` to lay out in a row (color.html's
+   rail replaces it entirely).
+
+   `.header-sort` and `.header-maze` joined last, and they are the case that
+   made `.control-bar` necessary. Both headers used to be a COLUMN — brand on
+   row 1, control strip on row 2 — so the nav would have needed a row of its own,
+   costing a chip plus the header's 10px gap (~43px). That is not a cost
+   sorting.html can pay: its `body { height: 100vh; overflow: hidden }` around a
+   fixed 1200x800 canvas already clipped 82px of the grid at 1440x900 before
+   this change. Putting the nav on the brand's row instead and moving the strip
+   OUT of the header into `.control-bar` came out 67px SHORTER than the column
+   header it replaced, measured at 1440x900, 1280x800 and 390x844 — so the
+   canvas gained back more than the nav cost. It also makes these two headers
+   structurally identical to the other eleven, which is what let them join this
+   group instead of growing a parallel rule set. */
 .header-dex,
 .header-3d,
 .header-colors,
-.header-detail {
+.header-detail,
+.header-sort,
+.header-maze {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1426,6 +1455,24 @@ a.site-nav-item:focus-visible,
   display: none;
 }
 
+/* sorting.html is the one page whose body cannot scroll: it is
+   `height: 100vh; overflow: hidden` because the canvas is a fixed 1200x800, not
+   a fluid one. `overflow` on the body propagates to the viewport, so the drawer
+   — 1035px tall, opening at y=67 — has no way to be scrolled into view and its
+   last rows (3D 模型 and, on a 640px phone, six more) are simply unreachable.
+   Every other page's drawer is reachable by scrolling the page, which is why
+   this is scoped to the one header that needs it rather than put on
+   `.site-nav-drawer` for all twelve. `dvh` rather than `vh` because on a phone
+   `100vh` is the tall viewport with the browser chrome hidden, which overshoots
+   exactly the case this rule exists for; colors.css already prefers dvh.
+   `-webkit-overflow-scrolling: touch` is legacy iOS momentum scrolling and is
+   inert everywhere else. */
+.header-sort .site-nav-drawer {
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Every panel is expanded in the drawer: a hover panel inside a drawer is
    unreachable by touch, and the accordion a touch user would expect needs
    state that `hidden` on a hover-driven panel cannot provide. The nav is short
@@ -1475,12 +1522,16 @@ a.site-nav-item:focus-visible,
   .header-dex .site-nav,
   .header-3d .site-nav,
   .header-colors .site-nav,
-  .header-detail .site-nav { display: none; }
+  .header-detail .site-nav,
+  .header-sort .site-nav,
+  .header-maze .site-nav { display: none; }
   .site-nav-toggle { display: flex; margin-left: auto; }
   .header-dex,
   .header-3d,
   .header-colors,
-  .header-detail { padding-right: 62px; }
+  .header-detail,
+  .header-sort,
+  .header-maze { padding-right: 62px; }
 }
 
 @media print {

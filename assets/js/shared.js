@@ -588,10 +588,9 @@ function syncToggle() {
 let themeSystemListenerWired = false;
 
 /**
- * Mount a theme toggle inside `root`. Static markup, not nav markup: only
- * index.html and pokedex.html have a .header-nav, and initHeaderNav() assigns
- * that container's innerHTML unconditionally, so a button placed there would
- * not survive first paint.
+ * Mount a theme toggle inside `root`. Static markup, not nav markup: the nav
+ * container (`.site-nav`, drawn by initHeaderNav()) has its innerHTML assigned
+ * unconditionally, so a button placed there would not survive first paint.
  *
  * One toggle PER CALL, and `root` is how a page wires more than one: the colour
  * page has a desktop rail and a mobile drawer, so it calls this twice with each
@@ -692,21 +691,28 @@ export function createFeatureCard({ href, icon, title, desc, className }) {
    that a focusable element which does nothing when activated is worse than a
    non-focusable one, and ?cat= accepts only the 9 real slugs.
 
-   Ten pages mount this — index, pokedex, collections, category, generations,
-   types, model3d, colors, colors-explore and detail. Only two deliberately do
-   not: sorting and maze have a control bar where a nav would go (see maze.html's
-   `.controls-maze`, whose leftmost child is the logo for that reason, gotcha
-   51c). color.html is not in that list because the rail REPLACES this nav
-   rather than joining it (see initColorRail). detail.html used to be the third
-   exception, on the grounds that it is a single scroll whose header is the
-   three-column top card; it mounts the nav now, and passes `'pokedex.html'`
-   rather than relying on the default because it is in no `href` and no `pages` —
-   the same call the colour pages make, for the same reason: the file the reader
+   Twelve pages mount this — index, pokedex, collections, category, generations,
+   types, model3d, colors, colors-explore, detail, sorting and maze.
+   color.html is the one exception, and not because it is a lab page like
+   sorting and maze were: its rail REPLACES this nav rather than joining it
+   (see initColorRail). detail.html used to be a third exception, on the
+   grounds that it is a single scroll whose header is the three-column top
+   card; it mounts the nav now, and passes `'pokedex.html'` rather than
+   relying on the default because it is in no `href` and no `pages` — the
+   same call the colour pages make, for the same reason: the file the reader
    came from is what marks the trigger current.
-   `rg -l site-nav *.html` is the check; a page added without it loses the nav
-   silently. The two colour pages that mount it pass their own filename to
+   `rg -l initHeaderNav *.html` is the check, not `rg -l site-nav`: the twelve
+   pages that call it have no static nav markup to grep for, because
+   initHeaderNav() writes the container's innerHTML. The two colour pages that
+   mount it pass their own filename to
    initHeaderNav() so the 色彩 trigger reads as current — including
-   colors-explore.html, which is a page of its own with its own static row. */
+   colors-explore.html, which is a page of its own with its own static row.
+   sorting.html and maze.html pass nothing: both are in 演算法's `pages`, so
+   the default filename match marks that trigger current. They are the last
+   two, and mounting the nav is what let both delete a 返回大廳 button — maze's
+   was the only way off the page. Getting there cost them their control
+   strip's place in the header, since a nav on its own row would have been
+   ~43px they do not have; see `.control-bar` in shared.css. */
 export const NAV = [
   { href: 'index.html', label: '首頁', icon: 'home' },
   {

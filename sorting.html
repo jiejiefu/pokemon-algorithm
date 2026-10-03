@@ -40,7 +40,6 @@
       height: 100vh;
       overflow: hidden;
     }
-    .header-sort { padding: 12px 20px; }
     .canvas-container { flex: 1; width: 100%; }
   </style>
 </head>
@@ -50,6 +49,18 @@
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
       <div class="header-title header-title-large">寶可夢演算法</div>
     </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <!-- The control strip sits OUTSIDE the header on purpose. Inside it, the header
+       is a flex column, so the nav would have needed a row of its own and cost
+       ~43px — which this page cannot spare, because `body { height: 100vh;
+       overflow: hidden }` plus a fixed 1200x800 canvas already clips the grid at
+       1440x900. Out here it shares the row the brand already had. See
+       `.control-bar` in shared.css. -->
+  <div class="control-bar">
     <div class="controls">
       <button class="btn btn-utility" data-action="shuffle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>隨機打亂</button>
       <span class="btn-group-label">| 排序演算法：</span>
@@ -60,9 +71,9 @@
       <button class="btn" data-action="sort" data-algorithm="merge">合併</button>
       <button class="btn" data-action="sort" data-algorithm="heap">堆積</button>
       <span class="btn-group-label">| 色彩：</span>
-      <button class="btn btn-color" data-action="color"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>色彩聚類</button>
+      <button class="btn btn-color" data-action="color"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5.67-1.5 1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5.67-1.5 1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>色彩聚類</button>
     </div>
-  </header>
+  </div>
 
   <div class="canvas-container">
     <div id="loading" class="loading-overlay">載入 1025 隻寶可夢資料與圖片中，請稍候...</div>
@@ -79,10 +90,13 @@
       GRID_CONFIG,
       updateGridPositions,
       groupByColor as sharedGroupByColor,
-      shuffleArray, initThemeToggle } from './assets/js/shared.js';
+      shuffleArray, initThemeToggle, initHeaderNav } from './assets/js/shared.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
+    // sorting.html is in 演算法's `pages`, so the default filename match marks
+    // that trigger current on its own — no argument needed.
+    initHeaderNav();
 
     const canvas = document.getElementById('appCanvas');
     const ctx = canvas.getContext('2d');
