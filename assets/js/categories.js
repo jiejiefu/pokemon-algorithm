@@ -430,25 +430,29 @@ export const CATEGORIES = {
     title: '異色寶可夢',
     titleEn: 'Shiny Pokémon',
     subtitle: '1,025 隻寶可夢的異色外觀一覽',
-    note: '本頁卡片的色彩由濾鏡位移而來；真實異色 artwork 請見各寶可夢的詳情頁',
+    note: '全部 1,025 張卡片都是真實的官方異色 artwork，不是色彩濾鏡',
     accent: ['#92400e', '#a16207', '#c2410c'],
     needs: ['pokemon'],
     members: (data) => data,
-    disclaimer: true,
     tiles: (m) => [
       [m.length, '寶可夢總數'],
       [new Set(m.map((p) => p.generation)).size, '涵蓋世代'],
-      // Not "0 real shiny artwork" any more — the artwork landed, and 1327 of
-      // the 1350 referenced ids have it. What is still true is the *asymmetry*:
-      // this page shows 1025 cards at once, so it filters where the detail page
-      // swaps src. State the count and where the real thing lives.
-      [SHINY_IDS.size, '具真實異色 artwork（詳情頁）'],
-      // "濾鏡" as a *value* read as a stray word next to three numbers. One
-      // rendering method, stated as a count, with the method in the label.
-      ['1', '呈現方式（CSS 濾鏡）'],
+      // 1327, not 1025: the same directory also holds the 302 alternate-form ids
+      // (mega / gmax / regional), which no species card on this page can show. The
+      // count comes from the generated index rather than being typed in, so a
+      // re-run of extract_shiny_index.py cannot leave the tile wrong.
+      [SHINY_IDS.size, '站內收錄的真實異色 artwork'],
+      // Was ['1', '呈現方式（CSS 濾鏡）']. The honest number in the same slot is
+      // now a share rather than a method: every card on this page is real
+      // artwork, and 100% is the promise that keeps it that way. It is computed
+      // from the members rather than written down for the same reason as the tile
+      // above — if a member ever lost its shiny file, this would read 99.9% and
+      // say so out loud instead of quietly falling back (see createPokemonCard's
+      // `shiny` option for the fallback itself).
+      ['100%', '本頁卡片皆為真實異色圖'],
     ],
     prose:
-      '異色是寶可夢極其罕見的個體變體，在遊戲中的出現機率通常只有數千分之一以下，官方從未公布統一的計算方式。本頁把全部 1,025 隻都列出來，讓你一次看完整份名單。由於本頁一次鋪滿 1,025 張卡，每張卡都另外讀取一張異色圖並不划算，因此卡片上呈現的是一組色彩濾鏡的示意效果，而不是真正的異色 artwork。真正的異色 artwork 已經收錄在站內 —— 進入任一寶可夢的詳情頁，按下名稱旁的「切換異色外觀」按鈕即可看到原版異色圖。',
+      '異色是寶可夢極其罕見的個體變體，在遊戲中的出現機率通常只有數千分之一以下，官方從未公布統一的計算方式。本頁把全部 1,025 隻都列出來，讓你一次看完整份名單，而每一張卡片都是真正的異色 artwork —— 官方繪製的異色版本原圖，不是把普通顏色位移出來的示意圖。站內共收錄 1,327 張異色 artwork，其中 1,025 張是本頁這 1,025 隻物種，其餘 302 張是超級進化、超極巨化與地區型態等形態的異色版本；想看某一隻的異色與普通版本並排對照，進入任一寶可夢的詳情頁，按下名稱旁的「切換異色外觀」按鈕即可。',
   },
 
   paradox: {
@@ -786,7 +790,13 @@ export const TAG_TONES = {
   // count, which gray would read as "absent" — the exact inversion. Gold is the
   // accent this category's own hero already uses, and shiny reads gold.
   shinyArt: { hue: 'amber', why: '已收錄的真實異色 artwork 數量' },
-  rendering: { hue: 'indigo', why: '呈現方式（CSS 濾鏡）' },
+  // Was `rendering` (indigo, '呈現方式（CSS 濾鏡）'), a tag that existed only to
+  // advertise the placeholder this page no longer uses. Renamed rather than
+  // deleted because the stat it carries did not go away, only its meaning: it is
+  // the share of cards on the shiny page that are real artwork, and green says
+  // "this is the verified thing" where amber beside it already says "here is a
+  // count". Two tags of one hue on one card read as a mistake.
+  realArtwork: { hue: 'green', why: '本頁卡片為真實異色 artwork（非濾鏡）' },
   neutral: { hue: 'gray', why: '尚未建立／資料未收錄' },
 };
 
@@ -846,7 +856,7 @@ export const COLLECTION_GROUPS = [
     desc: '被點閱最多的三個分類。',
     items: [
       { slug: 'starter', count: 27, stats: [[9, '涵蓋世代', 'spans'], [5, '涉及屬性', 'breadth'], ['第 1 世代', '最早推出', 'earliest']] },
-      { slug: 'shiny', count: 1025, stats: [[9, '涵蓋世代', 'spans'], [SHINY_IDS.size, '具真實異色 artwork（詳情頁）', 'shinyArt'], ['1', '呈現方式（CSS 濾鏡）', 'rendering']] },
+      { slug: 'shiny', count: 1025, stats: [[9, '涵蓋世代', 'spans'], [SHINY_IDS.size, '站內收錄的真實異色 artwork', 'shinyArt'], ['100%', '本頁卡片皆為真實異色圖', 'realArtwork']] },
       { slug: 'paradox', count: 22, stats: [[11, '古代', 'ancient'], [11, '未來', 'future'], ['第 9 世代', '帕底亞地區', 'paldea']] },
     ],
   },

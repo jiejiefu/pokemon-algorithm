@@ -848,23 +848,22 @@ summary:focus-visible,
   background: rgba(0, 0, 0, 0.72);
 }
 
-/* Shiny placeholder filter for the Pokédex card. Scoped to the card's own <img>
-   rather than to #pokemon-sprite, which is the detail page's hero sprite. Real
-   shiny artwork IS on disk since AGENTS.md gotcha 30 was written, and the
-   detail page's toggle is a real src swap — but this one is a deliberate
-   stand-in, not a leftover: the shiny category page lists all 1025 at once, so
-   it needs a treatment that works without fetching a second file per card, and
-   categories.js says so in the page's own hero note. The print rule below drops
-   it so nobody prints 1025 recoloured sprites believing they are real artwork. */
-.card.is-shiny img {
-  filter: hue-rotate(-28deg) saturate(165%) brightness(1.12) contrast(1.05);
-}
+/* No `.card.is-shiny` rule, and that is the point. There was one — a
+   `hue-rotate(-28deg) saturate(165%)` filter, plus a `@media print` override to
+   undo it — for as long as no shiny artwork existed on disk, and it stayed after
+   the artwork landed because the rationale had baked itself into the code: "a
+   card grid lists all 1025 at once, so a src swap would mean a second file per
+   card". That reasoning was already false. assets/images/shiny/ holds the same
+   official-artwork renders at the same 475x475 under the same {id}.png naming,
+   so the swap costs exactly what the normal artwork already costs — the grid was
+   already loading one 200 KB PNG per card.
 
-@media print {
-  .card.is-shiny img {
-    filter: none;
-  }
-}
+   The shiny category page now points its cards at that directory in
+   createPokemonCard() and carries no class at all. Do not reintroduce a
+   recolour: a filtered sprite is not a shiny, and the page said so in a banner
+   for as long as the filter existed. If a future roster gap needs a visible
+   answer, hasShiny() falling back to the normal artwork is the answer — a card
+   grid cannot disable anything, so it degrades, it does not pretend. */
 
 /* ===== Feature Cards (Landing Page) ===== */
 .feature-grid {

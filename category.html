@@ -204,37 +204,6 @@
       margin-bottom: 12px;
     }
 
-    /* ===== Disclaimer (shiny only) =====
-       The shiny page recolours sprites with a CSS filter because no shiny artwork
-       exists on disk or in the data. That is a labelled placeholder
-       (AGENTS.md gotcha 30), so it gets said out loud in a banner as well as in
-       the hero note — a reader who lands mid-page and skips the hero still sees
-       it. */
-    .cat-disclaimer {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      background: var(--bg-secondary);
-      border: 1px solid var(--hairline);
-      border-left: 4px solid var(--accent-yellow);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      margin-bottom: 24px;
-      font-size: 0.9rem;
-      line-height: 1.7;
-      color: var(--text-secondary);
-    }
-
-    .cat-disclaimer .icon {
-      flex: none;
-      color: var(--accent-yellow);
-      margin-top: 2px;
-    }
-
-    .cat-disclaimer strong {
-      color: var(--text-primary);
-    }
-
     /* ===== Filter row =====
        Real buttons, not links: they filter what is already on the page and do not
        navigate, so they are not anchors. `aria-pressed` carries the state, and the
@@ -397,8 +366,6 @@
       <div class="cat-stats" id="cat-stats"></div>
     </section>
 
-    <div id="cat-disclaimer-slot"></div>
-
     <section class="cat-intro" aria-labelledby="cat-intro-title">
       <h2 id="cat-intro-title">什麼是…</h2>
       <p id="cat-prose"></p>
@@ -417,7 +384,6 @@
     import {
       ASSETS,
       createPokemonCard,
-      iconSvg,
       initThemeToggle,
       loadEvolutionChains,
       loadPokemonData,
@@ -432,7 +398,6 @@
     const statsEl = document.getElementById('cat-stats');
     const resultLine = document.getElementById('cat-result-line');
     const filterSlot = document.getElementById('cat-filter-slot');
-    const disclaimerSlot = document.getElementById('cat-disclaimer-slot');
 
     /* `?cat=` is read the same way `pokedex.html?gen=` is: parse, validate against
        the declared slug list, and never let an unrecognised value through. An
@@ -506,20 +471,6 @@
       }
     }
 
-    function renderDisclaimer() {
-      disclaimerSlot.innerHTML = '';
-      if (!config.disclaimer) return;
-      const box = document.createElement('div');
-      box.className = 'cat-disclaimer';
-      // The icon is decorative; the sentence beside it carries the meaning, so an
-      // exposed <svg> would just announce "info" a second time (AGENTS.md gotcha 27).
-      box.innerHTML =
-        `${iconSvg('info')}<div><strong>這些不是真實的異色 artwork。</strong>` +
-        `本頁的顏色由 CSS 濾鏡位移而來，用來一次呈現全 1,025 隻的異色外觀。` +
-        `真正的異色圖可由 PokéAPI 的 official-artwork shiny 取得，之後會改為直接替換圖片來源。</div>`;
-      disclaimerSlot.appendChild(box);
-    }
-
     function renderFilters() {
       filterSlot.innerHTML = '';
       if (!config.filters?.length) return;
@@ -564,10 +515,16 @@
           // species, because a form id like 10033 has no record in
           // pokemon_data.json and `detail.html` could not resolve it.
           const target = m.linkTo || m;
+          // `shiny` is a src swap, not a recolour: createPokemonCard points the
+          // img at assets/images/shiny/ and appends 異色外觀 to the alt text. Only
+          // this page asks for it — the flag used to be `!!m.shiny || slug === 'shiny'`
+          // but no selector sets `shiny` on a member (0 of 1025 records have it), so
+          // the first half was dead and could only ever mislead a reader of this code
+          // into thinking some categories bring their own artwork.
           const card = createPokemonCard(m, {
             href: pokemonDetailUrl(target),
             badge: m.formBadge || null,
-            shiny: !!m.shiny || slug === 'shiny',
+            shiny: slug === 'shiny',
           });
           card.setAttribute('role', 'listitem');
           frag.appendChild(card);
@@ -586,7 +543,6 @@
 
     async function init() {
       renderHero();
-      renderDisclaimer();
       try {
         // Only the datasets this category actually declares are fetched. The
         // regional page needs the 291 KB chain file; the other eight never pay
