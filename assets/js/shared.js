@@ -747,24 +747,18 @@ export const NAV = [
       },
     ],
   },
-  // 特殊分類 was a top-level row until the user moved it into the 圖鑑 dropdown,
-  // where it belongs: it is a way of browsing the dex by rarity/lineage rather
-  // than by number or generation, so it is a THIRD way into the same 1025 and not
-  // a subject area like 演算法 or 色彩. Five top-level rows remain: 首頁 / 圖鑑 /
-  // 演算法 / 3D 模型 / 色彩.
-  // Third in the 演算法 group conceptually (it is another visualiser), but a
-  // top-level item because its own controls are the content — a dropdown would
-  // bury the page it links to behind a hover, and the page is reachable from the
-  // homepage's 精選系列 grid as well.
-  { href: 'model3d.html', label: '3D 模型', icon: 'cube' },
-  // Last in NAV, and the only dropdown whose three pages are a linear sequence
-  // rather than siblings: 色彩生成器 → 探索 → 單一寶可夢頁 is a drill-down, so
-  // the first group lists them as one row each and the second keeps the site's
-  // 計劃中 convention visible instead of hiding three built pages behind a
-  // 4th. `pages` is required for the same reason 圖鑑's own list is — the three
-  // files cannot be told apart by `href` alone, and the dropdown trigger has no
-  // href of its own, so without it none of the three would mark the trigger
-  // current.
+  // 色彩 is the drill-down group: 色彩生成器 → 探索 → 單一寶可夢頁 is a linear
+  // sequence rather than siblings, so the first group lists them as one row each
+  // and the second keeps the site's 計劃中 convention visible instead of hiding
+  // three built pages behind a 4th. `pages` is required for the same reason 圖鑑's
+  // own list is — the three files cannot be told apart by `href` alone, and the
+  // dropdown trigger has no href of its own, so without it none of the three
+  // would mark the trigger current.
+  //
+  // It sits SECOND of the two trailing singletons (色彩 then 3D 模型) on the
+  // user's reordering: the two colour surfaces are where a reader spends the most
+  // time, and grouping them next to 演算法 — the other "watch it happen" area —
+  // keeps the three visualisers adjacent instead of splitting them.
   {
     id: 'colors',
     label: '色彩',
@@ -787,6 +781,19 @@ export const NAV = [
       },
     ],
   },
+  // 特殊分類 was a top-level row until the user moved it into the 圖鑑 dropdown,
+  // where it belongs: it is a way of browsing the dex by rarity/lineage rather
+  // than by number or generation, so it is a THIRD way into the same 1025 and not
+  // a subject area like 演算法 or 色彩. Five top-level rows remain: 首頁 / 圖鑑 /
+  // 演算法 / 色彩 / 3D 模型.
+  //
+  // It was fourth (between 演算法 and 色彩) until the user swapped the two
+  // trailing rows. Last is also where it reads best on its own terms: 3D 模型 is
+  // the one page here that is a viewer over a 26-file roster rather than a way of
+  // browsing the 1025 or an algorithm, and a top-level item because its own
+  // controls ARE the content — a dropdown would bury the page it links to behind a
+  // hover, and it is reachable from the homepage's 精選系列 grid as well.
+  { href: 'model3d.html', label: '3D 模型', icon: 'cube' },
 ];
 
 /**
