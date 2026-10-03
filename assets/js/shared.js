@@ -258,7 +258,11 @@ const toLinear = v => {
   return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
 };
 const luminance = ([r, g, b]) => 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-const contrast = (a, b) => {
+// Exported for categories.js, which walks TYPE_COLORS toward black or white until
+// each type clears 4.5:1 on its own theme's --bg-card. The formula is fixed by
+// the spec, so a second copy in a caller could only ever be a maintenance
+// liability, never an improvement.
+export const contrast = (a, b) => {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 };

@@ -51,7 +51,12 @@ import {
   rgbOf,
   getCategory,
   passesFilter,
+  appendRichText,
+  typeTextStyleSheet,
+  typeSlugForZh,
+  TYPE_TEXT_COLORS,
 } from '../assets/js/categories.js';
+import { TYPE_COLORS, TYPE_EN_ZH, hexToRgb } from '../assets/js/shared.js';
 import { SHINY_IDS, hasShiny } from '../assets/js/shiny-index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -734,6 +739,173 @@ for (const [theme, T] of Object.entries(THEMES)) {
     `  ${theme.padEnd(6)} worst card body ${worstBody.toFixed(2)}:1 (${worstBodyKey})   worst tag ${worstTag.toFixed(2)}:1 (${worstTagKey})`
   );
 }
+
+// ---------------------------------------------------------------------------
+// Rich text in `prose` / `notes`.
+//
+// `**name**` and `{{type}}` are a closed vocabulary rendered into real nodes.
+// Two things make them worth guarding:
+//
+//   1. A bold name is asserted to be a REAL Pokémon name from
+//      pokemon_data.json. This is not ceremony: 「暴鯨龍」 was written into the
+//      Dragon notes from memory and does not exist — the official zh-TW name of
+//      #130 Gyarados is 暴鯉龍, and no species has ever been named 暴鯨. Nothing
+//      in the page would have looked wrong. Trainer names are deliberately NOT
+//      bolded precisely so this assertion can be total: 阿渡 or 竹蘭 in `**…**`
+//      would mean the token had started meaning "any proper noun" and stopped
+//      being checkable.
+//   2. A {{…}} must be one of the eighteen type names, and must have a colour.
+//      A typo there renders as uncoloured text, which reads as an oversight
+//      rather than an error.
+// ---------------------------------------------------------------------------
+console.log('\nprose / notes rich text: markers, real names, real types');
+
+const ZH_NAMES = new Set(pokemon.map((p) => p.names.zh));
+const TYPE_ZH = new Set(Object.values(TYPE_EN_ZH));
+const RICH = /\*\*([^*]+)\*\*|\{\{([^{}]+)\}\}/g;
+
+let boldTokens = 0;
+let typeTokens = 0;
+
+for (const slug of CATEGORY_SLUGS) {
+  const cfg = getCategory(slug);
+  const fields = [['prose', cfg.prose], ...(cfg.notes || []).map((n, i) => [`notes[${i}]`, n])];
+  for (const [field, text] of fields) {
+    const where = `${slug} ${field}`;
+    const stars = (text.match(/\*\*/g) || []).length;
+    ok(stars % 2 === 0, `${where}: ** markers pair up (${stars})`);
+    const opens = (text.match(/\{\{/g) || []).length;
+    const closes = (text.match(/\}\}/g) || []).length;
+    ok(opens === closes, `${where}: {{ }} markers pair up (${opens}/${closes})`);
+
+    for (const m of text.matchAll(RICH)) {
+      if (m[1] !== undefined) {
+        boldTokens += 1;
+        ok(ZH_NAMES.has(m[1]), `${where}: 「${m[1]}」 is a real Pokémon name in pokemon_data.json`);
+      } else {
+        typeTokens += 1;
+        const slugFor = typeSlugForZh(m[2]);
+        ok(slugFor !== null, `${where}: {{${m[2]}}} is one of the eighteen type names`);
+        ok(
+          !slugFor || Object.hasOwn(TYPE_TEXT_COLORS, slugFor),
+          `${where}: {{${m[2]}}} has a generated text colour`
+        );
+      }
+    }
+
+    // What the parser does not consume would be shown to the reader verbatim.
+    const leftover = text.replace(RICH, '');
+    ok(!/\*\*|\{\{|\}\}/.test(leftover), `${where}: no marker characters survive rendering`);
+
+    // Implementation notes leaking into reader-facing copy. The Dragon notes used
+    // to end by explaining that the selector reads `types` from
+    // `pokemon_data.json`; useful to a maintainer, not to someone looking up
+    // which Pokémon are Dragon-type.
+    ok(!/pokemon_data|dragonMembers|evolution_chains/.test(text), `${where}: no file or function names in reader-facing copy`);
+  }
+}
+ok(boldTokens > 0, `rich text is actually used (${boldTokens} bold names, ${typeTokens} type words)`);
+
+// The parser's one real hazard is a `{{…}}` nested inside a `**…**`: 電龍 begins
+// with the Electric type's Chinese name, so re-scanning strong content would
+// colour the 電 from inside the name.
+const stubDoc = () => ({
+  createTextNode: (t) => ({ nodeName: '#text', textContent: t }),
+  createElement: () => ({
+    nodeName: 'ELEMENT',
+    className: '',
+    textContent: '',
+    dataset: {},
+    children: [],
+    appendChild(n) {
+      this.children.push(n);
+      return n;
+    },
+  }),
+});
+const stubParent = () => ({ children: [], appendChild(n) { this.children.push(n); return n; } });
+const typeSpans = (p) => p.children.filter((c) => c.className === 'cat-type' && c.dataset.type).length;
+
+const nested = stubParent();
+ok(appendRichText(nested, '**{{電}}龍**', stubDoc()) === 0, 'a {{type}} inside **bold** is not re-read as a type');
+ok(typeSpans(nested) === 0, 'a {{type}} nested in a bold name emits no type span');
+
+const positive = stubParent();
+ok(appendRichText(positive, '**電龍**是{{龍}}屬性', stubDoc()) === 1, 'a plain {{type}} still renders one type token');
+ok(typeSpans(positive) === 1, 'the parser is not simply inert');
+
+const unknown = stubParent();
+ok(appendRichText(unknown, '{{火属}}', stubDoc()) === 0, 'an unknown type name renders no type token');
+ok(
+  unknown.children.some((c) => c.dataset.unknownType === '火属'),
+  'an unknown type name is marked with data-unknown-type, not silently coloured'
+);
+
+// category.html must keep building nodes. Clearing a container with
+// `innerHTML = ''` is fine and already idiomatic here; assigning a config
+// string to it is the hole the token vocabulary closes, so the right-hand side
+// is checked rather than the mere presence of the property.
+const catHtml = readFileSync(join(ROOT, 'category.html'), 'utf8');
+const htmlAssignments = [...catHtml.matchAll(/\.(?:inner|outer)HTML\s*=\s*([^;]+);/g)].map((m) => m[1].trim());
+ok(htmlAssignments.length > 0, 'category.html does clear containers via innerHTML (sanity: the scan found something)');
+for (const rhs of htmlAssignments) {
+  ok(rhs === "''" || rhs === '""', `HTML is only ever cleared, never assigned content (${rhs})`);
+}
+ok(!/insertAdjacentHTML|\.html\(|dangerouslySetInnerHTML/.test(catHtml), 'category.html has no other HTML-injection path');
+ok(/appendRichText/.test(catHtml), 'category.html renders prose and notes through appendRichText');
+ok(/typeTextStyleSheet/.test(catHtml), 'category.html injects the generated type stylesheet');
+ok(catHtml.includes('.cat-type'), 'category.html styles the .cat-type token');
+
+console.log('\ntype text colours: 18 types × 2 themes, all clearing 4.5:1');
+
+// The generator mirrors --bg-card rather than reading it, so a theme change has
+// to be caught here or every colour silently drifts against its own background.
+// Declared more than twice (a media query re-states the light value), so the
+// invariant is on the SET, not the count — what must not happen is a third
+// background appearing that the generator knows nothing about.
+const KNOWN_CARD_BG = ['#ffffff', '#161e38'];
+const catBgTokens = [...readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8').matchAll(/--bg-card:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1].toLowerCase());
+ok(
+  catBgTokens.every((v) => KNOWN_CARD_BG.includes(v)),
+  `every declared --bg-card is one the generator knows (${[...new Set(catBgTokens)].join(', ')})`
+);
+ok(catBgTokens.includes('#ffffff'), 'shared.css still has a white --bg-card for the light theme');
+ok(catBgTokens.includes('#161e38'), 'shared.css still has the #161e38 --bg-card for the dark theme');
+
+const CAT_BG_MIRROR = { light: '#ffffff', dark: '#161e38' };
+ok(
+  Object.keys(TYPE_TEXT_COLORS).length === 18,
+  `all eighteen types have a text colour (${Object.keys(TYPE_TEXT_COLORS).length})`
+);
+
+let worstType = Infinity;
+let worstTypeKey = '';
+for (const [slug, pair] of Object.entries(TYPE_TEXT_COLORS)) {
+  for (const theme of ['light', 'dark']) {
+    ok(/^#[0-9a-f]{6}$/i.test(pair[theme]), `${theme}: ${slug} ${pair[theme]} is a parseable hex`);
+    const r = contrast(pair[theme], CAT_BG_MIRROR[theme]);
+    if (r < worstType) {
+      worstType = r;
+      worstTypeKey = `${slug}/${theme} ${pair[theme]}`;
+    }
+    ok(r >= 4.5, `${theme}: type "${slug}" text ${pair[theme]} on ${CAT_BG_MIRROR[theme]} is ${r.toFixed(2)}:1 (needs 4.50)`);
+  }
+}
+console.log(`  worst type text ${worstType.toFixed(2)}:1 (${worstTypeKey})`);
+
+// The generated stylesheet must actually carry both themes, or one of them
+// silently falls back to the paragraph colour.
+const sheet = typeTextStyleSheet();
+ok(sheet.includes('.cat-intro .cat-type[data-type="dragon"]'), 'the stylesheet is scoped to .cat-intro and covers every type');
+ok(sheet.includes('[data-theme="dark"] .cat-intro .cat-type[data-type="dragon"]'), 'the stylesheet carries a dark-theme rule per type');
+ok(
+  (sheet.match(/\[data-type=/g) || []).length === 36,
+  `the stylesheet has one rule per type per theme (${(sheet.match(/\[data-type=/g) || []).length} of 36)`
+);
+ok(
+  Object.values(TYPE_TEXT_COLORS).some((p) => p.light !== p.dark),
+  'at least one type actually needs a different colour per theme'
+);
 
 console.log(
   failures === 0

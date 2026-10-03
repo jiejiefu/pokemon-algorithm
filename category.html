@@ -180,6 +180,26 @@
       color: var(--text-secondary);
     }
 
+    /* An emphasised Pokémon name inside `prose` / `notes`. --text-primary, not
+       --text-secondary: the paragraph already sets the secondary tone at
+       5.28:1, and bolding a long name at that weight reads as smudged rather
+       than emphasised. The primary tone is the same one a heading would use, so
+       the name sits at the paragraph's own ceiling instead of introducing a
+       third level. */
+    .cat-intro .cat-strong {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* A type name inside `prose` / `notes`, e.g. {{火}}. No `color` here on
+       purpose — the eighteen per-theme values are derived from shared.js's
+       TYPE_COLORS and injected as a stylesheet by initRichText() below, because
+       the fixed saturated swatches miss 4.5:1 on one theme or the other and each
+       type needs its own stepped value per theme. A `.cat-type` with no
+       `data-type` (a mistyped {{…}}) therefore inherits the paragraph colour,
+       which is the intended outcome: it should read as a typo, not as a colour
+       that means something. */
+
     /*
      * `notes` is the optional per-category addendum to `prose`. The separation is
      * a border + padding rather than another paragraph indent because these are
@@ -388,10 +408,19 @@
       loadEvolutionChains,
       loadPokemonData,
       pokemonDetailUrl, initHeaderNav } from './assets/js/shared.js';
-    import { CATEGORIES, CATEGORY_SLUGS, getCategory, passesFilter } from './assets/js/categories.js';
+    import { CATEGORIES, CATEGORY_SLUGS, getCategory, passesFilter, appendRichText, typeTextStyleSheet } from './assets/js/categories.js';
 
     initThemeToggle();
     initHeaderNav();
+
+    /* Inject the type-text stylesheet once, before first paint of the intro.
+       Generated rather than hand-written because each value is TYPE_COLORS
+       walked toward black or white until it clears 4.5:1 on that theme's
+       --bg-card, and a transcribed hex would be a fourth place to keep in sync.
+       Both themes are in the one sheet, so switching themes needs no listener. */
+    const typeTextStyle = document.createElement('style');
+    typeTextStyle.textContent = typeTextStyleSheet();
+    document.head.appendChild(typeTextStyle);
 
     const gridEl = document.getElementById('cat-grid');
     const heroEl = document.getElementById('cat-hero');
@@ -439,19 +468,20 @@
       document.getElementById('crumb-current').textContent = config.title;
       document.title = `${config.title} — 1025 全國寶可夢圖鑑`;
       document.getElementById('cat-intro-title').textContent = `什麼是${config.title}？`;
-      document.getElementById('cat-prose').textContent = config.prose;
+      // Rich text, not HTML: appendRichText() walks the string once and creates
+      // text nodes, <strong> and type spans explicitly. Assigning innerHTML to a
+      // config string would let any category's copy inject markup, and the
+      // tokens would stop being a closed vocabulary.
+      appendRichText(document.getElementById('cat-prose'), config.prose);
 
       // Optional addendum. `#cat-notes` keeps `:not(:empty)` false for the nine
       // categories that have no `notes`, so the section's border-top and padding
-      // do not appear at all rather than leaving an empty ruled band. Built with
-      // textContent per note, never innerHTML — a config string is content, and
-      // the other renderers in this file treat it the same way.
+      // do not appear at all rather than leaving an empty ruled band. Same
+      // node-building path as the prose above, for the same reason.
       const notesEl = document.getElementById('cat-notes');
       notesEl.textContent = '';
       for (const note of config.notes || []) {
-        const p = document.createElement('p');
-        p.textContent = note;
-        notesEl.appendChild(p);
+        appendRichText(notesEl.appendChild(document.createElement('p')), note);
       }
     }
 

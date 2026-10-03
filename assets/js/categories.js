@@ -45,6 +45,7 @@
 // already needs check_categories.mjs to police (AGENTS.md gotcha 38), and
 // regenerating the index would then silently leave the tile wrong.
 import { SHINY_IDS } from './shiny-index.js';
+import { TYPE_COLORS, TYPE_EN_ZH, contrast, hexToRgb } from './shared.js';
 
 /** Region slug → Traditional Chinese, for regional-form card titles and filters. */
 const REGION_ZH = {
@@ -59,6 +60,171 @@ const FORM_BADGE = {
   mega: '超級進化',
   gigantamax: '超極巨化',
 };
+
+// ---------------------------------------------------------------------------
+// Inline markup for `prose` and `notes`.
+//
+// A config string is CONTENT, so it is never parsed as HTML: category.html
+// builds text nodes, `<strong>` and type spans explicitly, and never assigns
+// innerHTML (see the note above its notes loop). Two tokens are enough for the
+// one page that needs them:
+//
+//   **迷你龍**   a Pokémon name, emphasised
+//   {{火}}       a type name, wearing that type's colour
+//
+// `**` because it is the near-universal emphasis marker and cannot occur in this
+// copy; `{{ }}` rather than `[]` or full-width brackets because the prose is
+// already dense with 「」, ／ and （） — braces appear nowhere in it, so a token is
+// never ambiguous with punctuation the writer meant literally.
+// ---------------------------------------------------------------------------
+
+/** Type slug → lowercase, the form used in `data-type` and in the CSS. */
+const typeSlug = (en) => en.toLowerCase();
+
+/** Traditional Chinese type name → slug. The inverse of TYPE_EN_ZH, which is EN-keyed. */
+const TYPE_ZH_TO_SLUG = new Map(Object.entries(TYPE_EN_ZH).map(([en, zh]) => [zh, typeSlug(en)]));
+
+/**
+ * One token, matched anywhere in a string.
+ *
+ * Order in the alternation is the whole design: `strong` is offered the `**`
+ * branch first, so a `{{…}}` nested inside a name is consumed as part of the
+ * name's text and never re-read. That is not hypothetical — 電龍 is a real
+ * Pokémon whose name *begins with* the Electric type's Chinese name, and a
+ * parser that re-scanned strong content would wrap the 電 in a type span from
+ * inside the name. check_categories.mjs feeds this pattern a nested string and
+ * asserts no `.cat-type` comes out.
+ */
+const RICH_TOKEN = /\*\*([^*]+)\*\*|\{\{([^{}]+)\}\}/g;
+
+/**
+ * Append `str` to `parent`, honouring the two tokens above.
+ *
+ * @param {Node} parent   element to append into
+ * @param {string} str    config text, possibly containing tokens
+ * @param {Document} doc  document used to create elements
+ * @returns {number} type tokens rendered — a string whose `{{…}}` were all
+ *   mistyped renders as plain text and looks fine, so a caller that cares can
+ *   assert it meant to carry colour.
+ */
+export function appendRichText(parent, str, doc = parent.ownerDocument) {
+  let cursor = 0;
+  let typeCount = 0;
+  for (const m of String(str ?? '').matchAll(RICH_TOKEN)) {
+    const [token, strong, type] = m;
+    const at = m.index;
+    if (at > cursor) parent.appendChild(doc.createTextNode(str.slice(cursor, at)));
+    if (strong !== undefined) {
+      const el = doc.createElement('strong');
+      el.className = 'cat-strong';
+      el.textContent = strong;
+      parent.appendChild(el);
+    } else {
+      const slug = TYPE_ZH_TO_SLUG.get(type);
+      const el = doc.createElement('span');
+      el.className = 'cat-type';
+      // An unknown type name is marked rather than coloured. A `{{火属}}` typo
+      // should read as a typo, not silently inherit the neutral fallback the
+      // type badges use.
+      if (slug) {
+        el.dataset.type = slug;
+        typeCount += 1;
+      } else {
+        el.dataset.unknownType = type;
+      }
+      el.textContent = type;
+      parent.appendChild(el);
+    }
+    cursor = at + token.length;
+  }
+  if (cursor < str.length) parent.appendChild(doc.createTextNode(str.slice(cursor)));
+  return typeCount;
+}
+
+/**
+ * Type name → slug, exported for the checker's marker validation. Null for a
+ * name that is not one of the eighteen, which is how a `{{…}}` typo is reported
+ * instead of rendered.
+ */
+export function typeSlugForZh(zh) {
+  return TYPE_ZH_TO_SLUG.get(zh) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Type-coloured text, in both themes.
+//
+// The type swatches in shared.js are fixed saturated colours, and `.cat-intro`
+// paints them on `--bg-card`, which flips between #ffffff and #161e38. Measured
+// against white, eleven of the eighteen swatches miss 4.5:1 (Grass 2.06:1,
+// Electric 1.49:1); against the dark card, only Dragon and Poison miss. There is
+// no single swatch that serves both, which is the trap `badgePair()`'s comment
+// records for the badges — except that there the FILL moves to suit the chosen
+// ink, and here the INK has to move to suit the page.
+//
+// So each type gets one step per theme, walked toward black (light) or white
+// (dark) in 2% increments and stopped the moment it clears 4.5:1. Eleven of the
+// thirteen types the Dragon page uses keep their exact official swatch in dark
+// mode, because it already passed.
+//
+// Emitted as CSS rather than set as an inline style so that switching themes
+// needs no `themechange` listener and no recompute — the cascade does it, which
+// is how types.html hands its chart colours to CSS as custom properties.
+// ---------------------------------------------------------------------------
+
+/** The two `--bg-card` values, mirrored from assets/css/shared.css. */
+const CAT_BG = { light: [255, 255, 255], dark: [0x16, 0x1e, 0x38] };
+
+/**
+ * Walk `rgb` toward `towards` in 2% steps until it clears 4.5:1 on `bg`, judged
+ * with shared.js's own `contrast` so the page and the rest of the site cannot
+ * disagree about what 4.5:1 means.
+ */
+function stepForContrast(rgb, bg, towards) {
+  let step = rgb.slice();
+  for (let t = 0; t <= 1.0001; t += 0.02) {
+    step = rgb.map((c, i) => Math.round(c + (towards[i] - c) * t));
+    if (contrast(step, bg) >= 4.5) return step;
+  }
+  return towards.slice();
+}
+
+const toHex = (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+
+/**
+ * Type slug → `{ light, dark }` text colours, each clearing 4.5:1 on its own
+ * theme's card background. An unreadable swatch falls back to the ramp's own
+ * destination (near-black / white), which always clears.
+ */
+export const TYPE_TEXT_COLORS = Object.fromEntries(
+  Object.keys(TYPE_COLORS).map((en) => {
+    const rgb = hexToRgb(TYPE_COLORS[en]) || [119, 119, 119];
+    return [
+      typeSlug(en),
+      {
+        light: toHex(stepForContrast(rgb, CAT_BG.light, [0, 0, 0])),
+        dark: toHex(stepForContrast(rgb, CAT_BG.dark, [255, 255, 255])),
+      },
+    ];
+  })
+);
+
+/**
+ * The stylesheet for those colours, scoped to the introduction block so a type
+ * word can never pick up styling from a card grid it does not belong to.
+ *
+ * Injected once by category.html into a `<style>` it creates, rather than
+ * written into the page by hand: these values are derived from TYPE_COLORS, and
+ * a hand-copied hex is the same duplication check_categories.mjs polices
+ * everywhere else.
+ */
+export function typeTextStyleSheet() {
+  const rules = [];
+  for (const [slug, pair] of Object.entries(TYPE_TEXT_COLORS)) {
+    rules.push(`.cat-intro .cat-type[data-type="${slug}"] { color:${pair.light}; }`);
+    rules.push(`[data-theme="dark"] .cat-intro .cat-type[data-type="${slug}"] { color:${pair.dark}; }`);
+  }
+  return rules.join('\n');
+}
 
 /**
  * Mega and Gigantamax names are stored per-form in `forms[].name_en` because a
@@ -628,7 +794,7 @@ export const CATEGORIES = {
     // changing the template's shared prose region, which is not worth it for
     // one page.
     prose:
-      '龍屬性是寶可夢世界裡最具神話色彩的一類，設計靈感來自世界各地的傳說生物——西方的巨龍、東方的神龍、以及早已滅絕的古代爬蟲類。牠們也總是被放在冒險的最後一關：第一世代只有迷你龍、哈克龍與快龍三隻，其中僅有快龍是最終進化形態。走過九個世代，龍屬性從 3 隻擴展到 70 隻，分布也愈來愈密——第九世代帕底亞一次就新增了 14 隻，是九個世代裡最多的。成員中有 13 隻是純龍、57 隻為雙屬性，14 隻屬於傳說級，12 隻的種族值總和達到 600；扣掉傳說級之後的 9 隻裡，又有 8 隻同時滿足 600 族「非傳說、種族值 600、需經兩次進化」的條件——龍屬性與頂級輸出的關聯，可見一斑。龍屬性的優勢也從來不在打擊面廣，而在防守端的抗性搭配高基礎威力的招式：牠們能對其他龍屬性造成 2 倍傷害，自身完美抵抗火、水、草、電四大御三家屬性，是全圖鑑少數能同時扛住四種的組合；代價則是三個弱點——怕冰、怕同屬性的龍、也怕妖精。攻擊面只剩兩條路，打龍系 2 倍、打鋼系 0.5 倍，而妖精屬性完全免疫龍系的攻擊。第 6 世代加入妖精屬性之前，龍系在對戰裡幾乎沒有對手，唯一能擋下牠的鋼屬性反過來又會被火屬性與地面屬性的招式打成 2 倍；妖精系的加入重新平衡了這盤棋，也從此改寫了龍屬性寶可夢的配招邏輯——牠們必須自帶鋼屬性或毒屬性的招式，去處理上場擋招的妖精系對手。',
+      '龍屬性是寶可夢世界裡最具神話色彩的一類，設計靈感來自世界各地的傳說生物——西方的巨龍、東方的神龍、以及早已滅絕的古代爬蟲類。牠們也總是被放在冒險的最後一關：第一世代只有**迷你龍**、**哈克龍**與**快龍**三隻，其中僅有**快龍**是最終進化形態。走過九個世代，{{龍}}屬性從 3 隻擴展到 70 隻，分布也愈來愈密——第九世代帕底亞一次就新增了 14 隻，是九個世代裡最多的。成員中有 13 隻是純{{龍}}、57 隻為雙屬性，14 隻屬於傳說級，12 隻的種族值總和達到 600；扣掉傳說級之後的 9 隻裡，又有 8 隻同時滿足 600 族「非傳說、種族值 600、需經兩次進化」的條件——{{龍}}屬性與頂級輸出的關聯，可見一斑。{{龍}}屬性的優勢也從來不在打擊面廣，而在防守端的抗性搭配高基礎威力的招式：牠們能對其他{{龍}}屬性造成 2 倍傷害，自身完美抵抗{{火}}、{{水}}、{{草}}、{{電}}四大御三家屬性，是全圖鑑少數能同時扛住四種的組合；代價則是三個弱點——怕{{冰}}、怕同屬性的{{龍}}、也怕{{妖精}}。攻擊面只剩兩條路，打{{龍}}系 2 倍、打{{鋼}}系 0.5 倍，而{{妖精}}屬性完全免疫{{龍}}系的攻擊。第 6 世代加入{{妖精}}屬性之前，{{龍}}系在對戰裡幾乎沒有對手，唯一能擋下牠的{{鋼}}屬性反過來又會被{{火}}屬性與{{地面}}屬性的招式打成 2 倍；{{妖精}}系的加入重新平衡了這盤棋，也從此改寫了{{龍}}屬性寶可夢的配招邏輯——牠們必須自帶{{鋼}}屬性或{{毒}}屬性的招式，去處理上場擋招的{{妖精}}系對手。',
     notes: [
       // Trainer names come from `type_profiles.json`'s `trainers[].roleZh` where
       // it has them (阿渡、四天王 / 冠軍；小椿、道館館主；艾莉絲、道館館主 / 冠軍；
@@ -636,8 +802,16 @@ export const CATEGORIES = {
       // scrape has no row for her — but she is too central to the type's history to
       // leave out of an introduction that claims to be the detailed one, so she
       // appears here on the game's own record rather than on the scrape's.
-      '訓練家：龍屬性向來由實力最強的那批訓練家操控。第一世代關都四天王之首阿渡人稱「龍之使者」，是龍系的起點；城都煙墨道館的小椿是阿渡的表妹，考驗的正是玩家對龍屬性的理解；神奧冠軍竹蘭以烈咬陸鯊成為無數玩家的童年噩夢；合眾冠軍艾莉絲是龍系大師；伽勒爾的奇巴納把龍屬性與天氣戰術結合；帕底亞的四天王赫賽爾則是九個世代裡最後一位以龍系四天王登場的人物。',
-      '叫「龍」卻不是龍屬性：名字或外型像龍，和牠的屬性欄是兩件事。噴火龍是火／飛行的雙屬性、暴鯨龍與海刺龍是水系、化石翼龍是岩石／飛行、變隱龍甚至是一般系，電龍與土龍弟弟也都不帶龍屬性。判斷一隻寶可夢是不是龍屬性，唯一可靠的依據是 `pokemon_data.json` 的 `types`，不是它的名字——這也是 `dragonMembers` 只讀 `types` 的原因。',
+      // Trainer names are NOT bolded, and that is the rule rather than an
+      // omission: the token is for Pokémon, and these are people. 烈咬陸鯊 is
+      // the one Pokémon in the sentence.
+      '訓練家：{{龍}}屬性向來由實力最強的那批訓練家操控。第一世代關都四天王之首阿渡人稱「{{龍}}之使者」，是{{龍}}系的起點；城都煙墨道館的小椿是阿渡的表妹，考驗的正是玩家對{{龍}}屬性的理解；神奧冠軍竹蘭以**烈咬陸鯊**成為無數玩家的童年噩夢；合眾冠軍艾莉絲是{{龍}}系大師；伽勒爾的奇巴納把{{龍}}屬性與天氣戰術結合；帕底亞的四天王赫賽爾則是九個世代裡最後一位以{{龍}}系四天王登場的人物。',
+      // The trailing sentence that used to sit here — 「判斷一隻寶可夢是不是龍屬性，唯一可靠的依據是
+      // pokemon_data.json 的 types」 — is gone, at the user's request and rightly:
+      // it was addressed to whoever maintains `dragonMembers`, not to a reader
+      // looking up which Pokémon are Dragon-type. The reasoning it recorded now
+      // lives where it belongs, on the selector itself and in check_categories.mjs.
+      '叫「{{龍}}」卻不是{{龍}}屬性：名字或外型像{{龍}}，和牠的屬性欄是兩件事。**噴火龍**是{{火}}／{{飛行}}的雙屬性、**暴鯉龍**與**海刺龍**是{{水}}系、**化石翼龍**是{{岩石}}／{{飛行}}、**變隱龍**甚至是{{一般}}系，**電龍**與**土龍弟弟**也都不帶{{龍}}屬性。',
     ],
   },
 };
