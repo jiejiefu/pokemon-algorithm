@@ -189,6 +189,24 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 
 `node scripts/check_gen1_apu.mjs` (86 checks) and `node scripts/test_check_gen1_apu.mjs` (34 mutation cases) guard it. Sixteen of those cases failed when first written and **every one was a real gap rather than a bad expectation** — the mutation test is the reason this section exists, so read it before trusting any assertion here that "looks obviously true".
 
+**A case's `expect` must name the assertion that actually detects it, and the harness now enforces that.** This section's most important sentence is the one about output versus description, and the harness itself had the disease it warns about. A case declared `expect: 'never get one'`, which occurs in the description of a check that **passes** — and `out.includes(expect)` was therefore satisfied by a passing line, so nothing could tell whether the named detector had fired. Four cases were wrong in this way and all four passed for an accidental reason:
+
+| Case declared | Actually detected by | Why the declared one was blind |
+| :--- | :--- | :--- |
+| `never get one` | `within one 8-bit step` | the timeline calls `noiseOffset()` itself, so it cannot see a mutation to the **renderer's** call site — the two share one definition, which is the fix from the bullet above |
+| `clocks are the same at 65,536 Hz` | `the same grain at both rates` | `noiseClocks` reports Hz, and Hz is a property of the register not the output rate, so that equality holds **by design** even with the clock unscaled |
+| `Machop` | `Hz its register predicts` | a species name inside a passing check's description |
+| `byte-identical` | `Rhyhon do NOT` | occurs only in the two *passing* identical-pair checks |
+
+The rule is now that `expect` is matched against the checker's **FAIL lines only**, so a case cannot be satisfied by a check that passed. Tightening the matcher is what found all four; loosening it back would make every row above undetectable again. This is the same failure shape as the seven truncated species that were once recorded as a known set — a green test standing in for a claim nothing was checking.
+
+**Where the 34 cases' time goes, and the two structural fixes.** The checker's native-rate conformance loop is **4.8 s of its 6.5 s**, so:
+
+- The corpus is walked **once**, not four times. Four separate loops each rendered all 151 species and two measured the same thing; `renderSpeciesCry` is pure for `(cries, sfx, id)` with no options, so one pass answers all four questions. The per-species result is reduced to scalars and **dropped** — retaining 151 renders would hold ~78 MB of Float32Array alive, which is the one way this edit could cost more than it saves. Checker: 6.5 s → 5.5 s, and its output is unchanged line for line.
+- The 17 cases whose detector is *not* the conformance comparison run against a fixture whose **copy** of the checker has that section removed: 5.5 s → 0.63 s each. `scripts/check_gen1_apu.mjs` gains no switch and no environment variable, because a supported way to skip the conformance comparison is how it would stop happening; the baseline always runs the whole checker. Eligibility is decided by `expect` alone, so there is no per-case flag to forget and an unflagged case runs everything.
+- The one guard that makes the strip safe: the baseline runs a **second** time with the section removed and requires it to pass having dropped **exactly 4** of the 86 checks. A strip that took one check too many would leave the 17 cheap cases asserting against a silently narrower checker, and every one of them would still pass — they only require their own detector, which a narrower checker satisfies more easily, not less.
+- Measured on this machine at `POOL = 4`: **~62 s → ~34 s**, with all 34 cases and all 86 checks intact. Cheapest first is wrong — the heavy cases are issued up front, so every trailing wave is short.
+
 **Generating the conformance vectors has one trap worth writing down.** The reference's roster is a **0-indexed array**, so a dex id is `index + 1`. Reading it as `pokemon[id]` shifts every vector by one species and produces a plausible-looking file that matches nothing — including one species whose vector is not a species at all. The checker therefore asserts the two rosters agree on cry, pitch and length for all 150 before it trusts any of the audio, and the vectors carry those three fields for exactly that reason.
 
 ### G. The Two Cry Pages
@@ -294,7 +312,9 @@ node scripts/check_cries_browser.mjs
 # 33 x a 6 s checker is three and a half minutes of waiting to re-verify
 # arithmetic. Measured here, 6 workers 44.5 s, 8 workers 38.9 s, 12 workers 38.5 s.
 # Four is a deliberate choice because other work shares this machine — raise POOL in
-# scripts/test_check_gen1_apu.mjs when the machine is idle.
+# scripts/test_check_gen1_apu.mjs when the machine is idle. At four this is ~34 s,
+# down from ~62 s before the corpus was walked once and the cases that do not need
+# the conformance comparison were routed around it — see the end of §3.F.
 
 # Verify the Generation I cry table: the 151-row name join against pokered's
 # unordered table, the 38 base cries, the channel/command shape, and the pinned
