@@ -173,8 +173,16 @@ ok(/legacy-warning/.test(page.slice(page.indexOf('el(\'filters\')'))),
 // ---------------------------------------------------------------------------
 
 ok(/from '\.\/assets\/js\/cry-player\.js'/.test(page), 'the page imports the shared player');
-ok(/cryPlayer\.play\(id,\s*\{\s*legacy:\s*state\.legacy\s*\}\)/.test(page),
+/* Matched on the legacy flag alone, not on the whole call: the call now carries an
+ * onStart hook for the probe waveform's playback cursor, and a checker that pinned
+ * the exact argument list would fail on formatting rather than on behaviour. */
+/* `(id,` is required so a mention of cryPlayer.play() inside a comment is not
+ * mistaken for a call site -- which is exactly what happened the first time. */
+const playCalls = [...page.matchAll(/cryPlayer\.play\(id,([^]*?)\)\s*;/g)].map((m) => m[0]);
+ok(playCalls.length > 0 && playCalls.every((c) => /legacy:\s*state\.legacy/.test(c)),
   'playback passes the set through the player rather than picking a directory itself');
+ok(!/cryUrl|legacyUrl|\.ogg['\"]/.test(page), 'and never builds a cry path itself');
+ok(/onStart:/.test(page), 'the probe waveform is given the clock reading it needs to draw a cursor');
 ok(!/assets\/cries\//.test(page), 'the page never spells out a cry path');
 ok(!/raw\.githubusercontent\.com\/PokeAPI\/cries/.test(page),
   'the page does not reach for a remote cry host');

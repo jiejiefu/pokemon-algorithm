@@ -158,14 +158,15 @@ const CASES = [
   {
     name: 'playback goes back to a remote cry host',
     mutate: (dir) => editPage(dir, (s) => s
-      .replace('cryPlayer.play(id, { legacy: state.legacy })',
-        "new Audio('https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg').play()")),
+      .replace("await cryPlayer.play(id, {\n          legacy: state.legacy,",
+        "await cryPlayer.play(id, {\n          legacy: false,")
+      .replace("cryPlayer.play(id, {", "new Audio('https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg').play(); cryPlayer.play(id, {")),
     expect: 'does not reach for a remote cry host',
   },
   {
     name: 'playback stops passing the set through, so a legacy id plays a latest file',
     mutate: (dir) => editPage(dir, (s) => s
-      .replace('cryPlayer.play(id, { legacy: state.legacy })', 'cryPlayer.play(id)')),
+      .replace("await cryPlayer.play(id, {\n          legacy: state.legacy,\n", "await cryPlayer.play(id, {\n")),
     expect: 'passes the set through the player',
   },
   {
@@ -187,7 +188,7 @@ const CASES = [
   },
   {
     name: 'reduced motion is no longer honoured',
-    mutate: (dir) => editCss(dir, (s) => s.replace('@media (prefers-reduced-motion: reduce) {', '@media (min-width: 0px) {')),
+    mutate: (dir) => editCss(dir, (s) => s.replaceAll('@media (prefers-reduced-motion: reduce) {', '@media (min-width: 0px) {')),
     expect: 'honours reduced motion',
   },
   {

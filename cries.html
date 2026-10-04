@@ -477,6 +477,35 @@
       renderSimilar(id);
     }
 
+    /* The probe waveform is redrawn on every selection and every play, and it is a
+     * couple of hundred vertical strokes, so it is cached in an offscreen canvas and
+     * the playback cursor only blits it and paints over the top. */
+    let probeCache = null;
+
+    function blitProbe(ratio) {
+      const canvas = el('probe-wave');
+      if (!canvas || !probeCache) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = canvas.clientWidth;
+      const h = canvas.height / dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(probeCache, 0, 0, w, h);
+      if (ratio > 0) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, 0, w * ratio, h);
+        ctx.strokeStyle = getComputedStyle(canvas).color;
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(w * ratio, 0);
+        ctx.lineTo(w * ratio, h);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
     async function drawWave(id) {
       const canvas = el('probe-wave');
       const ctx = canvas.getContext('2d');
@@ -485,6 +514,10 @@
       const cssH = 48;
       canvas.width = Math.round(cssW * dpr);
       canvas.height = Math.round(cssH * dpr);
+      probeCache = document.createElement('canvas');
+      probeCache.width = canvas.width;
+      probeCache.height = canvas.height;
+      ctx = probeCache.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
 
@@ -495,6 +528,7 @@
         ctx.fillStyle = getComputedStyle(canvas).color;
         ctx.font = '12px system-ui, sans-serif';
         ctx.fillText('這隻沒有可解碼的叫聲', 8, cssH / 2);
+        blitProbe(0);
         return;
       }
       // waveformPeaks() clamps to ±1 because the decoded peaks exceed 1.0, so
@@ -512,6 +546,25 @@
         ctx.lineTo(x, mid + v * (mid - 3));
       }
       ctx.stroke();
+      blitProbe(0);
+    }
+
+    /* The playback cursor for the probe waveform.
+     *
+     * `cryPlayer.play()` resolves when the cry ends, so the clock reading and the
+     * duration come from its onStart hook instead of from its return value -- the
+     * player owns the AudioContext and is the only thing that can read it. */
+    let probeRaf = 0;
+    function paintProbeProgress(progress) {
+      const canvas = el('probe-wave');
+      if (!canvas || !probeCache) return;
+      const ratio = progress.startedAt === null || !progress.duration
+        ? 0
+        : Math.min(1, Math.max(0, (progress.now - progress.startedAt) / progress.duration));
+      blitProbe(ratio);
+      if (ratio < 1 && progress.startedAt !== null) {
+        probeRaf = requestAnimationFrame(() => paintProbeProgress(progress));
+      }
     }
 
     function renderSimilar(id) {
@@ -556,16 +609,31 @@
       }
       state.playingId = id;
       syncPlayButtons();
+      /* Only the probe panel gets a cursor, and only while it is the species on
+       * screen -- pressing play on a card in the grid should not start an
+       * animation the reader cannot see. */
+      const cursored = state.probeId === id;
+      const progress = cursored ? { startedAt: null, duration: 0, now: 0 } : null;
       try {
-        await cryPlayer.play(id, { legacy: state.legacy });
+        await cryPlayer.play(id, {
+          legacy: state.legacy,
+          onStart: progress && ((p) => {
+            progress.startedAt = p.startedAt;
+            progress.duration = p.duration;
+            if (probeRaf) cancelAnimationFrame(probeRaf);
+            paintProbeProgress(progress);
+          }),
+        });
       } catch (error) {
         state.playingId = null;
         syncPlayButtons();
+        if (progress) { progress.startedAt = null; blitProbe(0); }
         announce.textContent = error?.reason === 'decode-failed' ? '這隻的叫聲無法解碼' : '叫聲無法播放';
         return;
       }
       state.playingId = null;
       syncPlayButtons();
+      if (progress) { progress.startedAt = null; if (probeRaf) { cancelAnimationFrame(probeRaf); probeRaf = 0; } blitProbe(0); }
       if (state.probeId !== null) renderProbe();
     }
 

@@ -198,7 +198,18 @@ export class CriesPlayer {
    * is how the sorting race makes a list audible, and how the cry browser lets a
    * reader hear a similarity match as a transposition.
    */
-  async play(id, { legacy = false, rate = 1, volume } = {}) {
+  /**
+   * `onStart` is called the instant the source starts, with the decoded duration
+   * and the context clock reading at that moment.
+   *
+   * `play()` itself resolves only when the cry ENDS, so a caller has no way to
+   * know when playback began or how long it will run until it is already over.
+   * That is enough to toggle a button and not enough to draw a progress cursor,
+   * which needs both numbers at the moment playback starts rather than at the end.
+   * The player owns the AudioContext, so it is also the only place that can read
+   * that clock. Callers that pass no callback are unaffected.
+   */
+  async play(id, { legacy = false, rate = 1, volume, onStart } = {}) {
     if (!this.has(id, { legacy })) {
       throw Object.assign(new Error(`no ${legacy ? 'legacy' : 'latest'} cry for id ${id}`),
         { reason: 'missing' });
@@ -230,9 +241,11 @@ export class CriesPlayer {
       source.onerror = () => reject(Object.assign(
         new Error(`cry ${id} failed during playback`), { reason: 'playback-failed' }));
     });
+    const startedAt = ctx.currentTime;
     source.start();
 
-    this.#current = { source, out, id, legacy, rate };
+    this.#current = { source, out, id, legacy, rate, startedAt };
+    if (onStart) onStart({ duration: buffer.duration, startedAt, rate, id });
     return settled;
   }
 

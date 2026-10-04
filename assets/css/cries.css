@@ -632,7 +632,8 @@
   .cy-card,
   .cy-chip,
   .cy-play,
-  .cy-sim {
+  .cy-sim,
+  .cg-playhead {
     transition: none;
   }
 
@@ -1087,4 +1088,32 @@
   right: 0;
   background: var(--accent-yellow-text);
   border-radius: 0 2px 2px 0;
+}
+
+/* Playback affordances on the Generation I page.
+   Both cursors are driven by the same clock (see paintProgress in cries-gen1.html),
+   so the waveform's played region and the timeline's playhead cannot drift. */
+
+.cg-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity .12s linear;
+  pointer-events: none;
+}
+
+.cg-timeline-track {
+  position: relative;
+  height: 14px;
+  margin-top: 6px;
+  color: var(--cy-accent, currentColor);
+}
+
+.cg-lane-state {
+  font-variant-numeric: tabular-nums;
 }

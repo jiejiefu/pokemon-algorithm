@@ -58,7 +58,9 @@
         <div class="cy-page">
           <div class="cy-intro">
             <h1>第一世代叫聲實驗室</h1>
-            <p>紅／綠／藍的 151 隻叫聲並不是 151 段錄音。Game Freak 只寫了 <strong>38 段 base cry</strong>，其餘全部是用兩個位元組從這 38 段推導出來的：<strong>音高</strong>（0–255，直接加到 11 位元頻率暫存器上）與<strong>長度</strong>（−128…127，作為時間縮放乘數）。這一頁用瀏覽器的 Web Audio 重新合成它們，你可以改那兩個位元組，立刻聽到結果。</p>
+            <p>紅／綠／藍的 151 隻，並不是各自擁有 151 段不同的叫聲錄音。Game Freak 當時只製作了 <strong>38 段 base cry</strong>（基礎叫聲旋律），151 隻共用這 38 段，也就是說有 <strong>113 隻</strong>的叫聲是拿別隻的 base 改出來的。</p>
+            <p>改寫只靠兩個位元組：<strong>Pitch</strong>（0–255）會<em>直接加</em>到旋律的頻率值上 —— 不是改變調，而是把數字加上去，所以加過頭會超出暫存器而捲回低頻；<strong>Length</strong>（−128…127）則是時間縮放乘數，決定這段旋律播多快。同一段 base 配上不同的兩個位元組，就是一隻寶可夢的叫聲。</p>
+            <p>這一頁用瀏覽器的 Web Audio 重新合成全部 151 隻：拉動那兩個滑桿，就能立刻聽到「同一段旋律、不同兩個位元組」是什麼感覺，也能量出哪些寶可夢其實<strong>聽起來一模一樣</strong>。</p>
           </div>
 
           <section class="cg-stage" aria-labelledby="stage-h">
@@ -99,6 +101,8 @@
             <h3>聲道時間軸</h3>
             <p class="cg-note">三條聲道各跑各的。脈衝聲道的音符結束於自己的幀數；噪音聲道比較長時，它最後那段會在脈衝聲道結束之後繼續，而那正是音高偏移已被取消的地方。</p>
             <div class="cg-timeline" id="timeline"></div>
+            <div class="cg-timeline-track" id="timeline-track"
+                 role="presentation"><i class="cg-playhead" aria-hidden="true"></i></div>
           </section>
 
           <section class="cg-channels" id="channels" aria-label="聲道"></section>
@@ -129,8 +133,8 @@
 
               <article class="cg-card">
                 <h3>為什麼有些叫聲尾巴會「崩潰」</h3>
-                <p>噪音聲道的音高偏移在<strong>兩個脈衝聲道都結束之後</strong>被清除，而硬體並不檢查噪音聲道狀態。所以噪音聲道如果比脈衝聲道長，尾段會用原始參數播放，聽起來像突然的爆聲。</p>
-                <p>嘟嘟就是這樣。另一頭，<strong>蛋蛋</strong>的脈衝音符比較長，噪音聲道結束時偏移還沒被取消，所以牠沒有這個尾巴。當前選擇：<strong id="crash-text">—</strong></p>
+                <p>噪音聲道的音高偏移，在<strong>兩個脈衝聲道排定結束前一幀</strong>被清除，而硬體並不檢查噪音聲道的狀態。所以噪音聲道裡<strong>在那一刻之後才開始的音符</strong>，整個都用原始參數播放，不帶偏移 —— 偏移不是被「撤銷」，而是從來沒加上去。於是相鄰兩音符之間出現一個音高跳躍，那就是崩潰。</p>
+                <p>要留意的是「排定」：這是各音符幀數的<strong>總和</strong>，不是實際渲染出來的長度。ring-out 會讓脈衝聲道實際跑得比排定的久，若拿渲染長度當基準，取消的時點就會被推遲。這份資料庫裡沒有任何一個噪音音符跨越那個界線，所以崩潰一律發生在<strong>音符與音符之間</strong>，而不是某個音符唱到一半轉調。當前選擇：<strong id="crash-text">—</strong></p>
               </article>
 
               <article class="cg-card">
@@ -191,6 +195,8 @@
       source: null,
       context: null,
       renderMs: 0,
+      startedAt: null,
+      duration: 0,
     };
 
     let cries = null;
@@ -221,7 +227,7 @@
       stop();
       const { samples, meta: info } = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
-        length: (state.lengthSigned + 256) & 0xff,
+        length: (state.lengthSigned + 0x80) & 0xff,
         volume: state.volume,
         muted: state.muted,
         envelopeStep: state.envelopeStep,
@@ -246,17 +252,77 @@
       state.buffer = buffer;
       state.source = source;
       state.playing = true;
+      state.startedAt = ctx.currentTime;
+      state.duration = buffer.duration;
+      if (!progressRaf) progressRaf = requestAnimationFrame(paintProgress);
       el('play').setAttribute('aria-pressed', 'true');
       el('play').setAttribute('aria-label', '停止叫聲');
       el('play').innerHTML = iconSvg('pause');
       source.onended = () => {
         state.playing = false;
         state.source = null;
+        state.startedAt = null;
+        if (progressRaf) { cancelAnimationFrame(progressRaf); progressRaf = 0; }
+        paintProgress();
         el('play').setAttribute('aria-pressed', 'false');
         el('play').setAttribute('aria-label', '播放叫聲');
         el('play').innerHTML = iconSvg('play');
       };
       announce.textContent = `播放 ${meta.get(state.id).names.zh} 的叫聲，${info.duration.toFixed(2)} 秒`;
+    }
+
+    /* The playback cursor.
+     *
+     * The waveform is expensive to build -- a thousand-odd line segments and two
+     * labels -- and none of that changes while audio plays, so it is cached in an
+     * offscreen canvas and each frame only blits the cache and paints the played
+     * region over it. The timeline's playhead reads the same clock, so the two
+     * cannot drift apart.
+     */
+    let waveCache = null;
+    let progressRaf = 0;
+
+    function paintProgress() {
+      progressRaf = 0;
+      const canvas = document.getElementById('wave');
+      /* `startedAt` is null when nothing is playing, never 0: the clock reads
+       * exactly 0 on the first play, because the context has only just resumed,
+       * and a `> 0` guard therefore reported "not started" for the whole first
+       * playback. The cursor simply never appeared. */
+      const ratio = state.startedAt !== null && state.duration > 0
+        ? Math.min(1, (state.context.currentTime - state.startedAt) / state.duration)
+        : 0;
+
+      if (canvas && waveCache) {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const w = canvas.clientWidth;
+        const h = canvas.height / dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(waveCache, 0, 0, w, h);
+        if (ratio > 0) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+          ctx.fillRect(0, 0, w * ratio, h);
+          ctx.strokeStyle = getComputedStyle(canvas).color;
+          ctx.globalAlpha = 0.9;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(w * ratio, 0);
+          ctx.lineTo(w * ratio, h);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      const track = document.getElementById('timeline-track');
+      const cursor = track?.querySelector('.cg-playhead');
+      if (cursor && track) {
+        cursor.style.transform = `translateX(${ratio * track.clientWidth}px)`;
+        cursor.style.opacity = ratio > 0 ? '1' : '0';
+      }
+
+      if (ratio < 1 && state.playing) progressRaf = requestAnimationFrame(paintProgress);
     }
 
     function stop() {
@@ -266,6 +332,9 @@
         state.source = null;
       }
       state.playing = false;
+      state.startedAt = null;
+      if (progressRaf) { cancelAnimationFrame(progressRaf); progressRaf = 0; }
+      paintProgress();
       el('play').setAttribute('aria-pressed', 'false');
       el('play').setAttribute('aria-label', '播放叫聲');
       el('play').innerHTML = iconSvg('play');
@@ -286,7 +355,7 @@
       const t0 = performance.now();
       const out = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
-        length: (state.lengthSigned + 256) & 0xff,
+        length: (state.lengthSigned + 0x80) & 0xff,
         volume: state.volume,
         muted: state.muted,
         envelopeStep: state.envelopeStep,
@@ -302,7 +371,12 @@
       const cssH = 120;
       canvas.width = Math.round(cssW * dpr);
       canvas.height = Math.round(cssH * dpr);
-      const ctx = canvas.getContext('2d');
+      /* Drawn once into an offscreen canvas. paintProgress blits this and paints
+       * only the played region on top, so the cost of playing is one drawImage. */
+      waveCache = document.createElement('canvas');
+      waveCache.width = canvas.width;
+      waveCache.height = canvas.height;
+      const ctx = waveCache.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
 
@@ -380,7 +454,7 @@
         return `<div class="cg-lane${muted ? ' is-muted' : ''}">
           <button type="button" class="cg-lane-toggle" data-mute="${ch.id}" aria-pressed="${Boolean(muted)}">
             <span class="cg-lane-name">${ch.name}</span>
-            <span class="cg-lane-state">${muted ? '靜音' : '播放中'}</span>
+            <span class="cg-lane-state">${muted ? '靜音' : '啟用'}</span>
           </button>
           <div class="cg-lane-track" title="${escapeHtml(ch.hint)}">${bars}</div>
         </div>`;
@@ -412,8 +486,14 @@
               (${(param & 8) ? '7 位元' : '15 位元'} LFSR)</span></li>`;
           }
           if (cmd.op === 'loop') {
+            /* Resolved before rendering, not ignored. The reference's feature list
+             * marks loop unsupported, which is true of its UI and false of its data:
+             * cry0d's Ch5 arrives there with the block already duplicated. `count`
+             * is the number of TIMES the block plays. Dropping it, as an earlier
+             * version of this page did, left the nine species on that base short by
+             * exactly one block and every other number on the page still agreed. */
             return `<li><code>sound_loop</code> ${cmd.count}, ${cmd.target}
-              <span class="cg-dim">整段重播 ${cmd.count - 1} 次</span></li>`;
+              <span class="cg-dim">整段重播 ${cmd.count} 次（count 是總次數，不是額外次數）</span></li>`;
           }
           if (cmd.op === 'ret') return '<li><code>sound_ret</code></li>';
           return `<li><code>${escapeHtml(cmd.op)}</code></li>`;
@@ -435,25 +515,43 @@
     function renderFacts(result) {
       const wraps = wrappedNotes(base, state.pitch);
       el('wrap-count').textContent = String(wraps.length);
-      const noiseEnd = result.notes.filter((n) => n.ch === 8).reduce((a, n) => Math.max(a, n.end), 0);
-      const pulseEnd = Math.max(
-        ...result.notes.filter((n) => n.ch !== 8).map((n) => n.end),
-        0,
-      );
-      el('crash-text').textContent = noiseEnd > pulseEnd + 1e-9
-        ? `噪音聲道比脈衝聲道長 ${((noiseEnd - pulseEnd) * 1000).toFixed(0)} 毫秒，尾段在偏移取消後播放，會有崩潰尾音。`
-        : '噪音聲道沒有超過脈衝聲道，不會有崩潰尾音。';
+      /* The rule is the CUTOFF, not the rendered length of the pulse channels.
+       * `cancelAt` is one frame before the pulses are scheduled to end, so a noise
+       * note beginning after it never receives the offset in the first place. */
+      const noise = result.notes.filter((n) => n.ch === 8 && n.end > n.start);
+      const dropped = noise.filter((n) => !n.shifted);
+      const kept = noise.filter((n) => n.shifted);
+      const step = kept.length && dropped.length;
+      el('crash-text').textContent = !noise.length
+        ? '這隻沒有噪音聲道。'
+        : !dropped.length
+          ? `${noise.length} 個噪音音符都在偏移取消之前開始，所以每一個都保留偏移，沒有崩潰尾音。`
+          : `${noise.length} 個噪音音符裡，${dropped.length} 個在偏移取消之後才開始，因此沒有套用音高偏移`
+            + (step ? `；前後兩組交界處就是崩潰發生的位置。` : `。`);
+    }
+
+    /* Blit the cache onto the visible canvas. Called after every drawWave so the
+     * waveform is visible when nothing is playing. */
+    function blitWave() {
+      const canvas = document.getElementById('wave');
+      if (!canvas || !waveCache) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(waveCache, 0, 0);
     }
 
     function renderVisuals() {
       const result = currentRender();
       lastRender = result;
       drawWave(result.samples, result.notes);
+      blitWave();
       drawTimeline(result);
       renderChannels(result);
       renderFacts(result);
 
-      const { multiplier, stretch } = lengthMultiplier((state.lengthSigned + 256) & 0xff);
+      const { multiplier, stretch } = lengthMultiplier((state.lengthSigned + 0x80) & 0xff);
       el('pitch-val').textContent = state.pitch;
       el('length-val').textContent = state.lengthSigned;
       el('volume-val').textContent = state.volume;
@@ -495,7 +593,12 @@
             `#${m.id}` === filter;
         });
         if (!members.length) return '';
-        return `<details class="cg-group"${g.members.length > 4 ? '' : ' open'}>
+        /* A group of four or fewer is open by default, and so is whichever group
+         * holds the current species -- selecting a Pokémon used to collapse the
+         * list it had just been picked from, so comparing two of its relatives
+         * meant reopening the same <details> for every single click. */
+        const holdsCurrent = members.some((m) => m.id === state.id);
+        return `<details class="cg-group"${g.members.length > 4 && !holdsCurrent ? '' : ' open'}>
           <summary>
             <span class="cg-group-name">base ${g.base}</span>
             <span class="cg-group-count">${g.members.length} 隻</span>
@@ -515,7 +618,12 @@
       row = cries.cries.find((c) => c.id === id);
       base = sfx.sfx[row.sfx];
       state.pitch = row.pitch;
-      state.lengthSigned = row.length > 127 ? row.length - 256 : row.length;
+      /* The slider shows the reference page's own value, `stored byte - 0x80`, not
+       * the byte's two's-complement reading. They differ by 0x80 for every byte at
+       * or above 0x80, and the difference is a third of the note length rather than
+       * a matter of taste -- Charizard stores 0x80, so its slider reads 0 here and
+       * its multiplier is 0x100, no stretch at all. */
+      state.lengthSigned = row.length - 0x80;
       el('pitch').value = String(state.pitch);
       el('length').value = String(state.lengthSigned);
       renderGroups();
