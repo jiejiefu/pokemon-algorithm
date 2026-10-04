@@ -59,12 +59,38 @@ const ok = (cond, what) => {
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
-  ok(a === b, `${what}${a === b ? '' : `\n      got:  ${a}\n      want: ${b}`}`);
+  ok(a === b, `${what}${a === b ? '' : `\n      got:  ${a}\n      want:  ${b}`}`);
 };
 
 const cries = read('assets/data/gen1_cries.json');
 const sfx = read('assets/data/gen1_cry_sfx.json');
 const pokemon = read('assets/data/pokemon_data.json');
+/* The fade field is a 4-bit SIGNED MAGNITUDE, so it spans [-8, +7] rather than the
+ * [-7, +7] pokered's macro documents as its argument range: the macro packs the
+ * direction into bit 7 of the emitted byte and the magnitude below it, and -8 is what
+ * a magnitude of 8 becomes. Reading the literal as unsigned
+ * turns `square_note 12, 0, 8, 0` into a fade OUT of a note whose volume is 0, which
+ * clamps at 0 and makes the note silent; the tables mean "increase". pokered's macro
+ * says so in as many words, and the reference synthesiser's own tables carry -8.
+ *
+ * This was found by diffing all 38 bases against those tables: of every frames,
+ * volume, sweep, freq and duty byte in all 114 channels, nine sweeps were the only
+ * differences. So the RANGE is asserted rather than a value, which catches the next
+ * one whatever it is. */
+const sweeps = [];
+for (const base of Object.values(sfx.sfx)) {
+  for (const ch of base.channels) {
+    for (const cmd of ch.commands) {
+      if (cmd.op === 'pulse' || cmd.op === 'noise') sweeps.push(cmd.sweep);
+    }
+  }
+}
+eq(sweeps.filter((v) => v < -8 || v > 7), [],
+  `all ${sweeps.length} fade values are inside the 4-bit signed-magnitude range [-8, +7]`);
+eq(sweeps.filter((v) => v === -8).length, 9,
+  'and the nine that mean "increase" are stored as -8 rather than 8');
+ok(sweeps.filter((v) => v === 0).length > 0,
+  'and a fade of 0, a static envelope, still exists -- the renderer has to bound those');
 
 // ---------------------------------------------------------------------------
 // Provenance. A generated file that has lost its source is a file nobody can

@@ -179,13 +179,24 @@ function renderPulse(commands, pitch, length) {
   let steps = 0;      // envelope volume changes, across the whole channel
 
   /* The reference does not implement sound_ret, so its last note rings until the
-   * envelope empties. A sweep of 0 means the envelope never steps, so on the
+   * envelope empties.
+   *
+   * When the sweep is non-zero the envelope always reaches zero, so the loop ends on
+   * its own and needs no bound. When the sweep is ZERO it never steps, so on the
    * reference such a note rings forever -- and here it rang until the sample cap:
-   * four million samples, sixty seconds, for one note. The tail is bounded
-   * instead, to the hardware's maximum note length. Nothing in this corpus comes
-   * near either bound, which is exactly why the runaway stayed hidden until a
-   * synthetic note asked for it. */
-  const ringCap = Math.round(SAMPLES_PER_FRAME * 16);
+   * four million samples, sixty seconds, for one note. That case is bounded to the
+   * hardware's maximum note length.
+   *
+   * The bound used to apply to both, and that was wrong: a legitimate tail is up to
+   * fifteen envelope steps each a whole |sweep| frames apart, which is 240 frames at
+   * the largest sweep, so a 16-frame bound truncated real ring-outs. It cost seven
+   * species exactly one frame each -- cry1c's last noise note ends at volume 6 with a
+   * sweep of 3, needing 18 frames of tail against the 16 allowed. */
+  /* The tail of the last note, bounded ONLY when its envelope can never empty.
+   * Sixteen frames is the hardware's longest single note, so the runaway tail is no
+   * longer than the sound that caused it. A note with any sweep at all terminates on
+   * its own, because the envelope reaches zero within fifteen steps. */
+  const staticTail = Math.round(SAMPLES_PER_FRAME * 16);
   let nominal = 0;    // summed note lengths, WITHOUT any ring-out
 
   const frameSamples = Math.round(SAMPLES_PER_FRAME);
@@ -237,7 +248,12 @@ function renderPulse(commands, pitch, length) {
       // envelope reaches zero. Not a hack -- it is what makes a cry fade instead
       // of being cut off, and it is why dropping the sound_ret command changes the
       // sound of all 151 species.
-      if (!(i < sampleCount || (isLast && vol > 0 && i < sampleCount + ringCap))) break;
+      // A sweep of 0 never empties the envelope, so that note -- and only that note
+      // -- gets the finite bound. Everything else terminates on its own.
+      // A sweep of 0 never empties the envelope, so only that note is bounded.
+      // Everything else rings until its envelope reaches zero, which it always does.
+      const cap = isLast && volfade === 0 ? sampleCount + staticTail : Number.POSITIVE_INFINITY;
+      if (!(i < sampleCount || (isLast && vol > 0 && i < cap))) break;
 
       out[sampleI] = (out[sampleI] || 0) + sample(calcDuty(duty & 3, perc) ? 1 : 0, vol);
       perc += 1 / period;
@@ -293,8 +309,13 @@ function renderNoise(commands, pitch, cutoffSamples) {
 
   const frameSamples = Math.round(SAMPLES_PER_FRAME);
   // Same bounded ring-out as the pulse channels: see renderPulse. Unreachable from
-  // this corpus, because a noise sweep is always +/-1 and so always decays.
-  const ringCap = Math.round(SAMPLES_PER_FRAME * 16);
+  // this corpus, because a noise sweep is always +/-1 and so always decays. The
+  // bound is the same as the pulse channel's, for the same reason: see above.
+  /* The tail of the last note, bounded ONLY when its envelope can never empty.
+   * Sixteen frames is the hardware's longest single note, so the runaway tail is no
+   * longer than the sound that caused it. A note with any sweep at all terminates on
+   * its own, because the envelope reaches zero within fifteen steps. */
+  const staticTail = Math.round(SAMPLES_PER_FRAME * 16);
   const noiseClocks = [];
 
   for (let cmdI = 0; cmdI < commands.length; cmdI++) {
@@ -343,7 +364,10 @@ function renderNoise(commands, pitch, cutoffSamples) {
     const envelopePeriod = frameSamples * Math.abs(volfade);
 
     for (let i = 0; i < 4_000_000; i++) {
-      if (!(i < sampleCount || (isLast && vol > 0 && i < sampleCount + ringCap))) break;
+      // A sweep of 0 never empties the envelope, so only that note is bounded.
+      // Everything else rings until its envelope reaches zero, which it always does.
+      const cap = isLast && volfade === 0 ? sampleCount + staticTail : Number.POSITIVE_INFINITY;
+      if (!(i < sampleCount || (isLast && vol > 0 && i < cap))) break;
 
       const bit0 = buffer & 1;
       out[sampleI] = (out[sampleI] || 0) + sample(1 ^ bit0, vol);

@@ -389,11 +389,26 @@ def parse_sfx(text: str, filename: str) -> dict[int, list]:
             channels[current].append({"op": "loop", "count": args[0],
                                       "target": f"Ch{int(tm.group(3))}"})
         else:
+            # The fade is a 4-bit SIGNED MAGNITUDE, spanning [-8, +7], and the tables
+            # lean on that:
+            # `square_note 12, 0, 8, 0` means "increase", not "decrease". pokered's
+            # macro notes that a value of 8 is the same as a negative one, because 8
+            # overflows the magnitude field into -8. Read as an
+            # unsigned literal it becomes a fade OUT of a note whose volume is 0, so
+            # the volume clamps at 0 and the note is silent -- which is exactly what
+            # this file produced for nine notes across six bases before it was caught.
+            #
+            # Caught by diffing all 38 bases against the reference synthesiser's own
+            # command tables: of every frames, volume, sweep, freq and duty byte in
+            # all 114 channels, these nine were the only differences.
+            sweep = args[2]
+            if sweep > 7:
+                sweep -= 16
             channels[current].append({
                 "op": "pulse" if op == "square_note" else "noise",
                 "frames": args[0],
                 "volume": args[1],
-                "sweep": args[2],
+                "sweep": sweep,
                 "freq": args[3],
             })
 

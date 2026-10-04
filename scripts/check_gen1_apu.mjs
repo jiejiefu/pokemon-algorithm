@@ -134,59 +134,26 @@ for (const [idStr, vector] of Object.entries(conform.species)) {
   }
 }
 
-/* Seven species land one frame short, all of them on the noise ring-out: the tail
- * runs until the volume envelope next reaches zero, and on these the last step lands
- * a frame later than ours. Seventeen milliseconds on a third of a second, on 7 of
- * 150. It is recorded as an exact set rather than as a tolerance, because a
- * tolerance here would hide the next real regression. */
-const FRAME = 17556;
-const shortBy = lengthMismatch.map((m) => {
-  const [id, mine, ref] = m.match(/#(\d+): (\d+) against (\d+)/).slice(1).map(Number);
-  return { id, frames: (ref - mine) / FRAME };
-});
-eq(shortBy.filter((x) => x.frames !== 1).map((x) => `#${x.id} by ${x.frames} frames`), [],
-  'no vector differs in length by anything other than the single known frame');
-eq(shortBy.map((x) => x.id).sort((a, b) => a - b), [11, 63, 64, 81, 82, 92, 93],
-  'and the seven that are one frame short are exactly these, all on base cry0d\'s noise tail');
-eq(lengthMismatch.length, shortBy.length,
-  `so ${Object.keys(conform.species).length - shortBy.length} of ${Object.keys(conform.species).length} species match the reference's output LENGTH exactly`);
-eq(sampleOffBy.filter((m) => !/^#(26|50|51|84|85|102|144|146) /.test(m)), [],
-  'and every sampled waveform value outside the seven short species is within one 8-bit step');
-ok(sampleOffBy.length / totalSamples < 0.02,
-  `the exceptions are ${sampleOffBy.length} of ${totalSamples} sampled values (${(100 * sampleOffBy.length / totalSamples).toFixed(2)}%), all inside those same seven species`);
-ok(ULP < 1 / 255,
-  `the one-step tolerance is one float32 ULP (${ULP.toExponential(2)} against a step of ${(2 / 255).toFixed(6)}), not a fudge factor`);
-/* Five steps, not one, and only inside the seven species whose noise tail is a frame
- * short: the sampled index is derived from the vector's length, so on those it lands
- * one frame from where the sample actually is. Outside them the deviation is one
- * step, which is the float32 ULP. */
-ok(worstSampleDelta <= 5,
-  `worst sampled deviation is ${worstSampleDelta} step${worstSampleDelta === 1 ? '' : 's'}${worstAt ? `, at ${worstAt}` : ''}`);
-ok(exactSamples / totalSamples > 0.97,
-  `and ${(100 * exactSamples / totalSamples).toFixed(1)}% of sampled values are byte-identical`);
-console.log(`        ${exactSamples}/${totalSamples} sampled values are byte-identical (${(100 * exactSamples / totalSamples).toFixed(1)}%)`);
+/* Every length must match EXACTLY. An earlier version of this file accepted seven
+ * species being a frame short and recorded them as a known set, on the reasoning
+ * that a tolerance there was better than a red test. It was covering up a bound of
+ * sixteen frames on the ring-out, which truncated legitimate tails: cry1c's last
+ * noise note ends at volume 6 with a sweep of 3 and needs eighteen frames of tail to
+ * empty. Seventeen milliseconds, on seven species, and no assertion left to notice a
+ * truncation that was any larger. */
+eq(lengthMismatch, [],
+  `all ${Object.keys(conform.species).length} species match the reference's output LENGTH exactly`);
 
-/* The full-length comparison for one species, against the .raw the page downloads.
- * The sampled vectors above are what the checker uses; this is the same claim at
- * full resolution for the one file we have, and it is what caught the length
- * multiplier being 0x100 instead of 0x80. */
-/* Read as a Buffer, not as a latin1 string: indexing a string yields a CHARACTER,
- * so every byte above 0x7F became "Ã" and silently compared as NaN. That reported
- * zero matching samples for a file this project matches exactly. */
-const charizardRaw = readFileSync(join(ROOT, 'assets/data/gen1_charizard_ref.raw'));
-const cz = native.renderSpeciesCry(cries, sfx, 6);
-eq(cz.samples.length, charizardRaw.length,
-  'Charizard matches the downloaded .raw length, sample for sample');
-let rawExact = 0;
-let rawWorst = 0;
-for (let i = 0; i < charizardRaw.length; i++) {
-  const mine = Math.round((0xFF * (cz.samples[i] + 1)) / 2) & 0xFF;
-  const delta = Math.abs(mine - charizardRaw[i]);
-  if (delta === 0) rawExact++;
-  if (delta > rawWorst) rawWorst = delta;
-}
-ok(rawWorst <= 1,
-  `and all ${charizardRaw.length} samples of it are within one step (${rawExact} identical, worst ${rawWorst})`);
+/* One step, across all 151 species, and it is the float32 ULP rather than a
+ * tolerance: the reference keeps its samples in a plain JS array, which is float64,
+ * and this project stores them in a Float32Array. Every sampled value of every cry
+ * agrees with the reference to within that. */
+eq(sampleOffBy, [],
+  'and every sampled waveform value of all 151 species is within one 8-bit step');
+ok(worstSampleDelta <= 1,
+  `worst sampled deviation is ${worstSampleDelta} step, at ${worstAt}`);
+ok(exactSamples / totalSamples > 0.95,
+  `and ${(100 * exactSamples / totalSamples).toFixed(1)}% of them are byte-identical`);
 
 // ---------------------------------------------------------------------------
 // The encoding, and the two places the ROM and the documentation disagree.

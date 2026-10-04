@@ -187,16 +187,17 @@ const CASES = [
 
   /* ---- Ring-out, which the reference gets by not implementing sound_ret ---- */
   {
-    name: 'sound_ret is honoured, so the last note is cut instead of ringing out',
-    mutate: (dir) => editApu(dir, (s) => s
-      .replace('if (!(i < sampleCount || (isLast && vol > 0 && i < sampleCount + ringCap))) break;',
-        'if (!(i < sampleCount)) break;')),
-    expect: 'ring past their nominal note list',
+    name: 'the ring-out is cut off at the note end, as sound_ret would have it',
+    mutate: (dir) => editApu(dir, (s) => s.replaceAll(
+      'const cap = isLast && volfade === 0 ? sampleCount + staticTail : Number.POSITIVE_INFINITY;',
+      'const cap = sampleCount;')),
+    expect: 'LENGTH exactly',
   },
   {
     name: 'the ring-out is left unbounded, so a zero-sweep note runs to the sample cap',
-    mutate: (dir) => editApu(dir, (s) => s
-      .replace('i < sampleCount + ringCap', 'i < sampleCount + 4_000_000')),
+    mutate: (dir) => editApu(dir, (s) => s.replaceAll(
+      'const staticTail = Math.round(SAMPLES_PER_FRAME * 16);',
+      'const staticTail = Math.round(SAMPLES_PER_FRAME * 40000);')),
     expect: 'bounded rather than ringing to the sample cap',
   },
 
@@ -241,7 +242,7 @@ const CASES = [
   {
     name: 'the master volume is not applied, so a zero volume is still audible',
     mutate: (dir) => editApu(dir, (s) => s
-      .replace('const master = this.masterVolume / 15;', 'const master = 1;')),
+      .replace('const master = clampVolume(this.masterVolume) / 15;', 'const master = 1;')),
     expect: 'zero volume renders silence',
   },
 
@@ -287,6 +288,19 @@ const CASES = [
     mutate: (dir) => editPage(dir, (s) => s
       .replace('與原機相同', '與原機相同').replace(/<body/, '<body><p>位元組相同，完全一致</p>')),
     expect: 'never claims sample-exact',
+  },
+  {
+    /* The fade sign is a DATA bug rather than a code one, and it was invisible in the
+     * audio for the same reason the noise clock was: a note whose volume is 0 with a
+     * fade OUT stays clamped at 0, so it is silent either way and every length
+     * assertion passes. Only the waveform comparison sees it. */
+    name: 'a fade of -8 is read as +8, so the fade-in rests become silent',
+    mutate: (dir) => editJson(dir, 'assets/data/gen1_cry_sfx.json', (d) => {
+      d.sfx.SFX_CRY_0B.channels
+        .find((c) => c.ch === 6).commands
+        .find((c) => c.op === 'pulse' && c.volume === 0).sweep = 8;
+    }),
+    expect: 'within one 8-bit step',
   },
   {
     name: 'the page claims one extra repetition, which count does not mean',

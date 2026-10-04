@@ -1298,7 +1298,7 @@
        "op": "pulse",
        "frames": 2,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -1514,7 +1514,7 @@
        "op": "pulse",
        "frames": 3,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -1749,7 +1749,7 @@
        "op": "pulse",
        "frames": 12,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -1806,14 +1806,14 @@
        "op": "noise",
        "frames": 15,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
        "op": "noise",
        "frames": 4,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -2132,7 +2132,7 @@
        "op": "pulse",
        "frames": 4,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -2869,7 +2869,7 @@
        "op": "pulse",
        "frames": 4,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 0
       },
       {
@@ -4943,7 +4943,7 @@
        "op": "pulse",
        "frames": 3,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 1
       },
       {
@@ -5014,7 +5014,7 @@
        "op": "noise",
        "frames": 6,
        "volume": 0,
-       "sweep": 8,
+       "sweep": -8,
        "freq": 1
       },
       {
