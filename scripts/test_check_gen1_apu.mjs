@@ -12,11 +12,16 @@
  *
  * The expensive cases mutate the two generated JSON files, which means the
  * fixture tree is a few hundred KB rather than a few bytes — that is why there
- * are 22 cases and not forty.
+ * are 34 cases and not forty.
+ *
+ * Where the time goes, measured here: the checker's native-rate conformance loop
+ * is 4.8 s of its 6.5 s, and 17 of the 34 cases below assert something that loop
+ * never touches. Those 17 are the reason `stripConformance` exists — see the note
+ * on CONFORMANCE_EXPECTS. The baseline always runs the whole checker.
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execFile, execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { tmpdir, cpus } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,13 +69,55 @@ const editJson = (dir, name, fn) => {
   writeFileSync(p, JSON.stringify(data));
 };
 
+/* ---------------------------------------------------------------------------
+   RUNNING A CASE WITHOUT THE 4.8-SECOND CONFORMANCE LOOP
+   --------------------------------------------------------------------------- */
+
+/* The checker's conformance section re-imports the APU at 1,048,576 Hz and renders
+ * all 151 species there: 4.8 s of the 6.5 s checker, measured here. It is the most
+ * valuable thing the checker does and the baseline below always runs it in full —
+ * this is only ever applied to a MUTATED fixture, to a COPY of the checker inside a
+ * throwaway temp tree. The real scripts/check_gen1_apu.mjs gains no switch, no
+ * environment variable and no degraded mode, because a supported way to skip the
+ * conformance comparison is exactly how it would stop happening.
+ *
+ * Only the cases whose `expect` cannot come from that loop are eligible, and the
+ * eligibility test is the `expect` string itself rather than a per-case flag — so
+ * there is nothing to forget. A case that does not name one of these two strings is
+ * asserting something the loop produces, and it runs the whole checker. */
+const CONFORMANCE_EXPECTS = new Set([
+  'within one 8-bit step',   // eq(sampleOffBy, []) — the 151 x 48 waveform compare
+  'LENGTH exactly',          // eq(lengthMismatch, []) — the 151 output lengths
+]);
+
+/* The block runs from the accumulator declarations to the next section header, so
+ * slicing between the two anchors takes the declarations, the render loop and the
+ * four assertions together. Nothing outside it reads any of them. */
+const CONFORMANCE_START = 'const lengthMismatch = [];';
+const CONFORMANCE_END =
+  '// ---------------------------------------------------------------------------\n// The encoding';
+
+/** Cut the native-rate conformance section out of the fixture's COPY of the checker. */
+const stripConformance = (dir) => {
+  const p = join(dir, CHECKER);
+  const src = readFileSync(p, 'utf8');
+  const a = src.indexOf(CONFORMANCE_START);
+  const b = src.indexOf(CONFORMANCE_END);
+  if (a < 0 || b < 0 || b <= a) {
+    throw new Error('stripConformance: the anchors moved, so nothing was removed. '
+      + 'Leaving the loop in place is safe (the case still runs the full checker '
+      + 'and still has to fail), but the speed-up is silently gone.');
+  }
+  writeFileSync(p, src.slice(0, a) + src.slice(b));
+};
+
 const CASES = [
   /* ---- The encoding ---- */
   {
     name: 'the pitch formula loses the 131072 constant, so every note is an octave out',
     mutate: (dir) => editApu(dir, (s) => s
       .replace('return 131072 / (2048 - (register & 0x7ff));', 'return 65536 / (2048 - (register & 0x7ff));')),
-    expect: 'Machop',
+    expect: 'Hz its register predicts',
   },
   {
     name: 'the pitch shift is dropped, so every species sounds like its unshifted base',
@@ -106,15 +153,21 @@ const CASES = [
       .replace('    this.peak = peak;\n', '    this.peak = peak;\n    if (peak > 0) for (let i = 0; i < total; i++) samples[i] /= peak;\n')),
     expect: 'within one 8-bit step',
   },
+  /* The one bug the conformance vectors structurally cannot see: they render at
+   * 1,048,576 Hz, where the rate factor is exactly 1. This is here because the
+   * symptom was inaudible in every assertion and very audible in the output.
+   *
+   * Note which assertion detects it. NOT `the noise clocks are the same at
+   * 65,536 Hz`: that check still passes, because noiseClocks reports Hz and Hz is
+   * a property of the register rather than of the output rate -- which is the whole
+   * reason it is recorded in Hz. Only the RENDERED grain moves, 1,533 crossings per
+   * second against 76. */
   {
-    /* The one bug the conformance vectors structurally cannot see: they render at
-     * 1,048,576 Hz, where the rate factor is exactly 1. This is here because the
-     * symptom was inaudible in every assertion and very audible in the output. */
     name: 'the noise LFSR clock is left unscaled, so the hiss becomes a 128 Hz buzz',
     mutate: (dir) => editApu(dir, (s) => s
       .replace('const clock = Math.max(1, Math.round(clockHz * SYNTH_RATE / GB_CLOCK));',
         'const clock = Math.max(1, Math.round(clockHz));')),
-    expect: 'clocks are the same at 65,536 Hz',
+    expect: 'the same grain at both rates',
   },
   {
     name: 'the noise channel is stopped entirely, so the cry loses its grain',
@@ -201,8 +254,7 @@ const CASES = [
     expect: 'bounded rather than ringing to the sample cap',
   },
 
-  /* ---- The pitch cancellation. Wrong here is FREE, which is why it is worth a
-     case of its own: nothing about the audio changes. ---- */
+  /* ---- The pitch cancellation. ---- */
   {
     name: 'the cutoff is taken off the rendered pulse length instead of the nominal sum',
     mutate: (dir) => editApu(dir, (s) => s
@@ -210,11 +262,24 @@ const CASES = [
         'const cutoff = Math.max(0, Math.max(pulse1.length, pulse2.length) - Math.round(SAMPLES_PER_FRAME));')),
     expect: 'within one 8-bit step',
   },
+  /* This one is free for the TIMELINE, which is why it expects the waveform.
+   *
+   * The renderer and the timeline both call noiseOffset(), so mutating the
+   * renderer's call site leaves every `n.shifted` exactly as it was: the census of
+   * notes still reports 620 keeping the offset and 69 without, and both still pass.
+   * What changes is the audio, because a note upstream leaves unshifted now carries
+   * the offset for the whole of its length and 151 species stop matching the
+   * reference. So the detector is `within one 8-bit step`, and this belongs with the
+   * conformance cases.
+   *
+   * It used to declare 'never get one' — text that occurs in the description of a
+   * check that PASSES. Nothing caught the drift, because the old matcher only
+   * asked whether the string appeared anywhere in the output. See runCase(). */
   {
     name: 'the pitch cancellation is removed, so every noise note keeps its offset',
     mutate: (dir) => editApu(dir, (s) => s
       .replace('const offset = noiseOffset(sampleI, cutoffSamples, pitch);', 'const offset = pitch;')),
-    expect: 'never get one',
+    expect: 'within one 8-bit step',
   },
 
   /* ---- The timeline, which drew the noise lane with zero-length notes ---- */
@@ -255,7 +320,7 @@ const CASES = [
       rhydon.pitch = d.cries.find((c) => c.id === 6).pitch;
       rhydon.length = d.cries.find((c) => c.id === 6).length;
     }),
-    expect: 'byte-identical',
+    expect: 'Rhyhon do NOT',
   },
   {
     name: 'one of a pair has its pitch byte changed, so the pair stops matching',
@@ -334,23 +399,66 @@ ok('baseline: the checker passes on an unmutated copy of the tree', baseline.cod
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-8).join('\n'));
 if (baseline.code !== 0) process.exit(1);
 
+/* And it is run a SECOND time with the conformance section stripped, to prove the
+ * strip is surgical rather than merely quiet.
+ *
+ * This is the guard that makes skipping it safe. A strip that took one check too
+ * many would leave the 17 cheap cases asserting against a checker that has quietly
+ * lost a claim, and nothing else would notice — the cases only require that their
+ * own `expect` still appears, which a narrower checker satisfies more easily, not
+ * less. So the requirement is exact: the stripped run must pass, and must report
+ * precisely four fewer checks, because the section is four assertions and nothing
+ * else. A round number is the point; anything else means the anchors drifted. */
+const stripDir = makeTree(stripConformance);
+const stripped = await new Promise((res) => {
+  execFile(process.execPath, [join(stripDir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
+rmSync(stripDir, { recursive: true, force: true });
+const countChecks = (out) => (out.match(/^ {2}ok {2}/gm) ?? []).length;
+const fullCount = countChecks(baseline.out);
+const stripCount = countChecks(stripped.out);
+ok('baseline: the checker still passes with the conformance section removed',
+  stripped.code === 0, stripped.code === 0 ? '' : stripped.out.split('\n').slice(-8).join('\n'));
+ok(`baseline: removing it drops exactly 4 of the ${fullCount} checks and nothing else`,
+  fullCount - stripCount === 4, `${fullCount} against ${stripCount}`);
+
 /* The cases are independent -- each is its own `node` process against its own fixture
- * tree -- so they run concurrently. Sequentially this file was 33 x a 6 s checker,
- * which is three and a half minutes of waiting to re-verify arithmetic. The pool is
- * bounded by the core count rather than left unbounded, because each worker is a
- * full JIT-compiling interpreter and oversubscribing them makes every case slower,
- * not faster. */
+ * tree -- so they run concurrently. Sequentially this file was 34 checkers, three and
+ * a half minutes of waiting to re-verify arithmetic. The pool is bounded by the core
+ * count rather than left unbounded, because each worker is a full JIT-compiling
+ * interpreter and oversubscribing them makes every case slower, not faster. */
 /* Four workers, at the user's request because other work shares this machine.
  * Measured here: 6 workers 44.5 s, 8 workers 38.9 s, 10 workers 38.0 s, 12 workers
  * 38.5 s -- so four costs about 55 s against 38 s at eight, which is the right trade
  * when the cores are not yours alone. Raise POOL when the machine is idle. */
 const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
+
+/* Heaviest first. The cases that need the conformance loop cost 5.7 s and the other
+ * 18 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
+ * last wave is whatever happened to be left, which is most often one long case that
+ * holds four workers idle while three of them sit finished. Issuing the 16 long ones
+ * up front makes every trailing wave short, which is worth about one full wave.
+ *
+ * Results are still recorded against the ORIGINAL index, so this changes the order
+ * cases are started in and nothing about the order they are reported in. */
+const ORDER = CASES
+  .map((c, i) => ({ i, heavy: CONFORMANCE_EXPECTS.has(c.expect) }))
+  .sort((a, b) => (b.heavy - a.heavy) || (a.i - b.i))
+  .map((e) => e.i);
+
 let next = 0;
 const finished = new Array(CASES.length);
 
 async function runCase(i) {
   const c = CASES[i];
-  const dir = makeTree(c.mutate);
+  /* Only the cases whose `expect` is not produced by the conformance loop skip it.
+   * `mutate` runs first so a case can still edit the checker's own copy. */
+  const heavy = CONFORMANCE_EXPECTS.has(c.expect);
+  const dir = makeTree((d) => {
+    if (c.mutate) c.mutate(d);
+    if (!heavy) stripConformance(d);
+  });
   let r;
   try {
     r = await new Promise((res) => {
@@ -361,21 +469,26 @@ async function runCase(i) {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  /* A `silent` case inverts the expectation. It marks a divergence that changes no
-   * audio and no timeline entry, so the checker cannot see it -- and pretending
-   * otherwise would be the exact mistake this file exists to catch. */
-  const pass = c.silent
-    ? r.code === 0
-    : r.code !== 0 && r.out.includes(c.expect);
-  const firstFail = (r.out.match(/FAIL[^\n]*/) || ['(no FAIL line)'])[0].slice(0, 90);
-  finished[i] = { name: c.name, pass, detail: pass ? '' : c.silent
-    ? `exit ${r.code}, expected BLIND; first report: ${firstFail}`
-    : `exit ${r.code}, expected "${c.expect}"; first report: ${firstFail}` };
+  /* `expect` must appear on a line that REPORTED A FAILURE, not anywhere in the
+   * output. Those are not the same thing, and the difference was not theoretical:
+   * the pitch-cancellation case below declares 'never get one', which occurs in the
+   * description of a check that PASSES -- the timeline calls noiseOffset() itself,
+   * so it cannot see a mutation to the renderer's call site. The case only ever
+   * failed because the waveform comparison fired, and `out.includes(expect)` was
+   * satisfied by the passing line. Matching anywhere meant the case could not
+   * detect a regression in its own detector, which is how it came to describe a
+   * timeline claim while being a waveform case. */
+  const failLines = r.out.split('\n').filter((l) => l.includes('FAIL'));
+  const pass = r.code !== 0 && failLines.some((l) => l.includes(c.expect));
+  const firstFail = (failLines[0] ?? '(no FAIL line)').slice(0, 90);
+  finished[i] = { name: c.name, pass, detail: pass
+    ? ''
+    : `exit ${r.code}, expected "${c.expect}" on a FAIL line; first report: ${firstFail}` };
 }
 
 await Promise.all(Array.from({ length: POOL }, async () => {
-  while (next < CASES.length) {
-    const i = next++;
+  while (next < ORDER.length) {
+    const i = ORDER[next++];
     await runCase(i);
   }
 }));
