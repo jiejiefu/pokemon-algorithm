@@ -429,17 +429,20 @@ body {
   /* Type colours are mid-lightness fills, so the dark label always clears 4.5:1. */
 }
 
+/* The pager link is a two-row block: the neighbour's #id as a quiet eyebrow over
+   its zh name. Column layout with the text block as the second flex item is what
+   lets one rule serve all three links — prev puts the arrow first, next puts it
+   last, and the palette link has none — without a modifier per variant. */
 .pager-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
   color: var(--text-secondary);
   text-decoration: none;
   background: var(--surface-hover);
   border: 1px solid rgba(var(--hairline-rgb), 0.1);
   border-radius: var(--radius-pill);
-  padding: 7px 16px;
+  padding: 7px 18px;
   transition: background var(--transition-fast), color var(--transition-fast),
     border-color var(--transition-fast);
 }
@@ -460,6 +463,60 @@ body {
 .pager-link.is-disabled {
   opacity: 0.35;
   pointer-events: none;
+}
+
+.pager-text {
+  display: flex;
+  flex-direction: column;
+  /* 1.25 rather than 1.4: the eyebrow is 11px and the name 15px, and a 1.4 ratio
+     opens a 4px hole between them that reads as two unrelated buttons. */
+  line-height: 1.25;
+  text-align: left;
+  min-width: 0;
+}
+
+/* Empty at the ends of the roster, so the name sits alone without a leading
+   gap. Not `visibility: hidden` — that would keep the line box and centre the
+   lone name wrongly. */
+.pager-meta:empty {
+  display: none;
+}
+
+.pager-meta {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  /* One step quieter than the name but still --text-secondary, not the faint
+     --text-muted: 11px is small text, so it has to clear 4.5:1 like any other. */
+  color: var(--text-secondary);
+}
+
+.pager-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  /* The longest zh name in the roster must not push a pill wider than the
+     footer can give it, so it truncates rather than forcing a wrap. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}
+
+.pager-link:hover .pager-name {
+  color: var(--accent-gold);
+}
+
+/* The cross-page jump to color.html, sitting between the two pager links. It
+   shares .pager-link's shape on purpose — it is the same kind of control in the
+   same row — and is tinted at rest so it does not read as a third Pokémon. */
+.pager-link--palette {
+  background: rgba(var(--accent-gold-rgb), 0.07);
+  border-color: rgba(var(--accent-gold-rgb), 0.22);
+}
+
+.pager-link--palette:hover {
+  background: rgba(var(--accent-gold-rgb), 0.16);
 }
 
 /* ===== Columns 2 and 3: the info cards ===== */
@@ -1484,8 +1541,25 @@ body {
     grid-template-columns: 3.4em 2.4em minmax(0, 1fr);
   }
 
+  /* Three pills in a row do not fit under 560px now that each carries a #id and
+     a name, and `flex-wrap` would break the row order (palette link landing
+     alone on line 1 or 3). Column instead, so the reading order stays
+     上一隻 → 色盤 → 下一隻 and each pill can use its own width. */
   .detail-footer {
+    flex-direction: column;
+    align-items: stretch;
     justify-content: center;
+  }
+
+  .pager-link {
+    justify-content: center;
+  }
+
+  /* The arrow sits outside .pager-text, so [arrow][text] is centred as one unit
+     by justify-content above; centring inside the block then aligns the #id
+     eyebrow under the name instead of leaving the two ragged-left. */
+  .pager-text {
+    text-align: center;
   }
 }
 

@@ -230,12 +230,36 @@
       </section>
 
       <nav class="detail-footer" aria-label="寶可夢瀏覽">
+        <!-- Each pager link is two stacked rows: the neighbour's #id as a quiet
+             eyebrow, its zh name as the line you actually read. The static text
+             is the label word only — renderPager() fills the two spans, and the
+             arrow is a fixed sibling so only the text block reflows. -->
         <a class="pager-link" id="pokemon-prev-foot" rel="prev">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z"/></svg>
-          <span>上一隻</span>
+          <span class="pager-text">
+            <span class="pager-meta" id="pokemon-prev-id"></span>
+            <span class="pager-name" id="pokemon-prev-name">上一隻</span>
+          </span>
         </a>
+
+        <!-- The reciprocal of color.html's 完整資料頁 link: this page has no
+             sidebar, so the cross-page jump lives in the footer nav beside the
+             pager rather than in a panel. href is set per-render by
+             renderDetail() via paletteUrl() — see the import there for why the
+             URL is not assembled here by hand. -->
+        <a class="pager-link pager-link--palette" id="pokemon-palette-foot">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1-.24-.27-.39-.62-.39-1 0-.83.67-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.42-4.03-8-9-8m-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>
+          <span class="pager-text">
+            <span class="pager-meta">單一色盤</span>
+            <span class="pager-name">色盤頁面</span>
+          </span>
+        </a>
+
         <a class="pager-link" id="pokemon-next-foot" rel="next">
-          <span>下一隻</span>
+          <span class="pager-text">
+            <span class="pager-meta" id="pokemon-next-id"></span>
+            <span class="pager-name" id="pokemon-next-name">下一隻</span>
+          </span>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z"/></svg>
         </a>
       </nav>
@@ -251,6 +275,23 @@
     // painting a 404 and swapping back. See the module for why a probe per id
     // is worse.
     import {hasShiny} from './assets/js/shiny-index.js';
+    // The reciprocal of color.html's 完整資料頁 link. paletteUrl() is imported
+    // rather than re-derived here for the reason its own docblock gives: the URL
+    // is not `pokemonDetailUrl()` with `detail` swapped for `color`, and
+    // assembling it by hand in a second place is exactly how the two pages drift
+    // apart. The module has no top-level side effects, so importing one function
+    // from it costs the parse and nothing else.
+    import {paletteUrl} from './assets/js/color-palette.js';
+    // The cry roster and the player that plays it. Both were remote until the
+    // `assets/cries/` copy landed. Only `hasCry` is needed here — it gates the
+    // button the way `hasShiny` gates the shiny toggle — because `play()` builds
+    // the URL itself from `cryUrl()`, and a path spelled out in a second place is
+    // how a directory loses its provenance without anyone noticing.
+    // cry-player.js holds the four measured facts about this audio: 93 files are
+    // not Ogg despite the extension, `canPlayType` cannot be trusted to detect
+    // them, decode resamples to the device rate, and peaks exceed 1.0.
+    import {hasCry} from './assets/js/cry-index.js';
+    import {cryPlayer} from './assets/js/cry-player.js';
     // Wire the theme toggle before anything else. Module scripts are deferred, so
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
@@ -288,39 +329,102 @@
 
     let pokemonData = [];
     let currentPokemon = null;
-    let cryAudio = null;
-    let isPlayingCry = false;
 
     const el = id => document.getElementById(id);
 
-    function playCry() {
+    /* Cry playback.
+     *
+     * The buffer, the gain, the stop and the cache all live in cry-player.js;
+     * this section owns only what the button says. Splitting them is what makes
+     * the three failure reasons below say different things — before this, a 404,
+     * a dropped connection and a blocked autoplay all landed in one `.catch()`
+     * and all rendered 「叫聲不可用」, which is true of none of them specifically.
+     */
+    let cryState = 'idle';          // 'idle' | 'playing' | 'error'
+    let cryResetTimer = 0;
+
+    const CRY_IDLE_LABEL = '播放叫聲';
+    const CRY_BUSY_LABEL = '播放中…';
+
+    /** Set the button's visible and accessible name together, optionally
+     *  reverting after a beat so a transient error does not stick. */
+    function setCryLabel(text, { revert = false } = {}) {
+      clearTimeout(cryResetTimer);
+      const label = el('cry-toggle-label');
+      if (label) label.textContent = text;
+      el('cry-toggle')?.setAttribute('aria-label', text);
+      if (revert) {
+        cryResetTimer = setTimeout(() => {
+          cryState = 'idle';
+          setCryButton();
+        }, 2200);
+      }
+    }
+
+    /** One message per cause, because the reader's next move differs in each
+     *  case: a species with no cry is a fact and not worth retrying, a browser
+     *  that cannot decode Ogg Vorbis is a fact about their browser and is not
+     *  fixable here, and a decode failure on a file we expected to work is
+     *  neither. */
+    function cryFailureMessage(reason) {
+      if (reason === 'missing') return '這隻沒有叫聲';
+      if (reason === 'no-web-audio' || reason === 'decode-failed') return '此瀏覽器無法解碼叫聲';
+      return '叫聲無法播放';
+    }
+
+    /** Mirror of setShinyButton(): a species with no cry gets the same treatment
+     *  as one with no shiny artwork — marked, still focusable, and explained in
+     *  the label rather than silently inert. */
+    function setCryButton() {
+      const btn = el('cry-toggle');
+      if (!btn) return;
+      const available = hasCry(currentPokemon.id);
+      const playing = cryState === 'playing' && available;
+      btn.classList.toggle('is-disabled', !available);
+      btn.classList.toggle('is-playing', playing);
+      if (!available) {
+        btn.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-disabled', 'true');
+        setCryLabel('此寶可夢沒有叫聲');
+      } else if (playing) {
+        setCryLabel(CRY_BUSY_LABEL);
+      } else {
+        btn.removeAttribute('aria-disabled');
+        setCryLabel(cryState === 'error' ? '叫聲無法播放' : CRY_IDLE_LABEL);
+      }
+    }
+
+    async function playCry() {
       if (!currentPokemon) return;
       const btn = el('cry-toggle');
-      if (isPlayingCry && cryAudio) {
-        cryAudio.pause();
-        cryAudio.currentTime = 0;
-        isPlayingCry = false;
+
+      if (cryState === 'playing') {
+        await cryPlayer.stop();
+        cryState = 'idle';
         btn?.classList.remove('is-playing');
-        el('cry-toggle-label').textContent = '播放叫聲';
+        setCryButton();
         return;
       }
-      const cryUrl = `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${currentPokemon.id}.ogg`;
-      cryAudio = new Audio(cryUrl);
-      isPlayingCry = true;
+
+      cryState = 'playing';
       btn?.classList.add('is-playing');
-      el('cry-toggle-label').textContent = '播放中…';
-      cryAudio.play().catch(() => {
+      setCryLabel(CRY_BUSY_LABEL);
+
+      try {
+        // play() resolves when the cry *finishes*, not when it starts, so the
+        // button is still marked 「播放中…」 for the whole second of it. It also
+        // handles the autoplay unlock itself — the await inside runs before the
+        // click's gesture is released, which an explicit unlock call elsewhere
+        // would not survive.
+        await cryPlayer.play(currentPokemon.id);
+        cryState = 'idle';
         btn?.classList.remove('is-playing');
-        el('cry-toggle-label').textContent = '叫聲不可用';
-        setTimeout(() => {
-          if (el('cry-toggle-label')) el('cry-toggle-label').textContent = '播放叫聲';
-        }, 1500);
-      });
-      cryAudio.onended = () => {
-        isPlayingCry = false;
+        setCryButton();
+      } catch (error) {
+        cryState = 'error';
         btn?.classList.remove('is-playing');
-        if (el('cry-toggle-label')) el('cry-toggle-label').textContent = '播放叫聲';
-      };
+        setCryLabel(cryFailureMessage(error && error.reason), { revert: true });
+      }
     }
 
     async function init() {
@@ -454,6 +558,11 @@
       // one without artwork cannot leave the button pressed on a sprite that is
       // not its shiny.
       resetShiny();
+      // Same reason, same place: a cry left playing, or a button left marked for
+      // a species that is no longer on screen, would outlive the navigation.
+      cryPlayer.stop();
+      cryState = 'idle';
+      setCryButton();
       el('pokemon-sprite').alt = `${p.names.zh}（${p.names.en}）`;
 
       el('pokemon-id').textContent = formatPokemonId(p.id);
@@ -477,6 +586,7 @@
 
       renderBreadcrumb(p);
       renderPager(p);
+      el('pokemon-palette-foot').href = paletteUrl(p);
       renderProfile(p);
       renderAbilities(p);
       renderBreeding(p);
@@ -498,7 +608,12 @@
       // same control announced itself twice. That copy carried the neighbour's
       // name; the end-of-roster wording moves here so removing it loses no
       // information.
-      const setLink = (link, target, label) => {
+      //
+      // Array index adjacency is id adjacency: pokemon_data.json is ids 1..1025
+      // in order with no gaps (asserted by check_regional_dex.mjs), so index-1
+      // IS id-1. Looking the neighbour up by id instead would look more robust
+      // and change nothing, so the cheaper index walk stays.
+      const setLink = (link, target, edgeLabel, idEl, nameEl) => {
         if (target) {
           link.href = pokemonDetailUrl(target);
           link.classList.remove('is-disabled');
@@ -508,12 +623,18 @@
           link.classList.add('is-disabled');
           link.setAttribute('aria-disabled', 'true');
         }
-        const text = link.querySelector('span');
-        if (text) text.textContent = label;
+        // Two spans, not one string: the #id is the quiet eyebrow and the zh
+        // name is the line you read. escapeHtml because the name is written as
+        // innerHTML — names.zh is our own scraped data today, but an unescaped
+        // interpolation here is one bad scrape away from a broken page.
+        idEl.innerHTML = target ? `#${formatPokemonId(target.id)}` : '';
+        nameEl.innerHTML = target ? escapeHtml(target.names.zh) : edgeLabel;
       };
 
-      setLink(el('pokemon-prev-foot'), prev, prev ? '上一隻' : '已是第一隻');
-      setLink(el('pokemon-next-foot'), next, next ? '下一隻' : '已是最後一隻');
+      setLink(el('pokemon-prev-foot'), prev, '已是第一隻',
+              el('pokemon-prev-id'), el('pokemon-prev-name'));
+      setLink(el('pokemon-next-foot'), next, '已是最後一隻',
+              el('pokemon-next-id'), el('pokemon-next-name'));
     }
 
     /**
