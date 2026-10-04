@@ -365,25 +365,81 @@ ok(stretched.meta.channelSamples[8] === shrunk.meta.channelSamples[8],
 ok(stretched.meta.channelSamples[5] !== shrunk.meta.channelSamples[5],
   'while the pulse channels do respond to it');
 
-/* Every channel rings out: the rendered audio must be at least as long as the
- * nominal note list, which it is not if sound_ret is treated as a hard stop. */
+/* ---------------------------------------------------------------------------
+   ONE PASS OVER ALL 151 SPECIES.
+   --------------------------------------------------------------------------- */
+
+/* This used to be four separate loops, and two of them measured the same thing:
+ * `ringOut` and `overStated` each wanted the render and each rebuilt it. Together
+ * with the noise-offset census and the in-range audit that is 1.5 s of this file's
+ * 6.5 s, spent rendering the same 151 species four times over.
+ *
+ * `renderSpeciesCry` is a pure function of (cries, sfx, id) with no options here,
+ * so one render answers all four questions and nothing is lost but the time. The
+ * per-species result is reduced to scalars and DROPPED -- retaining 151 renders
+ * would hold ~78 MB of Float32Array alive at once, which is the one way a
+ * "make it faster" edit here could cost more than it saves. */
 let ringOut = 0;
+const overStated = [];
+let noiseNoteTotal = 0;
+let keptOffset = 0;
+let droppedOffset = 0;
+let spanning = 0;
+let affected = 0;
+let bad = 0;
+let minDur = Infinity;
+let maxDur = 0;
+const clipped = [];
+
 for (const c of cries.cries) {
   const r = renderSpeciesCry(cries, sfx, c.id);
+
+  /* Every channel rings out: the rendered audio must be at least as long as the
+   * nominal note list, which it is not if sound_ret is treated as a hard stop. */
   const longest = Math.max(0, ...r.notes.map((n) => n.end));
   if (Math.abs(longest - r.meta.duration) < 1e-6) ringOut++;
-}
-ok(ringOut < 151, 'some channels ring past their nominal note list, so the tail is not being cut off');
 
-/* And the timeline may never claim a tail the audio does not have — an earlier
- * version over-stated Charizard's final note by 184 ms. */
-let overStated = [];
-for (const c of cries.cries) {
-  const r = renderSpeciesCry(cries, sfx, c.id);
-  const longest = Math.max(0, ...r.notes.map((n) => n.end));
+  /* And the timeline may never claim a tail the audio does not have -- an earlier
+   * version over-stated Charizard's final note by 184 ms. */
   if (longest > r.meta.duration + 0.002) overStated.push(`#${c.id}`);
+
+  /* The noise channel's pitch offset, decided once per note at the note's start.
+   * Measured over the corpus, not asserted from the helper. */
+  const cutoff = r.meta.cancelAt;
+  let touched = false;
+  for (const n of r.notes) {
+    if (n.ch !== 8 || n.end <= n.start) continue;
+    noiseNoteTotal++;
+    if (n.shifted) {
+      keptOffset++;
+      if (n.end > cutoff) spanning++;
+    } else {
+      droppedOffset++;
+      touched = true;
+    }
+  }
+  if (touched) affected++;
+
+  /* Finite, in range, and long enough to be a cry. The else keeps the `continue`
+   * the original loop used out of a loop that now has work after this point. */
+  minDur = Math.min(minDur, r.meta.duration);
+  maxDur = Math.max(maxDur, r.meta.duration);
+  if (!Number.isFinite(r.meta.duration) || r.meta.duration <= 0) {
+    bad++;
+  } else {
+    for (let i = 0; i < r.samples.length; i += 61) {
+      if (!Number.isFinite(r.samples[i]) || Math.abs(r.samples[i]) > 1.0001) { bad++; break; }
+    }
+    if (!(r.meta.peak <= 1.0001)) clipped.push(c.id);
+  }
 }
+
+ok(ringOut < 151, 'some channels ring past their nominal note list, so the tail is not being cut off');
 eq(overStated, [], 'no channel timeline ends later than the audio it describes');
+eq(bad, 0, 'all 151 species render finite, in-range audio');
+eq(clipped, [], 'and none of them needed clipping to fit');
+ok(minDur > 0.1 && maxDur < 5,
+  `every cry is a plausible length (${minDur.toFixed(3)}s to ${maxDur.toFixed(3)}s)`);
 
 // A note's true length is the stored byte plus one; the timeline and the audio
 // must both use that, and it is the difference the reference's own display makes.
@@ -392,7 +448,8 @@ ok(oneNote.frames + 1 >= 1 && oneNote.frames + 1 <= 16,
   `a stored length of ${oneNote.frames} means ${oneNote.frames + 1} frames, which is inside the hardware's 1..16`);
 
 // ---------------------------------------------------------------------------
-// The pitch-shift cancellation, the loop, the terminators, and all 151 renders.
+// The pitch-shift cancellation, the loop, and the terminators. The census of the
+// cancellation is asserted here but measured in the single corpus pass above.
 // ---------------------------------------------------------------------------
 
 /* THE PITCH CANCELLATION, AND WHAT IT ACTUALLY DOES HERE.
@@ -417,29 +474,9 @@ ok(oneNote.frames + 1 >= 1 && oneNote.frames + 1 <= 16,
  * a pitch bending partway through one -- which is also what it has to be, since the
  * cutoff is a whole-frame boundary and no note in this corpus crosses a frame
  * boundary at that instant. The page calls this the end-of-cry crash, and the
- * honest description of it is a discontinuity AT a note boundary. */
-let noiseNoteTotal = 0;
-let keptOffset = 0;
-let droppedOffset = 0;
-let spanning = 0;
-let affected = 0;
-for (const c of cries.cries) {
-  const r = renderSpeciesCry(cries, sfx, c.id);
-  const cutoff = r.meta.cancelAt;
-  let touched = false;
-  for (const n of r.notes.filter((x) => x.ch === 8)) {
-    if (n.end <= n.start) continue;
-    noiseNoteTotal++;
-    if (n.shifted) {
-      keptOffset++;
-      if (n.end > cutoff) spanning++;
-    } else {
-      droppedOffset++;
-      touched = true;
-    }
-  }
-  if (touched) affected++;
-}
+ * honest description of it is a discontinuity AT a note boundary.
+ *
+ * The five counters below are accumulated in the single corpus pass above. */
 eq(noiseNoteTotal, 689, 'the corpus has 689 noise notes with a real length');
 eq(keptOffset, 620, 'of which 620 begin before the cutoff and keep the pitch offset');
 eq(droppedOffset, 69, 'and 69 begin after it and never get one');
@@ -517,25 +554,6 @@ eq(sliderToMaster(0), 0, 'a slider at 0 is silence');
 eq(sliderToMaster(10), 15, 'a slider at 10 is full scale, the same 15 the channels use');
 eq(sliderToMaster(3), 5, 'and the default of 3 is a master volume of 5');
 eq(sliderToMaster(3) / 15, 1 / 3, 'which is one third of full scale');
-
-let bad = 0;
-let minDur = Infinity;
-let maxDur = 0;
-let clipped = [];
-for (const c of cries.cries) {
-  const r = renderSpeciesCry(cries, sfx, c.id);
-  minDur = Math.min(minDur, r.meta.duration);
-  maxDur = Math.max(maxDur, r.meta.duration);
-  if (!Number.isFinite(r.meta.duration) || r.meta.duration <= 0) { bad++; continue; }
-  for (let i = 0; i < r.samples.length; i += 61) {
-    if (!Number.isFinite(r.samples[i]) || Math.abs(r.samples[i]) > 1.0001) { bad++; break; }
-  }
-  if (!(r.meta.peak <= 1.0001)) clipped.push(c.id);
-}
-eq(bad, 0, 'all 151 species render finite, in-range audio');
-eq(clipped, [], 'and none of them needed clipping to fit');
-ok(minDur > 0.1 && maxDur < 5,
-  `every cry is a plausible length (${minDur.toFixed(3)}s to ${maxDur.toFixed(3)}s)`);
 
 const silent = renderSpeciesCry(cries, sfx, 6, { volume: 0 });
 ok(silent.samples.every((v) => v === 0), 'a zero volume renders silence rather than NaN');
