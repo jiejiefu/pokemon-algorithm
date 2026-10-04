@@ -16,8 +16,8 @@
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
+import { execFile, execFileSync } from 'node:child_process';
+import { tmpdir, cpus } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,11 +25,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = [
   'assets/data/gen1_cries.json',
   'assets/data/gen1_cry_sfx.json',
-  'assets/data/cry_features.json',
   'assets/data/gen1_conformance.json',
   'assets/data/gen1_charizard_ref.raw',
   'assets/js/gb-apu.js',
-  'assets/js/cry-index.js',
   'cries-gen1.html',
   'scripts/check_gen1_apu.mjs',
 ];
@@ -49,18 +47,6 @@ function makeTree(mutate) {
   }
   if (mutate) mutate(dir);
   return dir;
-}
-
-function run(dir) {
-  try {
-    const stdout = execFileSync('node', [join(dir, CHECKER)], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-      maxBuffer: 1 << 26,
-    });
-    return { code: 0, out: `${stdout}` };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
-  }
 }
 
 const editApu = (dir, fn) => {
@@ -305,18 +291,44 @@ const CASES = [
 ];
 
 
-const baseline = run(makeTree(null));
+/* The baseline runs first and on its own: if it fails, every case below would "fail for
+ * the right reason" for the wrong reason, and the run is not worth reporting. */
+const baseDir = makeTree(null);
+const baseline = await new Promise((res) => {
+  execFile(process.execPath, [join(baseDir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
+rmSync(baseDir, { recursive: true, force: true });
 ok('baseline: the checker passes on an unmutated copy of the tree', baseline.code === 0,
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-8).join('\n'));
+if (baseline.code !== 0) process.exit(1);
 
-for (const c of CASES) {
+/* The cases are independent -- each is its own `node` process against its own fixture
+ * tree -- so they run concurrently. Sequentially this file was 33 x a 6 s checker,
+ * which is three and a half minutes of waiting to re-verify arithmetic. The pool is
+ * bounded by the core count rather than left unbounded, because each worker is a
+ * full JIT-compiling interpreter and oversubscribing them makes every case slower,
+ * not faster. */
+/* Measured on this machine (8 performance cores): 6 workers 44.5 s, 8 workers 38.9 s,
+ * 10 workers 38.0 s, 12 workers 38.5 s. Eight is where it stops improving, because
+ * each worker is a JIT-compiling interpreter competing for the same core. */
+const POOL = Math.max(1, Math.min(8, cpus().length - 1));
+let next = 0;
+const finished = new Array(CASES.length);
+
+async function runCase(i) {
+  const c = CASES[i];
   const dir = makeTree(c.mutate);
   let r;
   try {
-    r = run(dir);
+    r = await new Promise((res) => {
+      execFile(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8' },
+        (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+    });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+
   /* A `silent` case inverts the expectation. It marks a divergence that changes no
    * audio and no timeline entry, so the checker cannot see it -- and pretending
    * otherwise would be the exact mistake this file exists to catch. */
@@ -324,11 +336,18 @@ for (const c of CASES) {
     ? r.code === 0
     : r.code !== 0 && r.out.includes(c.expect);
   const firstFail = (r.out.match(/FAIL[^\n]*/) || ['(no FAIL line)'])[0].slice(0, 90);
-  ok(c.name, pass, pass ? ''
-    : c.silent
-      ? `exit ${r.code}, expected BLIND; first report: ${firstFail}`
-      : `exit ${r.code}, expected "${c.expect}"; first report: ${firstFail}`);
+  finished[i] = { name: c.name, pass, detail: pass ? '' : c.silent
+    ? `exit ${r.code}, expected BLIND; first report: ${firstFail}`
+    : `exit ${r.code}, expected "${c.expect}"; first report: ${firstFail}` };
 }
+
+await Promise.all(Array.from({ length: POOL }, async () => {
+  while (next < CASES.length) {
+    const i = next++;
+    await runCase(i);
+  }
+}));
+for (const f of finished) ok(f.name, f.pass, f.detail);
 
 const failed = results.filter((r) => !r.pass);
 console.log('');

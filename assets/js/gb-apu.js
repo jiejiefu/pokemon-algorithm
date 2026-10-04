@@ -588,6 +588,7 @@ export function renderSpeciesCry(cries, sfx, id, opts = {}) {
       cancelAt: apu.cancelAt,
       noteCount: apu.notes.length,
       channelSamples: apu.channelSamples,
+      noiseClocks: apu.noiseClocks,
       implicitRet: base.implicitRet,
     },
   };
