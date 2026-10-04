@@ -45,6 +45,10 @@ Thumbs.db
 # one is here because the two backups are not the same kind of file.
 AGENTS.md.bak
 
+# Agent tooling state (.opencode/plans/*.md are session scratch, not project
+# artifacts; .opencode/.gitignore already covers node_modules and package.json)
+.opencode/
+
 # IDE settings
 .idea/
 .vscode/*
@@ -71,3 +75,12 @@ AGENTS.md.bak
 # rather than raising FileNotFoundError. See the "InfoPoke reference snapshots"
 # entry in AGENTS.md.
 infopoke_net_*.html
+
+# pokered's 114 Generation I cry .asm files. Build-time inputs to
+# fetch_gen1_cries.py, which parses them into assets/data/gen1_cries.json and
+# gen1_cry_sfx.json. Not tracked for the same reason as the InfoPoke captures:
+# they are third-party source that changes whenever pret/pokered is rebased, and
+# what is tracked is the JSON each script produces from them.
+# test_check_gen1_cries.mjs mirrors them under data-sources/ on first run and
+# reuses the copy; delete the directory to force a re-fetch.
+data-sources/pokered-cry/

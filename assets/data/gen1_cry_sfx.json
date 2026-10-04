@@ -1,0 +1,6154 @@
+{
+ "source": "https://raw.githubusercontent.com/pret/pokered/master/audio/sfx/cry{}_{}.asm",
+ "baseCount": 38,
+ "replicaCountPerBase": 3,
+ "note": "Upstream ships each base cry three times (cry{NN}_1..3.asm) as three link entries for one sound; the copies are command-identical and only the label suffix differs. 38 bases are stored, not 114 files. check_gen1_cries.mjs asserts the copies still agree.",
+ "sfx": {
+  "SFX_CRY_00": {
+   "base": 0,
+   "files": [
+    "cry00_1.asm",
+    "cry00_2.asm",
+    "cry00_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1816
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 5,
+       "freq": 1944
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1880
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1800
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 5,
+       "freq": 1928
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 7,
+       "sweep": 1,
+       "freq": 1864
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 28
+      },
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 9,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 28
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_01": {
+   "base": 1,
+   "files": [
+    "cry01_1.asm",
+    "cry01_2.asm",
+    "cry01_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1536
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1888
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1824
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1808
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1777
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 5,
+       "freq": 1874
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1809
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1537
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 9,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 8,
+       "sweep": 2,
+       "freq": 28
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 7,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_02": {
+   "base": 2,
+   "files": [
+    "cry02_1.asm",
+    "cry02_2.asm",
+    "cry02_3.asm"
+   ],
+   "implicitRet": [
+    6
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "expandedFrom": "duty_cycle"
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 15,
+       "sweep": 5,
+       "freq": 1152
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1504
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1500
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 9,
+       "sweep": 5,
+       "freq": 1089
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 1313
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 1306
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_03": {
+   "base": 3,
+   "files": [
+    "cry03_1.asm",
+    "cry03_2.asm",
+    "cry03_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1544
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1536
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1520
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1504
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1472
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1440
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1408
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1284
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 6,
+       "freq": 1282
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 9,
+       "sweep": 7,
+       "freq": 1265
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1249
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 10,
+       "sweep": 3,
+       "freq": 1218
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1187
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1154
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_04": {
+   "base": 4,
+   "files": [
+    "cry04_1.asm",
+    "cry04_2.asm",
+    "cry04_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1696
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1700
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 1696
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1568
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1572
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1568
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1552
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1537
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 1539
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 1537
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1409
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1411
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1410
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1393
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 7,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_05": {
+   "base": 5,
+   "files": [
+    "cry05_1.asm",
+    "cry05_2.asm",
+    "cry05_3.asm"
+   ],
+   "implicitRet": [
+    6
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1280
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 1408
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1392
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1376
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1154
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1281
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1250
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 1217
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_06": {
+   "base": 6,
+   "files": [
+    "cry06_1.asm",
+    "cry06_2.asm",
+    "cry06_3.asm"
+   ],
+   "implicitRet": [
+    5
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 3,
+       "freq": 583
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 6,
+       "sweep": 2,
+       "freq": 550
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 5,
+       "sweep": 2,
+       "freq": 581
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 6,
+       "sweep": 3,
+       "freq": 518
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 8,
+       "sweep": 2,
+       "freq": 549
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 4,
+       "sweep": 2,
+       "freq": 519
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 140
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 156
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 140
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 172
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 156
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 172
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_07": {
+   "base": 7,
+   "files": [
+    "cry07_1.asm",
+    "cry07_2.asm",
+    "cry07_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1600
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1568
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1667
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1538
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1537
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_08": {
+   "base": 8,
+   "files": [
+    "cry08_1.asm",
+    "cry08_2.asm",
+    "cry08_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 1381
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1404
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1372
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1340
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 1283
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1307
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 1274
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1243
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 11,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_09": {
+   "base": 9,
+   "files": [
+    "cry09_1.asm",
+    "cry09_2.asm",
+    "cry09_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1952
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1955
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1952
+      },
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 2008
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 2007
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 2008
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 7,
+       "freq": 1697
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 6,
+       "freq": 1698
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 7,
+       "sweep": 4,
+       "freq": 1697
+      },
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        3,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 7,
+       "sweep": 6,
+       "freq": 1750
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 8,
+       "sweep": 3,
+       "freq": 1753
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1751
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 62
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 5,
+       "freq": 59
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 61
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 61
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 59
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0A": {
+   "base": 10,
+   "files": [
+    "cry0a_1.asm",
+    "cry0a_2.asm",
+    "cry0a_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1765
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 1744
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 1728
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1712
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1736
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 7,
+       "freq": 1697
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 6,
+       "freq": 1699
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 7,
+       "sweep": 4,
+       "freq": 1697
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 7,
+       "sweep": 6,
+       "freq": 1681
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 8,
+       "sweep": 3,
+       "freq": 1666
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1649
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 7,
+       "sweep": 2,
+       "freq": 1673
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 62
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 12,
+       "sweep": 5,
+       "freq": 59
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0B": {
+   "base": 11,
+   "files": [
+    "cry0b_1.asm",
+    "cry0b_2.asm",
+    "cry0b_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        3,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1922
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1858
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1857
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        0,
+        1,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1922
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1922
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1793
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 76
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0C": {
+   "base": 12,
+   "files": [
+    "cry0c_1.asm",
+    "cry0c_2.asm",
+    "cry0c_3.asm"
+   ],
+   "implicitRet": [
+    6
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        3,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 15,
+       "sweep": 5,
+       "freq": 1536
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1592
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1584
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1576
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1568
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1552
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1560
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1552
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1568
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        0,
+        1,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1472
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1529
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1521
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1513
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1505
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1497
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 1489
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1497
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1505
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0D": {
+   "base": 13,
+   "files": [
+    "cry0d_1.asm",
+    "cry0d_2.asm",
+    "cry0d_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        0,
+        2,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1616
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1632
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1554
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1570
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1552
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1568
+      },
+      {
+       "op": "loop",
+       "count": 2,
+       "target": "Ch5"
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1617
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1633
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1556
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1572
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1553
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1569
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1556
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1572
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1553
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1569
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 28
+      },
+      {
+       "op": "noise",
+       "frames": 9,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 9,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 9,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 9,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 60
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0E": {
+   "base": 14,
+   "files": [
+    "cry0e_1.asm",
+    "cry0e_2.asm",
+    "cry0e_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1536
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1761
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1761
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 6,
+       "sweep": 2,
+       "freq": 1665
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1505
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 50
+      },
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 33
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 17
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_0F": {
+   "base": 15,
+   "files": [
+    "cry0f_1.asm",
+    "cry0f_2.asm",
+    "cry0f_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1984
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1986
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 5,
+       "freq": 1664
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1648
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 5,
+       "freq": 1632
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1600
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        3,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1921
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 5,
+       "freq": 1601
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1586
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 5,
+       "freq": 1569
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1538
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 7,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 93
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_10": {
+   "base": 16,
+   "files": [
+    "cry10_1.asm",
+    "cry10_2.asm",
+    "cry10_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        2,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1664
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1632
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1600
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1568
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1536
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 10,
+       "sweep": 7,
+       "freq": 1840
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1824
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        3,
+        2,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1666
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1634
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1602
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1570
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1538
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 7,
+       "freq": 1858
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 7,
+       "freq": 1842
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 1826
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 7,
+       "sweep": 4,
+       "freq": 33
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 7,
+       "sweep": 4,
+       "freq": 16
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 7,
+       "sweep": 1,
+       "freq": 32
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_11": {
+   "base": 17,
+   "files": [
+    "cry11_1.asm",
+    "cry11_2.asm",
+    "cry11_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1952
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1956
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 1952
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1824
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1827
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1832
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1840
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 0
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 7,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 8,
+       "sweep": 6,
+       "freq": 1859
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 7,
+       "sweep": 6,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 13,
+       "volume": 8,
+       "sweep": 3,
+       "freq": 1730
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 7,
+       "sweep": 3,
+       "freq": 1729
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 8,
+       "sweep": 2,
+       "freq": 1740
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 7,
+       "sweep": 1,
+       "freq": 1752
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 58
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 58
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 5,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 61
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_12": {
+   "base": 18,
+   "files": [
+    "cry12_1.asm",
+    "cry12_2.asm",
+    "cry12_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1088
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 1184
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1168
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1152
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        2,
+        3,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 11,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1080
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 1176
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1160
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1144
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 108
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 108
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_13": {
+   "base": 19,
+   "files": [
+    "cry13_1.asm",
+    "cry13_2.asm",
+    "cry13_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        3,
+        0,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 1472
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 1468
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1488
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1504
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1520
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1536
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        1,
+        2,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 1201
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1197
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1217
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 1233
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1249
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1265
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 108
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_14": {
+   "base": 20,
+   "files": [
+    "cry14_1.asm",
+    "cry14_2.asm",
+    "cry14_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1936
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 5,
+       "freq": 1984
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 2008
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1905
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 1954
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1975
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_15": {
+   "base": 21,
+   "files": [
+    "cry15_1.asm",
+    "cry15_2.asm",
+    "cry15_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1808
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1776
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1760
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 11,
+       "sweep": 7,
+       "freq": 1665
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1682
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1665
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1650
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1633
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 108
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_16": {
+   "base": 22,
+   "files": [
+    "cry16_1.asm",
+    "cry16_2.asm",
+    "cry16_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1952
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1856
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1875
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 1906
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1809
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_17": {
+   "base": 23,
+   "files": [
+    "cry17_1.asm",
+    "cry17_2.asm",
+    "cry17_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        3,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1280
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1288
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1152
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1120
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        0,
+        1,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1153
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1161
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1025
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 993
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 124
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 108
+      },
+      {
+       "op": "noise",
+       "frames": 9,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 124
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 108
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_18": {
+   "base": 24,
+   "files": [
+    "cry18_1.asm",
+    "cry18_2.asm",
+    "cry18_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 15,
+       "sweep": 5,
+       "freq": 1664
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1696
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1728
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1728
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1696
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        3,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1585
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1618
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1649
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1681
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1714
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1681
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1649
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1617
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_19": {
+   "base": 25,
+   "files": [
+    "cry19_1.asm",
+    "cry19_2.asm",
+    "cry19_3.asm"
+   ],
+   "implicitRet": [
+    6
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 5,
+       "freq": 1888
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1840
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1800
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1793
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1A": {
+   "base": 26,
+   "files": [
+    "cry1a_1.asm",
+    "cry1a_2.asm",
+    "cry1a_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1860
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1872
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1888
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1952
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 11,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 1794
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 5,
+       "freq": 1809
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 9,
+       "sweep": 3,
+       "freq": 1825
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 10,
+       "sweep": 3,
+       "freq": 1857
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 1890
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1B": {
+   "base": 27,
+   "files": [
+    "cry1b_1.asm",
+    "cry1b_2.asm",
+    "cry1b_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1728
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 7,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1776
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1744
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        2,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1665
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1729
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1713
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 4,
+       "freq": 1697
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1681
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 10,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 9,
+       "sweep": 4,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 10,
+       "sweep": 3,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1C": {
+   "base": 28,
+   "files": [
+    "cry1c_1.asm",
+    "cry1c_2.asm",
+    "cry1c_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 2017
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 2018
+      },
+      {
+       "op": "pulse",
+       "frames": 9,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 2017
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 2016
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 2018
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 2017
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 2016
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 2015
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        0,
+        1,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1993
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1991
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1987
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1991
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1993
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1989
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 1,
+       "sweep": -1,
+       "freq": 124
+      },
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 140
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 124
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 108
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1D": {
+   "base": 29,
+   "files": [
+    "cry1d_1.asm",
+    "cry1d_2.asm",
+    "cry1d_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        1,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 0,
+       "freq": 1797
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 0,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 4,
+       "freq": 1808
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1568
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1572
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        2,
+        0,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 0,
+       "freq": 1731
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 10,
+       "sweep": 0,
+       "freq": 1729
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 4,
+       "freq": 1746
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 9,
+       "sweep": 3,
+       "freq": 1729
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 2,
+       "freq": 1505
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 1512
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 5,
+       "freq": 74
+      },
+      {
+       "op": "noise",
+       "frames": 1,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 91
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1E": {
+   "base": 30,
+   "files": [
+    "cry1e_1.asm",
+    "cry1e_2.asm",
+    "cry1e_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 1536
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1600
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1664
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1728
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 1792
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 1,
+       "freq": 1984
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        1,
+        0,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 1
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1473
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1538
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1601
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1666
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1730
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 1793
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 1858
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 1921
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 6,
+       "volume": 0,
+       "sweep": 8,
+       "freq": 1
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 92
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 28
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 27
+      },
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 26
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 8,
+       "sweep": 1,
+       "freq": 24
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_1F": {
+   "base": 31,
+   "files": [
+    "cry1f_1.asm",
+    "cry1f_2.asm",
+    "cry1f_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1601
+      },
+      {
+       "op": "pulse",
+       "frames": 13,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 1825
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1817
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1818
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        3,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1408
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1760
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1752
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1756
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 5,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 70
+      },
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 10,
+       "sweep": 5,
+       "freq": 68
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 69
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 68
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_20": {
+   "base": 32,
+   "files": [
+    "cry20_1.asm",
+    "cry20_2.asm",
+    "cry20_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 13,
+       "volume": 15,
+       "sweep": 1,
+       "freq": 1297
+      },
+      {
+       "op": "pulse",
+       "frames": 13,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1301
+      },
+      {
+       "op": "pulse",
+       "frames": 13,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1297
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1297
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        1,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 14,
+       "sweep": 1,
+       "freq": 1292
+      },
+      {
+       "op": "pulse",
+       "frames": 12,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1296
+      },
+      {
+       "op": "pulse",
+       "frames": 14,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1292
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1290
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 101
+      },
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 85
+      },
+      {
+       "op": "noise",
+       "frames": 14,
+       "volume": 13,
+       "sweep": 2,
+       "freq": 86
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 102
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_21": {
+   "base": 33,
+   "files": [
+    "cry21_1.asm",
+    "cry21_2.asm",
+    "cry21_3.asm"
+   ],
+   "implicitRet": [
+    6
+   ],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1380
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 14,
+       "sweep": 2,
+       "freq": 1348
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1314
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1156
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1186
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 3,
+       "freq": 1316
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1252
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1282
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        0,
+        3,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1376
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1344
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1312
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 1152
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1184
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1312
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1248
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1280
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_22": {
+   "base": 34,
+   "files": [
+    "cry22_1.asm",
+    "cry22_2.asm",
+    "cry22_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        1,
+        0,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 3,
+       "sweep": -5,
+       "freq": 897
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 15,
+       "sweep": 5,
+       "freq": 1537
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 12,
+       "sweep": 2,
+       "freq": 1153
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 897
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        2,
+        3,
+        2
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 2,
+       "volume": 3,
+       "sweep": -6,
+       "freq": 1456
+      },
+      {
+       "op": "pulse",
+       "frames": 7,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1885
+      },
+      {
+       "op": "pulse",
+       "frames": 1,
+       "volume": 11,
+       "sweep": 2,
+       "freq": 1712
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 6,
+       "sweep": 1,
+       "freq": 1456
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 2,
+       "volume": 9,
+       "sweep": 2,
+       "freq": 73
+      },
+      {
+       "op": "noise",
+       "frames": 7,
+       "volume": 11,
+       "sweep": 5,
+       "freq": 41
+      },
+      {
+       "op": "noise",
+       "frames": 1,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 57
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 73
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_23": {
+   "base": 35,
+   "files": [
+    "cry23_1.asm",
+    "cry23_2.asm",
+    "cry23_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1984
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 1985
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 15,
+       "sweep": 6,
+       "freq": 1984
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1986
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1984
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        1,
+        3,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 9,
+       "sweep": 7,
+       "freq": 1921
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 8,
+       "sweep": 4,
+       "freq": 1920
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 9,
+       "sweep": 6,
+       "freq": 1921
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 8,
+       "sweep": 3,
+       "freq": 1921
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 3,
+       "volume": 15,
+       "sweep": 2,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 13,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 44
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_24": {
+   "base": 36,
+   "files": [
+    "cry24_1.asm",
+    "cry24_2.asm",
+    "cry24_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        3,
+        3,
+        0,
+        0
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 15,
+       "sweep": 7,
+       "freq": 1664
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 14,
+       "sweep": 6,
+       "freq": 1668
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 13,
+       "sweep": 7,
+       "freq": 1680
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 5,
+       "freq": 1680
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 4,
+       "freq": 1672
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1648
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 13,
+       "sweep": 3,
+       "freq": 1632
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 12,
+       "sweep": 1,
+       "freq": 1600
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        0,
+        0,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 7,
+       "freq": 1601
+      },
+      {
+       "op": "pulse",
+       "frames": 10,
+       "volume": 9,
+       "sweep": 6,
+       "freq": 1602
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 7,
+       "freq": 1617
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 10,
+       "sweep": 5,
+       "freq": 1617
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 9,
+       "sweep": 4,
+       "freq": 1607
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 10,
+       "sweep": 3,
+       "freq": 1585
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 9,
+       "sweep": 3,
+       "freq": 1570
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 7,
+       "sweep": 1,
+       "freq": 1537
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 4,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 12,
+       "sweep": 7,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 11,
+       "sweep": 7,
+       "freq": 76
+      },
+      {
+       "op": "noise",
+       "frames": 15,
+       "volume": 10,
+       "sweep": 2,
+       "freq": 92
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  },
+  "SFX_CRY_25": {
+   "base": 37,
+   "files": [
+    "cry25_1.asm",
+    "cry25_2.asm",
+    "cry25_3.asm"
+   ],
+   "implicitRet": [],
+   "channels": [
+    {
+     "ch": 5,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        2,
+        2,
+        1,
+        1
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 14,
+       "sweep": 3,
+       "freq": 1840
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 15,
+       "sweep": 4,
+       "freq": 1856
+      },
+      {
+       "op": "pulse",
+       "frames": 5,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1864
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 1,
+       "freq": 1872
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 6,
+     "commands": [
+      {
+       "op": "duty",
+       "pattern": [
+        1,
+        3,
+        1,
+        3
+       ]
+      },
+      {
+       "op": "pulse",
+       "frames": 6,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1810
+      },
+      {
+       "op": "pulse",
+       "frames": 15,
+       "volume": 11,
+       "sweep": 3,
+       "freq": 1796
+      },
+      {
+       "op": "pulse",
+       "frames": 3,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1810
+      },
+      {
+       "op": "pulse",
+       "frames": 4,
+       "volume": 12,
+       "sweep": 3,
+       "freq": 1825
+      },
+      {
+       "op": "pulse",
+       "frames": 8,
+       "volume": 11,
+       "sweep": 1,
+       "freq": 1842
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    },
+    {
+     "ch": 8,
+     "commands": [
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 13,
+       "sweep": 6,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 12,
+       "volume": 12,
+       "sweep": 6,
+       "freq": 60
+      },
+      {
+       "op": "noise",
+       "frames": 10,
+       "volume": 11,
+       "sweep": 6,
+       "freq": 44
+      },
+      {
+       "op": "noise",
+       "frames": 8,
+       "volume": 9,
+       "sweep": 1,
+       "freq": 28
+      },
+      {
+       "op": "ret"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
