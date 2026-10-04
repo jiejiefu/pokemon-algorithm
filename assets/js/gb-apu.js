@@ -271,6 +271,16 @@ function renderPulse(commands, pitch, length) {
  * worked in samples and the timeline in seconds, so they disagreed on every note
  * while both looked correct.
  */
+/** The master volume as the channel scale, 0..15, with anything else clamped. */
+export function clampVolume(v) {
+  return Math.max(0, Math.min(15, Math.round(v)));
+}
+
+/** A 0..10 slider reading as the channel scale's 0..15, which is how the page maps it. */
+export function sliderToMaster(sliderValue) {
+  return clampVolume((sliderValue / 10) * 15);
+}
+
 export function noiseOffset(startSample, cutoffSamples, pitch) {
   return startSample >= cutoffSamples ? 0 : pitch;
 }
@@ -379,6 +389,10 @@ export class GbApu {
     this.base = base;
     this.pitchByte = pitchShift ? pitch : 0;
     this.lengthByte = length;
+    /* The master volume lives on the CHANNEL's own 0..15 scale, so a cry's three
+     * channels and its master are the same units and 15 is simply loud. The page
+     * presents a 0..10 slider and maps it in, which is a presentation choice and
+     * deliberately not something this module knows about. */
     this.masterVolume = volume;
     this.muted = muted;
     this.wantOutputs = wantOutputs === true;
@@ -455,7 +469,7 @@ export class GbApu {
 
     // Three channels, each at a third, summed. The division is upstream's and it
     // is what keeps a cry with all three channels sounding from clipping.
-    const master = this.masterVolume / 15;
+    const master = clampVolume(this.masterVolume) / 15;
     for (const [buf, ch] of [[pulse1, 5], [pulse2, 6], [noise, 8]]) {
       if (this.muted[ch]) continue;
       for (let i = 0; i < buf.length && i < total; i++) samples[i] += buf[i] * master / 3;

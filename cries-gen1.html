@@ -88,8 +88,8 @@
                 </label>
                 <label class="cg-slider">
                   <span>音量 <b id="volume-val"></b></span>
-                  <input type="range" id="volume" min="0" max="15" step="1" value="15">
-                  <small>0–15，與頻道音量同一個尺度</small>
+                  <input type="range" id="volume" min="0" max="10" step="1" value="3">
+                  <small>0–10，預設 3 —— 對應頻道音量的 5/15</small>
                 </label>
                 <button type="button" class="cy-chip" id="reset" aria-pressed="false">還原這隻的原始值</button>
               </div>
@@ -169,7 +169,8 @@
     import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS } from './assets/js/shared.js';
     import {
       GbApu, renderSpeciesCry, groupByBaseCry, lengthMultiplier,
-      wrappedNotes, frequencyHz, shiftedRegister, FRAME_HZ, SYNTH_RATE,
+      wrappedNotes, frequencyHz, shiftedRegister, sliderToMaster,
+      FRAME_HZ, SYNTH_RATE,
     } from './assets/js/gb-apu.js';
 
     initThemeToggle();
@@ -187,10 +188,9 @@
       id: 6,
       pitch: 0,
       lengthSigned: -128,
-      volume: 15,
+      volume: 3,
       muted: {},
       filter: '',
-      envelopeStep: 1 / 8,
       playing: false,
       buffer: null,
       source: null,
@@ -229,9 +229,8 @@
       const { samples, meta: info } = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
         length: (state.lengthSigned + 0x80) & 0xff,
-        volume: state.volume,
+        volume: sliderToMaster(state.volume),
         muted: state.muted,
-        envelopeStep: state.envelopeStep,
       });
 
       let buffer;
@@ -357,9 +356,8 @@
       const out = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
         length: (state.lengthSigned + 0x80) & 0xff,
-        volume: state.volume,
+        volume: sliderToMaster(state.volume),
         muted: state.muted,
-        envelopeStep: state.envelopeStep,
       });
       state.renderMs = performance.now() - t0;
       return out;
@@ -555,7 +553,7 @@
       const { multiplier, stretch } = lengthMultiplier((state.lengthSigned + 0x80) & 0xff);
       el('pitch-val').textContent = state.pitch;
       el('length-val').textContent = state.lengthSigned;
-      el('volume-val').textContent = state.volume;
+      el('volume-val').textContent = `${state.volume}（頻道音量 ${sliderToMaster(state.volume)}/15）`;
       el('pitch-hint').textContent =
         `直接加到 11 位元頻率暫存器（0–2047），超過就捲繞回最低頻`;
       el('length-hint').textContent =

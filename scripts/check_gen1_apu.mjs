@@ -56,7 +56,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   GbApu, renderSpeciesCry, lengthMultiplier, frequencyHz, shiftedRegister,
-  wrappedNotes, packDuty, noiseClockHz, groupByBaseCry,
+  wrappedNotes, packDuty, noiseClockHz, groupByBaseCry, sliderToMaster,
   FRAME_HZ, SYNTH_RATE, SAMPLES_PER_FRAME,
 } from '../assets/js/gb-apu.js';
 
@@ -541,6 +541,15 @@ ok(/整段重播 \$\{cmd\.count\} 次/.test(dom),
   'and the page says the block plays count times, which is what the audio does');
 ok(dom.includes('count 是總次數，不是額外次數'),
   'and is explicit that count is the total, not the number of extra repetitions');
+
+/* The page's 0..10 slider maps onto the channel scale's 0..15, so the default
+ * reading of 3 is a master volume of 5. Asserted here because getting it wrong is
+ * silent: the cry simply plays at the wrong loudness and every waveform check still
+ * passes, since conformance renders at unity either way. */
+eq(sliderToMaster(0), 0, 'a slider at 0 is silence');
+eq(sliderToMaster(10), 15, 'a slider at 10 is full scale, the same 15 the channels use');
+eq(sliderToMaster(3), 5, 'and the default of 3 is a master volume of 5');
+eq(sliderToMaster(3) / 15, 1 / 3, 'which is one third of full scale');
 
 let bad = 0;
 let minDur = Infinity;
