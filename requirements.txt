@@ -38,6 +38,16 @@ httpx==0.28.1
 beautifulsoup4==4.15.0
 lxml==6.1.3
 
+# --- cry audio (scripts/fetch_gen1_cries.py, analyze_cries.py) ----------------
+
+# libsndfile bindings. The Gen-1 fetcher has to transcode the APU's 2-bit PCM
+# itself (libsndfile has no raw reader for it), but it still needs to *write* a
+# container, and the feature analyser needs a Vorbis/MP3 decoder — which
+# libsndfile supplies via its bundled mpg123. Pinned to the pair verified
+# against the 1,674 upstream cry files: mpg123 is load-bearing, not transitive,
+# because without it soundfile reports MPEG layer III files as unsupported.
+soundfile==0.14.0
+
 # NOTE on OpenCC: two different distributions both install a top-level `opencc`
 # package and they overwrite each other's files. `OpenCC` (the ctypes binding)
 # and `opencc-python-reimplemented` (pure Python) are both present in the venv
