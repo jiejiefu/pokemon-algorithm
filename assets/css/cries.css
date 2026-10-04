@@ -661,3 +661,430 @@
 .cy-probe-row {
   margin-top: 10px;
 }
+
+/* ---------------------------------------------------------------------------
+   10. cries-gen1.html — the Generation I APU lab
+
+   Same tokens and the same `cy-` vocabulary as cries.html. The components here
+   are specific to one page and there is only one of them, so they are appended
+   rather than given their own stylesheet: a separate file for a single page
+   would mean a second place to look and a second thing to keep on the tokens.
+   --------------------------------------------------------------------------- */
+
+.cg-picker {
+  flex-basis: 380px;
+  width: 380px;
+}
+
+.cg-field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.cg-field > span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.cg-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.cg-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+/* A group is a base cry. Collapsed by default when it is large, because the
+   interesting observation is that one base is shared by seven species — which
+   you can only see if the groups are visible, and which the default page
+   `details` behaviour would otherwise hide. */
+.cg-group {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.cg-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+.cg-group summary::-webkit-details-marker { display: none; }
+
+.cg-group-name {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.cg-group-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.cg-group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 10px 10px;
+}
+
+.cy-chip.is-current {
+  color: var(--text-primary);
+  border-color: var(--accent-gold);
+  background: color-mix(in srgb, var(--accent-gold) 14%, transparent);
+}
+
+/* --- stage --- */
+
+.cg-stage {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.cg-transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.cg-play-lg {
+  width: 42px;
+  height: 42px;
+}
+
+.cg-play-lg svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cg-current-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.cg-current-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.cg-sliders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
+.cg-slider {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.cg-slider > span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.cg-slider b {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cg-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent-gold);
+}
+
+.cg-slider small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.cg-wave {
+  display: block;
+  width: 100%;
+  height: 120px;
+  color: var(--accent-gold);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* --- timeline --- */
+
+.cg-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cg-lane {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cg-lane.is-muted {
+  opacity: 0.55;
+}
+
+.cg-lane-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex: 0 0 84px;
+  padding: 4px 8px;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cg-lane-name {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.cg-lane-state {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cg-lane-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 26px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cg-note-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: var(--accent-gold);
+  border-radius: 2px;
+  min-width: 1px;
+}
+
+/* A note that starts after the pulse channels ended, so it plays with the pitch
+   offset already cancelled. The colour is the whole point: it is the tail that
+   crashes. */
+.cg-note-bar.is-unshifted {
+  background: var(--accent-yellow-text);
+}
+
+.cg-note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+/* --- channels --- */
+
+.cg-channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.cg-channel {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.cg-channel.is-muted {
+  opacity: 0.6;
+}
+
+.cg-channel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cg-channel h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cg-cmdlist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.cg-cmdlist li {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.cg-cmdlist li:last-child { border-bottom: none; }
+
+.cg-cmdlist code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.cg-dim {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cg-wrap {
+  color: var(--accent-yellow-text);
+  font-style: normal;
+}
+
+.cg-warn-inline {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-left: 2px solid var(--accent-yellow-text);
+  border-radius: var(--radius-sm);
+}
+
+/* --- teaching cards --- */
+
+.cg-teach h2 {
+  font-size: 20px;
+  margin: 0 0 14px;
+}
+
+.cg-teach h3 {
+  font-size: 14px;
+  margin: 22px 0 8px;
+  color: var(--text-primary);
+}
+
+.cg-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.cg-card {
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cg-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.cg-card p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.cg-card p:last-child { margin-bottom: 0; }
+
+.cg-card .cg-note,
+.cg-card .cy-panel-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cg-warn {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-left: 2px solid var(--accent-yellow-text);
+  border-radius: var(--radius-sm);
+}
+
+.cg-teach > .cg-note {
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .cg-picker {
+    flex-basis: auto;
+    width: auto;
+  }
+}
+
+/* The part of a noise note that plays after the pitch offset is erased. It is
+   drawn as a solid block inside its parent bar because it is the only segment of
+   the whole timeline whose PITCH changes partway through, which is what the
+   end-of-cry crash actually is. */
+.cg-note-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--accent-yellow-text);
+  border-radius: 0 2px 2px 0;
+}

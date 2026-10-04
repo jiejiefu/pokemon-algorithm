@@ -131,7 +131,7 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // trio. A NUMBER, not a list on purpose — a list here would be a fourth copy of
 // NAV that could be edited to agree with a broken NAV, whereas a count can only
 // be changed by someone deciding the site's page set changed.
-const EXPECTED_NAV_PAGES = 13;
+const EXPECTED_NAV_PAGES = 14;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

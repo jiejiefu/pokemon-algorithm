@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第一世代叫聲實驗室 · 寶可夢演算法</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="用 Game Boy APU 重新合成第一世代的 151 隻叫聲：38 個 base cry、聲道指令、音高與長度偏移，以及捲繞與尾音崩潰的成因。">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/cries.css">
+</head>
+<body>
+  <div class="cy-app">
+    <header class="header header-colors">
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+      <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+        <div class="header-title header-title-large">寶可夢演算法</div>
+      </a>
+      <nav class="site-nav" data-nav aria-label="主選單"></nav>
+      <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+      <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+    </header>
+
+    <div class="cy-shell">
+      <aside class="cy-panel cg-picker" aria-label="選擇寶可夢">
+        <p class="sr-only" id="announce" role="status" aria-live="polite"></p>
+
+        <h2>選擇寶可夢</h2>
+        <label class="cg-field">
+          <span>搜尋</span>
+          <input type="search" id="search" placeholder="名稱或編號" autocomplete="off" spellcheck="false">
+        </label>
+
+        <h3>依 base cry 分組</h3>
+        <p class="cy-panel-note">38 個 base cry 共用於 151 隻。同一組內的叫聲只差在音高與長度兩個位元組上。</p>
+        <div class="cg-groups" id="groups"></div>
+      </aside>
+
+      <main class="cy-main" id="main">
+        <div class="cy-page">
+          <div class="cy-intro">
+            <h1>第一世代叫聲實驗室</h1>
+            <p>紅／綠／藍的 151 隻叫聲並不是 151 段錄音。Game Freak 只寫了 <strong>38 段 base cry</strong>，其餘全部是用兩個位元組從這 38 段推導出來的：<strong>音高</strong>（0–255，直接加到 11 位元頻率暫存器上）與<strong>長度</strong>（−128…127，作為時間縮放乘數）。這一頁用瀏覽器的 Web Audio 重新合成它們，你可以改那兩個位元組，立刻聽到結果。</p>
+          </div>
+
+          <section class="cg-stage" aria-labelledby="stage-h">
+            <h2 id="stage-h" class="sr-only">合成與聲道</h2>
+
+            <div class="cg-controls">
+              <div class="cg-transport">
+                <button type="button" class="cy-play cg-play-lg" id="play" aria-pressed="false" aria-label="播放叫聲"></button>
+                <div class="cg-current">
+                  <div class="cg-current-name" id="cur-name"></div>
+                  <div class="cg-current-meta" id="cur-meta"></div>
+                </div>
+              </div>
+
+              <div class="cg-sliders">
+                <label class="cg-slider">
+                  <span>音高 <b id="pitch-val"></b></span>
+                  <input type="range" id="pitch" min="0" max="255" step="1" value="0">
+                  <small id="pitch-hint"></small>
+                </label>
+                <label class="cg-slider">
+                  <span>長度 <b id="length-val"></b></span>
+                  <input type="range" id="length" min="-128" max="127" step="1" value="0">
+                  <small id="length-hint"></small>
+                </label>
+                <label class="cg-slider">
+                  <span>音量 <b id="volume-val"></b></span>
+                  <input type="range" id="volume" min="0" max="15" step="1" value="15">
+                  <small>0–15，與頻道音量同一個尺度</small>
+                </label>
+                <button type="button" class="cy-chip" id="reset" aria-pressed="false">還原這隻的原始值</button>
+              </div>
+            </div>
+
+            <canvas class="cg-wave" id="wave" height="120" role="img"
+                    aria-label="合成出的叫聲波形"></canvas>
+
+            <h3>聲道時間軸</h3>
+            <p class="cg-note">三條聲道各跑各的。脈衝聲道的音符結束於自己的幀數；噪音聲道比較長時，它最後那段會在脈衝聲道結束之後繼續，而那正是音高偏移已被取消的地方。</p>
+            <div class="cg-timeline" id="timeline"></div>
+          </section>
+
+          <section class="cg-channels" id="channels" aria-label="聲道"></section>
+
+          <section class="cg-teach" aria-labelledby="teach-h">
+            <h2 id="teach-h">這張表裡能算出來的東西</h2>
+
+            <div class="cg-cards">
+              <article class="cg-card">
+                <h3>兩組完全相同的叫聲</h3>
+                <p><strong>噴火龍</strong>與<strong>獨角犀牛</strong>、<strong>蚊香蝌蚪</strong>與<strong>百變怪</strong>，base cry、音高、長度三個值完全相同 —— 合成出來的 PCM 是位元組相同的。</p>
+                <p class="cg-warn">注意：獨角犀牛（Rhyhorn, #111）和鑽角犀獸（Rhyhon, #112）是<strong>兩隻不同的寶可夢</strong>。後者用的是 base 11，只和前者在音高與長度上相同、基底不同。中文資料常把這兩個名字混用，導致「噴火龍和鑽角犀獸同叫聲」的錯誤說法。</p>
+              </article>
+
+              <article class="cg-card">
+                <h3>兩組幾乎相同的叫聲</h3>
+                <p><strong>綠毛蟲</strong>與<strong>角金魚</strong>共用 base 22，長度位元組分別是 0x20 與 0x40。第一脈衝聲道的長度因此差 <strong id="gap-s">—</strong>，Bulbapedia 記載為 0.071 秒。</p>
+                <p><strong>腕力</strong>與<strong>菊石獸</strong>共用 base 31，音高分別是 0xEE 與 0xF0，頻率相差 <strong id="hz-diff">—</strong>。</p>
+                <p class="cg-note">差異比想像中小：0.071 秒的長度差要靠 Bulbapedia 的數字才量得出來，音高差不到 1%。</p>
+              </article>
+
+              <article class="cg-card">
+                <h3>音高偏移會把音符捲繞回最低頻</h3>
+                <p>頻率暫存器只有 11 位元，音高是<strong>直接加上去</strong>的，超過 2047 就捲回接近 0。</p>
+                <p id="wrap-text">蚊香蝌蚪與百變怪共享 base 0E，音高是 <strong>255</strong>（最大值），於是第一個音符落在 131,072 Hz —— 那不是聲音，是聽不到的超高頻。往後三個音符都溢出，各自捲到 66–510 Hz，結果是一聲低沉的轟鳴。</p>
+                <p class="cg-note">這個捲繞不是模擬的缺陷，而是文件記載的行為：較大的偏移可能讓結果比原音更低。當前選擇的物種有 <strong id="wrap-count">—</strong> 個音符會捲繞。</p>
+              </article>
+
+              <article class="cg-card">
+                <h3>為什麼有些叫聲尾巴會「崩潰」</h3>
+                <p>噪音聲道的音高偏移在<strong>兩個脈衝聲道都結束之後</strong>被清除，而硬體並不檢查噪音聲道狀態。所以噪音聲道如果比脈衝聲道長，尾段會用原始參數播放，聽起來像突然的爆聲。</p>
+                <p>嘟嘟就是這樣。另一頭，<strong>蛋蛋</strong>的脈衝音符比較長，噪音聲道結束時偏移還沒被取消，所以牠沒有這個尾巴。當前選擇：<strong id="crash-text">—</strong></p>
+              </article>
+
+              <article class="cg-card">
+                <h3>151 隻、38 段、重製之後</h3>
+                <p>第七世代之後每一隻都有自己專屬的叫聲，第一世代這種「同一段音樂反覆變調變速」的做法就消失了。這也是為什麼 Bulbapedia 說那些曾經相同的叫聲，現在已經不再相似。</p>
+                <p class="cg-note">對照：第二世代把基底擴充到 68 段，其中 30 段是新的，只有耿鬼與月亮伊布沿用第一世代的基底。</p>
+              </article>
+
+              <article class="cg-card">
+                <h3>這一頁是怎麼合成的</h3>
+                <p>Game Boy 的 CPU 跑在 1,048,576 Hz，這裡以 <strong>65,536 Hz</strong> 合成 —— 剛好是 1/16，沒有任何誤差，一個 59.7275 Hz 的音符幀正好 1090.67 個樣本。Web Audio 的取樣率上限是 96,000 Hz，所以無法直接用真實時脈。</p>
+                <p class="cg-note">代價是 32.768 kHz 以上的頻率全部遺失。Game Boy 的脈衝波是方波，方波的諧波延伸到無限遠，所以高頻噪聲會和真機有一點差異 —— 參考作者本人的網頁也標註了同一件事。音量包絡的每幀步進速率不在兩份上游說明裡，是模型而非實測，頁面控制台可調整。</p>
+              </article>
+            </div>
+
+            <h3>出處</h3>
+            <p class="cg-note">指令與數值來自 <a href="https://github.com/pret/pokered" rel="noopener">pret/pokered</a> 的 <code>data/pokemon/cries.asm</code> 與 <code>audio/sfx/</code>，由本站的 <code>scripts/fetch_gen1_cries.py</code> 解析成 JSON。分組與相同叫聲的說法對照 <a href="https://bulbapedia.bulbagarden.net/wiki/Cry" rel="noopener">Bulbapedia 的 Cry 頁</a>，音訊格式的細節來自該頁引用的技術說明。</p>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <div class="home-footer-inner">
+        <p>這裡的音訊是瀏覽器即時合成的，不是錄音。要聽原始錄音請看 <a href="cries.html">叫聲總覽</a>。</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS } from './assets/js/shared.js';
+    import {
+      GbApu, renderSpeciesCry, groupByBaseCry, lengthMultiplier,
+      wrappedNotes, frequencyHz, shiftedRegister, FRAME_HZ, SYNTH_RATE,
+    } from './assets/js/gb-apu.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+    const spriteUrl = (p) => ASSETS.sprites + p.filename;
+
+    const el = (id) => document.getElementById(id);
+    const announce = el('announce');
+
+    const state = {
+      id: 6,
+      pitch: 0,
+      lengthSigned: -128,
+      volume: 15,
+      muted: {},
+      filter: '',
+      envelopeStep: 1 / 8,
+      playing: false,
+      buffer: null,
+      source: null,
+      context: null,
+      renderMs: 0,
+    };
+
+    let cries = null;
+    let sfx = null;
+    let meta = new Map();
+    let row = null;
+    let base = null;
+    let lastRender = null;
+
+    /* ---------------------------------------------------------------------
+       Playback. The APU hands back a Float32Array at 65,536 Hz; the browser
+       resamples it to the device rate on playback. If createBuffer refuses that
+       rate — the spec only guarantees 8,000..96,000 — the signal is decimated by
+       two, which is exact because the ratio is an integer.
+       --------------------------------------------------------------------- */
+
+    async function audioContext() {
+      if (!state.context) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        state.context = new Ctx();
+      }
+      if (state.context.state === 'suspended') await state.context.resume();
+      return state.context;
+    }
+
+    async function play() {
+      const ctx = await audioContext();
+      stop();
+      const { samples, meta: info } = renderSpeciesCry(cries, sfx, state.id, {
+        pitch: state.pitch,
+        length: (state.lengthSigned + 256) & 0xff,
+        volume: state.volume,
+        muted: state.muted,
+        envelopeStep: state.envelopeStep,
+      });
+
+      let buffer;
+      try {
+        buffer = ctx.createBuffer(1, samples.length, SYNTH_RATE);
+        buffer.copyToChannel(samples, 0);
+      } catch (err) {
+        const halved = ctx.createBuffer(1, samples.length >> 1, SYNTH_RATE / 2);
+        const dst = new Float32Array(halved.length);
+        for (let i = 0; i < dst.length; i++) dst[i] = samples[i * 2];
+        halved.copyToChannel(dst, 0);
+        buffer = halved;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+      state.buffer = buffer;
+      state.source = source;
+      state.playing = true;
+      el('play').setAttribute('aria-pressed', 'true');
+      el('play').setAttribute('aria-label', '停止叫聲');
+      el('play').innerHTML = iconSvg('pause');
+      source.onended = () => {
+        state.playing = false;
+        state.source = null;
+        el('play').setAttribute('aria-pressed', 'false');
+        el('play').setAttribute('aria-label', '播放叫聲');
+        el('play').innerHTML = iconSvg('play');
+      };
+      announce.textContent = `播放 ${meta.get(state.id).names.zh} 的叫聲，${info.duration.toFixed(2)} 秒`;
+    }
+
+    function stop() {
+      if (state.source) {
+        try { state.source.stop(); } catch (err) { /* already ended */ }
+        state.source.disconnect();
+        state.source = null;
+      }
+      state.playing = false;
+      el('play').setAttribute('aria-pressed', 'false');
+      el('play').setAttribute('aria-label', '播放叫聲');
+      el('play').innerHTML = iconSvg('play');
+    }
+
+    /* ---------------------------------------------------------------------
+       Rendering the visuals. Cheap enough to do on every slider tick, but the
+       APU call is debounced so dragging a slider does not queue 60 renders.
+       --------------------------------------------------------------------- */
+
+    let renderTimer = 0;
+    function scheduleRender() {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(renderVisuals, 90);
+    }
+
+    function currentRender() {
+      const t0 = performance.now();
+      const out = renderSpeciesCry(cries, sfx, state.id, {
+        pitch: state.pitch,
+        length: (state.lengthSigned + 256) & 0xff,
+        volume: state.volume,
+        muted: state.muted,
+        envelopeStep: state.envelopeStep,
+      });
+      state.renderMs = performance.now() - t0;
+      return out;
+    }
+
+    function drawWave(samples, notes) {
+      const canvas = el('wave');
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cssW = canvas.clientWidth || 600;
+      const cssH = 120;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      const style = getComputedStyle(canvas);
+      const mid = cssH / 2;
+
+      // The pitch-shift cancellation line. Drawn because it is the moment the
+      // tail changes character, and a reader who mutes Ch8 would otherwise never
+      // see that anything happened there.
+      const total = samples.length / SYNTH_RATE;
+      const cancel = lastRender?.meta.cancelAt ?? 0;
+      if (cancel > 0 && cancel < total) {
+        ctx.strokeStyle = style.color;
+        ctx.globalAlpha = 0.45;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo((cancel / total) * cssW, 0);
+        ctx.lineTo((cancel / total) * cssW, cssH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = style.color;
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.fillText('音高偏移取消', (cancel / total) * cssW + 4, 12);
+      }
+
+      // Peak envelope rather than 4,000 individual strokes: the cry is under a
+      // second of 65 kHz audio and drawing every sample is both slow and
+      // unreadable at this width.
+      const columns = Math.max(1, Math.floor(cssW));
+      const per = samples.length / columns;
+      ctx.strokeStyle = style.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < columns; i++) {
+        const from = Math.floor(i * per);
+        const to = Math.min(samples.length, Math.floor((i + 1) * per));
+        let lo = 1;
+        let hi = -1;
+        for (let j = from; j < to; j++) {
+          const v = samples[j];
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+        }
+        if (lo > hi) continue;
+        ctx.moveTo(i + 0.5, mid - hi * (mid - 6));
+        ctx.lineTo(i + 0.5, mid - lo * (mid - 6));
+      }
+      ctx.stroke();
+    }
+
+    function drawTimeline(result) {
+      const total = Math.max(0.001, result.meta.duration);
+      const box = el('timeline');
+      const chans = [
+        { id: 5, name: '脈衝 1', hint: 'Ch5 — 方形波，有音量掃描' },
+        { id: 6, name: '脈衝 2', hint: 'Ch6 — 方形波，有音量掃描' },
+        { id: 8, name: '噪音', hint: 'Ch8 — 線性回授移位暫存器' },
+      ];
+      box.innerHTML = chans.map((ch) => {
+        const notes = result.notes.filter((n) => n.ch === ch.id);
+        const bars = notes.map((n) => {
+          const left = (n.start / total) * 100;
+          const width = Math.max(0.4, ((n.end - n.start) / total) * 100);
+          const cancel = result.meta.cancelAt;
+          const spans = n.ch === 8 && cancel > 0 && n.start < cancel - 1e-9 && n.end > cancel + 1e-9;
+          const tail = spans ? ((n.end - cancel) / total) * 100 : 0;
+          const tip = spans
+            ? `音符 ${n.frames.toFixed(1)} 幀 · 尾段 ${((n.end - cancel) * 1000).toFixed(0)} 毫秒在偏移取消後播放`
+            : `音符 ${n.frames.toFixed(1)} 幀`;
+          return `<span class="cg-note-bar${spans ? ' is-unshifted' : ''}" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%"
+            title="${escapeHtml(tip)}">${spans && tail > 0 ? `<i style="left:${(((cancel - n.start) / (n.end - n.start)) * 100).toFixed(2)}%"></i>` : ''}</span>`;
+        }).join('');
+        const muted = state.muted[ch.id];
+        return `<div class="cg-lane${muted ? ' is-muted' : ''}">
+          <button type="button" class="cg-lane-toggle" data-mute="${ch.id}" aria-pressed="${Boolean(muted)}">
+            <span class="cg-lane-name">${ch.name}</span>
+            <span class="cg-lane-state">${muted ? '靜音' : '播放中'}</span>
+          </button>
+          <div class="cg-lane-track" title="${escapeHtml(ch.hint)}">${bars}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderChannels(result) {
+      el('channels').innerHTML = base.channels.map((ch) => {
+        const kind = ch.ch === 8 ? '噪音' : '脈衝';
+        const rows = ch.commands.map((cmd) => {
+          if (cmd.op === 'duty') {
+            const byte = ((cmd.pattern[0] & 3) << 6) | ((cmd.pattern[1] & 3) << 4) |
+              ((cmd.pattern[2] & 3) << 2) | (cmd.pattern[3] & 3);
+            const names = ['12.5%', '25%', '50%', '75%'];
+            return `<li><code>duty_cycle_pattern</code> ${cmd.pattern.join(' ')}
+              <span class="cg-dim">= 0x${byte.toString(16).toUpperCase().padStart(2, '0')}
+              (${cmd.pattern.map((d) => names[d]).join(' / ')})</span></li>`;
+          }
+          if (cmd.op === 'pulse') {
+            const reg = shiftedRegister(cmd.freq, state.pitch);
+            const wrapped = (cmd.freq + state.pitch) > 0x7ff;
+            return `<li><code>square_note</code> ${cmd.frames}, ${cmd.volume}, ${cmd.sweep}, ${cmd.freq}
+              <span class="cg-dim">${cmd.frames} 幀 · ${frequencyHz(reg).toFixed(1)} Hz${wrapped ? ' · <em class="cg-wrap">已捲繞</em>' : ''}</span></li>`;
+          }
+          if (cmd.op === 'noise') {
+            const param = (cmd.freq + (result.notes.find((n) => n.ch === 8)?.shifted === false ? 0 : state.pitch)) & 0xff;
+            return `<li><code>noise_note</code> ${cmd.frames}, ${cmd.volume}, ${cmd.sweep}, ${cmd.freq}
+              <span class="cg-dim">${cmd.frames} 幀 · 參數 0x${param.toString(16).toUpperCase().padStart(2, '0')}
+              (${(param & 8) ? '7 位元' : '15 位元'} LFSR)</span></li>`;
+          }
+          if (cmd.op === 'loop') {
+            return `<li><code>sound_loop</code> ${cmd.count}, ${cmd.target}
+              <span class="cg-dim">整段重播 ${cmd.count - 1} 次</span></li>`;
+          }
+          if (cmd.op === 'ret') return '<li><code>sound_ret</code></li>';
+          return `<li><code>${escapeHtml(cmd.op)}</code></li>`;
+        }).join('');
+        const silent = base.implicitRet.includes(ch.ch);
+        return `<article class="cg-channel${state.muted[ch.ch] ? ' is-muted' : ''}" data-ch="${ch.ch}">
+          <header>
+            <h3>${kind} ${ch.ch === 5 ? '一' : ch.ch === 6 ? '二' : ''} · Ch${ch.ch}</h3>
+            <button type="button" class="cy-chip" data-mute="${ch.ch}" aria-pressed="${Boolean(state.muted[ch.ch])}">
+              ${state.muted[ch.ch] ? '取消靜音' : '靜音'}
+            </button>
+          </header>
+          ${silent ? '<p class="cg-warn-inline">上游在這個聲道沒有寫 sound_ret，是已知的不一致；此處視為指令結束即停止。</p>' : ''}
+          <ol class="cg-cmdlist">${rows}</ol>
+        </article>`;
+      }).join('');
+    }
+
+    function renderFacts(result) {
+      const wraps = wrappedNotes(base, state.pitch);
+      el('wrap-count').textContent = String(wraps.length);
+      const noiseEnd = result.notes.filter((n) => n.ch === 8).reduce((a, n) => Math.max(a, n.end), 0);
+      const pulseEnd = Math.max(
+        ...result.notes.filter((n) => n.ch !== 8).map((n) => n.end),
+        0,
+      );
+      el('crash-text').textContent = noiseEnd > pulseEnd + 1e-9
+        ? `噪音聲道比脈衝聲道長 ${((noiseEnd - pulseEnd) * 1000).toFixed(0)} 毫秒，尾段在偏移取消後播放，會有崩潰尾音。`
+        : '噪音聲道沒有超過脈衝聲道，不會有崩潰尾音。';
+    }
+
+    function renderVisuals() {
+      const result = currentRender();
+      lastRender = result;
+      drawWave(result.samples, result.notes);
+      drawTimeline(result);
+      renderChannels(result);
+      renderFacts(result);
+
+      const { multiplier, stretch } = lengthMultiplier((state.lengthSigned + 256) & 0xff);
+      el('pitch-val').textContent = state.pitch;
+      el('length-val').textContent = state.lengthSigned;
+      el('volume-val').textContent = state.volume;
+      el('pitch-hint').textContent =
+        `直接加到 11 位元頻率暫存器（0–2047），超過就捲繞回最低頻`;
+      el('length-hint').textContent =
+        `乘數 ${multiplier}/256 = ${stretch.toFixed(3)}×，可從 0.5×（兩倍快）到 1.5×（長 1.5 倍）`;
+
+      const m = meta.get(state.id);
+      el('cur-name').textContent = `${m.names.zh} · ${m.names.en}`;
+      const ident = identicalPartner(state.id);
+      el('cur-meta').textContent =
+        `#${formatPokemonId(state.id)} · base ${result.meta.base} (${result.meta.sfx}) · ` +
+        `${result.samples.length / SYNTH_RATE | 0} 個樣本 · ${result.meta.noteCount} 個音符 · 合成耗時 ${state.renderMs.toFixed(1)} ms` +
+        (ident ? ` · 與 ${meta.get(ident).names.zh} 完全相同` : '');
+    }
+
+    /** The other species with the same base, pitch and length byte, if any. */
+    function identicalPartner(id) {
+      const a = cries.cries.find((c) => c.id === id);
+      return cries.cries.find((c) =>
+        c.id !== id && c.sfx === a.sfx && c.pitch === a.pitch && c.length === a.length)?.id ?? null;
+    }
+
+    /* ---------------------------------------------------------------------
+       Picker, grouped by base cry.
+       --------------------------------------------------------------------- */
+
+    function renderGroups() {
+      const filter = state.filter.trim().toLowerCase();
+      const groups = groupByBaseCry(cries, meta);
+      const html = groups.map((g) => {
+        const members = g.members.filter((m) => {
+          if (!filter) return true;
+          const n = m.name;
+          return n.names.zh.includes(state.filter.trim()) ||
+            n.names.en.toLowerCase().includes(filter) ||
+            String(m.id) === filter ||
+            `#${m.id}` === filter;
+        });
+        if (!members.length) return '';
+        return `<details class="cg-group"${g.members.length > 4 ? '' : ' open'}>
+          <summary>
+            <span class="cg-group-name">base ${g.base}</span>
+            <span class="cg-group-count">${g.members.length} 隻</span>
+          </summary>
+          <div class="cg-group-members">
+            ${members.map((m) => `<button type="button" class="cy-chip${m.id === state.id ? ' is-current' : ''}"
+              data-species="${m.id}" aria-pressed="${m.id === state.id}">${escapeHtml(m.name.names.zh)}</button>`).join('')}
+          </div>
+        </details>`;
+      }).join('');
+      el('groups').innerHTML = html || '<p class="cy-empty">沒有符合的寶可夢。</p>';
+    }
+
+    function select(id, { announceIt = true } = {}) {
+      stop();
+      state.id = id;
+      row = cries.cries.find((c) => c.id === id);
+      base = sfx.sfx[row.sfx];
+      state.pitch = row.pitch;
+      state.lengthSigned = row.length > 127 ? row.length - 256 : row.length;
+      el('pitch').value = String(state.pitch);
+      el('length').value = String(state.lengthSigned);
+      renderGroups();
+      renderVisuals();
+      if (announceIt) {
+        const m = meta.get(id);
+        const partner = identicalPartner(id);
+        announce.textContent = partner
+          ? `已選擇 ${m.names.zh}，與 ${meta.get(partner).names.zh} 的叫聲完全相同`
+          : `已選擇 ${m.names.zh}`;
+      }
+    }
+
+    /* ---------------------------------------------------------------------
+       The two fixed comparisons the teaching cards quote.
+       --------------------------------------------------------------------- */
+
+    function computeGap() {
+      const c = renderSpeciesCry(cries, sfx, 10);
+      const g = renderSpeciesCry(cries, sfx, 118);
+      const ch5 = (bytes, id) => {
+        const ch = sfx.sfx[bytes.sfx].channels.find((x) => x.ch === 5);
+        const frames = ch.commands.filter((x) => x.op === 'pulse').reduce((a, x) => a + x.frames, 0);
+        return frames * lengthMultiplier(bytes.length).stretch / FRAME_HZ;
+      };
+      const a = ch5(cries.cries.find((x) => x.id === 10), 10);
+      const b = ch5(cries.cries.find((x) => x.id === 118), 118);
+      el('gap-s').textContent = `${(b - a).toFixed(4)} 秒`;
+      void c; void g;
+
+      const mRow = cries.cries.find((x) => x.id === 66);
+      const oRow = cries.cries.find((x) => x.id === 138);
+      const ch = sfx.sfx[mRow.sfx].channels.find((x) => x.ch === 5);
+      const note = ch.commands.find((x) => x.op === 'pulse');
+      const hzA = frequencyHz(shiftedRegister(note.freq, mRow.pitch));
+      const hzB = frequencyHz(shiftedRegister(note.freq, oRow.pitch));
+      el('hz-diff').textContent = `${Math.abs(hzB - hzA).toFixed(1)} Hz（${hzA.toFixed(1)} 對 ${hzB.toFixed(1)}）`;
+    }
+
+    /* ---------------------------------------------------------------------
+       Events
+       --------------------------------------------------------------------- */
+
+    el('play').addEventListener('click', () => {
+      if (state.playing) { stop(); return; }
+      play().catch((error) => { console.error('play failed', error); stop(); });
+    });
+
+    for (const id of ['pitch', 'length', 'volume']) {
+      el(id).addEventListener('input', (e) => {
+        state[id] = Number(e.target.value);
+        scheduleRender();
+      });
+    }
+
+    el('reset').addEventListener('click', () => {
+      select(state.id, { announceIt: false });
+      announce.textContent = '已還原為這隻寶可夢的原始音高與長度';
+    });
+
+    for (const host of [el('timeline'), el('channels')]) {
+      host.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-mute]');
+        if (!b) return;
+        const ch = Number(b.dataset.mute);
+        state.muted[ch] = !state.muted[ch];
+        renderVisuals();
+        const name = ch === 8 ? '噪音' : `脈衝 ${ch === 5 ? '一' : '二'}`;
+        announce.textContent = `${name}聲道${state.muted[ch] ? '已靜音' : '取消靜音'}`;
+      });
+    }
+
+    el('groups').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-species]');
+      if (b) select(Number(b.dataset.species));
+    });
+
+    el('search').addEventListener('input', (e) => {
+      state.filter = e.target.value;
+      renderGroups();
+    });
+
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(renderVisuals, 180);
+    });
+
+    /* ---------------------------------------------------------------------
+       Boot
+       --------------------------------------------------------------------- */
+
+    async function init() {
+      const [c, s, p] = await Promise.all([
+        fetch('assets/data/gen1_cries.json').then((r) => r.json()),
+        fetch('assets/data/gen1_cry_sfx.json').then((r) => r.json()),
+        fetch(ASSETS.data).then((r) => r.json()),
+      ]);
+      cries = c;
+      sfx = s;
+      for (const rec of p) meta.set(rec.id, rec);
+
+      computeGap();
+      select(6, { announceIt: false });
+
+      const fromHash = Number(location.hash.replace('#', ''));
+      if (Number.isInteger(fromHash) && meta.has(fromHash)) select(fromHash, { announceIt: false });
+      window.addEventListener('hashchange', () => {
+        const id = Number(location.hash.replace('#', ''));
+        if (Number.isInteger(id) && meta.has(id)) select(id, { announceIt: false });
+      });
+    }
+
+    init().catch((error) => {
+      console.error('init failed', error);
+      const p = document.createElement('p');
+      p.className = 'cy-empty';
+      p.textContent = `第一世代叫聲資料載入失敗：${error.message}`;
+      el('main').before(p);
+    });
+  </script>
+</body>
+</html>

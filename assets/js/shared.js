@@ -819,17 +819,12 @@ export const NAV = [
     id: 'cries',
     label: '叫聲',
     icon: 'waveform',
-    pages: ['cries.html'],
+    pages: ['cries.html', 'cries-gen1.html'],
     groups: [
       {
         items: [
           { href: 'cries.html', label: '叫聲總覽', desc: '1025 隻的音色特徵與相似搜尋' },
-        ],
-      },
-      {
-        title: '計劃中',
-        items: [
-          { label: '第一世代叫聲實驗室', desc: 'Game Boy APU 逐聲道合成', planned: 'cries-gen1.html' },
+          { href: 'cries-gen1.html', label: '第一世代叫聲實驗室', desc: '38 個 base cry 的 APU 合成' },
         ],
       },
     ],
@@ -866,7 +861,6 @@ export const NAV = [
  * @type {Array<{slug: string, title: string, why: string, data: 'present'|'absent'}>}
  */
 export const PLANNED_PAGES = [
-  { slug: 'cries-gen1.html', title: '第一世代叫聲實驗室', why: 'gen1_cry_sfx.json 已有 38 個 base 的聲道指令，缺的是瀏覽器裡的 APU 合成頁', data: 'present' },
   { slug: 'abilities.html', title: '特性', why: '284 種特性散在各筆 abilities 欄位，缺的是彙整頁', data: 'present' },
   { slug: 'moves.html', title: '招式', why: 'moves_zh.json 已有 783 筆，缺的是可搜尋的瀏覽頁', data: 'present' },
   { slug: 'natures.html', title: '性格', why: '25 種性格，連資料都沒有 — PokeAPI 的 /pokemon-species 不帶 nature', data: 'absent' },
