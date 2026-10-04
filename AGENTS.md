@@ -36,6 +36,7 @@
 | [`collections.html`](./collections.html) | Special collections hub: 11 cards in 4 groups (稀有與傳說 / 熱門分類 / 遊戲與活動 / 特殊形態), 2 of which are `upcoming` and render as non-links |
 | [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`). 11 categories, one per config in `categories.js`; the roster + a zh-Hant introduction. Does not link to `types.html` — see §3.F |
 | [`generations.html`](./generations.html) | Chronological generation guide: 9 generations, 38 games, and 27 regional starters |
+| [`cries.html`](./cries.html) | Cry overview: 1,025 cards carrying their measured timbre features (brightness, hoarseness, duration), sortable along five axes, with a timbre-similarity panel, a waveform, and the two recorded sets kept apart behind a warning |
 | [`types.html`](./types.html) | Type chart and per-type browser: overview (18 types, full 18×18 chart, history, FAQ) plus `?type=<slug>` pages listing that type's Pokémon, moves, abilities, items, and trainers |
 | [`404.html`](./404.html) | GitHub Pages fallback: cleanly redirects `/detail/<slug>` to `detail.html?slug=<slug>&from404=1` |
 
@@ -169,6 +170,10 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 - **legacy and latest are NOT comparable.** Centroid medians are 1,327 Hz against 2,992 Hz, flatness differs by two orders of magnitude, every legacy file is at 10,512 Hz. That is a difference in how the two sets were recorded, not between the Pokémon. They are stored under separate keys, range-checked separately, and the checker asserts the offset is *still present* so a change that quietly merged them is noticed.
 - **`node scripts/check_cry_features.mjs` (24 checks)** and `node scripts/test_check_cry_features.mjs` (20 mutation cases) guard it. The assertion that earns its keep is **every dimension must vary across the corpus**: a constant column means a filterbank that collapsed or a DCT that never ran, which passes every shape and NaN check while the search degrades to chance.
 - **"Most similar cry" cannot be a similarity ranking here.** Measured within one corpus: same-family pairs average 0.2076 against 0.0075 for unrelated pairs — a real separation — but top-1 same-family accuracy is **2.1%** against a ~0.1% random baseline. Log-mel mean+std (26/40 bands), MFCC 13, MFCC 20 and a 40 ms window all land between 1.5% and 2.1%; nothing is meaningfully better, because each modern cry was composed independently and evolutionary relation does not predict how a Pokémon sounds. These features are honest timbre descriptors. Present them as axes, not as a semantic ranking.
+- `cries.html` therefore ships the search as a **音色** ranking with the measured figures on screen — top-1 2.1%, top-20 12.6% against a 3.2% baseline — and says 音色而非血緣 in the DOM. Two consequences worth knowing before editing it, both found by measurement rather than by reading:
+  - **Scores must be standardised per dimension before they are compared.** Raw, `centroid` runs to 3,167 while `flatness` runs to 0.7, so an unstandardised cosine returns **1.000 for every pair** and the list looks perfectly plausible while being decided by two dimensions. `indexSet()` computes means and deviations **per set**, not once, because the two recordings differ enough that a legacy vector standardised with latest's statistics is not the same measurement.
+  - **No weight preset may activate a single dimension.** Cosine over a 1-D vector is always ±1, so a preset called 「只看明亮度」 returns 1.000 for every neighbour and orders them by distance *descending* — the exact opposite of its label, silently. Ordering by one axis is what the sort dropdown is for. `similarTo()` still falls back to absolute distance if only one dimension is ever active, because that failure is silent rather than loud. `check_cries_page.mjs` asserts both.
+- `node scripts/check_cries_page.mjs` (48 checks) and `node scripts/test_check_cries_page.mjs` (27 mutation cases) guard the page's claims. Four of those cases failed when first written and each was a weak assertion rather than a bad expectation: a `key:` regex that matched the weight presets as well as the axes, a `cp-` scan that found the comment explaining why `cries.css` must not claim one, a roster-gate check that tested for the identifiers instead of the import, and a hardcoded-row detector whose threshold also flagged the probe's legitimate `[0, 1, 2, 3]` MFCC readout.
 
 ### G. Category Pages vs. `types.html` — Two Different Questions
 
@@ -239,6 +244,13 @@ node scripts/test_check_sv_index.mjs
 # data-sources/pokered-cry/ on first run
 node scripts/check_gen1_cries.mjs
 node scripts/test_check_gen1_cries.mjs
+
+# Verify cries.html's claims about that table: that it reads the generated JSON,
+# that its five axes exist in featureNames, that scores are standardised before
+# they are compared, that no preset is degenerate, and that the caveat and the
+# legacy warning are on the page rather than in a comment
+node scripts/check_cries_page.mjs
+node scripts/test_check_cries_page.mjs
 
 # Verify the cry feature table: 1,025 + 649 rows x 34 timbre features, resampled
 # to 16 kHz. The check that earns its keep is that every dimension varies across

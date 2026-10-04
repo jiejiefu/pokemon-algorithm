@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>叫聲總覽 · 寶可夢演算法</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="1025 隻寶可夢叫聲的音色特徵：明亮度、沙啞度、時長，以及可調權重的音色相似搜尋。">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/cries.css">
+</head>
+<body>
+  <div class="cy-app">
+    <header class="header header-colors">
+      <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+      <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+        <div class="header-title header-title-large">寶可夢演算法</div>
+      </a>
+      <nav class="site-nav" data-nav aria-label="主選單"></nav>
+      <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+      <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+    </header>
+
+    <div class="cy-shell">
+      <aside class="cy-panel" aria-label="音色分析">
+        <!-- Mounted before anything renders, so a screen reader has the live
+             region before the first write announces through it. -->
+        <p class="sr-only" id="announce" role="status" aria-live="polite"></p>
+
+        <h2>音色分析</h2>
+        <p class="cy-panel-hint" id="panel-hint">點選任一張卡片，這裡會顯示它的音色數值與音色最接近的寶可夢。</p>
+
+        <div id="probe" hidden>
+          <div class="cy-probe-head">
+            <img id="probe-art" alt="" width="56" height="56" decoding="async">
+            <div>
+              <div class="cy-probe-name" id="probe-name"></div>
+              <div class="cy-probe-meta" id="probe-meta"></div>
+            </div>
+          </div>
+
+          <canvas class="cy-wave" id="probe-wave" width="600" height="96"
+                  role="img" aria-label="這隻寶可夢叫聲的波形"></canvas>
+          <div class="cy-probe-row" id="probe-play"></div>
+
+          <h3>實測數值</h3>
+          <dl class="cy-stats" id="probe-stats"></dl>
+
+          <h3>音色相似</h3>
+          <div class="cy-weights" id="weights" role="group" aria-label="相似度權重"></div>
+          <p class="cy-panel-note">權重會改變排名，但四組共用那 26 維 MFCC，所以結果會大量重疊 —— 它們是同一個比較的偏向，不是四個不同的查詢。</p>
+          <ul class="cy-similar" id="similar"></ul>
+
+          <!-- The caveat. It is a measured limit of the method, not a warning
+               about the page, so it is set as a note and not as an alert. But it
+               is on screen rather than behind a link, because the panel above it
+               is a claim about similarity and this is that claim's boundary. -->
+          <div class="cy-caveat">
+            <p><strong>「音色相似」量的是音色，不是血緣。</strong>這裡比較的是明亮度、沙啞度、時長與頻譜形狀 —— 兩隻寶可夢排在附近，是因為它們聽起來相近，不是因為演化上接近。</p>
+            <p>實測過這個方法能準到什麼程度：把「同演化科的成員有沒有出現在結果前 20 名」當作指標，</p>
+            <dl>
+              <dt>本方法</dt><dd>12.6% 的情況下會出現</dd>
+              <dt>隨機基線</dt><dd>3.2%</dd>
+              <dt>只看前 1 名</dt><dd>2.1%（基線 0.2%）— 幾乎無效</dd>
+            </dl>
+            <p>所以這裡給的是一份<strong>清單</strong>，不是一個答案。名單前幾名通常只是同一類音色；每一隻現代叫聲都是獨立創作的，演化關係不預測叫聲長什麼樣。</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="cy-main" id="main">
+        <div class="cy-page">
+          <div class="cy-intro">
+            <h1>叫聲總覽</h1>
+            <p>1025 隻寶可夢的叫聲，各算成 34 個音色特徵。每一個數字都是從音訊實測出來的 —— 明亮度是頻譜能量加權平均頻率，沙啞度是頻譜平坦度，時長是解碼後的秒數。點任何一隻，看它的數值和音色最接近的同伴。</p>
+          </div>
+
+          <div class="cy-toolbar">
+            <div class="cy-filters" id="filters" role="group" aria-label="篩選與顯示範圍"></div>
+            <div class="cy-sort">
+              <label for="sort">排序</label>
+              <select id="sort"></select>
+            </div>
+            <div class="cy-count" id="count"></div>
+          </div>
+
+          <!-- Only rendered when the legacy toggle is on. The two sets are the
+               same 649 species recorded differently, and the numbers are not
+               comparable across them, so this has to be read before the numbers
+               are believed. -->
+          <div class="cy-warning" id="legacy-warning" hidden>
+            <strong>正在看舊版錄音。</strong>這 649 隻與上面的 1025 隻是<strong>不同的錄音</strong>：舊版全部是 10,512 Hz、高頻更亮、頻譜平坦度高兩個數量級。那是錄音方式的差異，不是寶可夢的差異，所以<strong>舊版的音色數值不能與新版直接比較</strong>，相似搜尋也只在舊版內部成立。
+          </div>
+
+          <div class="cy-grid" id="grid"></div>
+          <p class="cy-empty" id="empty" hidden>沒有符合條件的寶可夢。</p>
+          <div id="sentinel" class="cy-sentinel" hidden>載入更多…</div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <div class="home-footer-inner">
+        <p>叫聲音訊來自 <a href="https://github.com/PokeAPI/cries" rel="noopener">PokeAPI/cries</a>；音色特徵由本站的 <code>scripts/analyze_cries.py</code> 離線計算。</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS } from './assets/js/shared.js';
+    import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
+    import { cryPlayer } from './assets/js/cry-player.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    /* escapeHtml is a per-page local helper, not a shared.js export: detail.html
+       defines its own and colors-explore.html interpolates without one. The
+       names here are our own scraped data today, but an unescaped interpolation
+       into innerHTML is one bad scrape away from a broken page. */
+    const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+
+    /** The 96px front sprite, which is the guaranteed floor for every species.
+     *  Built from `filename` rather than from the id, because that is what the
+     *  directory actually holds — same expression types.html uses. */
+    const spriteUrl = (p) => ASSETS.sprites + p.filename;
+
+    /* ---------------------------------------------------------------------
+       The feature table.
+
+       34 numbers per cry, produced by scripts/analyze_cries.py and checked by
+       check_cry_features.mjs. Loaded eagerly at 499 KB, the same trade
+       color_palettes.json makes: the alternative is a round trip before the
+       grid can draw a single row.
+
+       Everything downstream reads `rows` as a Map of id -> Float64Array in the
+       order `featureNames` declares. Scores are cosine over per-dimension
+       z-scored values, which is the only reason the numbers mean anything
+       together: raw, `centroid` runs to 3000 while `flatness` runs to 0.7, so
+       an unstandardised cosine is decided by two dimensions and returns 1.000
+       for everything.
+       --------------------------------------------------------------------- */
+
+    const FEATURES_URL = 'assets/data/cry_features.json';
+    const POKEMON_URL = 'assets/data/pokemon_data.json';
+    const PAGE_SIZE = 60;
+
+    /** The five axes, as the page presents them. `sort` is the grid's order,
+     *  `probe` is the pair of numbers shown for the chosen cry. Both come from
+     *  featureNames rather than from fixed indices, so a reordering upstream is
+     *  a loud failure in check_cry_features.mjs and not a silently wrong bar. */
+    const AXES = [
+      { key: 'centroid',  label: '明亮度', unit: 'Hz',   dp: 0, hint: '頻譜能量加權平均頻率，越高越亮' },
+      { key: 'rolloff85', label: '明亮–全頻', unit: 'Hz', dp: 0, hint: '85% 能量以下的頻率，越高代表高頻越多' },
+      { key: 'flatness',  label: '沙啞度', unit: '',    dp: 4, hint: '頻譜平坦度，0 是純音調、1 是純噪音' },
+      { key: 'dur',       label: '時長', unit: 's',   dp: 3, hint: '解碼後的長度' },
+      { key: 'm1',        label: 'MFCC 音色', unit: '', dp: 2, hint: '第一個 MFCC 係數，描述頻譜包絡的傾斜' },
+    ];
+
+    /** Weight presets, declared as WHAT IS IN rather than as a weight per
+     *  dimension. The 34 names include 26 MFCC coefficients, and a weight map
+     *  that listed only the eight scalars left every MFCC at its default of 1 —
+     *  so a preset called 「只看明亮度」 silently became "brightness plus the
+     *  entire MFCC" and returned the same first hit as 「只看沙啞度」.
+     *
+     *  Every preset here is genuinely multi-dimensional, and that is a
+     *  mathematical requirement rather than a style choice: cosine similarity
+     *  over a ONE-dimensional vector is always ±1, so a single-axis "similarity"
+     *  returns 1.000 for every neighbour and orders them by how far they are
+     *  FROM the probe — the exact opposite of what the label promises. Ordering
+     *  by one axis is what the sort dropdown is for; similarity is a claim about
+     *  a shape, and a shape needs at least two dimensions to have one.
+     *
+     *  `timbre` is the default because it is the honest reading of the word:
+     *  spectral shape and duration, not absolute level. Absolute level is a
+     *  property of the recording session, not of the animal, and the two
+     *  recorded sets differ on it by a lot. */
+    const PRESETS = [
+      { key: 'timbre', label: '音色', zero: ['peak', 'rms'] },
+      { key: 'all', label: '全部特徵', zero: [] },
+      // Not single-axis, but tilted: the spectral envelope plus an emphasis on
+      // the brightness terms, against one tilted toward noise and transients.
+      { key: 'bright', label: '明亮偏重', weight: { centroid: 2.5, rolloff85: 2, zcr: 1.5 } },
+      { key: 'hoarse', label: '沙啞偏重', weight: { flatness: 2.5, flux: 2, zcr: 1 } },
+    ];
+
+    const state = {
+      legacy: false,
+      sort: 'id',
+      axis: 'centroid',
+      gen: 0,
+      probeId: null,
+      playingId: null,
+      preset: 'timbre',
+      rows: new Map(),      // id -> Float64Array, standardised
+      raw: new Map(),       // id -> the original row, for printing
+      ids: [],              // species ids in the active set, in display order
+      meta: new Map(),      // id -> pokemon record
+      names: [],
+      featureNames: [],
+      pokemon: [],
+    };
+
+    const el = (id) => document.getElementById(id);
+    const grid = el('grid');
+    const emptyMsg = el('empty');
+    const sentinel = el('sentinel');
+    const announce = el('announce');
+
+    /* ---------------------------------------------------------------------
+       Standardisation and scoring
+       --------------------------------------------------------------------- */
+
+    /** Build the standardised vectors for one set. Recomputed when the set
+     *  changes because the means and standard deviations belong to the set:
+     *  the two recordings differ so much that a legacy vector standardised
+     *  with latest's statistics is not the same measurement. */
+    function indexSet(setName) {
+      const rows = [];
+      const ids = [];
+      for (const [id, row] of Object.entries(setName)) {
+        rows.push(Float64Array.from(row));
+        ids.push(Number(id));
+      }
+      const dim = state.names.length;
+      const mean = new Float64Array(dim);
+      const sd = new Float64Array(dim);
+      for (const r of rows) for (let k = 0; k < dim; k++) mean[k] += r[k];
+      for (let k = 0; k < dim; k++) mean[k] /= rows.length;
+      for (const r of rows) for (let k = 0; k < dim; k++) sd[k] += (r[k] - mean[k]) ** 2;
+      // A standard deviation of zero would divide by zero and put NaN in a
+      // vector, and a NaN vector silently never wins a comparison. check_cry_
+      // features.mjs asserts every dimension varies, so this cannot happen
+      // from the shipped data; the guard is here so a future table cannot turn
+      // the search into a quiet no-op.
+      for (let k = 0; k < dim; k++) sd[k] = Math.sqrt(sd[k] / rows.length) || 1;
+
+      state.rows = new Map();
+      state.raw = new Map();
+      ids.forEach((id, i) => {
+        const std = new Float64Array(dim);
+        for (let k = 0; k < dim; k++) std[k] = (rows[i][k] - mean[k]) / sd[k];
+        state.rows.set(id, std);
+        state.raw.set(id, rows[i]);
+      });
+      state.ids = ids;
+    }
+
+    /** Cosine against every other row, ranked. Linear in the corpus: 1,025 x
+     *  34 is 35k multiply-adds, which is why no similarity matrix is stored.
+     *
+     *  A preset that leaves exactly one dimension active falls back to absolute
+     *  distance. It cannot happen with the shipped presets — see PRESETS — but
+     *  the fallback is here because the failure is silent rather than loud:
+     *  cosine over one dimension returns 1.000 for everything, so the list would
+     *  fill with identical scores ordered by distance DESCENDING, which reads as
+     *  "these are the same" while meaning the opposite. */
+    function similarTo(id, limit, presetKey) {
+      const probe = state.rows.get(id);
+      if (!probe) return [];
+      const preset = PRESETS.find((p) => p.key === presetKey) || PRESETS[0];
+      const w = new Float64Array(state.names.length).fill(1);
+      if (preset.weight) {
+        for (let k = 0; k < w.length; k++) w[k] = preset.weight[state.names[k]] ?? 1;
+      } else if (preset.zero) {
+        for (let k = 0; k < w.length; k++) {
+          if (preset.zero.includes(state.names[k])) w[k] = 0;
+        }
+      }
+      let active = 0;
+      for (const x of w) if (x) active++;
+
+      const out = [];
+      if (active <= 1) {
+        let k = 0;
+        for (; k < w.length; k++) if (w[k]) break;
+        for (const other of state.ids) {
+          if (other === id) continue;
+          const delta = Math.abs(state.rows.get(other)[k] - probe[k]);
+          out.push({ id: other, score: 1 / (1 + delta) });
+        }
+      } else {
+        const pw = new Float64Array(probe.length);
+        let pn = 0;
+        for (let k = 0; k < probe.length; k++) { pw[k] = probe[k] * w[k]; pn += pw[k] * pw[k]; }
+        pn = Math.sqrt(pn) || 1;
+        for (const other of state.ids) {
+          if (other === id) continue;
+          const v = state.rows.get(other);
+          let dot = 0;
+          let vn = 0;
+          for (let k = 0; k < v.length; k++) { const x = v[k] * w[k]; dot += pw[k] * x; vn += x * x; }
+          out.push({ id: other, score: dot / (pn * (Math.sqrt(vn) || 1)) });
+        }
+      }
+      out.sort((a, b) => b.score - a.score);
+      return out.slice(0, limit);
+    }
+
+    /* ---------------------------------------------------------------------
+       Rendering
+       --------------------------------------------------------------------- */
+
+    const currentAxis = () => AXES.find((a) => a.key === state.axis) || AXES[0];
+    const axisIndex = (key) => state.names.indexOf(key);
+
+    function fmt(v, dp) {
+      return v.toLocaleString('zh-TW', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+    }
+
+    function sortedIds() {
+      const ids = [...state.ids];
+      if (state.sort === 'id') return ids.sort((a, b) => a - b);
+      if (state.sort === 'name') {
+        return ids.sort((a, b) => (state.meta.get(a)?.names.zh || '').localeCompare(
+          state.meta.get(b)?.names.zh || '', 'zh-Hant'));
+      }
+      const k = axisIndex(state.sort);
+      if (k < 0) return ids.sort((a, b) => a - b);
+      return ids.sort((a, b) => state.raw.get(a)[k] - state.raw.get(b)[k]);
+    }
+
+    function cardHtml(p, rank) {
+      const m = state.meta.get(p.id);
+      const raw = state.raw.get(p.id);
+      const axis = currentAxis();
+      const k = axisIndex(axis.key);
+      const value = raw[k];
+      const lo = AXIS_RANGE[axis.key].min;
+      const hi = AXIS_RANGE[axis.key].max;
+      const pct = hi > lo ? Math.max(0, Math.min(100, ((value - lo) / (hi - lo)) * 100)) : 0;
+      const isProbe = state.probeId === p.id;
+      const isPlaying = state.playingId === p.id;
+      return `<button type="button" class="cy-card" data-id="${p.id}" aria-pressed="${isProbe}">
+        <span class="cy-card-art">
+          <img src="${spriteUrl(m)}" alt="" width="88" height="88" loading="lazy" decoding="async">
+          <span class="cy-card-id">#${formatPokemonId(p.id)}</span>
+        </span>
+        <span class="cy-card-body">
+          <span class="cy-card-name">${escapeHtml(m.names.zh)}</span>
+          <span class="cy-card-en">${escapeHtml(m.names.en)}</span>
+          <span class="cy-card-row">
+            <span class="cy-play" role="button" tabindex="0" data-play="${p.id}"
+                  aria-pressed="${isPlaying}" aria-label="播放 ${escapeHtml(m.names.zh)} 的叫聲">${iconSvg(isPlaying ? 'pause' : 'play')}</span>
+            <span class="cy-meter">
+              <span class="cy-meter-label"><b>${escapeHtml(axis.label)}</b><span>${fmt(value, axis.dp)}${axis.unit}</span></span>
+              <span class="cy-meter-track"><span class="cy-meter-fill" style="width:${pct.toFixed(1)}%"></span></span>
+            </span>
+          </span>
+        </span>
+      </button>`;
+    }
+
+    /** Per-axis min/max for the meter fill, taken from the visible rows so a
+     *  bar means "where in the set you are" rather than an absolute scale that
+     *  is mostly empty. Computed once per render, not per card. */
+    let AXIS_RANGE = {};
+
+    function computeAxisRange() {
+      AXIS_RANGE = {};
+      for (const axis of AXES) {
+        const k = axisIndex(axis.key);
+        if (k < 0) continue;
+        let min = Infinity;
+        let max = -Infinity;
+        for (const id of state.ids) {
+          const v = state.raw.get(id)[k];
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+        AXIS_RANGE[axis.key] = { min, max };
+      }
+    }
+
+    function render() {
+      const ordered = sortedIds();
+      computeAxisRange();
+      const slice = ordered.slice(0, state.gen * PAGE_SIZE);
+      el('count').textContent = `${slice.length} / ${ordered.length} 隻`;
+      emptyMsg.hidden = ordered.length > 0;
+      grid.hidden = ordered.length === 0;
+      grid.innerHTML = slice.map((id, i) => cardHtml({ id }, i)).join('');
+      sentinel.hidden = slice.length >= ordered.length;
+      renderSortOptions(ordered);
+    }
+
+    let sortOptionsBuilt = false;
+    function renderSortOptions() {
+      if (sortOptionsBuilt) return;
+      const sel = el('sort');
+      const opts = [
+        { value: 'id', label: '編號' },
+        { value: 'name', label: '名稱' },
+        ...AXES.map((a) => ({ value: a.key, label: a.label })),
+      ];
+      sel.innerHTML = opts.map((o) => `<option value="${o.value}">${escapeHtml(o.label)}</option>`).join('');
+      sel.value = state.sort;
+      sortOptionsBuilt = true;
+    }
+
+    function renderFilters() {
+      const gens = [...new Set(state.pokemon.filter((p) => p.id <= 1025).map((p) => p.generation))].sort();
+      const chip = (key, label, pressed, extra = '') =>
+        `<button type="button" class="cy-chip${extra}" data-filter="${key}" aria-pressed="${pressed}">${escapeHtml(label)}</button>`;
+      el('filters').innerHTML = [
+        chip('legacy', '舊版錄音 (649)', state.legacy, ' is-warning'),
+        ...gens.map((g) => chip(`gen${g}`, `第 ${g} 世代`, state.gen === g)),
+        chip('clear', '清除篩選', false),
+      ].join('');
+    }
+
+    function renderWeights() {
+      el('weights').innerHTML = PRESETS.map((p) =>
+        `<button type="button" class="cy-chip" data-preset="${p.key}" aria-pressed="${state.preset === p.key}"
+                 title="${escapeHtml(p.label)}">${escapeHtml(p.label)}</button>`).join('');
+    }
+
+    async function renderProbe() {
+      const box = el('probe');
+      const hint = el('panel-hint');
+      if (state.probeId === null) {
+        box.hidden = true;
+        hint.hidden = false;
+        return;
+      }
+      box.hidden = false;
+      hint.hidden = true;
+
+      const id = state.probeId;
+      const m = state.meta.get(id);
+      const raw = state.raw.get(id);
+      el('probe-art').src = spriteUrl(m);
+      el('probe-art').alt = `${m.names.zh}（${m.names.en}）`;
+      el('probe-name').textContent = m.names.zh;
+      el('probe-meta').textContent = `#${formatPokemonId(id)} ${m.names.en}`;
+
+      // Every printed number is the stored one, at the stored precision. The
+      // point of the panel is that the values are real; rounding them into a
+      // vibe would defeat it.
+      const k = (key) => state.names.indexOf(key);
+      el('probe-stats').innerHTML = [
+        ['時長', `${fmt(raw[k('dur')], 3)} s`],
+        ['明亮度（能量加權平均頻率）', `${fmt(raw[k('centroid')], 0)} Hz`],
+        ['明亮–全頻（85% 能量點）', `${fmt(raw[k('rolloff85')], 0)} Hz`],
+        ['沙啞度（頻譜平坦度）', fmt(raw[k('flatness')], 4)],
+        ['過零率', `${fmt(raw[k('zcr')], 0)} /s`],
+        ['音量（RMS）', fmt(raw[k('rms')], 4)],
+        ['峰值（未削波）', fmt(raw[k('peak')], 4)],
+        ['MFCC 均值 m0…m3', [0, 1, 2, 3].map((i) => fmt(raw[k(`m${i}`)], 2)).join('  ')],
+      ].map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>`).join('');
+
+      el('probe-play').innerHTML = `<button type="button" class="cy-play" data-play="${id}"
+        aria-pressed="${state.playingId === id}" aria-label="播放 ${escapeHtml(m.names.zh)} 的叫聲"
+        style="width:100%;height:34px;border-radius:var(--radius-pill)">${iconSvg(state.playingId === id ? 'pause' : 'play')} <span style="font-size:13px;margin-left:6px">${state.playingId === id ? '播放中…' : '播放叫聲'}</span></button>`;
+
+      drawWave(id);
+      renderSimilar(id);
+    }
+
+    async function drawWave(id) {
+      const canvas = el('probe-wave');
+      const ctx = canvas.getContext('2d');
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cssW = canvas.clientWidth || 300;
+      const cssH = 48;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      let peaks;
+      try {
+        peaks = await cryPlayer.waveformPeaks(id, { legacy: state.legacy, count: 220 });
+      } catch (e) {
+        ctx.fillStyle = getComputedStyle(canvas).color;
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.fillText('這隻沒有可解碼的叫聲', 8, cssH / 2);
+        return;
+      }
+      // waveformPeaks() clamps to ±1 because the decoded peaks exceed 1.0, so
+      // drawing at face value is safe; the clamp is still applied here so a
+      // future change to the player's contract cannot draw outside the canvas.
+      const mid = cssH / 2;
+      const style = getComputedStyle(canvas);
+      ctx.strokeStyle = style.borderLeftColor === 'rgba(0, 0, 0, 0)' ? style.color : style.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < peaks.length; i++) {
+        const x = (i / (peaks.length - 1)) * cssW;
+        const v = Math.max(-1, Math.min(1, peaks[i]));
+        ctx.moveTo(x, mid - v * (mid - 3));
+        ctx.lineTo(x, mid + v * (mid - 3));
+      }
+      ctx.stroke();
+    }
+
+    function renderSimilar(id) {
+      const list = similarTo(id, 12, state.preset);
+      el('similar').innerHTML = list.map(({ id: other, score }) => {
+        const m = state.meta.get(other);
+        const raw = state.raw.get(other);
+        const k = axisIndex('centroid');
+        return `<li><button type="button" class="cy-sim" data-id="${other}">
+          <img src="${spriteUrl(state.meta.get(other))}" alt="" width="36" height="36" loading="lazy" decoding="async">
+          <span class="cy-sim-text">
+            <span class="cy-sim-name">${escapeHtml(m.names.zh)}</span>
+            <span class="cy-sim-nums">${fmt(raw[k], 0)} Hz · 沙啞 ${fmt(raw[axisIndex('flatness')], 4)} · ${fmt(raw[axisIndex('dur')], 2)}s</span>
+          </span>
+          <span class="cy-sim-score">${score.toFixed(3)}
+            <span class="cy-sim-bar"><span style="width:${Math.max(2, score * 100).toFixed(1)}%"></span></span>
+          </span>
+        </button></li>`;
+      }).join('');
+      announce.textContent = `已顯示 ${m(state.meta, id)} 的音色相似結果 ${list.length} 筆`;
+    }
+
+    function m(meta, id) { return meta.get(id).names.zh; }
+
+    /* ---------------------------------------------------------------------
+       Playback. Reuses the Phase 0 player, which already caches decoded buffers
+       and clamps its envelope, so pressing play on twenty cards in a row does
+       not decode twenty files twice.
+       --------------------------------------------------------------------- */
+
+    async function togglePlay(id, button) {
+      if (state.playingId === id) {
+        await cryPlayer.stop();
+        state.playingId = null;
+        syncPlayButtons();
+        if (state.probeId !== null) renderProbe();
+        return;
+      }
+      if (!hasCry(id)) {
+        if (state.legacy && !hasLegacyCry(id)) { announce.textContent = '這隻沒有舊版叫聲'; return; }
+        if (!state.legacy) { announce.textContent = '這隻沒有叫聲'; return; }
+      }
+      state.playingId = id;
+      syncPlayButtons();
+      try {
+        await cryPlayer.play(id, { legacy: state.legacy });
+      } catch (error) {
+        state.playingId = null;
+        syncPlayButtons();
+        announce.textContent = error?.reason === 'decode-failed' ? '這隻的叫聲無法解碼' : '叫聲無法播放';
+        return;
+      }
+      state.playingId = null;
+      syncPlayButtons();
+      if (state.probeId !== null) renderProbe();
+    }
+
+    function syncPlayButtons() {
+      for (const node of document.querySelectorAll('[data-play]')) {
+        const playing = Number(node.dataset.play) === state.playingId;
+        node.setAttribute('aria-pressed', String(playing));
+        node.setAttribute('aria-label', playing ? '停止叫聲' : node.getAttribute('aria-label').replace(/^停止叫聲$/, '播放叫聲'));
+        const glyph = playing ? iconSvg('pause') : iconSvg('play');
+        if (node.querySelector('svg')) node.querySelector('svg').outerHTML = glyph;
+      }
+    }
+
+    /* ---------------------------------------------------------------------
+       Events
+       --------------------------------------------------------------------- */
+
+    grid.addEventListener('click', (e) => {
+      const play = e.target.closest('[data-play]');
+      if (play) {
+        // The play control sits inside a card that is itself a button. Without
+        // this the click would bubble and also set the card as the probe, and
+        // the panel would jump to a Pokémon the reader did not choose.
+        e.preventDefault();
+        e.stopPropagation();
+        togglePlay(Number(play.dataset.play), play);
+        return;
+      }
+      const card = e.target.closest('.cy-card');
+      if (!card) return;
+      state.probeId = Number(card.dataset.id);
+      for (const c of grid.querySelectorAll('.cy-card')) {
+        c.setAttribute('aria-pressed', String(Number(c.dataset.id) === state.probeId));
+      }
+      renderProbe();
+    });
+
+    // Keyboard parity for the play control, which is a span with role=button
+    // because a real button cannot be nested inside another button.
+    grid.addEventListener('keydown', (e) => {
+      const play = e.target.closest('[data-play]');
+      if (!play) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      e.stopPropagation();
+      togglePlay(Number(play.dataset.play), play);
+    });
+
+    el('similar').addEventListener('click', (e) => {
+      const row = e.target.closest('[data-id]');
+      if (!row) return;
+      state.probeId = Number(row.dataset.id);
+      for (const c of grid.querySelectorAll('.cy-card')) {
+        c.setAttribute('aria-pressed', String(Number(c.dataset.id) === state.probeId));
+      }
+      renderProbe();
+    });
+
+    el('probe-play').addEventListener('click', (e) => {
+      const play = e.target.closest('[data-play]');
+      if (play && state.probeId !== null) togglePlay(state.probeId, play);
+    });
+
+    el('weights').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-preset]');
+      if (!b) return;
+      state.preset = b.dataset.preset;
+      renderWeights();
+      if (state.probeId !== null) renderSimilar(state.probeId);
+    });
+
+    el('filters').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-filter]');
+      if (!b) return;
+      const key = b.dataset.filter;
+      state.gen = 0;
+      if (key === 'legacy') {
+        state.legacy = !state.legacy;
+        indexSet(state.legacy ? features.legacy : features.latest);
+        el('legacy-warning').hidden = !state.legacy;
+        if (state.probeId !== null && !state.rows.has(state.probeId)) state.probeId = null;
+        render();
+        renderProbe();
+      } else if (key === 'clear') {
+        state.gen = 0;
+        state.legacy = false;
+        indexSet(features.latest);
+        el('legacy-warning').hidden = true;
+        renderFilters();
+        render();
+        renderProbe();
+      } else {
+        const g = Number(key.replace('gen', ''));
+        state.gen = state.gen === g ? 0 : g;
+      }
+      renderFilters();
+      render();
+    });
+
+    el('sort').addEventListener('change', (e) => {
+      state.sort = e.target.value;
+      // Sorting by an axis and showing that axis on the card are the same
+      // decision, so picking one sets the other. Otherwise the grid is ordered
+      // by a number the cards do not show, which reads as a bug.
+      if (axisIndex(state.sort) >= 0) state.axis = state.sort;
+      render();
+    });
+
+    // One observer for the whole grid rather than one per card.
+    let observer = null;
+    function observeSentinel() {
+      if (observer) observer.disconnect();
+      if (!('IntersectionObserver' in window)) return;
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          state.gen++;
+          render();
+        }
+      }, { rootMargin: '400px' });
+      observer.observe(sentinel);
+    }
+
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (state.probeId !== null) drawWave(state.probeId);
+      }, 180);
+    });
+
+    /* ---------------------------------------------------------------------
+       Boot
+       --------------------------------------------------------------------- */
+
+    let features = null;
+
+    async function init() {
+      const [f, p] = await Promise.all([
+        fetch(FEATURES_URL).then((r) => r.json()),
+        fetch(POKEMON_URL).then((r) => r.json()),
+      ]);
+      features = f;
+      state.names = f.featureNames;
+      state.pokemon = p;
+      for (const rec of p) state.meta.set(rec.id, rec);
+
+      const active = new Set(Object.keys(f.latest).map(Number));
+      for (const id of active) if (state.meta.has(id)) state.meta.get(id);
+
+      indexSet(f.latest);
+      renderFilters();
+      renderWeights();
+      render();
+      renderProbe();
+      observeSentinel();
+
+      // A deep link, so a particular cry can be linked to and so the browser's
+      // back button moves between probes rather than leaving the page.
+      const applyHash = () => {
+        const id = Number(location.hash.replace('#', ''));
+        if (Number.isInteger(id) && state.rows.has(id)) {
+          state.probeId = id;
+          render();
+          renderProbe();
+        }
+      };
+      window.addEventListener('hashchange', applyHash);
+      if (location.hash) applyHash();
+    }
+
+    init().catch((error) => {
+      grid.innerHTML = '';
+      const p = document.createElement('p');
+      p.className = 'cy-empty';
+      p.textContent = `叫聲資料載入失敗：${error.message}`;
+      grid.before(p);
+    });
+  </script>
+</body>
+</html>

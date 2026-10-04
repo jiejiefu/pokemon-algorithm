@@ -1,0 +1,663 @@
+/* ---------------------------------------------------------------------------
+   cries.css — 叫聲總覽 (cries.html)
+
+   Built on the same tokens and the same structural conventions as colors.css,
+   which is where the visual language for a data-browsing page in this project
+   was set: a one-step surface lift per level, hairline edges instead of
+   shadows for separation, and radius-sm/md/pill from shared.css rather than
+   fresh values. Nothing here invents a colour, a radius or a shadow.
+
+   The prefix is `cy-`, not `cp-`. `cp-` means "colour page" and those rules are
+   owned by colors.css; reusing the prefix here would make two files' selectors
+   collide on `.cp-card` and `.cp-chipset` and produce breakage that depends on
+   stylesheet order.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   1. Page frame
+   --------------------------------------------------------------------------- */
+
+.cy-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.cy-app > .header {
+  flex: 0 0 auto;
+}
+
+.cy-shell {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.cy-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 24px 24px 64px;
+}
+
+.cy-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* The panel holds the probe's numbers, so it needs a max-height and its own
+   scroller rather than growing the row to the tallest comparison. */
+.cy-panel {
+  flex: 0 0 340px;
+  width: 340px;
+  box-sizing: border-box;
+  align-self: stretch;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--hairline);
+}
+
+/* ---------------------------------------------------------------------------
+   2. Intro
+   --------------------------------------------------------------------------- */
+
+.cy-intro {
+  margin-bottom: 20px;
+}
+
+.cy-intro h1 {
+  font-size: 28px;
+  margin: 0 0 6px;
+}
+
+.cy-intro p {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   3. Toolbar — filters and sort, one row, wrapping below 900px
+   --------------------------------------------------------------------------- */
+
+.cy-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.cy-filters {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cy-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cy-sort label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.cy-sort select {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-controls);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* A chip is a filter. `aria-pressed` rather than a class carries the state, so
+   the visual and the announced state cannot drift apart. */
+.cy-chip {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.cy-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--hairline-strong);
+}
+
+.cy-chip[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: var(--accent-gold);
+}
+
+/* The legacy toggle sits apart from the data filters because selecting it
+   changes what the numbers MEAN, not which rows are shown. */
+.cy-chip.is-warning[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: var(--accent-yellow-text);
+  background: color-mix(in srgb, var(--accent-yellow) 12%, transparent);
+}
+
+.cy-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   4. The warning that has to be read, not just rendered
+   --------------------------------------------------------------------------- */
+
+.cy-warning {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--accent-yellow-text);
+  border-radius: var(--radius-sm);
+}
+
+.cy-warning strong {
+  color: var(--text-primary);
+}
+
+.cy-warning[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   5. Card grid
+   --------------------------------------------------------------------------- */
+
+.cy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.cy-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.cy-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--hairline-strong);
+}
+
+.cy-card[aria-pressed="true"] {
+  border-color: var(--accent-gold);
+}
+
+/* The sprite area. Height is fixed rather than intrinsic so a row of cards is a
+   row, not a staircase — the sprite files are all 96px but their intrinsic box
+   is not guaranteed to be. */
+.cy-card-art {
+  position: relative;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.cy-card-art img {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.cy-card-id {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.cy-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+
+.cy-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.cy-card-en {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.cy-card-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* The play control is a real button inside a button-shaped card, so it stops
+   propagation: without this, pressing play would also set the card as the probe
+   and the panel would jump to a Pokémon the reader did not choose. */
+.cy-play {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cy-play:hover {
+  color: var(--text-primary);
+  border-color: var(--hairline-strong);
+}
+
+.cy-play[aria-pressed="true"] {
+  color: var(--bg-primary);
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.cy-play svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+/* The bars are the point of the grid: each card shows where this cry sits on
+   the axis the grid is currently sorted by, so the sort order is visible in the
+   cards rather than only implied by their position. */
+.cy-meter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cy-meter-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.cy-meter-label b {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cy-meter-track {
+  height: 4px;
+  margin-top: 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cy-meter-fill {
+  height: 100%;
+  background: var(--accent-gold);
+  border-radius: 2px;
+}
+
+.cy-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.cy-sentinel {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---------------------------------------------------------------------------
+   6. Probe panel
+   --------------------------------------------------------------------------- */
+
+.cy-panel h2 {
+  font-size: 15px;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.cy-panel h3 {
+  font-size: 12px;
+  margin: 18px 0 8px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.cy-probe-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cy-probe-head img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.cy-probe-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.cy-probe-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cy-wave {
+  display: block;
+  width: 100%;
+  height: 48px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* The measured numbers. Every one is printed; the panel does not round them into
+   a vibe. */
+.cy-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cy-stats dt {
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.cy-stats dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cy-weights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+/* ---------------------------------------------------------------------------
+   7. The similarity list
+
+   The rows are buttons because clicking one makes it the new probe, which is
+   the only sensible next action on a row whose whole purpose is "this one is
+   similar to that one".
+   --------------------------------------------------------------------------- */
+
+.cy-similar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cy-sim {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 8px;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.cy-sim:hover {
+  border-color: var(--hairline-strong);
+}
+
+.cy-sim img {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.cy-sim-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cy-sim-name {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cy-sim-nums {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.cy-sim-score {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.cy-sim-bar {
+  height: 3px;
+  margin-top: 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cy-sim-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent-gold);
+}
+
+/* ---------------------------------------------------------------------------
+   8. The caveat
+
+   Styled as a quiet note rather than an alert. It is a measured fact about the
+   method, not an error state, and the page still works — so it should not be
+   dressed up as a failure. It is given room to be read, though, because the
+   whole panel is a claim about similarity and this is the claim's limit.
+   --------------------------------------------------------------------------- */
+
+.cy-caveat {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.cy-caveat strong {
+  color: var(--text-primary);
+}
+
+.cy-caveat p {
+  margin: 0 0 7px;
+}
+
+.cy-caveat p:last-child {
+  margin-bottom: 0;
+}
+
+.cy-caveat dl {
+  margin: 7px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cy-caveat dt {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cy-caveat dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   9. Below 900px the panel leaves the side and becomes a block above the grid.
+   With the panel in flow the whole page is one scroller, so a sticky panel would
+   pin over the content it is meant to sit beside -- the same reason
+   colors.css drops its own panel's stickiness at its breakpoint.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .cy-shell {
+    flex-direction: column;
+  }
+
+  .cy-panel {
+    flex: 1 1 auto;
+    width: auto;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .cy-main {
+    padding: 20px 16px 48px;
+  }
+
+  .cy-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cy-card,
+  .cy-chip,
+  .cy-play,
+  .cy-sim {
+    transition: none;
+  }
+
+  .cy-card:hover {
+    transform: none;
+  }
+}
+
+/* A note under the weight chips. The presets share the 26 MFCC dimensions, so
+   they tilt one comparison rather than answering four different questions, and
+   saying so next to the control is cheaper than a reader discovering it. */
+.cy-panel-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.cy-panel-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.cy-probe-row {
+  margin-top: 10px;
+}
