@@ -313,11 +313,22 @@ function renderNoise(commands, pitch, cutoffSamples) {
     if (shift > 0x0d) shift &= 0x0d;
     const divider = params & 0x7;
     const width = (params & 0x8) === 0x8;   // bit 3: a 7-bit LFSR, not 15
-    const clock = Math.max(1, Math.round(
-      2 * (divider === 0 ? 0.5 : divider) * (1 << (shift + 1))));
+    /* The LFSR clock is in SAMPLES AT THE HARDWARE'S CLOCK, like every other
+     * register in this file, and has to be converted to output samples the way the
+     * pulse channel's `period` is. It was not, and the symptom was a cry that was
+     * correct in every respect except that it had no hiss in it: at 65,536 Hz the
+     * clock stayed at 512 samples, which is 128 Hz rather than 2,048 Hz, so the
+     * noise channel was a low buzz instead of the Game Boy's grain.
+     *
+     * The conformance vectors could not see this. They render at 1,048,576 Hz, where
+     * the conversion factor is exactly 1 and the bug is a no-op -- the one thing a
+     * native-rate comparison cannot check is whether a rate-dependent quantity is
+     * actually rate-dependent. `noiseClocks` therefore reports Hz rather than
+     * samples, and the checker asserts the reported rate is the same at both. */
+    const clockHz = 2 * (divider === 0 ? 0.5 : divider) * (1 << (shift + 1));
+    const clock = Math.max(1, Math.round(clockHz * SYNTH_RATE / GB_CLOCK));
 
-    noiseClocks.push(Math.round(clock * (SYNTH_RATE / GB_CLOCK)));
-    noiseClocks.push(Math.round(clock * (SYNTH_RATE / GB_CLOCK)));
+    noiseClocks.push(clockHz);
     let buffer = 0x7fff;   // reset per note, as upstream does
     const envelopePeriod = frameSamples * Math.abs(volfade);
 
@@ -363,12 +374,14 @@ export class GbApu {
     volume = 15,
     muted = {},
     pitchShift = true,
+    wantOutputs = false,
   } = {}) {
     this.base = base;
     this.pitchByte = pitchShift ? pitch : 0;
     this.lengthByte = length;
     this.masterVolume = volume;
     this.muted = muted;
+    this.wantOutputs = wantOutputs === true;
     this.notes = [];
   }
 
@@ -429,6 +442,12 @@ export class GbApu {
      * the pitch offset -- testing the exported helper instead would only prove the
      * helper is right, which is a different claim. */
     this.noiseClocks = noiseResult ? noiseResult.noiseClocks : [];
+    /* The three channel buffers, before mixing. Off by default because it keeps
+     * three megabyte-scale arrays alive per render; the checker turns it on to
+     * compare a CHANNEL against the reference, which the mix cannot reveal -- a
+     * muted channel is still rendered, so muting changes what you hear and not
+     * what the array is. */
+    if (this.wantOutputs) this.outputs = { 5: pulse1, 6: pulse2, 8: noise };
 
     const total = Math.max(1, Math.max(pulse1.length, pulse2.length, noise.length));
     const samples = new Float32Array(total);

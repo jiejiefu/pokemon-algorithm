@@ -107,6 +107,23 @@ const CASES = [
     expect: 'within one 8-bit step',
   },
   {
+    /* The one bug the conformance vectors structurally cannot see: they render at
+     * 1,048,576 Hz, where the rate factor is exactly 1. This is here because the
+     * symptom was inaudible in every assertion and very audible in the output. */
+    name: 'the noise LFSR clock is left unscaled, so the hiss becomes a 128 Hz buzz',
+    mutate: (dir) => editApu(dir, (s) => s
+      .replace('const clock = Math.max(1, Math.round(clockHz * SYNTH_RATE / GB_CLOCK));',
+        'const clock = Math.max(1, Math.round(clockHz));')),
+    expect: 'clocks are the same at 65,536 Hz',
+  },
+  {
+    name: 'the noise channel is stopped entirely, so the cry loses its grain',
+    mutate: (dir) => editApu(dir, (s) => s
+      .replace('out[sampleI] = (out[sampleI] || 0) + sample(1 ^ bit0, vol);',
+        'out[sampleI] = (out[sampleI] || 0) + vol / 16;')),
+    expect: 'within one 8-bit step',
+  },
+  {
     name: 'sound_loop is dropped, so the nine species on base cry0d lose a whole block',
     mutate: (dir) => editApu(dir, (s) => s
       .replace("    const loopAt = cmds.findIndex((c) => c.op === 'loop');",
@@ -309,10 +326,11 @@ if (baseline.code !== 0) process.exit(1);
  * bounded by the core count rather than left unbounded, because each worker is a
  * full JIT-compiling interpreter and oversubscribing them makes every case slower,
  * not faster. */
-/* Measured on this machine (8 performance cores): 6 workers 44.5 s, 8 workers 38.9 s,
- * 10 workers 38.0 s, 12 workers 38.5 s. Eight is where it stops improving, because
- * each worker is a JIT-compiling interpreter competing for the same core. */
-const POOL = Math.max(1, Math.min(8, cpus().length - 1));
+/* Four workers, at the user's request because other work shares this machine.
+ * Measured here: 6 workers 44.5 s, 8 workers 38.9 s, 10 workers 38.0 s, 12 workers
+ * 38.5 s -- so four costs about 55 s against 38 s at eight, which is the right trade
+ * when the cores are not yours alone. Raise POOL when the machine is idle. */
+const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
 let next = 0;
 const finished = new Array(CASES.length);
 

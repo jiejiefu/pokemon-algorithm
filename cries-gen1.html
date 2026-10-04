@@ -99,6 +99,7 @@
                     aria-label="合成出的叫聲波形"></canvas>
 
             <h3>聲道時間軸</h3>
+            <p class="cg-note">指令表裡的幀數是<strong>儲存值 + 1</strong>：原始位元組存的是「幀數減一」，所以 $3 是 4 幀、$F 是 16 幀。時間軸上的長度則已經套用長度位元組的時間縮放，兩者不一定相同。</p>
             <p class="cg-note">三條聲道各跑各的。脈衝聲道的音符結束於自己的幀數；噪音聲道比較長時，它最後那段會在脈衝聲道結束之後繼續，而那正是音高偏移已被取消的地方。</p>
             <div class="cg-timeline" id="timeline"></div>
             <div class="cg-timeline-track" id="timeline-track"
@@ -477,12 +478,12 @@
             const reg = shiftedRegister(cmd.freq, state.pitch);
             const wrapped = (cmd.freq + state.pitch) > 0x7ff;
             return `<li><code>square_note</code> ${cmd.frames}, ${cmd.volume}, ${cmd.sweep}, ${cmd.freq}
-              <span class="cg-dim">${cmd.frames} 幀 · ${frequencyHz(reg).toFixed(1)} Hz${wrapped ? ' · <em class="cg-wrap">已捲繞</em>' : ''}</span></li>`;
+              <span class="cg-dim">${cmd.frames + 1} 幀（原始值 $${cmd.frames.toString(16).toUpperCase()}） · ${frequencyHz(reg).toFixed(1)} Hz${wrapped ? ' · <em class="cg-wrap">已捲繞</em>' : ''}</span></li>`;
           }
           if (cmd.op === 'noise') {
             const param = (cmd.freq + (result.notes.find((n) => n.ch === 8)?.shifted === false ? 0 : state.pitch)) & 0xff;
             return `<li><code>noise_note</code> ${cmd.frames}, ${cmd.volume}, ${cmd.sweep}, ${cmd.freq}
-              <span class="cg-dim">${cmd.frames} 幀 · 參數 0x${param.toString(16).toUpperCase().padStart(2, '0')}
+              <span class="cg-dim">${cmd.frames + 1} 幀（原始值 $${cmd.frames.toString(16).toUpperCase()}） · 參數 0x${param.toString(16).toUpperCase().padStart(2, '0')}
               (${(param & 8) ? '7 位元' : '15 位元'} LFSR)</span></li>`;
           }
           if (cmd.op === 'loop') {

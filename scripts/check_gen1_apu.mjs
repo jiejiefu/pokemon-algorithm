@@ -338,6 +338,41 @@ ok(chzApu.dutyRotations > chzFrames * 1.5 && chzApu.dutyRotations < chzFrames * 
   `the duty register turns once per frame on each of the two pulse channels (${chzApu.dutyRotations} rotations over ${chzFrames.toFixed(0)} frames)`);
 ok(chzApu.dutyRotations < 1000, 'and nowhere near the tens of thousands a per-sample step would give');
 
+/* THE NOISE CLOCK MUST SCALE WITH THE OUTPUT RATE, and this is the one thing a
+ * native-rate conformance comparison cannot check.
+ *
+ * Every register in this file is in samples at the Game Boy's clock, so each has to
+ * be converted to output samples. The pulse channel's `period` is; the noise
+ * channel's LFSR clock was not. At 1,048,576 Hz the conversion factor is exactly 1
+ * and the bug is a no-op, so the conformance vectors passed while the page played a
+ * cry with no hiss in it: the LFSR ran once per 512 OUTPUT samples, which is 128 Hz
+ * rather than 2,048 Hz, and Charizard's noise channel was a low buzz. The measured
+ * zero-crossing rate was 76/s against the reference's 1,533/s.
+ *
+ * A rate-independent claim is the only kind that catches it. */
+const grainRow = row(6);
+const grainRate = (buf, rate) => {
+  let flips = 0;
+  for (let i = 1; i < buf.length; i++) if ((buf[i] > 0) !== (buf[i - 1] > 0)) flips++;
+  return (flips / buf.length) * rate;
+};
+const lowNoise = new GbApu(sfx.sfx[grainRow.sfx], {
+  pitch: grainRow.pitch, length: grainRow.length, wantOutputs: true,
+});
+lowNoise.render();
+const highNoise = new native.GbApu(sfx.sfx[grainRow.sfx], {
+  pitch: grainRow.pitch, length: grainRow.length, wantOutputs: true,
+});
+highNoise.render();
+eq(lowNoise.noiseClocks, highNoise.noiseClocks,
+  'the noise clocks are the same at 65,536 Hz and at 1,048,576 Hz, so the hiss does not change with the output rate');
+const grainLow = grainRate(lowNoise.outputs[8], SYNTH_RATE);
+const grainHigh = grainRate(highNoise.outputs[8], 1048576);
+near(grainLow, grainHigh, grainHigh * 0.05,
+  `the rendered noise has the same grain at both rates (${grainLow.toFixed(0)}/s against ${grainHigh.toFixed(0)}/s)`);
+ok(grainLow > 800,
+  `and it is grain rather than a buzz: ${grainLow.toFixed(0)} crossings per second, well above the 128 Hz an unscaled clock gives`);
+
 /* The noise clock reads the shift field as well as the divider, so two
  * parameters that share a divider no longer come out at the same rate. */
 const noiseRates = [92, 76].map(noiseClockHz);
