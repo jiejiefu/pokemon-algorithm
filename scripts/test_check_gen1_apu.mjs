@@ -25,6 +25,7 @@ import { execFile } from 'node:child_process';
 import { tmpdir, cpus } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = [
@@ -469,19 +470,18 @@ async function runCase(i) {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  /* `expect` must appear on a line that REPORTED A FAILURE, not anywhere in the
-   * output. Those are not the same thing, and the difference was not theoretical:
-   * the pitch-cancellation case below declares 'never get one', which occurs in the
-   * description of a check that PASSES -- the timeline calls noiseOffset() itself,
-   * so it cannot see a mutation to the renderer's call site. The case only ever
-   * failed because the waveform comparison fired, and `out.includes(expect)` was
-   * satisfied by the passing line. Matching anywhere meant the case could not
-   * detect a regression in its own detector, which is how it came to describe a
-   * timeline claim while being a waveform case. */
-  const failLines = r.out.split('\n').filter((l) => l.includes('FAIL'));
-  const pass = r.code !== 0 && failLines.some((l) => l.includes(c.expect));
-  const firstFail = (failLines[0] ?? '(no FAIL line)').slice(0, 90);
-  finished[i] = { name: c.name, pass, detail: pass
+  /* `expect` must name the assertion that actually catches this mutation, which is
+   * what caughtBy() asks. The pitch-cancellation case below used to declare
+   * 'never get one', text that occurs in the description of a check that PASSES --
+   * the timeline calls noiseOffset() itself, so it cannot see a mutation to the
+   * renderer's call site. The case only ever failed because the waveform
+   * comparison fired, and the old `out.includes(expect)` was satisfied by the
+   * passing line. That is how it came to describe a timeline claim while being a
+   * waveform case. See scripts/lib/negative.mjs. */
+  const named = r.code !== 0 && caughtBy(r.out, c.expect);
+  const reported = failLines(r.out);
+  const firstFail = (reported[0] ?? '(no FAIL line)').slice(0, 90);
+  finished[i] = { name: c.name, pass: named, detail: named
     ? ''
     : `exit ${r.code}, expected "${c.expect}" on a FAIL line; first report: ${firstFail}` };
 }

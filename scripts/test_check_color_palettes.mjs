@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { caughtBy } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = join(ROOT, 'scripts/check_color_palettes.mjs');
@@ -159,14 +160,14 @@ for (const c of cases) {
   const { code, out } = runChecker(path);
 
   const wrongCode = code !== c.expectCode;
-  const missingReason = c.expectText && !out.includes(c.expectText);
+  const missingReason = c.expectText && !caughtBy(out, c.expectText);
   const pass = !wrongCode && !missingReason;
 
   if (!pass) failed += 1;
   console.log(
     `${pass ? '  ok  ' : '  FAIL'}  ${c.name}` +
       (wrongCode ? `  (exit ${code}, expected ${c.expectCode})` : '') +
-      (missingReason ? `\n          missing expected reason: ${c.expectText}` : '')
+      (missingReason ? `\n          no FAIL line reported: ${c.expectText}` : '')
   );
 }
 

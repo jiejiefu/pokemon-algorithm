@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = [
@@ -237,9 +238,9 @@ for (const c of CASES) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  ok(c.name, r.code !== 0 && r.out.includes(c.expect),
-    r.code !== 0 && r.out.includes(c.expect) ? ''
-      : `exit ${r.code}, expected the checker to fail with "${c.expect}"`);
+  const named = r.code !== 0 && caughtBy(r.out, c.expect);
+  ok(c.name, named, named ? ''
+    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}`);
 }
 
 const failed = results.filter((r) => !r.pass);

@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // assets/css/shared.css is here because check_color_page.mjs resolves the
@@ -198,11 +199,17 @@ const cases = [
     expect: 'hardcodes',
   },
   {
-    name: 'removing the color.html nav row leaves that page claiming nothing',
+    /* Deleting the ROW does not leave color.html unclaimed — the 色彩 group still
+     * claims it, which is a different defect and trips the rule below rather than
+     * the claim-count rule above. This case used to name the claim-count check,
+     * which still passes: the page has exactly one owner either way. It passed
+     * anyway because that check's description is printed whether it passes or
+     * fails and the old matcher only asked whether the text appeared at all. */
+    name: 'removing the color.html nav row leaves the 色彩 group claiming it with no row of its own',
     mutate: (f, s) => f.endsWith('shared.js')
       ? s.replace(/\s*\{ href: 'color\.html', label: '單一寶可夢色盤'[^\n]*\n/, '\n')
       : undefined,
-    expect: 'claimed by exactly one element',
+    expect: 'no page is claimed by a group with no row of its own',
   },
   {
     name: 'dropping 特殊分類\'s row-level pages strands category.html',
@@ -457,7 +464,7 @@ for (const c of cases) {
   const { code, out } = run(dir);
   rmSync(dir, { recursive: true, force: true });
   if (code === 0) fail(`${c.name}\n    checker exited 0 — the invariant is not actually policed`);
-  else if (!out.includes(c.expect)) fail(`${c.name}\n    exited ${code} but the output never said "${c.expect}"; it said:\n${out.split('\n').filter((l) => l.includes('FAIL')).join('\n') || '      (no FAIL line at all)'}`);
+  else if (!caughtBy(out, c.expect)) fail(`${c.name}\n    exited ${code} but no FAIL line reported "${c.expect}"; it said:\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || '      (no FAIL line at all)'}`);
   else pass(c.name);
 }
 

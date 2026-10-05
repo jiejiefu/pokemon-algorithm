@@ -31,6 +31,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // `categories.js` imports `shiny-index.js`, which imports nothing, but the point
@@ -235,7 +236,7 @@ for (const c of cases) {
   const { code, out } = run(dir);
   rmSync(dir, { recursive: true, force: true });
   if (code === 0) fail(`${c.name}\n    checker exited 0 — the invariant is not actually policed`);
-  else if (!out.includes(c.expect)) fail(`${c.name}\n    exited ${code} but the output never said "${c.expect}"; it said:\n${out.split('\n').filter((l) => l.includes('FAIL')).join('\n') || '      (no FAIL line at all)'}`);
+  else if (!caughtBy(out, c.expect)) fail(`${c.name}\n    exited ${code} but no FAIL line reported "${c.expect}"; it said:\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || '      (no FAIL line at all)'}`);
   else pass(c.name);
 }
 

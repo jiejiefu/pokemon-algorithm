@@ -36,6 +36,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_nav_pages.mjs';
@@ -213,8 +214,8 @@ for (const c of cases) {
   const dir = makeTree(c.mutate);
   if (c.files) c.files(dir);
   const { code, out } = run(dir);
-  if (code !== 0 && out.includes(c.expect)) pass(c.name);
-  else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${out.split('\n').slice(-10).join('\n')}`);
+  if (code !== 0 && caughtBy(out, c.expect)) pass(c.name);
+  else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`);
   rmSync(dir, { recursive: true, force: true });
 }
 

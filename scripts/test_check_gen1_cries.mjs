@@ -34,6 +34,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { caughtBy, failLines } from './lib/negative.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PYTHON = join(ROOT, '..', '.venv', 'bin', 'python');
@@ -228,12 +229,19 @@ const CASES = [
     }),
     expect: 'only the five cry commands appear',
   },
+  /* Dropping a channel's commands leaves it with no `ret` at all, which is the
+   * upstream omission `implicitRet` exists to record — so the detector is the check
+   * that recomputes the set from the commands and compares it against the stored
+   * field, not the one that pins the stored field's six names. This case used to
+   * claim the latter, and passed anyway: that assertion's description contains
+   * "still exactly these six" whether it passes or fails, and the old matcher only
+   * asked whether the string appeared anywhere. */
   {
     name: 'a whole channel of commands is dropped, leaving a terminator upstream never wrote',
     mutate: (dir) => withSfx(dir, 'SFX_CRY_00', (v) => {
       v.channels.find((c) => c.ch === 6).commands = [];
     }),
-    expect: 'still exactly these six',
+    expect: 'implicitRet lists exactly the channels with no sound_ret',
   },
   {
     name: 'the loop target goes back to being the literal label',
@@ -387,8 +395,9 @@ for (const c of CASES) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  const named = r.code !== 0 && r.out.includes(c.expect);
-  ok(c.name, named, named ? '' : `exit ${r.code}, expected the checker to fail with "${c.expect}"`);
+  const named = r.code !== 0 && caughtBy(r.out, c.expect);
+  ok(c.name, named, named ? ''
+    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}`);
 }
 
 const failed = results.filter((r) => !r.pass);

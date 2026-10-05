@@ -60,7 +60,12 @@ const fail = (msg) => { failures++; console.log(`  FAIL ${msg}`); };
 const check = (cond, ok, bad) => {
   if (cond) return pass(ok);
   const why = typeof bad === 'function' ? bad() : bad;
-  fail(why ? why : `${ok} — the check failed but the detail was empty (predicate disagrees with its own message)`);
+  /* The description goes on the failure line too, not just the reason. Every other
+   * checker in this project prints the assertion's name when it fails, which is what
+   * makes a failure identifiable after the fact — and it is what lets a negative
+   * test name the assertion it is exercising. Dropping `ok` here meant a failure
+   * could only be recognised by the wording of its detail. */
+  fail(`${ok}${why ? ` — ${why}` : ' — the check failed but the detail was empty (predicate disagrees with its own message)'}`);
 };
 
 // --- read the sources -------------------------------------------------------
@@ -226,7 +231,12 @@ check(
 check(
   [...claims.values()].flat().every((o) => o.endsWith('(row)') || o.endsWith('(link)')),
   'no page is claimed by a group with no row of its own',
-  () => [...claims].filter(([, o]) => o.some((x) => x.endsWith('no row'))).map(([p, o]) => `${p} [${o.join('; ')}]`).join(' | ')
+  /* `includes`, not `endsWith`: the owner string is built as `${label} (group, no
+   * row)`, so it ends in a closing parenthesis. Testing for a bare `no row` suffix
+   * could never match anything, which made this check's detail permanently empty and
+   * left it reporting only the generic fallback — the exact outcome the `check()`
+   * guard above exists to make visible, and it was visible only as an absence. */
+  () => [...claims].filter(([, o]) => o.some((x) => x.includes('no row'))).map(([p, o]) => `${p} [${o.join('; ')}]`).join(' | ')
 );
 check(
   [...triggerPages.keys()].length === 0,
