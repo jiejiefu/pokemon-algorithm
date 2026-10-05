@@ -426,8 +426,53 @@ function hueFamily(h) {
 }
 
 /**
+ * Chroma — the widest gap between the three channels, 0..255. This is the
+ * "how much colour is there at all" measure, and it is deliberately NOT HSL's
+ * `s`: saturation is a RATIO against the lightness, so a near-white like
+ * #fffff6 measures s = 100% while being three channels apart. Chroma is
+ * absolute, so #e6e6ee measures 8 and reads as the grey it looks like.
+ *
+ * Every colour name below is gated on this, because a hue name is a claim that
+ * a channel dominates — and on an 8/255 spread no channel dominates. Before
+ * the gate, describeHex() named the pure grey #6a6a6a 紅: `max === min` leaves
+ * h at 0, which fell straight into the first hue bucket. 1,510 of the corpus's
+ * 12,297 swatches (12.3%) got a chromatic name they visibly do not have.
+ */
+export function chroma(hex) {
+  const rgb = hexToRgbArray(hex);
+  if (!rgb) return 0;
+  return Math.max(...rgb) - Math.min(...rgb);
+}
+
+/** Below this chroma a swatch is a grey, whatever its hue happens to be.
+ *  16 sits in the gap in the corpus distribution: p15 = 8, p20 = 16, p25 = 24,
+ *  so the low-chroma cluster and the coloured cluster are separated rather than
+ *  cut through. Of 709 distinct hexes under it, only 24 have HSL s >= 40 and
+ *  every one of those is a near-white like #fffff6 — nothing visibly tinted is
+ *  demoted. */
+export const NEUTRAL_CHROMA = 16;
+
+/** The five greys, chosen by lightness. 灰白 is the light one and is not 白色:
+ *  it is what #e6e6ee is, and calling it white would claim it is #ffffff. */
+export function neutralName(hex) {
+  const hsl = hexToHsl(hex);
+  const l = hsl ? hsl.l / 100 : 0;
+  if (l < 0.08) return '黑';
+  if (l > 0.93) return '白';
+  if (l < 0.22) return '深灰';
+  if (l < 0.45) return '灰色';
+  if (l < 0.72) return '淺灰';
+  return '灰白';
+}
+
+/** True when a hex carries no usable hue — the gate the three namers share. */
+export function isNeutral(hex) {
+  return chroma(hex) < NEUTRAL_CHROMA;
+}
+
+/**
  * Human-readable Chinese name for a hex color.
- * Uses HSL hue + lightness to pick a descriptive label.
+ * Chroma first (is it a grey?), then HSL hue + lightness for a descriptive label.
  * @param {string} hex - e.g. '#399494'
  * @returns {string} e.g. '深青'
  */
@@ -446,6 +491,10 @@ export function describeHex(hex) {
     else if (max === g) h = ((b - r) / d + 2) * 60;
     else h = ((r - g) / d + 4) * 60;
   }
+  /* The grey branch. `l > 0.93` is unreachable behind it for any hex below the
+     chroma gate unless it is within 16 of pure white — at #f2f2f2, l is 0.949
+     and it correctly stays 白. */
+  if (isNeutral(hex)) return neutralName(hex);
   const prefix = l < 0.3 ? '深' : l > 0.75 ? '淺' : '';
   if (l < 0.08) return '黑';
   if (l > 0.93) return '白';
@@ -459,8 +508,13 @@ export function describeHex(hex) {
   return prefix + '紅';
 }
 
-/** warm / cool / neutral, for the mood line under a palette. */
+/** warm / cool / neutral, for the mood line under a palette.
+ *  Gated on the same chroma the two namers use, so a swatch described as 灰白
+ *  is not simultaneously described as 冷色. The `s < 12` test below still earns
+ *  its place: chroma is absolute, so a mid-lightness desaturated colour like
+ *  #7a8a7a has chroma 16 but reads far less warm than its hue suggests. */
 export function colorTemperature(hex) {
+  if (isNeutral(hex)) return 'neutral';
   const hsl = hexToHsl(hex);
   if (!hsl || hsl.s < 12) return 'neutral';
   const { h } = hsl;
@@ -612,10 +666,29 @@ export const CHINESE_COLOR_NAMES = [
   { zh: '咖啡色', en: 'Coffee', hex: '#4D1F00' },
 ];
 
-/** 找出最接近的中文顏色名稱（RGB 歐幾里得距離） */
+/** 找出最接近的中文顏色名稱（RGB 歐幾里得距離）
+ *
+ *  The nearest-neighbour search is only over the table's CHROMATIC entries. It
+ *  is gated on chroma for the same reason describeHex() is: nearest-in-RGB will
+ *  happily match a grey to a tinted name, because a table entry 8 away in one
+ *  channel beats every 淺灰 that is 20 away in all three. Measured on the
+ *  corpus, 351 of the 2,387 sub-16-chroma swatches got a chromatic name that
+ *  way — #414141 came back 墨綠. */
 export function findClosestChineseColorName(hex) {
   const rgb = hexToRgbArray(hex);
   if (!rgb) return null;
+  if (isNeutral(hex)) return neutralName(hex);
+  const best = nearestTableEntry(rgb);
+  if (best.dist > 60) {
+    const fallback = describeHex(hex);
+    if (fallback && fallback !== '色彩') return fallback;
+  }
+  return best.entry.zh;
+}
+
+/** Nearest table entry by RGB Euclidean distance, plus the distance itself so
+ *  callers can apply their own "too far, describe it instead" threshold. */
+function nearestTableEntry(rgb) {
   let best = CHINESE_COLOR_NAMES[0];
   let bestDist = rgbDistance(rgb, hexToRgbArray(best.hex));
   for (let i = 1; i < CHINESE_COLOR_NAMES.length; i++) {
@@ -629,11 +702,7 @@ export function findClosestChineseColorName(hex) {
       if (bestDist < 5) break;
     }
   }
-  if (bestDist > 60) {
-    const fallback = describeHex(hex);
-    if (fallback && fallback !== '色彩') return fallback;
-  }
-  return best.zh;
+  return { entry: best, dist: bestDist };
 }
 
 const colorNameCache = new Map();
@@ -660,27 +729,23 @@ export function chineseColorNameWithEn(hex, sep = ' ') {
     colorNameCache.set(cacheKey, result);
     return result;
   }
-  let best = CHINESE_COLOR_NAMES[0];
-  let bestDist = rgbDistance(rgb, hexToRgbArray(best.hex));
-  for (let i = 1; i < CHINESE_COLOR_NAMES.length; i++) {
-    const c = CHINESE_COLOR_NAMES[i];
-    const crgb = hexToRgbArray(c.hex);
-    if (!crgb) continue;
-    const d = rgbDistance(rgb, crgb);
-    if (d < bestDist - 1e-6) {
-      bestDist = d;
-      best = c;
-      if (bestDist < 5) break;
-    }
+  /* Gated like findClosestChineseColorName, and with the zh-only name as its own
+     answer: this variant is "中文 英文", and the greys have no English entry
+     worth pairing — 灰白 Lavender would assert the thing being corrected. */
+  if (isNeutral(hex)) {
+    const result = neutralName(hex);
+    colorNameCache.set(cacheKey, result);
+    return result;
   }
-  if (bestDist > 60) {
+  const best = nearestTableEntry(rgb);
+  if (best.dist > 60) {
     const fallback = describeHex(hex);
     if (fallback && fallback !== '色彩') {
       colorNameCache.set(cacheKey, fallback);
       return fallback;
     }
   }
-  const result = best.en ? `${best.zh}${sep}${best.en}` : best.zh;
+  const result = best.entry.en ? `${best.entry.zh}${sep}${best.entry.en}` : best.entry.zh;
   colorNameCache.set(cacheKey, result);
   return result;
 }

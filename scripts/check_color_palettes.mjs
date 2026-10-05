@@ -34,6 +34,17 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import {
+  chroma,
+  isNeutral,
+  neutralName,
+  describeHex,
+  chineseColorName,
+  chineseColorNameWithEn,
+  colorTemperature,
+  hexToHsl,
+  NEUTRAL_CHROMA,
+} from '../assets/js/color-palette.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Defaults to the tracked file. An override exists so the guards below can be
@@ -228,6 +239,190 @@ eq(
     ['#005a00', 2.91],
   ],
   'Bulbasaur shiny palette moved'
+);
+
+// --- how the palette swatches get NAMED -------------------------------------
+// The data above is a measurement; these checks are about the two namers the
+// three colour pages print from, and they exist because the pages print TWO of
+// them side by side. color.html:589 writes `describeHex(primary)` into the
+// prose and color.html:577 writes `chineseColorName(hex)` into the swatch list
+// — for the same hex, on the same page. Before the chroma gate those disagreed
+// on 97.6% of primary colours, and the disagreement was not two words for one
+// colour: each of them was separately wrong about greys.
+//
+// Arceus #493 was the visible one. Its primary is #e6e6ee at 35.73%, channels
+// 230/230/238, so max−min = 8 of 255. That is a grey. describeHex() read hue
+// 240 and lightness 91.8, and never looked at saturation, so it said 淺藍;
+// chineseColorName() ran a 100-entry nearest-neighbour over RGB and landed on
+// 薰衣草紫 (#E6E6FA, 12 away in the blue channel). The page said both.
+//
+// Three properties are asserted, each because one of the three functions
+// broke independently of the other two:
+//
+//   1. A swatch below NEUTRAL_CHROMA is named a grey. describeHex() failed this
+//      on the pure grey #6a6a6a by calling it 紅 — `max === min` leaves h at 0,
+//      which falls into the first hue bucket. chineseColorName() failed it on
+//      #414141, which nearest-neighbour returned 墨綠 for: an entry 8 away in
+//      one channel beats every 淺灰 that is 20 away in all three.
+//   2. The two namers agree on every sub-threshold swatch, because the page
+//      shows them to the reader as one answer.
+//   3. colorTemperature() agrees with the name, because the page prints 色溫 on
+//      the same block as the colour name.
+const GREY_NAMES = new Set(['黑', '白', '深灰', '灰色', '淺灰', '灰白']);
+const CHROMATIC_NAMES = /[紅橙黃綠青藍紫粉]/;
+const allSwatches = [];
+for (const id of IDS) {
+  for (const variant of ['n', 's']) {
+    for (const [hex] of PALETTES[String(id)]?.[variant] || []) allSwatches.push(hex);
+  }
+}
+
+const neutralSwatches = allSwatches.filter(isNeutral);
+ok(
+  neutralSwatches.length > 0,
+  'no sub-threshold swatches at all — the gate is either unreachable or the threshold is nonsense'
+);
+ok(
+  allSwatches.length - neutralSwatches.length > 0,
+  'every swatch is below the chroma threshold, so nothing is being named as a colour'
+);
+
+const misnamedByDescribe = [];
+const misnamedByTable = [];
+const nameDisagreements = [];
+const miscastTemperature = [];
+for (const hex of neutralSwatches) {
+  const byDescribe = describeHex(hex);
+  const byTable = chineseColorName(hex);
+  if (CHROMATIC_NAMES.test(byDescribe)) misnamedByDescribe.push(`${hex} -> ${byDescribe}`);
+  if (CHROMATIC_NAMES.test(byTable)) misnamedByTable.push(`${hex} -> ${byTable}`);
+  if (byDescribe !== byTable) nameDisagreements.push(`${hex}: ${byDescribe} / ${byTable}`);
+  if (colorTemperature(hex) !== 'neutral') {
+    miscastTemperature.push(`${hex} -> ${colorTemperature(hex)}`);
+  }
+}
+ok(
+  misnamedByDescribe.length === 0,
+  `describeHex() gave ${misnamedByDescribe.length} sub-${NEUTRAL_CHROMA}-chroma swatches a chromatic name: ${misnamedByDescribe.slice(0, 5).join(', ')}`
+);
+ok(
+  misnamedByTable.length === 0,
+  `chineseColorName() gave ${misnamedByTable.length} sub-${NEUTRAL_CHROMA}-chroma swatches a chromatic name: ${misnamedByTable.slice(0, 5).join(', ')}`
+);
+ok(
+  nameDisagreements.length === 0,
+  `the prose namer and the list namer disagree on ${nameDisagreements.length} grey swatches the page shows side by side: ${nameDisagreements.slice(0, 5).join(', ')}`
+);
+ok(
+  miscastTemperature.length === 0,
+  `${miscastTemperature.length} grey swatches are also given a warm/cool verdict: ${miscastTemperature.slice(0, 5).join(', ')}`
+);
+
+/* The gate must not eat a colour. Without this the four checks above pass
+   trivially if NEUTRAL_CHROMA is raised to 255 — every swatch becomes 灰白,
+   nothing is ever misnamed, and the page loses every colour name it has.
+
+   白 is excluded from the "lost" set, and has to be: describeHex() answers 白
+   for anything lighter than l=0.93 regardless of chroma, so #ffffde (chroma 33,
+   clearly above the gate) is 白 on the lightness branch, not demoted by it. The
+   four names below are the ones ONLY the gate can produce, which is exactly what
+   makes them the right detector.
+
+   This is not sufficient on its own, and that is measured rather than assumed:
+   at NEUTRAL_CHROMA = 255 there are no chromatic swatches left, so this check
+   counts zero demotions and passes while the page has lost every colour name it
+   had. The four pinned chromatic hexes below are what actually catch that. */
+const chromaticSwatches = allSwatches.filter((hex) => !isNeutral(hex));
+const lostColour = chromaticSwatches.filter((hex) => /^(深灰|灰色|淺灰|灰白)$/.test(describeHex(hex)));
+eq(
+  lostColour.length,
+  0,
+  `${lostColour.length} chromatic swatches were demoted to a grey name: ${lostColour.slice(0, 5).join(', ')}`
+);
+
+// Every grey name is actually reachable, so the branch is not five labels with
+// one of them carrying all 2,387 swatches.
+const greyHistogram = {};
+for (const hex of neutralSwatches) {
+  const name = neutralName(hex);
+  greyHistogram[name] = (greyHistogram[name] || 0) + 1;
+}
+eq(
+  Object.keys(greyHistogram).sort(),
+  ['灰白', '白', '深灰', '灰色', '淺灰', '黑'].filter((n) => greyHistogram[n] > 0).sort(),
+  'the grey branch produced names outside its own five'
+);
+for (const name of ['深灰', '灰色', '淺灰', '灰白']) {
+  ok(
+    greyHistogram[name] > 0,
+    `no sub-threshold swatch was named ${name}, so that lightness band is unreachable`
+  );
+}
+
+/* chroma() is the ABSOLUTE measure and must not be HSL saturation under another
+   name. #fffff6 is the case that proves it: three channels apart, so chroma 9
+   and a grey, while its HSL saturation is 100% — s is a ratio against lightness,
+   so a near-white whose channels differ by nine reads as fully saturated. Swap
+   the gate onto `s` and every near-white flips from grey to a loud colour name,
+   and near-whites are the largest single grey bucket in the corpus (白: 698 of
+   the 2,387). #e6e6ee is the mirror image: s=19%, and the reader calls it grey. */
+eq(chroma('#fffff6'), 9, 'chroma() on #fffff6');
+eq(chroma('#e6e6ee'), 8, 'chroma() on #e6e6ee');
+eq(chroma('#000000'), 0, 'chroma() on #000000');
+// Rounded: hexToHsl returns the raw float, so 19.04761904761906 would be the
+// literal here and the comparison would be about float printing, not colour.
+eq(
+  [hexToHsl('#fffff6').s, hexToHsl('#e6e6ee').s].map((v) => v.toFixed(1)),
+  ['100.0', '19.0'],
+  'the two hexes chroma() separates are exactly the two HSL saturation gets backwards'
+);
+ok(
+  isNeutral('#fffff6'),
+  '#fffff6 reads s=100% but is 9 channels from grey; an HSL-based gate would call it a colour'
+);
+// 白 rather than 灰白, because at l=98% it is white by any reading. The point of
+// the assertion is that it is a GREY name: the old hue path would have called it
+// 淺黃, from the h=60 it computes for a channel spread of nine.
+ok(
+  describeHex('#fffff6') === '白',
+  `#fffff6 should be named a grey, not 淺黃 — describeHex() said ${describeHex('#fffff6')}`
+);
+
+// The three grey-boundary hexes the threshold was chosen against, with the
+// names a reader would expect. Arceus is the regression this section exists for.
+eq(
+  [
+    [describeHex('#e6e6ee'), chineseColorName('#e6e6ee'), colorTemperature('#e6e6ee')],
+    [describeHex('#6a6a6a'), chineseColorName('#6a6a6a'), colorTemperature('#6a6a6a')],
+    [describeHex('#414141'), chineseColorName('#414141'), colorTemperature('#414141')],
+    [describeHex('#eeeeee'), chineseColorName('#eeeeee'), colorTemperature('#eeeeee')],
+  ],
+  [
+    ['灰白', '灰白', 'neutral'],
+    ['灰色', '灰色', 'neutral'],
+    ['灰色', '灰色', 'neutral'],
+    ['白', '白', 'neutral'],
+  ],
+  'the grey names for the four hexes that were mis-named'
+);
+// And the neighbouring chromatic values must keep their colour names, which is
+// what says the threshold sits in the gap and not inside a colour.
+eq(
+  [
+    describeHex('#394152'),
+    describeHex('#6a8b5a'),
+    describeHex('#ffd700'),
+    describeHex('#399494'),
+  ],
+  ['深藍', '綠', '黃', '青'],
+  'chromatic swatches near the threshold lost their colour names'
+);
+// chineseColorNameWithEn is the third namer and shares the gate, so a grey must
+// not come back as "灰白 Lavender" — the exact claim being corrected.
+eq(
+  [chineseColorNameWithEn('#e6e6ee'), chineseColorNameWithEn('#414141')],
+  ['灰白', '灰色'],
+  'chineseColorNameWithEn() still pairs a grey with a chromatic English name'
 );
 
 // --- the two source images exist -------------------------------------------
