@@ -311,6 +311,35 @@ const CASES = [
       .replace('const master = clampVolume(this.masterVolume) / 15;', 'const master = 1;')),
     expect: 'zero volume renders silence',
   },
+  /* The page presents the 0..15 channel scale directly, so the master volume is
+   * `/ 15` and nothing else — a linear scale. Squaring it is the realistic way to
+   * break that: someone reaching for a "more natural" loudness curve. It leaves 0
+   * silent, so the zero-volume check passes; it leaves every WAVEFORM identical,
+   * because the conformance comparison renders at unity gain either way; and it
+   * stays in range, because the curve is normalised at 15. Only measuring the
+   * default's peak against full scale's sees it — 0.04 against a fifth.
+   *
+   * The obvious mutation, `/ 15` to `/ 10`, is NOT this one and is deliberately
+   * not used: a full-scale render then asks for a gain of 1.5 and three channels at
+   * a third clip, so the checker's `all 151 species render finite, in-range audio`
+   * catches it first. That is a real detection, just not the one this case is
+   * about — per §4, a case must name the assertion that catches its own defect.
+   *
+   * Eligible for stripConformance on its own account: neither detector is in that
+   * section. */
+  {
+    name: 'the master volume is curved instead of linear, so the default plays far too quietly',
+    mutate: (dir) => editApu(dir, (s) => s
+      .replace('const master = clampVolume(this.masterVolume) / 15;',
+        'const master = (clampVolume(this.masterVolume) / 15) ** 2;')),
+    expect: 'renders at one fifth of full scale',
+  },
+  {
+    name: 'a 0..10 to 0..15 conversion is reintroduced, putting the mapping back where it was wrong',
+    mutate: (dir) => editApu(dir, (s) => s
+      + '\nexport function sliderToMaster(sliderValue) { return clampVolume((sliderValue / 10) * 15); }\n'),
+    expect: 'no conversion function survives',
+  },
 
   /* ---- The loop, which the reference lists as unsupported ---- */
   {
@@ -367,6 +396,26 @@ const CASES = [
         .find((c) => c.op === 'pulse' && c.volume === 0).sweep = 8;
     }),
     expect: 'within one 8-bit step',
+  },
+  {
+    /* The credit has to be a link a reader can follow. Naming the author in prose
+     * while dropping the URL leaves nothing to check and nothing to open. */
+    name: 'the page names the reference synthesiser but no longer links to it',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('<a href="https://rgmechex.com/tech/gen1cries.html" rel="noopener">rgmechex 的 Generation I Cry Synthesizer</a>', 'rgmechex 的 Generation I Cry Synthesizer')),
+    expect: 'links the synthesiser it is transcribed from, by URL',
+  },
+  {
+    name: 'the page keeps a link to the reference but stops saying what the credit is for',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace(/方波 duty 暫存器每幀旋轉一次、Volume envelope 只在每 <code>\|sweep\|<\/code> 幀步進一次而不是連續衰減、噪音通道不吃長度位元組的時間縮放、噪音率同時用到參數的兩個欄位、最後一個音符會響到包絡歸零而不是在 <code>sound_ret<\/code> 處硬切。/, '')),
+    expect: 'names the behaviours it takes from them',
+  },
+  {
+    name: 'the page puts its own debugging history in front of the reader',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('特別感謝這份網頁的作者。', '特別感謝這份網頁的作者。這幾個 bug 都是先被誤寫、跟它的輸出比對才找出來的。')),
+    expect: "does not spend the reader's time on how this page's own synthesis was debugged",
   },
   {
     name: 'the page claims one extra repetition, which count does not mean',

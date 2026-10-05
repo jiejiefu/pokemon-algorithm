@@ -1139,6 +1139,14 @@ body {
   max-width: 320px;
   height: auto;
   aspect-ratio: 1;
+  /* The radar inherits shared.css's bare `canvas` rule — a 25px, 90%-opaque black
+     glow, written for the maze canvas. On a chart that is a lit surface it reads as
+     a heavy halo around the polygon rather than as depth. `--shadow-card` is the
+     token the site's own cards use: 4px/16px at 0.4 in dark and 1px/3px at 0.08 in
+     light, so it is barely there in either — which is the point. A chart wants a
+     frame, not a shadow. */
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
 }
 
 /* One column, deliberately. This was repeat(auto-fit, minmax(210px, 1fr)),

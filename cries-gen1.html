@@ -49,18 +49,38 @@
           <input type="search" id="search" placeholder="名稱或編號" autocomplete="off" spellcheck="false">
         </label>
 
+        <div id="autoplay-slot"></div>
+
         <h3>依 base cry 分組</h3>
         <p class="cy-panel-note">38 個 base cry 共用於 151 隻。同一組內的叫聲只差在音高與長度兩個位元組上。</p>
         <div class="cg-groups" id="groups"></div>
+
+        <!-- Moved here from the page footer, where it was one screen further down
+             than the thing it explains: it says the cry you just heard is
+             SYNTHESISED rather than a recording, and the reader has the autoplay
+             switch and the transport right above this. The page keeps no footer of
+             its own now, so this is the last thing in the panel. -->
+        <p class="cy-panel-note cg-picker-note">這裡的音訊是瀏覽器即時合成的，不是錄音。要聽原始錄音請看 <a href="cries.html">叫聲總覽</a>。</p>
       </aside>
 
       <main class="cy-main" id="main">
         <div class="cy-page">
           <div class="cy-intro">
+            <div class="cy-intro-body">
             <h1>第一世代叫聲實驗室</h1>
-            <p>紅／綠／藍的 151 隻，並不是各自擁有 151 段不同的叫聲錄音。Game Freak 當時只製作了 <strong>38 段 base cry</strong>（基礎叫聲旋律），151 隻共用這 38 段，也就是說有 <strong>113 隻</strong>的叫聲是拿別隻的 base 改出來的。</p>
+            <p>紅／綠／藍的 151 隻，並不是各自擁有 151 段不同的叫聲錄音。當時受限於 Game Boy 卡帶極為有限的儲存空間，為了極大化節省音效容量，Game Freak 僅製作了 <strong>38 段基礎叫聲</strong>（Base Cries），其餘叫聲全是以這 38 段為原型改寫而來。</p>
             <p>改寫只靠兩個位元組：<strong>Pitch</strong>（0–255）會<em>直接加</em>到旋律的頻率值上 —— 不是改變調，而是把數字加上去，所以加過頭會超出暫存器而捲回低頻；<strong>Length</strong>（−128…127）則是時間縮放乘數，決定這段旋律播多快。同一段 base 配上不同的兩個位元組，就是一隻寶可夢的叫聲。</p>
             <p>這一頁用瀏覽器的 Web Audio 重新合成全部 151 隻：拉動那兩個滑桿，就能立刻聽到「同一段旋律、不同兩個位元組」是什麼感覺，也能量出哪些寶可夢其實<strong>聽起來一模一樣</strong>。</p>
+            </div>
+            <!-- The species whose cry is on screen, at the 96px front sprite: the
+                 guaranteed floor for every one of the 151 (see ASSETS.sprites in
+                 shared.js and §3.E of AGENTS.md). Not the Scarlet/Violet artwork —
+                 that is 475px of illustration, and beside a paragraph of prose a
+                 96px sprite reads as a token rather than as artwork. -->
+            <figure class="cy-intro-art" id="intro-art">
+              <img id="intro-sprite" src="" alt="" width="96" height="96" decoding="async">
+              <figcaption id="intro-caption"></figcaption>
+            </figure>
           </div>
 
           <section class="cg-stage" aria-labelledby="stage-h">
@@ -88,22 +108,33 @@
                 </label>
                 <label class="cg-slider">
                   <span>音量 <b id="volume-val"></b></span>
-                  <input type="range" id="volume" min="0" max="10" step="1" value="3">
-                  <small>0–10，預設 3 —— 對應頻道音量的 5/15</small>
+                  <input type="range" id="volume" min="0" max="15" step="1" value="3">
+                  <small>0–15，與頻道音量同一把刻度，預設 3（約 1/5 滿刻度）</small>
                 </label>
                 <button type="button" class="cy-chip" id="reset" aria-pressed="false">還原這隻的原始值</button>
               </div>
             </div>
 
-            <canvas class="cg-wave" id="wave" height="120" role="img"
-                    aria-label="合成出的叫聲波形"></canvas>
-
-            <h3>聲道時間軸</h3>
-            <p class="cg-note">指令表裡的幀數是<strong>儲存值 + 1</strong>：原始位元組存的是「幀數減一」，所以 $3 是 4 幀、$F 是 16 幀。時間軸上的長度則已經套用長度位元組的時間縮放，兩者不一定相同。</p>
-            <p class="cg-note">三條聲道各跑各的。脈衝聲道的音符結束於自己的幀數；噪音聲道比較長時，它最後那段會在脈衝聲道結束之後繼續，而那正是音高偏移已被取消的地方。</p>
-            <div class="cg-timeline" id="timeline"></div>
-            <div class="cg-timeline-track" id="timeline-track"
-                 role="presentation"><i class="cg-playhead" aria-hidden="true"></i></div>
+            <h3>混音與逐聲道波形</h3>
+            <div class="cg-staff" aria-label="混音與逐聲道波形、音符區段">
+              <figure class="cg-lane cg-lane-mix">
+                <figcaption class="cg-lane-head">
+                  <span class="cg-lane-toggle is-static">
+                    <span class="cg-lane-name">混音</span>
+                    <span class="cg-lane-state">三條聲道相加</span>
+                  </span>
+                </figcaption>
+                <div class="cg-lane-plot">
+                  <canvas class="cg-wave" id="wave" height="120" role="img"
+                          aria-label="合成出的叫聲波形：三條聲道的混音"></canvas>
+                  <div class="cg-lane-notes" aria-hidden="true"></div>
+                </div>
+              </figure>
+              <div class="cg-lanes" id="chlanes"></div>
+              <i class="cg-playhead" aria-hidden="true"></i>
+            </div>
+            <p class="cg-note cg-note-after">四條軌道共用<strong>同一段時間軸、同樣寬度、同樣的左緣</strong>：最上面是三條聲道混在一起的結果，下面三條是各自的波形，每條波形下方是它的音符區段。指令表裡的幀數是<strong>儲存值 + 1</strong>（原始位元組存的是「幀數減一」，所以 $3 是 4 幀、$F 是 16 幀），而軌道上的長度已經套用長度位元組的時間縮放，兩者不一定相同。</p>
+            <p class="cg-note">三條聲道各跑各的：脈衝聲道的音符結束於自己的幀數，噪音聲道比較長時，它最後那段會在脈衝聲道結束之後繼續 —— 而那正是音高偏移已被取消的地方，也是那條軌道尾端突然變平的原因。靜音某一條只改變混音，不改變它自己的波形，所以那條軌道會變灰但不會消失。</p>
           </section>
 
           <section class="cg-channels" id="channels" aria-label="聲道"></section>
@@ -152,24 +183,21 @@
             </div>
 
             <h3>出處</h3>
-            <p class="cg-note">指令與數值來自 <a href="https://github.com/pret/pokered" rel="noopener">pret/pokered</a> 的 <code>data/pokemon/cries.asm</code> 與 <code>audio/sfx/</code>，由本站的 <code>scripts/fetch_gen1_cries.py</code> 解析成 JSON。分組與相同叫聲的說法對照 <a href="https://bulbapedia.bulbagarden.net/wiki/Cry" rel="noopener">Bulbapedia 的 Cry 頁</a>，音訊格式的細節來自該頁引用的技術說明。</p>
+            <p class="cg-note">指令與數值來自 <a href="https://github.com/pret/pokered" rel="noopener">pret/pokered</a> 的 <code>data/pokemon/cries.asm</code> 與 <code>audio/sfx/</code>。分組與相同叫聲的說法對照 <a href="https://bulbapedia.bulbagarden.net/wiki/Cry" rel="noopener">Bulbapedia 的 Cry 頁</a>，音訊格式的細節來自該頁引用的技術說明。</p>
+            <p class="cg-note">這一頁的合成器重新推導自 <a href="https://rgmechex.com/tech/gen1cries.html" rel="noopener">rgmechex 的 Generation I Cry Synthesizer</a>，以下行為以它的實作為準：方波 duty 暫存器每幀旋轉一次、Volume envelope 只在每 <code>|sweep|</code> 幀步進一次而不是連續衰減、噪音通道不吃長度位元組的時間縮放、噪音率同時用到參數的兩個欄位、最後一個音符會響到包絡歸零而不是在 <code>sound_ret</code> 處硬切。特別感謝這份網頁的作者。</p>
           </section>
         </div>
       </main>
     </div>
 
-    <footer class="site-footer">
-      <div class="home-footer-inner">
-        <p>這裡的音訊是瀏覽器即時合成的，不是錄音。要聽原始錄音請看 <a href="cries.html">叫聲總覽</a>。</p>
-      </div>
-    </footer>
   </div>
 
   <script type="module">
     import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS } from './assets/js/shared.js';
+    import { mountAutoplay } from './assets/js/cry-autoplay.js';
     import {
-      GbApu, renderSpeciesCry, groupByBaseCry, lengthMultiplier,
-      wrappedNotes, frequencyHz, shiftedRegister, sliderToMaster,
+      GbApu, renderSpeciesCry, groupByBaseCry, lengthMultiplier, clampVolume,
+      wrappedNotes, frequencyHz, shiftedRegister,
       FRAME_HZ, SYNTH_RATE,
     } from './assets/js/gb-apu.js';
 
@@ -206,6 +234,7 @@
     let row = null;
     let base = null;
     let lastRender = null;
+    let autoplay = null;
 
     /* ---------------------------------------------------------------------
        Playback. The APU hands back a Float32Array at 65,536 Hz; the browser
@@ -229,7 +258,7 @@
       const { samples, meta: info } = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
         length: (state.lengthSigned + 0x80) & 0xff,
-        volume: sliderToMaster(state.volume),
+        volume: state.volume,
         muted: state.muted,
       });
 
@@ -315,10 +344,16 @@
         }
       }
 
-      const track = document.getElementById('timeline-track');
-      const cursor = track?.querySelector('.cg-playhead');
-      if (cursor && track) {
-        cursor.style.transform = `translateX(${ratio * track.clientWidth}px)`;
+      /* One playhead down the whole lane stack. It is positioned against a lane's
+       * plot rather than against the container, because the lanes have a fixed
+       * label column on the left: a cursor measured from the container's own left
+       * edge would sit inside that column and drift away from the waveform as the
+       * label column's width changed. */
+      const host = el('wave')?.closest('.cg-staff');
+      const plot = host?.querySelector('.cg-lane-plot');
+      const cursor = host?.querySelector('.cg-playhead');
+      if (cursor && plot) {
+        cursor.style.transform = `translateX(${plot.offsetLeft + ratio * plot.clientWidth}px)`;
         cursor.style.opacity = ratio > 0 ? '1' : '0';
       }
 
@@ -356,11 +391,136 @@
       const out = renderSpeciesCry(cries, sfx, state.id, {
         pitch: state.pitch,
         length: (state.lengthSigned + 0x80) & 0xff,
-        volume: sliderToMaster(state.volume),
+        volume: state.volume,
         muted: state.muted,
+        /* The three per-channel buffers, for the waveforms under the mix. They cost
+         * three more arrays per render, and this one runs on every slider tick, so
+         * they are requested here and released with the result rather than kept. */
+        wantOutputs: true,
       });
       state.renderMs = performance.now() - t0;
       return out;
+    }
+
+    /* The three lanes, in the order the reference draws them: pulse1, pulse2,
+     * noise. Ch5 and Ch6 are square waves and Ch8 is the LFSR, which is why the
+     * noise lane is a solid block and the pulse lanes show individual cycles. */
+    const CH_LANES = [
+      { ch: 5, name: '脈衝一', hint: 'Ch5 · 方形波，有音量掃描' },
+      { ch: 6, name: '脈衝二', hint: 'Ch6 · 方形波，有音量掃描' },
+      { ch: 8, name: '噪音', hint: 'Ch8 · 線性回授移位暫存器' },
+    ];
+
+    /** The reference draws a POLYLINE through the samples, one point every four,
+     *  and that is the whole reason its lanes read as waveforms rather than as
+     *  blocks. A min/max envelope per column cannot: a square wave at 65 kHz holds
+     *  both extremes inside every one of the ~87 samples a column holds, so every
+     *  column spans the full height and the lane comes out as a solid bar.
+     *
+     *  `upOnly` hangs the trace off the lane's own zero line at the BOTTOM of the
+     *  band instead of centring it. A bipolar signal drawn symmetrically uses the
+     *  whole band twice over and reads as a filled block; hanging it leaves the
+     *  lower part of the band free, which is where the note bars sit, so the lane
+     *  reads as "sound above, notes below" instead of "sound, then a strip of
+     *  unrelated bars".
+     *
+     *  The negative excursion is what gets given up, so it is drawn as a THIN line at
+     *  the zero line rather than discarded: a square wave then shows its two levels
+     *  — the high one as a plateau, the low one as the line itself — which is
+     *  exactly the duty cycle the note list on this page prints as a percentage.
+     *
+     *  `amp` leaves a 2px gap above a full-scale channel, so nothing touches the top
+     *  edge. */
+    const LANE_STEP = 4;
+
+    function drawTrace(ctx, samples, cssW, base, amp, upOnly = false) {
+      if (!samples || !samples.length) return;
+      const step = Math.max(1, Math.round(samples.length / (cssW * LANE_STEP)));
+      const at = (v) => base - (upOnly ? Math.max(v, 0) : v) * amp;
+      ctx.beginPath();
+      ctx.moveTo(0, at(samples[0]));
+      for (let i = step; i < samples.length; i += step) ctx.lineTo((i / samples.length) * cssW, at(samples[i]));
+      /* The final point, so a trace that ends mid-column still reaches the right
+       * edge rather than stopping one subsample short of it. */
+      ctx.lineTo(cssW, at(samples[samples.length - 1]));
+      ctx.stroke();
+    }
+
+    /** One lane: the channel's waveform above, its note bars below, on ONE time axis.
+     *
+     *  These were two separate blocks and are now one row each, because the
+     *  waveform's horizontal extent IS the timeline's extent — the same `total`,
+     *  the same pixel width as the mix above. Two stacked blocks drew the same
+     *  interval twice and asked the reader to hold the alignment in their head; one
+     *  row cannot disagree with itself.
+     *
+     *  The bars keep their absolute `%` positions from the old timeline, so nothing
+     *  about the note arithmetic changed — only where it is drawn. */
+    function drawLanes(result) {
+      const box = el('chlanes');
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cssH = 44;
+      /* TWO different axes, and conflating them is what put every note bar at the
+       * far left in the first version: the envelope is indexed by SAMPLE and the
+       * bars are positioned in SECONDS. A cry is 62,541 samples and 0.95 seconds,
+       * so dividing a note's start by the sample count gave every bar a position
+       * under 0.02%. */
+      const samples = Math.max(1, result.samples.length);
+      const seconds = Math.max(0.001, result.meta.duration);
+      const ink = getComputedStyle(el('wave')).color;
+
+      box.innerHTML = CH_LANES.map((lane) => {
+        const notes = result.notes.filter((n) => n.ch === lane.ch);
+        const muted = Boolean(state.muted[lane.ch]);
+        const bars = notes.map((n) => {
+          const left = (n.start / seconds) * 100;
+          /* One pixel of air between neighbours: notes within a channel are usually
+           * contiguous, so without it seven notes draw as one unbroken bar and the
+           * lane stops saying anything about where one note ended. */
+          const width = Math.max(0.4, ((n.end - n.start) / seconds) * 100 - 0.14);
+          const cancel = result.meta.cancelAt;
+          const spans = n.ch === 8 && cancel > 0 && n.start < cancel - 1e-9 && n.end > cancel + 1e-9;
+          const tip = spans
+            ? `音符 ${n.frames.toFixed(1)} 幀 · 尾段 ${((n.end - cancel) * 1000).toFixed(0)} 毫秒在偏移取消後播放`
+            : `音符 ${n.frames.toFixed(1)} 幀`;
+          return `<span class="cg-note-bar${spans ? ' is-unshifted' : ''}" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%"
+            title="${escapeHtml(tip)}">${spans ? `<i style="left:${(((cancel - n.start) / (n.end - n.start)) * 100).toFixed(2)}%"></i>` : ''}</span>`;
+        }).join('');
+        const empty = !notes.length;
+        return `<figure class="cg-lane${muted ? ' is-muted' : ''}" data-ch="${lane.ch}">
+          <figcaption class="cg-lane-head">
+            <button type="button" class="cg-lane-toggle" data-mute="${lane.ch}" aria-pressed="${Boolean(muted)}"
+                    title="${escapeHtml(lane.hint)}">
+              <span class="cg-lane-name">${lane.name}</span>
+              <span class="cg-lane-state">${muted ? '靜音' : '啟用'}</span>
+            </button>
+          </figcaption>
+          <div class="cg-lane-plot">
+            <canvas class="cg-lane-wave" data-ch="${lane.ch}" height="${cssH}" role="img"
+                    aria-label="${lane.name} ${lane.ch === 8 ? '噪音' : '脈衝'}聲道的波形${empty ? '，這一段沒有聲音' : ''}"></canvas>
+            <div class="cg-lane-notes" data-ch="${lane.ch}">${bars}</div>
+          </div>
+        </figure>`;
+      }).join('');
+
+      for (const canvas of box.querySelectorAll('canvas')) {
+        const cssW = canvas.clientWidth || 600;
+        canvas.width = Math.round(cssW * dpr);
+        canvas.height = Math.round(cssH * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+        /* A muted lane takes the muted token rather than merely going transparent.
+         * At 0.28 alpha over a dark panel the gold still reads as gold, so the lane
+         * looked identical to an active one and the dimming communicated nothing. */
+        const muted = Boolean(state.muted[canvas.dataset.ch]);
+        ctx.strokeStyle = muted ? getComputedStyle(canvas).color : ink;
+        ctx.globalAlpha = muted ? 0.5 : 0.9;
+        ctx.lineWidth = 1;
+        /* 0.92: a full-scale channel must not touch the top edge. */
+        drawTrace(ctx, result.channels?.[Number(canvas.dataset.ch)], cssW, cssH - 2, (cssH - 4) * 0.92, true);
+        ctx.globalAlpha = 1;
+      }
     }
 
     function drawWave(samples, notes) {
@@ -382,6 +542,16 @@
       const style = getComputedStyle(canvas);
       const mid = cssH / 2;
 
+      /* A master volume of 0 renders an all-zero array, so there is genuinely
+       * nothing to draw. Saying so is better than drawing a flat line that reads as
+       * "this Pokémon is silent", which is a different and wrong claim. */
+      if (!samples.some((v) => v !== 0)) {
+        ctx.fillStyle = style.color;
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.fillText('音量 0 —— 把音量滑桿調回來才會有波形', 10, mid);
+        return;
+      }
+
       // The pitch-shift cancellation line. Drawn because it is the moment the
       // tail changes character, and a reader who mutes Ch8 would otherwise never
       // see that anything happened there.
@@ -402,62 +572,29 @@
         ctx.fillText('音高偏移取消', (cancel / total) * cssW + 4, 12);
       }
 
-      // Peak envelope rather than 4,000 individual strokes: the cry is under a
-      // second of 65 kHz audio and drawing every sample is both slow and
-      // unreadable at this width.
-      const columns = Math.max(1, Math.floor(cssW));
-      const per = samples.length / columns;
+      /* A polyline through the samples, the same shape the reference draws, rather
+       * than a min/max envelope per column: the mix is a sum of three channels, so
+       * every column of it spans nearly the full height and an envelope came out
+       * as one flat band with no visible notes in it. */
       ctx.strokeStyle = style.color;
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = 0; i < columns; i++) {
-        const from = Math.floor(i * per);
-        const to = Math.min(samples.length, Math.floor((i + 1) * per));
-        let lo = 1;
-        let hi = -1;
-        for (let j = from; j < to; j++) {
-          const v = samples[j];
-          if (v < lo) lo = v;
-          if (v > hi) hi = v;
-        }
-        if (lo > hi) continue;
-        ctx.moveTo(i + 0.5, mid - hi * (mid - 6));
-        ctx.lineTo(i + 0.5, mid - lo * (mid - 6));
-      }
-      ctx.stroke();
+      drawTrace(ctx, samples, cssW, mid, (mid - 6) * (1 / unmasterGain()));
     }
 
-    function drawTimeline(result) {
-      const total = Math.max(0.001, result.meta.duration);
-      const box = el('timeline');
-      const chans = [
-        { id: 5, name: '脈衝 1', hint: 'Ch5 — 方形波，有音量掃描' },
-        { id: 6, name: '脈衝 2', hint: 'Ch6 — 方形波，有音量掃描' },
-        { id: 8, name: '噪音', hint: 'Ch8 — 線性回授移位暫存器' },
-      ];
-      box.innerHTML = chans.map((ch) => {
-        const notes = result.notes.filter((n) => n.ch === ch.id);
-        const bars = notes.map((n) => {
-          const left = (n.start / total) * 100;
-          const width = Math.max(0.4, ((n.end - n.start) / total) * 100);
-          const cancel = result.meta.cancelAt;
-          const spans = n.ch === 8 && cancel > 0 && n.start < cancel - 1e-9 && n.end > cancel + 1e-9;
-          const tail = spans ? ((n.end - cancel) / total) * 100 : 0;
-          const tip = spans
-            ? `音符 ${n.frames.toFixed(1)} 幀 · 尾段 ${((n.end - cancel) * 1000).toFixed(0)} 毫秒在偏移取消後播放`
-            : `音符 ${n.frames.toFixed(1)} 幀`;
-          return `<span class="cg-note-bar${spans ? ' is-unshifted' : ''}" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%"
-            title="${escapeHtml(tip)}">${spans && tail > 0 ? `<i style="left:${(((cancel - n.start) / (n.end - n.start)) * 100).toFixed(2)}%"></i>` : ''}</span>`;
-        }).join('');
-        const muted = state.muted[ch.id];
-        return `<div class="cg-lane${muted ? ' is-muted' : ''}">
-          <button type="button" class="cg-lane-toggle" data-mute="${ch.id}" aria-pressed="${Boolean(muted)}">
-            <span class="cg-lane-name">${ch.name}</span>
-            <span class="cg-lane-state">${muted ? '靜音' : '啟用'}</span>
-          </button>
-          <div class="cg-lane-track" title="${escapeHtml(ch.hint)}">${bars}</div>
-        </div>`;
-      }).join('');
+    /** The master volume's own factor, inverted.
+     *
+     *  The APU multiplies the mix by `clampVolume(volume) / 15`, so the array the
+     *  page holds is a fifth of full scale at the default of 3 — and a waveform
+     *  drawn from it was a fifth of the height it should be, which made the whole
+     *  mix look like a whisper and changed shape as the reader dragged the volume
+     *  slider. Loudness belongs in the ears; a waveform is a picture of the sound's
+     *  shape, so the drawing undoes the gain the audio applied.
+     *
+     *  This is the APU's own scale, not a normalisation: at volume 15 it is 1.0 and
+     *  nothing changes, and at volume 0 the array is all zeros so there is nothing to
+     *  undo (and nothing to draw — see the silent branch). */
+    function unmasterGain() {
+      return clampVolume(state.volume) / 15 || 1;
     }
 
     function renderChannels(result) {
@@ -546,14 +683,14 @@
       lastRender = result;
       drawWave(result.samples, result.notes);
       blitWave();
-      drawTimeline(result);
+      drawLanes(result);
       renderChannels(result);
       renderFacts(result);
 
       const { multiplier, stretch } = lengthMultiplier((state.lengthSigned + 0x80) & 0xff);
       el('pitch-val').textContent = state.pitch;
       el('length-val').textContent = state.lengthSigned;
-      el('volume-val').textContent = `${state.volume}（頻道音量 ${sliderToMaster(state.volume)}/15）`;
+      el('volume-val').textContent = `${state.volume} / 15`;
       el('pitch-hint').textContent =
         `直接加到 11 位元頻率暫存器（0–2047），超過就捲繞回最低頻`;
       el('length-hint').textContent =
@@ -562,10 +699,21 @@
       const m = meta.get(state.id);
       el('cur-name').textContent = `${m.names.zh} · ${m.names.en}`;
       const ident = identicalPartner(state.id);
+      /* The sample count is the array's LENGTH, not its duration in seconds. It was
+       * `${samples.length / SYNTH_RATE | 0} 個樣本`, which floors a sub-second cry
+       * to zero — so this line read "0 個樣本" for every one of the 151 species and
+       * the number was both wrong and useless. */
       el('cur-meta').textContent =
         `#${formatPokemonId(state.id)} · base ${result.meta.base} (${result.meta.sfx}) · ` +
-        `${result.samples.length / SYNTH_RATE | 0} 個樣本 · ${result.meta.noteCount} 個音符 · 合成耗時 ${state.renderMs.toFixed(1)} ms` +
+        `${result.samples.length.toLocaleString('en-US')} 個樣本 · ${result.meta.duration.toFixed(2)} 秒 · ` +
+        `${result.meta.noteCount} 個音符 · 合成耗時 ${state.renderMs.toFixed(1)} ms` +
         (ident ? ` · 與 ${meta.get(ident).names.zh} 完全相同` : '');
+
+      const art = el('intro-sprite');
+      art.src = spriteUrl(m);
+      art.alt = `${m.names.zh}（${m.names.en}）`;
+      el('intro-caption').textContent =
+        `#${formatPokemonId(state.id)} ${m.names.zh}`;
     }
 
     /** The other species with the same base, pitch and length byte, if any. */
@@ -592,26 +740,39 @@
             `#${m.id}` === filter;
         });
         if (!members.length) return '';
-        /* A group of four or fewer is open by default, and so is whichever group
-         * holds the current species -- selecting a Pokémon used to collapse the
-         * list it had just been picked from, so comparing two of its relatives
-         * meant reopening the same <details> for every single click. */
+        /* Only the group holding the current species starts open.
+         *
+         *  Small groups used to be open too, which is why the picker looked half
+         *  expanded on load: 24 of the 38 groups were open, so the list read as a
+         *  wall of chips rather than as 38 collapsed choices. Nothing else opens
+         *  itself -- a disclosure the reader did not open is noise.
+         *
+         *  The current species' group must stay open, though. Selecting a Pokémon
+         *  used to collapse the list it had just been picked from, so comparing
+         *  two of its relatives meant reopening the same <details> every click.
+         *  The check for that is here, not in a click handler, because the group is
+         *  re-rendered on every selection. */
         const holdsCurrent = members.some((m) => m.id === state.id);
-        return `<details class="cg-group"${g.members.length > 4 && !holdsCurrent ? '' : ' open'}>
+        return `<details class="cg-group"${holdsCurrent ? ' open' : ''}>
           <summary>
             <span class="cg-group-name">base ${g.base}</span>
             <span class="cg-group-count">${g.members.length} 隻</span>
           </summary>
           <div class="cg-group-members">
-            ${members.map((m) => `<button type="button" class="cy-chip${m.id === state.id ? ' is-current' : ''}"
-              data-species="${m.id}" aria-pressed="${m.id === state.id}">${escapeHtml(m.name.names.zh)}</button>`).join('')}
+            ${members.map((m) => `<button type="button" class="cy-chip cg-chip${m.id === state.id ? ' is-current' : ''}"
+              data-species="${m.id}" aria-pressed="${m.id === state.id}"><img class="cg-chip-sprite"
+              src="${spriteUrl(m.name)}" alt="" width="20" height="20" loading="lazy" decoding="async">${escapeHtml(m.name.names.zh)}</button>`).join('')}
           </div>
         </details>`;
       }).join('');
       el('groups').innerHTML = html || '<p class="cy-empty">沒有符合的寶可夢。</p>';
     }
 
-    function select(id, { announceIt = true } = {}) {
+    /* `autoplay` is a parameter and not a read of the switch inside here, because
+     * select() is called on boot and on every hashchange as well as from a click.
+     * Reading the switch in the function body would make the page cry out on
+     * load, which is the one thing this feature must not do. */
+    function select(id, { announceIt = true, autoplay = false } = {}) {
       stop();
       state.id = id;
       row = cries.cries.find((c) => c.id === id);
@@ -634,6 +795,11 @@
           ? `已選擇 ${m.names.zh}，與 ${meta.get(partner).names.zh} 的叫聲完全相同`
           : `已選擇 ${m.names.zh}`;
       }
+      /* Autoplay fires only here, on an explicit click, and after the visuals are
+       * current so the reader sees the right waveform while it sounds. `stop()`
+       * ran at the top of this function, so a fast run through the picker cuts the
+       * previous cry off rather than letting two overlap. */
+      if (autoplay) play().catch((error) => { console.error('play failed', error); stop(); });
     }
 
     /* ---------------------------------------------------------------------
@@ -671,9 +837,24 @@
       play().catch((error) => { console.error('play failed', error); stop(); });
     });
 
-    for (const id of ['pitch', 'length', 'volume']) {
+    /* Slider id -> state key, declared rather than derived from the id.
+     *
+     *  This was `for (const id of ['pitch','length','volume']) state[id] = …`, which
+     *  works for two of the three and silently invents a fourth property for the
+     *  third: the Length slider's key is `lengthSigned`, so `state['length'] = 40`
+     *  created a property nothing ever reads while `state.lengthSigned` stayed
+     *  exactly where it was. The slider therefore did nothing at all — the waveform
+     *  redrew from the same bytes, the duration readout held, and the audio was
+     *  bit-identical, so dragging it looked like the page was broken.
+     *
+     *  A mapping table cannot drift the same way: every slider has to be written
+     *  down, and `check_gen1_page.mjs` moves each of the three and asserts the
+     *  field it claims to move actually moved. */
+    const SLIDERS = { pitch: 'pitch', length: 'lengthSigned', volume: 'volume' };
+
+    for (const [id, key] of Object.entries(SLIDERS)) {
       el(id).addEventListener('input', (e) => {
-        state[id] = Number(e.target.value);
+        state[key] = Number(e.target.value);
         scheduleRender();
       });
     }
@@ -683,7 +864,7 @@
       announce.textContent = '已還原為這隻寶可夢的原始音高與長度';
     });
 
-    for (const host of [el('timeline'), el('channels')]) {
+    for (const host of [el('chlanes'), el('channels')]) {
       host.addEventListener('click', (e) => {
         const b = e.target.closest('[data-mute]');
         if (!b) return;
@@ -697,7 +878,9 @@
 
     el('groups').addEventListener('click', (e) => {
       const b = e.target.closest('[data-species]');
-      if (b) select(Number(b.dataset.species));
+      /* The one place `autoplay: true` is passed. Everything else that selects —
+       * boot, the hash, the reset button — goes through select() without it. */
+      if (b) select(Number(b.dataset.species), { autoplay: autoplay.on });
     });
 
     el('search').addEventListener('input', (e) => {
@@ -724,6 +907,17 @@
       cries = c;
       sfx = s;
       for (const rec of p) meta.set(rec.id, rec);
+
+      autoplay = mountAutoplay(el('autoplay-slot'), {
+        label: '自動播放',
+        hint: '點擊切換寶可夢時直接播放一次',
+        onChange: (on) => {
+          /* Switching it OFF stops whatever is sounding, so the control means the
+           * same thing the label says at the moment it is pressed. */
+          if (!on) stop();
+          announce.textContent = `自動播放已${on ? '開啟' : '關閉'}`;
+        },
+      });
 
       computeGap();
       select(6, { announceIt: false });

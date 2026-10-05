@@ -46,6 +46,7 @@
         <p class="sr-only" id="announce" role="status" aria-live="polite"></p>
 
         <h2>音色分析</h2>
+        <div id="autoplay-slot"></div>
         <p class="cy-panel-hint" id="panel-hint">點選任一張卡片，這裡會顯示它的音色數值與音色最接近的寶可夢。</p>
 
         <div id="probe" hidden>
@@ -128,6 +129,7 @@
     import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS } from './assets/js/shared.js';
     import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
     import { cryPlayer } from './assets/js/cry-player.js';
+    import { mountAutoplay } from './assets/js/cry-autoplay.js';
 
     initThemeToggle();
     initHeaderNav();
@@ -208,10 +210,19 @@
       legacy: false,
       sort: 'id',
       axis: 'centroid',
+      /* `gen` is the GENERATION FILTER and `pages` is how many batches are on
+       * screen. They were one field, and that is why the filter did nothing:
+       * render() sliced `state.gen * PAGE_SIZE`, so 第 1 世代 asked for 60 cards
+       * out of the UNFILTERED list, and the sentinel's `state.gen++` re-scrolled
+       * as if the reader had picked a deeper generation. A filter and a scroll
+       * position are different quantities; sharing one made both meaningless. */
       gen: 0,
+      pages: 1,
       probeId: null,
       playingId: null,
       preset: 'timbre',
+      /* The switch itself, mounted in init(). Held on state so probe() can read it
+       * without it being threaded through every listener. */
       rows: new Map(),      // id -> Float64Array, standardised
       raw: new Map(),       // id -> the original row, for printing
       ids: [],              // species ids in the active set, in display order
@@ -328,8 +339,20 @@
       return v.toLocaleString('zh-TW', { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
 
+    /** The active set, narrowed to one generation when `state.gen` names one.
+     *
+     *  Narrowing happens HERE and nowhere else, so every consumer — the count,
+     *  the axis ranges the meters are scaled against, and the grid itself — reads
+     *  the same set. `computeAxisRange()` walks `state.ids` directly, so a filter
+     *  applied only in `sortedIds()` would have left every meter scaled against
+     *  all 1,025 species while the cards showed one generation. */
+    function filteredIds() {
+      if (!state.gen) return state.ids;
+      return state.ids.filter((id) => state.meta.get(id)?.generation === state.gen);
+    }
+
     function sortedIds() {
-      const ids = [...state.ids];
+      const ids = filteredIds();
       if (state.sort === 'id') return ids.sort((a, b) => a - b);
       if (state.sort === 'name') {
         return ids.sort((a, b) => (state.meta.get(a)?.names.zh || '').localeCompare(
@@ -378,12 +401,13 @@
 
     function computeAxisRange() {
       AXIS_RANGE = {};
+      const pool = filteredIds();
       for (const axis of AXES) {
         const k = axisIndex(axis.key);
         if (k < 0) continue;
         let min = Infinity;
         let max = -Infinity;
-        for (const id of state.ids) {
+        for (const id of pool) {
           const v = state.raw.get(id)[k];
           if (v < min) min = v;
           if (v > max) max = v;
@@ -395,7 +419,7 @@
     function render() {
       const ordered = sortedIds();
       computeAxisRange();
-      const slice = ordered.slice(0, state.gen * PAGE_SIZE);
+      const slice = ordered.slice(0, state.pages * PAGE_SIZE);
       el('count').textContent = `${slice.length} / ${ordered.length} 隻`;
       emptyMsg.hidden = ordered.length > 0;
       grid.hidden = ordered.length === 0;
@@ -479,8 +503,15 @@
 
     /* The probe waveform is redrawn on every selection and every play, and it is a
      * couple of hundred vertical strokes, so it is cached in an offscreen canvas and
-     * the playback cursor only blits it and paints over the top. */
+     * the playback cursor only blits it and paints over the top.
+     *
+     *  The trace is also kept as GEOMETRY rather than only as pixels, because the
+     *  played region is drawn by stroking it a second time in the Pokémon's own
+     *  colour. Re-issuing 220 line segments from an array costs nothing; re-deriving
+     *  them from the raster would cost a decode per frame and still be wrong. */
     let probeCache = null;
+    let probeTrace = null;
+    let probeAccent = null;
 
     function blitProbe(ratio) {
       const canvas = el('probe-wave');
@@ -491,16 +522,66 @@
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(probeCache, 0, 0, w, h);
-      if (ratio > 0) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-        ctx.fillRect(0, 0, w * ratio, h);
-        ctx.strokeStyle = getComputedStyle(canvas).color;
+
+      /* Played and unplayed are DISJOINT regions, so they are drawn as two disjoint
+       * regions rather than one drawn over the other.
+       *
+       *  Stroking the accent on top of the cached trace does not work here, and the
+       *  reason is specific to this waveform: it is a peak envelope — 220 vertical
+       *  segments from a sample's top to its bottom — so at this width consecutive
+       *  segments merge into solid bars. Laying a 2px accent line on the same path
+       *  as the 1px neutral one therefore puts the neutral line DOWN THE MIDDLE of
+       *  the accent, and all that shows is a tan fringe either side of a white core.
+       *  That is the whole of what "it looks like it is behind the grey" was.
+       *
+       *  So the cache is blitted ONLY into the unplayed region, and the accent is
+       *  stroked only into the played one. Nothing overlaps, so the accent can be
+       *  as heavy as it likes — which is what makes the progress readable at all.
+       */
+      const t = ratio > 0 ? Math.min(1, ratio) : 0;
+      if (t < 1) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(w * t, 0, w * (1 - t), h);
+        ctx.clip();
+        ctx.drawImage(probeCache, 0, 0, w, h);
+        ctx.restore();
+      }
+
+      if (t > 0 && probeTrace && probeAccent) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, w * t, h);
+        ctx.clip();
+        ctx.strokeStyle = probeAccent;
+        /* The SAME weight as the neutral trace. The played and unplayed halves are
+         * one waveform, and the only thing that should differ between them is the
+         * colour — a heavier accent turned the played half into a different-looking
+         * shape rather than the same shape in another colour. */
+        ctx.lineWidth = 1;
+        /* FOUR numbers per sample — x, top, bottom — because this is a peak
+         * envelope: every sample is a vertical segment from its top to its bottom,
+         * not a point on a contour. Storing only the top endpoint made the played
+         * region draw as a single line along the upper envelope, so playback showed
+         * the top half of every bar and nothing below it. The neutral trace has both
+         * halves, so the two did not look like the same waveform at all. */
+        ctx.beginPath();
+        ctx.moveTo(probeTrace[0], probeTrace[1]);
+        ctx.lineTo(probeTrace[0], probeTrace[2]);
+        for (let i = 3; i < probeTrace.length; i += 3) {
+          ctx.moveTo(probeTrace[i], probeTrace[i + 1]);
+          ctx.lineTo(probeTrace[i], probeTrace[i + 2]);
+        }
+        ctx.stroke();
+        ctx.restore();
+        /* The cursor, in the same colour, so the boundary is one mark rather than
+         * an edge between two. */
+        ctx.strokeStyle = probeAccent;
         ctx.globalAlpha = 0.9;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(w * ratio, 0);
-        ctx.lineTo(w * ratio, h);
+        ctx.moveTo(w * t, 0);
+        ctx.lineTo(w * t, h);
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
@@ -508,7 +589,6 @@
 
     async function drawWave(id) {
       const canvas = el('probe-wave');
-      const ctx = canvas.getContext('2d');
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const cssW = canvas.clientWidth || 300;
       const cssH = 48;
@@ -517,7 +597,13 @@
       probeCache = document.createElement('canvas');
       probeCache.width = canvas.width;
       probeCache.height = canvas.height;
-      ctx = probeCache.getContext('2d');
+      /* Drawn into the OFFSCREEN canvas from the start, never into `canvas` first
+       * and then reassigned. That intermediate `const ctx` was reassigned to the
+       * cache's context a line later, which throws a TypeError in strict mode --
+       * module scope is always strict -- so this function died on its third line
+       * and the probe waveform never appeared. `ctx` is declared with `let` and
+       * bound to the cache, so there is only ever one context in play. */
+      const ctx = probeCache.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
 
@@ -528,6 +614,8 @@
         ctx.fillStyle = getComputedStyle(canvas).color;
         ctx.font = '12px system-ui, sans-serif';
         ctx.fillText('這隻沒有可解碼的叫聲', 8, cssH / 2);
+        probeTrace = null;
+        probeAccent = null;
         blitProbe(0);
         return;
       }
@@ -536,16 +624,29 @@
       // future change to the player's contract cannot draw outside the canvas.
       const mid = cssH / 2;
       const style = getComputedStyle(canvas);
-      ctx.strokeStyle = style.borderLeftColor === 'rgba(0, 0, 0, 0)' ? style.color : style.color;
+      ctx.strokeStyle = style.color;
       ctx.lineWidth = 1;
+      /* The same segments go into the cache AND into `probeTrace`, which is what the
+       * playback cursor re-strokes in the Pokémon's colour. Built in the same pass so
+       * the two can never describe different waveforms. */
+      probeTrace = new Float32Array(peaks.length * 3);
       ctx.beginPath();
       for (let i = 0; i < peaks.length; i++) {
         const x = (i / (peaks.length - 1)) * cssW;
         const v = Math.max(-1, Math.min(1, peaks[i]));
-        ctx.moveTo(x, mid - v * (mid - 3));
-        ctx.lineTo(x, mid + v * (mid - 3));
+        const top = mid - v * (mid - 3);
+        const bottom = mid + v * (mid - 3);
+        probeTrace[i * 3] = x;
+        probeTrace[i * 3 + 1] = top;
+        probeTrace[i * 3 + 2] = bottom;
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
       }
       ctx.stroke();
+      /* A Pokémon with no measured colour must not leave the previous one's behind —
+       * that would tint one cry with another creature's average. */
+      const rgb = state.meta.get(id)?.rgb;
+      probeAccent = Array.isArray(rgb) && rgb.length === 3 ? `rgb(${rgb.join(',')})` : null;
       blitProbe(0);
     }
 
@@ -558,6 +659,12 @@
     function paintProbeProgress(progress) {
       const canvas = el('probe-wave');
       if (!canvas || !probeCache) return;
+      /* The clock is READ HERE, every frame, from the player — which owns the
+       * AudioContext and is therefore the only thing that can read it. This line was
+       * missing and `progress.now` stayed at the 0 it was initialised to, so the
+       * ratio was negative, clamped to 0, and the cursor never moved: the same
+       * "written nowhere, read everywhere" shape as the Length slider. */
+      progress.now = cryPlayer.now();
       const ratio = progress.startedAt === null || !progress.duration
         ? 0
         : Math.min(1, Math.max(0, (progress.now - progress.startedAt) / progress.duration));
@@ -637,6 +744,24 @@
       if (state.probeId !== null) renderProbe();
     }
 
+    /** Select a cry as the probe, and — when the switch is on — sound it once.
+     *
+     *  Both entry points (a card in the grid and a row in the similarity list) go
+     *  through here so the two cannot disagree about what "selecting" means. The
+     *  playback is deliberately NOT awaited: the reader's next click is the point
+     *  of this page, and awaiting would leave the panel describing one cry while
+     *  the card they just pressed is already a different one. `togglePlay` stops
+     *  whatever is sounding first, so running through twenty cards cuts each cry
+     *  off rather than stacking twenty of them. */
+    function probe(id) {
+      state.probeId = id;
+      for (const c of grid.querySelectorAll('.cy-card')) {
+        c.setAttribute('aria-pressed', String(Number(c.dataset.id) === state.probeId));
+      }
+      renderProbe();
+      if (autoplay.on) togglePlay(id);
+    }
+
     function syncPlayButtons() {
       for (const node of document.querySelectorAll('[data-play]')) {
         const playing = Number(node.dataset.play) === state.playingId;
@@ -664,11 +789,7 @@
       }
       const card = e.target.closest('.cy-card');
       if (!card) return;
-      state.probeId = Number(card.dataset.id);
-      for (const c of grid.querySelectorAll('.cy-card')) {
-        c.setAttribute('aria-pressed', String(Number(c.dataset.id) === state.probeId));
-      }
-      renderProbe();
+      probe(Number(card.dataset.id));
     });
 
     // Keyboard parity for the play control, which is a span with role=button
@@ -685,11 +806,7 @@
     el('similar').addEventListener('click', (e) => {
       const row = e.target.closest('[data-id]');
       if (!row) return;
-      state.probeId = Number(row.dataset.id);
-      for (const c of grid.querySelectorAll('.cy-card')) {
-        c.setAttribute('aria-pressed', String(Number(c.dataset.id) === state.probeId));
-      }
-      renderProbe();
+      probe(Number(row.dataset.id));
     });
 
     el('probe-play').addEventListener('click', (e) => {
@@ -709,7 +826,11 @@
       const b = e.target.closest('[data-filter]');
       if (!b) return;
       const key = b.dataset.filter;
-      state.gen = 0;
+      /* Every branch resets the scroll position, and so does the sentinel. The
+       * reset used to be `state.gen = 0`, which meant clearing the generation
+       * filter as a side effect of pressing anything at all — including the chip
+       * for the generation the reader had just chosen. */
+      state.pages = 1;
       if (key === 'legacy') {
         state.legacy = !state.legacy;
         indexSet(state.legacy ? features.legacy : features.latest);
@@ -728,6 +849,11 @@
       } else {
         const g = Number(key.replace('gen', ''));
         state.gen = state.gen === g ? 0 : g;
+        /* A generation's cry set is a subset, so a species outside it cannot stay
+         * on screen: the panel would keep describing something the grid no longer
+         * shows. `render()` replaces the whole grid, so the selection cannot be
+         * found there either. */
+        if (state.probeId !== null && !filteredIds().includes(state.probeId)) state.probeId = null;
       }
       renderFilters();
       render();
@@ -748,8 +874,15 @@
       if (observer) observer.disconnect();
       if (!('IntersectionObserver' in window)) return;
       observer = new IntersectionObserver((entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          state.gen++;
+        /* Capped by the number of batches the filtered set actually has, so the
+       * observer cannot keep re-firing on a sentinel that is already showing
+       * everything — which is what made the count read 120, 180, 240… instead of
+       * stopping at the end of the list. */
+      if (entries.some((e) => e.isIntersecting)) {
+          const total = filteredIds().length;
+          const next = Math.min(state.pages + 1, Math.max(1, Math.ceil(total / PAGE_SIZE)));
+          if (next === state.pages) return;
+          state.pages = next;
           render();
         }
       }, { rootMargin: '400px' });
@@ -769,6 +902,7 @@
        --------------------------------------------------------------------- */
 
     let features = null;
+    let autoplay = null;
 
     async function init() {
       const [f, p] = await Promise.all([
@@ -782,6 +916,17 @@
 
       const active = new Set(Object.keys(f.latest).map(Number));
       for (const id of active) if (state.meta.has(id)) state.meta.get(id);
+
+      autoplay = mountAutoplay(el('autoplay-slot'), {
+        label: '自動播放',
+        hint: '點選任何一張卡片時直接播放一次',
+        onChange: (on) => {
+          if (!on && state.playingId !== null) {
+            cryPlayer.stop().finally(() => { state.playingId = null; syncPlayButtons(); });
+          }
+          announce.textContent = `自動播放已${on ? '開啟' : '關閉'}`;
+        },
+      });
 
       indexSet(f.latest);
       renderFilters();

@@ -292,10 +292,19 @@ export function clampVolume(v) {
   return Math.max(0, Math.min(15, Math.round(v)));
 }
 
-/** A 0..10 slider reading as the channel scale's 0..15, which is how the page maps it. */
-export function sliderToMaster(sliderValue) {
-  return clampVolume((sliderValue / 10) * 15);
-}
+/* There is deliberately no sliderToMaster() here any more. It used to map a 0..10
+ * slider onto this 0..15 scale, and its default of 3 became a master volume of 5
+ * — a third of full scale, which is loud. The page now presents the 0..15 scale
+ * directly and defaults to 3, so the slider reading IS the master volume and
+ * there is no conversion to get wrong.
+ *
+ * The mapping was also the one quantity in this file a native-rate conformance
+ * comparison structurally cannot check: it plays no part in the rendered PCM at
+ * unity gain, so a wrong mapping passes every waveform assertion in
+ * check_gen1_apu.mjs while every cry comes out at the wrong loudness. Removing it
+ * removes the only place that could be wrong. The remaining master-volume claim
+ * — that the channel scale is 0..15 and that 0 is silence — is asserted there by
+ * rendering at volume 0 and at the default. */
 
 export function noiseOffset(startSample, cutoffSamples, pitch) {
   return startSample >= cutoffSamples ? 0 : pitch;
@@ -415,8 +424,8 @@ export class GbApu {
     this.lengthByte = length;
     /* The master volume lives on the CHANNEL's own 0..15 scale, so a cry's three
      * channels and its master are the same units and 15 is simply loud. The page
-     * presents a 0..10 slider and maps it in, which is a presentation choice and
-     * deliberately not something this module knows about. */
+     * presents that same 0..15 slider and defaults it to 3 — about a fifth of full
+     * scale, which is comfortable rather than startling. */
     this.masterVolume = volume;
     this.muted = muted;
     this.wantOutputs = wantOutputs === true;
@@ -631,6 +640,13 @@ export function renderSpeciesCry(cries, sfx, id, opts = {}) {
   return {
     samples,
     notes: apu.notes,
+    /* The three channel buffers, BEFORE the mix, and only when asked for. They are
+     * three megabyte-scale arrays, so `wantOutputs` stays off by default; the page
+     * turns it on to draw one waveform per channel underneath the mix, which is the
+     * only way to see which channel a given part of a cry is coming from. Muting a
+     * channel does not remove it here — a muted channel is still rendered, which is
+     * exactly why it can be shown greyed-out rather than hidden. */
+    channels: apu.wantOutputs ? apu.outputs : null,
     meta: {
       id,
       sfx: row.sfx,

@@ -56,7 +56,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   GbApu, renderSpeciesCry, lengthMultiplier, frequencyHz, shiftedRegister,
-  wrappedNotes, packDuty, noiseClockHz, groupByBaseCry, sliderToMaster,
+  wrappedNotes, packDuty, noiseClockHz, groupByBaseCry, clampVolume,
   FRAME_HZ, SYNTH_RATE, SAMPLES_PER_FRAME,
 } from '../assets/js/gb-apu.js';
 
@@ -546,17 +546,38 @@ ok(/整段重播 \$\{cmd\.count\} 次/.test(dom),
 ok(dom.includes('count 是總次數，不是額外次數'),
   'and is explicit that count is the total, not the number of extra repetitions');
 
-/* The page's 0..10 slider maps onto the channel scale's 0..15, so the default
- * reading of 3 is a master volume of 5. Asserted here because getting it wrong is
- * silent: the cry simply plays at the wrong loudness and every waveform check still
- * passes, since conformance renders at unity either way. */
-eq(sliderToMaster(0), 0, 'a slider at 0 is silence');
-eq(sliderToMaster(10), 15, 'a slider at 10 is full scale, the same 15 the channels use');
-eq(sliderToMaster(3), 5, 'and the default of 3 is a master volume of 5');
-eq(sliderToMaster(3) / 15, 1 / 3, 'which is one third of full scale');
+/* The master volume is on the channel's own 0..15 scale and the page presents that
+ * same scale, so the slider reading IS the master volume — there is no conversion
+ * between them, and `sliderToMaster()` has been removed rather than left as an
+ * identity function.
+ *
+ * That makes this the one claim here that must be checked by MEASURING rather than
+ * by reading an expression: master volume plays no part in the conformance
+ * comparison, which renders at unity either way, so a wrong value passes every
+ * waveform assertion in this file while every cry comes out at the wrong loudness.
+ * So the default is asserted against the audio it produces — a default of 3 must be
+ * about a fifth of full scale, not a third, and not silence. */
+eq(clampVolume(0), 0, 'a master volume of 0 is the bottom of the scale');
+eq(clampVolume(15), 15, 'and 15 is the top, the same 15 the channels use');
+eq(clampVolume(3), 3, 'the page default of 3 is a master volume of 3, with no conversion applied');
+ok(!/export function sliderToMaster/.test(apuSrc),
+  'and no conversion function survives in gb-apu.js to reintroduce one');
 
 const silent = renderSpeciesCry(cries, sfx, 6, { volume: 0 });
 ok(silent.samples.every((v) => v === 0), 'a zero volume renders silence rather than NaN');
+
+/* The default, measured. `loudness()` is the peak of a render, which is linear in
+ * the master volume because the mix divides by three and nothing normalises
+ * afterwards — so the ratio of two peaks IS the ratio of two volumes. */
+function peakAt(id, volume) {
+  return renderSpeciesCry(cries, sfx, id, { volume }).samples.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
+}
+const full = peakAt(6, 15);
+const dflt = peakAt(6, 3);
+ok(full > 0, 'a full-scale render is audible');
+ok(Math.abs(dflt / full - 1 / 5) < 1e-6,
+  `the default of 3 renders at one fifth of full scale (${(dflt / full).toFixed(4)})`);
+ok(dflt > 0, 'and is not silence');
 const allMuted = renderSpeciesCry(cries, sfx, 6, { muted: { 5: true, 6: true, 8: true } });
 ok(allMuted.samples.every((v) => v === 0),
   'muting all three channels renders silence rather than dividing by a zero peak');
@@ -638,7 +659,20 @@ ok(/65,536/.test(dom) && dom.includes('1,048,576'),
   'the page states both the synthesis rate and the real clock it approximates');
 ok(/96,000/.test(dom), 'and why the real clock is unreachable through Web Audio');
 ok(!/(逐樣本|位元相同|完全一致|與原機相同)/.test(dom), 'the page never claims sample-exact output');
-ok(/參考|rgmechex/.test(dom), 'the page credits the synthesiser it is transcribed from');
+ok(/rgmechex\.com\/tech\/gen1cries\.html/.test(dom),
+  'the page links the synthesiser it is transcribed from, by URL and not just by name');
+ok(/特別感謝|特別感謝這份網頁的作者/.test(dom), 'and thanks its author by name');
+/* The behaviours taken from the reference are named on the page, so a reader can
+ * see what the credit is actually for. Five is the count gb-apu.js's header
+ * documents, and asserting it is the point: a credit that lists nothing is a
+ * formality. */
+ok(/每幀旋轉一次/.test(dom) && /\|sweep\|/.test(dom) && /噪音通道不吃長度位元組/.test(dom)
+   && /兩個欄位/.test(dom) && /sound_ret/.test(dom),
+  'and names the behaviours it takes from them, so the credit is not empty');
+/* Our own debugging is not the reader's business. The bug narrative belongs in
+ * AGENTS.md §3.F, where it already is. */
+ok(!/(先被誤寫|比對才找出|內部斷言看得出來|三個以上|除錯)/.test(dom),
+  'and does not spend the reader\'s time on how this page\'s own synthesis was debugged');
 
 console.log('');
 console.log(`  base cries: ${bases.length}   species: ${cries.cries.length}`);

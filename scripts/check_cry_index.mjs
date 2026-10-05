@@ -252,6 +252,28 @@ const renderBody = detail.match(/function renderDetail\(\)\s*\{([\s\S]*?)\n {4}\
 ok(!!renderBody && /cryPlayer\.stop\(\)/.test(renderBody[1]),
   'detail.html stops playback when it navigates');
 
+/* ---------------------------------------------------------------------------
+   The recorded cries play at the SAME loudness as the synthesised ones.
+   --------------------------------------------------------------------------- */
+
+/* DEFAULT_VOLUME is 3/15 because that is the master volume the Generation I lab
+ * presents as its default, so the two pages can be compared without one of them
+ * being louder for reasons that have nothing to do with the Pokémon. It was 1 —
+ * unity — and the complaint was that pressing play on cries.html or detail.html
+ * is startling. */
+const player = readFileSync(join(root, 'assets/js/cry-player.js'), 'utf8');
+ok(/export const DEFAULT_VOLUME = 3 \/ 15;/.test(player),
+  'the player exports a default volume of 3/15, the Gen I lab\'s default master volume');
+ok(!/volume:\s*1, muted: false/.test(player) && !/return \{ volume: 1/.test(player),
+  'and neither localStorage branch falls back to unity');
+ok(/#volume = DEFAULT_VOLUME/.test(player)
+  && /raw\.volume[\s\S]{0,120}DEFAULT_VOLUME/.test(player),
+  'the field and the stored-preference path both start there, so a fresh visit is quiet');
+/* The per-call trim is a SEPARATE node feeding the shared gain, so it must stay at
+ * unity: defaulting it to the same number would square the level to 0.04. */
+ok(/out\.gain\.value = volume !== undefined \? volume : 1;/.test(player),
+  'the per-call trim still defaults to 1 — it multiplies into the shared gain, it does not replace it');
+
 console.log(`  species: ${knownIds.length}`);
 console.log(`  latest cries: ${CRY_IDS.size}`);
 console.log(`  legacy cries: ${LEGACY_CRY_IDS.size} (strict subset)`);

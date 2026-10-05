@@ -137,6 +137,42 @@ ok(!/\bonly:\s*\[/.test(presetBlock),
 ok(/zero:\s*\['peak',\s*'rms'\]/.test(presetBlock),
   'the default preset excludes absolute level, which is a recording property');
 
+/* ---------------------------------------------------------------------------
+   Both cry pages carry the same autoplay switch, from the same module.
+   --------------------------------------------------------------------------- */
+
+ok(/mountAutoplay/.test(page) && /cry-autoplay\.js/.test(page),
+  'the page mounts the shared autoplay switch rather than building its own');
+ok(/from '\.\/assets\/js\/cry-autoplay\.js'/.test(page),
+  'by importing it, the same module the Generation I lab uses');
+/* Bounded by the PANEL's own tags rather than by proximity: a switch beside the
+ * panel reads as a control belonging to something else, and "is it near the panel"
+ * is not the question — is it inside it. */
+const aside = page.match(/<aside class="cy-panel"[^>]*>([\s\S]*?)<\/aside>/);
+ok(!!aside && /id="autoplay-slot"/.test(aside[1]),
+  'into a mount point INSIDE the timbre panel, not beside it');
+ok(/<h2>音色分析<\/h2>\s*<div id="autoplay-slot">/.test(aside[1]),
+  'and under the panel heading, so the panel does not open with a control before its title');
+/* Autoplay must only ever be triggered by a CLICK. In cries-gen1.html the same
+ * select() runs at boot and on every hashchange, so a switch read inside the
+ * function would cry out on load; the pages therefore pass it as an option, and
+ * only the click handler passes it true. The observable is that the read site and
+ * the pass site are different places. */
+/* The rule on this page is the OTHER shape from the Gen I lab's, and it is the
+ * right one here: probe() reads the switch itself, because probe() is only ever
+ * reached from two click handlers. What matters is the same on both pages — nothing
+ * on the BOOT path may reach a play() — so the check is on the call sites, not on
+ * where the read sits. */
+const probeBody = page.match(/function probe\(id\) \{([\s\S]*?)\n {4}\}/);
+ok(!!probeBody && /autoplay\.on/.test(probeBody[1]),
+  'probe() reads the switch, because selecting IS the gesture');
+/* Counted on the comment-stripped source: a fourth mention lives in a comment, and
+ * matching prose would make this a count that changes when the code is explained. */
+eq([...stripComments(page).matchAll(/probe\(/g)].length, 3,
+  'and probe() has exactly three mentions: its definition plus the two click handlers');
+ok(!/\n\s*probe\(/.test(stripComments(page).slice(0, stripComments(page).indexOf('function probe('))),
+  'none of them on the boot path, so the page is silent until a card is chosen');
+
 // ---------------------------------------------------------------------------
 // The caveat. On the page, in the DOM, and saying the right thing.
 // ---------------------------------------------------------------------------
@@ -210,6 +246,64 @@ ok(/data-play/.test(page) && /role="button"/.test(page),
   'the in-card play control carries role=button');
 ok(/keydown/.test(page) && /e\.key !== 'Enter'/.test(page),
   'the in-card play control handles Enter and Space');
+
+// ---------------------------------------------------------------------------
+// The generation filter is a filter, and the scroll position is a scroll position.
+//
+// These were one field (`state.gen`) doing both jobs, which is invisible in a
+// screenshot and lethal in use: render() sliced `state.gen * PAGE_SIZE`, so
+// pressing 第 1 世代 asked for 60 cards out of all 1,025 — the same 60 as before,
+// in the same order — while `aria-pressed` said the chip was on. And the
+// sentinel's `state.gen++` re-picked a generation on every scroll, so scrolling
+// silently changed the filter. A reader could not have told the difference from
+// a page that ignored them.
+//
+// So the separation is asserted structurally: the slice must read the page
+// counter, the filter must narrow the id list, and nothing may write to `state.gen`
+// outside filteredIds()/the two filter branches.
+// ---------------------------------------------------------------------------
+
+ok(/pages:\s*1,/.test(page) && /state\.pages/.test(page),
+  'the page keeps a scroll-position field separate from the generation filter');
+/* The narrowing itself, and specifically that it reads the pokemon record's
+ * generation rather than a range of ids — a gen filter built on id arithmetic is
+ * wrong for every generation after the third, because the ranges are not
+ * contiguous (Gen 4 starts at 387, not at 252+1). */
+const genFilter = page.slice(page.indexOf('function filteredIds'), page.indexOf('function sortedIds'));
+ok(/state\.ids\.filter\(\(id\) => state\.meta\.get\(id\)\?\.generation === state\.gen\)/.test(genFilter),
+  "the filter narrows by the pokemon record's own generation, not by an id range");
+ok(/ordered\.slice\(0, state\.pages \* PAGE_SIZE\)/.test(page),
+  'and the grid is sliced by the scroll position, not by the generation');
+ok(/filteredIds\(\)\.includes/.test(page),
+  'a species filtered out of the grid is dropped from the probe panel too');
+ok(/computeAxisRange/.test(page) && /for \(const id of pool\)/.test(page),
+  'the meter ranges are computed from the filtered set, not from all 1,025');
+
+/* Every `state.gen` write, so the count is checkable rather than asserted.
+ *
+ * Scanned on the COMMENT-STRIPPED source, because the two comments explaining
+ * this bug both contain the pattern — `state.gen++` in the state block and
+ * `state.gen = 0` in the handler — and matching either would make this check
+ * report a violation for prose. Same reason as the `cp-` scan above: a naive
+ * grep finds the explanation of a rule and reports the file for breaking it.
+ *
+ * The boundary is the IntersectionObserver, and it is the LAST write that is
+ * forbidden rather than a count that must balance. The observer is defined after
+ * the filter handler, so slicing "everything after the handler" would have
+ * included it — the first version of this check passed a mutation that moved the
+ * sentinel onto `state.gen`, for exactly that reason. Nothing after the observer
+ * is allowed to touch the filter at all: the observer is the only thing there
+ * that runs on its own, and scrolling is precisely what must not re-filter. */
+const bare = stripComments(page);
+const genWritesAfter = (bare.slice(bare.indexOf('new IntersectionObserver('))
+  .match(/state\.gen\s*(?:=[^=]|\+\+|--)/g) ?? []);
+eq(genWritesAfter, [],
+  'nothing after the IntersectionObserver writes state.gen — scrolling cannot re-filter');
+
+/* The sentinel must be capped by the filtered total, or a set that fits on one
+ * page still re-renders forever and the count runs past the end. */
+ok(/Math\.ceil\(total \/ PAGE_SIZE\)/.test(page),
+  'the scroll handler stops at the end of the FILTERED list');
 
 // ---------------------------------------------------------------------------
 // The stylesheet follows the project's conventions rather than inventing one.

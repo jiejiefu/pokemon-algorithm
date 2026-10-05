@@ -77,6 +77,25 @@ const PREFS_KEY = 'pokemon-algorithm:cry-volume';
  *  short enough that probing it costs nothing. */
 const PROBE_ID = 1;
 
+/**
+ * The default playback level, and it is a fifth of full scale rather than unity.
+ *
+ * A recorded cry is a plucked square-ish tone with a wide dynamic range, and at
+ * unity these two pages are genuinely startling — pressing play twenty times in a
+ * row to compare Pokémon is not a thing anyone wants to do at full scale. It is
+ * `3 / 15` because that is the master volume the Generation I lab presents as its
+ * default, so the synthesised cry and the recorded one are played at the same
+ * loudness and the two pages can be compared without one of them being louder for
+ * reasons that have nothing to do with the Pokémon.
+ *
+ * It lives here rather than in either page because the player owns the output gain:
+ * a page-level trim would have to be repeated, and one of the two pages would
+ * eventually be missed. The per-call `volume` argument in play() is a separate
+ * per-play trim and still defaults to 1, so this multiplies into it rather than
+ * replacing it.
+ */
+export const DEFAULT_VOLUME = 3 / 15;
+
 /** Seconds of gain ramp on stop. A cry is a plucked square-ish tone; cutting it
  *  dead produces an audible click, and this costs four lines. */
 const STOP_RAMP = 0.012;
@@ -87,18 +106,18 @@ function readPrefs() {
   try {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
     return {
-      volume: typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1 ? raw.volume : 1,
+      volume: typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1 ? raw.volume : DEFAULT_VOLUME,
       muted: raw.muted === true,
     };
   } catch {
-    return { volume: 1, muted: false };
+    return { volume: DEFAULT_VOLUME, muted: false };
   }
 }
 
 export class CriesPlayer {
   #ctx = null;
   #gain = null;
-  #volume = 1;
+  #volume = DEFAULT_VOLUME;
   #muted = false;
   #unlockPromise = null;
   #current = null;
@@ -124,6 +143,21 @@ export class CriesPlayer {
     const prefs = readPrefs();
     this.#volume = prefs.volume;
     this.#muted = prefs.muted;
+  }
+
+  /** The AudioContext's own clock reading, or 0 before playback has unlocked it.
+   *
+   *  A caller drawing a progress cursor needs the clock at EVERY FRAME, and
+   *  `onStart` hands over one reading plus the duration — enough to know when
+   *  playback began, not where it is now. The context is private to this class, so
+   *  without this the page has to fake the clock with `performance.now()`, which is
+   *  a different timebase from the `startedAt` it was given and drifts against it.
+   *
+   *  It did exactly that, in the shape of a field that was read every frame and
+   *  never written: `progress.now` stayed 0, so the ratio was negative, clamped to
+   *  zero, and the cursor never left the origin. */
+  now() {
+    return this.#ctx ? this.#ctx.currentTime : 0;
   }
 
   /** Whether a cry exists for this id in the requested set. */

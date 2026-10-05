@@ -187,6 +187,78 @@ const CASES = [
     mutate: (dir) => editPage(dir, (s) => s.replace('class="sr-only" id="announce"', 'id="announce"')),
     expect: 'visually hidden',
   },
+
+  /* ---- The autoplay switch, which must never fire on load ---- */
+  {
+    /* The failure this guards: reading the switch inside the function that runs at
+     * boot, so the page cries out the moment it opens. The Gen I lab's equivalent is
+     * a `select()` that plays on every call, including its own boot call. */
+    name: 'autoplay fires from the boot path, so the page makes noise on load',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('if (autoplay.on) togglePlay(id);', 'togglePlay(id);')),
+    expect: 'reads the switch',
+  },
+  {
+    name: 'the autoplay switch is built from scratch instead of the shared module',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace("import { mountAutoplay } from './assets/js/cry-autoplay.js';", '')),
+    expect: 'mounts the shared autoplay switch',
+  },
+  {
+    name: 'the autoplay switch is mounted outside the panel that owns it',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('<aside class="cy-panel"', '<div id="autoplay-slot"></div>\n      <aside class="cy-panel"')
+      .replace('        <div id="autoplay-slot"></div>\n', '')),
+    expect: 'a mount point INSIDE the timbre panel',
+  },
+
+  /* ---- The generation filter, which was a scroll position wearing a filter's name ---- */
+  {
+    /* The original bug. One field, `state.gen`, serving as both the filter and the
+     * page count: pressing 第 1 世代 sliced 60 cards out of all 1,025 and showed
+     * exactly what the unfiltered page showed. */
+    name: 'the generation filter and the page counter collapse back into one field',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('ordered.slice(0, state.pages * PAGE_SIZE)', 'ordered.slice(0, state.gen * PAGE_SIZE)')
+      .replace('pages: 1,', 'gen: 0,')),
+    expect: 'the grid is sliced by the scroll position',
+  },
+  {
+    name: 'the sentinel moves the generation instead of the page count, so scrolling re-filters',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('state.pages = next;', 'state.gen = next;')),
+    /* Named for the assertion that actually catches it. The first version of this
+     * case expected "every write to state.gen is inside the filter handler" — a
+     * count that balanced, because the IntersectionObserver is defined AFTER the
+     * filter handler and so fell inside the "everything after" side of the
+     * comparison. That check was blind by construction; the one that replaced it
+     * bounds the forbidden region at the observer itself. */
+    expect: 'nothing after the IntersectionObserver writes state.gen',
+  },
+  {
+    name: 'the filter stops narrowing the id list, so a generation chip only changes the count',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('return state.ids.filter((id) => state.meta.get(id)?.generation === state.gen);', 'return state.ids;')),
+    expect: "the filter narrows by the pokemon record's own generation",
+  },
+  {
+    name: 'the meter ranges ignore the filter, so every bar is scaled against all 1,025',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('for (const id of pool) {', 'for (const id of state.ids) {')),
+    expect: 'computed from the filtered set',
+  },
+  {
+    name: 'a species filtered out of the grid stays described in the panel',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('if (state.probeId !== null && !filteredIds().includes(state.probeId)) state.probeId = null;', '')),
+    expect: 'dropped from the probe panel',
+  },
+  {
+    name: 'the scroll handler is uncapped, so a one-page set keeps re-rendering forever',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('const next = Math.min(state.pages + 1, Math.max(1, Math.ceil(total / PAGE_SIZE)));', 'const next = state.pages + 1;')),
+    expect: 'stops at the end of the FILTERED list',
+  },
   {
     name: 'reduced motion is no longer honoured',
     mutate: (dir) => editCss(dir, (s) => s.replaceAll('@media (prefers-reduced-motion: reduce) {', '@media (min-width: 0px) {')),
