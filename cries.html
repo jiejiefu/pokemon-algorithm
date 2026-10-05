@@ -62,6 +62,16 @@
                   role="img" aria-label="這隻寶可夢叫聲的波形"></canvas>
           <div class="cy-probe-row" id="probe-play"></div>
 
+          <!-- The hand-off to the other cry tool.
+               A reciprocity, not a cross-link: cries.html answers 「哪些寶可夢聽起來相近」 and
+               spectrum.html answers 「這一個叫聲的能量落在哪些頻率」, and the panel above is
+               already full of numbers about ONE species, so a reader who has just read a
+               centroid wants to see the spectrum that produced it. It sits under the
+               waveform, before 實測數值, because it is about the same subject as the
+               waveform and not about the numbers below it. -->
+          <p class="cy-panel-note"><a class="cy-to-spectrum" id="probe-spectrum"
+             href="spectrum.html">看頻譜 →</a></p>
+
           <h3>實測數值</h3>
           <dl class="cy-stats" id="probe-stats"></dl>
 
@@ -477,6 +487,16 @@
       el('probe-art').alt = `${m.names.zh}（${m.names.en}）`;
       el('probe-name').textContent = m.names.zh;
       el('probe-meta').textContent = `#${formatPokemonId(id)} ${m.names.en}`;
+
+      // The hand-off carries the id in the query, and the source, because the
+      // reader may be looking at a LEGACY row: a link that dropped `legacy` would
+      // silently show them the modern recording of the same species, which is a
+      // different measurement rather than a shortcut. `?source=latest&id=N` is
+      // spectrum.html's own URL shape (§3.A), built by hand here rather than by
+      // string-replacing, because the two pages' URL contracts are allowed to
+      // diverge.
+      el('probe-spectrum').href = `spectrum.html?source=${state.legacy ? 'legacy' : 'latest'}&id=${id}`;
+      el('probe-spectrum').textContent = `看 ${m.names.zh} 的頻譜 →`;
 
       // Every printed number is the stored one, at the stored precision. The
       // point of the panel is that the values are real; rounding them into a

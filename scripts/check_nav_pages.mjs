@@ -67,10 +67,19 @@ const fail = (msg) => { failures++; console.log(`  FAIL ${msg}`); };
 // empty — which is also how a mis-written predicate gets caught, because the
 // computed offender list comes back empty precisely when the message and the
 // condition disagree.
+/* `ok — why`, not `why`. The description is what names the assertion, and dropping
+ * it on failure makes a red line impossible to identify afterwards: fifteen
+ * details here all begin with the offending page's name, so a reader has to grep
+ * the source to learn which of the sixteen checks just failed. It also breaks the
+ * negative suites, which are required to name the ASSERTION — they match on the
+ * failure report, and a report that never states the assertion can only be matched
+ * on the detail, which is the string a page's own wording could plausibly contain.
+ * This is the same defect check_color_page.mjs had; it is fixed there too.
+ */
 const check = (cond, ok, bad) => {
   if (cond) return pass(ok);
   const why = typeof bad === 'function' ? bad() : bad;
-  fail(why ? why : `${ok} — the check failed but the detail was empty (predicate disagrees with its own message)`);
+  fail(`${ok} — ${why ? why : 'the check failed but the detail was empty (predicate disagrees with its own message)'}`);
 };
 
 /* A hook attribute name, matched as a WHOLE attribute. `\b` is not enough:
@@ -199,6 +208,78 @@ check(badDrawer.length === 0, `every drawer is a classed <div data-nav-drawer hi
   () => `unusable drawer: ${badDrawer.join('; ')}`);
 check(handWritten.length === 0, 'no page hand-writes links inside its nav container',
   () => `pages with <a> inside <nav class="site-nav">: ${handWritten.join(', ')} — initHeaderNav() owns that container's contents`);
+
+/* --- the header carries a modifier, and the BASE class is a COLUMN ----------
+ *
+ * `.header` in shared.css is `flex-direction: column` with `gap: 10px`. The row
+ * layout every page actually renders comes from a SEPARATE rule listing six
+ * modifier classes (shared.css:1237) — `.header-dex, .header-3d, .header-colors,
+ * .header-detail, .header-sort, .header-maze` — which supply `flex-direction: row`,
+ * `gap: 20px` and `padding-right: 62px` for the absolutely-positioned toggle.
+ *
+ * So `<header class="header">` on its own is not a missing-style page: it is a
+ * VALID class that renders the column layout, and every hook, import and call in
+ * this file passes on it. Measured on spectrum.html at 1400x900 before the fix:
+ * the header grew 55px -> 98px, the nav dropped to y=59 on a row of its own, its
+ * right edge landed at 1380 against a theme toggle starting at 1350, and the two
+ * overlapped. Nothing in the console, nothing in the network, nothing here.
+ *
+ * The six names are READ OUT of shared.css rather than restated, because a
+ * hardcoded copy is a second thing to keep right and would keep passing after
+ * shared.css renamed one.
+ */
+const ROW_HEADER_CLASSES = (() => {
+  const css = readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8');
+  // The block is the one rule that sets `padding-right: 62px` in the header's own
+  // section — the media query at the bottom repeats the value, so the search is
+  // anchored to a rule that also sets `flex-direction: row`.
+  const block = css.match(/(\.header-[\w-]+(?:\s*,\s*\.header-[\w-]+)*)\s*\{[^}]*flex-direction:\s*row[^}]*\}/);
+  if (!block) return [];
+  return block[1].split(',').map((s) => s.trim()).filter((s) => s.startsWith('.header-'));
+})();
+
+check(ROW_HEADER_CLASSES.length > 0, `the row-layout modifier list is still in shared.css (${ROW_HEADER_CLASSES.length} classes)`,
+  () => 'no rule in shared.css sets `flex-direction: row` on a .header-* class — this check cannot see the layout it is guarding, so it would pass on any page');
+
+const bareHeaders = [];
+const unknownHeader = [];
+for (const [file, html] of sources) {
+  const tag = (html.match(/<header\b[^>]*>/) || [''])[0];
+  if (!/\bclass="[^"]*\bheader\b/.test(tag)) continue;      // a page with no .header at all is caught above
+  const classes = (tag.match(/\bclass="([^"]*)"/) || [, ''])[1].split(/\s+/);
+  const modifiers = classes.filter((c) => ROW_HEADER_CLASSES.includes(`.${c}`));
+  if (modifiers.length === 0) bareHeaders.push(file);
+  else if (modifiers.length > 1) unknownHeader.push(`${file} (${modifiers.join(' ')})`);
+}
+
+check(bareHeaders.length === 0, `all ${sitePages.length} headers carry one of the ${ROW_HEADER_CLASSES.length} row-layout modifiers`,
+  () => `headers with a bare class="header": ${bareHeaders.join(', ')} — .header on its own is flex-direction: COLUMN, so the nav falls onto a second row and collides with the theme toggle. Give it the modifier its family uses (${ROW_HEADER_CLASSES.join(', ')}).`);
+check(unknownHeader.length === 0, 'no header carries two row-layout modifiers, so the last one cannot silently win',
+  () => `headers with several modifiers: ${unknownHeader.join(', ')} — they each set --page-accent, background and position, so the winner depends on source order rather than on intent`);
+
+/* The theme toggle's contents belong to initThemeToggle(), exactly as the nav's
+ * belong to initHeaderNav() — and the runtime's own guard is the trap.
+ *
+ * initThemeToggle() injects its sun/moon pair only `if (!btn.querySelector('.icon-sun'))`.
+ * So a page that hardcodes a DIFFERENTLY-CLASSED pair satisfies nothing: the guard
+ * is still true, the canonical pair is injected as well, and the button ends up
+ * with four children in a 34px grid box. Measured on spectrum.html with two
+ * `<svg class="theme-icon theme-icon-*">`: no stylesheet has any `.theme-icon` rule,
+ * so both stayed `display: block` in BOTH themes while the injected pair toggled —
+ * three visible symbols, and the third 18px icon landed at y=49 inside a button
+ * whose bottom edge is y=46, painting outside it.
+ *
+ * Nothing threw and nothing logged. The label, the role and the click handler were
+ * all correct, so every other check in this file passed.
+ */
+const handDrawnIcons = [];
+for (const [file, html] of sources) {
+  const btn = html.match(/<button class="theme-toggle"[^>]*>([\s\S]*?)<\/button>/);
+  if (!btn) continue;                                   // a page with no toggle is a different claim
+  if (/<[a-z]/.test(btn[1])) handDrawnIcons.push(`${file} [${btn[1].trim().slice(0, 60)}]`);
+}
+check(handDrawnIcons.length === 0, 'no page hard-writes icons inside its theme toggle',
+  () => `theme toggles with authored children: ${handDrawnIcons.join('; ')} — initThemeToggle() injects the sun/moon pair itself, and its guard only looks for .icon-sun, so a differently-named pair is not skipped but doubled`);
 
 // --- the call's argument ----------------------------------------------------
 

@@ -41,8 +41,15 @@ import { caughtBy, failLines } from './lib/negative.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_nav_pages.mjs';
 
+/* shared.css is in the tree because the checker READS the row-layout modifier
+ * list out of it. Without it every case dies with ENOENT before the first
+ * assertion — which the harness would report as ten failures that ran nothing,
+ * the §4 shape this file's own cases exist to catch. It is 1,741 lines and copies
+ * in about a millisecond, which is a fair price for the third case below. */
+const SHARED_CSS = 'assets/css/shared.css';
+
 const htmlFiles = readdirSync(ROOT).filter((f) => f.endsWith('.html'));
-const SRC = [CHECKER, ...htmlFiles];
+const SRC = [CHECKER, SHARED_CSS, ...htmlFiles];
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -181,6 +188,62 @@ const cases = [
     expect: 'pages with <a> inside <nav class="site-nav">: sorting.html',
   },
   {
+    /* The regression that has no error message. `.header` on its own is a VALID
+       class — it resolves to the COLUMN layout, so every other check in this file
+       passes on it: the nav mounts, the toggle is a proper button, the drawer is
+       hidden, nothing throws and nothing logs. What a reader gets is a header 43px
+       too tall with the nav on a second row, overlapping the theme toggle. */
+    name: 'a header drops its row-layout modifier, so the nav lands on a second row',
+    mutate: (f, s) => f === 'spectrum.html'
+      ? s.replace('<header class="header header-colors">', '<header class="header">')
+      : undefined,
+    expect: 'headers with a bare class="header": spectrum.html',
+  },
+  {
+    /* Two modifiers is not "at least one working" — each sets --page-accent,
+       background and position, so the winner is whichever came last in
+       shared.css, and a page asking for the wrong identity gets it silently. */
+    name: 'a header claims two identities and the later one silently wins',
+    mutate: (f, s) => f === 'maze.html'
+      ? s.replace('<header class="header header-maze">', '<header class="header header-maze header-sort">')
+      : undefined,
+    expect: 'headers with several modifiers: maze.html',
+  },
+  {
+    /* The list the check guards is read OUT of shared.css, so if the stylesheet
+       stops shipping a row rule the check has nothing to compare against and would
+       pass on every page. The mutation turns the row back into a column — which is
+       the same class of edit someone makes when they "fix" the header — rather than
+       renaming one of the six classes, which would leave five working ones and be a
+       question about identity rather than about the list existing at all. */
+    name: 'shared.css turns the header row back into a column, leaving the guard with nothing to match',
+    /* Keyed on the CONSTANT, not on 'shared.css'. The loop passes SRC entries, and
+       this one is a path — so `f === 'shared.css'` was never true, mutate returned
+       undefined for every file, and the case ran on an unmutated tree and passed
+       for the wrong reason. `undefined` is how a case says "not my file", so a
+       stale key is invisible here: there is no anchor to go stale. */
+    mutate: (f, s) => f === SHARED_CSS
+      ? s.replace('  flex-direction: row;\n  align-items: center;\n  gap: 20px;',
+        '  flex-direction: column;\n  align-items: center;\n  gap: 20px;')
+      : undefined,
+    expect: 'the row-layout modifier list is still in shared.css',
+  },
+  {
+    /* initThemeToggle() injects the sun/moon pair only when the button holds no
+       `.icon-sun`, so a page that hardcodes its own differently-named pair is not
+       skipped but doubled: four children in a 34px box, both hand-written ones
+       visible in both themes, the third one painting below the button. */
+    name: 'a page hard-writes its own sun/moon, which the runtime then doubles',
+    mutate: (f, s) => f === 'spectrum.html'
+      ? s.replace('<button class="theme-toggle" type="button" aria-label="切換深色／淺色主題"></button>',
+        '<button class="theme-toggle" type="button" aria-label="切換深色／淺色主題">'
+        + '<svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3z"/></svg>'
+        + '<svg class="theme-icon theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>'
+        + '</button>')
+      : undefined,
+    expect: 'theme toggles with authored children: spectrum.html',
+  },
+  {
     /* Silent failure: the nav renders, nothing is marked current, nothing throws. */
     name: "the argument is a typo, so no trigger lights up and nothing throws",
     mutate: (f, s) => f === 'maze.html'
@@ -234,7 +297,7 @@ for (const c of cases) {
 <html lang="zh-TW">
 <head><meta charset="UTF-8"><title>新頁面</title></head>
 <body>
-  <header class="header">${nav}</header>
+  <header class="header header-dex">${nav}</header>
   <script type="module">
     import { initHeaderNav } from './assets/js/shared.js';
     initHeaderNav('newpage.html');

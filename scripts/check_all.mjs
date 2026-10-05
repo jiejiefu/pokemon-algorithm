@@ -427,12 +427,12 @@ const CHECKERS = [
     /* Reads every page in the root, which is the claim: the nav is on all of them
      * or on none. */
     script: 'scripts/check_nav_pages.mjs', group: 'nav',
-    inputs: ['*.html'],
+    inputs: ['*.html', 'assets/css/shared.css'],
   },
   {
     script: 'scripts/test_check_nav_pages.mjs', checker: 'scripts/check_nav_pages.mjs', group: 'nav',
     note: 'runs the above in child trees',
-    inputs: ['*.html'],
+    inputs: ['*.html', 'assets/css/shared.css'],
   },
   {
     script: 'scripts/check_categories.mjs', group: 'nav',

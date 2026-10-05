@@ -824,6 +824,33 @@
   color: var(--text-muted);
 }
 
+/* The hand-off to spectrum.html.
+ *
+ *  It is a LINK and not a button, because it navigates — and it is underlined
+ *  rather than styled as a button, because a row of two button-shaped controls
+ *  in a 340px panel reads as a toolbar and this is one link. 44px of target
+ *  height is the WCAG 2.2 SC 2.5.8 minimum, and it is got here from the block
+ *  rather than from padding, so the text can wrap to two lines on a narrow
+ *  panel without shrinking the target. */
+.cy-to-spectrum {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cy-to-spectrum:hover {
+  text-decoration-thickness: 2px;
+}
+
+.cy-to-spectrum:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
 .cy-panel-hint {
   margin: 0;
   font-size: 13px;
