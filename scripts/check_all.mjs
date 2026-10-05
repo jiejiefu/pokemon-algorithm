@@ -248,6 +248,17 @@ const CHECKERS = [
     inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json', 'assets/js/shared.js'],
   },
   {
+    /* A bare-Node unit test of the player rather than a page check, because its
+     * subject is "does this promise settle" and a stub AudioContext answers that
+     * deterministically — Live Server reloads the page every time a concurrent
+     * session writes a file, which is not a variable a promise test should carry.
+     * It reads cry-index.js only to copy it beside the mutant, whose own import
+     * must resolve. fetch() is stubbed, so no audio file is opened. */
+    script: 'scripts/test_cry_overlap.mjs', group: 'cry-page',
+    note: 'stub AudioContext, no server; guards the overlap: true path',
+    inputs: ['assets/js/cry-player.js', 'assets/js/cry-index.js'],
+  },
+  {
     script: 'scripts/test_check_cries_page.mjs', checker: 'scripts/check_cries_page.mjs', group: 'cry-page',
     note: 'runs the above in child trees',
     inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json', 'assets/js/shared.js'],
