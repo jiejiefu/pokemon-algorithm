@@ -39,19 +39,48 @@ export function hexToOklab(hex) {
   if (h.startsWith('#')) h = h.slice(1);
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   if (h.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(h)) return null;
-  const r = srgbToLinear(parseInt(h.slice(0, 2), 16));
-  const g = srgbToLinear(parseInt(h.slice(2, 4), 16));
-  const b = srgbToLinear(parseInt(h.slice(4, 6), 16));
+  return rgbToOklab(
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16)
+  );
+}
 
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+/**
+ * 8-bit sRGB 三通道 → OKLab。`hexToOklab()` 是它的呼叫端，不是它的複本。
+ *
+ * 分成兩個函式是因為否則每個拿到**像素**而不是拿到**色碼**的呼叫端都必須自己寫一份
+ * 轉換 —— 而那就是本專案已經吃過一次虧的那種複製：`§3.B2` 記錄了
+ * `findClosestChineseColorName()` 用 nearest-in-RGB 把 `#414141` 判成墨綠。一份
+ * 轉換有兩份實作時，它們會分開漂移，而且沒有任何東西會注意到。
+ *
+ * `outfit.html` 需要這個：照片取樣給的是 `[r, g, b]`，而不是 hex。
+ */
+export function rgbToOklab(r, g, b) {
+  if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return null;
+  const rl = srgbToLinear(r);
+  const gl = srgbToLinear(g);
+  const bl = srgbToLinear(b);
+
+  const l = Math.cbrt(0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl);
+  const m = Math.cbrt(0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl);
+  const s = Math.cbrt(0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl);
 
   return [
     0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
     1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
   ];
+}
+
+/**
+ * `[r, g, b]` → OKLab。給「一次轉一個像素陣列」的路徑用，因為那種呼叫端最常見的
+ * 形式就是從 `getImageData()` 直接拿到的三元組；`rgbToOklab()` 是它的實作，
+ * 這個包裝存在的理由只是讓呼叫端不必寫 `[r,g,b] => rgbToOklab(...p)`。
+ */
+export function pixelToOklab(rgb) {
+  if (!Array.isArray(rgb) || rgb.length < 3) return null;
+  return rgbToOklab(rgb[0], rgb[1], rgb[2]);
 }
 
 /**

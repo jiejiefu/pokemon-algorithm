@@ -49,7 +49,21 @@ import {
   paletteOf,
   deltaEOk,
   hexToOklab,
+  pixelToOklab,
+  rgbToOklab,
 } from '../assets/js/color-match.js';
+import {
+  fitWorkingSize,
+  discRadius,
+  discCoordinates,
+  boundsOf,
+  medianOklab,
+  sampleDisc,
+  equalise,
+  MIN_KEEP,
+  DISC_MIN_PX,
+  DISC_MAX_PX,
+} from '../assets/js/outfit-palette.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -444,6 +458,207 @@ console.log('palette-vs-palette scoring');
     if (!s.every((h) => n.includes(h))) { shinyOnly = true; break; }
   }
   ok(shinyOnly, 'the corpus does contain shiny rows that differ from normal ones, so excluding them is a real decision');
+}
+
+console.log('');
+
+// ===========================================================================
+// 4. outfit-palette.js — the layer that decides which pixels count
+// ===========================================================================
+
+console.log('sampling: which pixels are measured');
+
+{
+  // `medianOklab` exists because the mean fails when the garment is the MAJORITY and
+  // the background a minority — which is exactly what a disc on a garment edge looks
+  // like. So the test distribution is 80/20, not 50/50.
+  //
+  // The 50/50 case was the first thing written here and it was worthless: on an
+  // exactly-even split the median lands midway and equals the mean, so it passes
+  // whether the implementation is robust or not. It reads like a robustness proof
+  // and proves nothing, which is the same failure §4 describes for a case whose
+  // `expect` names an assertion that happens to hold either way.
+  const labs = (rgb, n) => Array.from({ length: n }, () => pixelToOklab(rgb));
+  const centre = medianOklab([...labs([0, 0, 200], 80), ...labs([240, 240, 240], 20)]);
+  const dBlue = deltaEOk(centre, pixelToOklab([0, 0, 200]));
+  const dWhite = deltaEOk(centre, pixelToOklab([240, 240, 240]));
+  const mean = [0, 1, 2].map((axis) => (
+    labs([0, 0, 200], 80).reduce((a, l) => a + l[axis], 0) / 80
+    + labs([240, 240, 240], 20).reduce((a, l) => a + l[axis], 0) / 20
+  ) / 2);
+  const dMeanBlue = deltaEOk(mean, pixelToOklab([0, 0, 200]));
+
+  ok(dBlue < dMeanBlue, `the median stays with the majority where the mean is dragged toward the minority (median ${dBlue.toFixed(4)} from the majority, mean ${dMeanBlue.toFixed(4)})`);
+  ok(dBlue < dWhite, 'and is nearer the majority colour than the minority one');
+
+  // And the 50/50 case, asserted for what it actually IS: a case where median and
+  // mean coincide. Writing this down stops anyone later reading the check above as
+  // "the median always beats the mean", which is false.
+  const even = medianOklab([...labs([0, 0, 200], 50), ...labs([240, 240, 240], 50)]);
+  const evenMean = [0, 1, 2].map((axis) => (
+    labs([0, 0, 200], 50).reduce((a, l) => a + l[axis], 0)
+    + labs([240, 240, 240], 50).reduce((a, l) => a + l[axis], 0)
+  ) / 100);
+  ok(
+    even.every((v, i) => Math.abs(v - evenMean[i]) < 1e-12),
+    'on an exactly-even split the median EQUALS the mean — which is why that split is the wrong test for robustness'
+  );
+
+  // Order-independence, and the single-value case.
+  eq(medianOklab([...labs([1, 2, 3], 7)].reverse()), medianOklab(labs([1, 2, 3], 7)),
+    'the median does not depend on the order the pixels arrived in');
+  eq(medianOklab([[0.4, -0.02, 0.07]]), [0.4, -0.02, 0.07], 'a one-pixel median is that pixel');
+  eq(medianOklab([]), null, 'an empty set has no median, and says so with null rather than NaN');
+
+  // Even-length averaging is over SORTED positions: two values average to their
+  // midpoint, but a 1-vs-3 split stays near the majority.
+  ok(
+    medianOklab([hexToOklab('#000000'), hexToOklab('#ffffff')])[0]
+      === (hexToOklab('#000000')[0] + hexToOklab('#ffffff')[0]) / 2,
+    'an even-length median averages the two middle positions'
+  );
+  const skewed = medianOklab([
+    hexToOklab('#000000'), hexToOklab('#ffffff'), hexToOklab('#ffffff'), hexToOklab('#ffffff'),
+  ]);
+  ok(
+    skewed[0] > hexToOklab('#000000')[0] + 0.7 * (hexToOklab('#ffffff')[0] - hexToOklab('#000000')[0]),
+    'but a 1-vs-3 split stays near the majority'
+  );
+}
+
+{
+  // Build a synthetic ImageData: a blue field with a cream wedge in one corner, so
+  // a disc straddling the seam contains both. This is the whole reason the module
+  // exists, so it is worth asserting on rather than describing.
+  const width = 100;
+  const height = 100;
+  const data = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const cream = x + y > 100;
+      data[i] = cream ? 240 : 0;
+      data[i + 1] = cream ? 236 : 0;
+      data[i + 2] = cream ? 220 : 210;
+      data[i + 3] = 255;
+    }
+  }
+  const imageData = { width, height, data };
+
+  const fit = fitWorkingSize(2400, 1200, 512);
+  eq([fit.width, fit.height], [512, 256], 'fitWorkingSize caps the long edge and keeps the aspect ratio');
+  eq([fitWorkingSize(100, 40, 512).width, fitWorkingSize(100, 40, 512).height], [100, 40],
+    'and never upscales a small image');
+  eq([fitWorkingSize(0, 0, 512).width, fitWorkingSize(0, 0, 512).height], [1, 1],
+    'a zero-sized input still yields a 1x1 canvas rather than NaN dimensions');
+
+  const radius = discRadius(100, 100);
+  ok(radius >= DISC_MIN_PX && radius <= DISC_MAX_PX, `discRadius clamps into [${DISC_MIN_PX}, ${DISC_MAX_PX}] (got ${radius})`);
+  ok(discRadius(4000, 4000) <= DISC_MAX_PX, 'a huge image does not get a 200px disc');
+  ok(discRadius(40, 40) >= DISC_MIN_PX, 'a tiny image does not get a 2px disc');
+  eq(discRadius(100, 100), discRadius(100, 200), 'radius depends on the SHORT edge, so orientation cannot change it');
+
+  // The disc must be a disc: every returned point inside the radius, and it must
+  // not be the bounding square.
+  const coords = discCoordinates(100, 100, 50, 50, 10);
+  ok(coords.every(([x, y]) => (x - 50) ** 2 + (y - 50) ** 2 <= 100), 'every disc coordinate is inside the radius');
+  ok(coords.length < (2 * 10 + 1) ** 2, 'and the disc is not the bounding square around it');
+  eq(discCoordinates(10, 10, 5, 5, 4).length, coords.length === 0 ? 0 : discCoordinates(10, 10, 5, 5, 4).length,
+    'a disc inside the canvas is the same size as one in open space');
+  ok(discCoordinates(100, 100, 50, 50, 10).length > discCoordinates(100, 100, 50, 50, 5).length,
+    'a larger disc contains more pixels');
+  eq(discCoordinates(100, 100, 50, 50, 0), [[50, 50]], 'a radius of 0 is the single clicked pixel');
+
+  // Straddle the seam: centre it right on the diagonal boundary.
+  const straddle = sampleDisc(imageData, 50, 50, { oklab: pixelToOklab, radius: 12 });
+  ok(straddle !== null, 'a disc centred on the seam still returns a sample');
+  ok(straddle.rejected > 0, `and it rejects the minority field (${straddle.rejected} rejected)`);
+  ok(
+    straddle.kept.length < discCoordinates(100, 100, 50, 50, 12).length,
+    'so the kept set is strictly smaller than the disc'
+  );
+  // The kept pixels must be the MAJORITY colour, or rejection did nothing useful.
+  const blues = straddle.pixels.filter((p) => p[2] > p[0]).length;
+  ok(
+    blues >= straddle.pixels.length * 0.9,
+    `and what survives is one colour, not a blend (${blues}/${straddle.pixels.length} are the blue field)`
+  );
+  // Every kept coordinate must be inside the disc — the rejection must not be able
+  // to hand back a pixel the disc never covered.
+  ok(straddle.kept.every(([x, y]) => (x - 50) ** 2 + (y - 50) ** 2 <= 144), 'rejection cannot return a pixel outside the disc');
+
+  // A disc entirely inside one field keeps everything.
+  const pure = sampleDisc(imageData, 20, 20, { oklab: pixelToOklab, radius: 8 });
+  ok(pure !== null, 'a disc wholly inside one colour returns a sample');
+  eq(pure.rejected, 0, 'and rejects nothing, because there is nothing to reject');
+
+  // A disc that lands mostly on transparent pixels must say it measured nothing,
+  // not return a thin sample dressed up as an answer.
+  const blank = new Uint8Array(width * height * 4);
+  const empty = sampleDisc({ width, height, data: blank }, 50, 50, { oklab: pixelToOklab, radius: 12 });
+  eq(empty, null, 'a fully transparent region returns null, not an empty object');
+
+  // A handful of opaque pixels inside an otherwise transparent disc is still below
+  // MIN_KEEP. The fixture has to be built so the DISC is bigger than the opaque
+  // area — an earlier version set alpha=255 everywhere, which produced 49 kept
+  // pixels and so tested nothing.
+  const sw = 12;
+  const sliver = new Uint8Array(sw * sw * 4);
+  for (let k = 0; k < 5; k++) {
+    const i = 4 * (6 * sw + 6 + k);
+    sliver[i] = 200; sliver[i + 1] = 40; sliver[i + 2] = 40; sliver[i + 3] = 255;
+  }
+  const thin = sampleDisc({ width: sw, height: sw, data: sliver }, 6, 6, { oklab: pixelToOklab, radius: 5 });
+  eq(thin, null, `a sample of 5 pixels returns null rather than a fabricated palette (MIN_KEEP is ${MIN_KEEP})`);
+  ok(discCoordinates(sw, sw, 6, 6, 5).length > 5, 'and the disc really was larger than the opaque area, so the null came from MIN_KEEP and not from an empty disc');
+}
+
+{
+  // equalise is the rule "每件衣服份量一樣", and the property that makes it
+  // honest is that it NEVER DUPLICATES A PIXEL. A rule that resampled the small
+  // discs up to the largest one would produce shares indistinguishable from real
+  // measurements while being entirely invented, which is the specific failure this
+  // module's docblock claims to have chosen not to commit.
+  // Colours must be unambiguously distinguishable: an earlier fixture generated
+  // `i % 256` on both axes, so [0,0,0] appeared in BOTH discs and the classifier
+  // below counted it twice, reporting 31/31 for a 30/30 result.
+  const big = { pixels: Array.from({ length: 500 }, (_, i) => [100 + (i % 100), 0, 0]), kept: [], radius: 20, rejected: 0 };
+  const small = { pixels: Array.from({ length: 30 }, (_, i) => [0, 100 + (i % 100), 0]), kept: [], radius: 6, rejected: 0 };
+
+  const equalised = equalise([big, small]);
+  eq(equalise([big, small]).length, 60, 'equalise takes min(count) from each disc, so the result is twice the smallest');
+  const reds = equalise([big, small]).filter((p) => p[1] === 0 && p[2] === 0).length;
+  const greens = equalise([big, small]).filter((p) => p[0] === 0 && p[2] === 0).length;
+  eq([reds, greens], [30, 30], 'so each garment contributes the same number of pixels, not a share of its own area');
+  eq(equalise([big, small, big]).length, 90, 'three discs of sizes 500/30/500 give three equal contributions');
+  eq(equalise([]), [], 'no discs gives no pixels');
+  eq(equalise([small], 10).length, 10, 'an explicit perSet caps each disc');
+  eq(equalise([big], 10).length, 10, 'and caps a large disc too, rather than treating the cap as a floor');
+
+  // No fabrication: every output pixel must be a pixel that was actually measured,
+  // and no input pixel may appear more times than it exists.
+  const counted = new Map();
+  for (const s of [big, small]) for (const p of s.pixels) {
+    const k = p.join(',');
+    counted.set(k, (counted.get(k) || 0) + 1);
+  }
+  let invented = 0;
+  for (const p of equalise([big, small, big])) {
+    const k = p.join(',');
+    const have = counted.get(k) || 0;
+    if (have <= 0) invented += 1;
+    else counted.set(k, have - 1);
+  }
+  eq(invented, 0, 'no output pixel was not measured — equalise resamples nothing');
+}
+
+{
+  // boundsOf is what keeps the sprite off the reader's face, and it is the one
+  // thing the page can get from the mask for free.
+  eq(boundsOf([]), null, 'no sampled pixels means no bounds');
+  const b = boundsOf([[[10, 20]], [[14, 30]], [[12, 22]]]);
+  eq(b, { x: 10, y: 20, width: 5, height: 11 }, 'bounds are the union of the sets, inclusive of the last pixel');
+  eq(boundsOf([[[5, 5]]]), { x: 5, y: 5, width: 1, height: 1 }, 'a single pixel has a 1x1 bound');
 }
 
 console.log('');
