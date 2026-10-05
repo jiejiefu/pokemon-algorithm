@@ -161,8 +161,8 @@
 
             <section class="cp-section" aria-labelledby="sec-scale">
               <h2 id="sec-scale" class="cp-section-title">明暗階 · Shade Scale</h2>
-              <p class="cp-prose">★ 標示的是主要色本身，其餘各階由同一色相調整明度與飽和度推導而出。</p>
-              <div id="scale"></div>
+              <p class="cp-prose">色盤中占比最高的三色各推導一條 11 階明暗階，左側色塊即該階的來源色。★ 標示的是該列色票本身，其餘各階由它調整明度與飽和度推導而出。</p>
+              <div id="scale" class="cp-scale-stack"></div>
             </section>
 
             <section class="cp-section" aria-labelledby="sec-showcase">
@@ -716,23 +716,65 @@
           </div>
         </article>`;
 
-      // 4. Shade scale
-      const { scale, anchor } = generateTailwindScale(primary);
-      const ai = anchorIndex(anchor);
-      els.scale.innerHTML = '<div class="cp-scale">' +
-        Object.entries(scale).map(([step, hex], i) => `
-          <button type="button" class="cp-shade${i === ai ? ' is-anchor' : ''}"
-                  style="${swatchStyle(hex)}" data-cp-copy="${hex}"
-                  title="複製 ${hex}" aria-label="複製 ${step} 階 ${hex}">
-            <span class="cp-shade-hex">${hex}</span>
-            <span class="cp-shade-step">${step}</span>
-          </button>`).join('') + '</div>';
+      // 4. Shade scale: one ramp per measured colour, the top three by share.
+      //
+      // One ramp per species used to be the whole section, and a single 11-step
+      // ramp from the primary leaves the other five measured colours as bare
+      // swatches with nothing derived from them — the section answered "what
+      // else can this species become" with one answer. Three ramps answer it
+      // per colour, and each is seeded from ITS OWN hex rather than from
+      // `primary`: that is what makes the ★ honest. `generateTailwindScale`
+      // keeps its seed verbatim at the anchor step and marks it, so a ramp
+      // seeded from the wrong colour would still show a ★, on a cell that is
+      // not the colour the row claims to be showing. check_color_page.mjs pins
+      // both halves of that (exactly three rows; each row's own hex is the seed).
+      //
+      // The ramp is NOT what the theme exporter or the showcase uses. Those stay
+      // on `primary`, which is the measured primary and nothing here should
+      // quietly promote the second-largest colour into a brand role.
+      // `hex` inside the inner map is the STEP's colour, which is what
+      // paletteGridHtml's shade cells also interpolate; the row's own colour is
+      // `seedHex`, and naming it differently is what keeps the two from being
+      // confused when a ramp is copied out of this file.
+      const scaleRows = rows.slice(0, 3);
+      els.scale.innerHTML = scaleRows.map(([seedHex], rank) => {
+        const { scale, anchor } = generateTailwindScale(seedHex);
+        const ai = anchorIndex(anchor);
+        return `
+          <div class="cp-scale-row">
+            <button type="button" class="cp-scale-seed" style="${swatchStyle(seedHex)}"
+                    data-cp-copy="${seedHex}" title="複製 ${seedHex}"
+                    aria-label="複製色盤第 ${rank + 1} 色 ${seedHex}"></button>
+            <div class="cp-scale">` +
+              Object.entries(scale).map(([step, hex], i) => `
+                <button type="button" class="cp-shade${i === ai ? ' is-anchor' : ''}"
+                        style="${swatchStyle(hex)}" data-cp-copy="${hex}"
+                        title="複製 ${hex}" aria-label="複製 ${step} 階 ${hex}">
+                  <span class="cp-shade-hex">${hex}</span>
+                  <span class="cp-shade-step">${step}</span>
+                </button>`).join('') +
+            `</div>
+          </div>`;
+      }).join('');
 
       // 5. Showcase: mirrors ColorShowcase.tsx
+      //
+      // The showcase wears the PRIMARY's ramp, and that ramp is generated HERE
+      // rather than borrowed from the row above. The shorthand `scale,` used to
+      // work only because `render()` had a local `const { scale, anchor }` in
+      // scope; moving the ramps inside the row callback removed it, and a bare
+      // `scale` then resolved to `window.scale` — the element with
+      // `id="scale"`, which every id is a named property of. No exception: a
+      // DOM node answers `scale['50']` as `undefined`, so showcaseHtml's
+      // `scale[step] || primary` returned the primary for EVERY step, which set
+      // --cp-sf, --cp-ink and --cp-bd all to #399494 and drew 「色彩美學」 in the
+      // primary on a primary background — 1:1, i.e. invisible, in the one
+      // place the showcase is supposed to prove the palette is readable.
+      const { scale: primaryScale } = generateTailwindScale(primary);
       els.showcase.innerHTML = showcaseHtml({
         primary,
         secondary,
-        scale,
+        scale: primaryScale,
         stats: current.stats,
         name: current.names.zh,
         count: rows.length,
@@ -765,8 +807,12 @@
       if (label) {
         const was = label.textContent;
         label.textContent = '已複製';
-        setTimeout(() => { label.textContent = was; btn.classList.remove('is-copied'); }, 1400);
+        setTimeout(() => { label.textContent = was; }, 1400);
       }
+      // Outside the branch, because not every copyable chip HAS a text label: the
+      // shade-scale seed bar is a bare swatch, and with the removal nested in the
+      // `if` it kept `is-copied` — and its gold border — for the life of the page.
+      setTimeout(() => btn.classList.remove('is-copied'), 1400);
     });
 
     function selectPokemon(p, targetShiny = shiny) {

@@ -474,6 +474,89 @@ check(
   () => 'the shade scale follows the format switch, so a ramp step can no longer be found by the hex it is documented with'
 );
 
+// --- The shade scale is THREE ramps, each seeded from its own colour --------
+//
+// One ramp from the primary left the other five measured colours as bare
+// swatches with nothing derived from them. It is now the top three by share,
+// and each row generates from its OWN hex rather than from `primary`.
+//
+// That second half is the one worth a checker. `generateTailwindScale` keeps
+// its seed verbatim at the anchor step and the page marks that step, so three
+// ramps all seeded from `primary` would render three credible-looking rows
+// with three ★s — every one of them a lie about which colour the row is. The
+// block is sliced out rather than matched against the whole file so that a
+// `generateTailwindScale(primary)` elsewhere in the page cannot satisfy, or
+// mask, this.
+const scaleBlock = colorHtml.slice(
+  colorHtml.indexOf('// 4. Shade scale'),
+  colorHtml.indexOf('// 5. Showcase')
+);
+check(
+  /const scaleRows = rows\.slice\(0,\s*3\)/.test(scaleBlock),
+  'the shade scale renders exactly the top THREE palette colours, so the section is not one ramp with five bare swatches beside it',
+  () => 'the shade scale does not take rows.slice(0, 3) — it is either still one ramp, or a row count nobody chose'
+);
+check(
+  /scaleRows\.map\(\(\[seedHex\], rank\)/.test(scaleBlock) && /generateTailwindScale\(seedHex\)/.test(scaleBlock),
+  "each row's ramp is seeded from that row's own hex, which is the only thing that makes the ★ mean that colour",
+  () => 'the ramp is not generated from the row it is drawn in, so the ★ is marking a colour the row is not showing'
+);
+check(
+  !/generateTailwindScale\(\s*primary\s*\)/.test(scaleBlock),
+  "no ramp is seeded from `primary`, which would put three identical ★s on three rows claiming three different colours",
+  () => 'a ramp is still seeded from `primary`'
+);
+// The seed bar is a colour with no text in it, so its accessible name cannot
+// come from its content the way `.cp-shade-hex` does.
+check(
+  /class="cp-scale-seed"[\s\S]{0,200}?aria-label="複製色盤第 \$\{rank \+ 1\} 色/.test(scaleBlock),
+  'the seed bar carries its own accessible name, because a colour chip with no text has nothing else to be named by',
+  () => 'the seed bar is a button with no text and no aria-label — it is announced only as "button"'
+);
+check(
+  /\.cp-scale-seed\s*\{[^}]*\}/.test(css) && /\.cp-scale-row\s*\{[^}]*grid-template-columns/.test(css),
+  'the seed bar and its row gutter are styled, so a bare chip cannot collapse to a 0×0 element beside the ramp',
+  () => 'colors.css has no `.cp-scale-seed` / grid-template-columns rule for `.cp-scale-row`, so the markup has no layout to render into'
+);
+check(
+  /<div id="scale" class="cp-scale-stack">/.test(colorHtml) && /\.cp-scale-stack\s*\{[^}]*flex-direction:\s*column/.test(css),
+  'the rows are stacked with a gap of their own, so three ramps do not read as one 33-cell grid',
+  () => 'the scale container carries no `.cp-scale-stack` column, so the three ramps touch and the row boundary is invisible'
+);
+// And the prose, which is the claim a reader actually checks against the ★.
+// The old sentence said 「★ 標示的是主要色本身」, which was true of one ramp and
+// false the moment there are three.
+const scaleProse = (colorHtml.match(/id="sec-scale"[\s\S]*?<div id="scale"/) || [''])[0];
+check(
+  /該列色票本身/.test(scaleProse) && !/主要色本身/.test(scaleProse),
+  "the section's prose says the ★ marks THAT ROW's swatch, which is what the page now draws",
+  () => "the prose still claims the ★ marks the primary — on three rows only one of them is the primary, so the sentence is false for two of them"
+);
+
+// --- The showcase gets its OWN ramp, named -----------------------------------
+//
+// This one failed for real, and the shape of it is worth pinning. Moving the
+// ramps inside the row callback took `const { scale, anchor }` out of
+// render()'s scope, and the showcase call's shorthand `scale,` did not throw —
+// it resolved to `window.scale`, because every element id is a named property of
+// the document and this page has `<div id="scale">`. A DOM node answers
+// `scale['50']` as `undefined`, so showcaseHtml's `scale[step] || primary`
+// returned the primary for EVERY step, which set --cp-sf, --cp-ink and --cp-bd
+// all to one colour and drew 「色彩美學」 in the primary on a primary background.
+//
+// The three words that matter: silent, invisible, and in the one section whose
+// entire job is to prove the palette is readable.
+const showcaseBlock = colorHtml.slice(
+  colorHtml.indexOf('// 5. Showcase'),
+  colorHtml.indexOf('// 6. Export Theme')
+);
+check(
+  /const \{ scale: primaryScale \} = generateTailwindScale\(primary\)/.test(showcaseBlock)
+    && !/^\s*scale,\s*$/m.test(showcaseBlock),
+  'the showcase generates its own ramp from `primary` and names it, rather than relying on a bare `scale` being in scope',
+  () => "the showcase passes a bare `scale,`. With no local `const scale` in scope that is `window.scale` — the `<div id=\"scale\">` — and `scale[step] || primary` then answers the primary for every step, which paints ink and surface the same colour and shows nothing"
+);
+
 const radioValues = [...colorHtml.matchAll(/class="cp-tab-input"[^>]*value="([a-z]+)"/g)].map(m => m[1]);
 check(
   /import\s*\{[^}]*\bHEX_FORMATS\b[^}]*\}\s*from\s*'\.\/assets\/js\/color-palette\.js'/.test(colorHtml),

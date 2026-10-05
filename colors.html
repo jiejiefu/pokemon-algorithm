@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
-  <meta name="description" content="輸入寶可夢編號，看它一般與異色外觀的 96×96 正面圖集取出的完整色盤、明暗階與主題配色。">
+  <meta name="description" content="輸入任意色碼，以 OKLab 知覺距離比對 1,025 隻寶可夢的實測色盤，生成一組有量測基礎的主題色盤與 CSS 變數。">
   <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
        after the first paint is a visible flash, and a module cannot run early
        because module scripts are deferred. Identical on all five themed pages
@@ -30,23 +30,23 @@
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <link rel="stylesheet" href="assets/css/colors.css">
+  <!-- Generator-only. `cg-` prefixed and mounted on this page alone; every
+       shared component rule stays in colors.css because color.html and
+       colors-explore.html depend on it. See colors-generator.css's header. -->
+  <link rel="stylesheet" href="assets/css/colors-generator.css">
   <style>
-    /* Page shell only. Every component rule lives in colors.css, because the
-       three colour pages share them and a copy here would be a second thing to
-       keep in step — the same reasoning that put `.header-colors` in the
-       `.header-dex, .header-3d` selector groups in shared.css. */
+    /* Page shell only. The h1 lives here, not in the header, because this page
+       has an intro below it. A page with an h1 in BOTH the header and the body
+       gives a screen reader two top-level headings for one page — see AGENTS.md
+       gotcha 40. */
     .cp-page {
       max-width: 1180px;
       margin: 0 auto;
       padding: 24px 16px 64px;
     }
 
-    /* The h1 lives here, not in the header, because this page has a hero-ish
-       intro below it. A page with an h1 in BOTH the header and the body gives
-       a screen reader two top-level headings for one page — see AGENTS.md
-       gotcha 40. */
     .cp-intro {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .cp-intro h1 {
@@ -78,67 +78,91 @@
     <div class="cp-intro">
       <h1>色彩生成器</h1>
       <p>
-        每隻寶可夢的色盤來自它的 96×96 正面圖集，透明像素與近黑色不計入，
-        同一頻率時以圖中最先出現的顏色為先。占比大於 5% 的顏色會被收錄，
-        不足六色時補滿六色。切換異色外觀即可看同一隻的異色色盤。
+        轉一個顏色進來，這裡用 OKLab 知覺距離在 1,025 隻寶可夢的實測色盤裡找出最接近的幾隻，
+        再用那幾隻<strong>真的含有</strong>的顏色，連同你輸入的那一色組成一組主題色盤與 CSS 變數。
+        這一頁只做「生成」；那一隻的實測色盤、明暗階與套用範例在它的單一色盤頁。
       </p>
     </div>
 
-    <div class="cp-picker">
-      <label for="pokemon-id">寶可夢編號</label>
-      <input id="pokemon-id" type="number" inputmode="numeric" min="1" max="1025" step="1" value="1"
-             aria-describedby="pokemon-id-hint">
-      <span id="pokemon-id-hint" class="cp-idcard-meta">1 – 1025</span>
-      <button id="shiny-toggle" class="cp-shiny-btn" type="button" aria-pressed="false">
-        異色外觀
-      </button>
-      <a id="palette-link" class="btn" href="color.html?slug=bulbasaur">查看完整色彩頁</a>
-    </div>
+    <!-- The generator's control surface. Full width on purpose: `.cp-cell` is a
+         grid laid out for a full column, and `.cp-strip`'s segments are
+         `flex: 1 1 0`. See colors-generator.css:1 for why this is not two
+         columns. -->
+    <section class="cg-hero" aria-labelledby="sec-generator">
+      <h2 id="sec-generator" class="sr-only">色彩生成器控制台</h2>
 
-    <div id="status" role="status" aria-live="polite" class="cp-results-note">載入中…</div>
+      <div class="cg-controls">
+        <div>
+          <label class="cg-field-label" for="cg-hex">輸入一個顏色</label>
+          <div class="cg-input-row">
+            <input id="cg-color" class="cg-color-input" type="color" value="#399494"
+                   aria-label="選色器">
+            <input id="cg-hex" class="cg-hex-input" type="text" value="#399494"
+                   spellcheck="false" autocomplete="off" autocapitalize="off"
+                   inputmode="text" aria-describedby="cg-status">
+            <div class="cg-formats" id="cg-formats" role="radiogroup"
+                 aria-label="輸入格式，預設 HEX"></div>
+          </div>
+        </div>
 
-    <section class="cp-section" aria-labelledby="sec-identity">
-      <h2 id="sec-identity">身分卡</h2>
-      <p class="cp-prose">
-        右上角的浮水印是這隻寶可夢的官方圖鑑圖，經過遮罩處理後填上它的主要色，
-        不是另一張圖片。下面的色帶是完整色盤的前五色。
-      </p>
-      <div id="identity"></div>
+        <p id="cg-status" class="cg-status" role="status" aria-live="polite"></p>
+        <p id="cg-format-note" class="cg-format-note" hidden></p>
+      </div>
+
+      <div class="cg-match">
+        <div id="cg-winner" class="cg-winner"></div>
+        <ul id="cg-candidates" class="cg-candidates" aria-label="其他接近的寶可夢"></ul>
+      </div>
     </section>
 
-    <section class="cp-section" aria-labelledby="sec-palette">
-      <h2 id="sec-palette">色盤</h2>
-      <p class="cp-prose">點選任一色即可複製色碼。</p>
+    <!-- The legendary starts. Full width and outside the hero on purpose: 8
+         columns of 24 needs ~940px, and the hero's left column is 380px. -->
+    <section class="cp-section" aria-labelledby="sec-legends">
+      <h2 id="sec-legends">或從封面傳說開始</h2>
+      <p class="cp-prose">
+        每個世代封面上的那幾隻，按遊戲版本排列。點任何一格就以牠的<strong>主色</strong>
+        開始生成 —— 那是這張 96×96 正面圖集裡占比最高的顏色，量出來多少就是多少，不是人挑的。
+      </p>
+      <div class="cg-presets" id="cg-presets" role="group"
+           aria-labelledby="sec-legends"
+           aria-describedby="cg-presets-note"></div>
+      <p class="cg-presets-note" id="cg-presets-note">
+        其中 <strong>萊希拉姆</strong>的主色是純白 <code>#FFFFFF</code>（占比 36.5%），
+        <strong>索爾迦雷歐</strong>是近白 <code>#FBF7EE</code>（37.8%）——
+        這兩隻生成出來會非常淡，這是牠們的圖集本來就如此，不是配色的問題。
+      </p>
+    </section>
+
+    <section class="cp-section" aria-labelledby="sec-generated">
+      <h2 id="sec-generated">生成色盤</h2>
+      <p class="cp-prose">
+        這一組從你輸入的顏色推出來，不是從任何一張圖片量測而來。
+        主色就是你輸入的那一色，輔色取匹配到的那隻寶可夢的附色，讓生成的組合有一個
+        真實的對照基準。點任一色即可複製色碼。
+      </p>
+      <div class="cg-provenance" id="cg-provenance-generated">由輸入色生成</div>
       <div id="palette"></div>
     </section>
 
-    <section class="cp-section" aria-labelledby="sec-scale">
-      <h2 id="sec-scale">明暗階</h2>
+    <section class="cp-section" aria-labelledby="sec-gen-alts">
+      <h2 id="sec-gen-alts">換一個生成起點</h2>
       <p class="cp-prose">
-        以主要色推導出的十一階明暗梯。標示 ★ 的那一格是主要色本身，
-        其餘各階由同一色相調整明度與飽和度而得。
+        下面是匹配到的那隻寶可夢<strong>真的含有</strong>的顏色，都是從它的 96×96 正面圖集量出來的。
+        點任何一格就以那個顏色重新生成 —— 每一次都是一次有意義的改變，不是隨機換色。
       </p>
-      <div id="scale"></div>
+      <div id="cg-alts" class="cg-alt-row"></div>
     </section>
 
-    <section class="cp-section" aria-labelledby="sec-stats">
-      <h2 id="sec-stats">色盤組成</h2>
+    <section class="cp-section" aria-labelledby="sec-gen-tiles">
+      <h2 id="sec-gen-tiles">生成組成</h2>
       <div class="cp-tiles" id="tiles"></div>
-    </section>
-
-    <section class="cp-section" aria-labelledby="sec-showcase">
-      <h2 id="sec-showcase">套用展示</h2>
-      <p class="cp-prose">
-        同一組色票套進四種常見版面：卡片、圖表、儀表板與元件。
-        文字底色由對比自動取捨，不會因為某隻寶可夢的顏色偏淡或偏深而看不清。
-      </p>
-      <div id="showcase"></div>
     </section>
 
     <section class="cp-section" aria-labelledby="sec-export">
       <h2 id="sec-export">匯出主題</h2>
       <p class="cp-prose">
-        以主要色推導的 CSS 變數，可直接貼進自己的樣式表。
+        以你輸入的顏色推導的 CSS 變數：十一階明暗梯加上主色、輔色與完整生成色盤，
+        可直接貼進自己的樣式表。
       </p>
       <div class="cp-actions">
         <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
@@ -151,14 +175,14 @@
   <footer class="home-footer">
     <div class="home-footer-inner">
       <p class="home-footer-line">
-        寶可夢演算法 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
+        寶可夢演算法 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · 比對度量 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
       </p>
     </div>
   </footer>
 
   <script type="module">
     // Every named import must exist in shared.js or the module dies at PARSE time
-    // with a SyntaxError and the page silently shows "載入中…" — the failure has
+    // with a SyntaxError and the page silently shows nothing — the failure has
     // no error of its own to read. Check the import list, not what shared.js
     // exports: an export nobody imports is not in module scope (AGENTS.md
     // gotcha 31).
@@ -166,12 +190,15 @@
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
     } from './assets/js/shared.js';
     import {
-      loadColorPalettes, paletteRows, primaryOf, secondaryOf,
-      spriteUrl, artworkUrl, identityCardHtml, paletteGridHtml, paletteStripHtml,
+      loadColorPalettes, paletteRows, spriteUrl, paletteGridHtml, paletteStripHtml,
       generateTailwindScale, anchorIndex, describeHex, colorTemperature,
       TEMPERATURE_ZH, findBySlug, paletteUrl, swatchStyle,
-      showcaseHtml, wireShowcaseTabs,
+      formatShare, formatHex, HEX_FORMATS, hslToHex,
     } from './assets/js/color-palette.js';
+    import {
+      buildMatchIndex, matchPokemon, matchOf, paletteOf, matchIndexSize,
+      primaryShareCount,
+    } from './assets/js/color-match.js';
 
     initThemeToggle();
     // The third arg is the current page, so the 色彩 trigger marks itself
@@ -180,148 +207,712 @@
     initHeaderNav('colors.html');
 
     const els = {
-      status: document.getElementById('status'),
-      id: document.getElementById('pokemon-id'),
-      shiny: document.getElementById('shiny-toggle'),
-      link: document.getElementById('palette-link'),
-      identity: document.getElementById('identity'),
+      color: document.getElementById('cg-color'),
+      hex: document.getElementById('cg-hex'),
+      status: document.getElementById('cg-status'),
+      presets: document.getElementById('cg-presets'),
+      formats: document.getElementById('cg-formats'),
+      formatNote: document.getElementById('cg-format-note'),
+      winner: document.getElementById('cg-winner'),
+      candidates: document.getElementById('cg-candidates'),
+      alts: document.getElementById('cg-alts'),
       palette: document.getElementById('palette'),
-      scale: document.getElementById('scale'),
+      provenanceGenerated: document.getElementById('cg-provenance-generated'),
       tiles: document.getElementById('tiles'),
-      showcase: document.getElementById('showcase'),
       themeCode: document.getElementById('theme-code'),
       copyTheme: document.getElementById('copy-theme'),
       copyJson: document.getElementById('copy-json'),
     };
 
-    let pokemon = [];
-    let palettes = null;
-    let shiny = false;
-    let current = null;
-
     /**
-     * Clamp the input to the roster and report the substitution.
+     * The 24 legendaries, in generation order and then by the game that put them
+     * on a box, as `[id, edition]` pairs. The id is the join key and the name is
+     * NOT stored here: `pokemon_data.json` already carries the official zh-TW
+     * name for every one of them, and a second copy of a name is a second thing
+     * to keep right. `checkLegendIds` below pins that each id is legendary or
+     * mythical, which is the property that makes this list what it claims to be.
      *
-     * The number input allows typing 0 or 9999 and the spinner allows it too, so
-     * clamping silently would make the page look like it found something. The
-     * id is echoed back into the field either way, because leaving 9999 on
-     * screen while showing #1025's palette is how a wrong palette gets
-     * screenshotted and believed.
+     * Ordering matters and is not alphabetical. It reads the way someone who
+     * played them remembers them — Mewtwo then Mew, the Box legendaries by
+     * version, Groudon/Kyogre/Rayquaza by game — and it is why the 8-wide grid
+     * lands where it does: gen 1's two are followed by gen 2's two, so the first
+     * row is Kanto, Johto and Hoenn rather than three of Hoenn.
+     *
+     * Two of the 24 have a near-white primary (Reshiram #FFFFFF at 36.5%, Solgaleo
+     * #FBF7EE at 37.8%) and the page says so under the grid. They are here
+     * because a cover Pokémon is a cover Pokémon, not because their palette is a
+     * good demo — dropping the two that flattered the page would be curating the
+     * evidence.
      */
-    function clampId(raw) {
-      const n = Math.floor(Number(raw));
-      if (!Number.isFinite(n)) return 1;
-      if (n < 1) return 1;
-      if (n > pokemon.length) return pokemon.length;
-      return n;
+    const LEGENDS = [
+      [150, '關都 · 銀'], [151, '關都 · 金'],
+      [250, '城都 · 金'], [249, '城都 · 銀'],
+      [383, '豐緣 · 紅寶石'], [382, '豐緣 · 藍寶石'], [384, '豐緣 · 綠寶石'],
+      [483, '神奧 · 鑽石'], [484, '神奧 · 珍珠'], [487, '神奧 · 白金'],
+      [643, '合眾 · 黑'], [644, '合眾 · 白'], [646, '合眾 · 黑2／白2'],
+      [716, '卡洛斯 · X'], [717, '卡洛斯 · Y'], [718, '卡洛斯 · Z'],
+      [791, '阿羅拉 · 太陽'], [792, '阿羅拉 · 月亮'], [800, '阿羅拉 · 究極之日'],
+      [888, '伽勒爾 · 劍'], [889, '伽勒爾 · 盾'], [890, '伽勒爾 · 劍／盾'],
+      [1007, '帕底亞 · 朱'], [1008, '帕底亞 · 紫'],
+    ];
+
+    /** The id behind a legend cell, resolved to its species record.
+     *  Returns null rather than a placeholder, because a cell that renders a
+     *  wrong species is worse than one that renders nothing. */
+    function legendOf(id) {
+      return pokemon.find(p => p.id === id) || null;
     }
 
-    function render() {
-      const rows = paletteRows(palettes, current.id, shiny);
-      const primary = primaryOf(palettes, current.id, shiny);
-      const secondary = secondaryOf(palettes, current.id, shiny);
-      const variant = shiny ? 's' : 'n';
-      const sprite = spriteUrl(current.id, shiny);
-      const art = artworkUrl(current.id, shiny);
+    let pokemon = [];
+    let palettes = null;
+    let inputHex = '#399494';
+    /** The match currently on screen. `null` before the first render. */
+    let currentMatch = null;
 
-      els.status.textContent = '';
-      els.link.href = paletteUrl(current);
+    // ---------------------------------------------------------------------
+    // Input
+    // ---------------------------------------------------------------------
 
-      // Identity card. The sprite is `alt=""` on purpose: the name is the
-      // heading immediately after it, so an alt would announce the name twice
-      // (AGENTS.md gotcha 27).
-      els.identity.innerHTML = identityCardHtml({
-        primary,
-        secondary,
-        artUrl: art,
-        bodyHtml: `
-          <img class="cp-idcard-sprite" src="${sprite}" alt="" width="96" height="96" decoding="async">
-          <div>
-            <p class="cp-idcard-id">#${formatPokemonId(current.id)}${shiny ? ' · 異色' : ''}</p>
-            <h3 class="cp-idcard-name">${current.names.zh}</h3>
-            <p class="cp-idcard-name-en">${current.names.en}</p>
-          </div>
-          <div id="identity-strip"></div>`,
-      });
-      // The compact strip (top 5 + a +N marker), not the full grid: the card is
-      // a summary, and `.cp-idcard .cp-strip` is sized for it. Built after
-      // insertion only because it is a separate node from the card's own
-      // markup — identityCardHtml takes opaque bodyHtml and does not know that
-      // a strip belongs in it.
-      els.identity.querySelector('#identity-strip').innerHTML =
-        paletteStripHtml(rows);
+    /**
+     * Which notation the field is showing. The toggle chooses this; nothing else
+     * does, and — this is the part that matters — **switching it does not change
+     * the colour.**
+     *
+     * `formatHex(hex, 'hsl')` rounds H, S and L to whole numbers before writing
+     * them, so `#399494` comes back out as `hsl(180, 44%, 40%)` and re-parsing
+     * that yields `#399393` — one channel off. If the toggle round-tripped
+     * through the text, flipping HEX → HSL and back would quietly restate the
+     * colour, and every downstream number (the ΔE, the export, the matcher's
+     * winner) would be describing a colour the reader never chose. So the hex is
+     * the single stored value and the notation is display only.
+     *
+     * Editing the HSL text DOES round-trip, once, because that is the reader
+     * typing whole numbers and there is nothing to be done about it.
+     */
+    let inputFormat = 'hex';
 
-      els.palette.innerHTML = paletteGridHtml(rows, { id: current.id, variant });
+    /** The field's text for a colour, in the active notation. */
+    function formatValue(hex) {
+      return formatHex(hex, inputFormat);
+    }
 
-      // Shade scale from the primary colour.
-      const { scale, anchor } = generateTailwindScale(primary);
-      const ai = anchorIndex(anchor);
-      els.scale.innerHTML = `<div class="cp-scale">` +
-        Object.entries(scale).map(([step, hex], i) => `
-          <button type="button" class="cp-shade${i === ai ? ' is-anchor' : ''}"
-                  style="${swatchStyle(hex)}" data-cp-copy="${hex}"
-                  title="複製 ${hex}" aria-label="複製 ${step} 階 ${hex}">
-            <span class="cp-shade-hex">${hex}</span>
-            <span class="cp-shade-step">${step}</span>
-          </button>`).join('') +
-        `</div>`;
+    /**
+     * Accept `#rgb`, `#rrggbb`, bare `rrggbb`, `rgb(...)` and `hsl(...)` —
+     * regardless of which notation the toggle is showing.
+     *
+     * The toggle is a display preference, not an input filter. A reader who has
+     * the field on RGB and pastes `#f5c542` out of a stylesheet should get the
+     * colour, not an error; refusing it would mean the paste path and the typed
+     * path disagreed about what a colour is, which is the kind of split that
+     * makes a tool feel broken in one direction and not the other.
+     *
+     * Ranges are strict and reported, not clamped: `rgb(300, 0, 0)` is a typo
+     * and silently becoming `rgb(255, 0, 0)` would be a different colour than the
+     * one asked for. Commas or spaces, percentages on hsl's S and L, degrees
+     * optional — because that is what browsers and design tools actually emit.
+     */
+    function parseColorInput(raw) {
+      if (typeof raw !== 'string') return null;
+      const t = raw.trim();
+      if (!t) return null;
 
-      const shown = rows.slice(0, 5);
+      const hex = t.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+        return '#' + hex.split('').map(c => c + c).join('').toLowerCase();
+      }
+      if (/^[0-9a-fA-F]{6}$/.test(hex)) return '#' + hex.toLowerCase();
+
+      const rgb = t.match(/^rgba?\(\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})\s*[,\s]\s*(\d{1,3})\s*(?:[,/]\s*[\d.]+%?\s*)?\)$/i);
+      if (rgb) {
+        const parts = rgb.slice(1, 4).map(Number);
+        if (parts.some(n => n > 255)) return null;
+        return '#' + parts.map(n => n.toString(16).padStart(2, '0')).join('');
+      }
+
+      const hsl = t.match(/^hsla?\(\s*(-?\d{1,3})(?:\.\d+)?(?:deg)?\s*[,\s]\s*(\d{1,3}(?:\.\d+)?)%\s*[,\s]\s*(\d{1,3}(?:\.\d+)?)%\s*(?:[,/]\s*[\d.]+%?\s*)?\)$/i);
+      if (hsl) {
+        const h = Number(hsl[1]);
+        const sat = Number(hsl[2]);
+        const lig = Number(hsl[3]);
+        if (h < 0 || h > 360 || sat > 100 || lig > 100) return null;
+        return hslToHex({ h, s: sat, l: lig });
+      }
+      return null;
+    }
+
+    /**
+     * Whether `text` could still become a valid colour in `format`.
+     *
+     * This is what keeps the error quiet. In HSL, typing `hsl(18` is not a
+     * colour and not a mistake — it is the fourth keystroke of one. Flagging it
+     * red after every character is the difference between a field that guides
+     * and a field that scolds, and it is why the invalid state is driven by
+     * "cannot be completed" rather than "is not yet complete".
+     */
+    function couldBePrefix(text, format) {
+      const t = String(text).trim().toLowerCase();
+      if (!t) return true;
+      if (format === 'rgb') return /^r?g?b?a?\(?[\d,\s/]*$/.test(t);
+      if (format === 'hsl') return /^h?s?l?a?\(?[-.\d,\s%deg/]*$/.test(t);
+      return /^[#a-f0-9]*$/.test(t);
+    }
+
+    /** Pull the first colour out of pasted text, in any of the three notations.
+     *
+     *  Users paste from a design tool, a screenshot eyedropper, another palette
+     *  page, or a CSS rule. The notations are tried longest-first because
+     *  `hsl(...)` and `rgb(...)` both start with a letter that a bare 6-digit hex
+     *  does not, so order only matters for the CSS-blob case.
+     */
+    function colorFromText(text) {
+      const t = String(text);
+      const m = t.match(/#\s?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/)
+        || t.match(/hsla?\([^)]*\)/i)
+        || t.match(/rgba?\([^)]*\)/i)
+        || t.match(/\b([0-9a-fA-F]{6})\b/);
+      if (!m) return null;
+      return parseColorInput(m[0].trim());
+    }
+
+    function setStatus(message, isError) {
+      els.status.textContent = message;
+      els.status.classList.toggle('is-error', Boolean(isError));
+    }
+
+    /** The notation names, as the toggle shows them. */
+    const FORMAT_ZH = { hex: 'HEX', rgb: 'RGB', hsl: 'HSL' };
+
+    /** What the reader should be told when the field cannot be read. */
+    const FORMAT_HINT = {
+      // The hex hint names the alphabet, not just the length. 「六位十六進位」
+      // says how many digits and nothing about what a digit may be, so a reader
+      // who has never met base 16 does not learn from it that `g` is invalid and
+      // `F` is fine — and the parser accepts either case, which is worth saying
+      // because most colour fields reject uppercase and this one does not.
+      hex: '#RRGGBB — 每位是 0-9 或 a-f，大小寫都收',
+      rgb: 'rgb(0-255, 0-255, 0-255) — 三個 0-255 的數字',
+      hsl: 'hsl(0-360, 0-100%, 0-100%) — 色相 0-360，飽和與亮度各 0-100%',
+    };
+
+    /**
+     * The current colour written in the two notations the reader is NOT using.
+     *
+     * A static hint under the field was two problems in one: it was always on
+     * screen saying something nobody needed until they were already stuck, and
+     * it could only ever show one fixed example. Live values fix both — the note
+     * appears only while the input is unreadable, and what it shows is the colour
+     * they ALREADY have in the format they are being asked to switch to, so the
+     * thing to do next is a copy rather than a calculation.
+     *
+     * The HSL value carries the rounding drift documented on `inputFormat`, and it
+     * is printed as-is rather than silently corrected: `#399494` really does
+     * read out as `hsl(180, 44%, 40%)` and pasting that back gives `#399393`, so a
+     * note that hid the difference would be teaching a lie.
+     */
+    function otherFormatsNote() {
+      const others = HEX_FORMATS.filter(f => f !== inputFormat);
+      return others.map(f => formatHex(inputHex, f)).join(' 或 ');
+    }
+
+    /** Show or clear the live note. Separate from the status line so the two can
+     *  be announced independently — the status is the error, the note is the way
+     *  out, and neither should overwrite the other. */
+    function setFormatNote(show) {
+      els.formatNote.hidden = !show;
+      if (show) {
+        els.formatNote.innerHTML =
+          `<code>${formatValue(inputHex)}</code> 也可以寫成 <code>${otherFormatsNote()}</code>`;
+      }
+    }
+
+    /** Apply a colour, or explain why it cannot be applied.
+     *
+     *  Three states, not two, and the middle one is the point:
+     *
+     *  - **parseable** → commit, and rewrite the field in the active notation so
+     *    a value the reader typed in another notation becomes readable in this
+     *    one rather than staying in a format the toggle says is not active.
+     *  - **a possible prefix** → say nothing. `hsl(18` is the fourth keystroke
+     *    of a colour, not a mistake.
+     *  - **neither** → flag it, and LEAVE THE PREVIOUS RESULT ON SCREEN.
+     *    Wiping the page on a typo reads as "the generator broke"; the reader is
+     *    mid-edit and the last good answer is still a true statement.
+     */
+    function applyHex(raw, { fromPicker = false, silent = false } = {}) {
+      const text = String(raw ?? '');
+      const hex = parseColorInput(text);
+      if (!hex) {
+        if (couldBePrefix(text, inputFormat)) {
+          els.hex.classList.remove('is-invalid');
+          setFormatNote(false);
+          if (!silent) setStatus('', false);
+          return false;
+        }
+        els.hex.classList.add('is-invalid');
+        setStatus(`「${text.trim()}」讀不出來。這裡要的是 ${FORMAT_HINT[inputFormat]}。`, true);
+        setFormatNote(true);
+        return false;
+      }
+      els.hex.classList.remove('is-invalid');
+      setFormatNote(false);
+      inputHex = hex;
+      if (!fromPicker) els.color.value = hex;
+      // Only rewrite the field when the text is not already the right answer:
+      // reformatting on every keystroke moves the caret and makes RGB editing
+      // unusable, because `rgb(57, 148, 148)` becomes `rgb(57, 148, 148)` again
+      // on the final digit and the field fights the reader.
+      const shown = formatValue(hex);
+      if (els.hex.value !== shown) els.hex.value = shown;
+      render();
+      return true;
+    }
+
+    /** Flip the notation. Display only — see inputFormat's docblock. */
+    function setFormat(format) {
+      if (!HEX_FORMATS.includes(format)) return;
+      inputFormat = format;
+      for (const btn of els.formats.querySelectorAll('[data-cg-format]')) {
+        btn.setAttribute('aria-checked', String(btn.dataset.cgFormat === format));
+      }
+      els.hex.value = formatValue(inputHex);
+      // The note is rebuilt because it shows the OTHER two notations, so flipping
+      // the toggle changes which two those are.
+      if (!els.formatNote.hidden) setFormatNote(true);
+      render();
+    }
+
+    els.formats.innerHTML = HEX_FORMATS.map(f => `
+      <button type="button" class="cg-format" role="radio" data-cg-format="${f}"
+              aria-checked="${f === inputFormat}" tabindex="${f === inputFormat ? 0 : -1}">${FORMAT_ZH[f]}</button>`).join('');
+
+    els.formats.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cg-format]');
+      if (btn) setFormat(btn.dataset.cgFormat);
+    });
+
+    // Arrow keys move between radios, because that is what a radiogroup is; a
+    // click-only toggle is a row of buttons wearing a role.
+    els.formats.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = HEX_FORMATS.indexOf(inputFormat);
+      const next = HEX_FORMATS[(i + (e.key === 'ArrowRight' ? 1 : HEX_FORMATS.length - 1)) % HEX_FORMATS.length];
+      e.preventDefault();
+      setFormat(next);
+      els.formats.querySelector(`[data-cg-format="${next}"]`).focus();
+    });
+
+    els.color.addEventListener('input', () => applyHex(els.color.value, { fromPicker: true }));
+    els.hex.addEventListener('input', () => applyHex(els.hex.value));
+    // On blur, an unfinished prefix becomes an error — otherwise leaving
+    // `hsl(18` in the field while the page shows a colour would be a lie about
+    // what the field holds.
+    els.hex.addEventListener('blur', () => {
+      const typed = els.hex.value;
+      const hex = parseColorInput(typed);
+      if (hex) {
+        els.hex.classList.remove('is-invalid');
+        els.hex.value = formatValue(hex);
+        return;
+      }
+      // `typed` is captured BEFORE the field is restored. Reading
+      // `els.hex.value` in the message — which the first version did, one line
+      // after overwriting it — makes the error report the restored colour as the
+      // unreadable one: 「「#aabbcc」讀不出來。已還原成 #aabbcc。」 The reader is
+      // told their valid colour failed to parse.
+      els.hex.classList.add('is-invalid');
+      els.hex.value = formatValue(inputHex);
+      setStatus(`「${typed.trim()}」讀不出來，已還原成 ${formatValue(inputHex)}。`, true);
+      setFormatNote(false);
+    });
+    // Enter commits even when the field holds something longer than the active
+    // notation's length, so the error text is reachable by keyboard rather than
+    // only by blur.
+    els.hex.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') applyHex(els.hex.value);
+    });
+
+    // Paste anywhere on the page. Not a convenience: pasting is how this tool is
+    // meant to be driven, and requiring the user to find the input first is the
+    // friction that sends them back to the eyedropper.
+    document.addEventListener('paste', (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.type === 'text') return;
+      const text = event.clipboardData?.getData('text');
+      const hex = text && colorFromText(text);
+      if (!hex) return;
+      event.preventDefault();
+      applyHex(hex);
+      els.hex.focus();
+    });
+
+    /**
+     * The 24 cover legendaries.
+     *
+     * `paletteOf()` rather than a hardcoded hex per cell: the whole point of
+     * these cells is that the colour is what the sprite MEASURES, and a hex
+     * written into this table by hand would drift from the data the first time a
+     * sprite was re-extracted. The index is built in init(), so this runs after
+     * it — `renderPresets()` is called from render() rather than at module
+     * scope, which is what the old six-colour row did wrong.
+     *
+     * A cell whose species has no palette renders nothing rather than an empty
+     * swatch: there is no colour to generate from, and a blank tile in a 24-tile
+     * grid reads as a bug rather than as a missing measurement.
+     */
+    function renderPresets() {
+      els.presets.innerHTML = LEGENDS.map(([id, edition]) => {
+        const p = legendOf(id);
+        const pal = p ? paletteOf(id) : null;
+        if (!p || !pal || !pal.length) return '';
+        const hex = pal[0].hex;
+        const share = formatShare(pal[0].share);
+        return `
+          <button type="button" class="cg-preset"
+                  data-cg-seed="${hex}" data-cg-legend="${id}" aria-pressed="false"
+                  style="--chip:${hex}; --wash:${hex}1f"
+                  title="${p.names.zh} 主色 ${hex.toUpperCase()}（占比 ${share}）">
+            <span class="cg-preset-wash">
+              <img class="cg-preset-sprite" src="${spriteUrl(id)}" alt=""
+                   width="64" height="64" loading="lazy" decoding="async">
+            </span>
+            <span class="cg-preset-body">
+              <span class="cg-preset-gen">${edition}</span>
+              <span class="cg-preset-name">${p.names.zh}</span>
+              <span class="cg-preset-hex">${hex.toUpperCase()} · ${share}</span>
+            </span>
+          </button>`;
+      }).join('');
+    }
+
+    /**
+     * Only the highlight moves; the 24 cells do not.
+     *
+     * `renderPresets()` used to be called from `render()`, which is the same
+     * function a colour change runs — so every keystroke on the hex field threw
+     * away 24 buttons and re-requested 24 sprites to change one class name. It
+     * also broke the grid for anything holding a node reference: the detached
+     * buttons still carry `data-cg-seed`, but a click on them never reaches the
+     * delegated handler on `document`, so the control goes dead exactly once the
+     * reader has used it. Built once, updated by class.
+     */
+    function markCurrentPreset() {
+      for (const btn of els.presets.querySelectorAll('.cg-preset')) {
+        const current = btn.dataset.cgSeed.toLowerCase() === inputHex.toLowerCase();
+        btn.classList.toggle('is-current', current);
+        btn.setAttribute('aria-pressed', String(current));
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Render
+    // ---------------------------------------------------------------------
+
+    /**
+     * The generated palette: the input colour plus real colours from the matched
+     * Pokémon, so the generated set has a measured anchor instead of being six
+     * shades of the same guess.
+     *
+     * Shares are deliberately NOT shown on these cells, because they are not
+     * sprite frequencies — there is no sprite behind them. The cells render with
+     * `format: 'hex'` and no share text is invented; the honest statement about
+     * a generated colour is its name, and the measurement lives two sections
+     * down where it belongs.
+     */
+    function generatedRows() {
+      const rows = [[inputHex, 0]];
+      const measured = currentMatch ? (paletteOf(currentMatch.id) || []) : [];
+      for (const entry of measured) {
+        if (entry.hex.toLowerCase() === inputHex) continue;
+        rows.push([entry.hex, entry.share]);
+      }
+      return rows;
+    }
+
+    function renderWinner() {
+      const m = currentMatch;
+      if (!m) {
+        els.winner.innerHTML = '';
+        return;
+      }
+      const p = pokemon.find((x) => x.id === m.id);
+      // The sprite is `alt=""` because the name is the heading immediately
+      // after it; an alt would announce the name twice (AGENTS.md gotcha 27).
+      // THE EYEBROW DEPENDS ON HOW THIS SPECIES WAS CHOSEN, and saying so is the
+      // whole point of the binding. A species the MATCHER chose is the closest
+      // one and is labelled 最接近. A species the READER named on the legendary
+      // grid is not necessarily the closest — #FFFFFF is 29 species' primary,
+      // so Reshiram is legitimately rank 29 — and labelling it 最接近 would be a
+      // false claim on the page's largest line of type. It says 你選的, and the
+      // ΔE line reports the tie count so 「why not another white」 is answerable.
+      // Built as a STRING, not written into the DOM here. The strip lives inside
+      // the card, so the card's own `innerHTML` assignment below is what creates
+      // it — querying `#cg-winner-strip` first finds null and throws, which takes
+      // the whole render down with it (that is exactly what the first version did).
+      //
+      // paletteOf() returns { hex, share } records; paletteStripHtml() takes
+      // [hex, share] pairs. The map is the whole conversion, and skipping it
+      // renders six segments of `undefined` rather than an error.
+      const stripRows = (paletteOf(m.id) || []).map(e => [e.hex, e.share]);
+      const stripHtml = stripRows.length ? paletteStripHtml(stripRows) : '';
+      const readersPick = Boolean(m.pinned);
+      const shared = readersPick ? primaryShareCount(m.primaryHex) : 0;
+      // The strip sits BETWEEN the sprite and the name, not under the palette
+      // grid further down. It is the same object in both places — the matched
+      // species' share-ordered colours — and it is the answer to "what IS this
+      // colour" that a sprite alone does not give: the sprite is a picture of a
+      // creature, the strip is the six colours that were measured off it. Beside
+      // the sprite it reads as a caption; a screen down it reads as a duplicate.
+      els.winner.innerHTML = `
+        <div class="cg-winner-fig">
+          <img class="cg-winner-sprite" src="${spriteUrl(m.id)}" alt=""
+               width="84" height="84" decoding="async">
+          <div class="cg-winner-strip">${stripHtml}</div>
+        </div>
+        <div class="cg-winner-body">
+          <p class="cg-winner-eyebrow">${readersPick ? '你選的' : '最接近'}</p>
+          <h3 class="cg-winner-name"><a href="${paletteUrl(p)}">${p.names.zh}</a></h3>
+          <p class="cg-winner-delta">OKLab ΔE <b>${m.distance.toFixed(4)}</b> ·
+            #${formatPokemonId(m.id)} · 主色 ${m.primaryHex.toUpperCase()}</p>
+          ${shared > 1 ? `<p class="cg-winner-delta">這個主色有 <b>${shared}</b> 隻共用，
+            排名不由它決定</p>` : ''}
+        </div>`;
+    }
+
+    /**
+     * Redraw the candidate row, and keep the current pick if it SURVIVED the
+     * re-query.
+     *
+     * The reset condition is `!matches.some(m => m.id === currentMatch.id)` and
+     * not `matches[0].id !== currentMatch.id`. The second form looks equivalent
+     * and is not: it re-picks the top match whenever the reader has chosen a
+     * different one, so clicking a candidate silently snaps the whole page back
+     * to rank 1. The reader presses a chip, every number on screen stays put,
+     * and the control appears inert — the same shape as the dead Length slider
+     * in §3.G, arrived at from the other direction.
+     *
+     * A pick that fell out of the list still has to be replaced rather than
+     * rendered as nothing, which is why the fallback exists at all.
+     */
+    /**
+     * Does the current selection survive this re-query?
+     *
+     * A PIN SURVIVES ONLY WHILE THE INPUT IS STILL ONE OF THE PINNED SPECIES'
+     * OWN COLOURS. The narrow condition is the whole thing. An unconditional
+     * exemption — the first version — is wrong in the other direction: it lets a
+     * reader who clicks 萊希拉姆 then types `#00ff00` keep seeing Groudon's
+     * palette, because nothing is allowed to replace the pin. The reader named a
+     * species *for a colour*, so a different colour is a different question and
+     * the matcher owes them the proximity answer.
+     *
+     * The pinned species' own colours are the exception that keeps the grid
+     * useful: the 「換一個生成起點」 row below feeds those in one at a time, and
+     * re-ranking on every one of them would swap the species out from under the
+     * reader mid-sequence.
+     *
+     * An unpinned pick is matched on BOTH id and distance. The distance matters
+     * because re-querying can move a pick without removing it: type a colour one
+     * digit away and the same species stays at rank 1 with a different reading,
+     * and keeping the old ΔE on screen would be a number for a colour nobody
+     * entered.
+     *
+     * It is a named function rather than inline in render() because that is the
+     * only reason it can be tested: `check_color_match.mjs` lifts it out of the
+     * source and runs it, where a source-shape regex over the same lines passes
+     * for any mutation that leaves the substrings in place — which is exactly how
+     * the first version of that guard was blind.
+     */
+    function pinSurvivesRequery(match, matches) {
+      if (!match) return false;
+      if (match.pinned) {
+        const own = paletteOf(match.id) || [];
+        return own.some(({ hex: h }) => h.toLowerCase() === inputHex.toLowerCase());
+      }
+      return matches.some(m => m.id === match.id
+        && Math.abs(m.distance - match.distance) < 1e-9);
+    }
+
+    function renderCandidates() {
+      const matches = matchPokemon(inputHex, 5);
+      const stillThere = pinSurvivesRequery(currentMatch, matches);
+      if (!stillThere && currentMatch) currentMatch.pinned = false;
+      if (matches.length && !stillThere) {
+        currentMatch = matches[0];
+      }
+      els.candidates.innerHTML = matches.map(m => {
+        const p = pokemon.find((x) => x.id === m.id);
+        if (!p) return '';
+        // A pinned species usually is NOT in the row: the row is the matcher's
+        // ranking, and pinning deliberately overrides it. Rendering the pinned
+        // one as if it were rank 3 would be a lie about the ranking, and
+        // omitting it entirely would leave the winner card pointing at nothing
+        // the reader can see. So it is labelled for what it is.
+        const pinned = currentMatch && m.id === currentMatch.id && currentMatch.pinned;
+        const active = currentMatch && m.id === currentMatch.id;
+        return `
+          <li>
+            <button type="button" class="cg-candidate${active ? ' is-active' : ''}"
+                    data-cg-pick="${m.id}"
+                    aria-pressed="${active}">
+              <img class="cg-candidate-thumb" src="${spriteUrl(m.id)}" alt=""
+                   width="32" height="32" loading="lazy" decoding="async">
+              <span class="cg-candidate-body">
+                <span class="cg-candidate-name">${p.names.zh}${pinned ? ' · 已選' : ''}</span>
+                <span class="cg-candidate-meta">Δ ${m.distance.toFixed(3)}</span>
+              </span>
+            </button>
+          </li>`;
+      }).join('');
+      renderWinner();
+      return matches;
+    }
+
+    function renderAlts() {
+      if (!currentMatch) {
+        els.alts.innerHTML = '';
+        return;
+      }
+      const measured = paletteOf(currentMatch.id) || [];
+      els.alts.innerHTML = measured.map(entry => {
+        const isCurrent = entry.hex.toLowerCase() === inputHex;
+        return `
+          <button type="button" class="cg-alt${isCurrent ? ' is-current' : ''}"
+                  data-cg-seed="${entry.hex}"
+                  aria-label="以 ${entry.hex} 重新生成"
+                  aria-pressed="${isCurrent}">
+            <span class="cg-alt-chip" style="${swatchStyle(entry.hex)}"></span>
+            <span class="cg-alt-hex">${entry.hex.toUpperCase()}</span>
+            <span class="cg-alt-share">${formatShare(entry.share)}</span>
+          </button>`;
+      }).join('');
+    }
+
+    function renderTiles(rows, match, anchorStep) {
       els.tiles.innerHTML = [
-        ['收錄顏色', `${rows.length} 色`],
-        ['前五色合計', `${Math.round(shown.reduce((s, r) => s + r[1], 0))}%`],
-        ['主要色', describeHex(primary)],
-        ['色溫', TEMPERATURE_ZH[colorTemperature(primary)]],
+        ['輸入色', inputHex.toUpperCase()],
+        ['輸入色名', describeHex(inputHex)],
+        ['色溫', TEMPERATURE_ZH[colorTemperature(inputHex)]],
+        ['匹配距離 ΔE', match ? match.distance.toFixed(4) : '—'],
+        ['生成色數', `${rows.length} 色`],
+        ['種子落在', anchorStep ? `${anchorStep} 階` : '—'],
       ].map(([label, value]) => `
         <div class="cp-tile">
           <span class="cp-tile-label">${label}</span>
           <span class="cp-tile-value">${value}</span>
         </div>`).join('');
-
-      // Showcase. Rebuilt on every palette change (Pokémon switch, shiny
-      // toggle) because the whole point is that it wears THIS palette — the
-      // tab wiring is re-attached each time because innerHTML replaced the
-      // buttons, and the handlers live on the buttons.
-      els.showcase.innerHTML = showcaseHtml({
-        primary,
-        secondary,
-        scale,
-        stats: current.stats,
-        name: current.names.zh,
-        count: rows.length,
-        share: rows[0] ? rows[0][1] : 0,
-      });
-      wireShowcaseTabs(els.showcase);
-
-      els.themeCode.textContent = themeCss(current, rows, scale);
-
-      document.title = `${current.names.zh} 色盤 · 色彩生成器`;
     }
 
-    function themeCss(p, rows, scale) {
+    let currentScale = null;
+
+    function render() {
+      const matches = renderCandidates();
+      const m = currentMatch;
+      const p = m ? pokemon.find((x) => x.id === m.id) : null;
+
+      markCurrentPreset();
+      renderAlts();
+
+      const rows = generatedRows();
+      els.palette.innerHTML = paletteGridHtml(rows, { id: m ? m.id : 0, variant: 'n' });
+
+      // The provenance chip doubles as the link to this species' own palette page
+      // — which is where the measured palette lives now. This page generates, it
+      // does not report; the measured grid, the shade ramp and the component
+      // showcase were removed precisely because `color.html` already owns them and
+      // two copies of one species' palette is a duplication, not a comparison.
+      // Pointing the chip at `paletteUrl(p)` keeps the reciprocity §3.A requires
+      // rather than hand-assembling a `color.html?slug=` string here.
+      if (p) {
+        const chip = els.provenanceGenerated;
+        chip.innerHTML = '';
+        chip.style.setProperty('--chip', m.primaryHex);
+        const link = document.createElement('a');
+        link.className = 'cg-provenance-link';
+        link.href = paletteUrl(p);
+        link.textContent = `由輸入色生成 · ${p.names.zh} 的單一色盤頁`;
+        chip.appendChild(link);
+      }
+
+      // The ramp is still derived — from the INPUT colour, not the matched
+      // Pokémon's primary — because the export below ships it as eleven CSS
+      // variables. It is simply no longer drawn: a grid the reader cannot see and
+      // cannot copy from is not a section, it is a string builder with headings.
+      const { scale, anchor } = generateTailwindScale(inputHex);
+      currentScale = scale;
+
+      renderTiles(rows, m, anchor);
+
+      setStatus(
+        `已比對 ${matchIndexSize().toLocaleString('en-US')} 個實測色票` +
+        (matches.length ? `，最接近的是 ${p ? p.names.zh : ''}` : ''),
+        false
+      );
+
+      els.themeCode.textContent = themeCss(rows, scale);
+
+      document.title = `${inputHex.toUpperCase()} 生成色盤 · 色彩生成器`;
+    }
+
+    function themeCss(rows, scale) {
       const hexes = rows.map(r => r[0]);
       return [
-        '/* 由色彩生成器匯出 · #' + formatPokemonId(p.id) + ' ' + p.names.en + (shiny ? ' 異色' : '') + ' */',
+        '/* 由色彩生成器匯出 · 輸入色 ' + inputHex.toUpperCase() + (currentMatch
+          ? ' · 最接近 #' + formatPokemonId(currentMatch.id) : '') + ' */',
         ':root {',
-        ...Object.entries(scale).map(([step, hex]) => `  --cp-${step}: ${hex};`),
-        `  --cp-primary: ${hexes[0]};`,
-        `  --cp-secondary: ${hexes[1] || hexes[0]};`,
-        '  /* 完整色盤，依占比排序 */',
-        `  --cp-palette: ${hexes.join(', ')};`,
+        ...Object.entries(scale).map(([step, hex]) => `  --cg-${step}: ${hex};`),
+        `  --cg-primary: ${hexes[0]};`,
+        `  --cg-secondary: ${hexes[1] || hexes[0]};`,
+        '  /* 生成色盤，依序為輸入色與匹配寶可夢的實測色 */',
+        `  --cg-palette: ${hexes.join(', ')};`,
         '}',
       ].join('\n');
     }
 
-    // Copy-to-clipboard, delegated, for palette cells AND shade cells. Both carry
-    // data-cp-copy, so there is one handler rather than two that can drift.
+    // ---------------------------------------------------------------------
+    // Events
+    // ---------------------------------------------------------------------
+
+    // Delegated, because every one of these buttons is rebuilt on each render.
     document.addEventListener('click', async (event) => {
+      const seed = event.target.closest('[data-cg-seed]');
+      if (seed) {
+        // `data-cg-legend` means this cell named a species, not just a colour,
+        // so the species is pinned as well. See matchOf() for why loading the
+        // colour alone is not enough: #FFFFFF is 29 species' primary, and the
+        // reader who clicked Reshiram does not want Wingull.
+        const legendId = Number(seed.dataset.cgLegend);
+        if (legendId && applyHex(seed.dataset.cgSeed)) {
+          const pinned = matchOf(legendId, seed.dataset.cgSeed);
+          if (pinned) {
+            // `pinned: true` is what distinguishes "the reader named this" from
+            // "the matcher chose this", and it drives the winner card's eyebrow.
+            currentMatch = { ...pinned, pinned: true };
+            render();
+          }
+        }
+        return;
+      }
+      const pick = event.target.closest('[data-cg-pick]');
+      if (pick) {
+        const found = matchPokemon(inputHex, 5).find(m => m.id === Number(pick.dataset.cgPick));
+        if (!found) return;
+        // The distance is compared too, so a pick that is still in the list but
+        // has since re-ranked (the input changed) does not silently keep a stale
+        // reading on screen. See renderCandidates() for the companion rule.
+        if (currentMatch && currentMatch.id === found.id
+            && Math.abs(currentMatch.distance - found.distance) < 1e-9) return;
+        currentMatch = found;
+        render();
+        return;
+      }
+
+      // Shared with the palette grid and the shade ramp: both carry
+      // `data-cp-copy`, so one handler instead of two that can drift.
       const btn = event.target.closest('[data-cp-copy]');
       if (!btn) return;
       const value = btn.dataset.cpCopy;
       const ok = await copyText(value);
       if (ok) {
         btn.classList.add('is-copied');
-        const original = btn.querySelector('.cp-cell-hex, .cp-shade-hex');
+        const original = btn.querySelector('.cp-cell-hex');
         if (original) {
           const was = original.textContent;
           original.textContent = '已複製';
@@ -352,37 +943,45 @@
     });
 
     els.copyJson.addEventListener('click', async () => {
-      const rows = paletteRows(palettes, current.id, shiny);
-      await copyText(JSON.stringify({ id: current.id, variant: shiny ? 's' : 'n', palette: Object.fromEntries(rows) }, null, 2));
+      await copyText(JSON.stringify({
+        input: inputHex,
+        matched: currentMatch ? {
+          id: currentMatch.id,
+          deltaEOk: Number(currentMatch.distance.toFixed(6)),
+        } : null,
+        generated: Object.fromEntries(generatedRows()),
+        measured: currentMatch ? paletteOf(currentMatch.id) : null,
+        scale: currentScale,
+      }, null, 2));
       els.copyJson.textContent = '已複製';
       setTimeout(() => { els.copyJson.textContent = '複製 JSON'; }, 1400);
-    });
-
-    els.id.addEventListener('change', () => {
-      const id = clampId(els.id.value);
-      els.id.value = id;
-      current = pokemon.find(p => p.id === id) || pokemon[0];
-      render();
-    });
-
-    els.shiny.addEventListener('click', () => {
-      shiny = !shiny;
-      els.shiny.setAttribute('aria-pressed', String(shiny));
-      render();
     });
 
     async function init() {
       try {
         [pokemon, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        buildMatchIndex(palettes);
+        renderPresets();
+
+        // `?hex=` deep-links a colour; `?id=` / `?slug=` deep-link a Pokémon,
+        // whose primary then seeds the generator. Without the second form a
+        // shared "look at this palette" URL has nowhere to go on this page.
         const params = new URLSearchParams(location.search);
+        const fromHex = parseColorInput(params.get('hex') || '');
         const found = findBySlug(pokemon, params.get('slug'), params.get('id'));
-        current = found || pokemon[0];
-        els.id.value = current.id;
+        if (fromHex) {
+          inputHex = fromHex;
+        } else if (found) {
+          const rows = paletteRows(palettes, found.id, false);
+          inputHex = (rows[0] && rows[0][0]) || inputHex;
+        }
+        els.hex.value = inputHex;
+        els.color.value = inputHex;
         render();
       } catch (error) {
         // gotcha 23's lesson: a swallowed catch turns a real error into a page
         // that looks like a server problem. The message names the file.
-        els.status.textContent = '載入失敗，請確認是否以 HTTP 伺服器開啟（' + error.message + '）';
+        setStatus(`載入失敗，請確認是否以 HTTP 伺服器開啟（${error.message}）`, true);
         console.error(error);
       }
     }

@@ -449,6 +449,81 @@ const cases = [
       : undefined,
     expect: 'no polite sr-only live region',
   },
+  // --- The shade scale's three ramps --------------------------------------
+  //
+  // Each of these was a version of the section that rendered perfectly and said
+  // something the drawing did not support.
+  {
+    name: 'six ramps instead of three puts the three smallest swatches on the same footing as the primary',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('rows.slice(0, 3)', 'rows.slice(0, 6)')
+      : undefined,
+    expect: 'the shade scale renders exactly the top THREE palette colours',
+  },
+  {
+    // The one this group is really about. Every ramp is generated from the
+    // species' primary, so all three rows carry a ★ — three credible-looking
+    // rows, two of them marking a colour they are not showing.
+    name: 'every ramp seeded from the primary puts the same ★ on three rows claiming three colours',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('generateTailwindScale(seedHex)', 'generateTailwindScale(primary)')
+      : undefined,
+    expect: "no ramp is seeded from `primary`",
+  },
+  {
+    // The subtler version of the same defect: not `primary`, just not THIS
+    // row's colour — a stale index, or a colour hoisted out of the callback.
+    name: 'a ramp seeded from the first palette row instead of its own is the same lie with a different hex',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('generateTailwindScale(seedHex)', 'generateTailwindScale(rows[0][0])')
+      : undefined,
+    expect: "each row's ramp is seeded from that row's own hex",
+  },
+  {
+    // The seed bar is a colour chip with no text in it, so aria-label is the
+    // only thing that can name it.
+    name: 'a colour-only seed button with no accessible name is announced as "button"',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace(/\n\s*aria-label="複製色盤第 \$\{rank \+ 1\} 色 \$\{seedHex\}"/, '')
+      : undefined,
+    expect: 'the seed bar carries its own accessible name',
+  },
+  {
+    name: 'unstyled seed markup collapses the gutter the rows are read by',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-scale-seed {', '.cp-scale-seed-RENAMED {')
+      : undefined,
+    expect: 'the seed bar and its row gutter are styled',
+  },
+  {
+    name: 'stacking the rows with no gap of their own makes three ramps read as one 33-cell grid',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<div id="scale" class="cp-scale-stack">', '<div id="scale">')
+      : undefined,
+    expect: 'the rows are stacked with a gap of their own',
+  },
+  {
+    // The prose is the claim the reader checks the ★ against, and it is silent:
+    // the page draws three rows correctly and then says the ★ is the primary,
+    // which is one true sentence about two false ones.
+    name: 'prose that still calls the ★ the primary is false for two of the three rows',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('★ 標示的是該列色票本身', '★ 標示的是主要色本身')
+      : undefined,
+    expect: "the section's prose says the ★ marks THAT ROW's swatch",
+  },
+  {
+    // The one that actually shipped broken for an hour. `scale,` resolves to
+    // `window.scale` — the element with `id="scale"` — so nothing throws and
+    // every token collapses onto the primary; 「色彩美學」 ends up drawn in the
+    // primary on a primary background. A screenshot is the only thing that
+    // catches it, and only if you know what the card should look like.
+    name: 'the showcase handed a bare `scale` gets the <div id="scale"> instead of a ramp',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('scale: primaryScale,', 'scale,')
+      : undefined,
+    expect: 'the showcase generates its own ramp from `primary` and names it',
+  },
 ];
 
 console.log(`\n${cases.length} negative cases, each must exit non-zero AND name its reason\n`);

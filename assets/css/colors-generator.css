@@ -1,0 +1,726 @@
+/* colors.html —— 色彩生成器專屬樣式
+ *
+ * 為什麼獨立一個檔案：AGENTS.md §3.B2 記錄了「一個 page shell 內嵌、其餘元件
+ * 在 colors.css」的分工，但那是因為三個色頁共用元件。這個檔案是反向的 ——
+ * `cg-` 前綴的每一條規則**只有 colors.html 掛載**，放進 colors.css 會讓那個
+ * 檔案承擔一份它不該有的耦合，而 colors.css 已經 3,500 行了。
+ *
+ * 不動既有的 `.cp-section` / `.cp-prose` / `.cp-page` / `.cp-cell` / `.sc-*`：
+ * 那是 color.html 與 colors-explore.html 的基礎，check_color_page.mjs 釘死其中
+ * 數條規則的宣告，改動要連帶改 checker。這一頁的新東西全部長在 `cg-` 底下，
+ * color.html 一行不動。
+ *
+ * 這是一台「儀器」，不是一份「報告」。它與 color.html 最主要的分別在拓撲：
+ * color.html 開場是一隻 450px 的寶可夢（主角），這個頁面開場是一個色碼輸入
+ * 框（轉盤）—— 使用者先轉動，才會看到寶可夢。
+ */
+
+/* --------------------------------------------------------------------------
+   控制器 hero
+   全寬單欄。刻意不做兩欄：`.sc-*` 展示區有 95 個 class，`.cp-scale` 是 11 欄
+   網格，它們都是為全寬調的（見 colors.css:130-138 記錄的 viewport 斷點與
+   color.html 面板寬度的耦合）。右欄縮到 ~700px 會讓 11 階明暗階每格掉到 47px，
+   而一個壞掉的色階比一個沒有兩欄的頁面更糟。
+   -------------------------------------------------------------------------- */
+
+.cg-hero {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding: 24px;
+  margin-bottom: 8px;
+  background: var(--surface-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+/* 左欄：控制面板本體。 */
+.cg-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cg-field-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.cg-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* 原生 color 選擇器。它是這一頁唯一「不用解釋就知道怎麼用」的控制項，所以
+   尺寸給得比其他控制項大 —— 它是主動作，不是設定。 */
+.cg-color-input {
+  width: 62px;
+  padding: 0;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--bg-controls);
+  cursor: pointer;
+  flex: none;
+}
+
+.cg-color-input::-webkit-color-swatch-wrapper { padding: 4px; }
+.cg-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+.cg-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+
+.cg-hex-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  background: var(--bg-controls);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+}
+
+.cg-hex-input:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+/* 輸入無效時的狀態。用邊框而不是 `input:invalid` 的瀏覽器預設紅框：預設紅是
+   純色，不在 token 裡，而這頁的錯誤狀態需要與 `.cg-status` 的文字一致。
+ *
+ * `var(--error-text)`, NOT a raw hex — and this was a real defect, not a style
+ * preference. The first version hardcoded `#ff9b9f`, which measures 8.72:1 on
+ * the dark grounds and so looked fine in every screenshot taken in dark mode.
+ * In LIGHT it is **1.72:1** on `--bg-controls` (`#e9edf6`): a pale pink on a
+ * pale blue-grey, which is the 「太淡看不清楚」 the reader reported.
+ *
+ * `--error-text` is the token that already themes this: `#ff7a85` on dark
+ * (7.00:1) and `#b3261e` on light (5.57:1 on the same ground). Both are above
+ * 4.5:1 for text at the size this is set, and the second is a fixed raw hex
+ * removed from this file. */
+.cg-hex-input.is-invalid {
+  border-color: color-mix(in srgb, var(--error-text) 55%, var(--border-input));
+  color: var(--error-text);
+}
+
+/* 貼上任何東西（截圖取色器、Design 工具、另一個頁面的色碼）都要能用，所以
+   整個文件攔 paste，把第一個 hex 撈出來。這是這一頁存在的前提功能，不是
+   便利功能 —— 「貼上」是使用者的預設輸入方式。 */
+.cg-status {
+  min-height: 1.4em;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* The message needs to be legible, and it is also the only thing telling the
+   reader their input was not applied — so it goes one step above `--text-muted`
+   rather than sitting at it. `--error-text` themes with the page. */
+.cg-status.is-error {
+  color: var(--error-text);
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   封面傳說
+   24 隻，一排 8 個，共三排。八這個數字不是任選的：hero 的左欄只有 380px，
+   24 隻放不下；這一整段被移到 hero 外面、佔滿 1,180px 之後，8 欄剛好是每格
+   130px 出頭 —�� sprite 有地方擺、名字有地方讀。
+
+   每一格是「一張小封面」：sprite 坐在自己主色的淡底上，名與色碼寫在下面。
+   不用純色方塊，是因為純色方塊在這裡等於 24 塊看不出差異的色票，而封面寶可夢
+   的辨識度來自輪廓，不是來自顏色。
+   -------------------------------------------------------------------------- */
+
+.cg-presets {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cg-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+/* The wash is the species' own primary at 12%, plus a 4px bar of it at full
+ * strength along the top. The bar is what makes the grid read as a ranked list
+ * of colours at a glance; the wash is what keeps the sprite legible on it. */
+.cg-preset-wash {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 6px 6px 2px;
+  background:
+    linear-gradient(180deg, transparent 0%, transparent 62%),
+    var(--wash);
+  border-top: 4px solid var(--chip);
+}
+
+.cg-preset-sprite {
+  /* A percentage of the cell, not a pixel cap. At 1440px a cell is ~136px and a
+   * fixed 64px left ~36px of empty wash above the sprite, which read as a
+   * rendering fault rather than as air; at 800px the cell is 84px and 64px
+   * nearly fills it. Scaling with the cell is what makes the grid look the same
+   * at both widths. */
+  width: 76%;
+  max-width: 96px;
+  /* `height: auto` is load-bearing: the markup carries width/height attributes,
+   * so setting only the CSS width widened the sprite to 93px and left the height
+   * at 64 — a squashed, distorted sprite in every one of the 24 cells, which no
+   * dimension assertion would have called a bug. */
+  height: auto;
+  image-rendering: pixelated;
+  /* Lifted off the wash so a dark sprite on a dark species' wash still has an
+   * edge. The corpus holds four primaries under 5% lightness (#282d31,
+   * #26124d, #313139, #39394a), so this is not hypothetical. */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.cg-preset-body {
+  padding: 6px 8px 7px;
+  border-top: 1px solid var(--hairline);
+}
+
+.cg-preset-gen {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.cg-preset-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cg-preset-hex {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cg-preset-edition {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cg-preset:hover {
+  transform: translateY(-2px);
+  border-color: var(--hairline-strong);
+}
+
+.cg-preset:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* The cell whose colour is currently loaded. Same treatment as `.cg-alt`'s, so
+ * "already loaded" looks identical wherever the reader finds it. */
+.cg-preset.is-current {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px var(--accent-gold);
+}
+
+.cg-presets-note {
+  margin: 12px 0 0;
+  max-width: 68ch;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.cg-presets-note strong { color: var(--text-secondary); }
+
+.cg-presets-note code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--bg-controls);
+  color: var(--text-secondary);
+}
+
+/* 右欄：匹配結果。 */
+.cg-match {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* 匹配到的那一隻。sprite + 名字 + 距離，這是整個回答的核心，所以它比下面
+   那一列候選都大。 */
+.cg-winner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cg-winner-sprite {
+  width: 84px;
+  height: 84px;
+  image-rendering: pixelated;
+  flex: none;
+}
+
+/* The sprite and the strip side by side, wrapped in one figure.
+ *
+ * Wrapping is not decoration. As two siblings of the card, their width was
+ * decided by the card's row, and the card's row is sized by the species NAME —
+ * so 「無極汰那」 left the strip 168px and 「夢幻」 left it 60px, and a caption
+ * that changes size with its neighbour is not a caption. Inside a `flex: none`
+ * figure both keep their own width and only the text reflows.
+ *
+ * 64px for the strip is what is left: the hero's left column is 380px, the card
+ * takes 30px of padding, and 84 (sprite) + 64 (strip) + 26 (two gaps) leaves
+ * ~176px for the text — enough for a name at 22px and the ΔE line at 13px on two
+ * lines. Measured, not estimated: the body is 176px at this width and the ΔE
+ * line wraps rather than being clipped.
+ */
+.cg-winner-fig {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.cg-winner-strip {
+  width: 64px;
+  align-self: center;
+}
+
+/* The strip's own radius and height come from `.cp-idcard .cp-strip`'s sibling
+ * rule in colors.css, which is scoped to an identity card. This is a plain
+ * `.cp-strip` in a different box, so it needs its own: the segments have to
+ * meet the card's ground rather than float with the default pill radius. */
+.cg-winner-strip .cp-strip {
+  height: 40px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+
+/* At 64px across five segments there is room for proportions and no label, so
+ * the labels are dropped rather than shrunk to an illegible 7px. The
+ * `aria-label` on `.cp-strip` already carries the count, and the hex and share
+ * for every colour are one click away in 「換一個生成起點」 below. */
+.cg-winner-strip .cp-seg-hex,
+.cg-winner-strip .cp-seg-more {
+  display: none;
+}
+
+.cg-winner-body { min-width: 0; }
+
+.cg-winner-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 3px;
+}
+
+.cg-winner-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.cg-winner-name a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 2px solid var(--hairline-strong);
+}
+
+.cg-winner-name a:hover { border-bottom-color: var(--accent-gold); }
+
+/* 距離數字。它是一個**量測值**不是一個評分，所以用等寬字與小一點的字級 ——
+   避免它在視覺上贏過寶可夢的名字，那才是這格的主角。 */
+.cg-winner-delta {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.cg-winner-delta b {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 候選列。五格就是五隻不同的寶可夢 —— 索引只含一般外觀，所以不會有同一隻
+   以兩種身分各佔一格的情況。 */
+.cg-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cg-candidate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: border-color 0.12s ease;
+}
+
+.cg-candidate:hover { border-color: var(--hairline-strong); }
+.cg-candidate:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+.cg-candidate.is-active {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px var(--accent-gold);
+}
+
+.cg-candidate-thumb {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  flex: none;
+}
+
+.cg-candidate-body { min-width: 0; }
+
+.cg-candidate-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cg-candidate-meta {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   生成的替代色
+   匹配到的那隻寶可夢真的含有的六個顏色。點任何一格 → 用那個顏色重新生成。
+   這是「方便操作」的核心：使用者不必回頭去輸入框改字，而這六個顏色每一個
+   都是這隻寶可夢圖集裡真實存在的色，不是隨機的提議。
+   -------------------------------------------------------------------------- */
+
+.cg-alt-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.cg-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+
+.cg-alt:hover { transform: translateY(-2px); }
+.cg-alt:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.cg-alt.is-current {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px var(--accent-gold);
+}
+
+.cg-alt-chip {
+  height: 44px;
+  border-radius: 7px;
+  border: 1px solid var(--hairline);
+}
+
+.cg-alt-hex {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.cg-alt-share {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   生成結果 vs 實測對照
+   這兩段的視覺語言刻意不同，因為它們講的是兩件不同的事：上方是「從你輸入的
+   顏色推出來的」，下方是「從 96×96 圖集量出來的」。讓它們看起來一樣就是讓
+   讀者以為那是同一種東西。
+   -------------------------------------------------------------------------- */
+
+.cg-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  margin-bottom: 10px;
+}
+
+/* The mark is a 10px square of the species' OWN primary, not a gold dot.
+ *
+ * A gold dot on both chips says "this came from somewhere" twice and identifies
+ * nothing. A square of the colour the section is about says it once and
+ * identifies it — and it is checkable, because the same value is what
+ * `paletteGridHtml` puts in the first cell, so a chip that disagrees with the
+ * grid beside it is a bug rather than a matter of taste.
+ *
+ * The ring is not decoration: four of the 24 legendaries have a primary below
+ * 10% lightness (#282d31, #26124d, #313139, #39394a) and the measured section's
+ * own grounds are already pale, so an unruled swatch disappears. */
+.cg-provenance::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--chip, var(--text-muted));
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+  flex: none;
+}
+
+/* The chip is a link to this species' own palette page. Built by
+ * `paletteUrl()` like every other cross-page URL (§3.A) — never by hand. */
+.cg-provenance-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.cg-provenance-link:hover {
+  color: var(--text-primary);
+  border-bottom-color: currentColor;
+}
+
+.cg-provenance:has(.cg-provenance-link) {
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.cg-provenance:has(.cg-provenance-link):hover {
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+}
+
+.cg-provenance:has(.cg-provenance-link):focus-within {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+
+
+
+
+/* --------------------------------------------------------------------------
+   響應式
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .cg-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cg-hero { padding: 14px; }
+
+  .cg-winner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .cg-winner-sprite { width: 64px; height: 64px; }
+  .cg-winner-name { font-size: 19px; }
+
+  .cg-candidates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cg-alt-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Four across, not eight: a 390px viewport gives 48px a cell at eight, which
+   * fits a sprite and nothing else — the name and the hex would both ellipsis
+   * into uselessness. Six rows of four keeps both readable. */
+  .cg-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-preset,
+  .cg-alt { transition: none; }
+  .cg-preset:hover,
+  .cg-alt:hover { transform: none; }
+}
+
+@media print {
+  .cg-hero { break-inside: avoid; }
+  .cg-candidates { display: none; }
+  /* The 24 sprites are 24 network requests and the reader already has the
+   * colour in the hex line beside them. */
+  .cg-preset-sprite { display: none; }
+}
+
+
+/* The tie notice under a pinned species' ΔE. Smaller and quieter than the ΔE
+ * line above it: it is an aside explaining a number, not the number. The <b> is
+ * inline because wrapping "152 隻" mid-phrase would orphan it. */
+.cg-winner-delta + .cg-winner-delta {
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   輸入格式切換
+   一個欄位 + 一組 radio，不是三個欄位。三個欄位的問題不是空間，是「打完 RGB
+   的第一個數字就已經是合法的 R 了」—— 每一格都合法，於是每改一格就重新查詢
+   一次，而中間狀態是沒有意義的顏色。三格同步的代價是每次輸入都要判斷「這是
+   還在打，還是打完」，而那個判斷沒有乾淨的答案。
+
+   切換只改顯示（見 colors.html inputFormat 的說明）：HEX → HSL 不會讓顏色
+   動一下，因為 formatHex 的 HSL 是四捨五入的，來回轉一趟 #399494 會變成
+   #399393。
+   -------------------------------------------------------------------------- */
+
+.cg-formats {
+  display: flex;
+  flex: none;
+  padding: 2px;
+  background: var(--bg-controls);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+}
+
+.cg-format {
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.cg-format:hover { color: var(--text-primary); }
+
+.cg-format[aria-checked='true'] {
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+
+.cg-format:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+/* The live format note. Hidden until the field is unreadable — see
+ * `otherFormatsNote()` in colors.html for why it is not always on screen. */
+.cg-format-note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.cg-format-note[hidden] { display: none; }
+
+.cg-format-note code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  margin: 0 1px;
+  border-radius: 4px;
+  background: var(--bg-controls);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* The field gets narrower when the toggle appears beside it, so the readout of
+ * `rgb(57, 148, 148)` has to fit. 380px minus 62 picker, 10 gaps and 3 toggle
+ * buttons leaves ~190px, which is enough for `rgb(255, 255, 255)` at 15px mono. */
+.cg-hex-input { min-width: 0; }
+
+@media (max-width: 900px) {
+  /* Below two columns the toggle stops fitting beside the field, so it wraps
+   * onto its own row rather than squeezing both. */
+  .cg-input-row { flex-wrap: wrap; }
+  .cg-formats { order: 3; width: 100%; }
+  .cg-format { flex: 1 1 0; text-align: center; }
+  .cg-hex-input { flex: 1 1 140px; }
+}

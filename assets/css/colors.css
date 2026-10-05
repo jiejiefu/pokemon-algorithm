@@ -796,6 +796,61 @@
 }
 
 /* ---------------------------------------------------------------------------
+   3b. One ramp per measured colour (color.html only)
+   ---------------------------------------------------------------------------
+   color.html stacks three `.cp-scale` rows — the top three palette colours by
+   share, each seeded from its own hex — so the ramp needs a left gutter that
+   says which colour a row came from WITHOUT a text label. The seed is a 28px
+   column of that colour, stretched to the row's full height, so it reads as a
+   vertical bar echoing the ramp beside it.
+
+   The bar carries no text and therefore no contrast obligation; it is a swatch
+   with a border, exactly like `.cp-cell`, and it is a `<button>` because the
+   reader's first instinct on a colour chip is to copy it. 28px and not 22:
+   WCAG 2.2 SC 2.5.8 asks 24×24 CSS px of target, and a narrower bar clears it
+   on height alone.
+
+   `.cp-scale` itself is untouched, which is what keeps colors.html — one ramp,
+   no gutter — rendering from the same rule it always did.
+
+   Width arithmetic, because the seed is a new fixed-content track in a section
+   the 1024px breakpoint is sized against: 11 shade cells measured 574px of
+   min-content, so the row now measures 574 + 28 + 10 = 612px against a column
+   that is 696px at the 1024 viewport. The ramp is still the widest
+   fixed-content section in the column, so the breakpoint's arithmetic holds; a
+   6-digit hex below ~48px a cell is the thing that rule exists to prevent.
+
+   The stack carries the row gap, not the row: `.cp-scale`'s own 4px gap is
+   between cells INSIDE one ramp, so three ramps written back to back touch
+   each other and read as a 33-cell grid rather than three 11-cell ones.
+   ------------------------------------------------------------------------ */
+.cp-scale-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cp-scale-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+}
+
+.cp-scale-seed {
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.cp-scale-seed:hover,
+.cp-scale-seed.is-copied {
+  border-color: var(--accent-gold);
+}
+
+/* ---------------------------------------------------------------------------
    4. The generator page
    ------------------------------------------------------------------------ */
 .cp-picker {
