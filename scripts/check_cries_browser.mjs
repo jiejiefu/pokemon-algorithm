@@ -171,17 +171,59 @@ const scanInPage = (want) => `(async () => {
     }
     return { n, minX, maxX, above, below, w: c.width };
   };
-  const button = document.querySelector('#probe-play [data-play]');
-  if (button.getAttribute('aria-pressed') !== 'true') button.click();
-  let best = scan();
-  for (let i = 0; i < 60; i++) {
-    await wait(60);
-    const m = scan();
-    if (m.n > best.n) best = m;
-    if (m.n > 400) break;
+  /* Everything here RE-QUERIES the button, and that is the whole fix.
+   *
+   * renderProbe() writes #probe-play's innerHTML on every play and every stop
+   * (cries.html:496), so the node this script used to capture at its top is DETACHED
+   * by the time it clicked — autoplay is ON by default (§3.G), so the cry that was
+   * already sounding ended in the middle of the pre-click wait and replaced the
+   * button underneath us. A detached node does not bubble to the delegated listener
+   * on #probe-play (cries.html:812), so button.click() was a no-op: the 60 samples
+   * after it read aria-pressed=false and zero accent pixels for 1.28 s, every time.
+   *
+   * Nothing noticed, because the measurement did not require playback. The scan
+   * loop's first sample landed inside the *autoplay's* final frames, so the reported
+   * maxX was wherever that unrelated playback happened to be — 669 to 696 across
+   * runs, which is a 5%-wide band straddling the 95% threshold. That is the flake:
+   * not a tolerance problem, a control problem.
+   *
+   * So: wait for a settled stop, press play, CONFIRM it took, and only then sample.
+   */
+  const q = () => document.querySelector('#probe-play [data-play]');
+  const isPlaying = () => q().getAttribute('aria-pressed') === 'true';
+  for (let i = 0; i < 60 && isPlaying(); i++) await wait(50);
+  let started = false;
+  for (let i = 0; i < 20 && !started; i++) {
+    q().click();
+    await wait(40);
+    started = isPlaying();
   }
-  button.click();
-  return best;
+  /* TWO frames, and which one each assertion reads is the point.
+   *
+   *   fullest  the most accent ink — the last frame painted before the cursor is
+   *            cleared. Carries presence, anchoring and above/below, where more ink
+   *            is strictly better evidence.
+   *   earliest the FIRST frame carrying any accent. Carries the far-end claim: on
+   *            the fullest frame the playhead is at the end of the cry, so whether
+   *            the accent stops short of the last column is a coin flip, while on the
+   *            earliest frame ~95% of the canvas is unplayed and the answer does not
+   *            depend on when we looked. The early 'n > 400' break has to stay out:
+   *            it would end the sampling a few columns in and leave both frames the
+   *            same, which is the vacuous version of this assertion. */
+  let fullest = null, earliest = null;
+  for (let i = 0; i < 60; i++) {
+    const m = scan();
+    if (!fullest || m.n > fullest.n) fullest = m;
+    if (m.n > 0 && !earliest) earliest = m;
+    await wait(20);
+  }
+  if (isPlaying()) q().click();
+  return {
+    ...fullest,
+    started,
+    earliestMaxX: earliest ? earliest.maxX : -1,
+    earliestN: earliest ? earliest.n : 0,
+  };
 })()`;
 
 const probeId = await ev(`Number(document.getElementById('probe-meta').textContent.match(/#([0-9]{3,5})/)[1])`);
@@ -195,8 +237,14 @@ ok(split.n > 400,
   `the played region is painted in that colour, not left neutral (${split.n} pixels near rgb(${want}) of ${split.w} columns)`);
 ok(split.minX <= 2,
   `and it is anchored at the left edge, which is where a played region starts (leftmost at x=${split.minX})`);
-ok(split.maxX < split.w * 0.95,
-  `while the far end of the trace is still unplayed (accent stops at x=${split.maxX} of ${split.w})`);
+/* Read on the EARLIEST frame, which is where the unplayed region is most of the
+ * canvas. On the fullest frame this same code reported x=669 on an idle machine and
+ * x=696 under load — one green, one red, same commit — because there it was sampling
+ * the tail of an autoplay it had not started. */
+ok(split.started,
+  `pressing play starts playback — the click reaches the delegated handler (aria-pressed true)`);
+ok(split.earliestMaxX >= 0 && split.earliestMaxX < split.w * 0.95,
+  `while the far end of the trace is still unplayed (accent stops at x=${split.earliestMaxX} of ${split.w} on the first painted frame, n=${split.earliestN}; it reaches x=${split.maxX} by the last)`);
 ok(split.above > split.n * 0.35 && split.below > split.n * 0.35,
   `and it is the SAME waveform in another colour — ink above and below the zero line, not just the top (${split.above} / ${split.below} of ${split.n})`);
 
