@@ -50,12 +50,16 @@ AGENTS.md.bak
 .opencode/
 
 # IDE settings
+# The whole directory, not a whitelist of shared files. This repo is published, and
+# .vscode/ is where editor state ends up (tasks the author never meant to share,
+# launch configs with absolute paths, an extensions.json recommending the author's
+# toolchain). The one file that looked like a project artifact was settings.json,
+# pinning liveServer.settings.port to 5500 — but that port is Live Server's own
+# default, so nothing is actually lost by not tracking it, and CRY_PORT exists for
+# anyone running on a different port. Ignoring the directory leaves settings.json
+# working exactly as before; it just stops being shared.
 .idea/
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/tasks.json
+.vscode/
 
 # OS-generated files
 ._*
