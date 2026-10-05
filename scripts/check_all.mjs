@@ -686,6 +686,34 @@ const lastLine = (out) => {
 
 const secs = (s) => (s < 10 ? `${s.toFixed(1)}s` : `${Math.round(s)}s`);
 
+/**
+ * One line per manifest entry, whatever happened to it.
+ *
+ * Every branch that finishes an entry goes through here — five kinds of row, ok /
+ * FAIL / a cached skip / a skip that never had a server / the `▶` that precedes a
+ * run — because the time column is only readable if they all agree on where it
+ * starts, and five call sites each building their own padding is five chances for
+ * the table to drift.
+ *
+ * `detail` is PADDED but never sliced, and the difference is load-bearing: an
+ * `ok` line must fit 56 columns or the table loses its right edge, while a `skip`
+ * that names the Runtime Server rule has to keep that sentence whole, and
+ * truncating an instruction is how a reader ends up not knowing why a check did not
+ * run. Callers slice where they need to.
+ *
+ * The time column carries three different claims and they must not be confused:
+ *
+ *   6.0s          measured THIS run
+ *   last 6.0s     not run now; the number is the previous green run's, from the cache
+ *   -             never ran at all, so there is no measurement to report
+ *
+ * The third case is the one that used to be missing entirely: a skip printed the
+ * timestamp the entry was last written and nothing else, so a fully-cached run read
+ * as a list of timestamps rather than a list of checks with known costs.
+ */
+const row = (status, pad, detail, time, tail = '') =>
+  console.log(`  ${status.padEnd(5)} ${pad} ${String(detail).padEnd(56)} ${String(time).padStart(11)}${tail}`.trimEnd());
+
 /* ---------------------------------------------------------------------------
    --prove-inputs
    --------------------------------------------------------------------------- */
@@ -817,21 +845,31 @@ async function main() {
   const lib = libFiles();
   let ran = 0; let skipped = 0; let failed = 0; let budget = 0;
 
+  /* One legend for the whole table, because the time column mixes three different
+   * claims (this run / last run / never ran) and a bare `6.0s` next to a
+   * `last 6.0s` is otherwise a guess. The second line exists because the column
+   * does NOT add up: a cached skip's number is real but it was not paid for during
+   * this run, and the total below only sums what actually ran. */
+  console.log('  time: bare = measured this run   "last <n>s" = cached from the last green run   "-" = never ran');
+  console.log('        the final total adds up ran checks only');
+
   for (const c of selected) {
     const name = c.script.replace(/^scripts\//, '');
     const pad = name.padEnd(34);
 
     /* A manifest entry naming a script that is not there is a manifest bug — a
      * checker renamed, or an entry added ahead of the file. execFile would report it
-     * as an opaque ENOENT, so it is caught here with the one line that says which. */
+     * as an opaque ENOENT, so it is caught here with the one line that says which.
+     * `-` rather than a time because nothing ran: there is nothing to measure, and
+     * a zero here would read as a measurement. */
     if (!existsSync(join(ROOT, c.script))) {
-      console.log(`  FAIL  ${pad} listed in the manifest but not on disk`);
+      row('FAIL', pad, 'listed in the manifest but not on disk', '-');
       failed++;
       continue;
     }
 
     if (c.needsServer && !(await serverIsUp())) {
-      console.log(`  skip  ${pad} no server on :${port} — see the Runtime Server rule in AGENTS.md`);
+      row('skip', pad, `no server on :${port} — see the Runtime Server rule in AGENTS.md`, '-');
       skipped++;
       continue;
     }
@@ -844,27 +882,52 @@ async function main() {
     for (const extra of codeOf(c)) paths.add(extra);
     for (const l of lib) paths.add(l);
     if (paths.size === 0) {
-      console.log(`  FAIL  ${pad} no input file matched its globs — a renamed file would be a silent skip`);
+      row('FAIL', pad, 'no input file matched its globs — a renamed file would be a silent skip', '-');
       failed++;
       continue;
     }
     const key = keyOf(paths);
 
+    /* This is where the two silent quantities were. Expanding 1,674 roster globs and
+     * hashing them is not free, and it is not the checker either — which is why the
+     * skip row reports the CACHED cost of the last green run and says so, instead of
+     * either inventing a duration or claiming the hash time is the check's. */
     if (!opts.force && !opts.noCache && state[name] === key) {
-      console.log(`  skip  ${pad} inputs unchanged since ${String(state[`${name}@`]).slice(0, 16)}`);
+      const prior = state[`${name}~`];
+      /* `== null`, not Number(): Number(null) is 0 and Number(undefined) is NaN, so
+       * the obvious `Number(...)` prints `last 0.0s` for every entry written before
+       * durations were stored, which is a measurement that never happened. Every
+       * cached entry from an older run therefore reads `-` once, honestly. */
+      const cached = prior == null ? '-' : `last ${secs(Number(prior))}`;
+      row('skip', pad, `inputs unchanged since ${String(state[`${name}@`]).slice(0, 16)}`, cached);
       skipped++;
       continue;
     }
+
+    /* `execFile` buffers, so nothing appears until the child exits — which for
+     * `test_check_gen1_apu.mjs` is 34 s idle and 120 s measured on a loaded machine,
+     * i.e. a terminal that looks hung for either. The line names what is about to run
+     * and is replaced by the result line, so the run is never silent for longer than
+     * one check. */
+    row('▶', pad, 'running…', '');
 
     const r = await run(c.script);
     ran++;
     budget += r.s;
     if (r.code === 0) {
-      console.log(`  ok    ${pad} ${lastLine(r.out).slice(0, 56).padEnd(56)} ${secs(r.s).padStart(6)}${c.note ? `  [${c.note}]` : ''}`);
-      if (!opts.noCache) { next[name] = key; next[`${name}@`] = new Date().toISOString(); }
+      row('ok', pad, lastLine(r.out).slice(0, 56), secs(r.s), c.note ? `  [${c.note}]` : '');
+      /* The duration lives beside the key and the timestamp, and is written ONLY
+       * here — a FAIL never refreshes a cache entry, so the number a later skip
+       * reports is always from a green run. A duration remembered from a failing one
+       * would be the one number on the page that does not describe a passing check. */
+      if (!opts.noCache) {
+        next[name] = key;
+        next[`${name}@`] = new Date().toISOString();
+        next[`${name}~`] = r.s;
+      }
     } else {
       failed++;
-      console.log(`  FAIL  ${pad} ${lastLine(r.out).slice(0, 56)}  ${secs(r.s)}`);
+      row('FAIL', pad, lastLine(r.out).slice(0, 56), secs(r.s));
       const tail = r.out.trimEnd().split('\n').slice(-14).join('\n');
       console.log(tail.split('\n').map((l) => `        ${l}`).join('\n'));
     }
