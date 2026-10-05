@@ -189,16 +189,8 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 
 `node scripts/check_gen1_apu.mjs` (86 checks) and `node scripts/test_check_gen1_apu.mjs` (34 mutation cases) guard it. Sixteen of those cases failed when first written and **every one was a real gap rather than a bad expectation** — the mutation test is the reason this section exists, so read it before trusting any assertion here that "looks obviously true".
 
-**A case's `expect` must name the assertion that actually detects it, and the harness now enforces that.** This section's most important sentence is the one about output versus description, and the harness itself had the disease it warns about. A case declared `expect: 'never get one'`, which occurs in the description of a check that **passes** — and `out.includes(expect)` was therefore satisfied by a passing line, so nothing could tell whether the named detector had fired. Four cases were wrong in this way and all four passed for an accidental reason:
+**The mutation harness had the disease this section warns about, and the rule now lives in §4.** A case's `expect` must name the assertion that actually detects its mutation; four of the 34 did not, and every one of them passed for an accidental reason because the matcher asked only whether the text appeared *anywhere* in the checker's output — and a checker prints an assertion's description whether it passes or fails. The worst of them had been calling itself a timeline test for its whole life while being a waveform test. `scripts/lib/negative.mjs` now decides this for all ten negative suites, and §4 has the full table of what each case was actually detected by.
 
-| Case declared | Actually detected by | Why the declared one was blind |
-| :--- | :--- | :--- |
-| `never get one` | `within one 8-bit step` | the timeline calls `noiseOffset()` itself, so it cannot see a mutation to the **renderer's** call site — the two share one definition, which is the fix from the bullet above |
-| `clocks are the same at 65,536 Hz` | `the same grain at both rates` | `noiseClocks` reports Hz, and Hz is a property of the register not the output rate, so that equality holds **by design** even with the clock unscaled |
-| `Machop` | `Hz its register predicts` | a species name inside a passing check's description |
-| `byte-identical` | `Rhyhon do NOT` | occurs only in the two *passing* identical-pair checks |
-
-The rule is now that `expect` is matched against the checker's **FAIL lines only**, so a case cannot be satisfied by a check that passed. Tightening the matcher is what found all four; loosening it back would make every row above undetectable again. This is the same failure shape as the seven truncated species that were once recorded as a known set — a green test standing in for a claim nothing was checking.
 
 **Where the 34 cases' time goes, and the two structural fixes.** The checker's native-rate conformance loop is **4.8 s of its 6.5 s**, so:
 
@@ -250,6 +242,28 @@ The rule is now that `expect` is matched against the checker's **FAIL lines only
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic:
+
+**A negative test must name the assertion that actually catches its mutation, and `scripts/lib/negative.mjs` is the only thing that decides it.** Every `test_check_*.mjs` answers the same question — did this deliberate defect make the checker report the failure it was supposed to report? — and the obvious way to ask is `output.includes(expect)`. That is wrong, because a checker prints an assertion's description whether it PASSES or FAILS, so matching anywhere only asks "is this text present", which a case whose `expect` names a *different* assertion satisfies for free.
+
+`caughtBy(out, expect)` requires the string to appear inside a **failure report**: the `FAIL` line plus its indented continuation. The continuation matters — `eq()` prints the offending values on a `got:` line, and a case is allowed to name one of those. An earlier version matched the `FAIL` line alone and so rejected two perfectly good cases in `test_check_cry_features.mjs` that name the violated condition (`rms 1.23 > peak 0.61`, `centroid above Nyquist`) under a shared "physically possible" assertion. Matching the line alone would have had me "fix" two correct cases into wrong ones. **The rule is not "on the FAIL line", it is "not in a passing check's description".**
+
+Five cases across two suites were naming the wrong assertion and passing for an accidental reason:
+
+| Suite | Case declared | Actually detected by | Why the declared one was blind |
+| :--- | :--- | :--- | :--- |
+| `gen1_apu` | `never get one` | `within one 8-bit step` | the timeline calls `noiseOffset()` itself, so it cannot see a mutation to the **renderer's** call site — the two share one definition (§3.F) |
+| `gen1_apu` | `clocks are the same at 65,536 Hz` | `the same grain at both rates` | `noiseClocks` reports Hz, and Hz is a property of the register not the output rate, so that equality holds **by design** even with the clock unscaled |
+| `gen1_apu` | `Machop` | `Hz its register predicts` | a species name inside a passing check's description |
+| `gen1_apu` | `byte-identical` | `Rhyhon do NOT` | occurs only in the two *passing* identical-pair checks |
+| `gen1_cries` | `still exactly these six` | `implicitRet lists exactly the channels with no sound_ret` | the mutation drops a channel's commands but leaves the stored `implicitRet` field alone, so the check that pins the stored six names still passes |
+| `color_page` | `claimed by exactly one element` | `no page is claimed by a group with no row of its own` | deleting the row does not unclaim the page — the group still claims it, so the owner *count* is still one |
+
+Two of those exposed real defects in the checkers rather than in the tests, which is the point of the audit:
+
+- **`check_color_page.mjs` had a dead `bad` predicate.** The owner string is built as `` `${label} (group, no row)` ``, so it ends in a closing parenthesis, but the filter tested `endsWith('no row')` — which can never match. That check's detail was therefore permanently empty and it could only ever report the generic *"predicate disagrees with its own message"* fallback, which is the very outcome the `check()` guard exists to make visible. It was visible only as an absence.
+- **`check_color_page.mjs`'s `check()` dropped the description on failure**, printing only the detail. Every other checker prints the assertion's name when it fails, which is what makes a failure identifiable afterwards. It now prints `description — detail`.
+
+When a negative case fails after tightening, read the checker's own output before touching the expectation: the case may be mislabelled, or the checker may be reporting through the wrong assertion. Fixing the *expectation* to match a wrong checker is how a harness stops being evidence.
 
 ```bash
 # Verify color palette contracts & invariant guards
@@ -418,6 +432,7 @@ node scripts/check_cry_features.mjs
 
 - **No Push Without Explicit Permission**: Commit freely, but **never run `git push`** — not for a first push, not for a branch, not for a fix, not because CI is red. The remote is only pushed when the user says so in their own words, and a request to commit is not a request to push. When it is unclear whether more work is coming, assume it is and stay local. Check what is pending with `git log --oneline origin/<branch>..HEAD`.
 - **Atomic Commits**: Commit at the end of every coherent unit of work (e.g. one bug fix, one component layout, one page enhancement).
-- **Never Batch**: Do not lump multiple unrelated modifications into a single commit.
+- **Batch by direction, not by file**: One commit per *direction of change*, and a direction may legitimately touch several files — a fix plus the test that proves it, a refactor plus the docs that describe it, or one invariant tightened across every checker that enforces it. Splitting those apart produces a history where no commit is independently verifiable, which is the thing atomicity is for. Do not split work that only makes sense together, and do not merge work that could be reverted separately.
+- **The line is unrelatedness, not file count.** Lumping genuinely unrelated modifications together is still wrong — a colour-palette fix and a nav fix are two directions even if they land the same afternoon. But "one commit per file" and "one commit per hunk" are both wrong in the other direction: they bury each commit's intent in bookkeeping. When in doubt, ask whether reverting this commit alone would leave the repo coherent; if yes, it is its own commit, and if no, it belonged with whatever it is entangled with.
 - **Targeted Staging**: Stage only the specific files touched by the unit (`git add path/to/file`). Never use `git add -A` or `git add .` to avoid capturing untracked scratch files.
 - **Meaningful Messages**: State what changed, why, and any specific metrics or design choices involved.
