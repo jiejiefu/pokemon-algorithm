@@ -240,6 +240,12 @@ const clicked = await ev(`(async () => {
     resultShown: document.getElementById('of-result').hidden === false,
     chips: chips.map(b => ({ text: b.textContent.replace(/\\s+/g, ' ').trim(), on: b.classList.contains('is-on') })),
     winner: (document.querySelector('.of-winner-name') || {}).textContent,
+    links: [...document.querySelectorAll('.of-winner-links a')]
+      // String concatenation, not a template literal: this whole block is itself
+      // inside one, so a nested template would be interpolated by the OUTER one
+      // at module scope, where the loop variable does not exist.
+      .map((a) => a.textContent.trim() + ' -> ' + a.getAttribute('href')).join(' | '),
+    types: (document.querySelector('.of-winner-id') || {}).textContent,
     eyebrow: (document.querySelector('.of-winner-eyebrow') || {}).textContent,
     palette: [...document.querySelectorAll('#of-palette .cp-cell-hex')].map(n => n.textContent),
     scores: [...document.querySelectorAll('.of-winner-scores dd')].map(n => n.textContent.trim()),
@@ -259,6 +265,32 @@ ok(clicked.chips.length === 1 && /第 1 件/.test(clicked.chips[0].text),
 ok(clicked.chips[0] && clicked.chips[0].on, 'the single chip is the selected mode');
 ok(/單件衣物/.test(clicked.eyebrow || ''),
   `the winner card says which question it answered (${clicked.eyebrow})`);
+
+// The name, the type line and the links. All three were silently broken while
+// every number on the card was correct: `pokemon_data.json` nests every name
+// under `names` and has no `slug` field at all, so the card rendered the literal
+// text `undefined` in its largest type and linked to `detail.html?slug=undefined`.
+// Nothing above inspects any of them, which is why they needed their own
+// assertions rather than a wider look at the same card.
+ok(
+  clicked.winner && clicked.winner.trim() && clicked.winner.trim() !== 'undefined',
+  `the winner card names the species (${JSON.stringify((clicked.winner || '').replace(/\s+/g, ' ').trim())})`
+);
+ok(!/undefined/.test(clicked.links),
+  `and neither link carries an undefined value (${clicked.links})`);
+ok(
+  /^detail\.html\?slug=[a-z0-9-]+$/.test((clicked.links.match(/detail\.html\?slug=[^\s|]+/) || [''])[0]),
+  `the detail link is a real slug, built by pokemonDetailUrl rather than by hand (${clicked.links})`
+);
+ok(
+  /^color\.html\?slug=[a-z0-9-]+$/.test((clicked.links.match(/color\.html\?slug=[^\s|]+/) || [''])[0]),
+  'and the palette link is the canonical paletteUrl shape'
+);
+// `types_zh` is the Traditional Chinese list; `types` is the upstream English.
+ok(
+  !/\b(Grass|Poison|Water|Fire|Electric|Ice|Flying|Ground|Rock)\b/.test(clicked.types || ''),
+  `the type line is zh-TW, not the upstream English (${(clicked.types || '').replace(/\s+/g, ' ').trim()})`
+);
 ok(clicked.palette.length === 6, `six colours come out of one click (${clicked.palette.length})`);
 ok(/^#[0-9a-f]{6}$/.test(clicked.palette[0] || ''), `and they are hexes (${clicked.palette[0]})`);
 ok(clicked.scores.length === 4, `four numbers are shown: score, both directions, and the primary (${clicked.scores.length})`);
@@ -292,6 +324,85 @@ const track = await ev(`(() => {
 })()`);
 ok(!track.overlap,
   `the sprite's track does not overlap the photo, so it cannot cover the reader (${track.cols}, ${track.partW}px beside ${track.photoW}px)`);
+
+// The photo must be a REASONABLE size and the sprite must be NEAR it. Both were
+// wrong at once: an uncapped `minmax(0, 1fr)` track gave a 384x512 working canvas
+// a 1141x1521 display box, and the sprite — bottom-aligned against a 1521px row
+// — ended up more than a thousand pixels from the person, which is the opposite
+// of "standing beside you".
+//
+// The gap is the claim, not the absolute positions: it is what makes "beside"
+// measurable. It is allowed to grow on narrow viewports, where the two stack
+// instead, so it is asserted against the two columns being side by side at all.
+const geometry = await ev(`(() => {
+  const photo = document.querySelector('.of-photo').getBoundingClientRect();
+  const part = document.getElementById('of-partner').getBoundingClientRect();
+  const stacked = getComputedStyle(document.querySelector('.of-stage')).gridTemplateColumns.split(' ').length === 1;
+  return {
+    photoW: Math.round(photo.width), photoH: Math.round(photo.height),
+    partW: Math.round(part.width),
+    gap: Math.round(part.left - photo.right),
+    stacked,
+    footAligned: Math.abs(part.bottom - photo.bottom),
+  };
+})()`);
+ok(geometry.stacked || geometry.photoW <= 560,
+  `the photo is displayed at a sane width rather than filling the viewport (${geometry.photoW}px wide, ${geometry.photoH}px tall)`);
+ok(geometry.stacked || geometry.gap < 600,
+  `and the sprite stands beside it, not in the far corner (${geometry.gap}px away)`);
+ok(geometry.stacked || geometry.footAligned <= 4,
+  `with its feet level with the photo's bottom edge, which is what makes it read as standing (${geometry.footAligned}px off)`);
+
+// --- the photo is actually VISIBLE -----------------------------------------
+//
+// The blank-photo bug: `shared.css` styles every `canvas` with an opaque
+// `background-color: var(--bg-primary)`, and the marks overlay is an absolutely
+// positioned canvas sitting directly on top of the photo. It therefore painted the
+// page background over the picture.
+//
+// Every other assertion in this file passed while the page was blank, because the
+// photo canvas really did hold the right pixels — `getImageData` returned them,
+// the palette came out correct, and clicks landed where they should. A correct
+// backing store with nothing on screen is the signature of an element painted over
+// a working one, so the check has to be about COMPUTED STYLE, not about pixels.
+const overlay = await ev(`(() => {
+  const marks = document.getElementById('of-marks');
+  const cs = getComputedStyle(marks);
+  const photo = document.getElementById('of-canvas');
+  const pr = photo.getBoundingClientRect();
+  const mr = marks.getBoundingClientRect();
+  return {
+    background: cs.backgroundColor,
+    shadow: cs.boxShadow,
+    covers:
+      mr.width >= pr.width - 1 && mr.height >= pr.height - 1
+      && mr.left <= pr.left + 1 && mr.top <= pr.top + 1,
+    transparent: cs.backgroundColor === 'rgba(0, 0, 0, 0)' || cs.backgroundColor === 'transparent',
+  };
+})()`);
+ok(overlay.transparent,
+  `the marks overlay paints no background over the photo (${overlay.background}) — shared.css gives every canvas a background, and the overlay is a canvas`);
+ok(overlay.shadow === 'none',
+  `and no drop shadow either, which would draw a rectangle edge over the picture (${overlay.shadow})`);
+ok(overlay.covers, 'the overlay does sit exactly over the photo, so the two assertions above are about the right element');
+
+// And the photo canvas itself must hold the picture, by ALPHA rather than by
+// "is it black" — a blank canvas is transparent.
+const painted = await ev(`(() => {
+  const c = document.getElementById('of-canvas');
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let opaque = 0, colours = new Set();
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    opaque++;
+    if (i % 4000 === 0) colours.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2]);
+  }
+  return { opaque, colours: colours.size, total: c.width * c.height };
+})()`);
+ok(painted.opaque === painted.total,
+  `the photo canvas is fully painted, not transparent (${painted.opaque}/${painted.total} opaque)`);
+ok(painted.colours > 1,
+  `and carries more than one colour, so the decode really drew the image (${painted.colours} distinct)`);
 
 // --- the marks canvas has ink ---------------------------------------------
 

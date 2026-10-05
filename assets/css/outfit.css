@@ -84,13 +84,24 @@
    The stage: photo on the left, the Pokémon on the right
    --------------------------------------------------------------------------- */
 
-/* Two tracks, and the second one is sized by its content. The photo cannot be
-   squeezed out of existence by a long species name because it is the track with
-   `minmax(0, 1fr)` and `min-width: 0`; the sprite's column is `auto`. */
+/* Two tracks, and the second one is sized by its content.
+ *
+ * The first track is CAPPED at 480px, and that cap is not cosmetic. It was
+ * `minmax(0, 1fr)` first, which on a 1400px viewport handed a 384x512 working
+ * canvas a 1141x1521 display box: a 3x upscale of a picture already too big to
+ * read, which then pushed the sprite — bottom-aligned against a 1521px row —
+ * more than a thousand pixels away from the person. "Standing beside you" needs
+ * the two to be near each other, and no amount of correct colour fixes a sprite
+ * stranded in the far corner.
+ *
+ * 480px is chosen because a 3:4 portrait then displays at 480x640, which fits a
+ * laptop viewport without scrolling and leaves the sprite within a few hundred
+ * pixels of the subject's lower half. */
 .of-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 480px) auto;
   align-items: end;
+  justify-content: start;
   gap: 1.2rem;
   margin: 1.2rem 0;
 }
@@ -112,11 +123,27 @@
 
 /* The overlay carries the marks. `pointer-events: none` is what routes every
    click through to the photo canvas underneath, so there is exactly one click
-   target and no coordinate maths has to account for a second listener. */
+   target and no coordinate maths has to account for a second listener.
+
+   **The three resets below are load-bearing, and the page is blank without them.**
+   `shared.css` has a bare `canvas { background-color: var(--bg-primary);
+   box-shadow: 0 0 25px …; border-radius: … }`, so an absolutely-positioned
+   overlay canvas inherits an OPAQUE page-coloured background and paints it over
+   the photo underneath. The failure is nasty precisely because everything else
+   works: the photo canvas has the correct pixels in its backing store,
+   `getImageData` returns them, the sampling produces exactly the right palette,
+   every click lands where it should — and the reader sees a blank rectangle.
+
+   Resetting here rather than by scoping the shared rule is the §3.B1 rule
+   applied to `canvas`: shared.css is loaded by every page on the site and its
+   `canvas` rule is what maze.html and the cry pages want. */
 .of-marks {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .of-photo-cap {
@@ -155,10 +182,11 @@
   text-align: center;
 }
 
-@media (max-width: 560px) {
-  /* Below this the two tracks are narrower than the sprite is legible at, so it
-     goes under the photo and becomes full-width. The order is photo first
-     because the photo is what the reader is looking at. */
+@media (max-width: 620px) {
+  /* Below this the two tracks together are narrower than the sprite is legible
+     at, so it goes UNDER the photo. The order is photo first because the photo
+     is what the reader is looking at, and `auto-placement` puts it there without
+     an explicit `order`. */
   .of-stage { grid-template-columns: minmax(0, 1fr); }
   .of-partner { max-width: none; align-self: center; }
   .of-partner-img { width: min(56vw, 240px); }

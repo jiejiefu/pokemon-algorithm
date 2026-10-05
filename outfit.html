@@ -171,6 +171,7 @@
     // error a reader would see. Check the import list, not the exports.
     import {
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+      pokemonDetailUrl,
     } from './assets/js/shared.js';
     import {
       loadColorPalettes, artworkUrl, paletteGridHtml, paletteUrl,
@@ -571,9 +572,28 @@
       </p>`;
     }
 
+    /**
+     * A species' official zh-TW name, or its dex number when the record is
+     * missing.
+     *
+     * `names.zh` is the field, and there is no `zh` and no `name` on this record
+     * — `pokemon_data.json` nests every name under `names`. An earlier version
+     * read `p.zh || p.name`, both undefined on every one of the 1,025, so the
+     * winner card rendered the literal string `undefined` in its largest type
+     * while the ΔE underneath it was correct. Nothing in the browser checker
+     * looked at the name, which is why it passed.
+     *
+     * Falls back to `#0001` rather than to an empty span: a card with no name is
+     * worse than a card that says which number it could not name.
+     */
+    function speciesOf(id) {
+      return pokemon.find((x) => x.id === id) || null;
+    }
+
     function speciesName(id) {
-      const p = pokemon.find((x) => x.id === id);
-      return p ? (p.zh || p.name) : `#${formatPokemonId(id)}`;
+      const p = speciesOf(id);
+      const zh = p && p.names && p.names.zh;
+      return zh || `#${formatPokemonId(id)}`;
     }
 
     function renderWinner() {
@@ -584,8 +604,13 @@
       }
       const m = currentWinner;
       const name = speciesName(m.id);
-      const record = pokemon.find((x) => x.id === m.id);
-      const types = record && Array.isArray(record.types) ? record.types : [];
+      const record = speciesOf(m.id);
+      // `types_zh` is the Traditional Chinese type list; `types` is the upstream
+      // English one. Both exist, and the page is zh-TW, so the Chinese is what a
+      // reader sees.
+      const types = record && Array.isArray(record.types_zh) && record.types_zh.length
+        ? record.types_zh
+        : [];
 
       els.winner.innerHTML = `
         <div class="of-winner-card">
@@ -609,7 +634,7 @@
               可以零懲罰地贏下任何同色系的穿搭。
             </p>
             ${record ? `<p class="of-winner-links">
-              <a href="detail.html?slug=${escapeHtml(record.slug)}">完整資料頁</a>
+              <a href="${pokemonDetailUrl(record)}">完整資料頁</a>
               <a href="${paletteUrl(record)}">單一色盤</a>
             </p>` : ''}
           </div>
@@ -636,7 +661,7 @@
       // which is not a link, and the absence is visible instead of clickable.
       els.candidates.innerHTML = all.map((m) => {
         const name = speciesName(m.id);
-        const record = pokemon.find((x) => x.id === m.id) || null;
+        const record = speciesOf(m.id);
         const on = currentWinner && m.id === currentWinner.id;
         const tag = record ? 'a' : 'span';
         const href = record ? ` href="${paletteUrl(record)}"` : '';
@@ -976,7 +1001,7 @@
       }
       document.documentElement.dataset.outfitReady = '1';
       els.photoCap.textContent =
-        `點照片上的一件衣服。圓盤會把邊緣像素丢掉 —— 黃色的點是我們真的拿去做比較的像素。`;
+        `點照片上的一件衣服。圓盤會把邊緣像素丟掉 —— 黃色的點是我們真的拿去做比較的像素。`;
     }
 
     init();
