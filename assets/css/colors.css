@@ -1271,12 +1271,14 @@
   font-weight: 700;
   letter-spacing: 0.5px;
 }
-.cp-menu-swatch-share {
-  font-size: 11px;
-  opacity: 0.8;
-  font-family: var(--font-sans);
-  margin-left: 4px;
-}
+/* The copy button carries no chip of its own. It sits on a swatch that is
+   already the Pokémon colour, so a grey button behind a grey icon is a grey
+   blob on top of the one thing the row is there to show — and `color: inherit`
+   means the icon would have to fight that fill for contrast anyway. The row
+   itself is the click target (`data-cp-copy` is on .cp-menu-swatch), so the
+   button is a redundant affordance rather than the only one, and it can afford
+   to be just the glyph. Hover is a scale, not a fill — see the note on opacity
+   below for why a fade is not available here. */
 .cp-menu-swatch-copy {
   display: inline-flex;
   align-items: center;
@@ -1284,14 +1286,25 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.15);
+  background: none;
   border: none;
+  box-shadow: none;
+  padding: 0;
   cursor: pointer;
   color: inherit;
-  transition: background 0.15s;
+  /* No opacity here. The glyph is a UI component, so it owes 3:1 against its
+     swatch, and at 0.65 it measured 2.03 on #837300, 3.23 on #394152 and 1.44
+     on #c50039 — the icon went invisible on exactly the three rows that are
+     most saturated, which is where a copy affordance matters most. It inherits
+     the same colour as the hex value beside it, so at full opacity it has the
+     contrast that value already has: 4.75 to 14.29 across these six rows.
+     Hover is a scale, not a fade, so the affordance is still there and no
+     contrast is traded for it. */
+  transition: transform 0.15s;
 }
-.cp-menu-swatch-copy:hover {
-  background: rgba(0, 0, 0, 0.25);
+.cp-menu-swatch-copy:hover,
+.cp-menu-swatch-copy:focus-visible {
+  transform: scale(1.12);
 }
 
 /* Forms & Evolution Tab */

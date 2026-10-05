@@ -414,18 +414,20 @@
       els.panel.style.setProperty('--menu-accent-text', lum > 0.55 ? '#111827' : '#ffffff');
 
       // 5. Palette Tab swatches
-      els.menuSwatches.innerHTML = rows.map(([hex, share]) => {
+      /* No share on these rows. The rail is a picker — six rows of "click to
+         copy this value" — and the share is already on the swatch list in the
+         info section below, where it is the point of the row rather than a
+         second reading of the same number the reader is already scanning. */
+      els.menuSwatches.innerHTML = rows.map(([hex]) => {
         const text = formatHex(hex, format);
-        const tip = `${text} · 占比 ${Math.round(share)}%`;
         return `
-          <div class="cp-menu-swatch" style="${swatchStyle(hex)}" data-cp-copy="${text}" title="${tip}">
+          <div class="cp-menu-swatch" style="${swatchStyle(hex)}" data-cp-copy="${text}" title="${text}">
             <div class="cp-menu-swatch-left">
               <svg class="cp-menu-swatch-grip" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/>
                 <circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
               </svg>
               <span class="cp-menu-swatch-val">${text}</span>
-              <span class="cp-menu-swatch-share">${Math.round(share)}%</span>
             </div>
             <button type="button" class="cp-menu-swatch-copy" title="複製 ${text}" aria-label="複製 ${text}">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
