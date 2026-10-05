@@ -11,12 +11,18 @@
  * reference project's Canvas `getImageData` scan; it is not what produced this
  * file, and its >5%-share rule is not the rule being guarded here.
  *
- * It deliberately does NOT re-derive the palettes. Node has no PNG decoder and
- * the file this guards is a *measurement*, so a re-implementation would only
- * assert that two transcriptions of the same idea agree -- which is a comment
- * about the transcription, not about the images. What is worth checking here is
- * the contract the pages rely on, plus the invariants a silent drift would
- * break.
+ * It deliberately does NOT re-derive the palettes. That is not because it
+ * cannot -- `scripts/lib/png.mjs` now decodes the sprites and
+ * `scripts/check_outfit_page.mjs` regenerates all 2,050 of them exactly -- but
+ * because the two files answer different questions. This one guards the
+ * CONTRACT the three colour pages rely on: the roster, the share-sum invariant,
+ * the five-colour exceptions, the shiny rules. The other guards whether
+ * `assets/js/mmcq.js` still agrees with `extract_color_palettes_mmcq.py`, which
+ * is a statement about a transcription and has no meaning here. Keeping them
+ * apart means neither one has to carry the other's argument.
+ *
+ * What is worth checking here is the contract the pages rely on, plus the
+ * invariants a silent drift would break.
  *
  * The one invariant that catches an algorithm swap rather than a data edit is
  * the share-sum. Because a share belongs to a *colour* (counted from the global

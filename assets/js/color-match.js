@@ -359,3 +359,155 @@ export function matchPokemon(hex, n = 5) {
  * 三個平方、三次相加與一次 sqrt。實測本機約 0.15 ms，遠低於一幀的預算，所以
  * 頁面不需要 debounce，`input` 事件可以逐格回應。
  */
+
+// ---------------------------------------------------------------------------
+// 六色對六色：outfit.html 的問題
+// ---------------------------------------------------------------------------
+
+/**
+ * 找出與一整個六色色盤最接近的 n 隻寶可夢。
+ *
+ * 這個函式回答的問題和 `matchPokemon()` 不是同一個。那個是一次一個 hex：給我
+ * 一個顏色，我找主色離它最近的。這個是一個**色盤**對一個色盤：穿搭有六個顏色，
+ * 寶可夢有六個顏色，兩邊都是 `extract_color_palettes_mmcq.py` 用同一套演算法
+ * 量出來的 5-bit 直方圖分割結果，所以形狀可以直接比較。
+ *
+ * **距離定義為雙向、占比加權的 Chamfer 距離。** 對每隻寶可夢 `g`：
+ *
+ *     forward = Σ_i out_i.share × min_j ΔE(out_i, g_j)   / Σ out.share
+ *     reverse = Σ_j g_j.share  × min_i ΔE(g_j, out_i)   / Σ g.share
+ *     score   = (forward + reverse) / 2
+ *
+ * 四個詞每一個都有一個會回傳**合理列表**的錯誤版本，所以每一個都值得寫下來：
+ *
+ * 1. **兩個方向都要。** 單向的 `forward` 問的是「這隻寶可夢的六色能不能蓋住這套
+ *    穿搭」。答案是能 —— 連續調的一組褐色就能完美蓋住任何褐色穿搭而**零懲罰**，
+ *    不管那六個褐色彼此多不像。`reverse` 補的是反過來問的版本：「這套穿搭的
+ *    六色能不能蓋住這隻的六色」，於是一隻塞滿無關顏色的寶可夢要付代價。兩者
+ *    平均之後，兩邊的形狀都必須對得上才會贏。
+ *
+ * 2. **占比要加權。** 色盤的 share 是這個顏色的實際份量，不是它在列表裡的順位。
+ *    加權之後主色自然吃最多權重（妙蛙種子主色 35.73%，而它第六色不到 2%），所以
+ *    **不需要另外加一條「主色更重要」的規則** —— 規則越少，可寫錯的地方越少。
+ *
+ * 3. **兩邊都要正規化。** `color_palettes.json` 的占比中位數只有 71.96% 而最小
+ *    34.68%，那是正確的（六色是一份樣本，沒被報出來的像素輸掉了分區）。所以
+ *    分母不能用常數 100，也不能只用其中一邊的總和：否則讀者的穿搭和寶可夢的
+ *    色盤就是在用兩把不同的尺子比較。`check_outfit_page.mjs` 用 90/10 與 0.9/0.1
+ *    斷言兩者排名完全相同。
+ *
+ * 4. **排序最後一定要落到 id。** 語料裡到處是重複的色票，`#ffffff` 是 29 隻的
+ *    主色，沒有最後這個決定性項，同分順序就是 `Map` 的插入順序 —— 穩定，但是
+ *    沒有意義，而讀者會看到兩次跑出不同順序。
+ *
+ * **回傳的紀錄刻意沒有 `distance` 與 `secondaryDistance`。** 那兩個欄位在
+ * `matchPokemon()` 的意思是「輸入色到主色 / 附色的 ΔE」，而這裡沒有單一輸入色：
+ * 把它們填成「主色的 ΔE」會讓一個沒有參與決策的數字看起來像決策本身。這個函式
+ * 給 `score`，並且把 `forward` 與 `reverse` 一起交出來 —— 頁面可以把兩個方向都
+ * 顯示出來，而「為什麼是牠」就變成一個讀者可以自己看的算式。
+ *
+ * 只索引一般外觀（`n`），異色（`s`）不參與，理由與 `buildMatchIndex()` 相同：
+ * 異色是同一隻寶可夢的另一個樣子，讓它報名等於讓一隻用兩個身分參賽，而穿搭頁要
+ * 回答的是「這套穿搭像哪一隻」。
+ *
+ * 效能：每隻寶可夢要做 6×K + K×6 次 ΔE（K 是查詢色盤的顏色數），K=6 時約 72 次，
+ * 乘 1,025 隻約 74,000 次 ΔE。實測約 2–4 ms，比 `matchPokemon()` 慢一個數量級
+ * —— 這是查色盤而不是查一個 hex 的必然代價。它仍然遠低於「按一下按鈕」的心理
+ * 預期，所以頁面不需要 debounce，但**不該**綁在 `input` 事件上。
+ *
+ * @param {Array<{hex: string, share: number}>} rows 查詢色盤，形狀同 `paletteOf()`
+ * @param {number} n 回傳幾隻
+ * @returns {Array<{rank:number,id:number,score:number,forward:number,reverse:number,
+ *                  primaryHex:string,primaryShare:number,colorCount:number}>}
+ */
+export function matchPalette(rows, n = 5) {
+  const input = [];
+  for (const row of rows || []) {
+    const h = Array.isArray(row) ? row[0] : row && row.hex;
+    const s = Array.isArray(row) ? row[1] : row && row.share;
+    const lab = hexToOklab(h);
+    if (!lab) continue;
+    input.push({ hex: String(h).toLowerCase(), lab, share: typeof s === 'number' && s > 0 ? s : 0 });
+  }
+  if (!input.length) return [];
+  if (!groups) {
+    if (!index) return [];
+    buildGroups();
+  }
+
+  // 正規化：查詢側一次算完，索引側每隻算一次。
+  const outTotal = input.reduce((a, r) => a + r.share, 0);
+  if (!(outTotal > 0)) {
+    // 全是 0 占比（沒有占比資料的輸入）時退回等權，讓函式仍然回答問題，而不是
+    // 因為分母是 0 就靜靜地回傳一個 NaN 排名。
+    for (const r of input) r.share = 1;
+  }
+  const outSum = input.reduce((a, r) => a + r.share, 0);
+
+  const scored = [];
+  for (const g of groups.values()) {
+    const colours = [g.primary];
+    if (g.secondary) colours.push(g.secondary);
+    for (const e of g.rest) colours.push(e);
+
+    const inTotal = colours.reduce((a, e) => a + (e.share > 0 ? e.share : 0), 0);
+    if (!(inTotal > 0)) continue;
+
+    // forward：每個查詢色，找寶可夢六色裡最近的一個。
+    let forward = 0;
+    for (const o of input) {
+      let best = Infinity;
+      for (const e of colours) {
+        const d = deltaEOk(o.lab, e.lab);
+        if (d < best) best = d;
+      }
+      forward += o.share * best;
+    }
+    forward /= outSum;
+
+    // reverse：同一個算式，方向對調。見細節 1 —— 少了這一項，連續調的一組褐色
+    // 可以零懲罰地蓋住任何褐色穿搭。
+    let reverse = 0;
+    for (const e of colours) {
+      let best = Infinity;
+      for (const o of input) {
+        const d = deltaEOk(o.lab, e.lab);
+        if (d < best) best = d;
+      }
+      reverse += (e.share > 0 ? e.share : 0) * best;
+    }
+    reverse /= inTotal;
+
+    scored.push({
+      g,
+      score: (forward + reverse) / 2,
+      forward,
+      reverse,
+      colorCount: colours.length,
+    });
+  }
+
+  scored.sort((a, b) => (
+    a.score - b.score
+    || a.forward - b.forward
+    || a.reverse - b.reverse
+    || a.g.id - b.g.id
+  ));
+
+  const limit = Math.max(1, n);
+  const out = [];
+  for (let i = 0; i < scored.length && out.length < limit; i++) {
+    const s = scored[i];
+    out.push({
+      rank: out.length,
+      id: s.g.id,
+      score: s.score,
+      forward: s.forward,
+      reverse: s.reverse,
+      primaryHex: s.g.primary.hex,
+      primaryShare: s.g.primary.share,
+      colorCount: s.colorCount,
+    });
+  }
+  return out;
+}

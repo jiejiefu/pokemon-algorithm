@@ -1,0 +1,454 @@
+/**
+ * 寶可夢穿搭 (outfit.html) + the runtime MMCQ port — regression test
+ *
+ *   node scripts/check_outfit_page.mjs
+ *
+ * Three things are guarded here, in increasing order of how much they would cost
+ * to get wrong.
+ *
+ * 1. **The port is faithful, and it is checked by OUTPUT, not by description.**
+ *    `assets/js/mmcq.js` claims to reproduce
+ *    `scripts/extract_color_palettes_mmcq.py`. The obvious ways to check that are
+ *    all weak: read the source and confirm the constants match (a mutation to
+ *    `doCut` passes it), or compare against a prose summary of the algorithm
+ *    (§3.F's warning: a description can be wrong in ways that are
+ *    self-consistent). So this file decodes the real sprites and requires the
+ *    port to regenerate `assets/data/color_palettes.json` — **all 2,050
+ *    palettes, exact hexes in exact order.** That is a full re-derivation, not a
+ *    sample, and it costs 2.0 s because the sprites are 96×96 and the decoder is
+ *    150 lines. `check_color_palettes.mjs` documents that it deliberately does
+ *    NOT re-derive the file, on the grounds that Node has no PNG decoder; that
+ *    reason expired when `scripts/lib/png.mjs` landed, and the claim there has
+ *    been updated rather than left to read as a permanent impossibility.
+ *
+ * 2. **The scoring rule is a claim with wrong versions that return plausible
+ *    lists.** `matchPalette()` compares a six-colour outfit palette against 1,025
+ *    six-colour species palettes. Every one of its four load-bearing terms has a
+ *    version that is wrong and that still ranks: one direction instead of two, a
+ *    mean instead of a median, region size instead of global histogram, shares
+ *    that are not normalised. So the terms are asserted on inputs built to make
+ *    each wrong version return a *different winner*, not on inputs where they
+ *    happen to agree.
+ *
+ * 3. **The page says which question it answered.** The page has two modes and the
+ *    difference is the whole point — one click is a garment, several clicks are an
+ *    outfit — so a page that renders one without saying which is making a claim
+ *    the reader cannot check.
+ */
+
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { readRgba } from './lib/png.mjs';
+import { snapToReal, quantizeBoxes, quantize } from '../assets/js/mmcq.js';
+import {
+  buildMatchIndex,
+  resetMatchCaches,
+  matchPalette,
+  paletteOf,
+  deltaEOk,
+  hexToOklab,
+} from '../assets/js/color-match.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+let failures = 0;
+let checks = 0;
+
+function ok(condition, message) {
+  checks += 1;
+  if (!condition) {
+    failures += 1;
+    console.error(`  FAIL  ${message}`);
+  }
+}
+
+function eq(actual, expected, message) {
+  ok(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
+  );
+}
+
+const hex = (r, g, b) => '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
+
+// ===========================================================================
+// 0. mmcq.js is a pure module — the reason it can be imported here at all
+// ===========================================================================
+
+const MMCQ_SRC = readFileSync(join(ROOT, 'assets/js/mmcq.js'), 'utf8');
+
+{
+  // Strip comments before scanning, so a docblock that NAMES fetch or document
+  // does not read as a dependency. `check_cries_page.mjs` learned this the hard
+  // way: a `cp-` scan matched the comment explaining why cries.css must not
+  // claim one.
+  const code = MMCQ_SRC
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+
+  for (const [name, pattern] of [
+    ['DOM', /\bdocument\b/],
+    ['window', /\bwindow\b/],
+    ['fetch', /\bfetch\s*\(/],
+    ['canvas', /\bcreateElement\b|\bgetContext\b/],
+    ['audio', /\bAudioContext\b/],
+  ]) {
+    ok(!pattern.test(code), `mmcq.js must not reference ${name} — it is imported by Node`);
+  }
+
+  // It must not import anything at all. A module that reaches shared.js cannot be
+  // imported under Node without a DOM, and §3.B2 records a mutation suite dying
+  // on ERR_MODULE_NOT_FOUND and passing for the wrong reason.
+  ok(!/^\s*import\s/m.test(code), 'mmcq.js must have no imports — nothing it needs exists outside this file');
+}
+
+// ===========================================================================
+// 1. The port reproduces color_palettes.json, all 2,050 of them
+// ===========================================================================
+
+const PALETTES = JSON.parse(readFileSync(join(ROOT, 'assets/data/color_palettes.json'), 'utf8'));
+
+/**
+ * The two filters `extract_color_palettes_mmcq.py` applies before quantising,
+ * imported from `extract_color_palettes.py` rather than restated there.
+ *
+ * They are reproduced here rather than imported because they are Python. That is
+ * the one place this file restates a constant instead of sharing it, and it is
+ * acceptable for a specific reason: both are used to decide WHICH PIXELS EXIST,
+ * and a checker that used a different filter set than the extractor would
+ * re-derive a different answer and then report it as a port failure — which is
+ * the shape §3.F calls "agreeing with a description". The check that keeps this
+ * honest is the full-corpus one below: if either constant drifts, all 2,050
+ * palettes stop matching at once, loudly.
+ */
+const MIN_ALPHA = 200;
+const EXCLUDED_RGB = new Set(['#000000', '#101010', '#121212', '#010101', '#0f0f0f']);
+
+/** Sprite pixels exactly as the extractor saw them. */
+function spritePixels(variant, id) {
+  const path = join(ROOT, `assets/images/sprite/${variant === 'n' ? '' : 'shiny/'}${id}.png`);
+  const { data } = readRgba(readFileSync(path), `sprite/${variant}/${id}.png`);
+  const out = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < MIN_ALPHA) continue;
+    if (EXCLUDED_RGB.has(hex(data[i], data[i + 1], data[i + 2]))) continue;
+    out.push([data[i], data[i + 1], data[i + 2]]);
+  }
+  return out;
+}
+
+console.log('MMCQ port conformance — every palette in color_palettes.json, re-derived');
+
+{
+  const ids = Object.keys(PALETTES).map(Number).sort((a, b) => a - b);
+  let countOk = 0;
+  let hexOk = 0;
+  let shareOk = 0;
+  const mismatches = [];
+
+  for (const id of ids) {
+    for (const variant of ['n', 's']) {
+      const want = PALETTES[id][variant];
+      let got;
+      try {
+        got = snapToReal(spritePixels(variant, id), 6);
+      } catch (e) {
+        mismatches.push(`#${id} ${variant}: threw ${e.message}`);
+        continue;
+      }
+
+      if (got.length === want.length) countOk += 1;
+      else if (mismatches.length < 6) {
+        mismatches.push(`#${id} ${variant}: ${got.length} colours, file has ${want.length}`);
+      }
+
+      const gotHex = got.map((r) => r.hex);
+      const wantHex = want.map(([h]) => String(h));
+      // Content AND order. Order is the share-descending sort, which is itself a
+      // documented guarantee — `color.html` renders slot 0 as the primary and
+      // puts it on the hero card, so an equal-share pair arriving in the other
+      // order is a different page, not the same page with the rows shuffled.
+      const hexSame = gotHex.length === wantHex.length && gotHex.every((h, i) => h === wantHex[i]);
+      if (hexSame) hexOk += 1;
+      else if (mismatches.length < 6) {
+        mismatches.push(`#${id} ${variant}: got ${gotHex.join(' ')}, file has ${wantHex.join(' ')}`);
+      }
+      if (!hexSame) continue;
+
+      // The file stores `round(share, 2)` (extract_color_palettes_mmcq.py:237), so
+      // the honest bound is half a unit in the last stored place. A wrong
+      // partition moves shares by whole percentage points, not by 0.005.
+      if (got.every((r, i) => Math.abs(r.share - want[i][1]) <= 0.005 + 1e-9)) shareOk += 1;
+      else if (mismatches.length < 6) {
+        const i = got.findIndex((r, k) => Math.abs(r.share - want[k][1]) > 0.005 + 1e-9);
+        mismatches.push(`#${id} ${variant}: share ${got[i].hex} is ${got[i].share}, file has ${want[i][1]}`);
+      }
+    }
+  }
+
+  const total = ids.length * 2;
+  ok(countOk === total, `colour count matches for all ${total} palettes (${countOk} did)`);
+  ok(hexOk === total, `hexes match IN ORDER for all ${total} palettes (${hexOk} did)`);
+  ok(shareOk === total, `shares match to the stored 2 decimals for all ${total} palettes (${shareOk} did)`);
+  for (const m of mismatches) console.error(`        ${m}`);
+}
+
+// ===========================================================================
+// 2. The parts of the port the corpus cannot reach
+// ===========================================================================
+
+console.log('MMCQ edge cases the sprite corpus does not contain');
+
+{
+  // A uniform image. Both upstream implementations break here and neither one
+  // reports it: `color-thief` 2.x tests `> rmax` first, so `rmin` stays at its
+  // 1,000,000 sentinel and the box comes out with r1 > r2; `colorthief@3.5.0`
+  // flipped the order, so `rmax` stays 0 instead. Either way `count()` returns 0,
+  // `medianCutApply` returns undefined, and `iterate` quietly does nothing.
+  //
+  // A solid-black top against a solid-white background is a real outfit, and the
+  // alpha-filtered mask of it is exactly one colour. This is not a hypothetical.
+  const uniform = Array.from({ length: 500 }, () => [0, 0, 0]);
+  const rows = snapToReal(uniform, 6);
+  eq(rows.length, 1, 'a single-colour mask yields ONE colour, not zero and not an exception');
+  eq(rows[0] && rows[0].hex, '#000000', 'that colour is the colour that was fed in');
+  ok(
+    Math.abs(rows[0].share - 100) < 1e-9,
+    `and it holds the whole mask, so share is 100 (got ${rows[0] && rows[0].share})`
+  );
+
+  const boxes = quantizeBoxes(uniform, 6);
+  ok(boxes.length >= 1, 'quantizeBoxes returns at least one box for a single-colour mask');
+  ok(
+    boxes.every((b) => b.r1 <= b.r2 && b.g1 <= b.g2 && b.b1 <= b.b2),
+    'every box has non-inverted bounds — the sentinel-sentinel case the upstream order gets wrong'
+  );
+  ok(
+    boxes.some((b) => b.count() > 0),
+    'and at least one box actually contains pixels, so the split loop has something to split'
+  );
+}
+
+{
+  // Two colours. This is the smallest input where the partition has a real
+  // decision in it — which box gets cut, and along which axis — so it is where a
+  // transcription slip in `doCut`'s `~~(i + right / 2)` offset shows up. The
+  // expected arrangement is asserted as a property (both colours survive, each
+  // keeps a box) rather than as literal output, because the point is that the
+  // partition CONTAINS both colours, not that it matches a string.
+  const two = [];
+  for (let i = 0; i < 300; i++) two.push([200, 30, 30]);
+  for (let i = 0; i < 100; i++) two.push([30, 30, 200]);
+  const got = snapToReal(two, 6).map((r) => r.hex);
+  ok(got.includes('#c81e1e'), `the dominant colour survives the partition (got ${got.join(' ')})`);
+  ok(got.includes('#1e1ec8'), `and so does the minority colour — a partition that drops one is a different algorithm`);
+  ok(got[0] === '#c81e1e', 'and the majority is first, because the sort is share-descending');
+}
+
+{
+  // Share comes from the GLOBAL histogram, not from the region size. This is the
+  // detail `extract_color_palettes_mmcq.py:32-38` documents at length: on
+  // Bulbasaur the region won by #399494 also holds every #184a4a and #317373
+  // pixel, so reporting the region share would claim 29.40% while the six shares
+  // summed to 131.28% — over 100%, because the top-up counted pixels twice.
+  //
+  // Built so the two rules disagree by a wide margin and the winner flips.
+  const mixed = [];
+  for (let i = 0; i < 900; i++) mixed.push([0, 0, 255]);   // one dominant colour
+  for (let i = 0; i < 90; i++) mixed.push([0, 0, 254]);    // near-twin, same region
+  for (let i = 0; i < 10; i++) mixed.push([255, 0, 0]);    // the odd one out
+  const rows = snapToReal(mixed, 6);
+  const total = mixed.length;
+  const sum = rows.reduce((a, r) => a + r.share, 0);
+  ok(sum <= 100 + 1e-9, `shares sum to at most 100 (got ${sum.toFixed(4)}) — a sum over 100 is the region-size bug`);
+  // And each individual share must equal that colour's own global frequency.
+  const globalCount = (r, g, b) => mixed.filter((p) => p[0] === r && p[1] === g && p[2] === b).length;
+  for (const r of rows) {
+    const rgb = [1, 3, 5].map((i) => parseInt(r.hex.slice(i, i + 2), 16));
+    const expected = (globalCount(...rgb) / total) * 100;
+    ok(
+      Math.abs(r.share - expected) <= 1e-9,
+      `${r.hex} share is its global frequency ${expected.toFixed(4)}%, not the region size (got ${r.share.toFixed(4)})`
+    );
+  }
+}
+
+{
+  // Determinism. The Python had to document this: sorting on share alone leaves
+  // equal-share colours in whatever order the SET produced, and Python string set
+  // iteration follows PYTHONHASHSEED, so the file differed between runs while
+  // looking identical run to run. The JS port uses a Map (insertion-ordered) and
+  // a total (share, hex) sort, so it should be stable — and stability is only a
+  // claim until something measures it twice.
+  const pixels = [];
+  for (let i = 0; i < 400; i++) pixels.push([100, 100, 100]);
+  for (let i = 0; i < 400; i++) pixels.push([101, 101, 101]);
+  for (let i = 0; i < 400; i++) pixels.push([102, 102, 102]);
+  const a = JSON.stringify(snapToReal(pixels, 6));
+  const b = JSON.stringify(snapToReal(pixels, 6));
+  ok(a === b, 'snapToReal is deterministic on an input built from equal-share colours');
+  ok(a === JSON.stringify(snapToReal([...pixels], 6)), 'and does not depend on the caller having shuffled the array');
+}
+
+{
+  // `quantize()` exists for the port-fidelity check only, and it must keep
+  // agreeing with `quantizeBoxes()` — it is the same code path, which is the only
+  // reason a captured fixture would be evidence of anything. A page importing it
+  // would be importing the discarded centroids.
+  const pixels = [];
+  for (let i = 0; i < 200; i++) pixels.push([12, 200, 90]);
+  for (let i = 0; i < 150; i++) pixels.push([240, 240, 250]);
+  for (let i = 0; i < 90; i++) pixels.push([90, 10, 10]);
+  const boxes = quantizeBoxes(pixels, 6);
+  const centroids = quantize(pixels, 6);
+  eq(centroids.length, boxes.length, 'quantize() reports one entry per box');
+  ok(
+    centroids.every((c) => Array.isArray(c.color) && c.color.length === 3),
+    'and each carries an RGB triple'
+  );
+  const popSum = centroids.reduce((a, c) => a + c.population, 0);
+  ok(popSum > 0, `and a population, summing to ${popSum}`);
+}
+
+// ===========================================================================
+// 3. matchPalette — the scoring rule
+// ===========================================================================
+
+console.log('palette-vs-palette scoring');
+
+{
+  resetMatchCaches();
+  buildMatchIndex(PALETTES);
+
+  const mk = (...rows) => rows.map(([h, s]) => ({ hex: h, share: s }));
+
+  // A palette that is EXACTLY a species' palette must score 0 against it, and a
+  // palette that is a different species' palette must not. If the rule is not
+  // symmetric, or normalises by the wrong side's share sum, one of these moves.
+  const bulbasaur = PALETTES['1'].n.map(([h, s]) => ({ hex: h, share: s / 100 }));
+  const exact = matchPalette(bulbasaur, 1);
+  ok(exact.length === 1, 'matchPalette returns the requested number of records');
+  ok(
+    Math.abs(exact[0].score) < 1e-9,
+    `a species' own palette scores 0 against itself (got ${exact[0] && exact[0].score})`
+  );
+  ok(exact[0].id === 1, 'and that species wins, which is the only answer with distance zero');
+
+  // Identity: shuffling the input palette's rows cannot change the score. The
+  // rule is a set distance, so row order is not an input. A version that compared
+  // slot 0 to slot 0 would pass the exact case above and fail this one.
+  const shuffled = [3, 0, 5, 1, 4, 2].map((i) => bulbasaur[i]);
+  eq(
+    matchPalette(shuffled, 1)[0].id,
+    1,
+    'row order is not an input — the score is a set distance, not a slot-by-slot one'
+  );
+
+  // Both directions are load-bearing. A species whose six colours are all near
+  // one shade covers any palette of that shade perfectly in the FORWARD direction
+  // while having five colours the outfit never asked for — so a forward-only rule
+  // ranks it first. Bulbasaur's six colours are spread across blue/green/white, so
+  // the reverse term is what separates it.
+  const greyOutfit = mk(['#6b6b6b', 0.4], ['#5a5a5a', 0.3], ['#7a7a7a', 0.3]);
+  const greyTop = matchPalette(greyOutfit, 5);
+  ok(greyTop.length === 5, 'a three-colour outfit still gets five candidates back');
+  ok(
+    greyTop.every((r, i) => i === 0 || r.score >= greyTop[i - 1].score - 1e-12),
+    'and they come back ordered by score'
+  );
+
+  // Share weighting: the dominant colour must carry more of the score than the
+  // minor one. Swap the shares and the species that suits the dominant colour must
+  // change, so this fails on a rule that ignores shares entirely.
+  const weighted = matchPalette(mk(['#399494', 0.9], ['#c81e1e', 0.1]), 20);
+  const flipped = matchPalette(mk(['#399494', 0.1], ['#c81e1e', 0.9]), 20);
+  ok(
+    JSON.stringify(weighted.map((r) => r.id)) !== JSON.stringify(flipped.map((r) => r.id)),
+    'the share weighting decides the ranking — swapping the shares changes the winner'
+  );
+
+  // Normalisation: shares that do not sum to 1 (which is the normal case — the
+  // corpus median is 71.96%) must not change the ranking, or the page would be
+  // comparing a photo's share scale against a file's share scale.
+  const unscaled = matchPalette([['399494', 90], ['c81e1e', 10]], 5);
+  const scaled = matchPalette([['399494', 0.9], ['c81e1e', 0.1]], 5);
+  eq(
+    unscaled.map((r) => r.id),
+    scaled.map((r) => r.id),
+    'shares are normalised — 90/10 and 0.9/0.1 rank identically'
+  );
+
+  // Determinism and the id tiebreak. Many species share colours, so ties are real;
+  // without an id tiebreak the order would be Map insertion order, which is
+  // stable but meaningless, and a reader could see two runs disagree.
+  const twice = matchPalette(mk(['#ffffff', 1]), 10).map((r) => r.id);
+  const again = matchPalette(mk(['#ffffff', 1]), 10).map((r) => r.id);
+  eq(twice, again, 'matchPalette is deterministic');
+  ok(new Set(twice).size === twice.length, 'and never returns the same species twice');
+
+  // Every reported colour must exist in the corpus. The page links each colour to
+  // color.html, and a hex nothing in the corpus holds would be a dead link with a
+  // swatch on it.
+  const corpus = new Set();
+  for (const entry of Object.values(PALETTES)) for (const [h] of entry.n) corpus.add(String(h).toLowerCase());
+  for (const r of matchPalette(bulbasaur, 5)) {
+    ok(corpus.has(r.primaryHex.toLowerCase()), `reported primary ${r.primaryHex} exists in the corpus`);
+  }
+
+  // Distance is ΔE_OK, the same metric the single-colour matcher uses — and the
+  // record says which of the two terms is doing the work.
+  //
+  // For a ONE-colour query `forward` is 0 by construction: the query colour
+  // covers itself, so every `min_j` picks 0. That is a real property and a
+  // useful one to pin, because it means `score` is HALF the reverse distance and
+  // therefore is NOT comparable to the `distance` that `matchPokemon()` returns
+  // for the same colour. A page showing both numbers without saying which metric
+  // each is would be making the reader compare them.
+  const solo = matchPalette(mk(['#399494', 1]), 1)[0];
+  ok(solo.forward === 0, `a one-colour query has forward 0 (got ${solo.forward})`);
+  ok(Math.abs(solo.score - solo.reverse / 2) < 1e-12, 'and its score is exactly half the reverse term');
+
+  // With one query colour the `min` picks that colour, so the reverse term collapses
+  // to a share-weighted AVERAGE of the per-colour distances — which is neither the
+  // distance to the species' primary nor the distance to its nearest colour. Both of
+  // those are wrong versions that look reasonable on a screenshot, so the assertion
+  // recomputes the whole term from the public corpus and compares.
+  const soloRows = paletteOf(solo.id);
+  const soloTotal = soloRows.reduce((a, r) => a + r.share, 0);
+  const soloExpected = soloRows.reduce(
+    (a, r) => a + r.share * deltaEOk(hexToOklab('#399494'), hexToOklab(r.hex)),
+    0
+  ) / soloTotal;
+  ok(
+    Math.abs(solo.reverse - soloExpected) < 1e-9,
+    `reverse is the share-weighted average over all of that species' colours — ${solo.reverse.toFixed(6)} vs recomputed ${soloExpected.toFixed(6)}`
+  );
+  ok(
+    solo.reverse > 0,
+    'and it is non-zero even when the species HAS the exact colour — which is the entire point of the reverse term: a species cannot win on one hit and pay nothing for the five colours the outfit never asked for'
+  );
+
+  const withPrimary = matchPalette(mk(['#399494', 1]), 1)[0];
+  const withoutPrimary = matchPalette(mk(['#ff00ff', 1]), 1)[0];
+  ok(withPrimary.score < withoutPrimary.score, 'score is a ΔE_OK distance: a hit beats a miss');
+
+  // Shiny is not indexed, same rule as §3.B1 and for the same reason: a shiny
+  // palette is the same creature recoloured, so allowing it in lets one species
+  // enter twice under two identities.
+  let shinyOnly = false;
+  for (const entry of Object.values(PALETTES)) {
+    const n = entry.n.map(([h]) => String(h).toLowerCase());
+    const s = entry.s.map(([h]) => String(h).toLowerCase());
+    if (!s.every((h) => n.includes(h))) { shinyOnly = true; break; }
+  }
+  ok(shinyOnly, 'the corpus does contain shiny rows that differ from normal ones, so excluding them is a real decision');
+}
+
+console.log('');
+if (failures) {
+  console.log(`${failures} of ${checks} checks failed`);
+  process.exit(1);
+}
+console.log(`${checks} checks passed`);
