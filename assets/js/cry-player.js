@@ -122,6 +122,23 @@ export class CriesPlayer {
   #unlockPromise = null;
   #current = null;
   #stopped = null;
+  /**
+   * Spectrum tap, hung off the shared gain node. Created lazily in `unlock()`.
+   *
+   * It sits AFTER the gain rather than before it, and that placement is the
+   * point: a reader who mutes the player sees the live curve go flat, which is a
+   * measurement of something true rather than a bug to work around. It also means
+   * the curve shows the default 3/15 level, a constant -14 dB on every band,
+   * which is a uniform offset the page's own axis absorbs.
+   *
+   * Nothing downstream of it is audible even when it is running — see the
+   * `spectrum()` docblock.
+   */
+  #analyser = null;
+  /** Reused output array for `spectrum()`. Allocated once, never reallocated. */
+  #bins = null;
+  /** Sources started with `overlap: true` and not yet ended. See `play()`. */
+  #overlapping = new Set();
 
   /**
    * Decoded buffers, keyed by `${legacy ? 'legacy' : 'latest'}:${id}`.
@@ -183,19 +200,55 @@ export class CriesPlayer {
   get playing() { return this.#current !== null; }
 
   /**
-   * Create or resume the AudioContext. Safe to call repeatedly; must be reachable
-   * from inside a user gesture on the first call, which `play()` arranges by
-   * calling it before any `await`.
+   * Create the AudioContext WITHOUT resuming it.
+   *
+   * Split out from `unlock()` because resuming needs a user gesture and creating
+   * does not, and `decodeAudioData` is perfectly happy on a suspended context.
+   * Conflating them meant every DECODE required a gesture, which is how
+   * `spectrum.html` came to sit on 「計算中…」 forever: `decoded()` reached
+   * `#load`, which called `unlock()`, which awaited a `resume()` that no gesture had
+   * unblocked — so the page's hero, a pure computation, was gated behind an audio
+   * permission the reader may never grant.
+   *
+   * Nothing else changes. `play()` still awaits `unlock()`, so playback still resumes
+   * first and still fails loudly rather than starting suspended.
    */
-  async unlock() {
+  #ensureContext() {
     if (!this.#ctx) {
       const Ctor = window.AudioContext || window.webkitAudioContext;
       if (!Ctor) throw new Error('Web Audio is unavailable in this browser');
       this.#ctx = new Ctor();
       this.#gain = this.#ctx.createGain();
       this.#gain.connect(this.#ctx.destination);
+      this.#analyser = this.#ctx.createAnalyser();
+      // 2048 rather than 512, and the difference is resolution, not cost. The
+      // spectrogram on `spectrum.html` uses a 512-point transform, but this one
+      // sees the signal at the DEVICE rate — 48 kHz — where 512 bins is 93.75 Hz
+      // apart and the lowest mel band, 50 to about 150 Hz, would be one bin wide.
+      // At 2048 the spacing is 23.4 Hz and the 26 mel triangles each get several
+      // bins to average over.
+      this.#analyser.fftSize = 2048;
+      // 0.3, low enough that a note attack is visible as a spike rather than
+      // smeared across three frames. The offline spectrogram on the same page
+      // smooths over 25 ms; this one over 42.7 ms at 48 kHz, and the page says so
+      // rather than implying the two are the same measurement.
+      this.#analyser.smoothingTimeConstant = 0.3;
+      this.#analyser.minDecibels = -100;
+      this.#analyser.maxDecibels = -10;
+      this.#gain.connect(this.#analyser);
+      this.#bins = new Float32Array(this.#analyser.frequencyBinCount);
       this.#applyGain();
     }
+    return this.#ctx;
+  }
+
+  /**
+   * Create or resume the AudioContext. Safe to call repeatedly; must be reachable
+   * from inside a user gesture on the first call, which `play()` arranges by
+   * calling it before any `await`.
+   */
+  async unlock() {
+    this.#ensureContext();
     if (this.#ctx.state === 'suspended') await this.#ctx.resume();
     return this.#ctx;
   }
@@ -212,7 +265,10 @@ export class CriesPlayer {
   async probeSupport() {
     if (this.#support) return this.#support;
     try {
-      await this.unlock();
+      /* `#ensureContext`, not `unlock`: asking whether this browser can decode is not
+       * a request to make a sound, and a page that probes on load would otherwise sit
+       * unresolved on every visit until the reader clicked something. */
+      this.#ensureContext();
       const result = await this.#load(PROBE_ID, { legacy: false });
       this.#support = result.error
         ? { supported: false, reason: 'decode-failed' }
@@ -231,6 +287,20 @@ export class CriesPlayer {
    * `rate` is a playback rate, so `0.5` is half speed and an octave down — which
    * is how the sorting race makes a list audible, and how the cry browser lets a
    * reader hear a similarity match as a transposition.
+   *
+   * `overlap` lets a second cry start WITHOUT cutting the first one off, and is
+   * what makes a per-swap sound possible at all. The default is `false`, which
+   * keeps the one-at-a-time behaviour every existing caller was written against
+   * — on cries.html pressing play while something is sounding should switch to
+   * it, not layer on top of it.
+   *
+   * The reason it is an option here and not a second player module: sorting.html
+   * triggers a cry every few milliseconds at speed, and re-pointing one
+   * `<audio>` element's `src` that often audibly clicks, while stopping and
+   * restarting a BufferSource turns the run into a stutter of 12ms fragments.
+   * Two copies of a player would also mean two mute paths and two volume
+   * preferences, and they would drift apart invisibly — the failure mode
+   * `cry-autoplay.js` is one module precisely to avoid.
    */
   /**
    * `onStart` is called the instant the source starts, with the decoded duration
@@ -243,14 +313,14 @@ export class CriesPlayer {
    * The player owns the AudioContext, so it is also the only place that can read
    * that clock. Callers that pass no callback are unaffected.
    */
-  async play(id, { legacy = false, rate = 1, volume, onStart } = {}) {
+  async play(id, { legacy = false, rate = 1, volume, overlap = false, onStart } = {}) {
     if (!this.has(id, { legacy })) {
       throw Object.assign(new Error(`no ${legacy ? 'legacy' : 'latest'} cry for id ${id}`),
         { reason: 'missing' });
     }
     // Before the first await, so this still runs inside the click that started it.
     await this.unlock();
-    await this.stop();
+    if (!overlap) await this.stop();
 
     const { buffer, error } = await this.#load(id, { legacy });
     if (error) {
@@ -278,9 +348,149 @@ export class CriesPlayer {
     const startedAt = ctx.currentTime;
     source.start();
 
-    this.#current = { source, out, id, legacy, rate, startedAt };
+    /* Named, because the first version of this read `cur` — a name that exists
+     * in `stop()` and in NO other scope. It threw a ReferenceError on every
+     * `overlap: true` play, which was invisible: sorting.html's caller ends in
+     * `.catch(() => {})`, so the cry played, the promise rejected instead of
+     * resolving on `ended`, `onStart` never ran, and `#overlapping` stayed
+     * empty so `stop()` could not silence what was layered. A swallowed rejection
+     * is not the same as no error. */
+    const voice = { source, out, id, legacy, rate, startedAt };
+    this.#current = voice;
+    if (overlap) {
+      // Tracked separately so `stop()` can still silence everything. `#current`
+      // alone only ever names the most recent, so a page that layered three cries
+      // would leave the first two ringing after a stop.
+      this.#overlapping.add(voice);
+      const forget = () => this.#overlapping.delete(voice);
+      source.addEventListener('ended', forget, { once: true });
+    }
     if (onStart) onStart({ duration: buffer.duration, startedAt, rate, id });
     return settled;
+  }
+
+  /**
+   * The decoded `AudioBuffer` for a species, sharing this player's cache.
+   *
+   * Added for `spectrum.html`, which needs the samples themselves rather than an
+   * envelope of them: it runs the mel filterbank over the buffer to draw a
+   * spectrogram, and `waveformPeaks()` throws away exactly the information that
+   * needs. Going through here rather than fetching and decoding a second time is
+   * the whole reason this exists — the alternative is a page holding its own copy
+   * of the cache, its own `decodeAudioData` call, and its own copy of the error
+   * handling, and the two would drift.
+   *
+   * Never rejects, matching `#load`: a missing file is `{ buffer: null, error }`,
+   * and the failure is cached with it.
+   */
+  decoded(id, { legacy = false } = {}) {
+    return this.#load(id, { legacy });
+  }
+
+  /**
+   * Play raw mono samples — the Generation I synthesiser's output, from
+   * `renderSpeciesCry()`.
+   *
+   * The reason this exists rather than a second AudioContext on the page: the
+   * player owns the clock, and a second context would mean a second clock reading
+   * for a playback cursor to be driven from, plus a second gain node for a mute to
+   * reach, plus a second place for the spectrum tap to hang off. `spectrum.html`
+   * draws recorded and synthesised cries through ONE of these so a reader can put
+   * them in the same spectrogram and compare them, which is the entire reason the
+   * page exists.
+   *
+   * It takes SAMPLES rather than an AudioBuffer because 65,536 Hz is the case
+   * that matters and it is the allocation that gets refused, not the playback —
+   * `cries-gen1.html` has always handled it by allocating at the full rate and
+   * falling back to half on a throw, and a method that took a finished buffer
+   * would have nowhere to put that fallback. The decimation is reported to the
+   * caller because it folds everything above 32.768 kHz back into the band, and
+   * the page has to be able to say it happened rather than quietly present a
+   * different signal.
+   *
+   * @param {Float32Array} samples mono, at `sampleRate`
+   * @returns {Promise<{duration: number, rate: number, id: any, decimated: boolean}>}
+   */
+  async playSamples(samples, { sampleRate, id = null, volume, onStart } = {}) {
+    // Before the first await, so this still runs inside the click that started it.
+    await this.unlock();
+    await this.stop();
+
+    const ctx = this.#ctx;
+    const source = ctx.createBufferSource();
+
+    let buffer;
+    let decimated = false;
+    try {
+      buffer = ctx.createBuffer(1, samples.length, sampleRate);
+      buffer.copyToChannel(samples, 0);
+    } catch {
+      decimated = true;
+      buffer = ctx.createBuffer(1, samples.length >> 1, sampleRate / 2);
+      const dst = new Float32Array(buffer.length);
+      for (let i = 0; i < dst.length; i++) dst[i] = samples[i * 2];
+      buffer.copyToChannel(dst, 0);
+    }
+    source.buffer = buffer;
+
+    const out = ctx.createGain();
+    out.gain.value = volume !== undefined ? volume : 1;
+    source.connect(out);
+    out.connect(this.#gain);
+
+    const settled = new Promise((resolve, reject) => {
+      source.onended = () => resolve({
+        id, duration: buffer.duration, rate: buffer.sampleRate, decimated,
+      });
+      source.onerror = () => reject(Object.assign(
+        new Error(`samples for ${id} failed during playback`), { reason: 'playback-failed' }));
+    });
+    const startedAt = ctx.currentTime;
+    source.start();
+
+    this.#current = { source, out, id, legacy: false, rate: 1, startedAt };
+    if (onStart) {
+      onStart({
+        duration: buffer.duration,
+        startedAt,
+        rate: buffer.sampleRate,
+        id,
+        decimated,
+      });
+    }
+    return settled;
+  }
+
+  /**
+   * The live spectrum, as `frequencyBinCount` dB values from `minDecibels` up.
+   *
+   * Returns the SAME array on every call, so a caller redrawing at 60 fps
+   * allocates nothing; read it before the next frame.
+   *
+   * It is LINEAR frequency, not mel, and it is measured at the DEVICE rate rather
+   * than resampled to 16 kHz. A caller wanting to put it on the same axis as a
+   * mel spectrogram has to fold it into mel bands itself, which is an
+   * approximation and is not the same measurement as the offline grid. What it is
+   * good for is answering "where is the energy right now" frame by frame, which
+   * an offline grid cannot do at all.
+   *
+   * Silent when nothing is playing, and silent when the player is muted — the tap
+   * is after the gain. Both CDP checkers replace `AudioContext.destination` with a
+   * zero gain, which is DOWNSTREAM of this node, so the mute tap does not silence
+   * what is read here and a checker can still assert the analyser is live.
+   *
+   * @returns {{values: Float32Array, bins: number, binHz: number, rate: number}|null}
+   *   null before the context exists
+   */
+  spectrum() {
+    if (!this.#analyser || !this.#bins) return null;
+    this.#analyser.getFloatFrequencyData(this.#bins);
+    return {
+      values: this.#bins,
+      bins: this.#bins.length,
+      binHz: this.#ctx.sampleRate / this.#analyser.fftSize,
+      rate: this.#ctx.sampleRate,
+    };
   }
 
   /**
@@ -290,28 +500,37 @@ export class CriesPlayer {
    */
   stop() {
     const cur = this.#current;
-    if (!cur) return Promise.resolve();
+    // Everything layered by `overlap: true`, plus the current one. A page using
+    // overlap has no single "current" to stop.
+    const live = [...this.#overlapping];
+    if (cur && !live.includes(cur)) live.unshift(cur);
+    if (!live.length) return Promise.resolve();
     this.#current = null;
+    this.#overlapping.clear();
     // Snapshot the promise so two rapid stops resolve the same wait rather than
     // the second finding `#current` already cleared.
     if (!this.#stopped) {
       const ctx = this.#ctx;
       const t = ctx.currentTime;
-      try {
-        cur.out.gain.cancelScheduledValues(t);
-        cur.out.gain.setValueAtTime(cur.out.gain.value, t);
-        cur.out.gain.linearRampToValueAtTime(0, t + STOP_RAMP);
-        cur.source.stop(t + STOP_RAMP);
-      } catch {
-        // Already stopped, or the context closed underneath us; nothing to ramp.
-        try { cur.source.stop(); } catch { /* already ended */ }
+      const waits = [];
+      for (const c of live) {
+        try {
+          c.out.gain.cancelScheduledValues(t);
+          c.out.gain.setValueAtTime(c.out.gain.value, t);
+          c.out.gain.linearRampToValueAtTime(0, t + STOP_RAMP);
+          c.source.stop(t + STOP_RAMP);
+        } catch {
+          // Already stopped, or the context closed underneath us; nothing to ramp.
+          try { c.source.stop(); } catch { /* already ended */ }
+        }
+        waits.push(new Promise((resolve) => {
+          c.source.onended = () => resolve();
+          // A source that had already ended will not fire onended again, so settle
+          // on the next macrotask too rather than leaving a caller awaiting forever.
+          setTimeout(resolve, STOP_RAMP * 1000 + 40);
+        }));
       }
-      this.#stopped = new Promise((resolve) => {
-        cur.source.onended = () => resolve();
-        // A source that had already ended will not fire onended again, so settle
-        // on the next macrotask too rather than leaving a caller awaiting forever.
-        setTimeout(resolve, STOP_RAMP * 1000 + 40);
-      }).then(() => { this.#stopped = null; });
+      this.#stopped = Promise.all(waits).then(() => { this.#stopped = null; });
     }
     return this.#stopped;
   }
@@ -324,7 +543,6 @@ export class CriesPlayer {
    * an unclamped canvas would draw past its own bounds.
    */
   async waveformPeaks(id, { legacy = false, count = 256 } = {}) {
-    await this.unlock();
     const { buffer, error } = await this.#load(id, { legacy });
     if (error) throw Object.assign(new Error(`cry ${id} could not be decoded`), { reason: 'decode-failed' });
     const data = buffer.getChannelData(0);
@@ -352,7 +570,11 @@ export class CriesPlayer {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.arrayBuffer();
         })
-        .then((bytes) => this.unlock().then((ctx) => ctx.decodeAudioData(bytes)))
+        /* `#ensureContext`, NOT `unlock`. See its docblock: resuming needs a
+         * gesture, and a decode does not. `play()` has already awaited `unlock()`
+         * by the time it reaches here, so playback is unaffected and a caller that
+         * only wants the samples no longer needs permission to make a sound. */
+        .then((bytes) => this.#ensureContext().decodeAudioData(bytes))
         .then((buffer) => ({ buffer, error: null }),
                (error) => ({ buffer: null, error }));
       this.#cache.set(key, entry);

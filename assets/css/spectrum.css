@@ -1,0 +1,617 @@
+/* ---------------------------------------------------------------------------
+   spectrum.css — 叫聲頻譜 (spectrum.html)
+
+   The same tokens and the same structural conventions as cries.css and
+   colors.css: a one-step surface lift per level, hairline edges instead of
+   shadows, radius-sm/md/pill from shared.css. Nothing here invents a colour, a
+   radius or a shadow.
+
+   The prefix is `sp-`. `cy-` belongs to cries.css and `cg-` to cries-gen1.html's
+   own rules, and both of those files are already shared or page-specific in ways
+   that make borrowing a prefix a collision waiting for a stylesheet-order
+   dependency. `cp-` is the colour pages'. This page mounts the autoplay switch
+   through the SAME `cry-autoplay.js` module the other two use, and asks it for
+   `sp-autoplay` — one module, three prefixes, zero copied markup.
+
+   THE COLOUR RAMP IS NOT A THEME TOKEN SET, ON PURPOSE
+   --------------------------------------------------
+   `--sp-0` … `--sp-5` are declared once in `:root` rather than per theme, and
+   the plot's own background is near-black in both. A spectrogram is a dense data
+   image with dark meaning "quiet", and the convention that a colormap must
+   re-think itself per theme exists so that UI surfaces stay legible. Re-mapping
+   this one per theme would mean the SAME number in the SAME cell reading as two
+   different things depending on the reader's theme setting, which is the one thing
+   a colour scale must never do. What does change per theme is everything around
+   it — the labels, the axes, the caption, the playhead.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   1. The colour ramp
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Six stops, ascending. Lightness rises monotonically at every step, so the
+     ramp survives being printed in greyscale and so a reader who cannot separate
+     the hues can still read the level off it. The hue path is violet -> magenta
+     -> crimson -> orange -> pale yellow, which is the one direction that stays
+     distinguishable for the two most common forms of colour blindness because it
+     varies hue AND lightness rather than trading one for the other.
+
+     `--sp-0` is BELOW the display floor on purpose: it is what a cell the reader
+     cannot see at all is painted, and it must be distinguishable from the
+     floor itself so "nothing here" and "the quietest thing here" do not look
+     like one band. */
+  --sp-0: #07050e;
+  --sp-1: #2c1a5f;
+  --sp-2: #6d1f7c;
+  --sp-3: #b63755;
+  --sp-4: #ef7a3a;
+  --sp-5: #fbe28d;
+
+  /* The plot's own ground. Not a theme token because the ramp is not: see the
+     file header. */
+  --sp-plot-bg: #07050e;
+  --sp-plot-grid: #ffffff26;
+  --sp-plot-ink: #f2f4f8;
+  --sp-plot-muted: #9aa3b2;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Page frame
+   --------------------------------------------------------------------------- */
+
+.sp-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.sp-app > .header {
+  flex: 0 0 auto;
+}
+
+.sp-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 24px 24px 64px;
+}
+
+.sp-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Intro
+   --------------------------------------------------------------------------- */
+
+/* One column, measure-limited. There is no sprite column here because there is no
+   hero image: the plot IS the hero, and a 450px artwork beside it would take the
+   width the frequency axis needs. The species' identity is a 28px sprite in the
+   control row, which is where the reader is choosing it from. */
+.sp-intro-body {
+  max-width: 68ch;
+}
+
+.sp-intro h1 {
+  margin: 0 0 10px;
+}
+
+.sp-intro p {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* The disclosure paragraph. Not a footnote and not muted to nothing: the two
+   sentences a reader is most likely to be misled by are what this page does not
+   claim, so they belong where the claim is made rather than at the bottom of a
+   scrolling page. */
+.sp-intro .sp-claim {
+  color: var(--text-primary);
+  border-left: 2px solid var(--sp-4);
+  padding-left: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Controls
+   --------------------------------------------------------------------------- */
+
+.sp-controls {
+  margin: 20px 0 18px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.sp-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 7px;
+}
+
+/* Three sources, one row. A `radiogroup` of buttons rather than a `<select>`:
+   the reader needs to see all three at once to understand that this page covers
+   recorded AND synthesised cries, which is the thing the page is for. */
+.sp-sources {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sp-source {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 12px;
+  min-height: 44px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--text-secondary);
+}
+
+.sp-source[aria-checked='true'] {
+  border-color: var(--sp-4);
+  color: var(--text-primary);
+  background: var(--bg-controls);
+}
+
+.sp-source b {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sp-source span {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.sp-search input {
+  flex: 1 1 220px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+
+.sp-search input:focus-visible,
+.sp-btn:focus-visible,
+.sp-source:focus-visible,
+.sp-chip:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.sp-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sp-btn[aria-pressed='true'] {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+/* 24 suggestions. A named entry point, the same device `colors.html` uses for its
+   legendary grid, and built ONCE in init() — rebuilding it per keystroke threw
+   away 24 buttons AND left every reference pointing at a detached node, which
+   does not bubble to a delegated document handler, so the control went dead
+   after its first use. */
+.sp-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.sp-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px;
+  min-height: 44px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: left;
+  min-width: 0;
+}
+
+.sp-chip[aria-pressed='true'] {
+  border-color: var(--sp-4);
+  color: var(--text-primary);
+}
+
+.sp-chip img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.sp-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sp-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.sp-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The shared switch, mounted by cry-autoplay.js with this page's prefix. */
+.sp-autoplay {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 4px 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.sp-autoplay-track {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-controls);
+  border: 1px solid var(--hairline);
+  position: relative;
+  transition: background 0.15s;
+}
+
+.sp-autoplay-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.sp-autoplay[aria-checked='true'] .sp-autoplay-track {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.sp-autoplay[aria-checked='true'] .sp-autoplay-track::after {
+  transform: translateX(16px);
+  background: var(--bg-card);
+}
+
+.sp-autoplay-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.sp-autoplay-text b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sp-autoplay-text span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   5. The plot
+   --------------------------------------------------------------------------- */
+
+.sp-hero {
+  margin: 0 0 22px;
+}
+
+.sp-hero-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sp-hero-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.sp-hero-id {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The identity strip. Sprite and name side by side INSIDE one `flex: none`
+   figure: as siblings of the plot their width was decided by the name, so a
+   28px sprite next to a 60px strip and a 28px sprite next to a 168px strip is a
+   caption that changes size with its neighbour. */
+.sp-figure {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin: 0;
+}
+
+.sp-figure img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.sp-figure b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sp-plot {
+  display: block;
+  width: 100%;
+  height: 300px;
+  background: var(--sp-plot-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.sp-plot-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+
+.sp-ramp {
+  display: inline-block;
+  width: 110px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1px solid var(--hairline);
+  /* The same six stops as --sp-0…--sp-5, written as a gradient rather than
+     resolved in JS, because a legend drawn from the same numbers as the plot is
+     the only kind that cannot drift from it. */
+  background: linear-gradient(to right,
+    var(--sp-0), var(--sp-1), var(--sp-2), var(--sp-3), var(--sp-4), var(--sp-5));
+}
+
+/* The caption under every canvas. `.sp-caption` is the disclosure slot: the
+   sentence that says what this drawing is and is not. It is styled as body text
+   rather than as a footnote because the whole point is that it gets read. */
+.sp-caption {
+  margin: 9px 0 0;
+  max-width: 78ch;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.sp-caption b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   6. The live curve
+   --------------------------------------------------------------------------- */
+
+.sp-live {
+  margin: 0 0 22px;
+}
+
+.sp-live h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.sp-live-canvas {
+  display: block;
+  width: 100%;
+  height: 130px;
+  background: var(--sp-plot-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   7. The numbers
+   --------------------------------------------------------------------------- */
+
+.sp-numbers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  margin: 0 0 22px;
+}
+
+@media (max-width: 900px) {
+  .sp-numbers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sp-numbers h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.sp-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.sp-stats dt {
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+/* Every value is printed, not rounded into a vibe, and `tabular-nums` so a
+   column of them lines up. */
+.sp-stats dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sp-where {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.sp-cross {
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.sp-cross dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+}
+
+.sp-cross p {
+  margin: 0;
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.sp-cross code {
+  font-size: 11px;
+  background: var(--bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.sp-cross dt {
+  color: var(--text-secondary);
+}
+
+.sp-cross dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------
+   8. About
+   --------------------------------------------------------------------------- */
+
+.sp-about {
+  margin: 0 0 26px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.sp-about h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.sp-about p {
+  margin: 0 0 9px;
+  max-width: 78ch;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.sp-about p:last-child {
+  margin-bottom: 0;
+}
+
+.sp-about code {
+  font-size: 11px;
+  background: var(--bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   9. Reduced motion
+   ---------------------------------------------------------------------------
+   The reveal is the one animated thing on this page, and it is the only part
+   that moves at all when nothing is playing. With the preference set the plot is
+   drawn complete and no playhead sweeps, because a wipe whose only content is
+   "time is passing" is the definition of the motion this is asking to be spared.
+   The live curve still updates while audio plays — that is the measurement, not
+   decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .sp-autoplay-track,
+  .sp-autoplay-track::after {
+    transition: none;
+  }
+}

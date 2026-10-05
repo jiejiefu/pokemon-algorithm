@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>叫聲頻譜 · 寶可夢演算法</title>
+  <meta name="description" content="1025 隻寶可夢叫聲的 mel 頻譜圖，播放時由左往右揭開。最新錄音、舊錄音與第一世代合成叫聲可以在同一張圖上比較。">
+  <link rel="icon" type="image/png" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('pokemon-theme'); } catch (e) { /* private mode */ }
+      var theme = saved
+        || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.content = theme === 'light' ? '#f4f6fa' : '#0d1117';
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/spectrum.css">
+</head>
+<body class="sp-app">
+  <a href="#main" class="sr-only">跳到主要內容</a>
+  <div id="announce" class="sr-only" role="status" aria-live="polite"></div>
+
+  <header class="header">
+    <button class="theme-toggle" type="button" aria-label="切換深色／淺色主題">
+      <svg class="theme-icon theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="theme-icon theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <a class="header-brand" href="index.html">
+      <img src="assets/images/logo.png" alt="" width="40" height="40">
+      <span>寶可夢演算法</span>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主要導覽"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main id="main" class="sp-main">
+    <div class="sp-page">
+
+      <section class="sp-intro">
+        <div class="sp-intro-body">
+          <h1>叫聲頻譜</h1>
+          <p>
+            一段叫聲裡有多少能量落在哪個頻率上，那就是頻譜圖。<strong>橫軸是時間，縱軸是頻率</strong>；
+            每一格是一段 25 毫秒的訊號在 26 條 mel 濾波器上的能量。低音在下方、高音在上方，
+            越亮代表能量越多。
+          </p>
+          <p>
+            全部在瀏覽器裡算。解碼後重採樣到 16 kHz，跑一條和
+            <code>scripts/analyze_cries.py</code> 完全相同的 mel 管線，所以這張圖和
+            <a href="cries.html">叫聲總覽</a>用來排序與搜尋的特徵表是<strong>同一個量測</strong>，
+            不是另一套近似值；頁面下方會把兩邊逐項對表給你看。
+          </p>
+          <p class="sp-claim">
+            這一頁有三種來源，可以互相比較：<strong>最新錄音 1,025 隻</strong>、
+            <strong>舊錄音 649 隻</strong>、以及<strong>第一世代合成 151 隻</strong>。
+            最後一種不是錄音，是從 pokered 的指令表重新合成的，所以它和錄音能放在同一張圖上直接比對
+            高低起伏——這是<a href="cries-gen1.html">第一世代叫聲實驗室</a>做不到的事，那一頁畫的是波形，
+            這裡畫的是頻率。
+          </p>
+          <p>
+            還有一件事要說清楚：頻譜圖在按下播放<strong>之前</strong>就整段算好了。播放時畫面由左往右揭開，
+            揭開速度對齊音訊時鐘——那是同一組像素、同一個量測，只是配合你的耳朵一起走。
+            揭開<strong>不等於</strong>「正在分析」。
+          </p>
+        </div>
+      </section>
+
+      <section class="sp-controls" aria-label="選擇叫聲">
+        <span class="sp-label" id="sp-source-label">來源</span>
+        <div class="sp-sources" role="radiogroup" aria-labelledby="sp-source-label" id="sp-sources"></div>
+
+        <div class="sp-search">
+          <input id="sp-q" type="search" placeholder="搜尋名稱或編號，例如 妙蛙種子、charmander、0006"
+                 autocomplete="off" aria-label="搜尋寶可夢">
+          <button id="sp-random" class="sp-btn" type="button">隨機一隻</button>
+        </div>
+
+        <span class="sp-label" id="sp-chips-label" style="margin-top:14px">快速選擇</span>
+        <div class="sp-chips" role="group" aria-labelledby="sp-chips-label" id="sp-chips"></div>
+
+        <div class="sp-actions">
+          <button id="sp-play" class="sp-btn" type="button" aria-pressed="false">▶ 播放</button>
+          <div id="sp-autoplay-slot"></div>
+          <p id="sp-status" class="sp-status" role="status"></p>
+        </div>
+      </section>
+
+      <section class="sp-hero" aria-labelledby="sp-hero-h">
+        <div class="sp-hero-head">
+          <h2 id="sp-hero-h">頻譜圖</h2>
+          <figure class="sp-figure">
+            <img id="sp-art" src="assets/images/sprite/1.png" alt="" width="28" height="28">
+            <b id="sp-name">—</b>
+          </figure>
+          <span class="sp-hero-id" id="sp-meta"></span>
+        </div>
+
+        <canvas id="sp-plot" class="sp-plot" role="img" aria-describedby="sp-plot-alt"></canvas>
+        <p id="sp-plot-alt" class="sp-caption"></p>
+
+        <div class="sp-plot-legend">
+          <span class="sp-ramp" aria-hidden="true"></span>
+          <span id="sp-ramp-label"></span>
+          <span>每格 25 毫秒、跳距 10 毫秒。橫軸上每一格佔的寬度不一樣：叫聲越短，每格在畫面上越寬。</span>
+        </div>
+      </section>
+
+      <section class="sp-live" aria-labelledby="sp-live-h">
+        <h2 id="sp-live-h">即時譜</h2>
+        <canvas id="sp-live" class="sp-live-canvas" role="img" aria-describedby="sp-live-alt"></canvas>
+        <p id="sp-live-alt" class="sp-caption"></p>
+      </section>
+
+      <section class="sp-numbers" aria-labelledby="sp-num-h">
+        <div>
+          <h2 id="sp-num-h">量測數值</h2>
+          <dl class="sp-stats" id="sp-stats"></dl>
+        </div>
+        <div>
+          <h2>對表</h2>
+          <div class="sp-cross" id="sp-cross"></div>
+        </div>
+      </section>
+
+      <section class="sp-about" aria-labelledby="sp-about-h">
+        <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
+        <p>
+          解碼後先重採樣到 <code>16 kHz</code>，因為整個語料的原始取樣率從 8,000 到 48,000 都有，
+          而 784 個檔案是 32,728 Hz。不統一的話，濾波器就得分出一部分力氣去分辨「這支是誰 Encoded 的」。
+          選 16 kHz 是因為實測 98.2% 的能量在 8 kHz 以下。
+        </p>
+        <p>
+          接著 <code>0.97</code> 預強調、<code>25 ms</code> 對稱 Hamming 窗（跳距 <code>10 ms</code>）、
+          zero-pad 到 <code>512</code> 做 FFT 取功率，再過 <code>26</code> 條 HTK mel 三角濾波器
+          （<code>50 Hz</code> 到 <code>8 kHz</code>，每條面積正規化為 1）、取對數。全部寫在
+          <code>assets/js/cry-spectrogram.js</code>，參數與 <code>scripts/analyze_cries.py</code>
+          逐一相等，並由 <code>scripts/check_spectrogram_port.mjs</code> 拿同一段合成訊號餵給兩邊、
+          逐項比對：32 個可比特徵目前最差差 <code>4.3e-6</code>。
+        </p>
+        <p>
+          <code>peak</code> 和 <code>rms</code> 沒有參與對表，而且永遠不能參與。這兩項在腳本裡量的是
+          <strong>原始取樣率</strong>的訊號，而瀏覽器的 <code>decodeAudioData</code> 會先重採樣到裝置取樣率，
+          重採樣會把尖峰磨平——語料裡最大聲的 <code>latest/25.ogg</code> 在 libsndfile 下是 1.0391，
+          重採樣後低於 0.94。在瀏覽器量它，量到的是瀏覽器的重採樣器，不是那個音檔。
+          所以這一頁的 <code>peak</code> 與 <code>rms</code> 直接取自 <code>cry_features.json</code>，
+          並在數字旁邊標出出處。
+        </p>
+        <p>
+          色階是<strong>相對</strong>的：以每段叫聲自己的最強 mel 帶為 0 dB，下限 −60 dB。
+          若用絕對 dBFS，安靜的叫聲會整片變成底色。時間軸的解析度也是實話：最短的叫聲 0.18 秒，
+          在這麼寬的畫面上每一格會佔五十幾像素，那個塊狀<strong>就是</strong> 10 毫秒的跳距，
+          沒有為了好看而去平滑它。
+        </p>
+        <p>
+          出處：叫聲錄音取自 <a href="https://github.com/PokeAPI/cries">PokeAPI/cries</a>；
+          mel 管線與特徵表來自本站的 <code>scripts/analyze_cries.py</code>；
+          第一世代合成指令解析自 <a href="https://github.com/pret/pokered">pret/pokered</a>。
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>本站為靜態網站，所有資料與圖片皆來自公開來源。叫聲錄音取自 PokeAPI/cries，頻譜分析於瀏覽器端即時計算。</p>
+  </footer>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav, formatPokemonId, ASSETS } from './assets/js/shared.js';
+    import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
+    import { cryPlayer } from './assets/js/cry-player.js';
+    import { mountAutoplay } from './assets/js/cry-autoplay.js';
+    import { renderSpeciesCry, SYNTH_RATE } from './assets/js/gb-apu.js';
+    import {
+      analyseCry, FEATURE_NAMES, N_MEL, ROBUST, UNCOMPARABLE,
+      loudestBand, melBandCentres, melFilterbank,
+    } from './assets/js/cry-spectrogram.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    const el = (id) => document.getElementById(id);
+    const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const spriteUrl = (row, fallbackId) =>
+      ASSETS.sprites + (row?.filename || `${fallbackId}.png`);
+    const escapeHtml = (s) => String(s)
+      .replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    /** dB below the loudest mel band.
+     *
+     *  60 rather than something larger because a floor much lower spends most of
+     *  the ramp on cells carrying nothing, and much smaller because the corpus's
+     *  quiet tails then clip to the bottom colour and the shape of a decay
+     *  disappears. Stated on the page next to the legend, in the same sentence. */
+    const FLOOR_DB = 60;
+
+    /** The 26 centres, once. The filterbank is memoised, so this is one build. */
+    const BANK = melFilterbank();
+    const CENTRES = melBandCentres(BANK);
+
+    const state = {
+      source: 'latest',
+      id: null,
+      rows: null,
+      base: null,        // offscreen canvas holding the finished spectrogram
+      dims: null,        // { w, h } in DEVICE pixels, shared by draw and repaint
+      lut: null,
+      playing: false,
+      raf: 0,
+      progress: { startedAt: null, duration: 0, now: 0 },
+    };
+
+    /**
+     * The three rosters, and the 24 chips.
+     *
+     * The chips are IDS and nothing else. `colors.html` keeps its legendary grid
+     * as `[id, edition]` pairs for the same reason — a second copy of an official
+     * name is a second thing to keep right, and `pokemon_data.json` already has
+     * it. Two of them (Alolan Exeggutor, Hisuian Samurott) would also need form
+     * artwork this page has no reason to load.
+     */
+    const ROSTERS = {
+      latest: { label: '最新錄音', desc: '1,025 隻', ids: [] },
+      legacy: { label: '舊錄音', desc: '649 隻 · Gen 1–5', ids: [] },
+      gen1: { label: '第一世代合成', desc: '151 隻 · 重新合成', ids: [] },
+    };
+    const CHIPS = [1, 4, 7, 25, 59, 76, 94, 125, 143, 144, 149, 150,
+      196, 197, 245, 249, 384, 448, 479, 700, 702, 785, 800, 888];
+
+    // ---------------------------------------------------------------------
+    // Colour ramp
+    // ---------------------------------------------------------------------
+
+    /**
+     * The six stops read from the stylesheet into a 256-entry lookup table.
+     *
+     * Read from CSS rather than hardcoded because spectrum.css declares them
+     * once and the legend gradient uses the same six custom properties; two
+     * copies of six hexes is two things to keep right, and the failure mode is a
+     * legend that has quietly stopped describing the picture.
+     */
+    function buildLut() {
+      const cs = getComputedStyle(document.documentElement);
+      const stops = [];
+      for (let i = 0; i < 6; i++) stops.push(cs.getPropertyValue(`--sp-${i}`).trim() || '#000000');
+      const lut = new Uint8Array(256 * 3);
+      for (let i = 0; i < 256; i++) {
+        const t = (i / 255) * 5;
+        const a = Math.min(5, Math.floor(t));
+        const b = Math.min(5, a + 1);
+        const f = t - a;
+        for (let c = 0; c < 3; c++) {
+          const ca = hexByte(stops[a], c);
+          const cb = hexByte(stops[b], c);
+          lut[i * 3 + c] = Math.round(ca + (cb - ca) * f);
+        }
+      }
+      state.lut = lut;
+    }
+
+    function hexByte(hex, c) {
+      const h = hex.replace('#', '');
+      const full = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+      const v = parseInt(full.slice(c * 2, c * 2 + 2), 16);
+      return Number.isFinite(v) ? v : 0;
+    }
+
+    /** The ramp's own top colour, for strokes on the dark plot ground. */
+    function topInk() {
+      if (!state.lut) return '#fbe28d';
+      return `rgb(${state.lut[765]},${state.lut[766]},${state.lut[767]})`;
+    }
+
+    // ---------------------------------------------------------------------
+    // Canvas plumbing
+    // ---------------------------------------------------------------------
+
+    /**
+     * One size read for both canvases, in DEVICE pixels.
+     *
+     * `createImageData` wants device pixels and `clientWidth` is CSS pixels, so
+     * they are returned separately rather than one `w` meaning both. The DPR cap
+     * of 2 matches cry-player.js's and the cry pages': a 3x phone display triples
+     * the fill cost of a 300px-tall image for no visible gain on a data plot.
+     */
+    function sizeCanvas(canvas, cssHeight) {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = Math.max(1, Math.round((canvas.clientWidth || 900) * dpr));
+      const h = Math.max(1, Math.round(cssHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      return { ctx, w, h, dpr };
+    }
+
+    // ---------------------------------------------------------------------
+    // The spectrogram
+    // ---------------------------------------------------------------------
+
+    /**
+     * Paint the whole spectrogram once per species, into an OFFSCREEN canvas.
+     *
+     * NEAREST NEIGHBOUR on both axes, and that is not a shortcut. The horizontal
+     * axis is time on a fixed 10 ms hop, so a 0.18 s cry really does put ~55
+     * pixels between two measurements, and smoothing across them would draw a
+     * curve the analysis never made. The vertical axis is 26 bands over a few
+     * hundred device pixels, so nearest-neighbour paints flat stripes and the
+     * band boundaries are visible as steps — which is what 26 bands across
+     * nearly three octaves looks like, and a reader who counts them can count
+     * them.
+     *
+     * Low frequencies at the BOTTOM, which is the spectrogram convention and the
+     * opposite of the frequency-axis convention, so the axis is labelled in Hz
+     * rather than left for the reader to infer.
+     */
+    function drawPlot() {
+      const rows = state.rows;
+      if (!rows || !state.lut) return;
+      const { ctx, w, h } = sizeCanvas(el('sp-plot'), 300);
+      const { logMel, nFrames } = rows;
+
+      let peak = -Infinity;
+      for (let i = 0; i < logMel.length; i++) if (logMel[i] > peak) peak = logMel[i];
+      const lnCeil = peak;
+      const lnFloor = Math.max(lnCeil - (FLOOR_DB * Math.LN10) / 20, Math.log(1e-10));
+      const span = Math.max(lnCeil - lnFloor, 1e-9);
+
+      if (!state.base) state.base = document.createElement('canvas');
+      state.base.width = w;
+      state.base.height = h;
+      const bctx = state.base.getContext('2d');
+      const img = bctx.createImageData(w, h);
+      const d = img.data;
+      for (let x = 0; x < w; x++) {
+        const f = Math.min(nFrames - 1, Math.floor((x * nFrames) / w));
+        for (let y = 0; y < h; y++) {
+          const band = Math.min(N_MEL - 1, Math.floor(((h - 1 - y) * N_MEL) / h));
+          let t = (logMel[f * N_MEL + band] - lnFloor) / span;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          const q = Math.round(t * 255) * 3;
+          const p = (y * w + x) * 4;
+          d[p] = state.lut[q];
+          d[p + 1] = state.lut[q + 1];
+          d[p + 2] = state.lut[q + 2];
+          d[p + 3] = 255;
+        }
+      }
+      bctx.putImageData(img, 0, 0);
+
+      state.dims = { w, h };
+      paintReveal(0);
+    }
+
+    /**
+     * Blit the finished spectrogram, veil what has not sounded, then draw the
+     * axes and the playhead ON TOP of the veil.
+     *
+     * The veil rather than a blank right-hand side, so the reader can see the
+     * whole shape of the cry and not only the part they have heard — that is what
+     * makes this an instrument rather than a progress bar. It is the plot's own
+     * ground colour and not a neutral wash, because on this near-black ground a
+     * grey veil reads as a second data series.
+     *
+     * The axes go on after the veil, not before, or the frequency labels would
+     * dim along with the data and the reader would lose the one thing that does
+     * not change during playback.
+     *
+     * Under `prefers-reduced-motion` there is no veil and no playhead: the plot is
+     * the measurement and the wipe is only time passing.
+     */
+    function paintReveal(ratio) {
+      const dims = state.dims;
+      if (!dims || !state.base) return;
+      const { ctx, w, h } = sizeCanvas(el('sp-plot'), 300);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(state.base, 0, 0);
+
+      const t = reduced() ? 1 : Math.max(0, Math.min(1, ratio));
+      if (t < 1) {
+        const cs = getComputedStyle(document.documentElement);
+        ctx.save();
+        ctx.globalAlpha = 0.62;
+        ctx.fillStyle = cs.getPropertyValue('--sp-plot-bg').trim() || '#07050e';
+        ctx.fillRect(Math.round(t * w), 0, w - Math.round(t * w), h);
+        ctx.restore();
+      }
+
+      drawAxes(ctx, w, h);
+
+      if (!reduced() && ratio > 0 && ratio < 1) {
+        ctx.save();
+        ctx.strokeStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue('--sp-plot-ink').trim() || '#f2f4f8';
+        ctx.lineWidth = 1;
+        const x = Math.round(ratio * w) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawAxes(ctx, w, h) {
+      const cs = getComputedStyle(document.documentElement);
+      ctx.save();
+      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      ctx.textBaseline = 'bottom';
+      ctx.textAlign = 'left';
+      for (const hz of [100, 250, 500, 1000, 2000, 4000, 8000]) {
+        const band = nearestBand(hz);
+        if (band < 0) continue;
+        const y = h - 1 - Math.floor(((band + 0.5) * h) / N_MEL);
+        if (y < 22 || y > h - 4) continue;
+        ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, Math.round(y) + 0.5);
+        ctx.lineTo(w, Math.round(y) + 0.5);
+        ctx.stroke();
+        ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
+        ctx.fillText(hz >= 1000 ? `${hz / 1000} kHz` : `${hz} Hz`, 5, Math.round(y) - 3);
+      }
+      ctx.restore();
+    }
+
+    /**
+     * Nearest band to a frequency, or -1 when it is too far to label.
+     *
+     * The 12% tolerance is the load-bearing part. Twenty-six bands over 50 Hz to
+     * 8 kHz do not land on round numbers, so a gridline drawn for 4 kHz and drawn
+     * from the nearest band is a gridline at 3.2 kHz wearing a 4 kHz label — and
+     * a reader checking the axis against a spectrum analyser would be right to
+     * think the axis is wrong.
+     */
+    function nearestBand(hz) {
+      let best = -1;
+      let bestD = Infinity;
+      for (let i = 0; i < CENTRES.length; i++) {
+        const d = Math.abs(CENTRES[i] - hz);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return bestD / hz < 0.12 ? best : -1;
+    }
+
+    // ---------------------------------------------------------------------
+    // The live curve
+    // ---------------------------------------------------------------------
+
+    /**
+     * The live spectrum, folded into the SAME 26 mel bands as the plot above it.
+     *
+     * Two things make this a different measurement, and the caption under it says
+     * both rather than letting one reading cover them:
+     *
+     *   1. It is LINEAR frequency. The AnalyserNode gives one magnitude per linear
+     *      FFT bin, and folding those into mel triangles approximates the offline
+     *      path — it is not the same filterbank on the same signal.
+     *   2. It is at the DEVICE rate, over its own window: 2048 points with
+     *      smoothing 0.3, so about 42.7 ms at 48 kHz, against the offline 25 ms
+     *      with no smoothing at all.
+     *
+     * What it is FOR is what an offline grid cannot do at all: where the energy is
+     * RIGHT NOW, sixty times a second. Per band it takes the MAXIMUM dB across the
+     * bins inside the band rather than a mean, because the peak inside a band is
+     * what a listener hears as that band's pitch, and a mean of a band with one
+     * loud partial and one empty region describes neither.
+     *
+     * Flat when nothing is playing, and flat when the player is muted: the tap
+     * sits after the gain node, so a mute silences the measurement too. That is a
+     * true reading rather than a defect, and the caption says so.
+     */
+    function drawLive() {
+      const { ctx, w, h } = sizeCanvas(el('sp-live'), 130);
+      const cs = getComputedStyle(document.documentElement);
+      const bg = cs.getPropertyValue('--sp-plot-bg').trim() || '#07050e';
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const y = Math.round((h * i) / 4) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const spec = cryPlayer.spectrum();
+      if (!spec) return;
+
+      const levels = new Float64Array(N_MEL);
+      let hi = -Infinity;
+      for (let m = 0; m < N_MEL; m++) {
+        const lo = BANK.edges[m];
+        const hiEdge = BANK.edges[m + 1];
+        const k0 = Math.max(0, Math.floor(lo / spec.binHz));
+        const k1 = Math.min(spec.bins - 1, Math.ceil(hiEdge / spec.binHz));
+        let best = -Infinity;
+        for (let k = k0; k <= k1; k++) {
+          const v = spec.values[k];
+          if (Number.isFinite(v) && v > best) best = v;
+        }
+        // An AnalyserNode with nothing connected reports minDecibels, and one that
+        // has never seen a signal can report -Infinity. Both become the floor, so
+        // the curve draws flat rather than off the top of the canvas.
+        levels[m] = Number.isFinite(best) ? best : -100;
+        if (levels[m] > hi) hi = levels[m];
+      }
+
+      const FLOOR = -70;
+      const span = Math.max(Math.max(hi, FLOOR) - FLOOR, 1);
+      /* The plot area stops short of the bottom edge, so a FLAT curve is a visible
+       * line rather than a hairline on the border.
+       *
+       * That is not a cosmetic choice. An AnalyserNode with nothing connected reports
+       * the floor on every band, so before the first play the whole curve sits at the
+       * bottom — and at two pixels above it the canvas was an empty black box that
+       * read as a broken panel rather than as a live instrument waiting for a signal.
+       * `LABEL_H` reserves the strip the axis labels are drawn in. */
+      const LABEL_H = 16;
+      const yOf = (m) => {
+        const x = (m / (N_MEL - 1)) * (w - 2) + 1;
+        const t = (levels[m] - FLOOR) / span;
+        return [x, h - LABEL_H - Math.max(0, Math.min(1, t)) * (h - LABEL_H - 6)];
+      };
+      const flat = hi <= FLOOR;
+
+      ctx.beginPath();
+      ctx.moveTo(1, h);
+      for (let m = 0; m < N_MEL; m++) ctx.lineTo(...yOf(m));
+      ctx.lineTo(w - 1, h);
+      ctx.closePath();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = topInk();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = topInk();
+      ctx.lineWidth = Math.max(1, Math.round(w / 900));
+      ctx.beginPath();
+      for (let m = 0; m < N_MEL; m++) {
+        const [x, y] = yOf(m);
+        if (m === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      /* Said on the canvas rather than left for the reader to infer. A flat line is
+       * ambiguous between "nothing is playing" and "this is broken", and the two want
+       * opposite responses from the person looking at it. */
+      if (flat) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
+        ctx.fillText(state.playing ? '靜音中 · 取樣點在音量節點之後' : '按下播放，這裡會即時顯示能量落在哪裡',
+          w / 2, (h - LABEL_H) / 2);
+        ctx.textAlign = 'left';
+      }
+
+      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
+      ctx.textBaseline = 'bottom';
+      for (const hz of [100, 1000, 4000, 8000]) {
+        const band = nearestBand(hz);
+        if (band < 0) continue;
+        const x = (band / (N_MEL - 1)) * (w - 2) + 1;
+        ctx.textAlign = x > w - 46 ? 'right' : 'left';
+        ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, x, h - 3);
+      }
+      ctx.textAlign = 'left';
+    }
+
+    // ---------------------------------------------------------------------
+    // Loading a cry
+    // ---------------------------------------------------------------------
+
+    /**
+     * The mono samples and the rate they are actually at.
+     *
+     * `buffer.sampleRate` is the DEVICE rate, not the file's: `decodeAudioData`
+     * resamples on the way out (cry-player.js's file docblock, point 3). It is
+     * exactly the right thing to resample FROM and exactly the wrong thing to
+     * report as the source rate, so the status line never does.
+     */
+    async function samplesFor(id) {
+      if (state.source === 'gen1') {
+        const r = renderSpeciesCry(state.gen1.cries, state.gen1.sfx, id);
+        return { samples: r.samples, rate: SYNTH_RATE, note: `合成 · ${SYNTH_RATE} Hz` };
+      }
+      const legacy = state.source === 'legacy';
+      const { buffer, error } = await cryPlayer.decoded(id, { legacy });
+      if (error) throw new Error('解碼失敗');
+      return {
+        samples: buffer.getChannelData(0),
+        rate: buffer.sampleRate,
+        note: `${legacy ? '舊錄音' : '最新錄音'} · ${buffer.duration.toFixed(3)} 秒`,
+      };
+    }
+
+    async function select(id, { play = false } = {}) {
+      if (id === null || id === undefined) return;
+      state.id = id;
+      const meta = state.meta.get(id);
+      el('sp-name').textContent = meta?.names?.zh ?? `#${formatPokemonId(id)}`;
+      el('sp-art').src = spriteUrl(meta, id);
+      el('sp-meta').textContent = `#${formatPokemonId(id)}${meta?.names?.en ? ` · ${meta.names.en}` : ''}`;
+      for (const chip of el('sp-chips').children) {
+        chip.setAttribute('aria-pressed', String(Number(chip.dataset.id) === id));
+      }
+      writeUrl();
+
+      el('sp-status').textContent = '計算中…';
+      let got;
+      try {
+        got = await samplesFor(id);
+      } catch (err) {
+        el('sp-status').textContent = `無法取得這隻的叫聲：${err.message}`;
+        return;
+      }
+      // A species changed while this one was decoding must not overwrite it.
+      if (state.id !== id) return;
+
+      const rows = analyseCry(got.samples, got.rate);
+      state.rows = rows;
+      drawPlot();
+      drawLive();
+      renderStats(rows, got.note);
+      renderCross(rows);
+      el('sp-status').textContent =
+        `${got.note} → 16 kHz · ${rows.duration.toFixed(3)} 秒 · ${rows.nFrames} 幀 × ${N_MEL} 帶`;
+      if (play && autoplay.on) toggle();
+    }
+
+    // ---------------------------------------------------------------------
+    // The numbers
+    // ---------------------------------------------------------------------
+
+    /**
+     * Nine figures, and each row says where its number came from.
+     *
+     * `peak` and `rms` come from `cry_features.json` rather than from here, and a
+     * column of nine numbers with two of them from somewhere else is a table that
+     * lies by omission — so each `dt` carries its provenance and the two that are
+     * quoted say which file and which sample rate.
+     */
+    function renderStats(rows, note) {
+      const stored = storedRow();
+      const loud = loudestBand(rows.logMel, BANK);
+      const items = [
+        ['長度', `${rows.duration.toFixed(3)} s`, `瀏覽器重算 · ${note}`],
+        ['峰值 peak', stored ? stored[1].toFixed(4) : '—', 'cry_features.json · 原始取樣率'],
+        ['均方根 rms', stored ? stored[2].toFixed(4) : '—', 'cry_features.json · 原始取樣率'],
+        ['過零率 zcr', `${Math.round(rows.features[3])} /s`, '瀏覽器重算'],
+        ['質心 centroid', `${Math.round(rows.features[4])} Hz`, '瀏覽器重算'],
+        ['85% 能量截止', `${Math.round(rows.features[5])} Hz`, '瀏覽器重算'],
+        ['平坦度', rows.features[6].toFixed(5), '瀏覽器重算'],
+        ['頻譜通量', rows.features[7].toFixed(3), '瀏覽器重算'],
+        ['最強 mel 帶', `${Math.round(loud.hz)} Hz`, `取自上圖 · 第 ${loud.frame + 1}/${rows.nFrames} 幀`],
+      ];
+      el('sp-stats').innerHTML = items.map(([k, v, w]) =>
+        `<dt>${escapeHtml(k)}<span class="sp-where">${escapeHtml(w)}</span></dt><dd>${escapeHtml(v)}</dd>`).join('');
+
+      el('sp-plot-alt').innerHTML =
+        `<b>${escapeHtml(el('sp-name').textContent)}</b> 的 mel 頻譜圖：`
+        + `${rows.duration.toFixed(2)} 秒、${rows.nFrames} 幀、${N_MEL} 條 mel 帶，`
+        + `最強的一格在 ${Math.round(loud.hz)} Hz。質心 ${Math.round(rows.features[4])} Hz，`
+        + `平坦度 ${rows.features[6].toFixed(4)}。完整數字在下方「量測數值」。`;
+    }
+
+    function storedRow() {
+      if (state.source === 'gen1') return null;
+      const table = state.features?.[state.source === 'legacy' ? 'legacy' : 'latest'];
+      return table?.[String(state.id)] ?? null;
+    }
+
+    /**
+     * The page differencing itself against the stored table, in public.
+     *
+     * It reports five features, and deliberately does not report a difference for
+     * the other 29. The reason is measured, not
+     * stylistic: on `latest/1.ogg` decoded at its own 32,728 Hz — so that no
+     * resampling happens at all — the browser and `cry_features.json` differ by a
+     * median of 5.5% across the 31 comparable features and by 1,181% on the worst.
+     * That worst is an `ms` column: a standard deviation of MFCC values whose stored
+     * magnitude is about 0.002. Thirteen of the 34 features are like that, and a
+     * relative difference on them reports a large disagreement about a number that
+     * is nearly zero.
+     *
+     * So the five shown are the ones that are both large in magnitude and well
+     * conditioned: `dur` is a sample count and comes out exact, `zcr` a crossing
+     * rate, `centroid` and `rolloff85` frequencies, `flux` a normalised rate.
+     * Measured on 妙蛙種子 decoded at its own 32,728 Hz, their relative differences
+     * are 0%、0.0005%、3.6%、2.7%、0.22%——那 3.6% 是解碼器，就只有那麼多。
+     * <code>flatness</code> 原本也在名單裡，理由是它是 0 到 1 之間的比例所以與振幅無關；
+     * 它確實與振幅無關，但也不穩定——它是幾何平均除以算術平均，兩個相近的數相除，
+     * 同一個檔案兩邊量出來差 31%。落在 [0,1] 裡跟它有多敏感是兩件事。
+     *
+     * Three features are not compared at all, for two different reasons, and both
+     * are written below rather than left in a comment: `peak` and `rms` because a
+     * browser is never told the file's true sample rate, and `m0` because the
+     * extractor's resampler scales the signal by a per-file factor that moves `m0`
+     * and nothing else.
+     */
+    function renderCross(rows) {
+      const box = el('sp-cross');
+      const stored = storedRow();
+      if (!stored) {
+        box.innerHTML = state.source === 'gen1'
+          ? '<p>第一世代的合成叫聲不在 <code>cry_features.json</code> 裡——那張表是 1,674 個'
+            + '<b>錄音檔</b>的特徵，而合成訊號沒有對應的檔案。所以這一欄沒有可以對表的數字，'
+            + '這是資料的事實，不是省略。</p>'
+          : '<p>這隻沒有對應的特徵列。</p>';
+        return;
+      }
+      const rowsHtml = ROBUST.map((i) => {
+        const name = FEATURE_NAMES[i];
+        const got = rows.features[i];
+        const want = stored[i];
+        const diff = Math.abs(got - want);
+        const unit = name === 'dur' || name === 'zcr' || name === 'flux' ? '' : ' Hz';
+        return `<dt>${escapeHtml(name)}</dt><dd>`
+          + `${formatValue(got)}${unit} → ${formatValue(want)}${unit}`
+          + `<span class="sp-where">差 ${formatValue(diff)}${unit}</span></dd>`;
+      }).join('');
+
+      const worst = UNCOMPARABLE.map((i) => FEATURE_NAMES[i]);
+      box.innerHTML = `
+        <dl>${rowsHtml}</dl>
+        <p>左邊是這一頁在瀏覽器算的，右邊是 <code>cry_features.json</code> 存的。這一頁算得對嗎？
+        兩邊的差異有三個來源，都量得出來：</p>
+        <p><b>解碼器不同。</b>這裡是瀏覽器，那張表是 libsndfile。同一個檔案解出來的 PCM 就不一樣，
+        而 34 項裡有 13 項是標準差，儲存值常在 0.002 附近——相對差會在幾乎是零的數字上報出巨大的分歧，
+        所以這一欄只列儲存值本身有意義、而且穩定的五項。</p>
+        <p><b>取樣率被改過。</b><code>decodeAudioData</code> 會先重採樣到裝置取樣率（通常是 48 kHz）。
+        實測同一隻寶可夢，解碼成原生 32,728 Hz 時質心差 3.6%，解碼成 48 kHz 時差 27%。</p>
+        <p><b>指令碼本身的重採樣有兩個 bug</b>（振幅縮放與截止頻率，後者還隨檔案長短變動），
+        所以 <code>${escapeHtml(worst.join('、'))}</code> 這三項不列入對表——前兩項是瀏覽器拿不到
+        檔案的原始取樣率，第三項是因為指令碼的重採樣會整體縮放訊號，而只有 m0 看得見整體縮放。</p>`;
+    }
+
+    function formatValue(v) {
+      const a = Math.abs(v);
+      if (a >= 100) return v.toFixed(0);
+      if (a >= 1) return v.toFixed(2);
+      if (a >= 0.01) return v.toFixed(4);
+      return v.toExponential(2);
+    }
+
+    // ---------------------------------------------------------------------
+    // Playback
+    // ---------------------------------------------------------------------
+
+    async function toggle() {
+      const id = state.id;
+      if (state.playing) {
+        state.playing = false;
+        cancelAnimationFrame(state.raf);
+        await cryPlayer.stop();
+        setPlayButton(false);
+        paintReveal(1);
+        return;
+      }
+      setPlayButton(true);
+      try {
+        if (state.source === 'gen1') {
+          const r = renderSpeciesCry(state.gen1.cries, state.gen1.sfx, id);
+          await cryPlayer.playSamples(r.samples, {
+            sampleRate: SYNTH_RATE,
+            id,
+            onStart: onStarted,
+          });
+        } else {
+          await cryPlayer.play(id, {
+            legacy: state.source === 'legacy',
+            onStart: onStarted,
+          });
+        }
+      } catch (err) {
+        el('sp-status').textContent = `播放失敗：${err.message}`;
+      } finally {
+        state.playing = false;
+        setPlayButton(false);
+        paintReveal(1);
+      }
+    }
+
+    function setPlayButton(playing) {
+      el('sp-play').setAttribute('aria-pressed', String(playing));
+      el('sp-play').textContent = playing ? '■ 停止' : '▶ 播放';
+    }
+
+    function onStarted(info) {
+      state.playing = true;
+      state.progress.startedAt = info.startedAt;
+      state.progress.duration = info.duration;
+      if (info.decimated) {
+        el('sp-status').textContent =
+          `這個瀏覽器拒絕在 ${SYNTH_RATE} Hz 配置緩衝區，訊號已降取樣為 ${SYNTH_RATE / 2} Hz。`;
+      }
+      tick();
+    }
+
+    /**
+     * ONE clock drives both canvases.
+     *
+     * `progress.now` is read every frame from `cryPlayer.now()` — the
+     * AudioContext's own timebase — and never faked with `performance.now()`, which
+     * is a different clock from the `startedAt` it was handed and drifts against
+     * it. The one ratio drives the reveal and the live curve together, so the
+     * column the reader is looking at is the column they are hearing.
+     *
+     * The guard is `!== null`, never `> 0`: `currentTime` reads exactly 0 on the
+     * first play because the context has only just resumed, and `startedAt > 0`
+     * reports "not started" for the entire first playback.
+     */
+    function tick() {
+      const p = state.progress;
+      p.now = cryPlayer.now();
+      const ratio = p.startedAt !== null && p.duration > 0
+        ? Math.max(0, Math.min(1, (p.now - p.startedAt) / p.duration))
+        : 0;
+      paintReveal(ratio);
+      drawLive();
+      if (state.playing) state.raf = requestAnimationFrame(tick);
+    }
+
+    // ---------------------------------------------------------------------
+    // Picker
+    // ---------------------------------------------------------------------
+
+    /**
+     * Built ONCE per source, not per keystroke.
+     *
+     * `colors.html` rebuilt its 24-button grid from `render()` and threw away 24
+     * buttons and 24 sprite requests on every keystroke to move one highlight —
+     * and, worse, left every reference pointing at a detached node, which does not
+     * bubble to a delegated document handler, so the control went dead after its
+     * first use. Here the handler is attached per button, which is the other way
+     * to not have that problem.
+     */
+    function buildChips() {
+      const host = el('sp-chips');
+      host.innerHTML = '';
+      const ids = ROSTERS[state.source].ids;
+      for (const id of CHIPS.filter((c) => ids.includes(c))) {
+        const meta = state.meta.get(id);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sp-chip';
+        b.dataset.id = String(id);
+        b.setAttribute('aria-pressed', String(state.id === id));
+        b.innerHTML =
+          `<img src="${spriteUrl(meta, id)}" alt="" loading="lazy" decoding="async" width="26" height="26">`
+          + `<span>${escapeHtml(meta?.names?.zh ?? id)}</span>`;
+        b.addEventListener('click', () => select(id, { play: true }));
+        host.append(b);
+      }
+    }
+
+    function buildSources() {
+      const host = el('sp-sources');
+      host.innerHTML = '';
+      for (const [key, r] of Object.entries(ROSTERS)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sp-source';
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', String(key === state.source));
+        b.innerHTML = `<b>${r.label}</b><span>${r.desc}</span>`;
+        b.addEventListener('click', () => {
+          if (state.source === key) return;
+          state.source = key;
+          for (const other of host.children) other.setAttribute('aria-checked', String(other === b));
+          buildChips();
+          select(ROSTERS[key].ids[0]);
+        });
+        host.append(b);
+      }
+    }
+
+    /** `?source=…&id=…`, per §3.A's query-parameter convention. */
+    function writeUrl() {
+      const params = new URLSearchParams(location.search);
+      params.set('source', state.source);
+      params.set('id', String(state.id));
+      history.replaceState(null, '', `${location.pathname}?${params}`);
+    }
+
+    function pick(query, { play = false } = {}) {
+      const ids = ROSTERS[state.source].ids;
+      const q = String(query || '').trim().toLowerCase();
+      let hit = null;
+      if (/^\d+$/.test(q)) {
+        const id = Number(q);
+        hit = ids.includes(id) ? id : (ids.find((i) => formatPokemonId(i).includes(q)) ?? null);
+      } else if (q) {
+        hit = ids.find((id) => {
+          const n = state.meta.get(id)?.names;
+          return n && (n.zh?.includes(query.trim()) || n.en?.toLowerCase().startsWith(q));
+        }) ?? null;
+      }
+      if (hit === null) {
+        el('sp-status').textContent = q ? `找不到「${query.trim()}」` : '';
+        return;
+      }
+      select(hit, { play });
+    }
+
+    // ---------------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------------
+
+    let autoplay = { on: true };
+
+    async function init() {
+      const [features, pokemon, gen1Cries, gen1Sfx] = await Promise.all([
+        fetch('assets/data/cry_features.json').then((r) => r.json()),
+        fetch('assets/data/pokemon_data.json').then((r) => r.json()),
+        fetch('assets/data/gen1_cries.json').then((r) => r.json()),
+        fetch('assets/data/gen1_cry_sfx.json').then((r) => r.json()),
+      ]);
+      state.features = features;
+      state.gen1 = { cries: gen1Cries, sfx: gen1Sfx };
+      state.meta = new Map(pokemon.map((p) => [p.id, p]));
+
+      for (let id = 1; id <= 1025; id++) if (hasCry(id)) ROSTERS.latest.ids.push(id);
+      for (let id = 1; id <= 649; id++) if (hasLegacyCry(id)) ROSTERS.legacy.ids.push(id);
+      ROSTERS.gen1.ids = gen1Cries.cries.map((c) => c.id).sort((a, b) => a - b);
+
+      const params = new URLSearchParams(location.search);
+      if (ROSTERS[params.get('source')]) state.source = params.get('source');
+
+      buildLut();
+      buildSources();
+      buildChips();
+
+      autoplay = mountAutoplay(el('sp-autoplay-slot'), {
+        label: '自動播放',
+        hint: '切換寶可夢時直接播放一次',
+        className: 'sp-autoplay',
+      });
+
+      el('sp-ramp-label').textContent =
+        `−${FLOOR_DB} dB 到 0 dB（0 dB 是這段叫聲自己的最強 mel 帶）`;
+
+      el('sp-live-alt').innerHTML =
+        '<b>這是第二次量測，不是上面那張圖的一部分。</b>'
+        + '它來自播放當下的 <code>AnalyserNode</code>：1024 個線性頻率 FFT bin 被摺進同一組 26 條 mel 濾波器，'
+        + '取樣率是裝置的（通常 48 kHz，不是 16 kHz），視窗 2048 點、平滑 0.3，約 42.7 毫秒——'
+        + '和離線譜的 25 毫秒、無平滑不是同一組參數。它能回答的是「此刻能量落在哪裡」，那是離線譜做不到的；'
+        + '要數值請看上方。靜音時這條曲線也會變平，因為取樣點在音量節點之後。';
+
+      el('sp-play').addEventListener('click', () => toggle());
+      el('sp-random').addEventListener('click', () => {
+        const ids = ROSTERS[state.source].ids;
+        select(ids[Math.floor(Math.random() * ids.length)], { play: true });
+      });
+      el('sp-q').addEventListener('change', () => pick(el('sp-q').value));
+      el('sp-q').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') pick(el('sp-q').value);
+      });
+
+      // The ramp is theme-independent (spectrum.css's header says why), but the
+      // axes and the veil are read from CSS on every paint, so both have to be
+      // redrawn when the tokens change.
+      window.addEventListener('themechange', () => {
+        buildLut();
+        if (state.rows) drawPlot();
+        drawLive();
+      });
+
+      let resizeTimer = 0;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (!state.rows) return;
+          drawPlot();
+          drawLive();
+        }, 180);
+      });
+
+      const wanted = Number(params.get('id'));
+      const first = ROSTERS[state.source].ids[0];
+      await select(ROSTERS[state.source].ids.includes(wanted) ? wanted : first);
+    }
+
+    init().catch((err) => {
+      el('sp-status').textContent = `載入失敗：${err.message}`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>

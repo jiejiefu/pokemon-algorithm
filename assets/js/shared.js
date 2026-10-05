@@ -819,11 +819,12 @@ export const NAV = [
     id: 'cries',
     label: '叫聲',
     icon: 'waveform',
-    pages: ['cries.html', 'cries-gen1.html'],
+    pages: ['cries.html', 'cries-gen1.html', 'spectrum.html'],
     groups: [
       {
         items: [
           { href: 'cries.html', label: '叫聲總覽', desc: '1025 隻的音色特徵與相似搜尋' },
+          { href: 'spectrum.html', label: '叫聲頻譜', desc: 'mel 頻譜圖與即時能量分布' },
           { href: 'cries-gen1.html', label: '第一世代叫聲實驗室', desc: '38 個 base cry 的 APU 合成' },
         ],
       },

@@ -55,22 +55,23 @@ function write(on) {
  * @param {object}      opts
  * @param {string}      opts.label   the switch's own name
  * @param {string}      opts.hint    what it does, in one line
+ * @param {string}      [opts.className='cy-autoplay']  the block's own prefix
  * @param {Function}    opts.onChange called with the new state, never on mount
  * @returns {{el: HTMLElement, get on(): boolean, set(on: boolean, silent?: boolean): void}}
  */
-export function mountAutoplay(host, { label, hint, onChange } = {}) {
+export function mountAutoplay(host, { label, hint, className = 'cy-autoplay', onChange } = {}) {
   const state = { on: read() };
 
   const el = document.createElement('button');
   el.type = 'button';
-  el.className = 'cy-autoplay';
+  el.className = className;
   el.setAttribute('role', 'switch');
   el.setAttribute('aria-checked', String(state.on));
   el.innerHTML =
-    '<span class="cy-autoplay-track" aria-hidden="true"></span>' +
-    '<span class="cy-autoplay-text"><b></b><span></span></span>';
+    `<span class="${className}-track" aria-hidden="true"></span>` +
+    `<span class="${className}-text"><b></b><span></span></span>`;
   el.querySelector('b').textContent = label ?? '自動播放';
-  el.querySelector('.cy-autoplay-text span').textContent = hint ?? '點擊切換寶可夢時直接播放一次';
+  el.querySelector(`.${className}-text span`).textContent = hint ?? '點擊切換寶可夢時直接播放一次';
 
   const set = (on, silent = false) => {
     const next = Boolean(on);
