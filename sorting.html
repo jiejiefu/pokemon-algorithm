@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>排序演算法視覺化 — 寶可夢演算法</title>
+  <title>排序演算法 — 氣泡／選擇／插入／快速／合併／堆積 | 寶可夢演算法</title>
+  <meta name="description" content="用 1,025 隻寶可夢的排序視覺化六種排序演算法：偽代碼逐行同步高亮、比較與搬移次數計數、單步與時間軸倒退、2–4 條競速賽道。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
@@ -32,18 +33,9 @@
     })();
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .canvas-container { flex: 1; width: 100%; }
-  </style>
+  <link rel="stylesheet" href="assets/css/algo.css">
 </head>
-<body>
+<body class="al-body">
   <header class="header header-sort">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
@@ -54,130 +46,886 @@
     <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
-  <!-- The control strip sits OUTSIDE the header on purpose. Inside it, the header
-       is a flex column, so the nav would have needed a row of its own and cost
-       ~43px — which this page cannot spare, because `body { height: 100vh;
-       overflow: hidden }` plus a fixed 1200x800 canvas already clips the grid at
-       1440x900. Out here it shares the row the brand already had. See
-       `.control-bar` in shared.css. -->
-  <div class="control-bar">
-    <div class="controls">
-      <button class="btn btn-utility" data-action="shuffle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>隨機打亂</button>
-      <span class="btn-group-label">| 排序演算法：</span>
-      <button class="btn" data-action="sort" data-algorithm="bubble">氣泡</button>
-      <button class="btn" data-action="sort" data-algorithm="selection">選擇</button>
-      <button class="btn" data-action="sort" data-algorithm="insertion">插入</button>
-      <button class="btn" data-action="sort" data-algorithm="quick">快速</button>
-      <button class="btn" data-action="sort" data-algorithm="merge">合併</button>
-      <button class="btn" data-action="sort" data-algorithm="heap">堆積</button>
-      <span class="btn-group-label">| 色彩：</span>
-      <button class="btn btn-color" data-action="color"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5.67-1.5 1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5.67-1.5 1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>色彩聚類</button>
+  <div class="al-toolbar">
+    <div class="al-group al-tabs" role="tablist" aria-label="模式">
+      <button class="btn" type="button" role="tab" id="tabSingle" aria-selected="true" aria-controls="sortStage">單一</button>
+      <button class="btn" type="button" role="tab" id="tabRace" aria-selected="false" aria-controls="sortStage">競速</button>
+    </div>
+    <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group">
+      <label class="al-label" for="sortKeySelect">排序鍵</label>
+      <select class="al-select" id="sortKeySelect"></select>
+    </div>
+    <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group">
+      <span class="al-label" id="speedLabel">速度</span>
+      <span class="al-group al-seg" id="speedPicker" role="group" aria-labelledby="speedLabel"></span>
+    </div>
+    <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group" id="singleControls">
+      <button class="btn btn-utility" type="button" id="btnShuffle">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>重新洗牌
+      </button>
+      <button class="btn" type="button" id="btnStepBack" title="上一步（←）" aria-label="上一步">◀</button>
+      <button class="btn" type="button" id="btnPlayPause" title="播放／暫停（空白鍵）">▶ 播放</button>
+      <button class="btn" type="button" id="btnStepFwd" title="下一步（→）" aria-label="下一步">▶</button>
+      <button class="btn" type="button" id="btnSkipEnd" title="直接跑完（Shift+→）">跳至結果</button>
+    </div>
+    <div class="al-group" id="raceControls" hidden>
+      <div class="al-chips" id="raceAlgoPicker" role="group" aria-label="參賽演算法（2 至 4 個）"></div>
+      <label class="al-label" for="raceSizeSelect">取樣</label>
+      <select class="al-select" id="raceSizeSelect">
+        <option value="60">60 隻</option>
+        <option value="130" selected>130 隻</option>
+        <option value="260">260 隻</option>
+      </select>
+      <button class="btn btn-utility" type="button" id="btnRaceReshuffle">重新抽籤</button>
+      <button class="btn" type="button" id="btnRacePlay">▶ 比賽</button>
+    </div>
+    <span class="al-divider al-spacer" aria-hidden="true"></span>
+    <div class="al-group">
+      <label class="al-toggle" for="rainbowToggle">
+        <input type="checkbox" id="rainbowToggle">
+        <span>顯示原始順序</span>
+      </label>
+      <button class="btn btn-utility al-btn-xs" type="button" id="btnCopyLink">複製連結</button>
     </div>
   </div>
 
-  <div class="canvas-container">
-    <div id="loading" class="loading-overlay">載入 1025 隻寶可夢資料與圖片中，請稍候...</div>
-    <canvas id="appCanvas"></canvas>
-  </div>
+  <main class="al-main">
+    <div class="al-stage" id="sortStage">
+      <canvas id="singleCanvas" role="img" aria-label="1,025 隻寶可夢排列成網格，排序時依演算法逐步移動"></canvas>
+      <div class="al-lanes" id="raceGrid" hidden></div>
+      <div class="al-overlay" id="loading">載入 1,025 隻寶可夢<span id="loadingProgress"></span>…</div>
+    </div>
+
+    <aside class="al-side">
+      <div class="al-panel">
+        <h2 id="pseudoTitle">選一個演算法</h2>
+        <div class="al-badges" id="complexityBadges"></div>
+        <ol class="al-pseudo" id="pseudoList"></ol>
+        <p class="al-hint" id="pseudoNote" hidden></p>
+      </div>
+
+      <div class="al-panel">
+        <h2>這一次的執行</h2>
+        <dl class="al-stats">
+          <dt>比較次數</dt><dd id="statCompare">0</dd>
+          <dt>搬移次數</dt><dd id="statMoves">0</dd>
+          <dt>目前步數</dt><dd id="statSteps">0</dd>
+          <dt>狀態</dt><dd id="statStatus">尚未開始</dd>
+        </dl>
+        <div class="al-timeline" id="timelineWrap" hidden>
+          <input type="range" id="timelineRange" min="0" max="0" value="0"
+                 aria-label="時間軸：拖曳可倒退或跳到任一步">
+          <div class="al-timeline-row"><span>0</span><span id="timelineMax">0</span></div>
+        </div>
+        <p class="al-hint" id="stepHint" hidden></p>
+      </div>
+
+      <div class="al-panel">
+        <h2>排序鍵</h2>
+        <p class="al-hint" id="keyNote">選擇要比較的欄位。改鍵只影響<em>接下來</em>開始的排序——進行中的排序會維持它開始時的比較器，否則「已經排好的」對飛行中的資料會無聲地換掉。</p>
+        <p class="al-hint" id="rainbowNote" hidden>每隻寶可夢身上的一圈顏色，是它<em>洗牌後</em>的原始位置。選「屬性」這種同值很多的排序鍵，再開這個：穩定的演算法會保留同一組內的原始先後順序，不穩定的會打亂——那就是穩定性唯一能讓你看見的地方。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>叫聲</h2>
+        <div class="al-prefs">
+          <label for="audioEnabled"><input type="checkbox" id="audioEnabled"> 每次搬移發出被交換者的叫聲</label>
+          <label for="audioVolume">音量 <input type="range" id="audioVolume" min="0" max="100" value="20"></label>
+          <label for="audioLegacy"><input type="checkbox" id="audioLegacy"> 舊版叫聲（只有 1–649 有）</label>
+        </div>
+        <p class="al-hint" id="audioHint">預設關閉：這個頁面最多每 55 毫秒發一聲，1,025 次搬移就是上千聲，所以由你決定要不要開。開啟後極快檔會維持在每 55 毫秒一聲，不會變成噪音牆。音量與靜音狀態和本站其它叫聲頁共用同一組設定。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>出處</h2>
+        <p class="al-hint">六種排序演算法為公開教科書演算法，本專案自行實作於 <code>assets/js/sorting-algorithms.js</code>，偽代碼面板與實際執行的程式是同一份流程。快速排序取三點中位數而非固定取最後一個，是因為排完之後再按一次同一顆鈕就是它的最壞情況（n=1,025 已排序輸入：524,800 次比較 → 9,747 次）。寶可夢圖像來自 <a href="https://github.com/PokeAPI/sprites" rel="noopener">PokeAPI/sprites</a>，叫聲來自 <a href="https://github.com/PokeAPI/cries" rel="noopener">PokeAPI/cries</a>，版權仍屬 The Pokémon Company。</p>
+      </div>
+    </aside>
+  </main>
 
   <script type="module">
-    // PokemonNode / shuffleArray / groupByColor come from shared.js below; the
-    // six *Steps generators come from sorting-algorithms.js, which is a CLASSIC
-    // script (see the tag at the end of body), so those really are globals.
-    import {loadPokemonData,
-      loadAllPokemonNodes,
-      PokemonNode,
-      GRID_CONFIG,
-      updateGridPositions,
-      groupByColor as sharedGroupByColor,
-      shuffleArray, initThemeToggle, initHeaderNav } from './assets/js/shared.js';
-    // Wire the theme toggle before anything else. Module scripts are deferred, so
-    // the DOM is already parsed here and the button in the header is present.
+    import {
+      loadPokemonData, loadAllPokemonNodes, PokemonNode,
+      updateGridPositions, groupByColor, readThemeToken,
+      initThemeToggle, initHeaderNav,
+    } from './assets/js/shared.js';
+    import { SORT_KEYS, SORT_KEY_MAP, SORT_KEY_IDS, DEFAULT_SORT_KEY } from './assets/js/sort-keys.js';
+    import { ALGO_META, ALGO_IDS } from './assets/js/sorting-algorithms.js';
+    import { SortRun, DEFAULT_MAX_LOGGED_EVENTS } from './assets/js/sort-run.js';
+    import { cryPlayer } from './assets/js/cry-player.js';
+
     initThemeToggle();
-    // sorting.html is in 演算法's `pages`, so the default filename match marks
-    // that trigger current on its own — no argument needed.
     initHeaderNav();
 
-    const canvas = document.getElementById('appCanvas');
+    /* ------------------------------------------------------------------ DOM */
+    const stage = document.getElementById('sortStage');
+    const canvas = document.getElementById('singleCanvas');
     const ctx = canvas.getContext('2d');
-    const loadingText = document.getElementById('loading');
+    const loading = document.getElementById('loading');
+    const loadingProgress = document.getElementById('loadingProgress');
+    const raceGrid = document.getElementById('raceGrid');
+    const pseudoTitle = document.getElementById('pseudoTitle');
+    const pseudoList = document.getElementById('pseudoList');
+    const complexityBadges = document.getElementById('complexityBadges');
+    const pseudoNote = document.getElementById('pseudoNote');
+    const stepHint = document.getElementById('stepHint');
+    const timelineWrap = document.getElementById('timelineWrap');
+    const timelineRange = document.getElementById('timelineRange');
+    const raceResult = document.createElement('p');
+    raceResult.className = 'al-result';
+    raceResult.hidden = true;
 
-    canvas.width = GRID_CONFIG.CANVAS_WIDTH;
-    canvas.height = GRID_CONFIG.CANVAS_HEIGHT;
+    let TOKENS = {};
+    function refreshTokens() {
+      TOKENS = {
+        compare: readThemeToken('--algo-compare'),
+        swap: readThemeToken('--algo-swap'),
+        pivot: readThemeToken('--algo-pivot'),
+        min: readThemeToken('--algo-min'),
+      };
+    }
+    refreshTokens();
 
-    let pokemons = [];
-    let sortGenerator = null;
+    /* ------------------------------------------------------------ SEEDED RNG
+     * The same FNV-1a → mulberry32 pair maze.html and index.html use, and for the
+     * same reason: a share link that restores mode, key, speed and SEED has to
+     * show the identical starting arrangement, and race mode's "every lane starts
+     * from the same shuffle" is only a fair race if that shuffle is reproducible. */
+    function fnv1a(str) {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+      return h >>> 0;
+    }
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function seededShuffle(arr, seed) {
+      const rnd = mulberry32(typeof seed === 'number' ? seed : fnv1a(String(seed)));
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    /* Take an evenly-strided sample rather than n random picks: a random sample of
+     * 130 out of 1,025 can be 90% one type, which would make a race about the
+     * sample rather than about the algorithm. */
+    function sampleEvenly(arr, n) {
+      if (n >= arr.length) return arr.slice();
+      const out = [];
+      const step = arr.length / n;
+      for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * step)]);
+      return out;
+    }
 
-    async function init() {
+    /* -------------------------------------------------------------- SPEED */
+    /* Steps processed per animation frame. The generators yield on every
+     * comparison, so this is a real step count and not a frame count — which is
+     * why 極快 is 700 and not 7. Measured worst cases at n=1,025: 插入排序 on
+     * reverse-sorted input logs 1,049,600 steps, so 700/frame finishes it in about
+     * 25 seconds' worth of frames compressed to two. */
+    const SPEED_TIERS = [
+      { id: 'slow', label: '慢', steps: 1 },
+      { id: 'normal', label: '中', steps: 10 },
+      { id: 'fast', label: '快', steps: 80 },
+      { id: 'turbo', label: '極快', steps: 700 },
+    ];
+
+    const RACE_SIZES = ['60', '130', '260'];
+
+    /* --------------------------------------------------------------- STATE */
+    const params = new URLSearchParams(location.search);
+    const pick = (value, allowed, dflt) => (allowed.includes(value) ? value : dflt);
+
+    const state = {
+      mode: pick(params.get('mode'), ['single', 'race'], 'single'),
+      algo: pick(params.get('algo'), ALGO_IDS, 'bubble'),
+      algos: (params.get('algos') || 'bubble,quick').split(',').filter(a => ALGO_IDS.includes(a)).slice(0, 4),
+      key: pick(params.get('key'), SORT_KEY_IDS, DEFAULT_SORT_KEY),
+      n: pick(params.get('n'), RACE_SIZES, '130'),
+      seed: params.get('seed') || String(Math.floor(Math.random() * 1e9)),
+      speed: pick(params.get('speed'), SPEED_TIERS.map(s => s.id), 'normal'),
+      legacy: params.get('legacy') === '1',
+      rainbow: params.get('rainbow') === '1',
+    };
+    if (state.algos.length < 2) state.algos = ['bubble', 'quick'];
+    let speed = SPEED_TIERS.find(s => s.id === state.speed);
+
+    function syncUrl() {
+      const u = new URL(location.href);
+      const p = u.searchParams;
+      p.set('mode', state.mode);
+      p.set('key', state.key);
+      p.set('speed', state.speed);
+      p.set('seed', state.seed);
+      if (state.mode === 'single') { p.set('algo', state.algo); p.delete('algos'); p.delete('n'); }
+      else { p.set('algos', state.algos.join(',')); p.set('n', state.n); p.delete('algo'); }
+      if (state.legacy) p.set('legacy', '1'); else p.delete('legacy');
+      if (state.rainbow) p.set('rainbow', '1'); else p.delete('rainbow');
+      history.replaceState(null, '', u);
+    }
+
+    /* -------------------------------------------------------- CANVAS + GRID
+     * The grid is DERIVED FROM THE BOX, so the page has no fixed pixel size to be
+     * wrong at. `dpr` is capped at 2 — past that the extra pixels buy nothing on a
+     * 24px sprite and cost fill rate on a canvas that repaints every frame. */
+    let CFG = null;
+    function fitCanvas() {
+      const box = stage.getBoundingClientRect();
+      const w = Math.max(240, Math.floor(box.width));
+      const h = Math.max(180, Math.floor(box.height));
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      CFG = {
+        COLS: Math.max(1, Math.min(ALL.length || 1, Math.round(Math.sqrt((ALL.length || 1) * (w / h))))),
+        ROWS: 1,
+        PADDING_X: 0, PADDING_Y: 0,
+        CANVAS_WIDTH: w, CANVAS_HEIGHT: h,
+      };
+      CFG.ROWS = Math.ceil((ALL.length || 1) / CFG.COLS);
+      CFG.PADDING_X = w / CFG.COLS;
+      CFG.PADDING_Y = h / CFG.ROWS;
+      if (single?.nodes) {
+        for (const n of single.nodes) n.size = spriteSize(CFG);
+        updateGridPositions(single.nodes, CFG);
+      }
+      layoutRaceLanes();
+    }
+    function spriteSize(cfg) {
+      return Math.max(4, Math.min(24, Math.min(cfg.PADDING_X, cfg.PADDING_Y) * 0.82));
+    }
+    new ResizeObserver(fitCanvas).observe(stage);
+
+    /* ------------------------------------------------------------ SINGLE */
+    let ALL = [];
+    let single = null;   // { nodes, run, algo, playing }
+    let sweepAt = 0;
+
+    function buildNodes(data, cfg) {
+      return data.map(d => {
+        const n = new PokemonNode(d, IMG.get(d.id), cfg.CANVAS_WIDTH, cfg.CANVAS_HEIGHT);
+        n.size = spriteSize(cfg);
+        return n;
+      });
+    }
+    const IMG = new Map();
+
+    function resetSingle({ reshuffle = false, newSeed = false } = {}) {
+      if (newSeed) state.seed = String(Math.floor(Math.random() * 1e9));
+      if (!single || reshuffle) {
+        const nodes = buildNodes(ALL, CFG);
+        seededShuffle(nodes, state.seed);
+        nodes.forEach((n, i) => { n.inputRank = i; });
+        single = { nodes, run: null, algo: null, playing: false };
+      } else {
+        single.run = null; single.algo = null; single.playing = false;
+      }
+      sweepAt = 0;
+      updateGridPositions(single.nodes, CFG);
+      clearPseudocode();
+      updateStats(null);
+      updateTransport();
+      syncUrl();
+    }
+
+    function startSingleRun(algoId) {
+      if (!single) resetSingle();
+      single.algo = algoId;
+      single.run = new SortRun(single.nodes, SORT_KEY_MAP[state.key].compare, ALGO_META[algoId].run);
+      single.playing = true;
+      sweepAt = 0;
+      state.algo = algoId;
+      renderPseudocode(algoId);
+      for (const b of algoPicker.children) b.setAttribute('aria-pressed', String(b.dataset.algo === algoId));
+      updateTransport();
+      syncUrl();
+    }
+
+    /* --------------------------------------------------------- PSEUDOCODE */
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function clearPseudocode() {
+      pseudoTitle.textContent = '選一個演算法';
+      complexityBadges.innerHTML = '';
+      pseudoList.innerHTML = '';
+      pseudoNote.hidden = true;
+    }
+    function renderPseudocode(algoId) {
+      const meta = ALGO_META[algoId];
+      pseudoTitle.textContent = meta.label;
+      complexityBadges.innerHTML =
+        `<span class="al-badge">最佳 ${meta.complexity.best}</span>` +
+        `<span class="al-badge">平均 ${meta.complexity.avg}</span>` +
+        `<span class="al-badge">最差 ${meta.complexity.worst}</span>` +
+        `<span class="al-badge ${meta.stable ? 'al-badge--stable' : 'al-badge--unstable'}">${meta.stable ? '穩定' : '不穩定'}</span>` +
+        `<span class="al-badge">${meta.inPlace ? '原地' : '需要額外空間'}</span>`;
+      pseudoList.innerHTML = meta.pseudo.map(line => `<li>${esc(line)}</li>`).join('');
+    }
+    function highlightPseudo(algoId, ev) {
+      if (!ev || !algoId) return;
+      const ln = ALGO_META[algoId].lineFor(ev);
+      const items = pseudoList.children;
+      for (const li of items) li.classList.remove('is-active');
+      if (ln != null && items[ln]) {
+        items[ln].classList.add('is-active');
+        // Scroll the active line into the panel when the pseudocode is taller
+        // than the sidebar, or a run whose highlight sits below the fold teaches
+        // nothing. `nearest` keeps it from yanking the whole sidebar on every step.
+        items[ln].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    /* -------------------------------------------------------------- STATS */
+    function updateStats(run) {
+      document.getElementById('statCompare').textContent = run ? run.comparisons.toLocaleString() : '0';
+      document.getElementById('statMoves').textContent = run ? run.moves.toLocaleString() : '0';
+      document.getElementById('statSteps').textContent = run ? run.totalSteps.toLocaleString() : '0';
+      document.getElementById('statStatus').textContent =
+        !run ? '尚未開始'
+          : run.done ? '完成'
+            : (single.playing ? '播放中' : (run.cursor < run.events.length ? `已倒退到第 ${run.cursor.toLocaleString()} 步` : '已暫停'));
+
+      // A run too big to log cannot be rewound, and the reason is a NUMBER the
+      // reader can check rather than "步數過多". Measured at n=1,025: 選擇排序
+      // exceeds the cap on every input, and 氣泡／插入 do on reverse-sorted
+      // input, so this hint is a normal state on this page, not an error.
+      const canStep = !!run?.canStep;
+      timelineWrap.hidden = !canStep;
+      if (canStep) {
+        if (!dragging) {
+          timelineRange.max = String(run.events.length);
+          timelineRange.value = String(run.cursor);
+          document.getElementById('timelineMax').textContent = run.events.length.toLocaleString();
+        }
+        stepHint.hidden = true;
+      } else if (run) {
+        stepHint.hidden = false;
+        stepHint.textContent =
+          `這次排序記錄了超過 ${DEFAULT_MAX_LOGGED_EVENTS.toLocaleString()} 步，已停用單步與時間軸（仍可繼續播放）。` +
+          `比較次數仍然照常計算。`;
+      } else {
+        stepHint.hidden = true;
+      }
+    }
+
+    function updateTransport() {
+      const run = single?.run;
+      const play = document.getElementById('btnPlayPause');
+      play.disabled = !run;
+      play.textContent = !run ? '▶ 播放' : single.playing ? '⏸ 暫停' : (run.done ? '↺ 重跑' : '▶ 播放');
+      const back = document.getElementById('btnStepBack');
+      const fwd = document.getElementById('btnStepFwd');
+      const skip = document.getElementById('btnSkipEnd');
+      const canStep = !!run?.canStep;
+      back.disabled = !canStep || single.playing || run.cursor === 0;
+      fwd.disabled = !canStep || single.playing || (run.done && run.atLiveHead);
+      skip.disabled = !run || run.done;
+      timelineRange.disabled = !canStep;
+    }
+
+    /* --------------------------------------------------------------- AUDIO
+     * Throttling lives HERE, not in cry-player.js, because the number that
+     * matters is how many swaps a frame produced — a property of the run, not of
+     * the player. The player's own floor is 0: its job is to be playable one cry
+     * at a time. */
+     const CRY_MIN_GAP_MS = 55;
+     let lastCryAt = 0;
+     function playCry(id) {
+      /* Muted means MUTED, not "played at zero gain". The player's mute is a
+       * gain of 0 on the shared node, so without this guard a silent run still
+       * fetched and decoded a cry for every swap it got past the throttle — up
+       * to 1,025 of them, from a reader who asked for no sound at all. */
+      if (cryPlayer.muted) return;
+      const now = performance.now();
+      if (now - lastCryAt < CRY_MIN_GAP_MS) return;
+      // Gen 6+ has no legacy recording, so asking for one would 404 on every swap
+      // for the back half of the dex. has() answers that without a network probe.
+      const legacy = state.legacy && cryPlayer.has(id, { legacy: true });
+      lastCryAt = now;
+      // overlap: a sort swaps faster than a cry ends, so without it every swap
+      // would cut the previous cry off and the run would sound like a buzz.
+      // play() rejects for a missing or undecodable file, which is a supported
+      // state here rather than an error, so it is swallowed deliberately.
+      cryPlayer.play(id, { legacy, rate: 0.94 + Math.random() * 0.12, overlap: true }).catch(() => {});
+    }
+
+    /* ----------------------------------------------------------- DRAWING */
+    /* A highlight is THREE bands: a dark hairline outside, the role's colour, a
+     * white hairline inside. The colour band sits between two known references and
+     * is therefore always readable as "coloured", while the PAIR of hairlines is
+     * what survives the sprite underneath. One themed colour cannot do this:
+     * measured over the 1,025 sprites, 404 fall below 3:1 from white and 89 below
+     * 3:1 from the site ink — but ZERO fall below 3:1 from both. See algo.css. */
+    function ring(node, color) {
+      if (!node) return;
+      const r = node.size * 0.78;
+      ctx.save();
+      ctx.lineWidth = Math.max(1, node.size * 0.14);
+      ctx.strokeStyle = '#000000';
+      ctx.beginPath(); ctx.arc(node.x, node.y, r + ctx.lineWidth * 1.6, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = color; ctx.stroke();
+      ctx.beginPath(); ctx.arc(node.x, node.y, Math.max(0.5, r - ctx.lineWidth * 1.6), 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff'; ctx.stroke();
+      ctx.restore();
+    }
+
+    function paint(nodes, events, showHighlights) {
+      for (const n of nodes) n.draw(ctx);
+      if (state.rainbow) {
+        ctx.save();
+        for (const n of nodes) {
+          ctx.strokeStyle = `hsl(${(n.inputRank / Math.max(1, nodes.length)) * 320} 85% 60%)`;
+          ctx.lineWidth = Math.max(1, n.size * 0.1);
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.size * 0.6, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      if (showHighlights && events.length) {
+        let compare = null, mark = null, move = null;
+        for (const ev of events) {
+          if (ev.t === 'compare') compare = ev;
+          else if (ev.t === 'mark') mark = ev;
+          else if (ev.t === 'swap' || ev.t === 'write') move = ev;
+        }
+        if (compare) { ring(nodes[compare.i], TOKENS.compare); ring(nodes[compare.j], TOKENS.compare); }
+        if (mark) ring(nodes[mark.i], mark.role === 'pivot' ? TOKENS.pivot : TOKENS.min);
+        if (move) { ring(nodes[move.i], TOKENS.swap); if (move.j != null) ring(nodes[move.j], TOKENS.swap); }
+      }
+    }
+
+    /* A left-to-right wipe the moment a run finishes: at 700 steps/frame the last
+     * frame can be the whole remaining sort, and without this the grid simply
+     * snaps from unsorted to sorted with nothing marking that anything happened. */
+    function sweep(progress) {
+      if (!sweepAt) return;
+      const t = (performance.now() - sweepAt) / 650;
+      if (t >= 1) { sweepAt = 0; return; }
+      ctx.save();
+      ctx.fillStyle = 'rgba(120, 230, 160, 0.22)';
+      ctx.fillRect(0, 0, CFG.CANVAS_WIDTH * t, CFG.CANVAS_HEIGHT);
+      ctx.restore();
+    }
+
+    /* ---------------------------------------------------------------- RACE */
+    let race = null;   // { lanes: [{ algo, nodes, cfg, ctx, canvas, card, run }], playing }
+
+    function laneConfig(n, w, h) {
+      const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * (w / h)))));
+      const rows = Math.ceil(n / cols);
+      return { COLS: cols, ROWS: rows, PADDING_X: w / cols, PADDING_Y: h / rows, CANVAS_WIDTH: w, CANVAS_HEIGHT: h };
+    }
+
+    function buildRace() {
+      const n = Number(state.n);
+      const subset = sampleEvenly(ALL, n);
+      raceGrid.innerHTML = '';
+      raceResult.hidden = true;
+      const lanes = state.algos.map(algoId => {
+        const card = document.createElement('div');
+        card.className = 'al-lane';
+        card.innerHTML =
+          `<div class="al-lane-head"><b>${ALGO_META[algoId].short}</b><span class="al-badge">${ALGO_META[algoId].complexity.avg}</span></div>` +
+          `<canvas></canvas>` +
+          `<div class="al-lane-stats"><span>比較 <b class="js-compare">0</b></span><span>搬移 <b class="js-moves">0</b></span><span class="al-lane-rank"></span></div>`;
+        raceGrid.appendChild(card);
+        return { algo: algoId, card, canvas: card.querySelector('canvas'), nodes: null, cfg: null, ctx: null, run: null, sweepAt: 0 };
+      });
+      race = { lanes, playing: false };
+      raceGrid.prepend(raceResult);
+      layoutRaceLanes();
+      for (const lane of race.lanes) {
+        lane.run = new SortRun(lane.nodes, SORT_KEY_MAP[state.key].compare, ALGO_META[lane.algo].run);
+      }
+      updateRaceButton();
+    }
+
+    /* Lane canvases are measured from their own cards, once per layout, for the
+     * same reason the main canvas is box-driven — but unlike the main canvas they
+     * are not re-measured on every frame, because a lane's box only changes when
+     * the lane COUNT changes. */
+    function layoutRaceLanes() {
+      if (!race) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      for (const lane of race.lanes) {
+        const box = lane.canvas.getBoundingClientRect();
+        const w = Math.max(80, Math.floor(box.width));
+        const h = Math.max(60, Math.floor(box.height || box.width * 0.625));
+        lane.canvas.width = Math.round(w * dpr);
+        lane.canvas.height = Math.round(h * dpr);
+        lane.ctx = lane.canvas.getContext('2d');
+        lane.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        lane.cfg = laneConfig(lane.nodes ? lane.nodes.length : Number(state.n), w, h);
+        if (!lane.nodes) {
+          const subset = sampleEvenly(ALL, Number(state.n));
+          lane.nodes = buildNodes(subset, lane.cfg);
+          for (const n of lane.nodes) n.size = spriteSize(lane.cfg);
+          // The SAME seed in every lane: that is what makes it a race rather than
+          // four unrelated sorts that happen to finish near each other.
+          seededShuffle(lane.nodes, state.seed);
+          lane.nodes.forEach((n, i) => { n.inputRank = i; });
+        } else {
+          for (const n of lane.nodes) n.size = spriteSize(lane.cfg);
+        }
+        updateGridPositions(lane.nodes, lane.cfg);
+      }
+    }
+
+    function updateRaceButton() {
+      const btn = document.getElementById('btnRacePlay');
+      if (!race) return;
+      const allDone = race.lanes.every(l => l.run?.done);
+      btn.textContent = allDone ? '↺ 重跑' : (race.playing ? '⏸ 暫停' : '▶ 比賽');
+      btn.disabled = race.lanes.length < 2;
+    }
+
+    function finishRace() {
+      const ranking = [...race.lanes].sort((a, b) => a.run.totalSteps - b.run.totalSteps);
+      ranking.forEach((l, i) => { l.card.querySelector('.al-lane-rank').textContent = `第 ${i + 1} 名`; });
+      raceResult.hidden = false;
+      raceResult.innerHTML =
+        `<b>結果（依總步數，同樣的取樣、同一個起始順序、同一個排序鍵）：</b><ol>` +
+        ranking.map(l => `<li>${ALGO_META[l.algo].label} — ${l.run.totalSteps.toLocaleString()} 步` +
+          `（比較 ${l.run.comparisons.toLocaleString()}，搬移 ${l.run.moves.toLocaleString()}）</li>`).join('') +
+        `</ol><p class="al-hint">步數包含每一次比較和每一次搬移，所以它衡量的是這個演算法在這份資料上的工作量，不是速度。氣泡／選擇／插入是 O(n²)，在 260 隻時會和 O(n log n) 拉開一個數量級；在 1,025 隻上那份差距會大到畫面捲動看不完，所以完整的一千隻留給單一模式。</p>`;
+      updateRaceButton();
+    }
+
+    /* ------------------------------------------------------------- FRAME */
+    let dragging = false;
+    timelineRange.addEventListener('pointerdown', () => { dragging = true; });
+    window.addEventListener('pointerup', () => { dragging = false; });
+
+    function frame() {
+      requestAnimationFrame(frame);
+      if (!CFG) return;
+      ctx.clearRect(0, 0, CFG.CANVAS_WIDTH, CFG.CANVAS_HEIGHT);
+      if (state.mode === 'single') frameSingle();
+      else frameRace();
+      sweep(sweepAt);
+    }
+
+    function frameSingle() {
+      if (!single) return;
+      let events = [];
+      if (single.playing && single.run && !single.run.done) {
+        events = single.run.playChunk(speed.steps);
+        if (events.some(e => e.t === 'swap' || e.t === 'write')) updateGridPositions(single.nodes, CFG);
+        if (single.run.done) { single.playing = false; sweepAt = performance.now(); }
+      }
+      for (const n of single.nodes) n.update();
+      paint(single.nodes, events, single.playing);
+      if (events.length) {
+        const last = events[events.length - 1];
+        highlightPseudo(single.algo, last);
+        if (last.t === 'swap' || last.t === 'write') playCry(single.nodes[last.i].data.id);
+      }
+      if (single.run) { updateStats(single.run); updateTransport(); }
+    }
+
+    function frameRace() {
+      if (!race) return;
+      let anyMoved = false;
+      for (const lane of race.lanes) {
+        if (!lane.run || !lane.ctx) continue;
+        let events = [];
+        if (race.playing && !lane.run.done) {
+          events = lane.run.playChunk(speed.steps);
+          if (events.some(e => e.t === 'swap' || e.t === 'write')) {
+            updateGridPositions(lane.nodes, lane.cfg);
+            anyMoved = true;
+          }
+          if (lane.run.done) { lane.sweepAt = performance.now(); lane.card.classList.add('is-done'); }
+        }
+        for (const n of lane.nodes) n.update();
+        lane.ctx.clearRect(0, 0, lane.cfg.CANVAS_WIDTH, lane.cfg.CANVAS_HEIGHT);
+        paint(lane.nodes, events, race.playing);
+        sweep(lane.sweepAt);
+        lane.card.querySelector('.js-compare').textContent = lane.run.comparisons.toLocaleString();
+        lane.card.querySelector('.js-moves').textContent = lane.run.moves.toLocaleString();
+        const last = events[events.length - 1];
+        if (last && (last.t === 'swap' || last.t === 'write')) playCry(lane.nodes[last.i].data.id);
+      }
+      if (anyMoved) updateRaceButton();
+      if (race.lanes.length && race.lanes.every(l => l.run?.done) && raceResult.hidden) finishRace();
+    }
+
+    /* ------------------------------------------------------------ TOOLBAR */
+    const sortKeySelect = document.getElementById('sortKeySelect');
+    for (const k of SORT_KEYS) {
+      const opt = document.createElement('option');
+      opt.value = k.id;
+      opt.textContent = k.label;
+      sortKeySelect.appendChild(opt);
+    }
+    sortKeySelect.value = state.key;
+
+    function refreshKeyNote() {
+      const note = document.getElementById('keyNote');
+      const k = SORT_KEY_MAP[state.key];
+      note.textContent = k.note
+        ? k.note
+        : '選擇要比較的欄位。改鍵只影響接下來開始的排序——進行中的排序會維持它開始時的比較器，否則「已經排好的」對飛行中的資料會無聲地換掉。';
+      document.getElementById('rainbowNote').hidden = state.key !== 'type';
+    }
+
+    sortKeySelect.addEventListener('change', () => {
+      state.key = sortKeySelect.value;
+      refreshKeyNote();
+      syncUrl();
+      // Deliberately does NOT restart or rebuild the in-flight run: the comparator
+      // a SortRun was constructed with is the one it keeps, and rebuilding here
+      // would silently change what "already sorted" means for data in flight.
+      if (single?.run && !single.run.done) {
+        pseudoNote.hidden = false;
+        pseudoNote.textContent = '排序鍵已改，但這次排序仍用開始時的比較器跑完；再按一次演算法按鈕就會用新的鍵。';
+      } else {
+        pseudoNote.hidden = true;
+      }
+      if (race) buildRace();
+    });
+
+    const speedPicker = document.getElementById('speedPicker');
+    for (const tier of SPEED_TIERS) {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.type = 'button';
+      btn.textContent = tier.label;
+      btn.title = `每幀 ${tier.steps.toLocaleString()} 步`;
+      btn.setAttribute('aria-pressed', String(tier.id === speed.id));
+      btn.addEventListener('click', () => {
+        speed = tier;
+        state.speed = tier.id;
+        for (const b of speedPicker.children) b.setAttribute('aria-pressed', String(b === btn));
+        syncUrl();
+      });
+      speedPicker.appendChild(btn);
+    }
+
+    const algoPicker = document.createElement('span');
+    algoPicker.className = 'al-group';
+    algoPicker.id = 'algoPicker';
+    for (const id of ALGO_IDS) {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.type = 'button';
+      btn.dataset.algo = id;
+      btn.textContent = ALGO_META[id].short;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', () => startSingleRun(id));
+      algoPicker.appendChild(btn);
+    }
+    document.getElementById('singleControls').prepend(algoPicker);
+
+    const raceAlgoPicker = document.getElementById('raceAlgoPicker');
+    for (const id of ALGO_IDS) {
+      const label = document.createElement('label');
+      label.className = 'al-chip';
+      const on = state.algos.includes(id);
+      label.dataset.checked = String(on);
+      label.innerHTML = `<input type="checkbox" value="${id}"${on ? ' checked' : ''}> ${ALGO_META[id].short}`;
+      const input = label.querySelector('input');
+      input.addEventListener('change', () => {
+        const checked = raceAlgoPicker.querySelectorAll('input:checked');
+        // 2 is the floor (a race needs a rival) and 4 the ceiling, because the
+        // lanes share one stage and five 130-sprite grids stop being legible.
+        if (input.checked && (checked.length > 4 || checked.length < 2)) { input.checked = false; return; }
+        state.algos = [...raceAlgoPicker.querySelectorAll('input:checked')].map(i => i.value);
+        for (const l of raceAlgoPicker.children) {
+          l.dataset.checked = String(l.querySelector('input').checked);
+        }
+        buildRace();
+        syncUrl();
+      });
+      raceAlgoPicker.appendChild(label);
+    }
+
+    document.getElementById('raceSizeSelect').value = state.n;
+    document.getElementById('raceSizeSelect').addEventListener('change', e => {
+      state.n = e.target.value;
+      buildRace();
+      syncUrl();
+    });
+
+    function setMode(next) {
+      state.mode = next;
+      document.getElementById('tabSingle').setAttribute('aria-selected', String(next === 'single'));
+      document.getElementById('tabRace').setAttribute('aria-selected', String(next === 'race'));
+      document.getElementById('singleControls').hidden = next !== 'single';
+      document.getElementById('raceControls').hidden = next !== 'race';
+      canvas.hidden = next !== 'single';
+      raceGrid.hidden = next !== 'race';
+      if (next === 'race' && !race) buildRace();
+      if (next === 'single') fitCanvas();
+      syncUrl();
+    }
+    document.getElementById('tabSingle').addEventListener('click', () => setMode('single'));
+    document.getElementById('tabRace').addEventListener('click', () => setMode('race'));
+
+    document.getElementById('btnShuffle').addEventListener('click', () => resetSingle({ reshuffle: true, newSeed: true }));
+    document.getElementById('btnPlayPause').addEventListener('click', () => {
+      if (!single?.run) return;
+      if (single.run.done) { resetSingle({ reshuffle: true, newSeed: true }); return; }
+      single.playing = !single.playing;
+      updateTransport();
+      updateStats(single.run);
+    });
+    document.getElementById('btnStepBack').addEventListener('click', () => {
+      if (!single?.run?.canStep) return;
+      single.run.stepBack();
+      updateGridPositions(single.nodes, CFG);
+      highlightPseudo(single.algo, single.run.events[single.run.cursor - 1]);
+      updateStats(single.run);
+      updateTransport();
+    });
+    document.getElementById('btnStepFwd').addEventListener('click', () => {
+      if (!single?.run?.canStep) return;
+      const ev = single.run.stepForward();
+      updateGridPositions(single.nodes, CFG);
+      highlightPseudo(single.algo, ev);
+      updateStats(single.run);
+      updateTransport();
+    });
+    document.getElementById('btnSkipEnd').addEventListener('click', () => {
+      if (!single?.run) return;
+      single.playing = false;
+      single.run.playChunk(Number.MAX_SAFE_INTEGER);
+      updateGridPositions(single.nodes, CFG);
+      sweepAt = performance.now();
+      updateStats(single.run);
+      updateTransport();
+    });
+
+    timelineRange.addEventListener('input', () => {
+      if (!single?.run?.canStep) return;
+      single.playing = false;
+      single.run.seekTo(Number(timelineRange.value));
+      updateGridPositions(single.nodes, CFG);
+      highlightPseudo(single.algo, single.run.events[single.run.cursor - 1]);
+      updateStats(single.run);
+      updateTransport();
+    });
+
+    document.getElementById('btnRaceReshuffle').addEventListener('click', () => {
+      state.seed = String(Math.floor(Math.random() * 1e9));
+      race = null;
+      buildRace();
+      syncUrl();
+    });
+    document.getElementById('btnRacePlay').addEventListener('click', () => {
+      if (!race) return;
+      if (race.lanes.every(l => l.run?.done)) { race = null; buildRace(); return; }
+      race.playing = !race.playing;
+      updateRaceButton();
+    });
+
+    const rainbowToggle = document.getElementById('rainbowToggle');
+    rainbowToggle.checked = state.rainbow;
+    rainbowToggle.addEventListener('change', () => {
+      state.rainbow = rainbowToggle.checked;
+      document.getElementById('rainbowNote').hidden = state.key !== 'type';
+      syncUrl();
+    });
+
+    document.getElementById('btnCopyLink').addEventListener('click', async () => {
+      const btn = document.getElementById('btnCopyLink');
+      const label = btn.textContent;
       try {
-        const jsonData = await loadPokemonData();
-        pokemons = await loadAllPokemonNodes(jsonData, GRID_CONFIG.CANVAS_WIDTH, GRID_CONFIG.CANVAS_HEIGHT);
-        updateGridPositions(pokemons);
-        loadingText.style.display = 'none';
-        requestAnimationFrame(renderLoop);
-      } catch (error) {
-        loadingText.innerText = '載入失敗！請確認是否使用 Local Server';
-        console.error(error);
+        await navigator.clipboard.writeText(location.href);
+        btn.textContent = '已複製';
+      } catch {
+        window.prompt('複製這個連結：', location.href);
       }
-    }
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    });
 
-    function renderLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    /* The cry switch is OFF until the reader turns it on, and that is a
+     * deliberate default rather than an oversight: this is the only page on the
+     * site that can fire a sound every few milliseconds, and 1,025 swaps is a lot
+     * of noise to arrive at uninvited. So the checkbox starts unchecked, and the
+     * player's stored preference is deliberately NOT consulted here — a returning
+     * reader who once enabled sound on cries.html has not thereby opted into a
+     * per-swap drone, and treating that as consent would be the wrong reading of
+     * a preference recorded on a different page.
+     *
+     * The consequence worth naming: `cryPlayer.muted` and its localStorage key are
+     * SHARED with cries.html and detail.html, so the first render here also writes
+     * the site-wide mute to true. One switch for "cry volume", one place to change
+     * it — which is the arrangement `cry-autoplay.js` exists to keep, and reversing
+     * it here to keep sorting.html's default local would put two mute stores on the
+     * site and let them drift apart invisibly. */
+    const audioEnabled = document.getElementById('audioEnabled');
+    audioEnabled.checked = false;
+    cryPlayer.muted = true;
+    document.getElementById('audioVolume').value = Math.round(cryPlayer.volume * 100);
+    document.getElementById('audioLegacy').checked = state.legacy;
+    audioEnabled.addEventListener('change', e => {
+      cryPlayer.muted = !e.target.checked;
+      // Restart the throttle window on enable, or the first swap after ticking the
+      // box is swallowed by a gap opened while the reader was reaching for it.
+      if (e.target.checked) lastCryAt = 0;
+    });
+    document.getElementById('audioVolume').addEventListener('input', e => { cryPlayer.volume = Number(e.target.value) / 100; });
+    document.getElementById('audioLegacy').addEventListener('change', e => {
+      state.legacy = e.target.checked;
+      syncUrl();
+    });
 
-      if (sortGenerator) {
-        const res = sortGenerator.next();
-        updateGridPositions(pokemons);
-        if (res.done) sortGenerator = null;
+    window.addEventListener('keydown', e => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (state.mode === 'race') {
+        if (e.code === 'Space') { e.preventDefault(); document.getElementById('btnRacePlay').click(); }
+        return;
       }
-
-      for (let i = 0; i < pokemons.length; i++) {
-        pokemons[i].update();
-        pokemons[i].draw(ctx);
+      if (e.code === 'Space') { e.preventDefault(); document.getElementById('btnPlayPause').click(); }
+      else if (!single?.playing) {
+        if (e.code === 'ArrowLeft') { e.preventDefault(); document.getElementById('btnStepBack').click(); }
+        else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          if (e.shiftKey) document.getElementById('btnSkipEnd').click();
+          else document.getElementById('btnStepFwd').click();
+        }
       }
+    });
 
-      requestAnimationFrame(renderLoop);
-    }
+    document.addEventListener('themechange', () => { refreshTokens(); });
 
-    function shufflePokemon() {
-      sortGenerator = null;
-      shuffleArray(pokemons);
-      updateGridPositions(pokemons);
-    }
-
-    function runAlgorithm(type) {
-      sortGenerator = null;
-      switch(type) {
-        case 'bubble': sortGenerator = bubbleSortSteps(pokemons); break;
-        case 'selection': sortGenerator = selectionSortSteps(pokemons); break;
-        case 'insertion': sortGenerator = insertionSortSteps(pokemons); break;
-        case 'quick': sortGenerator = quickSortSteps(pokemons); break;
-        case 'merge': sortGenerator = mergeSortSteps(pokemons); break;
-        case 'heap': sortGenerator = heapSortSteps(pokemons); break;
-      }
-    }
-
-    function groupByColor() {
-      sortGenerator = null;
-      sharedGroupByColor(pokemons);
-    }
-
-    // These used to be inline onclick="" attributes. That cannot work here: an
-    // inline handler resolves its callee on the global object, and everything
-    // in this file lives in module scope, so every button raised
-    // "ReferenceError: runAlgorithm is not defined". The generators are the
-    // exception — they come from a classic script below, so they *are* global.
-    // Wiring the same way pokedex.html does, with addEventListener.
-    document.querySelector('[data-action="shuffle"]')
-      .addEventListener('click', shufflePokemon);
-    for (const btn of document.querySelectorAll('[data-action="sort"]')) {
-      btn.addEventListener('click', () => runAlgorithm(btn.dataset.algorithm));
-    }
-    document.querySelector('[data-action="color"]')
-      .addEventListener('click', groupByColor);
-
-    init();
+    /* --------------------------------------------------------------- BOOT
+     * One loader, two consumers of its result: loadAllPokemonNodes builds the
+     * PokemonNodes, and the page keeps the Image objects off them rather than
+     * writing a second copy of the fetching code here. */
+    loadPokemonData()
+      .then(async (data) => {
+        const nodes = await loadAllPokemonNodes(data, 1200, 800, {
+          onProgress: (done, total) => {
+            loadingProgress.textContent = ` ${done.toLocaleString()} / ${total.toLocaleString()}`;
+          },
+        });
+        for (const n of nodes) IMG.set(n.data.id, n.img);
+        ALL = data;
+        fitCanvas();
+        loading.hidden = true;
+        refreshKeyNote();
+        setMode(state.mode);
+        resetSingle();
+        requestAnimationFrame(frame);
+      })
+      .catch(err => {
+        loading.textContent = '載入失敗，請確認是否用 Local Server 開啟。';
+        console.error(err);
+      });
   </script>
-
-  <script src="assets/js/sorting-algorithms.js"></script>
 </body>
 </html>
