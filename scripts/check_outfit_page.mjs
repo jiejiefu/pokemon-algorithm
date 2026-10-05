@@ -656,9 +656,20 @@ console.log('sampling: which pixels are measured');
   // boundsOf is what keeps the sprite off the reader's face, and it is the one
   // thing the page can get from the mask for free.
   eq(boundsOf([]), null, 'no sampled pixels means no bounds');
-  const b = boundsOf([[[10, 20]], [[14, 30]], [[12, 22]]]);
-  eq(b, { x: 10, y: 20, width: 5, height: 11 }, 'bounds are the union of the sets, inclusive of the last pixel');
-  eq(boundsOf([[[5, 5]]]), { x: 5, y: 5, width: 1, height: 1 }, 'a single pixel has a 1x1 bound');
+  // FLAT `[x, y]` pairs, which is the shape the page passes. The first version of
+  // this function took an array of SETS and destructured the integers, so the
+  // failure landed two functions away as `.for is not iterable` and took out the
+  // whole first-click path. This is the shape assertion for it.
+  const b = boundsOf([[10, 20], [14, 30], [12, 22]]);
+  eq(b, { x: 10, y: 20, width: 5, height: 11 }, 'bounds are the union, inclusive of the last pixel');
+  eq(boundsOf([[5, 5]]), { x: 5, y: 5, width: 1, height: 1 }, 'a single pixel has a 1x1 bound');
+  // And the page's own call shape: a flatMap over samples' kept coordinates.
+  eq(boundsOf([{ kept: [[1, 2]] }, { kept: [[9, 4]] }].flatMap((s) => s.kept)),
+    { x: 1, y: 2, width: 9, height: 3 }, 'a flatMap of samples.kept is the shape actually passed');
+  eq(boundsOf([[1, 2, 3], [4, 5]]), { x: 1, y: 2, width: 4, height: 4 },
+    'a row with extra columns is still read as a pair, not destructured into two scalars');
+  eq(boundsOf(['nope', null, [7, 8]]), { x: 7, y: 8, width: 1, height: 1 },
+    'malformed entries are skipped rather than throwing');
 }
 
 console.log('');

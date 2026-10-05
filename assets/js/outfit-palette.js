@@ -148,24 +148,36 @@ export function discCoordinates(width, height, cx, cy, radius) {
 }
 
 /**
- * 所有點擊的聯集，並回傳它的外框。
+ * 一組座標的外框。
+ *
+ * **輸入是一個扁平的 `[x, y]` 陣列，不是「多組座標的陣列」。** 這個區別值得寫下來，
+ * 因為第一版簽的是 `boundsOf(sets)` 並在內層 `for (const [x, y] of set)` —— 頁面
+ * 傳進去的是 `samples.flatMap(s => s.kept)`，於是第一個元素是 `[x, y]` 而不是一組
+ * 座標，解構整數時拋出 `.for is not iterable`。整個 render() 中斷，而被丟掉的是
+ * 「第一次點擊」那條路徑上的所有東西。
+ *
+ * 這個形狀差異正好是 §3.G 記錄的那一類：一個函式的參數形狀錯了不會擲出可讀的訊息，
+ * 它擲出的是下游某一行的 TypeError，而真正的原因在兩個函式之外。
  *
  * 這個外框是「sprite 要擺在哪裡」的答案，而且它是**免費**的：人物佔住的位置就是被
  * 量到的那團像素，所以寶可夢可以擺在外框之外，讀者的臉不會被擋住。一個沒有遮罩的
  * 版本只能靠把 sprite 塞到角落來猜，而那個角落有一半機率壓在人身上。
  */
-export function boundsOf(sets) {
+export function boundsOf(coords) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  for (const set of sets) {
-    for (const [x, y] of set) {
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
+  for (const c of coords) {
+    // A coordinate pair is a 2-element array. Destructuring it blindly would
+    // throw on a 3-element row, and this function is called from a page with
+    // hand-built fixture data, so the shape is checked rather than assumed.
+    if (!Array.isArray(c) || c.length < 2) continue;
+    const [x, y] = c;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
   }
   if (!Number.isFinite(minX)) return null;
   return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };

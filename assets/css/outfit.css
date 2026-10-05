@@ -1,0 +1,369 @@
+/**
+ * 寶可夢穿搭 (outfit.html) — page-only styles.
+ *
+ * WHY THIS FILE EXISTS SEPARATELY FROM colors.css
+ *
+ * outfit.html mounts colors.css because it reuses the `.cp-*` components — the
+ * palette grid, the section shell, the buttons, the code block. Those are shared
+ * with color.html and colors-explore.html, so a rule that only this page needs
+ * cannot live among them: it would make three pages depend on a page that does
+ * not exist yet. This is the same arrangement colors-generator.css documents for
+ * colors.html, with `cg-` replaced by `of-`. **Never edit an existing `.cp-*`
+ * rule for a need this page alone has — add an `of-` rule here.** See
+ * AGENTS.md §3.B1.
+ *
+ * Everything is token-based. No raw hex outside the two places where a colour is
+ * *the content* rather than a style — the chip dot and the swatch, both of which
+ * are inline styles carrying measured values.
+ */
+
+.of-section { margin-top: 2.4rem; }
+.of-section > h2 { margin-bottom: 1rem; }
+.of-sub {
+  margin: 1.8rem 0 .8rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Upload
+   --------------------------------------------------------------------------- */
+
+.of-drop {
+  position: relative;
+  border: 2px dashed var(--border-strong);
+  border-radius: 16px;
+  background: var(--bg-card);
+  transition: border-color .18s ease, background-color .18s ease;
+}
+.of-drop.is-over {
+  border-color: var(--accent-gold);
+  background: var(--bg-controls);
+}
+
+/* The input covers the whole zone and is the real control. It is not
+   `display: none` — a hidden file input cannot be focused and its label's
+   activation is the only thing that would open the picker, so a keyboard user
+   reaches the control through the label and a screen reader reaches it through
+   the input. Opacity 0 keeps it in the hit area and the tab order. */
+.of-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.of-file-input:focus-visible {
+  opacity: 1;
+  outline: 3px solid var(--accent-gold);
+  outline-offset: -3px;
+}
+
+.of-drop-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  padding: 2.6rem 1.4rem;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: none; /* the input above is the control, not this label */
+}
+.of-drop-title { font-size: 1.1rem; font-weight: 600; }
+.of-drop-hint { font-size: .85rem; color: var(--text-secondary); max-width: 46ch; }
+
+.of-file-meta {
+  margin-top: .8rem;
+  font-size: .85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   The stage: photo on the left, the Pokémon on the right
+   --------------------------------------------------------------------------- */
+
+/* Two tracks, and the second one is sized by its content. The photo cannot be
+   squeezed out of existence by a long species name because it is the track with
+   `minmax(0, 1fr)` and `min-width: 0`; the sprite's column is `auto`. */
+.of-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1.2rem;
+  margin: 1.2rem 0;
+}
+
+.of-photo {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-controls);
+  border: 1px solid var(--border);
+}
+.of-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The overlay carries the marks. `pointer-events: none` is what routes every
+   click through to the photo canvas underneath, so there is exactly one click
+   target and no coordinate maths has to account for a second listener. */
+.of-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.of-photo-cap {
+  padding: .6rem .8rem;
+  font-size: .8rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+}
+
+/* The sprite. `align-self: end` is inherited from the grid, so its feet sit on
+   the photo's bottom edge — which is what reads as standing beside someone
+   rather than floating over them. It is a sibling track, so no amount of
+   resizing can put it over the person. */
+.of-partner {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  max-width: 260px;
+}
+.of-partner-img {
+  width: clamp(140px, 22vw, 240px);
+  height: auto;
+  display: block;
+  /* The artwork is 475px of PNG with real transparency, so it composites onto
+     the card without a plate behind it. `drop-shadow` is applied to the alpha
+     silhouette rather than the box, which is why it is a `filter` and not a
+     `box-shadow` — a box-shadow would draw a rectangle behind the whole 475px
+     canvas, including the transparent corners. */
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .35));
+}
+.of-partner-cap {
+  font-size: .78rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  /* Below this the two tracks are narrower than the sprite is legible at, so it
+     goes under the photo and becomes full-width. The order is photo first
+     because the photo is what the reader is looking at. */
+  .of-stage { grid-template-columns: minmax(0, 1fr); }
+  .of-partner { max-width: none; align-self: center; }
+  .of-partner-img { width: min(56vw, 240px); }
+}
+
+/* ---------------------------------------------------------------------------
+   Mode chips
+   --------------------------------------------------------------------------- */
+
+.of-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1rem 0 .5rem;
+}
+
+.of-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .4rem .6rem;
+  min-height: 34px;          /* WCAG 2.2 SC 2.5.8: 24x24 minimum target */
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-controls);
+  color: var(--text-primary);
+  font-size: .85rem;
+  cursor: pointer;
+}
+.of-chip.is-on {
+  border-color: var(--accent-gold);
+  background: var(--bg-card);
+}
+.of-chip-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+}
+.of-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: -2px -4px -2px 0;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.of-chip-x:hover { background: var(--bg-controls); color: var(--text-primary); }
+
+.of-chip-all { border-style: dashed; }
+.of-modes-note { font-size: .85rem; color: var(--text-secondary); }
+
+/* ---------------------------------------------------------------------------
+   Measured / winner / candidates
+   --------------------------------------------------------------------------- */
+
+.of-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: .7rem;
+  margin-bottom: 1rem;
+}
+.of-tile {
+  padding: .7rem .8rem;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.of-tile-label { font-size: .72rem; color: var(--text-secondary); }
+.of-tile-value {
+  font-size: .95rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.of-winner { margin: 1.4rem 0; }
+.of-winner-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+}
+.of-winner-eyebrow {
+  display: block;
+  font-size: .78rem;
+  letter-spacing: .04em;
+  color: var(--text-secondary);
+}
+.of-winner-name {
+  margin: .2rem 0 .1rem;
+  font-size: 1.7rem;
+  line-height: 1.2;
+}
+.of-winner-id {
+  margin: 0 0 .8rem;
+  font-size: .85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.of-winner-scores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: .6rem;
+  margin: 0 0 .9rem;
+}
+.of-winner-scores > div {
+  padding: .55rem .7rem;
+  border-radius: 8px;
+  background: var(--bg-controls);
+}
+.of-winner-scores dt {
+  font-size: .72rem;
+  color: var(--text-secondary);
+  margin-bottom: .15rem;
+}
+.of-winner-scores dd {
+  margin: 0;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.of-winner-note { font-size: .85rem; color: var(--text-secondary); margin: 0 0 .7rem; }
+.of-winner-links { display: flex; gap: 1rem; font-size: .88rem; margin: 0; }
+
+.of-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: .6rem;
+}
+.of-candidate {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .55rem .7rem;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+.of-candidate:hover { border-color: var(--accent-gold); }
+.of-candidate.is-on { border-color: var(--accent-gold); background: var(--bg-controls); }
+/* No record -> no href -> a <span>, so it must not wear the affordance. */
+.of-candidate.is-plain { cursor: default; }
+.of-candidate.is-plain:hover { border-color: var(--border); }
+.of-candidate img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex: none;
+}
+.of-candidate-body { display: flex; flex-direction: column; min-width: 0; }
+.of-candidate-name { font-size: .92rem; }
+.of-candidate-meta {
+  font-size: .78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Palette
+   --------------------------------------------------------------------------- */
+
+.of-names { margin-top: .9rem; display: grid; gap: .35rem; }
+.of-name-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: .85rem;
+  font-variant-numeric: tabular-nums;
+}
+.of-name-chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  flex: none;
+}
+.of-name-hex { font-family: var(--font-mono, monospace); }
+.of-name-zh { color: var(--text-secondary); }
+.of-name-share { margin-left: auto; color: var(--text-secondary); }
+
+/* The copy affordance paletteGridHtml already renders; this only confirms it. */
+.cp-cell.is-copied { outline: 3px solid var(--accent-gold); }
+
+.of-code {
+  margin-top: .9rem;
+  max-height: 380px;
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--bg-controls);
+  border: 1px solid var(--border);
+  font-size: .8rem;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}

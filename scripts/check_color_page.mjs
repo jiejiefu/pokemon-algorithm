@@ -131,12 +131,12 @@ console.log('NAV integrity');
 // Every href a NAV row can send the user to must resolve, or be registered as
 // planned. A typo'd href is a dead link that renders identically to a good one.
 const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
-// 11 site pages reach the nav: the 5 top-level hrefs, pokedex / generations /
-// collections / category under 圖鑑, sorting / maze under 演算法, and the 色彩
-// trio. A NUMBER, not a list on purpose — a list here would be a fourth copy of
+// 12 site pages reach the nav: the 6 top-level hrefs, pokedex / generations /
+// collections / category under 圖鑑, sorting / maze under 演算法, cries /
+// cries-gen1 under 叫聲, and the 色彩 quartet. A NUMBER, not a list on purpose — a list here would be a fourth copy of
 // NAV that could be edited to agree with a broken NAV, whereas a count can only
 // be changed by someone deciding the site's page set changed.
-const EXPECTED_NAV_PAGES = 14;
+const EXPECTED_NAV_PAGES = 15;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

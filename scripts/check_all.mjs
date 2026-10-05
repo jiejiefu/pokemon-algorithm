@@ -176,6 +176,41 @@ const CHECKERS = [
     inputs: ['assets/data/cry_features.json', 'assets/js/cry-index.js', 'scripts/analyze_cries.py'],
   },
 
+  /* ---- outfit: the mmcq port, the sampling, and the page ---- */
+  {
+    script: 'scripts/check_outfit_page.mjs', group: 'color',
+    note: 're-derives all 2,050 sprite palettes through assets/js/mmcq.js',
+    inputs: [
+      'assets/js/mmcq.js',
+      'assets/js/outfit-palette.js',
+      'assets/js/color-match.js',
+      'assets/data/color_palettes.json',
+      'assets/images/sprite/*',
+      'assets/images/sprite/shiny/*',
+    ],
+  },
+  {
+    /* NO fs read describes the page: it is fetched over HTTP from Live Server, so
+     * the list below is read off the HTML by hand. Same caveat as the two cry
+     * page checkers, and `manual: true` is what makes check_all print that
+     * rather than tick it. */
+    script: 'scripts/check_outfit_browser.mjs', group: 'color', needsServer: true, manual: true,
+    note: 'page inputs read off the HTML, not recorded',
+    inputs: [
+      'outfit.html',
+      'assets/css/shared.css',
+      'assets/css/colors.css',
+      'assets/css/outfit.css',
+      'assets/js/shared.js',
+      'assets/js/color-palette.js',
+      'assets/js/color-match.js',
+      'assets/js/mmcq.js',
+      'assets/js/outfit-palette.js',
+      'assets/data/pokemon_data.json',
+      'assets/data/color_palettes.json',
+    ],
+  },
+
   /* ---- cry: the pages ---- */
   {
     script: 'scripts/check_cries_page.mjs', group: 'cry-page',
@@ -295,10 +330,22 @@ const CHECKERS = [
   },
   {
     script: 'scripts/check_color_match.mjs', group: 'color',
+    // The five beyond the checker's own module and its two data files are the
+    // chain it reaches by importing color-palette.js, which imports shared.js.
+    // They were undeclared, which --prove-inputs reports as "read but not
+    // declared": the skip cache would have kept reusing this checker's result
+    // after someone edited shared.js. Declaring the glob is honest here because
+    // the chain is a module-resolution fact, not a list someone maintains.
     inputs: [
       'assets/data/color_palettes.json',
       'assets/data/pokemon_data.json',
       'assets/js/color-match.js',
+      'assets/js/color-palette.js',
+      'assets/js/shared.js',
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
+      'assets/css/shared.css',
       'assets/css/colors-generator.css',
       'colors.html',
     ],
@@ -306,10 +353,16 @@ const CHECKERS = [
   {
     script: 'scripts/test_check_color_match.mjs', checker: 'scripts/check_color_match.mjs', group: 'color',
     note: 'runs the above in child trees',
+    // `assets/js/*` and not a file list: the suite COPIES every .js in that
+    // directory into its scratch trees (`JS_TREE = readdirSync(...)`), so adding
+    // one file to the directory is a change to this suite's inputs. Listing the
+    // files by hand meant adding mmcq.js and outfit-palette.js silently widened
+    // it while the cache still claimed otherwise.
     inputs: [
       'assets/data/color_palettes.json',
       'assets/data/pokemon_data.json',
-      'assets/js/color-match.js',
+      'assets/js/*',
+      'assets/css/shared.css',
       'assets/css/colors-generator.css',
       'colors.html',
     ],

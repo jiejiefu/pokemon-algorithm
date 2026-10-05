@@ -160,42 +160,52 @@ const CASES = [
     // #7362ac nearer (0.2043 vs 0.2526). Seven such inversions exist among the
     // corpus colours for that grey.
     name: 'OKLab is replaced by RGB Euclidean distance — the §3.B2 metric',
+    // The conversion now lives in `rgbToOklab()`, which `hexToOklab()` delegates
+    // to — so the mutation targets THAT function's body, and the greedy
+    // replacement below is scoped to it. Editing `hexToOklab` itself would be a
+    // no-op: its arithmetic is gone.
     mutate: (dir) => editModule(dir, (s) => {
       const before = s;
-      const out = s
-        .replace(
-          `export function hexToOklab(hex) {
-  if (!hex || typeof hex !== 'string') return null;
-  let h = hex.trim();
-  if (h.startsWith('#')) h = h.slice(1);
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  if (h.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(h)) return null;
-  const r = srgbToLinear(parseInt(h.slice(0, 2), 16));
-  const g = srgbToLinear(parseInt(h.slice(2, 4), 16));
-  const b = srgbToLinear(parseInt(h.slice(4, 6), 16));`,
-          `export function hexToOklab(hex) {
-  if (!hex || typeof hex !== 'string') return null;
-  let h = hex.trim();
-  if (h.startsWith('#')) h = h.slice(1);
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  if (h.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(h)) return null;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return [r, g, b];`,
-        )
-        .replace(
-          `  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+      // Replace the whole of `rgbToOklab`'s body with a channel read, so
+      // `hexToOklab` — which now delegates — becomes RGB Euclidean end to end.
+      // Targetting the body rather than one line is what keeps this case
+      // working when the function is refactored: an earlier version spliced
+      // `hexToOklab`'s arithmetic, which no longer exists, and the
+      // `out === before` guard below is what turned that into a readable error
+      // instead of a case that silently stopped mutating.
+      //
+      // BOTH ends of this replacement are load-bearing, and getting either wrong
+      // produces a file that does not PARSE — so the checker prints nothing at
+      // all and the case reports "no FAIL line" rather than the failure it is
+      // supposed to be detecting. Both happened while writing it:
+      //
+      // - Starting the match at `export function rgbToOklab(` and replacing
+      //   through `];` with a bare `  return ...;` DELETES the function header
+      //   and its `Number.isFinite` guard. The result is a `return` at module top
+      //   level: "Illegal return statement".
+      // - Ending the replacement with a closing brace DOUBLES it, because the
+      //   matched text stops at `];` and the original's `}` is still there.
+      //
+      // `out === before` proves the mutation landed; it says nothing about whether
+      // it left a runnable file. That is §4's "a loader error is not a test
+      // failure" reached from the other direction — the defect is real and the
+      // guard that exists for exactly this class of case cannot see it.
+      const out = s.replace(
+        `  const rl = srgbToLinear(r);
+  const gl = srgbToLinear(g);
+  const bl = srgbToLinear(b);
+
+  const l = Math.cbrt(0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl);
+  const m = Math.cbrt(0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl);
+  const s = Math.cbrt(0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl);
 
   return [
     0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
     1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
   ];`,
-          `  return [r, g, b];`,
-        );
+        `  return [r, g, b];`,
+      );
       if (out === before) throw new Error('RGB swap did not apply');
       return out;
     }),

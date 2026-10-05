@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢穿搭 · 寶可夢演算法</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="上傳一張穿搭照片，點幾下衣服，用與 1,025 隻寶可夢完全相同的 MMCQ 演算法算出六色色盤，再以 OKLab 雙向加權距離找出最像的那一隻。">
+  <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
+       after the first paint is a visible flash, and a module cannot run early
+       because module scripts are deferred. Identical on all five themed pages
+       and kept in sync with THEME_COLORS in shared.js. See AGENTS.md gotcha 31. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/colors.css">
+  <!-- Page-only. Every rule in it is `of-` prefixed and mounted here alone, for
+       the same reason colors-generator.css exists: the `.cp-*` components below
+       are shared with color.html and colors-explore.html, so a rule that only
+       this page needs cannot live among them. Never edit a `.cp-*` rule for a
+       need this page alone has. See AGENTS.md §3.B1. -->
+  <link rel="stylesheet" href="assets/css/outfit.css">
+  <style>
+    /* Page shell only, for the same reason colors.html keeps its shell inline:
+       these are the two sizes this one page uses and they belong with the markup
+       they apply to. Components stay in outfit.css. */
+    :root { color-scheme: dark; }
+    :root[data-theme="light"] { color-scheme: light; }
+    body { overflow-x: hidden; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header header-colors">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="cp-page">
+    <div class="cp-intro">
+      <h1>寶可夢穿搭</h1>
+      <p class="cp-intro-lead">
+        上傳一張穿搭照片，點幾下衣服，這一頁會用<b>和 1,025 隻寶可夢完全相同的演算法</b>把
+        你點到的像素算成六個顏色，再和每一隻寶可夢的六色色盤比對，找出最像的那一隻。
+      </p>
+      <p class="cp-intro-note">
+        色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a>，
+        距離度量用 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a>。
+        照片<b>不會離開你的瀏覽器</b> —— 解碼、取樣、量化、比對全部在這個分頁裡完成。
+      </p>
+    </div>
+
+    <!-- ============================ upload ============================ -->
+    <section class="of-section" aria-labelledby="sec-upload">
+      <h2 id="sec-upload">一、選一張照片</h2>
+
+      <div class="of-drop" id="of-drop">
+        <input type="file" id="of-file" accept="image/*" class="of-file-input"
+               aria-describedby="of-drop-hint">
+        <label class="of-drop-label" for="of-file">
+          <span class="of-drop-title">選擇或拖放一張照片</span>
+          <span class="of-drop-hint" id="of-drop-hint">
+            JPG / PNG / WebP。整張照片會在瀏覽器裡縮到長邊 512 後再取樣，所以解析度再高也不會更準。
+          </span>
+        </label>
+      </div>
+
+      <p class="of-file-meta" id="of-file-meta" hidden></p>
+    </section>
+
+    <!-- ============================= work ============================= -->
+    <section class="of-section" id="of-work" aria-labelledby="sec-work" hidden>
+      <h2 id="sec-work">二、點你身上的衣服</h2>
+
+      <div class="of-stage">
+        <figure class="of-photo">
+          <!-- Two canvases, not one. The photo never changes after it is drawn, so
+               the marks could be baked into it — but baking them means every new
+               sample repaints 262k pixels, and a canvas that carries both the image
+               and its own state is a canvas whose state has to be undone before it
+               can be redrawn. Kept separate, redrawing the marks is one clearRect. -->
+          <canvas id="of-canvas" class="of-canvas"></canvas>
+          <canvas id="of-marks" class="of-marks" aria-hidden="true"></canvas>
+          <figcaption class="of-photo-cap" id="of-photo-cap"></figcaption>
+        </figure>
+
+        <!-- The sprite sits in its own grid track, so it cannot cover the person
+             no matter how the photo is scaled. Its feet align to the photo's
+             bottom edge, which is what makes it read as standing beside them
+             rather than floating. `max-width` on the photo stops the track from
+             being squeezed to nothing on a narrow screen, and the pair wraps to
+             one column below 560px where the sprite goes under the photo. -->
+        <figure class="of-partner" id="of-partner">
+          <img id="of-partner-img" class="of-partner-img" alt="" decoding="async" hidden>
+          <figcaption class="of-partner-cap" id="of-partner-cap"></figcaption>
+        </figure>
+      </div>
+
+      <!-- Mode chips. Two questions, two answers, and the page says which one it
+           answered rather than leaving the reader to infer it from the result. -->
+      <div class="of-modes" id="of-modes" role="radiogroup" aria-label="比對範圍" hidden></div>
+
+      <p class="of-modes-note" id="of-modes-note"></p>
+    </section>
+
+    <!-- ============================ result =========================== -->
+    <section class="of-section" id="of-result" aria-labelledby="sec-result" hidden>
+      <h2 id="sec-result">三、最接近的一隻</h2>
+
+      <div class="of-measured" id="of-measured"></div>
+
+      <div class="of-winner" id="of-winner"></div>
+
+      <h3 class="of-sub">其他候選</h3>
+      <div class="of-candidates" id="of-candidates"></div>
+    </section>
+
+    <!-- ============================ palette =========================== -->
+    <section class="of-section" id="of-palette-sec" aria-labelledby="sec-palette" hidden>
+      <h2 id="sec-palette">四、你的六色色盤</h2>
+      <div id="of-palette"></div>
+      <p class="cp-note" id="of-palette-note"></p>
+    </section>
+
+    <!-- ============================ export ============================ -->
+    <section class="of-section" id="of-export-sec" aria-labelledby="sec-export" hidden>
+      <h2 id="sec-export">五、把它變成主題</h2>
+      <p class="cp-note">
+        這組顏色可以直接匯出成 CSS 變數、Tailwind 設定或 JSON —— 和
+        <a href="colors.html">色彩生成器</a>用的是同一組函式，所以匯出來的格式完全一致。
+      </p>
+      <div class="cp-actions" id="of-actions"></div>
+      <pre class="of-code" id="of-code" tabindex="0"></pre>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        寶可夢演算法 · 色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a> · 比對度量 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a> · 執行期 MMCQ 轉錄自同一個 <a href="https://github.com/lokesh/color-thief" rel="noopener noreferrer" target="_blank">color-thief</a> 原始碼 · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    // Every named import must exist in the module it comes from: a missing one is
+    // a SyntaxError at parse time and the page renders nothing at all, with no
+    // error a reader would see. Check the import list, not the exports.
+    import {
+      loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
+    } from './assets/js/shared.js';
+    import {
+      loadColorPalettes, artworkUrl, paletteGridHtml, paletteUrl,
+      paletteToThemeTokens, themeToTailwindV4Css, themeToTailwindV3Config, themeToJson,
+      describeHex, formatShare, formatHex,
+    } from './assets/js/color-palette.js';
+    import { buildMatchIndex, matchPalette, pixelToOklab as toLab } from './assets/js/color-match.js';
+    import { snapToReal } from './assets/js/mmcq.js';
+    import {
+      fitWorkingSize, discRadius, discCoordinates, boundsOf,
+      sampleDisc, equalise, medianOklab,
+      WORKING_LONG_EDGE, DISC_FRACTION, DISC_MIN_PX, DISC_MAX_PX,
+      OUTLIER_DELTA, MIN_KEEP, MAX_CLICKS,
+    } from './assets/js/outfit-palette.js';
+
+    initThemeToggle();
+    // The current page, so the 色彩 trigger marks itself current here too. The
+    // nav row for this page is a real href, not a `planned:` row, so it also
+    // renders as a link and can be reached from the dropdown.
+    initHeaderNav('outfit.html');
+
+    const els = {
+      drop: document.getElementById('of-drop'),
+      file: document.getElementById('of-file'),
+      fileMeta: document.getElementById('of-file-meta'),
+      work: document.getElementById('of-work'),
+      canvas: document.getElementById('of-canvas'),
+      marks: document.getElementById('of-marks'),
+      photoCap: document.getElementById('of-photo-cap'),
+      partner: document.getElementById('of-partner'),
+      partnerImg: document.getElementById('of-partner-img'),
+      partnerCap: document.getElementById('of-partner-cap'),
+      modes: document.getElementById('of-modes'),
+      modesNote: document.getElementById('of-modes-note'),
+      result: document.getElementById('of-result'),
+      measured: document.getElementById('of-measured'),
+      winner: document.getElementById('of-winner'),
+      candidates: document.getElementById('of-candidates'),
+      paletteSec: document.getElementById('of-palette-sec'),
+      palette: document.getElementById('of-palette'),
+      paletteNote: document.getElementById('of-palette-note'),
+      exportSec: document.getElementById('of-export-sec'),
+      actions: document.getElementById('of-actions'),
+      code: document.getElementById('of-code'),
+    };
+
+    let pokemon = [];
+    let indexSize = 0;
+
+    /**
+     * The decoded photo at working resolution. `null` before a file is chosen, and
+     * it is the ONLY copy the page keeps — no `File`, no object URL held alive.
+     * The object URL is revoked as soon as the bitmap is decoded, because a page
+     * that lets the reader swap photos five times should not be holding five
+     * decoded images alive for the session.
+     */
+    let photo = null;
+
+    /**
+     * One entry per click. `pixels` is what MMCQ receives; `kept` is the same
+     * pixels as coordinates, and it is kept separately **for the marks**, so the
+     * reader can see what was measured. That is the whole answer to "how do I
+     * know it didn't just take the background": it is drawn on the photo.
+     */
+    let samples = [];
+
+    /**
+     * Which question the page is answering right now.
+     *
+     * `{ kind: 'garment', index }` is one click's disc. `{ kind: 'outfit' }` is
+     * every disc, equalised. Both are reachable by the reader at all times and
+     * the page always names which one produced the number on screen — the two
+     * answer different questions, and a result without its question is a claim
+     * the reader cannot check.
+     */
+    let selection = null;
+
+    let currentPalette = null;
+    let currentWinner = null;
+
+    // ---------------------------------------------------------------------
+    // Loading the photo
+    // ---------------------------------------------------------------------
+
+    /**
+     * Decode a File into `photo`, at working resolution.
+     *
+     * `createImageBitmap` with `imageOrientation: 'from-image'` is used rather
+     * than an `<img>` + object URL because it applies EXIF rotation for us. A
+     * phone photo of an outfit is very often portrait-with-rotation-flag, and
+     * reading the pixels without honouring that flag gives a sideways person —
+     * and then the reader clicks where the sleeve is and gets the background.
+     *
+     * The bitmap is closed immediately after the draw. Keeping it would double
+     * the memory for a working copy of an image the canvas already holds.
+     */
+    async function loadFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        setStatus('這不是一個圖片檔。請選 JPG、PNG 或 WebP。');
+        return;
+      }
+
+      let bitmap;
+      let objectUrl = null;
+      try {
+        objectUrl = URL.createObjectURL(file);
+        bitmap = await createImageBitmap(await fetch(objectUrl).then(r => r.blob()), {
+          imageOrientation: 'from-image',
+        });
+      } catch (e) {
+        setStatus(`這張圖解不開（${e.message}）。換一張試試。`);
+        return;
+      } finally {
+        // Revoked on BOTH paths. A revoked URL keeps the decoded blob alive, and
+        // a failed decode means nothing was drawn to reference it.
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      }
+
+      // Read the dimensions BEFORE close(). `ImageBitmap.close()` releases the
+      // underlying image, and an earlier version of this block called it and then
+      // asked `bitmap.width` for the caption — which reads 0 on a closed bitmap,
+      // so the photo's own dimensions rendered as "1×1" with no error anywhere.
+      const source = { width: bitmap.width, height: bitmap.height };
+
+      const fit = fitWorkingSize(source.width, source.height, WORKING_LONG_EDGE);
+      const canvas = els.canvas;
+      canvas.width = fit.width;
+      canvas.height = fit.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0, fit.width, fit.height);
+      bitmap.close();
+
+      photo = {
+        width: fit.width,
+        height: fit.height,
+        original: source,
+        imageData: ctx.getImageData(0, 0, fit.width, fit.height),
+      };
+
+      samples = [];
+      selection = null;
+      currentPalette = null;
+      currentWinner = null;
+
+      els.marks.width = fit.width;
+      els.marks.height = fit.height;
+      els.partnerImg.hidden = true;
+      els.fileMeta.hidden = false;
+      els.fileMeta.textContent =
+        `${file.name} · 原圖 ${photo.original.width}×${photo.original.height} · 取樣用 ${fit.width}×${fit.height}`;
+      els.work.hidden = false;
+
+      syncMarksSize();
+      render();
+      els.work.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function setStatus(message) {
+      els.fileMeta.hidden = false;
+      els.fileMeta.textContent = message;
+    }
+
+    /**
+     * The marks canvas is sized in DEVICE pixels but displayed at the photo's
+     * size, and it has to track the photo's rendered width — which changes with
+     * the viewport. A marks canvas left at the old width after a resize draws its
+     * dots at the wrong offsets, which looks like the sample moved.
+     */
+    function syncMarksSize() {
+      if (!photo) return;
+      const rect = els.canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
+      const wantW = Math.round(rect.width * dpr);
+      const wantH = Math.round(rect.height * dpr);
+      if (els.marks.width !== wantW || els.marks.height !== wantH) {
+        els.marks.width = wantW;
+        els.marks.height = wantH;
+      }
+      els.marks.style.width = `${rect.width}px`;
+      els.marks.style.height = `${rect.height}px`;
+    }
+
+    // ---------------------------------------------------------------------
+    // Clicking the photo
+    // ---------------------------------------------------------------------
+
+    /**
+     * A click becomes a disc of pixels, in working-image coordinates.
+     *
+     * The `dpr` division is the one line that has to be right in both directions:
+     * the click arrives in CSS pixels relative to the element, and the disc has to
+     * be in the canvas's own pixels. Dividing by dpr puts both in device pixels,
+     * then one division by the ratio between the device-pixel marks canvas and the
+     * image's pixel grid puts the marks back.
+     */
+    function addSample(clientX, clientY) {
+      if (!photo) return;
+      if (samples.length >= MAX_CLICKS) {
+        setStatus(`最多量 ${MAX_CLICKS} 件。想換一件的話，先按下面其中一個圓點移除。`);
+        return;
+      }
+
+      const rect = els.canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      const x = (clientX - rect.left) * (photo.width / rect.width);
+      const y = (clientY - rect.top) * (photo.height / rect.height);
+
+      const radius = discRadius(photo.width, photo.height);
+      const sample = sampleDisc(photo.imageData, x, y, { oklab: toLab, radius });
+      if (!sample) {
+        setStatus(`這一點沒量到東西 —— 圓盤裡留下不到 ${MIN_KEEP} 個顏色一致的像素。再點一次試試。`);
+        return;
+      }
+
+      samples.push(sample);
+      // Default to the whole outfit as soon as there is more than one thing to
+      // measure, because "which Pokémon is my OUTFIT" is what the page is named
+      // after. A single click is a single garment, and the chip row says so.
+      selection = samples.length >= 2 ? { kind: 'outfit' } : { kind: 'garment', index: 0 };
+      render();
+    }
+
+    function removeSample(index) {
+      samples.splice(index, 1);
+      if (!samples.length) {
+        selection = null;
+      } else if (selection && selection.kind === 'garment') {
+        // The chip that was selected may be gone. Falling back to the outfit
+        // rather than to an arbitrary neighbour is the same rule the initial
+        // selection uses.
+        selection = samples.length >= 2 ? { kind: 'outfit' } : { kind: 'garment', index: 0 };
+      } else if (selection && selection.index !== undefined) {
+        selection = { kind: 'garment', index: Math.min(selection.index, samples.length - 1) };
+      }
+      render();
+    }
+
+    // ---------------------------------------------------------------------
+    // Drawing the marks
+    // ---------------------------------------------------------------------
+
+    /**
+     * The measured pixels, drawn on the photo.
+     *
+     * This is not decoration and it is not optional. The page's claim is "we
+     * measured the pixels you pointed at, and here they are" — and because a disc
+     * on a garment edge cannot be separated from the background at any threshold
+     * (the two distributions overlap; see outfit-palette.js), showing the sample
+     * is the only way the reader can check that claim themselves. A heuristic that
+     * is invisible is a heuristic the reader has to trust.
+     *
+     * Drawn at the marks canvas's own scale, so `photo.width` maps to
+     * `marks.width`. The active sample is filled and the others are hollow,
+     * because which disc produced the number on screen is part of the answer.
+     */
+    function renderMarks() {
+      const ctx = els.marks.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, els.marks.width, els.marks.height);
+      if (!photo || !samples.length) return;
+
+      const sx = els.marks.width / photo.width;
+      const sy = els.marks.height / photo.height;
+
+      // The union of every sample, outlined. It is what tells the reader the
+      // footprint of the measurement, and it is the same region the sprite is
+      // placed clear of.
+      const union = samples.flatMap((s) => s.kept);
+      const bounds = boundsOf(union);
+      if (bounds) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 214, 102, 0.55)';
+        ctx.setLineDash([6, 5]);
+        ctx.lineWidth = Math.max(1, 2 * sx);
+        ctx.strokeRect(
+          (bounds.x - 3) * sx, (bounds.y - 3) * sy,
+          (bounds.width + 6) * sx, (bounds.height + 6) * sy
+        );
+        ctx.restore();
+      }
+
+      samples.forEach((sample, index) => {
+        const active = selection
+          && (selection.kind === 'outfit' || selection.index === index);
+        for (const [x, y] of sample.kept) {
+          ctx.beginPath();
+          ctx.arc(x * sx, y * sy, active ? Math.max(1.6, 2.2 * sx) : Math.max(1, 1.3 * sx), 0, Math.PI * 2);
+          ctx.fillStyle = active ? 'rgba(255, 226, 150, 0.85)' : 'rgba(255, 255, 255, 0.42)';
+          ctx.fill();
+        }
+        // A hollow ring at the click point, so the reader can tell which dot is
+        // the click they made and which are the pixels the disc kept.
+        const [kx, ky] = sample.kept[0] || [0, 0];
+        ctx.save();
+        ctx.strokeStyle = active ? '#ffd666' : 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = Math.max(1, 2 * sx);
+        ctx.beginPath();
+        ctx.arc(kx * sx, ky * sy, sample.radius * sx, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Rendering the answer
+    // ---------------------------------------------------------------------
+
+    /** The pixels the current selection actually measures. */
+    function pixelsFor(sel) {
+      if (!samples.length) return [];
+      if (sel.kind === 'outfit') return equalise(samples);
+      return samples[sel.index] ? samples[sel.index].pixels : [];
+    }
+
+    /**
+     * The label for what was measured. It is rendered on screen, not only used as
+     * an `aria-label`, because the reader needs it too.
+     */
+    function modeLabel(sel) {
+      if (!sel) return null;
+      if (sel.kind === 'outfit') {
+        return samples.length >= 2
+          ? `整身穿搭（${samples.length} 件，每件取 ${equalise(samples).length / samples.length} 個像素）`
+          : null;
+      }
+      const n = samples[sel.index] ? samples[sel.index].pixels.length : 0;
+      return `單件衣物（第 ${sel.index + 1} 點，${n} 個像素）`;
+    }
+
+    function render() {
+      renderMarks();
+      renderModes();
+
+      const has = samples.length > 0;
+      els.result.hidden = !has;
+      els.paletteSec.hidden = !has;
+      els.exportSec.hidden = !has;
+      if (!has) {
+        currentPalette = null;
+        currentWinner = null;
+        els.partnerImg.hidden = true;
+        return;
+      }
+
+      const pixels = pixelsFor(selection);
+      if (!pixels.length) {
+        els.result.hidden = true;
+        els.paletteSec.hidden = true;
+        els.exportSec.hidden = true;
+        els.partnerImg.hidden = true;
+        setStatus('這一次沒有量到顏色。換一點試試。');
+        return;
+      }
+
+      // `snapToReal` is the same function the 2,050 sprite palettes were built
+      // with — see mmcq.js's header for why there is one of it and not two.
+      const rows = snapToReal(pixels, 6);
+      currentPalette = rows;
+      currentWinner = matchPalette(rows, 5)[0] || null;
+
+      renderMeasured(rows);
+      renderWinner();
+      renderCandidates();
+      renderPalette(rows);
+      renderExport(rows);
+    }
+
+    /**
+     * What was measured, in numbers the reader can check against the photo.
+     *
+     * Every figure here is a quantity this page actually holds. The rejected count
+     * is included because it is the one that can be embarrassing: a disc on a
+     * garment edge throws pixels away, and saying so is what makes the kept
+     * pixels meaningful.
+     */
+    function renderMeasured(rows) {
+      const kept = samples.reduce((a, s) => a + s.pixels.length, 0);
+      const rejected = samples.reduce((a, s) => a + s.rejected, 0);
+      const sum = rows.reduce((a, r) => a + r.share, 0);
+      const tiles = [
+        ['比對範圍', modeLabel(selection) || '—'],
+        ['量到幾件', `${samples.length} / ${MAX_CLICKS}`],
+        ['留下像素', `${pixelsFor(selection).length.toLocaleString('en-US')} 個`],
+        ['捨棄像素', `${rejected.toLocaleString('en-US')} 個（離中心 ΔE_OK > ${OUTLIER_DELTA}）`],
+        ['六色占比合計', `${sum.toFixed(2)}%`],
+        ['比對範圍大小', indexSize ? `${indexSize.toLocaleString('en-US')} 個實測色票` : '—'],
+      ];
+
+      els.measured.innerHTML = `<div class="of-tiles">${tiles.map(([label, value]) => `
+        <div class="of-tile">
+          <span class="of-tile-label">${label}</span>
+          <span class="of-tile-value">${value}</span>
+        </div>`).join('')}</div>
+      <p class="cp-note">
+        占比不會加到 100%，這是對的：六個顏色是一份樣本，沒被報出來的像素輸掉了分區。
+        1,025 隻寶可夢的實測色盤中位數也只有 71.96% —— 用的是同一個演算法，行為也必須一樣。
+      </p>`;
+    }
+
+    function speciesName(id) {
+      const p = pokemon.find((x) => x.id === id);
+      return p ? (p.zh || p.name) : `#${formatPokemonId(id)}`;
+    }
+
+    function renderWinner() {
+      if (!currentWinner) {
+        els.winner.innerHTML = '<p class="cp-empty">這個色盤沒有比到任何一隻。</p>';
+        els.partnerImg.hidden = true;
+        return;
+      }
+      const m = currentWinner;
+      const name = speciesName(m.id);
+      const record = pokemon.find((x) => x.id === m.id);
+      const types = record && Array.isArray(record.types) ? record.types : [];
+
+      els.winner.innerHTML = `
+        <div class="of-winner-card">
+          <div class="of-winner-main">
+            <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
+            <h3 class="of-winner-name">
+              ${record
+                ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
+                : `<span>${escapeHtml(name)}</span>`}
+            </h3>
+            <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
+            <dl class="of-winner-scores">
+              <div><dt>色盤距離</dt><dd>${m.score.toFixed(4)}</dd></div>
+              <div><dt>穿搭 → 牠</dt><dd>${m.forward.toFixed(4)}</dd></div>
+              <div><dt>牠 → 穿搭</dt><dd>${m.reverse.toFixed(4)}</dd></div>
+              <div><dt>牠的主色</dt><dd>${escapeHtml(formatHex(m.primaryHex))} ${formatShare(m.primaryShare)}</dd></div>
+            </dl>
+            <p class="of-winner-note">
+              兩個方向都列出來了，因為它們回答不同的問題：<b>穿搭 → 牠</b> 是「牠的六色能不能蓋住你點的顏色」，
+              <b>牠 → 穿搭</b> 是反過來問的。只看第一個方向的話，一隻塞滿連續相近顏色的寶可夢
+              可以零懲罰地贏下任何同色系的穿搭。
+            </p>
+            ${record ? `<p class="of-winner-links">
+              <a href="detail.html?slug=${escapeHtml(record.slug)}">完整資料頁</a>
+              <a href="${paletteUrl(record)}">單一色盤</a>
+            </p>` : ''}
+          </div>
+        </div>`;
+
+      // The sprite stands in its own column of the stage, so it cannot cover the
+      // reader no matter how the photo scales. 475px of artwork displayed at ~240px,
+      // which is why `artworkUrl` and not `spriteUrl`: the 96px floor sprite would
+      // be visibly soft at that size, and a soft sprite next to a photograph reads
+      // as a rendering bug rather than as a picture.
+      els.partnerImg.hidden = false;
+      els.partnerImg.src = artworkUrl(m.id);
+      els.partnerImg.alt = `${name} 的官方立繪，擺在照片旁邊`;
+      els.partnerCap.textContent = `這就是你的寶可夢 —— 站在你旁邊，沒有擋住你。`;
+    }
+
+    function renderCandidates() {
+      const all = matchPalette(currentPalette, 5);
+      // Every candidate here is a real species with a palette in
+      // color_palettes.json, so a missing pokemon_data.json record is a data
+      // fault rather than an expected case. It still has to render as SOMETHING:
+      // `paletteUrl()` needs a record, and handing it a fabricated one is how a
+      // dead link gets a sprite next to it. So the card falls back to a <span>,
+      // which is not a link, and the absence is visible instead of clickable.
+      els.candidates.innerHTML = all.map((m) => {
+        const name = speciesName(m.id);
+        const record = pokemon.find((x) => x.id === m.id) || null;
+        const on = currentWinner && m.id === currentWinner.id;
+        const tag = record ? 'a' : 'span';
+        const href = record ? ` href="${paletteUrl(record)}"` : '';
+        return `
+          <${tag} class="of-candidate${on ? ' is-on' : ''}${record ? '' : ' is-plain'}"${href}>
+            <img src="${artworkUrl(m.id)}" alt="" width="56" height="56" loading="lazy" decoding="async">
+            <span class="of-candidate-body">
+              <span class="of-candidate-name">${escapeHtml(name)}</span>
+              <span class="of-candidate-meta">${formatPokemonId(m.id)} · ${m.score.toFixed(4)}</span>
+            </span>
+          </${tag}>`;
+      }).join('');
+    }
+
+    function renderPalette(rows) {
+      const pairs = rows.map((r) => [r.hex, r.share]);
+      els.palette.innerHTML = `
+        ${paletteGridHtml(pairs)}
+        <div class="of-names">
+          ${rows.map((r) => `
+            <div class="of-name-row">
+              <span class="of-name-chip" style="background:${escapeHtml(r.hex)}"></span>
+              <span class="of-name-hex">${escapeHtml(formatHex(r.hex))}</span>
+              <span class="of-name-zh">${escapeHtml(describeHex(r.hex))}</span>
+              <span class="of-name-share">${formatShare(r.share)}</span>
+            </div>`).join('')}
+        </div>`;
+      els.paletteNote.textContent =
+        `主色是占比最高的那一色（${formatShare(rows[0].share)}），和 1,025 隻寶可夢的色盤同一個定義。`;
+    }
+
+    // ---------------------------------------------------------------------
+    // Export
+    // ---------------------------------------------------------------------
+
+    let themeBundle = null;
+    let exportFormat = 'tw4';
+
+    const FORMATS = {
+      tw4: {
+        label: 'Tailwind v4 · CSS',
+        filename: () => 'outfit-theme.css',
+        mime: 'text/css',
+        build: (b, n) => themeToTailwindV4Css(b, { pokemonName: n }),
+      },
+      tw3: {
+        label: 'Tailwind v3 · config',
+        filename: () => 'outfit-tailwind.config.js',
+        mime: 'text/javascript',
+        build: (b, n) => themeToTailwindV3Config(b, { pokemonName: n }),
+      },
+      json: {
+        label: 'JSON',
+        filename: () => 'outfit-theme.json',
+        mime: 'application/json',
+        build: (b, n) => themeToJson(b, { pokemonName: n }),
+      },
+    };
+
+    function renderExport(rows) {
+      const hexes = rows.map((r) => r.hex);
+      themeBundle = paletteToThemeTokens(hexes);
+      const exportName = currentWinner ? speciesName(currentWinner.id) : '穿搭';
+
+      els.actions.innerHTML = `
+        ${Object.entries(FORMATS).map(([key, f]) => `
+          <button type="button" class="cp-btn cp-btn-sm" data-of-fmt="${key}"
+                  aria-pressed="${key === exportFormat}">${escapeHtml(f.label)}</button>`).join('')}
+        <button type="button" class="cp-btn cp-btn-sm" id="of-copy">複製</button>
+        <button type="button" class="cp-btn cp-btn-sm" id="of-download">下載</button>`;
+
+      els.code.textContent = FORMATS[exportFormat].build(themeBundle, exportName);
+
+      els.actions.querySelectorAll('[data-of-fmt]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          exportFormat = btn.dataset.ofFmt;
+          renderExport(rows);
+        });
+      });
+
+      els.actions.querySelector('#of-copy').addEventListener('click', async (e) => {
+        const ok = await copyText(els.code.textContent);
+        flash(e.currentTarget, ok ? '已複製' : '複製失敗');
+      });
+      els.actions.querySelector('#of-download').addEventListener('click', (e) => {
+        const f = FORMATS[exportFormat];
+        const blob = new Blob([els.code.textContent], { type: `${f.mime};charset=utf-8` });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = f.filename();
+        a.click();
+        URL.revokeObjectURL(a.href);
+        flash(e.currentTarget, '已下載');
+      });
+    }
+
+    /**
+     * Clipboard write with a fallback.
+     *
+     * `navigator.clipboard` needs a secure context, and this page is served from
+     * `file://` as often as it is served from Live Server — so the failure path is
+     * the common one, not the edge case, and a copy button that silently does
+     * nothing is worse than one that says it failed.
+     */
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) { /* fall through to the textarea path */ }
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function flash(btn, message) {
+      const original = btn.textContent;
+      btn.textContent = message;
+      setTimeout(() => { btn.textContent = original; }, 1200);
+    }
+
+    // ---------------------------------------------------------------------
+    // Mode chips
+    // ---------------------------------------------------------------------
+
+    /**
+     * One chip per click, plus a whole-outfit chip once there are two or more.
+     *
+     * The chips are a `radiogroup`, not a set of buttons, because exactly one of
+     * the questions is being asked at a time and that is what a radio group means
+     * to a screen reader. The whole-outfit chip is not merely another entry — it
+     * is the answer to a *different question*, and it is labelled as such, so the
+     * reader can tell which one produced the number they are looking at.
+     */
+    function renderModes() {
+      if (!samples.length) {
+        els.modes.hidden = true;
+        els.modesNote.textContent = '';
+        return;
+      }
+      els.modes.hidden = false;
+
+      const chips = samples.map((s, i) => {
+        const on = selection && selection.kind === 'garment' && selection.index === i;
+        // The chip's colour is the MEDIAN of what that disc kept — not the
+        // palette's first colour, which for a striped garment is whichever side
+        // of the stripe won. The chip is a label for the click, so it should name
+        // what the click mostly hit.
+        const mid = chipColour(s.pixels);
+        return `
+          <button type="button" class="of-chip${on ? ' is-on' : ''}" role="radio"
+                  aria-checked="${on}" data-of-chip="garment:${i}">
+            <span class="of-chip-dot" style="background:${escapeHtml(mid)}"></span>
+            <span class="of-chip-text">第 ${i + 1} 件</span>
+            <span class="of-chip-x" role="button" tabindex="0"
+                  aria-label="移除第 ${i + 1} 件" data-of-remove="${i}">×</span>
+          </button>`;
+      });
+
+      if (samples.length >= 2) {
+        const on = selection && selection.kind === 'outfit';
+        chips.push(`
+          <button type="button" class="of-chip of-chip-all${on ? ' is-on' : ''}" role="radio"
+                  aria-checked="${on}" data-of-chip="outfit:">
+            <span class="of-chip-text">整身穿搭 · ${samples.length} 件</span>
+          </button>`);
+      }
+
+      els.modes.innerHTML = chips.join('');
+
+      els.modes.querySelectorAll('[data-of-chip]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const [kind, raw] = btn.dataset.ofChip.split(':');
+          selection = kind === 'outfit' ? { kind: 'outfit' } : { kind: 'garment', index: Number(raw) };
+          render();
+        });
+      });
+      els.modes.querySelectorAll('[data-of-remove]').forEach((btn) => {
+        const act = () => removeSample(Number(btn.dataset.ofRemove));
+        btn.addEventListener('click', (e) => { e.stopPropagation(); act(); });
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); act(); }
+        });
+      });
+
+      els.modesNote.textContent = selection && selection.kind === 'outfit'
+        ? '整身穿踏模式：每一件都取同樣數目的像素，所以答案不是「你的外套多大」。'
+        : '單件模式：只有你點的那一個圓盤被拿去算。點其他圓盤可以換一件，點「整身穿搭」可以合併。';
+    }
+
+    /**
+     * A disc's representative colour, as a hex string. Used for the mode chips.
+     *
+     * `medianOklab()` comes from outfit-palette.js — the same function the sample
+     * itself is built with. This used to be a copy of it written on the page,
+     * which is §3.B2's failure in miniature: two implementations of one rule that
+     * drift apart invisibly, and nothing to notice when they disagree.
+     */
+    function chipColour(pixels) {
+      if (!pixels.length) return '#888888';
+      const med = medianOklab(pixels.map(toLab));
+      const [r, g, b] = labToSrgb(med);
+      return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    /**
+     * OKLab back to sRGB. A display transform, not a measurement, and it is only
+     * ever used to paint a chip — the six-colour palette and every ΔE on this
+     * page come from `snapToReal` and `pixelToOklab`, never from here.
+     */
+    function labToSrgb(lab) {
+      const l = lab[0];
+      const a = lab[1];
+      const b = lab[2];
+      const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+      const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+      const s_ = l - 0.0894841775 * a - 1.2914855480 * b;
+      const L = l_ * l_ * l_;
+      const M = m_ * m_ * m_;
+      const S = s_ * s_ * s_;
+      const to8 = (v) => {
+        const lin = v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+        return Math.max(0, Math.min(255, Math.round(lin * 255)));
+      };
+      return [
+        to8(4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S),
+        to8(-1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S),
+        to8(-0.0041960863 * L - 0.7034186147 * M + 1.7076147010 * S),
+      ];
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---------------------------------------------------------------------
+    // Wiring
+    // ---------------------------------------------------------------------
+
+    els.file.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadFile(f);
+    });
+
+    // Drag and drop. Both dragenter and dragleave are tracked with a counter,
+    // because dragleave fires when the pointer crosses onto a CHILD element, and
+    // a single boolean flickers the highlight off the moment the cursor crosses
+    // the label inside the drop zone.
+    let dragDepth = 0;
+    for (const type of ['dragenter', 'dragover']) {
+      els.drop.addEventListener(type, (e) => {
+        e.preventDefault();
+        if (type === 'dragenter') dragDepth += 1;
+        els.drop.classList.add('is-over');
+      });
+    }
+    els.drop.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) els.drop.classList.remove('is-over');
+    });
+    els.drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      els.drop.classList.remove('is-over');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFile(f);
+    });
+
+    els.canvas.addEventListener('click', (e) => addSample(e.clientX, e.clientY));
+
+    // The chip container handles a click on the canvas area too, so the marks
+    // canvas (which sits on top) does not need its own listener — and giving the
+    // overlay `pointer-events: none` in outfit.css is what routes every click
+    // through to the photo beneath it.
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { syncMarksSize(); renderMarks(); }, 120);
+    });
+
+    // Copy handlers for the palette grid, delegated on the document the same way
+    // the other colour pages do it, so a cell added later needs no wiring.
+    document.addEventListener('click', async (e) => {
+      const cell = e.target.closest('[data-cp-copy]');
+      if (!cell) return;
+      const ok = await copyText(cell.dataset.cpCopy);
+      cell.classList.add('is-copied');
+      setTimeout(() => cell.classList.remove('is-copied'), 900);
+      if (!ok) setStatus('複製失敗 —— 瀏覽器拒絕了這次寫入。');
+    });
+
+    // ---------------------------------------------------------------------
+    // Boot
+    // ---------------------------------------------------------------------
+
+    /**
+     * `documentElement.dataset.outfitReady` is the page's own "I have finished
+     * booting" signal, and it exists because a fixed sleep is not one.
+     *
+     * The module graph on this page is five files deep (shared.js pulls in four
+     * more), so the time between `Page.navigate` returning and `init()` running
+     * varies by an order of magnitude between a warm and a cold Live Server. A
+     * checker that sleeps 3.5s and evaluates is asserting that the machine was
+     * not busy — and when it isn't, it fails with `SyntaxError: Unexpected
+     * token 'export'` plus `Inspected target navigated or closed`, which reads
+     * as a broken page rather than as an impatient test.
+     *
+     * The value is 'error' rather than absent on failure, so "the data did not
+     * load" and "the page never booted" are different states to the reader and
+     * to the checker.
+     */
+    async function init() {
+      try {
+        const [data, palettes] = await Promise.all([loadPokemonData(), loadColorPalettes()]);
+        pokemon = data;
+        // MUST happen before any query, or `matchPalette` returns nothing — the
+        // module holds its index privately and neither function builds it.
+        indexSize = buildMatchIndex(palettes);
+      } catch (e) {
+        document.documentElement.dataset.outfitReady = 'error';
+        setStatus(`資料載入失敗：${e.message}`);
+        return;
+      }
+      document.documentElement.dataset.outfitReady = '1';
+      els.photoCap.textContent =
+        `點照片上的一件衣服。圓盤會把邊緣像素丢掉 —— 黃色的點是我們真的拿去做比較的像素。`;
+    }
+
+    init();
+  </script>
+</body>
+</html>
