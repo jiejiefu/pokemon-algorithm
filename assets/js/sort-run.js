@@ -7,21 +7,39 @@
 // stepForward / stepBack / seekTo and reads the counters; it never reaches
 // into `events` or `checkpoints` itself.
 //
-// THE THREE NUMBERS THAT DECIDE WHAT THE UI MAY OFFER, measured on n=1025
-// rather than assumed (scripts/check_algo_modules.mjs asserts all three):
+// THE THREE NUMBERS THAT DECIDE WHAT THE UI MAY OFFER, at n=1,025, measured by
+// driving the generators in this repo's own modules — NOT by a checker. An earlier
+// version of this comment cited `scripts/check_algo_modules.mjs` and carried two
+// numbers that script never existed to confirm:
 //
-//   524,800   氣泡/選擇/插入 on REVERSE-SORTED input — over the 400,000 cap,
-//             so the timeline and step-back switch themselves off.
-//   400,000   DEFAULT_MAX_LOGGED_EVENTS. 選擇排序 exceeds it on EVERY input at
-//             n=1025, so on that one algorithm the timeline is never offered.
-//   11,795    快速 on already-sorted input, the most steps any of the six ever
-//             logs without capping — which is why the cap is 400,000 and not
-//             something a reader would notice as arbitrary.
+//   524,800   選擇排序 on ALREADY-SORTED input. The old text attributed it to
+//             氣泡／選擇／插入 on REVERSE-SORTED input; measured, reverse-sorted
+//             is 1,049,600 for 氣泡 and 插入 and 787,968 for 選擇, and already-
+//             sorted is 1,024 for 氣泡 and 插入. Same ballpark, wrong algorithm,
+//             wrong input — and the wrong version reads fine, which is why it sat
+//             here. All four are over DEFAULT_MAX_LOGGED_EVENTS, so the
+//             consequence the UI draws from it (timeline and step-back off) was
+//             never affected; the claim was, not the behaviour.
+//   400,000   DEFAULT_MAX_LOGGED_EVENTS. 選擇排序 exceeds it on all three inputs
+//             tried at n=1,025 — 531,495 shuffled, 524,800 already-sorted,
+//             787,968 reverse-sorted — so on that one algorithm the timeline is
+//             never offered.
+//   11,795    快速 on already-sorted input, the fewest steps any of the six log at
+//             n=1,025 without capping, which is why the cap is 400,000 and not
+//             something a reader would notice as arbitrary. Shuffled it is 17,234.
 //
 // That last asymmetry is the design constraint: "已停用單步／時間軸" is not an
 // error state to apologise for, it is the honest answer for a third of the
-// algorithm/输入 combinations, and the page has to say so rather than hide the
+// algorithm/input combinations, and the page has to say so rather than hide the
 // controls.
+//
+// `maxLoggedEvents: 0` is the fourth caller-facing knob and it is the one
+// sorting.html's race mode uses. A race lane never rewinds, so it asks for no
+// history at all: at n=1,025 the log plus its every-300-events `arr.slice()`
+// costs ~33 MB per lane, six of which is ~200 MB that nothing would read. Setting
+// it to 0 flips `canStep` to false, which is correct — race mode has no timeline —
+// and the events the renderer needs arrive in `playChunk()`'s return value, not
+// in `this.events`.
 //
 // The core problem this solves: a JS generator object can't be rewound. Once
 // you've called .next() past some point, that point is gone from the

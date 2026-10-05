@@ -351,20 +351,49 @@ body.al-body .header { flex: none; }
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Race mode ---------- */
+/* ---------- Race mode ----------
+   ONE grid, five shapes, keyed off `data-lanes` on the container — the lane COUNT
+   is a layout input, not just a loop bound, because "how many fit across" is the
+   thing that decides how big every sprite ends up.
+
+   The shape is per count and there is no formula, which is why it is spelled out:
+   2 lanes and 4 lanes both want TWO columns, but 4 also wants two ROWS, and a
+   `cols = count <= 3 ? count : 3` rule would give 4 lanes a 3+1 row with one
+   empty cell. Five gets the six-column form: three lanes at two columns each,
+   two lanes at three each.
+
+   The rule this replaced was `repeat(auto-fit, minmax(240px, 1fr))`, which put
+   four lanes ACROSS a 1,024px stage — 225×140 each, 8.8px per sprite at n=260.
+   Two-by-two makes each of those cells 483×289: a 2.1× wider lane. That, not the
+   lane count, was the real cost of the old four-lane ceiling. */
 .al-lanes {
   display: grid;
-  /* auto-fit + minmax, so 2 lanes fill a wide stage and 4 lanes wrap to 2×2 in
-     the same box. A fixed column count would leave one layout wrong at every
-     width. */
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   width: 100%;
   height: 100%;
-  align-content: center;
+  /* `stretch`, not `center` — load-bearing for the canvas growth below, not
+     cosmetic. A `center`ed row track is sized to its CONTENT, so each lane is
+     exactly as tall as the head + canvas + stats inside it, the canvas has no
+     free space to grow into, and `flex: 1 1 auto` on it is a no-op. Measured with
+     `center`: two lanes at n=1,025 gave 483×302 canvases and 9.5px sprites inside
+     a 723px stage. `stretch` hands the row the stage height, the lane fills it,
+     and the canvas takes the rest — 483×655. */
+  align-content: stretch;
+  grid-auto-rows: minmax(0, 1fr);
   min-height: 0;
 }
 .al-lanes[hidden] { display: none; }
+.al-lanes[data-lanes="2"],
+.al-lanes[data-lanes="4"] { grid-template-columns: repeat(2, 1fr); }
+.al-lanes[data-lanes="5"] { grid-template-columns: repeat(6, 1fr); }
+/* The two lanes on the bottom row of a five take half a row each rather than
+   leaving an empty cell, which also makes their canvases 1.5× wider than the
+   three above them. Positional, so it depends on `.al-result` being the LAST
+   child — see buildRace() in sorting.html. */
+.al-lanes[data-lanes="5"] .al-lane { grid-column: span 2; }
+.al-lanes[data-lanes="5"] .al-lane:nth-child(4),
+.al-lanes[data-lanes="5"] .al-lane:nth-child(5) { grid-column: span 3; }
 
 .al-lane {
   background: var(--bg-card);
@@ -386,10 +415,17 @@ body.al-body .header { flex: none; }
   gap: 6px;
 }
 .al-lane-head b { font-size: 12.5px; }
+/* `flex: 1 1 auto` on top of `aspect-ratio: 8 / 5` is what lets the canvas GROW
+   into whatever height the row has left instead of leaving it empty. The aspect
+   ratio still sets the BASE size, so a row too short for 8:5 shrinks the canvas
+   rather than clipping it, and `laneConfig` re-derives the grid from whatever box
+   results — the same box-driven contract as the main canvas. */
 .al-lane canvas {
   display: block;
   width: 100%;
   height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
   aspect-ratio: 8 / 5;
   background: var(--bg-primary);
   border-radius: var(--radius-sm);
@@ -508,7 +544,13 @@ body.al-body [hidden] { display: none !important; }
   }
   .al-toolbar { padding: 8px 12px; gap: 6px 10px; }
   .al-spacer { margin-left: 0; }
-  .al-lanes { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+  /* Narrow screens go back to reflowing, and the per-count shapes above have to
+     be UNDONE rather than merely out-ranked: the five-lane span is
+     `[data-lanes] .al-lane` (0,2,0), which beats this `[data-lanes]` (0,1,0) on
+     specificity, so leaving it alone would keep two-column spans inside a
+     one-or-two-column phone grid. */
+  .al-lanes[data-lanes] { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+  .al-lanes[data-lanes] .al-lane { grid-column: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

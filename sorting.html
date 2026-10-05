@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>排序演算法 — 氣泡／選擇／插入／快速／合併／堆積 | 寶可夢演算法</title>
-  <meta name="description" content="用 1,025 隻寶可夢的排序視覺化六種排序演算法：偽代碼逐行同步高亮、比較與搬移次數計數、單步與時間軸倒退、2–4 條競速賽道。">
+  <meta name="description" content="用 1,025 隻寶可夢的排序視覺化六種排序演算法：偽代碼逐行同步高亮、比較與搬移次數計數、單步與時間軸倒退、2–6 條競速賽道。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
@@ -72,12 +72,13 @@
       <button class="btn" type="button" id="btnSkipEnd" title="直接跑完（Shift+→）">跳至結果</button>
     </div>
     <div class="al-group" id="raceControls" hidden>
-      <div class="al-chips" id="raceAlgoPicker" role="group" aria-label="參賽演算法（2 至 4 個）"></div>
+      <div class="al-chips" id="raceAlgoPicker" role="group" aria-label="參賽演算法（2 至 6 個）"></div>
       <label class="al-label" for="raceSizeSelect">取樣</label>
       <select class="al-select" id="raceSizeSelect">
-        <option value="60">60 隻</option>
-        <option value="130" selected>130 隻</option>
-        <option value="260">260 隻</option>
+        <option value="100">100 隻</option>
+        <option value="250" selected>250 隻</option>
+        <option value="500">500 隻</option>
+        <option value="1025">1,025 隻</option>
       </select>
       <button class="btn btn-utility" type="button" id="btnRaceReshuffle">重新抽籤</button>
       <button class="btn" type="button" id="btnRacePlay">▶ 比賽</button>
@@ -217,8 +218,10 @@
       return arr;
     }
     /* Take an evenly-strided sample rather than n random picks: a random sample of
-     * 130 out of 1,025 can be 90% one type, which would make a race about the
-     * sample rather than about the algorithm. */
+     * 250 out of 1,025 can be 90% one type, which would make a race about the
+     * sample rather than about the algorithm. Striding by 1,025/n keeps the type
+     * spread even at every size, which is the point of deriving the step rather
+     * than sampling n times. */
     function sampleEvenly(arr, n) {
       if (n >= arr.length) return arr.slice();
       const out = [];
@@ -240,7 +243,29 @@
       { id: 'turbo', label: '極快', steps: 700 },
     ];
 
-    const RACE_SIZES = ['60', '130', '260'];
+    /* Four sample sizes, and 1,025 is one of them on purpose: the sizes this page
+     * used to offer (60/130/260) all cap out as colour dots the moment a second
+     * lane appears, which is the mode's whole reason to exist. Measured sprite
+     * size at 1440×900, using this file's own laneConfig + spriteSize:
+     *
+     *   lanes   grid     canvas     100   250   500  1025
+     *     2     2×1      483×317    24.0  19.8  14.1   9.9px
+     *     3     3×1      310×317    24.0  15.9  11.3   7.9px
+     *     4     2×2      483×317    24.0  19.8  14.1   9.9px
+     *     5     3+2      310×317    24.0  15.9  11.3   7.9px
+     *     6     3+3      310×317    24.0  15.9  11.3   7.9px
+     *
+     * So 1025 is legible with two lanes and is a colour gradient with five. It is
+     * offered anyway — the reader picks, and `finishRace()` says what they are
+     * looking at — because a hidden rule ("1025 only appears below four lanes")
+     * is worse than a visible trade-off they chose themselves. `spriteSize`'s
+     * `Math.max(4, …)` floor is never reached here; the binding constraint is
+     * legibility, not the clamp.
+     *
+     * These four REPLACE 60/130/260, so an old `?n=130` share link lands on the
+     * default rather than on the size it was shared with. */
+    const RACE_SIZES = ['100', '250', '500', '1025'];
+    const RACE_N_MAX = 6;
 
     /* --------------------------------------------------------------- STATE */
     const params = new URLSearchParams(location.search);
@@ -249,9 +274,9 @@
     const state = {
       mode: pick(params.get('mode'), ['single', 'race'], 'single'),
       algo: pick(params.get('algo'), ALGO_IDS, 'bubble'),
-      algos: (params.get('algos') || 'bubble,quick').split(',').filter(a => ALGO_IDS.includes(a)).slice(0, 4),
+      algos: (params.get('algos') || 'bubble,quick').split(',').filter(a => ALGO_IDS.includes(a)).slice(0, RACE_N_MAX),
       key: pick(params.get('key'), SORT_KEY_IDS, DEFAULT_SORT_KEY),
-      n: pick(params.get('n'), RACE_SIZES, '130'),
+      n: pick(params.get('n'), RACE_SIZES, '250'),
       seed: params.get('seed') || String(Math.floor(Math.random() * 1e9)),
       speed: pick(params.get('speed'), SPEED_TIERS.map(s => s.id), 'normal'),
       legacy: params.get('legacy') === '1',
@@ -459,38 +484,53 @@
       cryPlayer.play(id, { legacy, rate: 0.94 + Math.random() * 0.12, overlap: true }).catch(() => {});
     }
 
-    /* ----------------------------------------------------------- DRAWING */
+    /* ----------------------------------------------------------- DRAWING
+     * EVERY drawing helper takes its context as a parameter, and that is not
+     * tidiness — it is the fix for race mode having rendered six blank canvases
+     * for the life of the page. `ctx` is the SINGLE-mode canvas's context, and a
+     * helper that closes over it draws somewhere the race mode has hidden:
+     * `frameRace()` cleared `lane.ctx` and then called `paint()`, which painted
+     * 130 sprites a frame into a `display:none` canvas, so every lane stayed
+     * empty with no exception, no failed request and no console output.
+     *
+     * The same leak was in `sweep()`, and worse there: it took a `progress`
+     * parameter and then tested the MODULE-level `sweepAt` instead, so a lane's
+     * own `lane.sweepAt` was read by nobody and the finish wipe could only ever
+     * appear on the single-mode canvas. One shape, both places: a bare name that
+     * resolves to the module's variable instead of the caller's. (Same family as
+     * the bare `scale` in color.html — see AGENTS.md §3.B1.) */
+
     /* A highlight is THREE bands: a dark hairline outside, the role's colour, a
      * white hairline inside. The colour band sits between two known references and
      * is therefore always readable as "coloured", while the PAIR of hairlines is
      * what survives the sprite underneath. One themed colour cannot do this:
      * measured over the 1,025 sprites, 404 fall below 3:1 from white and 89 below
      * 3:1 from the site ink — but ZERO fall below 3:1 from both. See algo.css. */
-    function ring(node, color) {
+    function ring(g, node, color) {
       if (!node) return;
       const r = node.size * 0.78;
-      ctx.save();
-      ctx.lineWidth = Math.max(1, node.size * 0.14);
-      ctx.strokeStyle = '#000000';
-      ctx.beginPath(); ctx.arc(node.x, node.y, r + ctx.lineWidth * 1.6, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = color; ctx.stroke();
-      ctx.beginPath(); ctx.arc(node.x, node.y, Math.max(0.5, r - ctx.lineWidth * 1.6), 0, Math.PI * 2);
-      ctx.strokeStyle = '#ffffff'; ctx.stroke();
-      ctx.restore();
+      g.save();
+      g.lineWidth = Math.max(1, node.size * 0.14);
+      g.strokeStyle = '#000000';
+      g.beginPath(); g.arc(node.x, node.y, r + g.lineWidth * 1.6, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(node.x, node.y, r, 0, Math.PI * 2);
+      g.strokeStyle = color; g.stroke();
+      g.beginPath(); g.arc(node.x, node.y, Math.max(0.5, r - g.lineWidth * 1.6), 0, Math.PI * 2);
+      g.strokeStyle = '#ffffff'; g.stroke();
+      g.restore();
     }
 
-    function paint(nodes, events, showHighlights) {
-      for (const n of nodes) n.draw(ctx);
+    function paint(g, nodes, events, showHighlights) {
+      for (const n of nodes) n.draw(g);
       if (state.rainbow) {
-        ctx.save();
+        g.save();
         for (const n of nodes) {
-          ctx.strokeStyle = `hsl(${(n.inputRank / Math.max(1, nodes.length)) * 320} 85% 60%)`;
-          ctx.lineWidth = Math.max(1, n.size * 0.1);
-          ctx.globalAlpha = 0.8;
-          ctx.beginPath(); ctx.arc(n.x, n.y, n.size * 0.6, 0, Math.PI * 2); ctx.stroke();
+          g.strokeStyle = `hsl(${(n.inputRank / Math.max(1, nodes.length)) * 320} 85% 60%)`;
+          g.lineWidth = Math.max(1, n.size * 0.1);
+          g.globalAlpha = 0.8;
+          g.beginPath(); g.arc(n.x, n.y, n.size * 0.6, 0, Math.PI * 2); g.stroke();
         }
-        ctx.restore();
+        g.restore();
       }
       if (showHighlights && events.length) {
         let compare = null, mark = null, move = null;
@@ -499,23 +539,32 @@
           else if (ev.t === 'mark') mark = ev;
           else if (ev.t === 'swap' || ev.t === 'write') move = ev;
         }
-        if (compare) { ring(nodes[compare.i], TOKENS.compare); ring(nodes[compare.j], TOKENS.compare); }
-        if (mark) ring(nodes[mark.i], mark.role === 'pivot' ? TOKENS.pivot : TOKENS.min);
-        if (move) { ring(nodes[move.i], TOKENS.swap); if (move.j != null) ring(nodes[move.j], TOKENS.swap); }
+        if (compare) { ring(g, nodes[compare.i], TOKENS.compare); ring(g, nodes[compare.j], TOKENS.compare); }
+        if (mark) ring(g, nodes[mark.i], mark.role === 'pivot' ? TOKENS.pivot : TOKENS.min);
+        if (move) { ring(g, nodes[move.i], TOKENS.swap); if (move.j != null) ring(g, nodes[move.j], TOKENS.swap); }
       }
     }
 
     /* A left-to-right wipe the moment a run finishes: at 700 steps/frame the last
      * frame can be the whole remaining sort, and without this the grid simply
-     * snaps from unsorted to sorted with nothing marking that anything happened. */
-    function sweep(progress) {
-      if (!sweepAt) return;
-      const t = (performance.now() - sweepAt) / 650;
-      if (t >= 1) { sweepAt = 0; return; }
-      ctx.save();
-      ctx.fillStyle = 'rgba(120, 230, 160, 0.22)';
-      ctx.fillRect(0, 0, CFG.CANVAS_WIDTH * t, CFG.CANVAS_HEIGHT);
-      ctx.restore();
+     * snaps from unsorted to sorted with nothing marking that anything happened.
+     * `startedAt` and `g` are both the caller's: this runs once per lane and once
+     * for single mode, and the version that read a module-level `sweepAt` could
+     * only ever wipe the single-mode canvas.
+     *
+     * It returns whether it is STILL RUNNING, and the caller clears its own
+     * timestamp on `false` — the alternative (this function reaching back and
+     * zeroing a variable it no longer has a reference to) is the same leak in
+     * the other direction. */
+    function sweep(g, cfg, startedAt) {
+      if (!startedAt) return false;
+      const t = (performance.now() - startedAt) / 650;
+      if (t >= 1) return false;
+      g.save();
+      g.fillStyle = 'rgba(120, 230, 160, 0.22)';
+      g.fillRect(0, 0, cfg.CANVAS_WIDTH * t, cfg.CANVAS_HEIGHT);
+      g.restore();
+      return true;
     }
 
     /* ---------------------------------------------------------------- RACE */
@@ -543,10 +592,36 @@
         return { algo: algoId, card, canvas: card.querySelector('canvas'), nodes: null, cfg: null, ctx: null, run: null, sweepAt: 0 };
       });
       race = { lanes, playing: false };
-      raceGrid.prepend(raceResult);
+      /* `data-lanes` is what the 2/3/4/5/6 grid shapes key off in algo.css, so
+       * the lane COUNT is a layout input and not just a loop bound. Set before
+       * `layoutRaceLanes()`, which measures the boxes the new shape produces. */
+      raceGrid.dataset.lanes = String(lanes.length);
+      /* APPENDED, not prepended. It is the last grid row (`grid-column: 1 / -1`
+       * spans all columns), and a summary of the race belongs under it; but the
+       * reason it must be last is the five-lane shape below, which gives the two
+       * bottom lanes half a row each and can only select them by position. A
+       * leading sibling would shift every `:nth-child` by one. */
+      raceGrid.appendChild(raceResult);
       layoutRaceLanes();
       for (const lane of race.lanes) {
-        lane.run = new SortRun(lane.nodes, SORT_KEY_MAP[state.key].compare, ALGO_META[lane.algo].run);
+        /* `maxLoggedEvents: 0` — a race lane is the ONLY SortRun on this site that
+         * never rewinds, and the log is what rewinds read.
+         *
+         * Every SortRun records up to 400,000 events AND an `arr.slice()` every 300
+         * of them, which at n=1,025 is 400,000 × ~56 B plus 1,334 checkpoints ×
+         * 8.2 KB ≈ 33 MB per lane — so the six-lane, 1,025-隻 configuration this
+         * page now offers peaked near 200 MB of history that nothing would ever
+         * read. At n=500 it is ~13 MB per lane, ~77 MB across six, and because
+         * 500 never reaches the cap it is never freed either: it sits there for
+         * the life of the race and past it.
+         *
+         * `canStep` goes false, which is CORRECT here: race mode has no timeline
+         * and no step-back button, and `finishRace()` ranks on `totalSteps`, which
+         * `sort-run.js` documents as deliberately NOT rewound. The events the
+         * renderer needs come back from `playChunk()`'s return value, not from
+         * `this.events`, so highlighting still works. */
+        lane.run = new SortRun(lane.nodes, SORT_KEY_MAP[state.key].compare, ALGO_META[lane.algo].run,
+                               { maxLoggedEvents: 0 });
       }
       updateRaceButton();
     }
@@ -594,11 +669,34 @@
       const ranking = [...race.lanes].sort((a, b) => a.run.totalSteps - b.run.totalSteps);
       ranking.forEach((l, i) => { l.card.querySelector('.al-lane-rank').textContent = `第 ${i + 1} 名`; });
       raceResult.hidden = false;
+      /* The sample size is part of the RESULT, not a setting, because it decides
+       * what the reader can see: at n=1,025 in five lanes a sprite is 7.9px and
+       * the race reads as a colour gradient. Stating it here is the same
+       * disclosure `RACE_SIZES` carries in a comment — the table is measured from
+       * this file's own laneConfig + spriteSize, not estimated. */
+      const px = spriteSize(race.lanes[0].cfg);
+      const legibility = px >= 14 ? '看得清楚每一隻'
+        : px >= 9 ? '看得出輪廓，認名字要靠顏色'
+        : '看的是排序前後的顏色分佈，不是認得出個別寶可夢';
       raceResult.innerHTML =
-        `<b>結果（依總步數，同樣的取樣、同一個起始順序、同一個排序鍵）：</b><ol>` +
+        `<b>結果（${Number(state.n).toLocaleString()} 隻、同一個起始順序、同一個排序鍵，依總步數）：</b><ol>` +
         ranking.map(l => `<li>${ALGO_META[l.algo].label} — ${l.run.totalSteps.toLocaleString()} 步` +
           `（比較 ${l.run.comparisons.toLocaleString()}，搬移 ${l.run.moves.toLocaleString()}）</li>`).join('') +
-        `</ol><p class="al-hint">步數包含每一次比較和每一次搬移，所以它衡量的是這個演算法在這份資料上的工作量，不是速度。氣泡／選擇／插入是 O(n²)，在 260 隻時會和 O(n log n) 拉開一個數量級；在 1,025 隻上那份差距會大到畫面捲動看不完，所以完整的一千隻留給單一模式。</p>`;
+        `</ol><p class="al-hint">步數包含每一次比較和每一次搬移，所以它衡量的是這個演算法在這份資料上的工作量，不是速度。` +
+        `這 ${race.lanes.length} 條賽道裡每隻寶可夢是 ${px.toFixed(1)}px — ${legibility}；賽道越多，每隻越小，2 條時看得到個別寶可夢、6 條時看到的是整片顏色在移動。` +
+        `要看單一的一千隻網格，請切回「單一」。</p>`;
+      /* Re-measure AFTER the panel has its text, not after unhiding it. Unhiding an
+       * empty <p> gives it one line of height; filling it with a heading, six list
+       * items and a paragraph makes it several times taller, and the lane rows are
+       * `1fr`, so every canvas shrinks again. Measuring between the two left
+       * `lane.cfg` describing a box the reader is no longer looking at — the
+       * reported sprite size was 11.3px where the displayed box gives 14.8px.
+       *
+       * What it does NOT fix is the ≤1px gap between the CSS box and the backing
+       * store (311 vs 310), and chasing that would be chasing `Math.floor` on a
+       * fractional `getBoundingClientRect()` — the same residual the main canvas
+       * has always had, and not worth a second layout pass. */
+      layoutRaceLanes();
       updateRaceButton();
     }
 
@@ -613,7 +711,7 @@
       ctx.clearRect(0, 0, CFG.CANVAS_WIDTH, CFG.CANVAS_HEIGHT);
       if (state.mode === 'single') frameSingle();
       else frameRace();
-      sweep(sweepAt);
+      if (!sweep(ctx, CFG, sweepAt)) sweepAt = 0;
     }
 
     function frameSingle() {
@@ -625,7 +723,7 @@
         if (single.run.done) { single.playing = false; sweepAt = performance.now(); }
       }
       for (const n of single.nodes) n.update();
-      paint(single.nodes, events, single.playing);
+      paint(ctx, single.nodes, events, single.playing);
       if (events.length) {
         const last = events[events.length - 1];
         highlightPseudo(single.algo, last);
@@ -650,8 +748,8 @@
         }
         for (const n of lane.nodes) n.update();
         lane.ctx.clearRect(0, 0, lane.cfg.CANVAS_WIDTH, lane.cfg.CANVAS_HEIGHT);
-        paint(lane.nodes, events, race.playing);
-        sweep(lane.sweepAt);
+        paint(lane.ctx, lane.nodes, events, race.playing);
+        if (!sweep(lane.ctx, lane.cfg, lane.sweepAt)) lane.sweepAt = 0;
         lane.card.querySelector('.js-compare').textContent = lane.run.comparisons.toLocaleString();
         lane.card.querySelector('.js-moves').textContent = lane.run.moves.toLocaleString();
         const last = events[events.length - 1];
@@ -738,9 +836,13 @@
       const input = label.querySelector('input');
       input.addEventListener('change', () => {
         const checked = raceAlgoPicker.querySelectorAll('input:checked');
-        // 2 is the floor (a race needs a rival) and 4 the ceiling, because the
-        // lanes share one stage and five 130-sprite grids stop being legible.
-        if (input.checked && (checked.length > 4 || checked.length < 2)) { input.checked = false; return; }
+        /* 2 is the floor (a race needs a rival) and RACE_N_MAX the ceiling. The
+         * ceiling used to be 4 on legibility grounds — four 130-sprite grids at
+         * 240px each stopped being readable — and that reasoning expired when the
+         * four-across layout did: 4 lanes are 2×2 now, each one wider than the old
+         * four-across cell ever was. Six lanes is where PIXELS stop being the
+         * binding constraint, and `RACE_SIZES` carries the measured table. */
+        if (input.checked && (checked.length > RACE_N_MAX || checked.length < 2)) { input.checked = false; return; }
         state.algos = [...raceAlgoPicker.querySelectorAll('input:checked')].map(i => i.value);
         for (const l of raceAlgoPicker.children) {
           l.dataset.checked = String(l.querySelector('input').checked);
@@ -859,15 +961,23 @@
      * per-swap drone, and treating that as consent would be the wrong reading of
      * a preference recorded on a different page.
      *
-     * The consequence worth naming: `cryPlayer.muted` and its localStorage key are
-     * SHARED with cries.html and detail.html, so the first render here also writes
-     * the site-wide mute to true. One switch for "cry volume", one place to change
-     * it — which is the arrangement `cry-autoplay.js` exists to keep, and reversing
-     * it here to keep sorting.html's default local would put two mute stores on the
-     * site and let them drift apart invisibly. */
+     * The consequence, and it used to be a real bug: `cryPlayer.muted` reads and
+     * WRITES the site-wide `cry-volume` key that cries.html, detail.html and
+     * spectrum.html share. This line was originally `cryPlayer.muted = true`, and
+     * the setter persists — so merely LOADING this page wrote `{muted: true}` and
+     * every other cry page then read it back and went permanently silent, with no
+     * control of their own to undo it. It survived because it looks like a
+     * deliberate cross-page default, and it is deliberate everywhere except the
+     * persistence: this page is not entitled to decide whether OTHER pages make
+     * noise. So the default is applied for this view only (`muteForView`, which
+     * touches the gain and not the key), and the checkbox below still persists,
+     * because a reader ticking it is exactly the consent that is worth storing.
+     * `check_cries_browser.mjs` loads this page first and then asserts that
+     * cries.html can still be heard, which is the one thing a per-page unit test
+     * could never have caught. */
     const audioEnabled = document.getElementById('audioEnabled');
     audioEnabled.checked = false;
-    cryPlayer.muted = true;
+    cryPlayer.muteForView(true);
     document.getElementById('audioVolume').value = Math.round(cryPlayer.volume * 100);
     document.getElementById('audioLegacy').checked = state.legacy;
     audioEnabled.addEventListener('change', e => {
