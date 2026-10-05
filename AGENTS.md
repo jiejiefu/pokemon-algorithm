@@ -388,6 +388,21 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 - **Also named, because each is a way this can be green and wrong:** a file read only on a branch NOT taken during the recording is not seen (mitigated by the checker's own hash being in the key); existence probes are keyed on `path:size`, not content; files over 256 KB — the cry corpus, the GLBs — are keyed on `path:size:mtime` rather than content; and the cache trusts the last green result on this machine, so `--force` exists for a checker that passed for a reason other than its inputs.
 - Groups are `cry-apu`, `cry-data`, `cry-page`, `color`, `nav`, `data`, `type`, `model`. `--skip=cry` covers the first three without naming them; `--only=`, `--force` and `--no-cache` also work.
 
+**Know what a group costs before choosing a filter.** Measured from one full cold run, **327.9 s of checker time over 39 entries**:
+
+| group | secs | entries | where its time goes |
+| :--- | ---: | ---: | :--- |
+| `cry-apu` | 132.0 | 2 | `test_check_gen1_apu.mjs` 120 s — 36 cases, each a fresh checker rendering 151 species at 1,048,576 Hz |
+| `color` | 88.9 | 11 | `test_check_color_match.mjs` 57 s — 28 cases over 6,148 corpus colours |
+| `cry-data` | 38.1 | 8 | `check_cry_index.mjs` 24 s — magic-sniffs 1,674 roster files |
+| `type` | 33.8 | 4 | `test_check_sv_index.mjs` 33 s |
+| `cry-page` | 31.0 | 7 | `check_spectrum_browser.mjs` 15 s, `check_gen1_page.mjs` 10 s (both CDP) |
+| `nav` | 3.1 | 3 | `test_check_nav_pages.mjs` 3 s |
+| `data` | 0.9 | 4 | `check_learnsets.mjs` 1 s |
+| `model` | 0.1 | 1 | — |
+
+Three harnesses are **64% of the suite**, and the reason is structural rather than incidental: a negative case is a whole checker run in a temp tree, so `test_check_gen1_apu` alone is 36 of them. **These were measured on a loaded machine** (the run was competing with Chrome, 97% CPU), so treat them as an upper bound — `test_check_gen1_apu` is 34 s idle against the 120 s above — but the *proportions* are what a filter depends on, and they do not change with load.
+
 ```bash
 # Everything, with the content-keyed skip cache
 node scripts/check_all.mjs
@@ -396,10 +411,34 @@ node scripts/check_all.mjs
 # Run this after editing a checker, adding one, or renaming an input file.
 node scripts/check_all.mjs --prove-inputs
 
-# One group, or everything but one
-node scripts/check_all.mjs --only=cry-apu
+# ── THE EVERYDAY FILTERS ──
+# A full cold run is 328 s and you pay all of it every time you touch a file the
+# expensive checkers read. These are the filters to reach for while working, and
+# the cost of each is measured, not guessed.
+
+# 196 s (saves 132 s) — drops the APU entirely: BOTH the 151-length / 48-sample
+# conformance comparison against the reference synthesiser AND the 36 mutation
+# cases that guard it. Correct to skip while editing anything else; NOT the run
+# to finish on, because it leaves §3.F's central claim unverified.
+node scripts/check_all.mjs --skip=cry-apu
+
+# 127 s (saves 201 s) — the above plus the generated tables (cry-data, 38 s) and
+# all three cry pages (cry-page, 31 s). Leaves 5 groups: color, type, nav, data, model.
 node scripts/check_all.mjs --skip=cry
+
+# ~4 s — nav + data + model. The genuinely cheap half of the suite, and the right
+# filter for a colour/nav/table edit whose own group is cheap enough to also run.
+node scripts/check_all.mjs --only=nav,data,model
+
+# ~92 s (saves 236 s) — nav + color. NOT the cheap option it looks like: `color`
+# holds the 57 s color_match harness. Use this when you are working on colours.
+node scripts/check_all.mjs --only=nav,color
+
+# One group on its own
+node scripts/check_all.mjs --only=cry-apu
 ```
+
+**Filter by GROUP, never by adding a flag for one checker.** The groups are a property of what a checker is *about*; a per-checker bypass would be the `--quick` flag `check_gen1_apu.mjs`'s own comment rules out, and it would make the expensive proof optional on demand rather than skipped because its inputs did not move. `--skip=cry-apu` already buys the whole 132 s.
 
 **A negative test must name the assertion that actually catches its mutation, and `scripts/lib/negative.mjs` is the only thing that decides it.** Every `test_check_*.mjs` answers the same question — did this deliberate defect make the checker report the failure it was supposed to report? — and the obvious way to ask is `output.includes(expect)`. That is wrong, because a checker prints an assertion's description whether it PASSES or FAILS, so matching anywhere only asks "is this text present", which a case whose `expect` names a *different* assertion satisfies for free.
 
