@@ -382,7 +382,7 @@ body {
 .header {
   position: relative;
   width: 100%;
-  padding: 12px 20px;
+  padding: 6px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1231,7 +1231,7 @@ a.site-nav-item,
   display: flex;
   align-items: center;
   gap: 0.35em;
-  padding: 8px 15px;
+  padding: 5px 15px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
