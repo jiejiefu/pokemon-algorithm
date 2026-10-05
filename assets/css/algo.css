@@ -1,0 +1,516 @@
+/* =============================================================
+   algo.css — 演算法主軸（sorting.html + maze.html）
+
+   Mounted by BOTH algorithm pages and by neither of the other twelve.
+   That is the same arrangement colors.css documents — "page shell inline,
+   components in the stylesheet" — and it exists for the reason it exists
+   there: three colour pages share components, so putting those components in
+   shared.css would couple twelve unrelated pages to them. Here it is two
+   pages, which is the smallest number that still shares anything: the shell
+   below is the single most structural rule either page has, and a second
+   copy of it would be a second thing to keep right.
+
+   Every rule is `al-`-prefixed. Do NOT add a bare `.panel`, `.badge`,
+   `.toolbar` or `.table` here — if two pages end up wanting it, it belongs
+   in shared.css, and if it is really generator-specific it belongs in
+   colors-generator.css under its own `cg-`. That rule is the whole reason
+   this file can be mounted without auditing shared.css.
+
+   ------------------------------------------------------------------------
+   THE SHELL: ONE SCREEN, NO PAGE SCROLL
+
+   The brief is a fixed application window — header, toolbar, work area — with
+   nothing scrolling out of view, because a page that scrolls is a document and
+   a document is not an instrument. Three rules carry that, and all three are
+   load-bearing in a way that fails SILENTLY:
+
+   1. `.al-shell { height: 100dvh; overflow: hidden }` on the BODY. `100dvh`
+      rather than `100vh` because on a phone the two differ by the browser
+      chrome, and `100vh` puts the toolbar under the URL bar.
+
+   2. `grid-template-rows: auto auto minmax(0, 1fr)`. The `minmax(0, …)` is
+      not decoration. A bare `1fr` track has `min-height: auto`, so a sidebar
+      with more content than the viewport simply makes the row taller; the
+      body then clips it (`overflow: hidden`) and the reader loses the bottom
+      of the panel with no scrollbar to find it by. `minmax(0, 1fr)` is what
+      lets the track shrink below its content so the SIDEBAR can scroll
+      instead. Same reason for `minmax(0, 1fr)` on the columns and for
+      `min-height: 0` on `.al-stage` / `.al-side`.
+
+   3. The canvas is sized BY ITS BOX, not by pixel attributes. See the note on
+      `.al-stage`.
+
+   This replaces the arrangement these two pages used to have. sorting.html was
+   `body { height: 100vh; overflow: hidden }` around one fixed 1200×800 canvas,
+   and shared.css records that this clipped 82px of the grid at 1440×900 — the
+   clip was not a bug in the arithmetic, it was the design having no way to
+   give the space back. There is no scrollbar to suppress now and nothing to
+   clip: the canvas takes whatever is left after the header and the toolbar,
+   and the grid inside it is derived from that box.
+   ============================================================= */
+
+/* ---------- Shell ---------- */
+body.al-body {
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
+}
+
+/* The header and toolbar are `auto`, so they take their content height and the
+   work area absorbs the remainder. Both pages' headers are row-direction
+   already (shared.css moved them there so the nav could share the brand's
+   row), so nothing here has to fight them. */
+body.al-body .header { flex: none; }
+
+/* ---------- Toolbar ---------- */
+.al-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 20px;
+  background: var(--bg-controls);
+  border-bottom: 1px solid var(--hairline);
+  /* The toolbar is the one row allowed to wrap. On a narrow window it becomes
+     two or three rows and the canvas simply gets less height — which is now a
+     supported case rather than the 82px clip it used to be, because the canvas
+     is box-driven and re-derives its grid. */
+  min-width: 0;
+}
+
+.al-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.al-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* A separator that is a RULE, not the `|` text the old control bar used. A
+   pipe glyph has no vertical extent control and no contrast obligation, so it
+   disappeared against the light toolbar in one theme and floated mid-cap-height
+   in the other. */
+.al-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: var(--hairline-strong);
+  flex: none;
+}
+
+.al-spacer { margin-left: auto; }
+
+/* ---------- Segmented control (mode tabs, speed) ----------
+   A real tablist for modes and a segmented button group for speed, sharing one
+   look. The old pages marked selection with `aria-pressed` on every button in
+   the group; for a set that behaves as tabs that is the wrong attribute, so
+   `.al-tabs` uses role="tab" + aria-selected and `.al-seg` keeps aria-pressed.
+   Both are announced; they mean different things. */
+.al-tabs, .al-seg {
+  display: inline-flex;
+  gap: 0;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  flex: none;
+}
+.al-tabs .btn, .al-seg .btn { border-radius: 0; }
+.al-tabs .btn:first-child, .al-seg .btn:first-child {
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+}
+.al-tabs .btn:last-child, .al-seg .btn:last-child {
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+}
+.al-tabs .btn + .btn, .al-seg .btn + .btn { margin-left: -1px; }
+.al-tabs [aria-selected="true"],
+.al-seg [aria-pressed="true"] {
+  background-color: var(--accent-gold-surface);
+  color: var(--on-accent);
+  position: relative;
+  z-index: 1;
+}
+.al-seg .btn { padding: 5px 11px; font-size: 12px; }
+.al-tabs .btn { padding: 6px 16px; }
+
+.al-btn-xs { padding: 5px 11px; font-size: 12px; }
+
+.al-select {
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-input);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  max-width: 15em;
+}
+
+/* Checkbox chips (race-mode lane picker) */
+.al-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.al-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.al-chip input { accent-color: var(--accent-gold); margin: 0; }
+.al-chip[data-checked="true"] { background: var(--accent-gold-surface); color: var(--on-accent); }
+
+/* ---------- Work area ---------- */
+.al-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 25vw, 380px);
+  gap: 16px;
+  padding: 14px 20px 18px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* `min-height: 0` / `min-width: 0` are the load-bearing declarations from the
+   shell note above: without them this track is sized by its content and the
+   canvas's intrinsic 300×150 (or, once JS sets width/height attributes, its
+   full pixel size) pushes the grid taller than the viewport. */
+.al-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* The canvas is sized BY THE BOX. JS measures `.al-stage` with a
+   ResizeObserver, sets `canvas.width/height` to that box times
+   devicePixelRatio, and re-derives the grid from it — so the backing store is
+   always exactly the pixels on screen, at any window size, on any display.
+   Before this the two pages wrote fixed `width="1200" height="800"` and
+   `720×720` attributes and CSS did nothing about it, so a Retina display
+   upscaled a 1× bitmap and a phone scrolled. */
+.al-stage > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+}
+
+.al-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(6px);
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  z-index: 2;
+}
+.al-overlay[hidden] { display: none; }
+
+/* ---------- Sidebar ----------
+   The ONLY scrollport on these pages. `min-height: 0` lets it shrink to the
+   grid track instead of growing it, and `overflow-y: auto` is what turns the
+   overflow into a scrollbar the reader can reach rather than a silent clip. */
+.al-side {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
+}
+
+.al-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-card);
+}
+.al-panel > h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.al-panel > h3 {
+  margin: 10px 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.al-hint {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+.al-hint[hidden] { display: none; }
+
+/* ---------- Badges ---------- */
+.al-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.al-badge {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.al-badge--stable { color: var(--accent-gold); }
+.al-badge--unstable { color: var(--text-muted); }
+
+/* ---------- Pseudocode ---------- */
+/* monospace + `white-space: pre`, because the pseudocode's INDENTATION is
+   structure. A proportional face, or a stripped one, turns `if arr[j] >
+   arr[j+1]` nested inside two loops into a flat list of statements and the
+   panel stops explaining anything. */
+.al-pseudo {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  /* The deepest line is 10 characters of indent; at 12px monospace that is
+     ~72px, which has to fit a 280px panel with 14px of padding on each side. */
+  overflow-x: auto;
+}
+.al-pseudo li {
+  padding: 1px 6px;
+  border-radius: 5px;
+  white-space: pre;
+  border-left: 2px solid transparent;
+}
+.al-pseudo li.is-active {
+  background: var(--accent-gold-surface);
+  color: var(--on-accent);
+  font-weight: bold;
+  border-left-color: var(--on-accent);
+}
+
+/* ---------- Stats ---------- */
+.al-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 12px;
+  font-size: 12.5px;
+  margin: 0;
+}
+.al-stats dt { color: var(--text-muted); }
+.al-stats dd {
+  margin: 0;
+  font-weight: bold;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- Timeline ---------- */
+.al-timeline { margin-top: 10px; }
+.al-timeline[hidden] { display: none; }
+.al-timeline input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent-gold);
+}
+.al-timeline-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Race mode ---------- */
+.al-lanes {
+  display: grid;
+  /* auto-fit + minmax, so 2 lanes fill a wide stage and 4 lanes wrap to 2×2 in
+     the same box. A fixed column count would leave one layout wrong at every
+     width. */
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  align-content: center;
+  min-height: 0;
+}
+.al-lanes[hidden] { display: none; }
+
+.al-lane {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 8px 10px 10px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+}
+.al-lane.is-done { border-color: var(--accent-gold); }
+.al-lane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.al-lane-head b { font-size: 12.5px; }
+.al-lane canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+.al-lane-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.al-lane-rank { margin-left: auto; font-weight: bold; color: var(--accent-gold); }
+
+.al-result {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.al-result[hidden] { display: none; }
+.al-result ol { margin: 4px 0 0; padding-left: 20px; }
+
+/* ---------- Run log (maze) ---------- */
+.al-table-wrap { overflow-x: auto; }
+.al-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.al-table th, .al-table td {
+  text-align: right;
+  padding: 4px 5px;
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+.al-table th:first-child, .al-table td:first-child,
+.al-table th:nth-child(2), .al-table td:nth-child(2) { text-align: left; }
+.al-table th { color: var(--text-muted); font-weight: bold; }
+.al-table tbody tr:last-child td { color: var(--accent-gold); font-weight: bold; }
+.al-table td.is-fail { color: var(--error-text); }
+
+/* ---------- Audio / preference rows ---------- */
+.al-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+.al-prefs label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.al-prefs input[type="range"] { width: 84px; accent-color: var(--accent-gold); }
+.al-prefs input[type="checkbox"] { accent-color: var(--accent-gold); }
+
+/* A field that reports an error. Uses --error-text, which shared.css themes
+   per palette: measured 7.00:1 on the dark grounds and 5.57:1 on the light
+   --bg-controls. A hardcoded #ff9b9f — which is what this replaced — is
+   1.72:1 on the light controls and was invisible there. */
+.al-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-height: 1.5em;
+}
+.al-status.is-error { color: var(--error-text); font-weight: bold; }
+
+/* `hidden` HAS TO WIN, and it does not by default.
+ *
+ * `.al-stage > canvas { display: block }` is an author declaration, so it beats
+ * the user-agent's `[hidden] { display: none }` no matter how low the latter's
+ * specificity — author styles win over UA styles outright. Which means setting
+ * `canvas.hidden = true` to switch to race mode left the canvas painted over the
+ * lanes, and the mode switch looked like it did nothing. `!important` is the
+ * correct tool for exactly this: overriding a `display` the page itself set. */
+body.al-body [hidden] { display: none !important; }
+
+/* A labelled checkbox that reads as a control rather than as loose text plus a
+ * box. `cursor: pointer` on the label too, because the label is what a pointer
+ * is over for most of the target. */
+.al-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.al-toggle input { accent-color: var(--accent-gold); margin: 0; }
+
+/* ---------- Narrow screens ----------
+   ONE breakpoint, and it only reorders. Under 900px the sidebar moves below the
+   stage and takes a bounded share of the height, so the canvas is still the
+   dominant element and the page still does not scroll: `.al-main` becomes two
+   rows, the stage keeps `minmax(0, 1fr)`, and the sidebar gets a
+   `minmax(0, …)` track of its own with an internal scrollbar. Nothing about
+   this changes the canvas being box-driven, which is the property that makes
+   the phone case work at all. */
+@media (max-width: 900px) {
+  .al-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 40%);
+    gap: 10px;
+    padding: 10px 12px 12px;
+  }
+  .al-toolbar { padding: 8px 12px; gap: 6px 10px; }
+  .al-spacer { margin-left: 0; }
+  .al-lanes { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .al-lane.is-done { transition: none; }
+}

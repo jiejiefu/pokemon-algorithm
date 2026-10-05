@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>寶可夢像素迷宮 (BFS/DFS)</title>
+  <title>寶可夢迷宮 — BFS／DFS／Dijkstra／A* | 寶可夢演算法</title>
+  <meta name="description" content="把一張寶可夢圖變成 40×40 的迷宮或地形高度圖，用 BFS、DFS、Dijkstra 與 A* 尋路並比較探索格數與路徑成本。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
@@ -32,758 +33,804 @@
     })();
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/algo.css">
 </head>
-<body>
+<body class="al-body">
   <header class="header header-maze">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
-<div class="header-title header-title-large">寶可夢演算法</div>
+      <div class="header-title header-title-large">寶可夢演算法</div>
     </a>
     <nav class="site-nav" data-nav aria-label="主選單"></nav>
     <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
     <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
-  <!-- The control strip sits OUTSIDE the header on purpose. Inside it, the header
-       is a flex column, so the nav would have needed a row of its own; out here
-       the nav shares the row the brand already had and this page's height is
-       unchanged. See `.control-bar` in shared.css. The 返回大廳 button that used
-       to be this strip's first child is gone — the nav's 首頁 is the same link,
-       which is the same trade detail.html made. -->
-  <div class="control-bar">
-    <div class="controls controls-maze">
-      <button class="btn" onclick="loadPokemonMaze(true)">1. 載入寶可夢迷宮</button>
-      <button class="btn" onclick="startSearch('bfs')">2. 廣度優先搜尋 (BFS)</button>
-      <button class="btn" onclick="startSearch('dfs')">3. 深度優先搜尋 (DFS)</button>
-      <button class="btn" onclick="startSearch('bfs', 'star')">4. 中心四角巡航 (BFS)</button>
-      <button class="btn" onclick="startSearch('dfs', 'star')">5. 中心四角巡航 (DFS)</button>
-      <!-- 👇 新增：速度調整滑桿 -->
-      <div class="speed-control" style="display:inline-flex; align-items:center; gap:8px; font-size:14px;">
-        <label for="speedRange">速度：</label>
-        <!-- min=0 max=100，平滑連續滑動，預設 30 對應約 1.0x 二次方曲線公式為 $Y = 0.1 + 9.9 \times (X / 100)^2$ -->
-        <input type="range" id="speedRange" min="0" max="100" value="30" style="cursor:pointer; width: 140px;">
-        <!-- 顯示當前實際算出來的速度數值 -->
-        <span id="speedValue" style="font-weight:bold; min-width:38px;">1.0x</span>
-      </div>
-      <div style="display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
-        <button class="btn btn-sm" onclick="setSpeed(0)">0.1x</button>
-        <button class="btn btn-sm" onclick="setSpeed(20)">0.5x</button>
-        <button class="btn btn-sm" onclick="setSpeed(30)">1.0x</button>
-        <button class="btn btn-sm" onclick="setSpeed(49)">2.5x</button>
-        <button class="btn btn-sm" onclick="setSpeed(100)">10.0x</button>
-      </div>
-      <!-- 👇 新增：寶可夢 ID 輸入框 (支援 Enter 鍵觸發) -->
-      <div class="pokemon-id-control" style="display:inline-flex; align-items:center; gap:6px; font-size:14px; margin-left:8px;">
-        <label for="pokemonIdInput">寶可夢 ID：</label>
-        <input type="number" id="pokemonIdInput" min="1" max="1025" placeholder="隨機" style="width:65px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; text-align:center;" onkeydown="if(event.key==='Enter') loadPokemonMaze(false)">
-        <button class="btn btn-sm" onclick="loadPokemonMaze(false)">套用 ID</button>
-      </div>
-      <!-- 👇 隨機迷宮 Toggle 與 Seed 輸入框 -->
-      <div class="seed-control" style="display:inline-flex; align-items:center; gap:8px; font-size:14px; margin-left:8px;">
-        <!-- Toggle 切換開關 (預設 checked 隨機) -->
-        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; user-select:none;">
-          <input type="checkbox" id="randomSeedToggle" checked onchange="toggleSeedVisibility()" style="cursor:pointer;">
-          <span>隨機迷宮</span>
-        </label>
-
-        <!-- 當「隨機迷宮」未勾選時才顯示輸入框 (預設 display: none) -->
-        <div id="seedInputContainer" style="display:none; align-items:center; gap:4px;">
-          <label for="seedInput">Seed：</label>
-          <input type="number" id="seedInput" value="42" style="width:70px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; text-align:center;">
-        </div>
-      </div>
-      <span id="status" class="status-text">請先載入迷宮...</span>
+  <div class="al-toolbar">
+    <div class="al-group al-tabs" role="tablist" aria-label="地形模式">
+      <button class="btn" type="button" role="tab" id="tabWall" aria-selected="true" aria-controls="mazeStage">迷宮牆壁</button>
+      <button class="btn" type="button" role="tab" id="tabTerrain" aria-selected="false" aria-controls="mazeStage">精靈地形</button>
+    </div>
+    <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group" id="algoPicker" role="group" aria-label="尋路演算法"></div>
+    <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group" id="terrainControls" hidden>
+      <label class="al-label" for="contrastRange">地形對比度</label>
+      <input type="range" id="contrastRange" min="2" max="10" step="1" value="6" style="width:104px">
+      <span class="al-label" id="contrastValue" aria-live="off">6×</span>
+    </div>
+    <span class="al-divider al-spacer" aria-hidden="true"></span>
+    <div class="al-group">
+      <span class="al-label" id="speedLabel">速度</span>
+      <span class="al-group al-seg" id="speedPicker" role="group" aria-labelledby="speedLabel"></span>
     </div>
   </div>
 
-  <div class="canvas-container canvas-container-maze">
-    <canvas id="mazeCanvas" class="maze-canvas"></canvas>
-  </div>
+  <main class="al-main">
+    <div class="al-stage" id="mazeStage">
+      <canvas id="mazeCanvas" role="img" aria-label="寶可夢迷宮格線；S 為起點，G 為終點"></canvas>
+      <div class="al-overlay" id="overlay">按下「載入寶可夢迷宮」開始</div>
+    </div>
 
-  <!-- This page is otherwise a pair of CLASSIC scripts (inline onclick handlers
-       throughout, which resolve on the global object, so the maze code cannot be a
-       module without rewriting all of it). One small module is added purely to
-       mount the shared theme toggle and header nav, and it coexists with the
-       classic scripts because `type="module"` scripts are deferred. The canvas
-       listens for the 'themechange' event that shared.js dispatches on `document`,
-       so a theme switch repaints it from the very same code path. maze.html is in
-       演算法's `pages`, so initHeaderNav()'s default filename match is enough to
-       mark that trigger current. -->
+    <aside class="al-side">
+      <div class="al-panel">
+        <h2>這一次的執行</h2>
+        <form class="al-group" id="loadForm" style="flex-wrap:wrap;gap:8px">
+          <button class="btn btn-color" type="submit" id="btnLoadRandom">載入寶可夢迷宮</button>
+          <label class="al-label" for="idField">或指定</label>
+          <input class="al-select" type="text" inputmode="numeric" id="idField" placeholder="#001" size="6"
+                 autocomplete="off" style="width:5.5em;text-align:center" aria-describedby="idError">
+          <button class="btn" type="button" id="btnRandomSeed">換種子</button>
+        </form>
+        <p class="al-hint" id="idError" hidden></p>
+        <p class="al-hint" id="loadStatus" aria-live="polite">尚未載入。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>這一次的結果</h2>
+        <dl class="al-stats">
+          <dt>演算法</dt><dd id="statAlgo">—</dd>
+          <dt>探索格數</dt><dd id="statVisited">—</dd>
+          <dt>路徑成本</dt><dd id="statCost">—</dd>
+          <dt>路徑格數</dt><dd id="statHops">—</dd>
+        </dl>
+        <p class="al-hint">速度以「每幀處理幾格」計。演算法之間的差距本來就很大——這正是重點：A* 在同一張地圖上常常只探索幾十格，BFS 要上千格。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>比較紀錄</h2>
+        <div class="al-table-wrap">
+          <table class="al-table">
+            <thead><tr><th>模式</th><th>演算法</th><th>探索</th><th>成本</th></tr></thead>
+            <tbody id="runLogBody"></tbody>
+          </table>
+        </div>
+        <p class="al-hint" id="runLogEmpty">在同一張地圖、同一種模式下滑掉演算法，這裡就會累積起來。換寶可夢、換模式或調對比度都會清空——地形變了就不是同一張考卷了。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>這四個演算法保證什麼</h2>
+        <p class="al-hint"><b>BFS</b> 保證<b>跳格數</b>最少。它不看成本，所以在有地形成本的圖上，回報的成本<b>不保證</b>是最低的——多數地圖上它會和 Dijkstra 平手，偶爾才會比較高。<b>DFS</b> 兩個都不保證。</p>
+        <p class="al-hint"><b>Dijkstra</b> 與 <b>A*</b> 都保證<b>成本最低</b>，所以同一張地圖上兩者的成本必然相同。差別在探索量，而<b>領先多少看地形</b>：地形對比度越高，可通的Cost範圍越寬，啟發式能事先排除的分支就越少。確切數字看上面的比較紀錄。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>出處</h2>
+        <p class="al-hint">四個尋路演算法（BFS／DFS／Dijkstra／A*）與八方向啟發式為公開教科書演算法，本專案自行實作於 <code>assets/js/maze-pathfinding.js</code>。迷宮由遞迴回溯法生成；「精靈地形」模式的成本直接取自寶可夢圖每個像素的亮度，所以看到的就是要付的。寶可夢圖像來自 <a href="https://github.com/PokeAPI/sprites" rel="noopener">PokeAPI/sprites</a>，版權仍屬 The Pokémon Company。</p>
+      </div>
+    </aside>
+  </main>
+
   <script type="module">
-    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import { initThemeToggle, initHeaderNav, loadPokemonData, readThemeToken } from './assets/js/shared.js';
+    import {
+      bfsSolve, dfsSolve, dijkstraSolve, astarSolve, SOLVERS,
+      octileHeuristic, manhattanHeuristic, computeTerrainCost, findNearestPassable,
+      TERRAIN_ALPHA_WALL_THRESHOLD, TERRAIN_MAX_COST_DEFAULT, DIAGONAL_DIRS,
+    } from './assets/js/maze-pathfinding.js';
+
     initThemeToggle();
     initHeaderNav();
-  </script>
 
-  <script>
+    const GRID_SIZE = 40;
+    const MAX_ID = 1025;
+
+    /* ------------------------------------------------------------------ DOM */
+    const stage = document.getElementById('mazeStage');
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
-    const statusText = document.getElementById('status');
+    const overlay = document.getElementById('overlay');
+    const loadStatus = document.getElementById('loadStatus');
+    const idField = document.getElementById('idField');
+    const idError = document.getElementById('idError');
+    const runLogBody = document.getElementById('runLogBody');
+    const runLogEmpty = document.getElementById('runLogEmpty');
 
-    // A <canvas> is painted imperatively, so it cannot see var(--x) at all and
-    // every colour drawn here has to be read back off the stylesheet. This is the
-    // same mechanism as readThemeToken() in shared.js, inlined because this file
-    // is a classic script and cannot import it — it re-reads on every repaint, so
-    // a theme switch can never leave a stale palette behind, and the palette
-    // itself still lives only in shared.css. --canvas-wall is an unquoted
-    // "r, g, b" triplet, which is why it composes into a template rather than
-    // needing a parse.
-    const themeToken = (name) =>
-      getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    
-    // 迷宮設定
-    const GRID_SIZE = 40;
-    const CELL_SIZE = 18;
-    canvas.width = GRID_SIZE * CELL_SIZE;
-    canvas.height = GRID_SIZE * CELL_SIZE;
+    /* --------------------------------------------------------------- THEME */
+    /* Read once on load and once per themechange, NOT once per cell per frame.
+     * The previous version called getComputedStyle 1,600 times per frame (twice
+     * each for the fill and the wall stroke) to pick up a value that only changes
+     * when the reader switches theme. */
+    let TOKENS = {};
+    function refreshTokens() {
+      TOKENS = {
+        wall: readThemeToken('--canvas-wall'),
+        grid: readThemeToken('--canvas-grid'),
+        bg: readThemeToken('--canvas-bg'),
+        text: readThemeToken('--canvas-text'),
+        start: readThemeToken('--algo-start'),
+        goal: readThemeToken('--algo-goal'),
+      };
+    }
+    refreshTokens();
 
+    /* --------------------------------------------------------- CANVAS FIT */
+    /* The backing store is the stage's box times devicePixelRatio, and the cell
+     * size is derived from it — so the 40×40 grid is drawn at the exact pixel
+     * size of the space available, at any window size, on any display. The old
+     * page wrote `canvas.width = 40 * 18` once and CSS did nothing about it, so a
+     * Retina display upscaled a 1× bitmap and a phone scrolled.
+     *
+     * `dpr` is capped at 2: past that the extra pixels buy nothing visible on a
+     * 40-cell grid and cost fill rate on a canvas that repaints every frame. */
+    let cell = 18;
+    let offX = 0, offY = 0;
+
+    function fitCanvas() {
+      const box = stage.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(box.width));
+      const h = Math.max(1, Math.floor(box.height));
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cell = Math.max(4, Math.floor(Math.min(w, h) / GRID_SIZE));
+      offX = Math.floor((w - cell * GRID_SIZE) / 2);
+      offY = Math.floor((h - cell * GRID_SIZE) / 2);
+      redraw();
+    }
+    new ResizeObserver(fitCanvas).observe(stage);
+
+    /* ------------------------------------------------------------- SPEED */
+    /* Cells settled per animation frame, and the number is on screen, so "快"
+     * is never a mystery. These tiers are much lower than sorting.html's because
+     * the two pages' workloads differ by a factor of forty: A* settles ~40 cells
+     * on a 40×40 grid where BFS settles 1,600, and a shared tier would make A*
+     * finish inside a single frame at any speed worth watching. */
+    const SPEED_TIERS = [
+      { id: 'slow', label: '慢', cells: 2 },
+      { id: 'normal', label: '中', cells: 8 },
+      { id: 'fast', label: '快', cells: 32 },
+      { id: 'turbo', label: '極快', cells: 128 },
+    ];
+
+    let speed = SPEED_TIERS[1];
+
+    /* -------------------------------------------------------------- STATE */
     let grid = [];
-    let searchGenerator = null;
-    let pathGenerator = null; // 👈 新增：用於動畫繪製最終路徑
-    let animPhase = 'idle';    // 👈 新增：動畫狀態 ('search' | 'path' | 'idle')
-    let isSearching = false;
-    let finalPath = [];
-    // 記錄當前搜尋段的起點與終點
-    let currentStart = null;
-    let currentEnd = null;
+    let mode = 'wall';           // 'wall' | 'terrain'
+    let terrainMaxCost = TERRAIN_MAX_COST_DEFAULT;
+    let terrainEndpoints = null;
+    let seed = 42;
+    let POKEDEX = new Map();   // id -> record, so a loaded species can be named
+    let runLog = [];
 
-    // 網格節點類別
+    let run = null;              // { gen, algo, star, legs, resolved }
+    let phase = 'idle';          // 'idle' | 'search' | 'path'
+    let pathCells = [];
+    let explored = 0;
+    let rafId = 0;
+
+    /* -------------------------------------------------------------- CELL */
     class Cell {
-      constructor(x, y, colorData) {
-        this.x = x;
-        this.y = y;
-        this.color = colorData;
+      constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color;
         this.walls = { top: true, right: true, bottom: true, left: true };
-        this.mazeVisited = false;
         this.searchVisited = false;
         this.onPath = false;
+        this.terrainCost = Infinity;   // filled in by computeTerrainForGrid()
       }
 
       draw() {
-        const px = this.x * CELL_SIZE;
-        const py = this.y * CELL_SIZE;
+        const px = offX + this.x * cell, py = offY + this.y * cell;
+        const alpha = this.onPath ? 1 : (this.searchVisited ? 0.5 : 0.05);
+        /* A pixel under the alpha threshold is drawn as the theme's wall colour
+         * so it stays legible against the canvas instead of disappearing. The
+         * SAME threshold makes it impassable in terrain mode (see
+         * TERRAIN_ALPHA_WALL_THRESHOLD) — one number, two consumers, so a cell
+         * can never be drawn as walkable and cost as a wall. */
+        ctx.fillStyle = this.color.a < TERRAIN_ALPHA_WALL_THRESHOLD
+          ? `rgba(${TOKENS.wall}, ${alpha})`
+          : `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
+        ctx.fillRect(px, py, cell, cell);
 
-        let alpha = 0.05; 
-        if (this.onPath) alpha = 1.0;
-        else if (this.searchVisited) alpha = 0.5;
-        
-        // Very light Pokémon would be invisible against a white canvas, so they
-        // take the theme's wall colour instead. The `a < 50` test is a crude
-        // lightness proxy on the sprite's own alpha channel, which is what the
-        // maze has always used; it is unchanged here.
-        if (this.color.a < 50) {
-          ctx.fillStyle = `rgba(${themeToken('--canvas-wall')}, ${alpha})`;
-        } else {
-          ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
+        /* Wall strokes are wall-mode only. Terrain mode has no walls — `walls`
+         * is never carved there — so drawing them would outline all 1,600 cells,
+         * which is a solid grid overlay rather than the sprite-as-heightmap look
+         * the mode exists for. */
+        if (mode === 'wall') {
+          ctx.strokeStyle = TOKENS.grid;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (this.walls.top) { ctx.moveTo(px, py); ctx.lineTo(px + cell, py); }
+          if (this.walls.right) { ctx.moveTo(px + cell, py); ctx.lineTo(px + cell, py + cell); }
+          if (this.walls.bottom) { ctx.moveTo(px, py + cell); ctx.lineTo(px + cell, py + cell); }
+          if (this.walls.left) { ctx.moveTo(px, py + cell); ctx.lineTo(px, py); }
+          ctx.stroke();
         }
-        
-        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-
-        ctx.strokeStyle = themeToken('--canvas-grid');
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        if (this.walls.top) { ctx.moveTo(px, py); ctx.lineTo(px + CELL_SIZE, py); }
-        if (this.walls.right) { ctx.moveTo(px + CELL_SIZE, py); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
-        if (this.walls.bottom) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE); }
-        if (this.walls.left) { ctx.moveTo(px, py + CELL_SIZE); ctx.lineTo(px, py); }
-        ctx.stroke();
       }
     }
 
-    // 繪製起點與終點標籤
+    /* ------------------------------------------------------------ DRAWING */
     function drawMarkers() {
-      if (!currentStart || !currentEnd) return;
-
-      // 繪製起點 (綠色底 + 白色 Start)
-      drawMarkerCell(currentStart, '#2e7d32', 'S');
-      // 繪製終點 (紅色底 + 白色 Goal)
-      drawMarkerCell(currentEnd, '#c62828', 'G');
+      if (!grid.length || !endpoints().start || !endpoints().end) return;
+      marker(grid, endpoints().start, TOKENS.start, 'S');
+      marker(grid, endpoints().end, TOKENS.goal, 'G');
     }
-
-    // 單一標記繪製邏輯 (包含圓形外框與文字)
-    function drawMarkerCell(cell, color, label) {
-      const px = cell.x * CELL_SIZE + CELL_SIZE / 2;
-      const py = cell.y * CELL_SIZE + CELL_SIZE / 2;
-      const radius = CELL_SIZE * 0.38; // 依格子大小調整半徑
-
+    function marker(g, c, color, label) {
+      const px = offX + c.x * cell + cell / 2;
+      const py = offY + c.y * cell + cell / 2;
+      const r = Math.max(4, cell * 0.38);
       ctx.save();
-      
-      // 1. 畫圓形背景與白框
-      ctx.beginPath();
-      ctx.arc(px, py, radius, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.stroke();
-
-      // 2. 寫入文字 (S 或 G)
+      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      /* A white ring and a black ring around it, not one themed ring. The S/G
+       * discs sit on the sprite's own pixels, which range across the whole
+       * lightness range, and no single themed colour clears 3:1 against all of
+       * them: measured over the 1,025 sprites, 404 are under 3:1 from white and
+       * 89 are under 3:1 from the site ink. The PAIR covers every one of the
+       * 1,025 — see the ring note in algo.css. */
+      ctx.lineWidth = Math.max(1, cell * 0.09);
+      ctx.strokeStyle = '#ffffff'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(px, py, r + ctx.lineWidth, 0, Math.PI * 2);
+      ctx.strokeStyle = '#000000'; ctx.stroke();
       ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${Math.floor(CELL_SIZE * 0.5)}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.font = `bold ${Math.max(8, Math.floor(cell * 0.5))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(label, px, py);
-
       ctx.restore();
     }
 
-    // ================= Seed 偽隨機數產生器 (Mulberry32) =================
-    let rngFunc = null;
-
-    function initSeed(seed) {
-      let a = seed;
-      rngFunc = function() {
-        let t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-      };
-    }
-
-    // 取得 0 ~ 1 之間的隨機數 (替代 Math.random)
-    function seededRandom() {
-      if (!rngFunc) initSeed(42);
-      return rngFunc();
-    }
-    
-    // 控制迷宮 Seed 輸入框顯示 / 隱藏
-    function toggleSeedVisibility() {
-      const isRandom = document.getElementById('randomSeedToggle').checked;
-      const container = document.getElementById('seedInputContainer');
-      if (container) {
-        container.style.display = isRandom ? 'none' : 'inline-flex';
-      }
-    }
-
-    // ================= 1. 圖片像素化與迷宮生成 =================
-
-    // 寶可夢迷宮載入邏輯 (傳入 true 代表隨機抽號，false 代表讀取輸入框的 ID)
-    function loadPokemonMaze(isRandom = true) {
-      isSearching = false;
-      searchGenerator = null;
-      // --- 重置起點與終點標記 ---
-      currentStart = null;
-      currentEnd = null;
-      finalPath = [];
-      grid = [];
-
-      // --- 讀取隨機或指定 Seed ---
-      const randomSeedToggle = document.getElementById('randomSeedToggle');
-      const isRandomSeed = randomSeedToggle ? randomSeedToggle.checked : true;
-      const seedInput = document.getElementById('seedInput');
-
-      let seedVal;
-      if (isRandomSeed) {
-        // 預設隨機產生一個 Seed (1 ~ 999999)
-        seedVal = Math.floor(Math.random() * 999999) + 1;
-        // 同步更新隱藏的 seedInput 值（方便切換時知道上一次隨機的數值）
-        if (seedInput) seedInput.value = seedVal;
-      } else {
-        // 讀取使用者輸入的 Seed (若為空則預設 42)
-        seedVal = seedInput ? (parseInt(seedInput.value, 10) || 42) : 42;
-      }
-      
-      // 初始化隨機數種子
-      // initSeed(seedVal);
-
-      const pokemonIdInput = document.getElementById('pokemonIdInput');
-      let targetId;
-
-      if (isRandom) {
-        // 使用原生 Math.random() 隨機抽取 1 ~ 1025 的 寶可夢ID，並即時更新到輸入框上
-        targetId = Math.floor(Math.random() * 1025) + 1;
-        if (pokemonIdInput) {
-          pokemonIdInput.value = targetId;
-        }
-      } else {
-        // 讀取使用者手動輸入的 ID，並做範圍保護
-        targetId = pokemonIdInput ? parseInt(pokemonIdInput.value, 10) : 25;
-        if (isNaN(targetId) || targetId < 1 || targetId > 1025) {
-          alert('請輸入有效的寶可夢 ID (1 ~ 1025)');
-          return;
-        }
-      }
-
-      statusText.innerText = `正在載入 # ${targetId} 寶可夢大圖 (Seed: ${seedVal})...`;
-
-      const img = new Image();
-      const imagesPath = 'assets/images/pokemon/';
-      img.src = `${imagesPath}${targetId}.png`;
-      img.onerror = () => {
-          statusText.innerText = `載入失敗！找不到 ID #${targetId} 的寶可夢圖片。`;
-        };
-      img.onload = () => {
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = GRID_SIZE;
-        offCanvas.height = GRID_SIZE;
-        const offCtx = offCanvas.getContext('2d');
-        offCtx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
-        const imgData = offCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
-
-        for (let y = 0; y < GRID_SIZE; y++) {
-          let row = [];
-          for (let x = 0; x < GRID_SIZE; x++) {
-            const i = (y * GRID_SIZE + x) * 4;
-            const color = { r: imgData[i], g: imgData[i+1], b: imgData[i+2], a: imgData[i+3] };
-            row.push(new Cell(x, y, color));
-          }
-          grid.push(row);
-        }
-
-        // 關鍵修正：在生成迷宮牆壁「正前方」才重置 Seed 亂數序列！
-        // 這樣不論背景換成哪隻寶可夢，Seed 42 產生的牆壁結構與拆牆順序都是 100% 相同的。
-        initSeed(seedVal);
-        generateMazeBacktracker();
-
-        // 👇 新增：預設將左上角與右下角設為當前的起點與終點
-        currentStart = grid[0][0];
-        currentEnd = grid[GRID_SIZE - 1][GRID_SIZE - 1];
-
-        statusText.innerText = `迷宮生成完畢 (Seed: ${seedVal}, 寶可夢 # ${targetId})！請選擇探索演算法。`;
-        drawFullMaze();
-      };
-    }
-
-    // 遞迴回溯法生成迷宮 (Recursive Backtracker)
-    function generateMazeBacktracker() {
-      let stack = [];
-      let current = grid[0][0];
-      current.mazeVisited = true;
-
-      while (true) {
-        let neighbors = getUnvisitedNeighbors(current);
-        if (neighbors.length > 0) {
-          // 👈 將 Math.random() 替換為 seededRandom()
-          let next = neighbors[Math.floor(seededRandom() * neighbors.length)];
-          stack.push(current);
-          removeWalls(current, next);
-          next.mazeVisited = true;
-          current = next;
-        } else if (stack.length > 0) {
-          current = stack.pop();
-        } else {
-          break;
-        }
-      }
-      grid[0][0].walls.top = false;
-      grid[GRID_SIZE-1][GRID_SIZE-1].walls.bottom = false;
-    }
-
-    function getUnvisitedNeighbors(cell) {
-      let neighbors = [];
-      let x = cell.x;
-      let y = cell.y;
-      if (y > 0 && !grid[y-1][x].mazeVisited) neighbors.push(grid[y-1][x]);
-      if (x < GRID_SIZE-1 && !grid[y][x+1].mazeVisited) neighbors.push(grid[y][x+1]);
-      if (y < GRID_SIZE-1 && !grid[y+1][x].mazeVisited) neighbors.push(grid[y+1][x]);
-      if (x > 0 && !grid[y][x-1].mazeVisited) neighbors.push(grid[y][x-1]);
-      return neighbors;
-    }
-
-    function removeWalls(a, b) {
-      let x = a.x - b.x;
-      if (x === 1) { a.walls.left = false; b.walls.right = false; }
-      else if (x === -1) { a.walls.right = false; b.walls.left = false; }
-      let y = a.y - b.y;
-      if (y === 1) { a.walls.top = false; b.walls.bottom = false; }
-      else if (y === -1) { a.walls.bottom = false; b.walls.top = false; }
-    }
-
-    // ================= 2. 尋路演算法 (BFS / DFS) =================
-    
-    function getAccessibleNeighbors(cell) {
-      let neighbors = [];
-      let x = cell.x;
-      let y = cell.y;
-      if (!cell.walls.top && y > 0 && !grid[y-1][x].searchVisited) neighbors.push(grid[y-1][x]);
-      if (!cell.walls.right && x < GRID_SIZE-1 && !grid[y][x+1].searchVisited) neighbors.push(grid[y][x+1]);
-      if (!cell.walls.bottom && y < GRID_SIZE-1 && !grid[y+1][x].searchVisited) neighbors.push(grid[y+1][x]);
-      if (!cell.walls.left && x > 0 && !grid[y][x-1].searchVisited) neighbors.push(grid[y][x-1]);
-      return neighbors;
-    }
-
-    // BFS Generator (使用 Queue)
-    function* bfsSteps() {
-      let queue = [{ cell: grid[0][0], path: [grid[0][0]] }];
-      grid[0][0].searchVisited = true;
-
-      while (queue.length > 0) {
-        let { cell, path } = queue.shift();
-
-        if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
-          finalPath = path;
-          return;
-        }
-
-        let neighbors = getAccessibleNeighbors(cell);
-        for (let next of neighbors) {
-          next.searchVisited = true;
-          queue.push({ cell: next, path: [...path, next] });
-        }
-        yield;
-      }
-    }
-
-    // DFS Generator (使用 Stack)
-    function* dfsSteps() {
-      let stack = [{ cell: grid[0][0], path: [grid[0][0]] }];
-      grid[0][0].searchVisited = true;
-
-      while (stack.length > 0) {
-        let { cell, path } = stack.pop();
-
-        if (cell.x === GRID_SIZE - 1 && cell.y === GRID_SIZE - 1) {
-          finalPath = path;
-          return;
-        }
-
-        let neighbors = getAccessibleNeighbors(cell);
-        for (let next of neighbors) {
-          next.searchVisited = true;
-          stack.push({ cell: next, path: [...path, next] });
-        }
-        yield;
-      }
-    }
-
-    // 👈 新增：將最終路徑逐步點亮的 Generator
-    function* pathSteps() {
-      for (let i = 0; i < finalPath.length; i++) {
-        finalPath[i].onPath = true;
-        yield;
-      }
-    }
-
-    function startSearch(type) {
-      if (grid.length === 0) return;
-      
-      for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
-          grid[y][x].searchVisited = false;
-          grid[y][x].onPath = false;
-        }
-      }
-      finalPath = [];
-      
-      if (type === 'bfs') {
-        statusText.innerText = 'BFS 探索中 (如水波般擴散)...';
-        searchGenerator = bfsSteps();
-      } else {
-        statusText.innerText = 'DFS 探索中 (如蛇行般深入)...';
-        searchGenerator = dfsSteps();
-      }
-
-      animPhase = 'search'; // 設定目前為搜尋階段
-
-      if (!isSearching) {
-        isSearching = true;
-        requestAnimationFrame(renderLoop);
-      }
-    }
-
-    // ================= 3. 畫面渲染迴圈 (含速度與階段控制) =================
-
-    function drawFullMaze() {
+    function redraw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // With no grid there is nothing to draw, and the `#overlay` element is
+      // what says so. Painting an idle prompt into the canvas as well would put
+      // two prompts on top of each other, and the canvas one would sit under
+      // the overlay's blur where nobody could read it.
+      if (!grid.length) return;
       for (let y = 0; y < GRID_SIZE; y++) {
-        for (let x = 0; x < GRID_SIZE; x++) {
-          grid[y][x].draw();
-        }
+        for (let x = 0; x < GRID_SIZE; x++) grid[y][x].draw();
       }
-
-      // 👇 新增：在畫面的最上層繪製起點與終點標籤
       drawMarkers();
     }
 
-    function setSpeed(sliderValue) {
-      document.getElementById('speedRange').value = sliderValue;
+    /* ---------------------------------------------------------- SEEDED RNG */
+    /* Mulberry32, re-seeded immediately before carving so the same seed gives
+     * the same wall layout whatever Pokémon is behind it. */
+    let rngState = 0;
+    function initSeed(s) { rngState = s >>> 0; }
+    function seededRandom() {
+      rngState = (rngState + 0x6D2B79F5) | 0;
+      let t = rngState;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    // 輸入想要的速度 Y (例如 0.5, 1.0, 2.5)，回傳滑桿位置 X (0~100), 反推公式為 $X = 100 \times \sqrt{(Y - 0.1) / 9.9}$
-    function getSliderValFromSpeed(targetSpeed) {
-      // 限制 Y 的範圍在 0.1 ~ 10.0 之間，避免傳入小於 0.1 的數字導致開根號出現 NaN
-      const clampedY = Math.max(0.1, Math.min(10.0, targetSpeed));
-      
-      // 反推公式
-      const x = 100 * Math.sqrt((clampedY - 0.1) / 9.9);
-      
-      // 四捨五入取整數
-      return Math.round(x);
+    /* -------------------------------------------------------------- LOAD */
+    /* Bumped on every load request; an in-flight image load checks it is still
+     * the newest before touching `grid`. Without this, two quick clicks
+     * interleave: both onload handlers build their 40 rows and push them onto
+     * the same shared `grid`, leaving 80 rows with two images interleaved. */
+    let loadToken = 0;
+
+    function requestId(text) {
+      const raw = String(text || '').trim().replace(/^#/, '');
+      if (!raw) return { ok: false, reason: 'empty' };
+      if (!/^\d+$/.test(raw)) return { ok: false, reason: 'nan' };
+      const n = Number(raw);
+      if (n < 1 || n > MAX_ID) return { ok: false, reason: 'range' };
+      return { ok: true, id: n };
     }
 
-    function setSpeedByValue(speed) {
-      const sliderValue = getSliderValFromSpeed(speed);
-      document.getElementById('speedRange').value = sliderValue;
-    }
+    async function loadPokemonMaze(requestedId) {
+      const token = ++loadToken;
+      stopRun();
+      grid = [];
+      terrainEndpoints = null;
+      redraw();
+      overlay.hidden = false;
+      overlay.textContent = '載入中…';
 
-    // 計算非線性速度的函式 (輸入 0~100，輸出 0.1~10)
-    function getMappedSpeed(sliderVal) {
-      const minSpeed = 0.1;
-      const maxSpeed = 10.0;
-      
-      // 將 0~100 轉為 0~1 的比例
-      const progress = sliderVal / 100; 
-      
-      // 使用二次方 (progress^2) 做非線性拉伸
-      const mappedValue = minSpeed + (maxSpeed - minSpeed) * Math.pow(progress, 2);
-      
-      return mappedValue;
-    }
-
-    function renderLoop() {
-      // 1. 動態讀取滑桿速度
-      const speedInput = document.getElementById('speedRange');
-      const speedText = document.getElementById('speedValue');
-
-      // 2. 取得對數/曲線轉換後的實際速度 (例如 0.1, 0.5, 1.2, 2.5 等)
-      const rawSpeed = speedInput ? getMappedSpeed(parseFloat(speedInput.value)) : 1.0;
-
-      // 3. 更新介面上的數字顯示 (保留 1 位小數)
-      if (speedText) {
-        speedText.innerText = rawSpeed.toFixed(1) + 'x';
+      const check = requestedId === undefined
+        ? { ok: true, id: 1 + Math.floor(Math.random() * MAX_ID) }
+        : requestId(requestedId);
+      if (!check.ok) {
+        overlay.hidden = true;
+        idError.hidden = false;
+        idError.textContent = check.reason === 'empty'
+          ? `請輸入 1 到 ${MAX_ID} 之間的編號。`
+          : check.reason === 'nan'
+            ? `「${idField.value.trim()}」不是數字。請輸入 1 到 ${MAX_ID} 之間的編號。`
+            : `編號 ${idField.value.trim().replace(/^#/, '')} 超出範圍，這份圖鑑只有 1 到 ${MAX_ID}。`;
+        loadStatus.textContent = '尚未載入。';
+        idField.focus();
+        return;
       }
+      idError.hidden = true;
+      const id = check.id;
+      idField.value = String(id).padStart(3, '0');
+      seed = 1 + Math.floor(Math.random() * 999999);
+      loadStatus.textContent = `正在載入 #${id}…`;
 
-      // 4. 處理「小於 1 步」的累積邏輯 (例如 0.1 步/幀 代表每 10 幀才走 1 步)
-      // 如果數值包含小數，可以使用計數器累積步數
-      let stepsToExecute = Math.floor(rawSpeed);
-      
-      // 處理小數點機率 (例如 speed = 0.3，有 30% 機率在這一幀多走 1 步)
-      if (Math.random() < (rawSpeed % 1)) {
-        stepsToExecute += 1;
-      }
+      const img = new Image();
+      img.onerror = () => {
+        if (token !== loadToken) return;
+        overlay.hidden = true;
+        loadStatus.textContent = `載入失敗：找不到 #${id} 的圖片。`;
+      };
+      img.onload = () => {
+        if (token !== loadToken) return;   // superseded by a newer request
 
-      // 階段一：演算法搜尋中
-      if (animPhase === 'search' && searchGenerator) {
-        let done = false;
-        for (let i = 0; i < stepsToExecute; i++) {
-          const res = searchGenerator.next();
-          if (res.done) {
-            done = true;
-            break;
-          }
-        }
+        const off = document.createElement('canvas');
+        off.width = GRID_SIZE; off.height = GRID_SIZE;
+        const offCtx = off.getContext('2d');
+        offCtx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
+        const px = offCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data;
 
-        if (done) {
-          searchGenerator = null;
-          if (finalPath.length > 0) {
-            // 搜尋成功，切換到「畫出路徑」階段
-            animPhase = 'path';
-            pathGenerator = pathSteps();
-            statusText.innerText = '探索成功！正在畫出明顯路徑...';
-          } else {
-            animPhase = 'idle';
-            isSearching = false;
-            statusText.innerText = '探索結束，未找到可行路徑！';
-          }
-        }
-      } 
-      // 階段二：逐格繪製終點路徑中
-      else if (animPhase === 'path' && pathGenerator) {
-        let done = false;
-        for (let i = 0; i < stepsToExecute; i++) {
-          const res = pathGenerator.next();
-          if (res.done) {
-            done = true;
-            break;
-          }
-        }
-
-        if (done) {
-          pathGenerator = null;
-          animPhase = 'idle';
-          isSearching = false;
-          statusText.innerText = `路徑點亮完成！成功用 ${finalPath.length} 步連至終點！`;
-        }
-      }
-
-      // 重繪迷宮畫面
-      drawFullMaze();
-
-      // 如果動畫尚未完全結束，持續循環
-      if (isSearching) {
-        requestAnimationFrame(renderLoop);
-      }
-    }
-
-    // ================= 2. 尋路演算法 (單段與多段巡航) =================
-
-    // 取得當前搜尋段可通行的鄰居 (使用區域 visitedSet，避免上一段影響下一段的探索)
-    function getAccessibleNeighborsForSegment(cell, visitedSet) {
-      let neighbors = [];
-      let x = cell.x;
-      let y = cell.y;
-      if (!cell.walls.top && y > 0 && !visitedSet.has(grid[y-1][x])) neighbors.push(grid[y-1][x]);
-      if (!cell.walls.right && x < GRID_SIZE-1 && !visitedSet.has(grid[y][x+1])) neighbors.push(grid[y][x+1]);
-      if (!cell.walls.bottom && y < GRID_SIZE-1 && !visitedSet.has(grid[y+1][x])) neighbors.push(grid[y+1][x]);
-      if (!cell.walls.left && x > 0 && !visitedSet.has(grid[y][x-1])) neighbors.push(grid[y][x-1]);
-      return neighbors;
-    }
-
-    // 單段搜尋 Generator (給定起點與終點)
-    function* searchSegment(startCell, endCell, algoType) {
-      // 👇 新增：更新當前搜尋段的起點與終點
-      currentStart = startCell;
-      currentEnd = endCell;
-
-      let visitedSet = new Set();
-      let list = [{ cell: startCell, path: [startCell] }];
-      
-      startCell.searchVisited = true;
-      visitedSet.add(startCell);
-
-      let foundPath = null;
-
-      while (list.length > 0) {
-        let { cell, path } = (algoType === 'bfs') ? list.shift() : list.pop();
-
-        if (cell.x === endCell.x && cell.y === endCell.y) {
-          foundPath = path;
-          break;
-        }
-
-        let neighbors = getAccessibleNeighborsForSegment(cell, visitedSet);
-        for (let next of neighbors) {
-          next.searchVisited = true; // 累積全局探索紀錄，保持畫面半透明綠色鋪開
-          visitedSet.add(next);
-          list.push({ cell: next, path: [...path, next] });
-        }
-        yield; // 每一步 yield 給 renderLoop 繪製動畫
-      }
-
-      return foundPath;
-    }
-
-    // 中心四角巡航多段 Generator
-    function* centerStarSteps(algoType) {
-      const cx = Math.floor(GRID_SIZE / 2);
-      const cy = Math.floor(GRID_SIZE / 2);
-
-      const center = grid[cy][cx];
-      const topLeft = grid[0][0];
-      const bottomRight = grid[GRID_SIZE - 1][GRID_SIZE - 1];
-      const topRight = grid[0][GRID_SIZE - 1];
-      const bottomLeft = grid[GRID_SIZE - 1][0];
-
-      // 巡航順序：中心 -> 左上, 中心 -> 右下, 中心 -> 右上, 中心 -> 左下
-      const legs = [
-        { start: center, end: topLeft },
-        { start: center, end: bottomRight },
-        { start: center, end: topRight },
-        { start: center, end: bottomLeft }
-      ];
-
-      finalPath = [];
-
-      for (let leg of legs) {
-        // 👈 每次出發前，將全局畫面刷淡（重置 searchVisited）
+        const rows = [];
         for (let y = 0; y < GRID_SIZE; y++) {
+          const row = [];
           for (let x = 0; x < GRID_SIZE; x++) {
-            grid[y][x].searchVisited = false;
+            const i = (y * GRID_SIZE + x) * 4;
+            row.push(new Cell(x, y, { r: px[i], g: px[i + 1], b: px[i + 2], a: px[i + 3] }));
           }
+          rows.push(row);
         }
+        grid = rows;   // one atomic swap, never a partial push onto a shared array
 
-        let gen = searchSegment(leg.start, leg.end, algoType);
-        let segmentPath = null;
+        initSeed(seed);
+        carveMaze();
+        computeTerrainForGrid();
+        terrainEndpoints = computeTerrainEndpoints();
 
-        while (true) {
-          let res = gen.next();
-          if (res.done) {
-            segmentPath = res.value;
-            break;
-          }
-          yield;
-        }
+        clearRunLog();
+        overlay.hidden = true;
+        // The species name comes from pokemon_data.json — the same record every
+        // other page on this site names a Pokémon from, rather than a second
+        // lookup or a hardcoded example.
+        const rec = POKEDEX.get(id);
+        loadStatus.textContent = rec
+          ? `${rec.names.zh}（#${String(id).padStart(3, '0')}）· Seed ${seed} · 已生成 ${GRID_SIZE}×${GRID_SIZE} 的${MODE_LABEL[mode]}，選一個演算法開始。`
+          : `#${id} · Seed ${seed} · 已生成 ${GRID_SIZE}×${GRID_SIZE}，選一個演算法開始。`;
+        fitCanvas();
+      };
+      img.src = `assets/images/pokemon/${id}.png`;
+    }
 
-        if (segmentPath) {
-          if (finalPath.length === 0) {
-            finalPath = segmentPath;
-          } else {
-            // 拼接路徑時，移除重疊的起點
-            finalPath = finalPath.concat(segmentPath.slice(1));
-          }
+    /* --------------------------------------------------- MAZE GENERATION */
+    function carveMaze() {
+      const stack = [];
+      let cur = grid[0][0];
+      cur.mazeVisited = true;
+      for (;;) {
+        const options = unvisitedNeighbours(cur);
+        if (options.length) {
+          const next = options[Math.floor(seededRandom() * options.length)];
+          stack.push(cur);
+          removeWalls(cur, next);
+          next.mazeVisited = true;
+          cur = next;
+        } else if (stack.length) {
+          cur = stack.pop();
+        } else break;
+      }
+      // Two openings so the maze is enterable and escapable at all.
+      grid[0][0].walls.top = false;
+      grid[GRID_SIZE - 1][GRID_SIZE - 1].walls.bottom = false;
+    }
+    function unvisitedNeighbours(c) {
+      const { x, y } = c;
+      const out = [];
+      if (y > 0 && !grid[y - 1][x].mazeVisited) out.push(grid[y - 1][x]);
+      if (x < GRID_SIZE - 1 && !grid[y][x + 1].mazeVisited) out.push(grid[y][x + 1]);
+      if (y < GRID_SIZE - 1 && !grid[y + 1][x].mazeVisited) out.push(grid[y + 1][x]);
+      if (x > 0 && !grid[y][x - 1].mazeVisited) out.push(grid[y][x - 1]);
+      return out;
+    }
+    function removeWalls(a, b) {
+      if (a.x - b.x === 1) { a.walls.left = false; b.walls.right = false; }
+      else if (a.x - b.x === -1) { a.walls.right = false; b.walls.left = false; }
+      if (a.y - b.y === 1) { a.walls.top = false; b.walls.bottom = false; }
+      else if (a.y - b.y === -1) { a.walls.bottom = false; b.walls.top = false; }
+    }
+
+    /* ------------------------------------------------------- TERRAIN MODE */
+    function computeTerrainForGrid() {
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          grid[y][x].terrainCost = computeTerrainCost(grid[y][x].color, terrainMaxCost);
         }
       }
     }
+    const passable = (c) => c.terrainCost !== Infinity;
+    const cellAt = (x, y) => grid[y][x];
 
-    // BFS Generator (傳統 左上 -> 右下)
-    function* bfsSteps() {
-      let gen = searchSegment(grid[0][0], grid[GRID_SIZE-1][GRID_SIZE-1], 'bfs');
-      while (true) {
-        let res = gen.next();
-        if (res.done) {
-          finalPath = res.value || [];
-          break;
+    /* Corner-to-corner on the literal 40×40 square almost always fails in
+     * terrain mode: sprites are centred with transparent padding, so grid[0][0]
+     * is nearly always impassable. The endpoints are instead the nearest
+     * passable cells to the PASSABLE REGION's own bounding box — which still
+     * reads as "cross the Pokémon corner to corner" without assuming the sprite
+     * fills the square. */
+    function computeTerrainEndpoints() {
+      let minX = GRID_SIZE, minY = GRID_SIZE, maxX = -1, maxY = -1;
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          if (!passable(grid[y][x])) continue;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
         }
-        yield;
       }
+      if (maxX < 0) return null;   // a fully transparent sprite; no route exists
+      const mid = (v) => Math.round(v);
+      return {
+        start: findNearestPassable(minX, minY, GRID_SIZE, cellAt, passable),
+        end: findNearestPassable(maxX, maxY, GRID_SIZE, cellAt, passable),
+        center: findNearestPassable(mid((minX + maxX) / 2), mid((minY + maxY) / 2), GRID_SIZE, cellAt, passable),
+      };
     }
 
-    // DFS Generator (傳統 左上 -> 右下)
-    function* dfsSteps() {
-      let gen = searchSegment(grid[0][0], grid[GRID_SIZE-1][GRID_SIZE-1], 'dfs');
-      while (true) {
-        let res = gen.next();
-        if (res.done) {
-          finalPath = res.value || [];
-          break;
-        }
-        yield;
+    function starPoints() {
+      if (mode === 'wall') {
+        const cx = Math.floor(GRID_SIZE / 2), cy = Math.floor(GRID_SIZE / 2);
+        return {
+          center: grid[cy][cx],
+          topLeft: grid[0][0], topRight: grid[0][GRID_SIZE - 1],
+          bottomLeft: grid[GRID_SIZE - 1][0], bottomRight: grid[GRID_SIZE - 1][GRID_SIZE - 1],
+        };
       }
+      if (!terrainEndpoints?.center) return null;
+      const corner = (x, y) => findNearestPassable(x, y, GRID_SIZE, cellAt, passable);
+      const pts = {
+        center: terrainEndpoints.center,
+        topLeft: corner(0, 0), topRight: corner(GRID_SIZE - 1, 0),
+        bottomLeft: corner(0, GRID_SIZE - 1), bottomRight: corner(GRID_SIZE - 1, GRID_SIZE - 1),
+      };
+      return Object.values(pts).every(Boolean) ? pts : null;
     }
 
-    // 啟動搜尋入口
-    function startSearch(type, mode = 'normal') {
-      if (grid.length === 0) return;
-      
-      for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
+    /* --------------------------------------------------- NEIGHBOUR FUNCTIONS
+     * These two closures are the ONLY thing that differs between the modes; all
+     * four solvers in maze-pathfinding.js are written against this shape and
+     * know nothing about walls or sprites. */
+    function wallNeighbours(c) {
+      const { x, y } = c;
+      const out = [];
+      if (!c.walls.top && y > 0) out.push({ node: grid[y - 1][x], stepCost: 1 });
+      if (!c.walls.right && x < GRID_SIZE - 1) out.push({ node: grid[y][x + 1], stepCost: 1 });
+      if (!c.walls.bottom && y < GRID_SIZE - 1) out.push({ node: grid[y + 1][x], stepCost: 1 });
+      if (!c.walls.left && x > 0) out.push({ node: grid[y][x - 1], stepCost: 1 });
+      return out;
+    }
+    function terrainNeighbours(c) {
+      const out = [];
+      for (const d of DIAGONAL_DIRS) {
+        const nx = c.x + d.dx, ny = c.y + d.dy;
+        if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) continue;
+        const next = grid[ny][nx];
+        if (!passable(next)) continue;
+        // No cutting a wall corner diagonally: both orthogonal cells must be
+        // passable too, or the search would slip through a diagonal pinch.
+        if (d.diag && (!passable(grid[c.y][nx]) || !passable(grid[ny][c.x]))) continue;
+        out.push({ node: next, stepCost: next.terrainCost * (d.diag ? Math.SQRT2 : 1) });
+      }
+      return out;
+    }
+
+    function endpoints() {
+      return mode === 'wall'
+        ? { start: grid[0]?.[0] ?? null, end: grid[GRID_SIZE - 1]?.[GRID_SIZE - 1] ?? null }
+        : (terrainEndpoints ?? { start: null, end: null });
+    }
+
+    /* ------------------------------------------------------- FOUR-LEG RUN */
+    /* 中心四角巡航: four legs out from the centre, each a genuine restart from
+     * `center`. There is no shared cell between one leg's end and the next
+     * leg's start to de-duplicate, so the paths are concatenated plainly — the
+     * previous version `.slice(1)`-ed off an overlap that was never there and
+     * silently dropped a real visited cell at every leg boundary. */
+    function* starRun(solver, neighbours, heuristic, pts) {
+      const legs = [
+        { start: pts.center, end: pts.topLeft },
+        { start: pts.center, end: pts.bottomRight },
+        { start: pts.center, end: pts.topRight },
+        { start: pts.center, end: pts.bottomLeft },
+      ];
+      const results = [];
+      let path = [];
+      for (const leg of legs) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          for (let x = 0; x < GRID_SIZE; x++) grid[y][x].searchVisited = false;
+        }
+        const gen = heuristic ? solver(leg.start, leg.end, neighbours, heuristic) : solver(leg.start, leg.end, neighbours);
+        let res;
+        for (;;) {
+          const step = gen.next();
+          if (step.done) { res = step.value; break; }
+          // Forward the settled CELL, not a bare `yield;` — the render loop
+          // writes `.searchVisited` on whatever it receives, and a value-less
+          // yield hands it `undefined`.
+          yield step.value;
+        }
+        results.push(res);
+        if (res.found) path = path.concat(res.path);
+      }
+      return { legs: results, found: results.every(r => r.found), path };
+    }
+
+    /* ------------------------------------------------------------- SEARCH */
+    const ALGO_LABEL = { bfs: 'BFS', dfs: 'DFS', dijkstra: 'Dijkstra', astar: 'A*' };
+    const MODE_LABEL = { wall: '迷宮牆壁', terrain: '精靈地形' };
+
+    /* Wall mode is 4-directional and unit-cost, so only the two hop-optimal
+     * algorithms mean anything there — Dijkstra would be BFS and A* would be
+     * BFS with extra steps. Terrain mode is where the weighted pair earns its
+     * place, and where BFS's cost-blindness becomes visible. */
+    const ALGOS_BY_MODE = {
+      wall: [
+        { id: 'bfs', star: false, label: 'BFS', note: '保證跳格數最少' },
+        { id: 'dfs', star: false, label: 'DFS', note: '兩個都不保證' },
+        { id: 'bfs', star: true, label: '四角巡航 BFS' },
+        { id: 'dfs', star: true, label: '四角巡航 DFS' },
+      ],
+      terrain: [
+        { id: 'bfs', star: false, label: 'BFS', note: '不看成本' },
+        { id: 'dijkstra', star: false, label: 'Dijkstra', note: '成本最低' },
+        { id: 'astar', star: false, label: 'A*', note: '成本最低＋啟發式' },
+        { id: 'astar', star: true, label: '四角巡航 A*' },
+      ],
+    };
+
+    function startSearch(algoId, star) {
+      if (!grid.length) {
+        loadStatus.textContent = '請先載入寶可夢迷宮。';
+        return;
+      }
+      stopRun();
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
           grid[y][x].searchVisited = false;
           grid[y][x].onPath = false;
         }
       }
-      finalPath = [];
-      
-      if (mode === 'star') {
-        statusText.innerText = `${type.toUpperCase()} 中心四角巡航探索中...`;
-        searchGenerator = centerStarSteps(type);
-      } else {
-        if (type === 'bfs') {
-          statusText.innerText = 'BFS 探索中 (如水波般擴散)...';
-          searchGenerator = bfsSteps();
-        } else {
-          statusText.innerText = 'DFS 探索中 (如蛇行般深入)...';
-          searchGenerator = dfsSteps();
+      explored = 0;
+
+      const solver = SOLVERS[algoId];
+      const neighbours = mode === 'wall' ? wallNeighbours : terrainNeighbours;
+      // Wall mode moves on 4 axes, so Manhattan is the admissible heuristic
+      // there; terrain mode moves on 8, so octile is. Pairing octile with a
+      // 4-directional grid overestimates the diagonal and would break A*'s
+      // optimality guarantee — the one thing the page claims it has.
+      const heuristic = algoId !== 'astar' ? null
+        : (mode === 'wall' ? manhattanHeuristic : octileHeuristic);
+
+      let gen;
+      if (star) {
+        const pts = starPoints();
+        if (!pts) {
+          loadStatus.textContent = '找不到可用的巡航起點：這隻寶可夢可通行的面積太小或太破碎。';
+          return;
         }
+        gen = starRun(solver, neighbours, heuristic, pts);
+      } else {
+        const { start, end } = endpoints();
+        if (!start || !end) {
+          loadStatus.textContent = '找不到可用的起點或終點。';
+          return;
+        }
+        gen = heuristic ? solver(start, end, neighbours, heuristic) : solver(start, end, neighbours);
       }
 
-      animPhase = 'search';
+      run = { gen, algo: algoId, star: !!star, start: performance.now() };
+      phase = 'search';
+      setStat('statAlgo', ALGO_LABEL[algoId] + (star ? '（四角巡航）' : ''));
+      setStat('statVisited', '0');
+      setStat('statCost', '—');
+      setStat('statHops', '—');
+      tick();
+    }
 
-      if (!isSearching) {
-        isSearching = true;
-        requestAnimationFrame(renderLoop);
+    function tick() {
+      rafId = requestAnimationFrame(tick);
+      if (phase === 'search' && run) {
+        let settled = null;
+        for (let i = 0; i < speed.cells && run; i++) {
+          const step = run.gen.next();
+          if (step.done) { settled = step.value; break; }
+          step.value.searchVisited = true;
+          explored++;
+        }
+        setStat('statVisited', explored.toLocaleString());
+        if (settled) finishSearch(settled);
+      } else if (phase === 'path' && pathCells.length) {
+        // The route lights up at a fixed visual rate rather than at the search's
+        // own rate: a 3-cell path and a 300-cell path should both take about as
+        // long to draw, or the short one finishes before it is seen.
+        const draw = Math.max(1, Math.ceil(pathCells.length / 90));
+        for (let i = 0; i < draw && pathCells.length; i++) pathCells.shift().onPath = true;
+        if (!pathCells.length) { phase = 'idle'; cancelAnimationFrame(rafId); rafId = 0; }
+      }
+      redraw();
+    }
+
+    function finishSearch(result) {
+      const found = result.found;
+      const path = found ? result.path : [];
+      const cost = found ? result.cost : Infinity;
+      const hops = found ? path.length : 0;
+      setStat('statCost', found ? cost.toFixed(1) : '—');
+      setStat('statHops', found ? String(hops) : '—');
+
+      addRunLog({
+        mode: run.star ? `${MODE_LABEL[mode]}（四角巡航）` : MODE_LABEL[mode],
+        algo: ALGO_LABEL[run.algo],
+        visited: explored,
+        cost: found ? cost : null,
+        found,
+      });
+
+      const seconds = ((performance.now() - run.start) / 1000).toFixed(1);
+      loadStatus.textContent = found
+        ? `${ALGO_LABEL[run.algo]}${run.star ? ' 四角巡航' : ''} 完成：探索 ${explored.toLocaleString()} 格，路徑 ${hops} 格、成本 ${cost.toFixed(1)}，耗時 ${seconds} 秒。`
+        : `${ALGO_LABEL[run.algo]} 結束，但沒有找到可行路徑（可通行區域可能不連通）。`;
+
+      if (path.length) {
+        pathCells = path.slice();
+        phase = 'path';
+      } else {
+        phase = 'idle';
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      run = null;
+    }
+
+    function stopRun() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      run = null;
+      phase = 'idle';
+      pathCells = [];
+      explored = 0;
+    }
+
+    /* --------------------------------------------------------- RUN LOG */
+    function clearRunLog() {
+      runLog = [];
+      renderRunLog();
+    }
+    function addRunLog(entry) {
+      runLog.push(entry);
+      renderRunLog();
+    }
+    function renderRunLog() {
+      runLogBody.innerHTML = runLog.map(r => `
+        <tr>
+          <td>${r.mode}</td>
+          <td>${r.algo}</td>
+          <td>${r.visited.toLocaleString()}</td>
+          <td class="${r.found ? '' : 'is-fail'}">${r.found ? r.cost.toFixed(1) : '無解'}</td>
+        </tr>`).join('');
+      runLogEmpty.hidden = runLog.length > 0;
+    }
+
+    function setStat(id, text) {
+      document.getElementById(id).textContent = text;
+    }
+
+    /* ------------------------------------------------------------ TOOLBAR */
+    function renderAlgoPicker() {
+      const picker = document.getElementById('algoPicker');
+      picker.innerHTML = '';
+      for (const a of ALGOS_BY_MODE[mode]) {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.type = 'button';
+        btn.textContent = a.note ? `${a.label}（${a.note}）` : a.label;
+        btn.addEventListener('click', () => startSearch(a.id, a.star));
+        picker.appendChild(btn);
       }
     }
 
-    function drawIdlePrompt() {
-      ctx.fillStyle = themeToken('--canvas-bg');
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = themeToken('--canvas-text');
-      ctx.font = '24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('請點擊上方按鈕載入迷宮', canvas.width/2, canvas.height/2);
+    function setMode(next) {
+      if (next === mode) return;
+      mode = next;
+      document.getElementById('tabWall').setAttribute('aria-selected', String(mode === 'wall'));
+      document.getElementById('tabTerrain').setAttribute('aria-selected', String(mode === 'terrain'));
+      document.getElementById('terrainControls').hidden = mode !== 'terrain';
+      renderAlgoPicker();
+      // Switching mode changes what "cost" even means, so a log mixing the two
+      // would be comparing two different questions.
+      clearRunLog();
+      stopRun();
+      if (grid.length) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          for (let x = 0; x < GRID_SIZE; x++) {
+            grid[y][x].searchVisited = false;
+            grid[y][x].onPath = false;
+          }
+        }
+        loadStatus.textContent = `已切到${MODE_LABEL[mode]}。`;
+        redraw();
+      }
     }
+    document.getElementById('tabWall').addEventListener('click', () => setMode('wall'));
+    document.getElementById('tabTerrain').addEventListener('click', () => setMode('terrain'));
 
-    // A canvas is opaque once painted, so switching the page palette underneath it
-    // changes nothing until something redraws. Both the idle prompt and a loaded
-    // maze therefore have to be repainted explicitly, and colours are re-read
-    // rather than cached so this cannot land on the old palette.
-    document.addEventListener('themechange', () => {
-      if (grid.length) drawFullMaze();
-      else drawIdlePrompt();
+    const contrastRange = document.getElementById('contrastRange');
+    const contrastValue = document.getElementById('contrastValue');
+    contrastRange.addEventListener('input', () => {
+      terrainMaxCost = Number(contrastRange.value);
+      contrastValue.textContent = `${terrainMaxCost}×`;
+      if (!grid.length) return;
+      computeTerrainForGrid();
+      terrainEndpoints = computeTerrainEndpoints();
+      // The cost landscape changed, so every recorded row is now a measurement
+      // of a different terrain.
+      clearRunLog();
+      stopRun();
+      if (mode === 'terrain') redraw();
     });
 
-    // 頁面載入時初始提示
-    window.onload = drawIdlePrompt;
+    const speedPicker = document.getElementById('speedPicker');
+    SPEED_TIERS.forEach(tier => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.type = 'button';
+      btn.textContent = tier.label;
+      btn.title = `每幀 ${tier.cells} 格`;
+      btn.setAttribute('aria-pressed', String(tier.id === speed.id));
+      btn.addEventListener('click', () => {
+        speed = tier;
+        for (const b of speedPicker.children) b.setAttribute('aria-pressed', String(b === btn));
+      });
+      speedPicker.appendChild(btn);
+    });
+
+    // A real <form>, so Enter submits without a hand-rolled keydown handler.
+    document.getElementById('loadForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const typed = idField.value.trim();
+      loadPokemonMaze(typed === '' ? undefined : typed);
+    });
+    document.getElementById('btnRandomSeed').addEventListener('click', () => {
+      seed = 1 + Math.floor(Math.random() * 999999);
+      loadStatus.textContent = `下一張迷宮會用 Seed ${seed}。`;
+    });
+
+    /* --------------------------------------------------------------- BOOT */
+    /* The roster is fetched once so a loaded sprite can be named. It is NOT a
+     * blocker: `loadPokemonMaze` reads it lazily, and if the fetch has not
+     * landed yet the status line falls back to the bare number rather than
+     * waiting — a maze that takes two seconds longer to appear because a name
+     * was missing would be a worse trade. */
+    loadPokemonData()
+      .then((all) => { POKEDEX = new Map(all.map(p => [p.id, p])); })
+      .catch(() => { POKEDEX = new Map(); });
+
+    document.addEventListener('themechange', () => {
+      refreshTokens();
+      redraw();
+    });
+
+    renderAlgoPicker();
+    fitCanvas();
   </script>
 </body>
 </html>

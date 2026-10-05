@@ -148,6 +148,40 @@
   --canvas-wall: 63, 74, 114;
   --canvas-grid: rgba(238, 241, 251, 0.5);
   --canvas-text: #f5c542;
+
+  /* ===== Algorithm-page highlight roles ==================================
+     Read by JS through readThemeToken(), like the --canvas-* triplet above,
+     because a canvas cannot see a custom property. Six ROLES, not six
+     colours-for-one-page: sorting draws the first four, maze.html draws the
+     last two, and neither page draws a role the other owns.
+
+     EVERY ROLE IS RE-SPECIFIED IN THE LIGHT BLOCK, and that is the whole
+     reason this is a token rather than a hex in sorting.html / maze.html.
+     Measured: these dark pastels against the light theme's #ffffff canvas come
+     out at 1.92:1 (compare), 1.62:1 (swap), 2.72:1 (pivot), 2.58:1 (min) and
+     1.74:1 (start) — a highlight nobody can see, on exactly the palette where
+     a screenshot looks cleanest. This is the same failure as the hardcoded
+     #ff9b9f in §3.B1, one layer down: that one was invisible in the LIGHT
+     theme, this one would have been invisible there too.
+
+     THE ROLES ARE SEPARATED BY HUE, NOT BY CONTRAST, and the luminance is
+     deliberately close (0.300..0.597 in dark, 0.067..0.132 in light) so that
+     hue is the ONLY channel carrying "which highlight is this". Equal
+     luminance with differing hue is the most discriminable arrangement there
+     is; a set with both would be less identifiable, not more. The pairs a
+     reader must tell apart are separated by at least 61° of hue in the dark
+     palette and 67° in the light one — check_algo_pages.mjs measures it rather
+     than trusting this sentence, and it measures the roles each page actually
+     draws (compare/swap/pivot/min for sorting, start/goal for maze) because
+     min (magenta 334°) and goal (red 354°) are only 20° apart and never
+     appear together. */
+  --algo-compare: #4cc9f0;
+  --algo-swap:    #f5c542;
+  --algo-pivot:   #a78bfa;
+  --algo-min:     #ff6fae;
+  --algo-start:   #4ade80;
+  --algo-goal:    #ff5c6c;
+
   /* The radar's polygon wash, as an alpha over --accent-gold-rgb. Per theme
      because the gold is a bright amber here and a Poké Ball red in light, so a
      single shared value is a warm glow in one theme and a mud wash in the
@@ -331,6 +365,18 @@
   --canvas-wall: 15, 23, 48;
   --canvas-grid: rgba(15, 23, 48, 0.22);
   --canvas-text: #92400e;   /* the S/G glyphs sit on their own fills; see gotcha 35 */
+
+  /* The algorithm highlight roles again, darkened for a white canvas — see the
+     dark block's note for the measured contrast that forces this. Hue is held
+     to within a few degrees of the dark value so a role keeps its identity
+     across a theme switch; only lightness moves, and by enough to matter. */
+  --algo-compare: #0b6e8f;
+  --algo-swap:    #8a5a00;
+  --algo-pivot:   #5b21b6;
+  --algo-min:     #a61e62;
+  --algo-start:   #166534;
+  --algo-goal:    #b3261e;
+
 
   /* Corrected, not copied. Every one of the five dark values above fails as text
      on a white card: --gender-male 2.14:1 and --gender-female 1.92:1, and all
