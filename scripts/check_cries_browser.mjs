@@ -17,12 +17,15 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const profile=mkdtempSync(join(tmpdir(),'cr-'));
 /* `--mute-audio`: this checker presses play too. Muted at the browser rather than
    by zeroing the page's volume, so the AudioContext still runs and the playback
-   path is still exercised. */
+   path is still exercised. The flag is the first line rather than the guarantee;
+   the second is installed in the page, before any page script runs. See
+   scripts/lib/mute-tap.mjs. */
 const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required','--remote-debugging-port=9370',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
 let targets; for(let i=0;i<80;i++){try{const r=await fetch('http://127.0.0.1:9370/json/list'); if(r.ok){targets=await r.json();break;}}catch{} await new Promise(r=>setTimeout(r,250));}
 const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
@@ -32,6 +35,7 @@ ws.addEventListener('message',e=>{const m=JSON.parse(e.data); if(m.id&&w.has(m.i
  if(m.method==='Runtime.exceptionThrown') logs.push('EXC '+(m.params.exceptionDetails.exception?.description||'').split('\n')[0]);});
 const send=(m,p={})=>new Promise((res,rej)=>{const n=++id;w.set(n,x=>x.error?rej(new Error(JSON.stringify(x.error))):res(x.result));ws.send(JSON.stringify({id:n,method:m,params:p}));});
 await send('Page.enable'); await send('Runtime.enable');
+await send('Page.addScriptToEvaluateOnNewDocument',{source:MUTE_TAP});
 await send('Page.navigate',{url:`http://localhost:${process.env.CRY_PORT || 5500}/cries.html`});
 await new Promise(r=>setTimeout(r,4000));
 const ev=async e=>{const r=await send('Runtime.evaluate',{expression:e,returnByValue:true,awaitPromise:true}); if(r.exceptionDetails) throw new Error((r.exceptionDetails.exception?.description||'').split('\n')[0]); return r.result.value;};
@@ -107,6 +111,18 @@ ok(drawn.ink > 500,
 
 await ev(`document.querySelector('[data-play="6"]').click()`);
 await new Promise(r=>setTimeout(r,900));
+
+/* The mute is a claim like any other, so it is asserted rather than assumed — the
+   failure mode of a mute that quietly stopped working is a cry at a fifth of full
+   scale and a green run, which is the worst pair available. Placed HERE, after a
+   play, because the AudioContext is built lazily and a probe before that would be
+   reading a tap that has not been asked to do anything yet. `gain` is read back off
+   the live AudioParam, so this asks whether the output is muted NOW rather than
+   whether the script once set a number. See scripts/lib/mute-tap.mjs. */
+const tap = await ev(TAP_PROBE);
+ok(tap.taps>0 && tap.gain===0,
+  `playback is muted at the destination, measured (${tap.taps} AudioContext(s), gain ${tap.gain}${tap.error?`, ${tap.error}`:''})`);
+
 const played = await ev(canvasInk);
 ok(played.ink > 500,
   `and survives playback (${played.ink} inked pixels after play)`);

@@ -17,6 +17,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const profile = mkdtempSync(join(tmpdir(), 'cdp-'));
@@ -26,10 +27,14 @@ const chrome = spawn(CHROME, [
   /* Silent at the BROWSER, not on the page. This checker presses play, and the
    * page's default is a fifth of full scale — comfortable at a desk, genuinely
    * startling in a room. Muted here rather than by setting the volume slider to
-   * zero, because a zeroed page would mean the playback test exercises silence,
+   * zero, because a zeroed slider would mean the playback test exercises silence,
    * and the claim being tested is that pressing play reaches the synthesiser and
    * moves a cursor. The AudioContext still runs; only the output is discarded, so
-   * nothing can hide behind it. */
+   * nothing can hide behind it.
+   *
+   * `--mute-audio` alone is the FIRST line rather than the guarantee, so the
+   * second is installed in the page: see scripts/lib/mute-tap.mjs for why a flag
+   * that nobody verifies is not one. */
   '--mute-audio',
   `--user-data-dir=${profile}`,
   'about:blank',
@@ -72,6 +77,10 @@ ws.addEventListener('message', (e) => {
   if (m.method === 'Runtime.exceptionThrown') logs.push('EXCEPTION ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text));
 });
 
+/* The mute, installed before any page script runs — so it cannot be raced by the
+ * page's own module scope, and so a page that constructs an AudioContext during
+ * boot is already covered. */
+await send('Page.addScriptToEvaluateOnNewDocument', { source: MUTE_TAP });
 await send('Page.navigate', { url: `http://localhost:${process.env.CRY_PORT || 5500}/cries-gen1.html` });
 await new Promise((r) => setTimeout(r, 3500));
 
@@ -178,6 +187,19 @@ ok(a !== 'translateX(0px)', 'and it leaves the origin immediately');
 
 const playing = await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`);
 ok(playing === 'true', 'play button reflects playing state');
+
+/* The mute is a claim like any other, so it is asserted rather than assumed — the
+ * failure mode of a mute that quietly stopped working is a cry at a fifth of full
+ * scale and a green run, which is the worst pair available. Placed HERE, after the
+ * first press, because the AudioContext is built lazily on play and a probe before
+ * that would be reading a tap that has not been asked to do anything yet.
+ *
+ * `gain` is read back off the live AudioParam, so this asks whether the output is
+ * muted NOW rather than whether the script once set a number. See
+ * scripts/lib/mute-tap.mjs. */
+const tap = await evalJs(TAP_PROBE);
+ok(tap.taps > 0 && tap.gain === 0,
+  `playback is muted at the destination, measured (${tap.taps} AudioContext(s), gain ${tap.gain}${tap.error ? `, ${tap.error}` : ''})`);
 
 // Selecting another species in the SAME group must not collapse that group.
 const sel = await evalJs(`(() => {
