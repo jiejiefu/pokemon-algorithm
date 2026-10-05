@@ -176,6 +176,37 @@ const CHECKERS = [
     inputs: ['assets/data/cry_features.json', 'assets/js/cry-index.js', 'scripts/analyze_cries.py'],
   },
 
+  {
+    script: 'scripts/check_spectrogram_port.mjs', group: 'cry-data',
+    note: 'differences cry-spectrogram.js against analyze_cries.py itself; needs the venv',
+    inputs: ['assets/js/cry-spectrogram.js', 'scripts/analyze_cries.py'],
+  },
+  {
+    script: 'scripts/test_check_spectrogram_port.mjs', checker: 'scripts/check_spectrogram_port.mjs', group: 'cry-data',
+    note: 'runs the above in child trees, beside a symlinked venv',
+    inputs: ['assets/js/cry-spectrogram.js', 'scripts/analyze_cries.py'],
+  },
+  {
+    script: 'scripts/check_spectrum_page.mjs', group: 'cry-page',
+    inputs: [
+      'spectrum.html', 'assets/css/spectrum.css', 'assets/js/cry-spectrogram.js',
+      'assets/js/cry-player.js', 'assets/js/cry-autoplay.js', 'assets/js/shared.js',
+      'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
+      'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
+    ],
+  },
+  {
+    script: 'scripts/test_check_spectrum_page.mjs', checker: 'scripts/check_spectrum_page.mjs', group: 'cry-page',
+    note: 'runs the above in child trees',
+    inputs: [
+      'spectrum.html', 'assets/css/spectrum.css', 'assets/js/cry-spectrogram.js',
+      'assets/js/cry-player.js', 'assets/js/cry-autoplay.js', 'assets/js/shared.js',
+      'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
+      /* Copied into the tree because the checker reads them there, not in the repo. */
+      'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
+    ],
+  },
+
   /* ---- outfit: the mmcq port, the sampling, and the page ---- */
   {
     script: 'scripts/check_outfit_page.mjs', group: 'color',
@@ -239,6 +270,18 @@ const CHECKERS = [
       'assets/data/gen1_cries.json',
       'assets/data/gen1_cry_sfx.json',
       'assets/images/sprite/*',
+    ],
+  },
+  {
+    script: 'scripts/check_spectrum_browser.mjs', group: 'cry-page',
+    needsServer: true, manual: true,
+    inputs: [
+      'spectrum.html', 'assets/css/spectrum.css', 'assets/css/shared.css',
+      'assets/js/cry-spectrogram.js', 'assets/js/cry-player.js',
+      'assets/js/cry-autoplay.js', 'assets/js/cry-index.js', 'assets/js/gb-apu.js',
+      'assets/js/shared.js', 'assets/data/cry_features.json',
+      'assets/data/gen1_cries.json', 'assets/data/gen1_cry_sfx.json',
+      'assets/data/pokemon_data.json', 'assets/images/sprite/*',
     ],
   },
   {
