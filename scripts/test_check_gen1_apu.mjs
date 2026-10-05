@@ -32,7 +32,6 @@ const SRC = [
   'assets/data/gen1_cries.json',
   'assets/data/gen1_cry_sfx.json',
   'assets/data/gen1_conformance.json',
-  'assets/data/gen1_charizard_ref.raw',
   'assets/js/gb-apu.js',
   'cries-gen1.html',
   'scripts/check_gen1_apu.mjs',
