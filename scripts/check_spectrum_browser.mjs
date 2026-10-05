@@ -296,6 +296,51 @@ try {
     'the live curve is painted while audio is running');
   await ev('document.getElementById("sp-play").click()');
 
+  /* THE ASSERTION THAT WAS MISSING, AND IT IS THE ONE THAT MATTERS.
+   *
+   * Everything above asks whether the live canvas has ink. It does — a gridline, a
+   * label and a static ribbon are all ink, and a curve that never moves produces the
+   * same set of pixels as one that does. So the whole panel could be frozen and
+   * every check above would pass, which is exactly what happened: the first version
+   * of this file reported the live curve as working while a reader saw a still
+   * image, because the axis was fitted to the data and had squashed a 36 dB decay
+   * into a couple of pixels (see check_spectrum_page.mjs).
+   *
+   * So this compares the canvas against ITSELF across frames, and the threshold is a
+   * count of changed pixels rather than a hash. 0.5% of the surface is 1,000 pixels
+   * on a 1,152x170 canvas: a moving filled curve moves far more than that, and a
+   * repaint that changes nothing moves exactly zero. Measured on `latest/25.ogg`
+   * with the axis fixed: 26,877 of 782,000 pixels, 3.4%.
+   */
+  const movement = await ev(`(async () => {
+    const c = document.getElementById('sp-live');
+    const g = c.getContext('2d');
+    const grab = () => g.getImageData(0, 0, c.width, c.height).data;
+    const btn = document.getElementById('sp-play');
+    btn.click();
+    await new Promise((r) => setTimeout(r, 150));
+    const a = grab();
+    await new Promise((r) => setTimeout(r, 130));
+    const b = grab();
+    const changed = (x, y) => {
+      let n = 0;
+      for (let i = 0; i < x.length; i += 4) {
+        if (Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]) > 12) n++;
+      }
+      return n;
+    };
+    const during = changed(a, b);
+    btn.click();
+    await new Promise((r) => setTimeout(r, 700));
+    return { during, total: a.length / 4, stopped: changed(b, grab()) };
+  })()`);
+  ok(movement.during / movement.total > 0.005,
+    `the live curve MOVES while audio plays (${movement.during} of ${movement.total} pixels changed`
+    + ` between two frames 130 ms apart, ${(100 * movement.during / movement.total).toFixed(1)}%)`);
+  ok(movement.stopped / movement.total < movement.during / movement.total / 2,
+    `and settles when playback stops (${movement.stopped} pixels change afterwards,`
+    + ` against ${movement.during} during) — so the movement is the audio and not a repaint`);
+
   // -----------------------------------------------------------------------
   // The third source: the synthesiser, which decodes nothing.
   // -----------------------------------------------------------------------

@@ -30,11 +30,8 @@
   <a href="#main" class="sr-only">跳到主要內容</a>
   <div id="announce" class="sr-only" role="status" aria-live="polite"></div>
 
-  <header class="header">
-    <button class="theme-toggle" type="button" aria-label="切換深色／淺色主題">
-      <svg class="theme-icon theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      <svg class="theme-icon theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-    </button>
+  <header class="header header-colors">
+<button class="theme-toggle" type="button" aria-label="切換深色／淺色主題"></button>
     <a class="header-brand" href="index.html">
       <img src="assets/images/logo.png" alt="" width="40" height="40">
       <span>寶可夢演算法</span>
@@ -235,8 +232,36 @@
       legacy: { label: '舊錄音', desc: '649 隻 · Gen 1–5', ids: [] },
       gen1: { label: '第一世代合成', desc: '151 隻 · 重新合成', ids: [] },
     };
-    const CHIPS = [1, 4, 7, 25, 59, 76, 94, 125, 143, 144, 149, 150,
-      196, 197, 245, 249, 384, 448, 479, 700, 702, 785, 800, 888];
+    /**
+     * The 24 cover Pokémon, and the reason for that particular 24.
+     *
+     * The names come from `colors.html`'s LEGENDS grid — the same list, because the
+     * two pages were asked for the same thing and one list of the cover roster is a
+     * better answer than two that can disagree. The edition label is kept and shown,
+     * since 383 and 382 are different species AND different games and a grid of 24
+     * identical-looking sprites with no edition would not say why those 24.
+     *
+     * IDS AND EDITIONS ONLY, never names. `pokemon_data.json` has the official zh
+     * name, and a second copy of one is a second thing to keep right — the same
+     * reasoning `colors.html` records for the same list.
+     *
+     * The source filter still applies, and it bites: on 最新錄音 all 24 are offered,
+     * on 舊錄音 (ids 1–649) thirteen survive, and on 第一世代合成 only 150 and 151 do.
+     * That is the same behaviour `colors.html` has when a species has no palette, and
+     * it is honest — a grid of two is a real answer for "what can I see here", not a
+     * layout failure.
+     */
+    const COVERS = [
+      [150, '關都 · 銀'], [151, '關都 · 金'],
+      [250, '城都 · 金'], [249, '城都 · 銀'],
+      [383, '豐緣 · 紅寶石'], [382, '豐緣 · 藍寶石'], [384, '豐緣 · 綠寶石'],
+      [483, '神奧 · 鑽石'], [484, '神奧 · 珍珠'], [487, '神奧 · 白金'],
+      [643, '合眾 · 黑'], [644, '合眾 · 白'], [646, '合眾 · 黑2／白2'],
+      [716, '卡洛斯 · X'], [717, '卡洛斯 · Y'], [718, '卡洛斯 · Z'],
+      [791, '阿羅拉 · 太陽'], [792, '阿羅拉 · 月亮'], [800, '阿羅拉 · 究極之日'],
+      [888, '伽勒爾 · 劍'], [889, '伽勒爾 · 盾'], [890, '伽勒爾 · 劍／盾'],
+      [1007, '帕底亞 · 朱'], [1008, '帕底亞 · 紫'],
+    ];
 
     // ---------------------------------------------------------------------
     // Colour ramp
@@ -485,21 +510,58 @@
      * true reading rather than a defect, and the caption says so.
      */
     function drawLive() {
-      const { ctx, w, h } = sizeCanvas(el('sp-live'), 130);
+      const { ctx, w, h } = sizeCanvas(el('sp-live'), 170);
       const cs = getComputedStyle(document.documentElement);
       const bg = cs.getPropertyValue('--sp-plot-bg').trim() || '#07050e';
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
-      ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
-      ctx.lineWidth = 1;
-      for (let i = 1; i < 4; i++) {
-        const y = Math.round((h * i) / 4) + 0.5;
+      /* THE AXIS IS THE ANALYSER'S OWN DECLARED RANGE, and it is fixed.
+       *
+       * The first version fitted the axis to the data — top at the current maximum,
+       * floor 70 dB below it — and the curve looked FROZEN. Measured on
+       * `latest/25.ogg` at the player's default 3/15 level: the 26 band maxima all
+       * landed between -47 and -62 dB, a 15 dB spread, inside a 23 dB axis. So the
+       * whole spectrum was a near-flat ribbon across the top third of the canvas and
+       * the frame-to-frame motion was a couple of pixels. The canvas was redrawing
+       * every frame and nothing was wrong with the audio; the axis had eaten it.
+       *
+       * `minDecibels` and `maxDecibels` are the node's own declared range, so this
+       * axis is stated rather than fitted, it is stable from frame to frame, and the
+       * levels are readable against a real scale. A cry decaying forty decibels
+       * visibly slides down the panel, which is the thing a reader is watching for.
+       *
+       * The alternative — auto-ranging, so the loudest band always touches the top —
+       * would make the curve move even when the spectrum is perfectly static, and
+       * motion that is not the audio is worse than no motion. So the axis is fixed
+       * and the reader can see the level fall.
+       */
+      const CEIL_DB = -10;
+      const FLOOR_DB = -100;
+      const PAD_T = 10;
+      const PAD_B = 22;
+      const plotH = h - PAD_T - PAD_B;
+      const dbToY = (db) => PAD_T + (1 - Math.max(0, Math.min(1, (db - FLOOR_DB) / (CEIL_DB - FLOOR_DB)))) * plotH;
+
+      /* Gridlines every 20 dB, each labelled, so the scale is readable rather than
+       * implied. `LEVEL_H` is the strip reserved for them and `PAD_B` the one for
+       * the mel-axis labels. */
+      const LEVEL_H = 16;
+      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      for (let db = 0; db >= -100; db -= 20) {
+        const y = Math.round(dbToY(db)) + 0.5;
+        if (y < PAD_T - 1 || y > h - PAD_B) continue;
+        ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(0, y);
+        ctx.moveTo(LEVEL_H, y);
         ctx.lineTo(w, y);
         ctx.stroke();
+        ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
+        ctx.fillText(`${db}`, 2, y);
       }
 
       const spec = cryPlayer.spectrum();
@@ -517,35 +579,22 @@
           const v = spec.values[k];
           if (Number.isFinite(v) && v > best) best = v;
         }
-        // An AnalyserNode with nothing connected reports minDecibels, and one that
-        // has never seen a signal can report -Infinity. Both become the floor, so
-        // the curve draws flat rather than off the top of the canvas.
-        levels[m] = Number.isFinite(best) ? best : -100;
+        /* An AnalyserNode with nothing connected reports `minDecibels`, and one that
+         * has never seen a signal can report -Infinity. Both become the floor, so the
+         * curve draws on the baseline rather than off the top of the canvas. */
+        levels[m] = Number.isFinite(best) ? Math.max(best, FLOOR_DB) : FLOOR_DB;
         if (levels[m] > hi) hi = levels[m];
       }
 
-      const FLOOR = -70;
-      const span = Math.max(Math.max(hi, FLOOR) - FLOOR, 1);
-      /* The plot area stops short of the bottom edge, so a FLAT curve is a visible
-       * line rather than a hairline on the border.
-       *
-       * That is not a cosmetic choice. An AnalyserNode with nothing connected reports
-       * the floor on every band, so before the first play the whole curve sits at the
-       * bottom — and at two pixels above it the canvas was an empty black box that
-       * read as a broken panel rather than as a live instrument waiting for a signal.
-       * `LABEL_H` reserves the strip the axis labels are drawn in. */
-      const LABEL_H = 16;
-      const yOf = (m) => {
-        const x = (m / (N_MEL - 1)) * (w - 2) + 1;
-        const t = (levels[m] - FLOOR) / span;
-        return [x, h - LABEL_H - Math.max(0, Math.min(1, t)) * (h - LABEL_H - 6)];
-      };
-      const flat = hi <= FLOOR;
+      const x0 = LEVEL_H + 1;
+      const plotW = w - x0 - 2;
+      const yOf = (m) => [x0 + (m / (N_MEL - 1)) * plotW, dbToY(levels[m])];
+      const flat = hi <= FLOOR_DB + 0.5;
 
       ctx.beginPath();
-      ctx.moveTo(1, h);
+      ctx.moveTo(x0, h - PAD_B);
       for (let m = 0; m < N_MEL; m++) ctx.lineTo(...yOf(m));
-      ctx.lineTo(w - 1, h);
+      ctx.lineTo(x0 + plotW, h - PAD_B);
       ctx.closePath();
       ctx.globalAlpha = 0.3;
       ctx.fillStyle = topInk();
@@ -568,17 +617,22 @@
         ctx.textBaseline = 'middle';
         ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
         ctx.fillText(state.playing ? '靜音中 · 取樣點在音量節點之後' : '按下播放，這裡會即時顯示能量落在哪裡',
-          w / 2, (h - LABEL_H) / 2);
+          x0 + plotW / 2, PAD_T + plotH / 2);
         ctx.textAlign = 'left';
       }
 
-      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      /* The peak, as a number. Without it the reader has to judge a level off a
+       * gridline, and the gridline nearest a peak is up to 10 dB away. */
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
       ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
+      if (Number.isFinite(hi) && !flat) ctx.fillText(`最高 ${Math.round(hi)} dB`, w - 3, 1);
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
       for (const hz of [100, 1000, 4000, 8000]) {
         const band = nearestBand(hz);
         if (band < 0) continue;
-        const x = (band / (N_MEL - 1)) * (w - 2) + 1;
+        const x = x0 + (band / (N_MEL - 1)) * plotW;
         ctx.textAlign = x > w - 46 ? 'right' : 'left';
         ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, x, h - 3);
       }
@@ -857,16 +911,22 @@
       const host = el('sp-chips');
       host.innerHTML = '';
       const ids = ROSTERS[state.source].ids;
-      for (const id of CHIPS.filter((c) => ids.includes(c))) {
+      for (const [id, edition] of COVERS.filter(([c]) => ids.includes(c))) {
         const meta = state.meta.get(id);
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'sp-chip';
         b.dataset.id = String(id);
         b.setAttribute('aria-pressed', String(state.id === id));
+        /* The name comes from the data and the edition from COVERS, so the button
+         * has an accessible name that is the species rather than the game — a screen
+         * reader announcing 「豐緣 · 紅寶石」 twenty-four times would say nothing about
+         * which Pokémon they are. */
+        b.setAttribute('aria-label', `${meta?.names?.zh ?? id}，${edition}`);
         b.innerHTML =
-          `<img src="${spriteUrl(meta, id)}" alt="" loading="lazy" decoding="async" width="26" height="26">`
-          + `<span>${escapeHtml(meta?.names?.zh ?? id)}</span>`;
+          `<img src="${spriteUrl(meta, id)}" alt="" loading="lazy" decoding="async" width="28" height="28">`
+          + `<span>${escapeHtml(meta?.names?.zh ?? id)}`
+          + `<em>${escapeHtml(edition)}</em></span>`;
         b.addEventListener('click', () => select(id, { play: true }));
         host.append(b);
       }

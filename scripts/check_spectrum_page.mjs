@@ -330,6 +330,66 @@ ok(/cryPlayer\.playSamples\(/.test(page),
 ok(!/new AudioContext\(/.test(page) && !/createBufferSource\(/.test(page),
   'and never builds an audio graph of its own — one AudioContext, one clock, one gain');
 
+/* THE LIVE CURVE'S AXIS IS FIXED, and this is the assertion that says so.
+ *
+ * The first version fitted the axis to the data — ceiling at the current maximum,
+ * floor 70 dB under it — and the curve looked frozen. Measured on `latest/25.ogg`
+ * at the player's default 3/15 level: the 26 band maxima all landed between -47 and
+ * -62 dB, a 15 dB spread, inside a 23 dB axis. The whole spectrum was a near-flat
+ * ribbon across the top third of the canvas and the frame-to-frame motion was a
+ * couple of pixels. Nothing was wrong with the audio and nothing was wrong with the
+ * RAF loop; the axis had eaten the movement, and no ink-based check can see that,
+ * because a static ribbon and a moving one are the same set of pixels to any
+ * "is anything drawn" test.
+ *
+ * So the axis is the analyser's OWN declared range, read as constants rather than
+ * measured, and it is drawn with labelled gridlines. The alternative — auto-ranging
+ * so the loudest band always touches the top — would make the curve move even when
+ * the spectrum is perfectly static, and motion that is not the audio is worse than
+ * no motion. `check_spectrum_browser.mjs` covers the other half: that the canvas
+ * actually changes while audio plays.
+ */
+ok(/const CEIL_DB = -10;/.test(page) && /const FLOOR_DB = -100;/.test(page),
+  "the live curve's dB axis is a FIXED -100..-10 range, the analyser's own declared bounds");
+
+/* Scoped to `drawLive`, and the scoping is the point. `drawPlot` computes a `span`
+ * from the data and MUST: the spectrogram's floor is deliberately per-cry relative
+ * ("0 dB is this cry's own loudest mel band") and the page says so next to the
+ * legend. A whole-page search for a fitted span would flag the one place a fitted
+ * span is correct, which is the same mistake as searching for `const scale` when
+ * only one of the two implementations is allowed to have it.
+ *
+ * Sliced to the NEXT function, not to `drawPlot` — `drawPlot` is declared first in
+ * the file, so slicing "from drawLive to drawPlot" is a negative range and quietly
+ * yields an empty string, against which every assertion below passes. */
+const liveStart = page.indexOf('function drawLive()');
+const liveEnd = page.indexOf('\n    function ', liveStart + 1);
+const drawLive = page.slice(liveStart, liveEnd === -1 ? page.length : liveEnd);
+ok(drawLive.length > 1000 && /for \(let db = 0/.test(drawLive),
+  `the live-curve slice is drawLive's own body, not an empty string (${drawLive.length} chars)`);
+
+ok(!/const span =/.test(drawLive) && !/Math\.max\(hi,\s*FLOOR\)\s*-\s*FLOOR/.test(drawLive),
+  'and drawLive never rescales the axis to the data — an auto-ranging axis would move when the audio is static');
+
+ok(/for \(let db = 0; db >= -100; db -= 20\)/.test(drawLive) && /fillText\(`\$\{db\}`/.test(drawLive),
+  'and it is drawn with a labelled gridline every 20 dB, so the level is read rather than guessed');
+
+ok(/最高 \$\{Math\.round\(hi\)\} dB/.test(drawLive),
+  'and the peak is printed as a number, because the nearest gridline can be 10 dB away');
+
+/* The 24 chips are the COVER roster, and the edition label is part of the answer. */
+const coverPairs = (page.match(/\[\d+, '[^']+'\]/g) || []);
+ok(coverPairs.length === 24,
+  `the quick-pick grid is 24 [id, edition] pairs — ids and editions, never names (${coverPairs.length})`);
+
+for (const [id, edition] of [[150, '關都 · 銀'], [384, '豐緣 · 綠寶石'], [890, '伽勒爾 · 劍／盾']]) {
+  ok(coverPairs.includes(`[${id}, '${edition}']`),
+    `and ${id} carries its edition 「${edition}」 — 383/382 and 888/889/890 are different species AND different games`);
+}
+
+ok(/setAttribute\('aria-label', `\$\{meta\?\.names\?\.zh \?\? id\}，\$\{edition\}`\)/.test(page),
+  'and each chip names the SPECIES for a screen reader, not the game twenty-four times over');
+
 ok(/decoded\(/.test(page),
   'while the recorded path shares the player\'s decode cache instead of fetching the file a second time');
 
