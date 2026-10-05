@@ -94,6 +94,8 @@ pokemon-algorithm/
 │       ├── apple-touch-icon.png   # Pokéball icon (180×180) — the file logo.png was copied from
 │       └── favicon-32.png         # Pokéball icon (used strictly as tab favicon)
 ├── scripts/                       # Python & Node.js build, scrape, and test utilities
+│   │   ├── check_all.mjs          # One entry point for the whole §4 suite, with a content-keyed skip cache (see §4)
+│   │   └── lib/                   # negative.mjs — what "caught by" means; record-inputs.cjs; mute-tap.mjs
 └── data-sources/                  # Raw CSV/XLSX data sources + per-id provenance (never fetched at runtime)
     └── sv-sources.json            # Records which host each scarlet-violet/*.png actually came from
 ```
@@ -290,6 +292,29 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic:
+
+**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 33 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 6.0 s of which 5.0 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples), and `test_check_gen1_apu.mjs` is 37 s because sixteen of its thirty-four cases need that same pass. So forty seconds of every run was re-deriving a fact about `gb-apu.js`, which a colour edit cannot change. Measured on this machine: **2m10s cold, 0.0s when nothing relevant moved**, 99 s when `gb-apu.js` alone is touched.
+
+- **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
+- **The input lists are PROVEN, not reviewed.** `--prove-inputs` runs each checker under `scripts/lib/record-inputs.cjs`, a CommonJS preload that records every repo file it opens, and fails if the recording disagrees with the manifest. Miss one file and the checker is skipped after that file changed, so the run is green having verified nothing — strictly worse than no cache, because it looks like coverage. A grep cannot answer it, for the reason `check_nav_pages.mjs` documents about `rg -l initHeaderNav *.html`. Two directions are both required: **read but not declared** (the dangerous one) and **declared but not read** (a typo or a checker that stopped reading something). Proven by breaking the manifest in a scratch copy — both fire.
+- **It is a `-r` preload and not `--import`, and the difference is silent.** Node snapshots a builtin's ESM named exports when the module is first linked, so `import { readFileSync } from 'node:fs'` binds the ORIGINAL function and a patch applied by an `--import` module afterwards is never seen. Measured: with `--import`, `check_color_palettes.mjs` recorded five files and missed both JSON tables it plainly reads. A CJS preload runs before the main module is linked, so the same patch is picked up by every named import.
+- **What is always in the key, whatever a checker declares:** the checker itself, the checker a negative harness exists to attack, every file in `scripts/lib/`, and `check_all.mjs` itself. Editing a checker therefore invalidates its own entry with nothing extra for a maintainer to remember, and changing the cache's own rules cannot reuse entries the old rules produced.
+- **Two checkers are honestly unverifiable and say so on every run.** `check_gen1_page.mjs` and `check_cries_browser.mjs` open NO repo file — their pages arrive over HTTP from Live Server — so their input lists are read off the HTML by hand. That is the weakest claim in the manifest and it is printed as such rather than hidden behind a green tick. The recording is what *establishes* that they touch nothing, rather than a comment claiming it.
+- **Also named, because each is a way this can be green and wrong:** a file read only on a branch NOT taken during the recording is not seen (mitigated by the checker's own hash being in the key); existence probes are keyed on `path:size`, not content; files over 256 KB — the cry corpus, the GLBs — are keyed on `path:size:mtime` rather than content; and the cache trusts the last green result on this machine, so `--force` exists for a checker that passed for a reason other than its inputs.
+- Groups are `cry-apu`, `cry-data`, `cry-page`, `color`, `nav`, `data`, `type`, `model`. `--skip=cry` covers the first three without naming them; `--only=`, `--force` and `--no-cache` also work.
+
+```bash
+# Everything, with the content-keyed skip cache
+node scripts/check_all.mjs
+
+# Prove every declared input list against what the checker actually reads.
+# Run this after editing a checker, adding one, or renaming an input file.
+node scripts/check_all.mjs --prove-inputs
+
+# One group, or everything but one
+node scripts/check_all.mjs --only=cry-apu
+node scripts/check_all.mjs --skip=cry
+```
 
 **A negative test must name the assertion that actually catches its mutation, and `scripts/lib/negative.mjs` is the only thing that decides it.** Every `test_check_*.mjs` answers the same question — did this deliberate defect make the checker report the failure it was supposed to report? — and the obvious way to ask is `output.includes(expect)`. That is wrong, because a checker prints an assertion's description whether it PASSES or FAILS, so matching anywhere only asks "is this text present", which a case whose `expect` names a *different* assertion satisfies for free.
 
