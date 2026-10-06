@@ -1,0 +1,382 @@
+/**
+ * Negative tests for check_sorting_page.mjs — the checker must FAIL, and name the
+ * right reason, for every invariant it claims to police.
+ *
+ *   node scripts/test_check_sorting_page.mjs
+ *
+ * WHY THIS FILE EXISTS. check_sorting_page.mjs has a static half that is a source
+ * shape check, and §4 of AGENTS.md is explicit that this is the weak kind: "A
+ * source-shape regex over the same lines passes for any mutation that leaves the
+ * substrings in place, which is how the first version of the pin guard was blind."
+ * The rendered half is the strong half — it counts ink by alpha and would have caught
+ * the blank-canvas defect outright — but it cannot be attacked from a scratch tree,
+ * because the page arrives over HTTP from the live repo.
+ *
+ * So the split is inverted here. The static half is made attackable from a scratch
+ * tree by mutating the LINE THE DEFECT IS IN, and every case names the assertion that
+ * detects it. `caughtBy` from scripts/lib/negative.mjs decides, not `includes`: a
+ * checker prints an assertion's description whether it passes or fails, so a case
+ * whose `expect` names a different assertion is satisfied for free — which is how
+ * four APU cases and seven color_match cases came to be passing for the wrong reason.
+ *
+ * COST. The rendered half is stripped from a COPY for these cases, because eighteen
+ * full runs at 93s each is half an hour to re-verify regular expressions. Two
+ * guards keep that safe:
+ *
+ *   - The baseline runs the FULL checker, so the fast path is never the only path.
+ *   - The baseline ALSO runs the stripped copy and requires it to pass having dropped
+ *     EXACTLY the rendered half's check count. A strip one check too wide would leave
+ *     every cheap case asserting against a silently narrower checker, and they would
+ *     all still pass — they only require their own detector, which a narrower checker
+ *     satisfies more easily, not less. This is the same guard §3.F of AGENTS.md
+ *     describes for the APU harness, and it exists for the same reason.
+ *
+ * There is no flag on the checker for this, deliberately: §4 rules out a supported
+ * way to skip a check, because that is how the check stops happening. The strip is in
+ * the harness, the baseline is whole, and eligibility is decided by `expect` alone so
+ * there is no per-case flag to forget.
+ */
+
+import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { caughtBy } from './lib/negative.mjs';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const CHECKER = 'scripts/check_sorting_page.mjs';
+
+/* The checker reads three text files off disk and imports a fourth, so all four are
+ * in the tree. assets/js is copied WHOLE rather than file-by-file because
+ * sorting-algorithms.js is imported by the checker itself and a case that dies with
+ * ERR_MODULE_NOT_FOUND passes for the wrong reason — the §4 shape this suite exists
+ * to catch. It is ~40 KB, so the whole directory is cheaper than reasoning about the
+ * import graph. */
+const FILES = [
+  CHECKER,
+  'sorting.html',
+  'assets/css/algo.css',
+  'assets/js/sort-run.js',
+  'assets/js/sorting-algorithms.js',
+];
+
+let failures = 0;
+const pass = (m) => console.log(`  ok   ${m}`);
+const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
+
+/** Strip the sentinelled rendered half, so a case can run in ~0.2s instead of 93s. */
+function stripRendered(src) {
+  const OPEN = '// >>> RENDERED HALF';
+  const CLOSE = '// <<< RENDERED HALF';
+  const a = src.indexOf(OPEN);
+  const b = src.indexOf(CLOSE);
+  if (a < 0 || b < 0 || b < a) throw new Error('the checker lost its RENDERED HALF sentinels — every case below would run the full 93s checker');
+  return src.slice(0, a) + src.slice(b + CLOSE.length);
+}
+
+function countChecks(out) {
+  const m = out.match(/^PASS {2}all (\d+) checks/m);
+  return m ? Number(m[1]) : null;
+}
+
+function makeTree(mutate, { strip = false } = {}) {
+  const dir = join(tmpdir(), `spp-neg-${Math.random().toString(36).slice(2)}`);
+  mkdirSync(join(dir, 'assets/js'), { recursive: true });
+  mkdirSync(join(dir, 'assets/css'), { recursive: true });
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  cpSync(join(ROOT, 'assets/js'), join(dir, 'assets/js'), { recursive: true });
+  for (const f of FILES) {
+    if (!f.startsWith('assets/js/')) cpSync(join(ROOT, f), join(dir, f));
+  }
+  if (strip) writeFileSync(join(dir, CHECKER), stripRendered(readFileSync(join(dir, CHECKER), 'utf8')));
+
+  if (mutate) {
+    for (const f of FILES) {
+      const p = join(dir, f);
+      const before = readFileSync(p, 'utf8');
+      const after = mutate(f, before);
+      if (after === undefined) continue;
+      if (after === before) {
+        throw new Error(`mutation for ${f} did not change the file — the anchor string is stale, so this case would pass for the wrong reason`);
+      }
+      writeFileSync(p, after);
+    }
+  }
+  return dir;
+}
+
+function run(dir) {
+  try {
+    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { code: 0, out };
+  } catch (e) {
+    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
+  }
+}
+
+/* ------------------------------------------------------------ STATIC-ONLY
+ * The everyday loop, and it exists because of how this file was written. The first
+ * pass at check_sorting_page.mjs debugged a STATIC assertion by running the full
+ * 93s browser checker, several times, for a regex. The static half is 30 checks and
+ * about 0.2s; only the browser is slow, and only because the page fetches 1,025
+ * sprites on boot.
+ *
+ *     node scripts/test_check_sorting_page.mjs --static
+ *
+ * runs the stripped copy against the real working tree and prints it. That is the loop
+ * to use while editing anything the static half guards.
+ *
+ * It is NOT a flag on the checker, and that placement is the point rather than a
+ * detail. §4 rules out a supported way to skip a check — "a supported way to skip the
+ * conformance comparison is exactly how it would stop happening" — because a cheap path
+ * becomes the path a reader reaches for by default. This one is also placed ABOVE the
+ * two baselines, and it was originally below them: which meant pressing it still ran
+ * the 93s browser baseline and all 24 cases first, so the "fast loop" took longer
+ * than the thing it was a shortcut for. A slow escape hatch is not an escape hatch.
+ * The full checker has no such flag and never will. */
+if (process.argv.includes('--static')) {
+  const dir = makeTree(null, { strip: true });
+  const { code, out } = run(dir);
+  rmSync(dir, { recursive: true, force: true });
+  console.log(out.trimEnd());
+  console.log('\n(static half only — the browser half is NOT run. For that: node scripts/check_sorting_page.mjs)');
+  process.exit(code);
+}
+
+/* Two baselines, and the second is the one that matters.
+ *
+ * The FIRST runs the whole checker, so the fast path is never the only path: if the
+ * stripped copy is sound but the real one is not, this fails.
+ *
+ * The SECOND requires the stripped copy to pass having dropped EXACTLY the rendered
+ * half's checks. It is the guard on the harness rather than on the checker, and it
+ * is the reason eighteen cheap cases are trustworthy. */
+let fullTotal = null;
+{
+  const dir = makeTree(null);
+  const { code, out } = run(dir);
+  if (code === 0) { pass('baseline: the full checker passes on an unmutated copy of the tree'); fullTotal = countChecks(out); }
+  else fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
+  rmSync(dir, { recursive: true, force: true });
+}
+{
+  const dir = makeTree(null, { strip: true });
+  const { code, out } = run(dir);
+  const strippedTotal = countChecks(out);
+  if (code !== 0) fail(`the STRIPPED copy does not pass, so every fast case below is measuring a broken checker:\n${out}`);
+  else if (fullTotal === null) fail('cannot compare strip sizes: the full baseline did not report a check count');
+  else if (strippedTotal === null) fail('the stripped copy did not print "PASS  all N checks", so its check count is unknown');
+  else pass(`the stripped copy passes and drops exactly ${fullTotal - strippedTotal} checks (${fullTotal} → ${strippedTotal})`);
+  rmSync(dir, { recursive: true, force: true });
+}
+
+const cases = [
+  /* ---- the shipped defect, attacked at its own line ---- */
+  {
+    /* This is the whole reason the file exists. paint() closing over the module ctx
+     * drew every race lane into the hidden single-mode canvas. */
+    name: 'the race call to paint() drops its context',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('paint(lane.ctx, lane.nodes, events, race.playing)', 'paint(lane.nodes, events, race.playing)') : undefined,
+    expect: 'every paint() call site passes its context explicitly',
+  },
+  {
+    name: 'the single-mode call to paint() drops its context too',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('paint(ctx, single.nodes, events, single.playing)', 'paint(single.nodes, events, single.playing)') : undefined,
+    expect: 'every paint() call site passes its context explicitly',
+  },
+  {
+    name: 'ring() loses its context argument at a call site',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('ring(g, nodes[compare.i], TOKENS.compare)', 'ring(nodes[compare.i], TOKENS.compare)') : undefined,
+    expect: 'every ring() call site passes its context explicitly',
+  },
+  {
+    /* The second half of the same bug: sweep() took a parameter and read the
+     * MODULE-level sweepAt, so lane.sweepAt was dead code and a lane's finish wipe
+     * could only ever paint on the single-mode canvas. */
+    name: 'sweep() goes back to testing a module-level sweepAt',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('function sweep(g, cfg, startedAt) {\n      if (!startedAt) return false;', 'function sweep(g, cfg, progress) {\n      if (!sweepAt) return false;')
+      : undefined,
+    expect: 'sweep() reads the timestamp it was passed, not a module-level sweepAt',
+  },
+  {
+    name: 'a sweep() caller stops clearing its own timestamp',
+    /* The mutation keeps `lane.ctx` as the first argument, so "every call site passes
+     * its context" is satisfied and this case passed for a reason unrelated to what it
+     * claims — the exact blind case §4's table is a catalogue of. It needed a NEW
+     * assertion rather than a re-pointed `expect`, because clearing the timestamp was
+     * never guarded at all. */
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('if (!sweep(lane.ctx, lane.cfg, lane.sweepAt)) lane.sweepAt = 0;', 'sweep(lane.ctx, lane.cfg, lane.sweepAt);') : undefined,
+    expect: 'both sweep() callers clear their own timestamp when it finishes',
+  },
+
+  /* ---- the layout contract ---- */
+  {
+    /* Prepending shifts every :nth-child by one, so the five-lane shape would give
+     * the wrong two lanes half a row. This is asserted against buildRace() rather
+     * than left to the rendered half, because a stylesheet check cannot see order. */
+    name: '.al-result is prepended again, shifting the five-lane :nth-child selectors',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('raceGrid.appendChild(raceResult);', 'raceGrid.prepend(raceResult);') : undefined,
+    expect: '.al-result is appended to the lane grid, so :nth-child(4)/(5) are the bottom two lanes',
+  },
+  {
+    /* The three declarations that make the lane canvas grow. Removing any one turns
+     * `flex: 1 1 auto` into a silent no-op, which is the state this shipped in for
+     * months. */
+    name: 'align-content goes back to center, making the canvas grow a no-op',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('align-content: stretch;', 'align-content: center;') : undefined,
+    expect: 'the lane canvas actually grows: align-content stretch + grid-auto-rows + flex 1 1 auto',
+  },
+  {
+    name: 'grid-auto-rows is dropped, so the rows stop splitting the stage height',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('grid-auto-rows: minmax(0, 1fr);', '') : undefined,
+    expect: 'the lane canvas actually grows: align-content stretch + grid-auto-rows + flex 1 1 auto',
+  },
+  {
+    name: 'the lane canvas loses flex: 1 1 auto and stops filling its row',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('  flex: 1 1 auto;\n', '') : undefined,
+    expect: 'the lane canvas actually grows: align-content stretch + grid-auto-rows + flex 1 1 auto',
+  },
+  {
+    /* `cols = count <= 3 ? count : 3` is the formula that looks right and gives four
+     * lanes a 3+1 row with one empty cell. Here the five-lane six-column form is
+     * replaced with the default three, which is that same mistake by hand. */
+    name: 'the five-lane shape falls back to three columns and leaves an empty cell',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('.al-lanes[data-lanes="5"] { grid-template-columns: repeat(6, 1fr); }', '') : undefined,
+    expect: 'data-lanes="5" gets repeat(6, 1fr)',
+  },
+  {
+    name: 'the bottom two lanes of a five lose their span 3 and do not take half a row',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('.al-lanes[data-lanes="5"] .al-lane:nth-child(4),\n.al-lanes[data-lanes="5"] .al-lane:nth-child(5) { grid-column: span 3; }', '')
+      : undefined,
+    expect: 'the five-lane shape gives three lanes span 2 and the bottom two span 3',
+  },
+  {
+    /* Specificity, not source order: `[data-lanes] .al-lane` is (0,2,0) and beats the
+     * media query's own `[data-lanes]` (0,1,0), so a phone grid would keep two-column
+     * spans. A reader on a phone is the case this protects. */
+    name: 'the narrow-screen block stops resetting the five-lane span',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('.al-lanes[data-lanes] .al-lane { grid-column: auto; }', '') : undefined,
+    expect: 'the narrow-screen rules restore reflow AND reset the five-lane span',
+  },
+  {
+    name: 'the four-lane shape goes back to three columns, giving a 3+1 row',
+    mutate: (f, s) => f === 'assets/css/algo.css' ? s.replace('.al-lanes[data-lanes="4"] { grid-template-columns: repeat(2, 1fr); }', '') : undefined,
+    expect: 'data-lanes="4" gets repeat(2, 1fr)',
+  },
+
+  /* ---- the four places one ceiling is written ---- */
+  {
+    name: 'the lane ceiling is silently lowered to four',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('const RACE_N_MAX = 6;', 'const RACE_N_MAX = 4;') : undefined,
+    expect: 'the lane ceiling is RACE_N_MAX = 6',
+  },
+  {
+    /* A share link asking for six lanes while the picker refuses a fifth is exactly
+     * the drift the constant exists to prevent. */
+    name: 'the ?algos= parameter is capped by a literal instead of the constant',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('.slice(0, RACE_N_MAX)', '.slice(0, 4)') : undefined,
+    expect: 'the ?algos= parameter is capped by RACE_N_MAX, not by a literal',
+  },
+  {
+    name: 'the picker refuses a seventh lane through a literal instead of the constant',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('checked.length > RACE_N_MAX', 'checked.length > 4') : undefined,
+    expect: 'the chip picker refuses a seventh lane through RACE_N_MAX',
+  },
+  {
+    name: 'the picker aria-label is left claiming the old 2 至 4 個 range',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('aria-label="參賽演算法（2 至 6 個）"', 'aria-label="參賽演算法（2 至 4 個）"') : undefined,
+    expect: 'the picker’s aria-label says the real range (2 至 6 個)',
+  },
+  {
+    name: 'the meta description still claims the old lane range',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('2–6 條競速賽道', '2–4 條競速賽道') : undefined,
+    expect: 'the meta description says 2–6 lanes',
+  },
+
+  /* ---- sample sizes ---- */
+  {
+    /* state.n is validated against RACE_SIZES on load, so an option outside the
+     * array is an option that silently falls back — a select that renders and does
+     * nothing, which no URL-driven check would see. */
+    name: 'the 1,025 option is removed from the select but kept in RACE_SIZES',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('        <option value="1025">1,025 隻</option>\n', '') : undefined,
+    expect: 'the sample-size <select> offers exactly the sizes RACE_SIZES accepts',
+  },
+  {
+    name: 'the sample sizes themselves change',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace("const RACE_SIZES = ['100', '250', '500', '1025'];", "const RACE_SIZES = ['100', '250', '500'];") : undefined,
+    expect: 'RACE_SIZES is 100 / 250 / 500 / 1025',
+  },
+
+  /* ---- the memory claim ---- */
+  {
+    /* ~33 MB per lane at n=1,025, ~200 MB across six, all of it unread. This is a
+     * measurable cost, not a style rule, which is why it has its own assertion. */
+    name: 'a race lane goes back to logging its whole history',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace("                               { maxLoggedEvents: 0 });", ');') : undefined,
+    expect: 'race lanes build their SortRun with maxLoggedEvents: 0',
+  },
+
+  /* ---- sort-run.js's own claims ---- */
+  {
+    /* The number the checker re-derives. It was attributed to the wrong algorithms
+     * on the wrong input and sat there reading as verified. */
+    name: 'a quoted step count is edited into something the generators do not produce',
+    mutate: (f, s) => f === 'assets/js/sort-run.js' ? s.replace('524,800   選擇排序', '480,000   選擇排序') : undefined,
+    expect: 'sort-run.js quotes 選擇排序 on already-sorted input as 524,800, and attaches it to that row',
+  },
+  {
+    /* The defect this suite's own first version had: the check was "the string never
+     * appears", which fires on the docblock EXPLAINING the removed citation. It is
+     * now "every scripts/*.mjs path named resolves", which is immune to phrasing. */
+    name: 'sort-run.js cites a checker that does not exist',
+    mutate: (f, s) => f === 'assets/js/sort-run.js' ? s.replace('`scripts/check_sorting_page.mjs`,', '`scripts/check_algo_modules.mjs`,') : undefined,
+    expect: 'every checker sort-run.js names exists',
+  },
+  {
+    name: 'sort-run.js names no checker at all, so its numbers are claims again',
+    mutate: (f, s) => f === 'assets/js/sort-run.js' ? s.replace('`scripts/check_sorting_page.mjs`, which drives these generators', 'A generator loop, which drives them') : undefined,
+    expect: 'sort-run.js names the checker that actually measures its numbers',
+  },
+];
+
+const t0 = Date.now();
+for (const c of cases) {
+  let dir;
+  try {
+    dir = makeTree(c.mutate, { strip: true });
+    const { code, out } = run(dir);
+    /* A checker that reports NO assertion at all is not "failed for the wrong
+     * reason" — it did not run. §4 calls this out for the loader-error case, and this
+     * harness hit it for real while being written: a syntax error in the checker
+     * (nested backticks inside a template literal in a detail message) made all 26
+     * cases report "failed, but not on the assertion it claims" with empty output,
+     * which reads as 26 mislabelled detectors rather than one broken file. Distinguishing
+     * the two is mechanical: a real mislabel prints the checker's own FAIL line. */
+    if (code !== 0 && !/\bFAIL\b/.test(out)) {
+      const first = out.split('\n').filter(Boolean).slice(0, 3).join(' | ');
+      fail(`${c.name} — the checker produced NO assertion (exit ${code}), so this case measured nothing. First output: ${first}`);
+    } else if (code === 0) {
+      fail(`${c.name} — the checker PASSED, so the guard does not exist`);
+    } else if (caughtBy(out, c.expect)) {
+      pass(c.name);
+    } else {
+      fail(`${c.name} — failed, but not on the assertion it claims.\n    expect: ${c.expect}\n    output:\n${out.split('\n').filter(l => /FAIL|PASS|checks/.test(l)).map(l => '      ' + l).join('\n')}`);
+    }
+  } catch (e) {
+    fail(`${c.name} — harness error: ${e.message}`);
+  } finally {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+console.log(`\n  ${cases.length} cases, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+if (failures) {
+  console.log(`\nFAIL  ${failures} check(s) failed\n`);
+  process.exit(1);
+}
+console.log('\nPASS  every negative case failed for its own reason');

@@ -8,9 +8,11 @@
 // into `events` or `checkpoints` itself.
 //
 // THE THREE NUMBERS THAT DECIDE WHAT THE UI MAY OFFER, at n=1,025, measured by
-// driving the generators in this repo's own modules — NOT by a checker. An earlier
-// version of this comment cited `scripts/check_algo_modules.mjs` and carried two
-// numbers that script never existed to confirm:
+// `scripts/check_sorting_page.mjs`, which drives these generators and diffs the
+// numbers against the ones quoted below. An earlier version of this comment cited
+// a checker that never existed — check_algo_modules.mjs, with no path, because a
+// path here IS a citation and one that no longer resolves — and carried a number it
+// therefore could not have confirmed:
 //
 //   524,800   選擇排序 on ALREADY-SORTED input. The old text attributed it to
 //             氣泡／選擇／插入 on REVERSE-SORTED input; measured, reverse-sorted

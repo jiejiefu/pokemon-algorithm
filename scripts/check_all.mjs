@@ -482,6 +482,59 @@ const CHECKERS = [
     ],
   },
 
+  /* ---- sorting ----
+     * Its own group for one reason: this is the only group whose cost is dominated by
+     * a browser booting a page that fetches 1,025 sprites, so `--skip=sort` is the one
+     * filter a reader will actually want while working on something else. Measured
+     * 93s for the checker and ~97s for the suite, against 0.5s for the static
+     * half — so the honest advice is not "skip the group" but "run
+     * `test_check_sorting_page.mjs --static`" while editing, and the group filter for
+     * when the browser half is simply not the question. */
+  {
+    script: 'scripts/check_sorting_page.mjs', group: 'sort', needsServer: true, manual: true,
+    note: 'static half reads the files below; the browser half reads its inputs off the HTML by hand',
+    inputs: [
+      'sorting.html',
+      'assets/css/algo.css',
+      'assets/js/sort-run.js',
+      'assets/js/sorting-algorithms.js',
+      /* fetched by the page, not by the checker — same caveat as
+       * check_spectrum_browser.mjs, and the reason `manual` is set */
+      'assets/css/shared.css',
+      'assets/js/shared.js',
+      'assets/js/sort-keys.js',
+      'assets/js/cry-player.js',
+      'assets/data/pokemon_data.json',
+      'assets/images/pokemon/*',
+    ],
+  },
+  {
+    script: 'scripts/test_check_sorting_page.mjs', checker: 'scripts/check_sorting_page.mjs', group: 'sort',
+    /* `manual: true` for a reason that is NOT the usual one. check_gen1_page.mjs and
+     * check_cries_browser.mjs are manual because they open no repo file at all. This
+     * one opens plenty — it copies sorting.html, algo.css, sort-run.js and the sorting
+     * modules into a temp tree — but every one of those reads happens in a CHILD
+     * process over a tree OUTSIDE ROOT, and record-inputs.cjs ignores anything outside
+     * ROOT (see its own docstring, and §3.G1's parallel case where the subprocess
+     * could not resolve `../.venv`). Inheriting the preload would not help: the paths
+     * being opened are the temp copies, so they are out of scope by design.
+     *
+     * The list is therefore hand-maintained and it is still the right list — these are
+     * exactly the files whose content must invalidate the skip cache, since a change to
+     * any of them can change what this suite reports. The unverifiable part is stated
+     * rather than hidden, which is the whole point of the flag. */
+    manual: true,
+    note: 'reads happen in child processes over a temp tree outside ROOT, so the recorder cannot see them',
+    inputs: [
+      'scripts/check_sorting_page.mjs',
+      'sorting.html',
+      'assets/css/algo.css',
+      'assets/js/sort-run.js',
+      'assets/js/sorting-algorithms.js',
+      'assets/js/*',
+    ],
+  },
+
   /* ---- models ---- */
   {
     script: 'scripts/check_glb.mjs', group: 'model',

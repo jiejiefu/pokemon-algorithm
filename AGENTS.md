@@ -385,6 +385,52 @@ Two defects in `spectrum.html`'s header produced a **visibly broken page with no
 - **`maxLoggedEvents: 0` on every lane, because a race lane is the only `SortRun` on this site that never rewinds.** The log plus its every-300-events `arr.slice()` costs **~33 MB per lane at n=1,025** — six of which is **~200 MB that nothing would read** — and at n=500 it is ~13 MB per lane, ~77 MB across six, never freed because 500 does not reach the cap. Measured heap across a full six-lane 1,025 race: **flat at 25 MB**.
 - **A race lane's cost is DESTINATION AREA, not sprite count.** Measured in headless Chrome at 1,025 sprites/frame over equal painted area: one lane @22px 16.4 ms, six @6px 18.6 ms, six @12px 23.3 ms, six @24px 35.6 ms. Six 311×289 lanes total 539k px — **less than the 735k px single-mode canvas this page already runs at 60fps** — so lane count is not a pixels question and never needed to be capped for one.
 
+### G4. The Sorting Page Finally Has a Checker — and Why It Took One to Write
+
+`sort` is the newest group, and it exists mostly because §3.G3's defect shipped through a 41-script suite: `rg -l "al-lanes"` returned only `sorting.html` and `algo.css`, and `rg -l "sort-run" scripts/` returned nothing. No checker read the page's DOM or its stylesheet, so six permanently blank canvases were invisible to everything the manifest covered.
+
+`check_sorting_page.mjs` (63 checks) is split in two, and the split is the design:
+
+- **STATIC**, 30 checks, ~0.2 s. Reads `sorting.html` / `algo.css` / `sort-run.js` off disk. A stylesheet contract can be checked by reading it, and mutation-testable from a scratch tree.
+- **RENDERED**, 33 checks, ~93 s idle. Drives the real page over CDP and counts **ink by alpha**. A blank canvas is transparent, so alpha is the only thing that distinguishes 「drew nothing」 from 「drew black」.
+
+**THE FAST LOOP IS `--static` ON THE HARNESS, AND ITS PLACEMENT IS THE POINT.**
+
+```bash
+node scripts/test_check_sorting_page.mjs --static   # 0.5s — the 30 static checks
+```
+
+Two rules keep it honest. It is **not a flag on the checker** — §4 rules out a supported way to skip a check, because a cheap path becomes the path a reader reaches for by default; `check_sorting_page.mjs` has no such flag and never will. And it sits **above the harness's two baselines**, which is not a detail: it was originally below them, so pressing it still ran the 93s browser baseline and all 24 mutation cases first — **the fast loop took longer than the thing it was a shortcut for**, discovered by a reader asking why it was slow. A slow escape hatch is not an escape hatch.
+
+**THE STRIP IS GUARDED BY A CHECK COUNT, not by "it still passes".** The harness copies the checker, deletes everything between the `RENDERED HALF` sentinels, and requires the stripped copy to pass having dropped **exactly 33** checks (63 → 30). A strip one check too wide would leave every cheap case asserting against a silently narrower checker, and all 24 would still pass — they only require their own detector, which a narrower checker satisfies more easily, not less. This is the same guard §3.F describes for the APU harness.
+
+**`manual: true` ON THE HARNESS FOR A NEW REASON.** The existing manual entries (`check_gen1_page.mjs`, `check_cries_browser.mjs`) are manual because they open **no repo file**. This one opens plenty — it copies four files into a temp tree — but every read happens in a **child process over a tree outside ROOT**, and `record-inputs.cjs` ignores anything outside ROOT. Inheriting the `-r` preload would not help: the paths opened are the temp copies. So the list is hand-maintained and the flag says so with that reason attached rather than a generic one.
+
+**24 CASES, AND TWO OF THEM WERE WRONG ON THE FIRST WRITE** — the §4 table's rule arriving from a new direction:
+
+- *"a sweep() caller stops clearing its own timestamp"* declared `every sweep() call site passes its context explicitly`, and **passed for an unrelated reason**: the mutation kept `lane.ctx` as the first argument, so that assertion was satisfied. It needed a **new** assertion rather than a re-pointed `expect`, because clearing the timestamp was never guarded at all. Both callers are now asserted on the whole `if (!sweep(...)) <field> = 0;` statement.
+- *"a quoted step count is edited"* proved `docblock.includes('524,800')` is the wrong test **verbatim**: `524,800` also appears in the next paragraph, so editing the quote to `480,000` left the check green. Presence is not attribution. The assertion now requires the number to sit within 60 characters of the row's **anchor** wording, against a whitespace-collapsed copy so rewrapping does not break it. `claim` and `anchor` are separate fields on purpose — collapsing them forces the claim to be phrased exactly as the comment happens to phrase it, so a harmless reword breaks a check that was verifying something real.
+
+**AND ONE MORE HARNESS-LEVEL DEFECT, worth naming because the shape recurs:** a nested backtick inside a template literal (a detail message quoting `` `if (!sweep(...)) <field> = 0;` ``) is a **syntax error**, and it made all 26 cases report *"failed, but not on the assertion it claims"* with **empty output**. That reads as 26 mislabelled detectors rather than one broken file. The suite now distinguishes them mechanically: a case whose output contains no `FAIL` at all is reported as **"the checker produced NO assertion, so this case measured nothing"**, which is §4's loader-error rule turned into a harness check instead of a thing to remember.
+
+**ONE PAGE LOAD, THEN THE READER'S OWN CONTROLS.** Navigating per case costs ~25 s because the page re-fetches 1,025 sprites; a first pass at this took half an hour across eight navigations, two fixed `sleep(9000)` waits, and a readiness poll that **matched the previous document** — producing a five-lane case that reported a lane of **zero ink**, which read as a rendering bug and was the harness measuring the wrong document. It now loads **once** and drives the algorithm chips and the sample-size select with `click()` and a `change` event, which is both faster and a better test: a control whose handler never fires is invisible to a URL-driven check.
+
+```bash
+# The everyday loop while editing anything the static half guards (0.5s)
+node scripts/test_check_sorting_page.mjs --static
+
+# Confirm the browser half (63 checks, ~1.5 min — needs :5500)
+node scripts/check_sorting_page.mjs
+
+# The whole group, with the harness (190s idle)
+node scripts/check_all.mjs --only=sort
+
+# Everything EXCEPT it, while working on anything else
+node scripts/check_all.mjs --skip=sort
+```
+
+**`--skip=sort` is the filter to reach for, and `--static` is the one to prefer.** 190 s is the fifth-largest group, but the honest advice is not "skip it" — most edits to this page touch the static contract, and the static loop answers that in 0.5 s. Reserve the browser half for when the rendering is the question.
+
 ### H. Category Pages vs. `types.html` — Two Different Questions
 
 `category.html?cat=dragon` and `types.html?type=dragon` both exist and both list the same 70 species. **A category page must never link to `types.html`, and must never be merged into it.** Decided by the user when the Dragon page was added; do not re-propose the cross-link.
@@ -428,210 +474,6 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `model` | 0.1 | 1 | — |
 
 Three harnesses are **62% of the suite**, and the reason is structural rather than incidental: a negative case is a whole checker run in a temp tree, so `test_check_gen1_apu` alone is 36 of them. **These were measured on a loaded machine** (the run was competing with Chrome, 97% CPU), so treat them as an upper bound — `test_check_gen1_apu` is 34 s idle against the 120 s above — but the *proportions* are what a filter depends on, and they do not change with load.
-
-```bash
-# Everything, with the content-keyed skip cache
-node scripts/check_all.mjs
-
-# Prove every declared input list against what the checker actually reads.
-# Run this after editing a checker, adding one, or renaming an input file.
-node scripts/check_all.mjs --prove-inputs
-
-# ── THE EVERYDAY FILTERS ──
-# A full cold run is 328 s and you pay all of it every time you touch a file the
-# expensive checkers read. These are the filters to reach for while working, and
-# the cost of each is measured, not guessed.
-
-# 196 s (saves 132 s) — drops the APU entirely: BOTH the 151-length / 48-sample
-# conformance comparison against the reference synthesiser AND the 36 mutation
-# cases that guard it. Correct to skip while editing anything else; NOT the run
-# to finish on, because it leaves §3.F's central claim unverified.
-node scripts/check_all.mjs --skip=cry-apu
-
-# 127 s (saves 201 s) — the above plus the generated tables (cry-data, 38 s) and
-# all three cry pages (cry-page, 31 s). Leaves 5 groups: color, type, nav, data, model.
-node scripts/check_all.mjs --skip=cry
-
-# ~4 s — nav + data + model. The genuinely cheap half of the suite, and the right
-# filter for a colour/nav/table edit whose own group is cheap enough to also run.
-node scripts/check_all.mjs --only=nav,data,model
-
-# ~92 s (saves 236 s) — nav + color. NOT the cheap option it looks like: `color`
-# holds the 57 s color_match harness. Use this when you are working on colours.
-node scripts/check_all.mjs --only=nav,color
-
-# One group on its own
-node scripts/check_all.mjs --only=cry-apu
-```
-
-**Filter by GROUP, never by adding a flag for one checker.** The groups are a property of what a checker is *about*; a per-checker bypass would be the `--quick` flag `check_gen1_apu.mjs`'s own comment rules out, and it would make the expensive proof optional on demand rather than skipped because its inputs did not move. `--skip=cry-apu` already buys the whole 132 s.
-
-**A negative test must name the assertion that actually catches its mutation, and `scripts/lib/negative.mjs` is the only thing that decides it.** Every `test_check_*.mjs` answers the same question — did this deliberate defect make the checker report the failure it was supposed to report? — and the obvious way to ask is `output.includes(expect)`. That is wrong, because a checker prints an assertion's description whether it PASSES or FAILS, so matching anywhere only asks "is this text present", which a case whose `expect` names a *different* assertion satisfies for free.
-
-`caughtBy(out, expect)` requires the string to appear inside a **failure report**: the `FAIL` line plus its indented continuation. The continuation matters — `eq()` prints the offending values on a `got:` line, and a case is allowed to name one of those. An earlier version matched the `FAIL` line alone and so rejected two perfectly good cases in `test_check_cry_features.mjs` that name the violated condition (`rms 1.23 > peak 0.61`, `centroid above Nyquist`) under a shared "physically possible" assertion. Matching the line alone would have had me "fix" two correct cases into wrong ones. **The rule is not "on the FAIL line", it is "not in a passing check's description".**
-
-Twelve cases across four suites were naming the wrong assertion and passing for an accidental reason:
-
-| Suite | Case declared | Actually detected by | Why the declared one was blind |
-| :--- | :--- | :--- | :--- |
-| `color_match` | `#414141 is closer to a grey` | `a saturated red has a large positive a` | with the chroma rows zeroed every colour lands on the L axis, and a grey still beats a dark green on lightness alone |
-| `color_match` | `#ffffff has OKLab L = 1` | `#808080 lands at OKLab L = 0.5999` | 1.0 is 1.0 however it is decoded, so plain gamma 2.2 passes it — the discrimination is in the midtones |
-| `color_match` | `ties fall through the declared chain` | `the species whose PRIMARY is the input wins` | on `#ffffff` all five primaries are at distance 0, so reversing the chain compares five equal values and lands in the same order |
-| `color_match` | `every reported primary is in the corpus rows` | `the reported primary is the highest-share colour` | reversing a palette's rows leaves every colour present, so membership still holds |
-| `color_match` | `one group per species, not per variant` | `the index holds every NORMAL-palette colour` | appending shiny rows into an existing group leaves the count at 1,025 |
-| `color_match` | `a pin survives only while the input is one of that species own colours` | `but NOT after an unrelated colour is typed` | the guard was `/currentMatch\.pinned/ && /own\.some\(/` — a source-shape regex, which any mutation that keeps the substrings passes |
-| `color_match` | `the light-theme contrast guard` | `both tokens actually differ between the themes` | it sliced shared.css from the first `[data-theme="light"]`, which is inside the file's own header comment, so it measured `:root`'s dark values and compared dark with dark |
-| `color_match` | `no species appears twice in the results` | `every probe returns five DISTINCT species` | the mutation needed to trip it no longer exists — one group per species makes duplicates unreachable, so the case has to attack the guarantee from the other side |
-| `gen1_apu` | `never get one` | `within one 8-bit step` | the timeline calls `noiseOffset()` itself, so it cannot see a mutation to the **renderer's** call site — the two share one definition (§3.F) |
-| `gen1_apu` | `clocks are the same at 65,536 Hz` | `the same grain at both rates` | `noiseClocks` reports Hz, and Hz is a property of the register not the output rate, so that equality holds **by design** even with the clock unscaled |
-| `gen1_apu` | `Machop` | `Hz its register predicts` | a species name inside a passing check's description |
-| `gen1_apu` | `byte-identical` | `Rhyhon do NOT` | occurs only in the two *passing* identical-pair checks |
-| `gen1_cries` | `still exactly these six` | `implicitRet lists exactly the channels with no sound_ret` | the mutation drops a channel's commands but leaves the stored `implicitRet` field alone, so the check that pins the stored six names still passes |
-| `color_page` | `claimed by exactly one element` | `no page is claimed by a group with no row of its own` | deleting the row does not unclaim the page — the group still claims it, so the owner *count* is still one |
-
-**The sixth `color_match` case failed for a different reason and is worth separating: it was not blind, it was a NO-OP.** The first draft swapped OKLab for RGB Euclidean by multiplying the coordinates by 255 — a change of *units*. Every distance scales by 255 and every ranking is unchanged, so the mutation could only ever trip the absolute-value assertions, and the greys assertion compares two distances and is scale-invariant. A mutation that cannot change any output the check reads is not a mutation. It was replaced with a real swap (`hexToOklab` replaced by channel extraction), whose detector is a measured *inversion*: for `#414141`, RGB ranks `#399494` nearer at 117.7 channels while OKLab ranks `#7362ac` nearer at 0.2043 against 0.2526.
-
-Two of the others exposed real defects in the checkers rather than in the tests, which is the point of the audit:
-
-- **`check_color_page.mjs` had a dead `bad` predicate.** The owner string is built as `` `${label} (group, no row)` ``, so it ends in a closing parenthesis, but the filter tested `endsWith('no row')` — which can never match. That check's detail was therefore permanently empty and it could only ever report the generic *"predicate disagrees with its own message"* fallback, which is the very outcome the `check()` guard exists to make visible. It was visible only as an absence.
-- **`check_color_page.mjs`'s `check()` dropped the description on failure**, printing only the detail. Every other checker prints the assertion's name when it fails, which is what makes a failure identifiable afterwards. It now prints `description — detail`.
-
-**Three more failure modes showed up writing the `color_match` suite, and all three are ways a green suite means nothing.** A **loader error is not a test failure.** The suite's scratch tree listed `color-match.js` and `color_palettes.json` only, so every case died with `ERR_MODULE_NOT_FOUND` the moment the checker began importing `hslToHex` from `color-palette.js` — twenty-three cases "failing" while running zero assertions, and a parse-time error reads as neither pass nor fail. The tree now copies all of `assets/js`, for the same reason §3.B2 does: the import chain reaches five more files and a case that dies on a missing module passes for the wrong reason. And an assertion that has become *vacuous* — the property still holds because the code that could break it was deleted, so no mutation can trip it — is removed rather than kept as reassurance; `check_color_match.mjs` therefore asserts the ABSENCE of the guard that used to exist (no dedupe pass, one group per species) instead of its presence. And the ordering cross-check is noise-tolerant by necessity, because two independent implementations of one matrix product disagree in the 16th digit and four of twenty probes reorder under an exact comparison while their distances agree to 1e-9 — so a `NOISE` floor wide enough to merge unrelated probes would make that comparison vacuously true, and one of the twenty-eight cases widens it to 1.0 precisely to prove the check is not.
-
-When a negative case fails after tightening, read the checker's own output before touching the expectation: the case may be mislabelled, the checker may be reporting through the wrong assertion, or the mutation may have stopped applying at all. **Assert that the mutation actually changed the file** (`if (out === before) throw`) — two `color_match` cases passed for a fourth reason, a `replace()` whose target string no longer existed after an earlier edit. And **mutate the line the defect is in**: the unconditional-pin case was first written as `if (match.pinned) {` → `if (match.pinned || true)`, which sends *unpinned* matches down the pin path and leaves pinned ones correct, so it tripped an unrelated assertion and proved nothing. Fixing the *expectation* to match a wrong checker is how a harness stops being evidence.
-
-```bash
-# Verify color palette contracts & invariant guards. The palette half guards
-# color_palettes.json; the naming half guards the chroma gate that all three
-# colour namers share, and the mutation suite proves each guard can fail by
-# breaking the module in a scratch copy. See §3.B2 before changing a name
-node scripts/check_color_palettes.mjs
-node scripts/test_check_color_palettes.mjs
-
-# Verify the reverse palette matcher behind colors.html: the OKLab conversion
-# (white, black, mid-grey, and a saturated red's chroma so an axis-only metric
-# cannot pass), the primary-first ranking against a SEPARATE brute-force
-# implementation, per-species grouping, the tiebreak chain, and that every hex a
-# match can return is one the corpus actually contains. The mutation suite proves
-# each guard fails for its own reason — see §3.B1 for the seven cases that named
-# the wrong assertion when first written
-node scripts/check_color_match.mjs
-node scripts/test_check_color_match.mjs
-
-# Verify the shared nav from both ends. check_color_page.mjs owns the NAV table
-# and its claims; check_nav_pages.mjs owns the other half — that every page but
-# the two documented exceptions actually mounts it, which no table check can see.
-# It also owns THREE claims about the header's own markup, each of which is a
-# layout that renders rather than an error: that the header carries one of the six
-# row-layout modifiers, that it does not carry two, and that the theme toggle's
-# contents are left to initThemeToggle(). The first and third are silent failures
-# with no console output at all — see §3.G2.
-# check_color_page.mjs also owns color.html's three-ramp shade scale: that there
-# are exactly three rows, that each row's ramp is seeded from THAT row's own hex
-# (a ★ is only honest if it marks the colour the row is showing), that the seed
-# bar is styled and named, and that the showcase builds its own ramp from
-# `primary` rather than naming a bare `scale` — see §3.B1 for why that one is
-# silent rather than a ReferenceError
-node scripts/check_color_page.mjs
-node scripts/test_check_color_page.mjs
-node scripts/check_nav_pages.mjs
-node scripts/test_check_nav_pages.mjs
-
-# Verify category definitions, hub card sync & contrast
-node scripts/check_categories.mjs
-
-# Verify the seeded daily Pokémon draw (bucket parity, Taipei day key, one
-# draw shared by index/color with no per-page seed, and the bare-URL fallback)
-node scripts/check_color_daily.mjs
-node scripts/test_check_color_daily.mjs
-
-# Verify evolution chains and slug integrity
-node scripts/check_evolution_chains.mjs
-
-# Verify official zh-TW form names against the portal cache
-node scripts/check_form_names.mjs
-
-# Verify type effectiveness matrix
-node scripts/check_type_chart.mjs
-
-# Verify per-type prose, zh-TW effect text, and trainer role labels
-node scripts/check_type_profiles.mjs
-
-# Verify move learnsets & move data
-node scripts/check_learnsets.mjs
-
-# Verify regional Pokédex data integrity
-node scripts/check_regional_dex.mjs
-
-# Verify the SV roster, its artwork files, and the PokeAPI-only frontend claim
-node scripts/check_sv_index.mjs
-node scripts/test_check_sv_index.mjs
-
-# Verify the APU against the REFERENCE SYNTHESISER'S OWN OUTPUT: all 151 output
-# lengths exactly, 48 sampled 8-bit values each, and the rate-independence
-# claims a native-rate comparison structurally cannot make. See §3.F before
-# changing anything here
-node scripts/check_gen1_apu.mjs
-node scripts/test_check_gen1_apu.mjs
-
-# Verify the two cry PAGES over the DevTools Protocol: that the playback cursors
-# move, that the lane labels are not claiming to be playing, that the current
-# species' group stays open, that the page discloses sound_loop, and that the
-# output is muted at the AudioContext's destination — measured off the live
-# AudioParam, not read off a value the install script recorded. See §3.G for why
-# that assertion exists and what it does NOT cover. Needs the repo served on
-# :5500 — see the Runtime Server rule at the top
-node scripts/check_gen1_page.mjs
-node scripts/check_cries_browser.mjs
-
-# The APU mutation test runs its cases in a POOL of 4 workers, not sequentially:
-# 33 x a 6 s checker is three and a half minutes of waiting to re-verify
-# arithmetic. Measured here, 6 workers 44.5 s, 8 workers 38.9 s, 12 workers 38.5 s.
-# Four is a deliberate choice because other work shares this machine — raise POOL in
-# scripts/test_check_gen1_apu.mjs when the machine is idle. At four this is ~34 s,
-# down from ~62 s before the corpus was walked once and the cases that do not need
-# the conformance comparison were routed around it — see the end of §3.F.
-
-# Verify the Generation I cry table: the 151-row name join against pokered's
-# unordered table, the 38 base cries, the channel/command shape, and the pinned
-# set of upstream inconsistencies. The mutation test shuffles cries.asm's rows
-# and requires the regenerated JSON to be byte-identical, which is the only real
-# proof the join is by name — it mirrors the 114 .asm files into
-# data-sources/pokered-cry/ on first run
-node scripts/check_gen1_cries.mjs
-node scripts/test_check_gen1_cries.mjs
-
-# Verify cries.html's claims about that table: that it reads the generated JSON,
-# that its five axes exist in featureNames, that scores are standardised before
-# they are compared, that no preset is degenerate, and that the caveat and the
-# legacy warning are on the page rather than in a comment
-node scripts/check_cries_page.mjs
-node scripts/test_check_cries_page.mjs
-
-# Verify the cry feature table: 1,025 + 649 rows x 34 timbre features, resampled
-# to 16 kHz. The check that earns its keep is that every dimension varies across
-# the corpus -- a constant column means the filterbank collapsed or the DCT never
-# ran, which passes every shape and NaN check while the search degrades to chance
-node scripts/check_cry_features.mjs
-node scripts/test_check_cry_features.mjs
-
-# Verify the browser-side mel pipeline against the EXTRACTOR ITSELF, and the page's
-# claims about it. The port checker runs analyze_cries.py's own imported functions
-# against assets/js/cry-spectrogram.js on a synthetic cry and differences all 34
-# numbers; it needs the venv, and SKIPS with its reason printed rather than passing
-# if the venv is absent. See §3.G1 before changing anything here — in particular,
-# `m0` differs from the stored table BY DESIGN, because analyze_cries.py's resample
-# is wrong, and the two bugs are recorded there rather than fixed
-node scripts/check_spectrogram_port.mjs
-node scripts/test_check_spectrogram_port.mjs
-node scripts/check_spectrum_page.mjs
-node scripts/test_check_spectrum_page.mjs
-```
-
-`node scripts/check_spectrum_browser.mjs` (41 checks) is a CDP checker and belongs
-with the two existing ones in the block above — ink on both canvases counted by
-ALPHA over the whole surface, the reveal measured as movement, the synthesised path
-reached, and the mute read off the live `AudioParam`.
 
 ---
 
