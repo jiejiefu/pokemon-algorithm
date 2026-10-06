@@ -54,7 +54,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
@@ -433,6 +433,10 @@ if (!existsSync(CHROME)) {
   console.log(`\nSKIP  rendered half — ${CHROME} is not installed. The static half above ran in full.`);
 } else {
   const profile = mkdtempSync(join(tmpdir(), 'sortpage-'));
+  /* 36 `sortpage-*` directories were in tmpdir before this. Registered inside the
+   * function because the profile is, and `exit` rather than the `finally` below
+   * because a throw between here and there skips it. */
+  process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
   const dbg = 9400 + (process.pid % 200);
   const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${dbg}`, '--disable-gpu', '--mute-audio',
     `--user-data-dir=${profile}`, '--window-size=1440,900', 'about:blank'], { stdio: 'ignore' });

@@ -37,7 +37,7 @@
  * about drawing rather than about colour.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,6 +53,13 @@ const PAGE = `${BASE}/spectrum.html`;
 const ROBUST_NAMES = ['dur', 'zcr', 'centroid', 'rolloff85', 'flux'];
 
 const profile = mkdtempSync(join(tmpdir(), 'spx-'));
+/* Removed on the way out, and it was not: 43 `spx-*` directories were in tmpdir before
+ * this line. check_gen1_page.mjs and check_outfit_browser.mjs both already did it,
+ * which is why their prefixes are small and this one was not — the difference between
+ * a checker that cleans up and one that does not is one line, and nothing reports it.
+ * See the note in check_cries_browser.mjs for why this is an `exit` handler rather
+ * than a line at the bottom. */
+process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
 /* `--mute-audio` is the FIRST line, not the guarantee: it mutes at the browser, so
    the AudioContext still runs and `currentTime` still advances, which is what
    keeps the playback assertions meaningful. The guarantee is MUTE_TAP below,

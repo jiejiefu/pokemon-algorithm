@@ -422,6 +422,19 @@ const CHECKERS = [
     ],
   },
 
+  {
+    /* Reads every page and every module under assets/js, which is the claim: a page
+     * that reaches a member through a named import is reaching something that
+     * exists. Written because sorting.html called `cryPlayer.muteForView` for every
+     * commit from e1eb879 to 8957cc0, a method cry-player.js did not define — a
+     * runtime TypeError six lines above the mute checkbox, the volume slider and
+     * every keyboard shortcut, and nothing in the suite could see it.
+     *
+     * The inputs are the whole page set and the whole module set by derivation, not
+     * by list, so a new page or a new module is covered the moment it exists. */
+    script: 'scripts/check_page_module_api.mjs', group: 'nav',
+    inputs: ['*.html', 'assets/js/*.js'],
+  },
   /* ---- nav and structure ---- */
   {
     /* Reads every page in the root, which is the claim: the nav is on all of them

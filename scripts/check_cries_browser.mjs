@@ -11,7 +11,7 @@
  * the cry audio itself is checked in check_cry_index.mjs and check_cry_features.mjs.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
@@ -21,6 +21,20 @@ import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const profile=mkdtempSync(join(tmpdir(),'cr-'));
+/* Remove the profile on the way out. It was not, and tmpdir held 135 `cr-*`
+ * directories before this line existed — a Chrome profile is tens of MB, so that is
+ * several GB of the 28 GB a full sweep of this suite leaves behind. Same disease as
+ * the five orphaned `http.server` processes AGENTS.md records, in a place nobody had
+ * looked: check_gen1_page.mjs and check_outfit_browser.mjs already did this, and
+ * their prefixes (`cdp-`, `of-`) are correspondingly small.
+ *
+ * `process.on('exit')` rather than a line at the bottom because the bottom does not
+ * run when a check throws, and a throw is exactly when the profile is biggest and the
+ * run is already going wrong. It DOES run for `process.exit()`, which the two lines at
+ * the bottom of this file use — so the common path is covered and the throw path is
+ * covered, and only SIGKILL leaks. `maxRetries` because Chrome is killed a moment
+ * earlier and may still hold a lock. */
+process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
 /* `--mute-audio`: this checker presses play too. Muted at the browser rather than
    by zeroing the page's volume, so the AudioContext still runs and the playback
    path is still exercised. The flag is the first line rather than the guarantee;
@@ -32,7 +46,13 @@ const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
 await new Promise(r=>ws.addEventListener('open',r,{once:true}));
 let id=0; const w=new Map(); const logs=[];
 ws.addEventListener('message',e=>{const m=JSON.parse(e.data); if(m.id&&w.has(m.id)){w.get(m.id)(m);w.delete(m.id);return;}
- if(m.method==='Runtime.exceptionThrown') logs.push('EXC '+(m.params.exceptionDetails.exception?.description||'').split('\n')[0]);});
+ if(m.method==='Runtime.exceptionThrown'){const d=m.params.exceptionDetails;
+  /* Named, because this file now visits THREE documents and a bare "EXC TypeError"
+   * with no page attached is a line nobody can act on. `url` is the script the
+   * exception came from, which for an inline module is the page itself, and the
+   * line number is where it threw — which is the difference between "sorting.html
+   * is broken" and "sorting.html:980 is broken". */
+  logs.push(`EXC ${((d.exception?.description)||d.text||'').split('\n')[0]} @ ${d.url||'?'}:${d.lineNumber??'?'}`);}});
 const send=(m,p={})=>new Promise((res,rej)=>{const n=++id;w.set(n,x=>x.error?rej(new Error(JSON.stringify(x.error))):res(x.result));ws.send(JSON.stringify({id:n,method:m,params:p}));});
 const ev=async e=>{const r=await send('Runtime.evaluate',{expression:e,returnByValue:true,awaitPromise:true}); if(r.exceptionDetails) throw new Error((r.exceptionDetails.exception?.description||'').split('\n')[0]); return r.result.value;};
 
@@ -322,7 +342,11 @@ ok(split.earliestMaxX >= 0 && split.earliestMaxX < split.w * 0.95,
 ok(split.above > split.n * 0.35 && split.below > split.n * 0.35,
   `and it is the SAME waveform in another colour — ink above and below the zero line, not just the top (${split.above} / ${split.below} of ${split.n})`);
 
-ok(logs.length===0, `no uncaught exceptions${logs.length?': '+logs[0]:''}`);
+/* Asserted HERE as well as at the end, because this is the only assertion that
+ * covers the session this file is currently in, and it sits next to the checks
+ * that a thrown script would have broken. It is NOT sufficient on its own — see
+ * the second one after the final navigation. */
+ok(logs.length===0, `no uncaught exceptions on cries.html${logs.length?': '+logs[0]:''}`);
 
 /* --- ONE PROFILE, TWO PAGES, IN ORDER ---------------------------------------
  *
@@ -482,6 +506,28 @@ const crossTap = await ev(TAP_PROBE);
 ok(crossTap.taps>0 && Array.isArray(crossTap.inGain) && crossTap.inGain.some(v => typeof v === 'number' && v > 0),
   `and cries.html still asks for sound after a visit to sorting.html`
   + ` (output gain ${JSON.stringify(crossTap.inGain)} — the destination is 0 because THIS checker mutes it, and the player's own level is the claim)`);
+
+/* THE SECOND EXCEPTION ASSERTION, AND IT IS THE ONE THAT MATTERS.
+ *
+ * The first one runs before this file has ever navigated anywhere. That left the
+ * two cross-page navigations completely uncovered, and it was not a hypothetical
+ * gap: sorting.html's audio init calls `cryPlayer.muteForView(true)` with no
+ * try/catch, half a dozen lines ABOVE the listeners for the mute checkbox, the
+ * volume slider and every keyboard shortcut. When `cry-player.js` did not define
+ * that method — which was the committed state from e1eb879 to 8957cc0 — the call
+ * threw, and every one of those controls was left dead on arrival, with this file
+ * reporting PASS.
+ *
+ * A gate cannot close that hole either: the wait below is `booted('#audioVolume')`
+ * and `#audioVolume` is STATIC MARKUP at sorting.html:137, so the HTML parser
+ * satisfies it before a single line of script runs. Waiting on the element
+ * proves the page parsed. It does not prove the init block reached the end, which
+ * is the thing that throws.
+ *
+ * So this asserts the accumulated log AFTER every navigation, and it names the
+ * script the exception came from so the line points at the cause.
+ */
+ok(logs.length===0, `no uncaught exceptions across all three pages (cries.html, sorting.html, cries.html again)${logs.length?': '+logs.join(' | '):''}`);
 
 console.log('');
 console.log(fails.length?`FAIL  ${fails.length} of ${pass+fails.length}`:`PASS  ${pass} checks`);

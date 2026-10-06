@@ -511,13 +511,43 @@ A page default that reaches storage through an unrelated control is **worse** th
 
 - `totalCards === 11` in `check_categories.mjs` is a hardcoded count of the hub. Prefer `NON_HUB_SLUGS` (the 600族 and 龍屬性 precedent): the homepage already links both from the 熱門搜尋 row, and the collections hub is a different navigation surface that neither page needs to appear in.
 
+### I. The Page/Module Boundary Had A Shipped Defect, And Nothing Could See It
+
+`sorting.html` called `cryPlayer.muteForView(true)` from commit `e1eb879`. `assets/js/cry-player.js` did not define that method until `8957cc0`. For the commits in between, every load of sorting.html threw `TypeError: cryPlayer.muteForView is not a function` — and because that call sits about six lines ABOVE the listeners for the mute checkbox, the volume slider, the legacy checkbox and every keyboard shortcut, the throw took all of them with it. The page rendered, the header rendered, the race ran, and the controls were dead.
+
+**ESM statically verifies the IMPORTED BINDING and says nothing about the member**, so the import was legal, the module loaded, and the defect was a runtime TypeError on a line no checker read. `check_sorting_page.mjs` has 66 checks over that page and none of them see it, because all of them are about the DOM and the stylesheet. `check_nav_pages.mjs` asserts the nav *call* exists in source, not that the script reached it.
+
+`scripts/check_page_module_api.mjs` is the guard: for every page, every `X.member` reached through a named import must exist in the module `X` was imported from. 295 bindings across 17 pages, 0.1 s. The page set is derived from "imports from assets/js" rather than an exclusion list, so a new page is covered the moment it exists and `404.html` needs no exception; `pageCount > 0` is asserted so an empty derivation cannot pass as "0 violations".
+
+**Three things about writing it that are worth more than the checker.**
+
+- **THE PAGE SET HAD TO BE SELF-SELECTING.** The first version derived pages from the directory with an exclusion list, which is `check_nav_pages.mjs`'s problem — and that file then asserts each exclusion still works, because an exclusion list is a place a regression can hide. Deriving from the import predicate removes the list instead of defending it.
+- **A COMMENT IS A FALSE POSITIVE.** sorting.html:964 is prose reading "`cryPlayer.muted` reads and WRITES the site-wide `cry-volume` key", so scanning raw source reads members out of sentences about them. Comments and string literals are masked, and template `${…}` holes are kept because those are code.
+- **`GbApu` ASSIGNS NINETEEN PUBLIC INSTANCE PROPERTIES IN ITS CONSTRUCTOR.** A member set built from method syntax alone reports every one of them missing the first time a page reads `apu.notes`, and then the checker is right about nothing. `this.x =` is collected too, and the direction is deliberate: over-approximating turns a red line green, while under-approximating produces noise a reader learns to ignore.
+
+**`export const cryPlayer = new CriesPlayer()` IS AN INSTANCE, NOT A CLASS, AND THAT NEARLY SHIPPED THE CHECKER BLIND.** Resolving members from class exports alone returns nothing for the one binding this checker was written for, so `used` was empty for all 295 bindings and the assertion printed PASS having measured nothing. Both self-checks were happy, because they test the member SET and never touch the pattern. `check_page_module_api.mjs` therefore asserts separately that an exported INSTANCE resolves to its class members — the assertion whose absence let the bug through.
+
+**THE ESCAPE WAS WRONG IN A WAY ONLY A MUTATION COULD FIND.** The member pattern was written `(?:\?\.)`, meaning an optional literal `?` then a literal `.`; it is actually a literal `?` followed by a literal `.`, so it demanded the two-character sequence `?.`, which no ordinary member access contains. Nothing matched, nothing was compared, and the run was green. `\?` is an ESCAPED LITERAL, not a quantifier — the quantifier is a second `?`. Reading it does not surface that; renaming a method and watching the checker stay green does. The same mistake also hid a generator export (`export function* bfsSolve`), which the checker reported as three missing exports from maze.html before the pattern was corrected.
+
+**Verified by mutation, in both directions, on two different modules:** renaming `muteForView` reports `sorting.html: cryPlayer.muteForView — cryPlayer (assets/js/cry-player.js) has no "muteForView"`, and renaming `astarSolve` reports the missing export from `maze.html` with the module's real export list attached. Neither is visible anywhere else in the suite.
+
+### J. Every CDP Checker Leaked A Chrome Profile, And 28 GB of tmpdir Proved It
+
+Three of the six browser checkers removed their `--user-data-dir`; three did not, and nothing reported it. `tmpdir` held **3,229 entries and 28 GB**, of which 291 were Chrome profiles — 135 `cr-`, 72 `cdp-`, 43 `spx-`, 36 `sortpage-`, 5 `of-` — and the prefixes belonging to the two checkers that DID clean up were the small ones. This is the same disease AGENTS.md records for five orphaned `http.server` processes, in a directory nobody had looked at.
+
+Cleanup is a `process.on('exit')` handler rather than a line at the bottom, because the bottom does not run when a check throws — and a throw is exactly when the run is already going wrong. It does run for `process.exit()`, which both of these files use, so the common path and the throw path are covered and only SIGKILL leaks. Verified by counting: 135 `cr-` and 43 `spx-*` before and after a real run of each, unchanged.
+
+**The mutation harnesses leak the same way, and there are 431 more of them** — `colormatch-neg-` 105, `cp-negtest-` 96, `criespage-neg-` 87, `cry1-neg-` 64, `cryfeat-neg-` 61, `gen1apu-neg-` 18. Those are left alone here because they are per-case trees inside a harness that already owns its own lifecycle, and cleaning them is a separate change from stopping a leak.
+
+**The 727 existing directories were removed**, scoped to those eleven prefixes rather than to tmpdir as a whole — which held 3,263 entries and is now 2,536, because everything else in there belongs to other applications. Reclaimed **13 GB, 29 G to 16 G**. Before deleting, `ps` was checked for a live `--user-data-dir` on any of the eleven prefixes: deleting a profile out from under a running checker would break it, and the run in flight at that moment belonged to port 9557, which is not one of this repo's.
+
 ---
 
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 41 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 6.0 s of which 5.0 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples), and `test_check_gen1_apu.mjs` is 37 s because 17 of its 39 cases need that same pass. So forty seconds of every run was re-deriving a fact about `gb-apu.js`, which a colour edit cannot change. Measured on this machine: **2m10s cold, 0.0s when nothing relevant moved**, 99 s when `gb-apu.js` alone is touched. The four spectrum scripts add 9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
+**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 44 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 6.0 s of which 5.0 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples), and `test_check_gen1_apu.mjs` is 37 s because 17 of its 39 cases need that same pass. So forty seconds of every run was re-deriving a fact about `gb-apu.js`, which a colour edit cannot change. Measured on this machine: **2m10s cold, 0.0s when nothing relevant moved**, 99 s when `gb-apu.js` alone is touched. The four spectrum scripts add 9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
 
 - **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
 - **Every manifest entry gets ONE line with a time column, and the column makes three different claims.** `6.0s` is measured this run, `last 6.0s` is a cache hit reporting the previous green run's measured duration (stored as `${name}~` beside the key and the `@` timestamp), and `-` is a row that never ran — a missing script, or a CDP checker with no server on `:5500`. One `row()` helper emits all of them, because five call sites each padding their own column is five chances for the table to drift; it pads the detail but never truncates it, because an `ok` line must fit 56 columns while a skip naming the Runtime Server rule must keep that sentence whole. Two traps are named in the source: the durations live in a **non-cached region of the output's meaning, not in `budget`** — a cache hit's number is real but was not paid for this run, which is why the legend says so and the summary total still sums only what ran; and the cached value is read with `== null`, because `Number(null)` is `0` and would print `last 0.0s` for every entry written before durations were stored. A `▶` line precedes each run because `execFile` buffers — without it, the 34 s of `test_check_gen1_apu.mjs` is a terminal that looks hung.
@@ -528,18 +558,18 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 - **Also named, because each is a way this can be green and wrong:** a file read only on a branch NOT taken during the recording is not seen (mitigated by the checker's own hash being in the key); existence probes are keyed on `path:size`, not content; files over 256 KB — the cry corpus, the GLBs — are keyed on `path:size:mtime` rather than content; and the cache trusts the last green result on this machine, so `--force` exists for a checker that passed for a reason other than its inputs.
 - Groups are `cry-apu`, `cry-data`, `cry-page`, `color`, `nav`, `data`, `type`, `model`. `--skip=cry` covers the first three without naming them; `--only=`, `--force` and `--no-cache` also work.
 
-**Know what a group costs before choosing a filter.** Measured from one full cold run, **340.9 s of checker time over 41 entries** — except the three `cry-*` rows, which are re-measured below after the polling and fixture work in §3.G5, because leaving the old figures next to new code is how a table stops meaning anything:
+**Know what a group costs before choosing a filter.** Measured from one full cold run, **190.7 s of checker time over 44 entries**. The previous total, 340.9 s over 41, was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat the harness's own `POOL` comment carries. The three `cry-*` rows were re-measured after the polling and fixture work in §3.G5, because leaving old figures next to new code is how a table stops meaning anything:
 
 | group | secs | entries | where its time goes |
 | :--- | ---: | ---: | :--- |
-| `cry-apu` | 65.2 | 2 | `test_check_gen1_apu.mjs` 58 s — **39** cases, 17 of them rendering all 151 species at 1,048,576 Hz. Unchanged by §3.G5 and now the largest single item in the suite; see that section for why nothing can be stubbed here |
-| `color` | 88.9 | 11 | `test_check_color_match.mjs` 57 s — 28 cases over 6,148 corpus colours |
-| `cry-data` | 18.3 | 8 | `test_check_spectrogram_port.mjs` 6.7 s, then `test_check_cry_index.mjs` 6.1 s (was 22.6 s — §3.G5 removed the 22× corpus copy) |
-| `type` | 33.8 | 4 | `test_check_sv_index.mjs` 33 s |
-| `cry-page` | 16.1 | 8 | `check_gen1_page.mjs` 4.5 s, `check_spectrum_browser.mjs` 4.1 s, `check_cries_browser.mjs` 2.3 s (all CDP) — every one was sleep-bound, not work-bound; see §3.G5 |
-| `sort` | 31.0 | 2 | `check_sorting_page.mjs` 14 s and its harness 17 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **Not** in the table above because that run predates the group |
-| `nav` | 3.1 | 3 | `test_check_nav_pages.mjs` 3 s |
-| `data` | 0.9 | 4 | `check_learnsets.mjs` 1 s |
+| `color` | 61.6 | 11 | `test_check_color_match.mjs` 42 s — 28 cases over 6,148 corpus colours |
+| `cry-apu` | 48.8 | 2 | `test_check_gen1_apu.mjs` 42 s — **39** cases, 17 of them rendering all 151 species at 1,048,576 Hz. The largest single item in the suite, and §3.G5 explains why nothing can be stubbed here |
+| `sort` | 25.0 | 2 | `check_sorting_page.mjs` 11 s and its harness 14 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one |
+| `type` | 22.3 | 4 | `test_check_sv_index.mjs` 22 s |
+| `cry-page` | 15.4 | 8 | `test_check_cries_page.mjs` 2.9 s, `check_gen1_page.mjs` 2.5 s, `check_cries_browser.mjs` 2.3 s (CDP) — every one was sleep-bound, not work-bound; see §3.G5 |
+| `cry-data` | 15.1 | 8 | `test_check_spectrogram_port.mjs` 6.7 s, then `test_check_cry_index.mjs` 5.9 s (was 22.6 s — §3.G5 removed the 22× corpus copy) |
+| `nav` | 1.9 | 4 | `test_check_nav_pages.mjs` 1.6 s, `check_page_module_api.mjs` 0.1 s over 295 bindings in 17 pages |
+| `data` | 0.5 | 4 | `check_learnsets.mjs` 0.2 s |
 | `model` | 0.1 | 1 | — |
 
 Three harnesses are **62% of the suite**, and the reason is structural rather than incidental: a negative case is a whole checker run in a temp tree, so `test_check_gen1_apu` alone is 36 of them. **These were measured on a loaded machine** (the run was competing with Chrome, 97% CPU), so treat them as an upper bound — `test_check_gen1_apu` is 34 s idle against the 120 s above — but the *proportions* are what a filter depends on, and they do not change with load.
