@@ -47,7 +47,7 @@
 /** Source for `Page.addScriptToEvaluateOnNewDocument`. Runs before any page script. */
 export const MUTE_TAP = `(() => {
   const Real = window.AudioContext || window.webkitAudioContext;
-  const state = { taps: 0, tap: null, error: null };
+  const state = { taps: 0, tap: null, tapIn: [], error: null };
   // Non-configurable, so the page cannot overwrite the record of what was done to
   // its audio — an assertion reading a page-controlled value proves nothing.
   Object.defineProperty(window, '__cdpMutedTap', { value: state, configurable: false });
@@ -67,6 +67,32 @@ export const MUTE_TAP = `(() => {
       Object.defineProperty(this, 'destination', { get: () => tap, configurable: true });
       state.taps++;                          // ...then make the page's connect land here.
       state.tap = tap;
+      // Record what the page connects IN, so a checker can read the LEVEL the page
+      // itself is producing. The tap is a sink, so nothing it sees tells you what
+      // arrived — and the mute question is not "is the tap at zero" but "is the page
+      // asking for sound at all".
+      //
+      // The interception is on AudioNode.prototype.connect and keyed on the target
+      // being THIS tap, because the page's call runs the other way round: the player
+      // does gain.connect(ctx.destination), so the tap is the ARGUMENT and its own
+      // connect is never called. Overriding tap.connect — the obvious reading —
+      // records nothing and the probe returns an empty list, which is what the first
+      // version did.
+      //
+      // This is the only handle on the player's own gain from outside the module:
+      // cry-player.js keeps it in a private field and the pages expose no control,
+      // which is precisely why a page's silence could not be attributed to anything
+      // the reader did. The NODE is held, not a reading of it, so what is asked for
+      // is the live AudioParam and not whatever the gain was at connect time.
+      if (!state.patched) {
+        state.patched = true;
+        const proto = Object.getPrototypeOf(Object.getPrototypeOf(tap));   // AudioNode.prototype
+        const realConnect = proto.connect;
+        proto.connect = function (dest, ...rest) {
+          if (dest === tap && this.gain) state.tapIn.push(this);
+          return realConnect.call(this, dest, ...rest);
+        };
+      }
     }
   }
   Object.defineProperty(Muted, 'name', { value: Real.name });
@@ -78,8 +104,15 @@ export const MUTE_TAP = `(() => {
  * Expression for `Runtime.evaluate`. Returns what the tap can be ASKED rather than
  * what it claimed: `gain` is read back off the live AudioParam, so it answers
  * "is the output still muted right now" and not "was it muted at install time".
+ *
+ * `inGain` is the same discipline applied one node upstream: the page's own
+ * output level, read off the live `AudioParam` of whatever it connected to the
+ * destination. A page asking for 0 is not muted BY THE CHECKER, it is silent, and
+ * the two must not be confused — which is the whole question when a page is
+ * expected to be audible.
  */
 export const TAP_PROBE =
   '(() => { const s = window.__cdpMutedTap; return s ? '
-  + '{ taps: s.taps, error: s.error, gain: s.tap ? s.tap.gain.value : null } '
-  + ': { taps: 0, error: "the tap script never ran", gain: null }; })()';
+  + '{ taps: s.taps, error: s.error, gain: s.tap ? s.tap.gain.value : null, '
+  + '  inGain: s.tapIn.map((n) => (n && n.gain ? n.gain.value : null)) } '
+  + ': { taps: 0, error: "the tap script never ran", gain: null, inGain: [] }; })()';

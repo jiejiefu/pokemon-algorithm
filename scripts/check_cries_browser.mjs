@@ -358,13 +358,66 @@ await send('Page.navigate',{url:`http://localhost:${process.env.CRY_PORT || 5500
  * shared.js executed, and two animation frames mean the task queue has drained
  * past init. That is ~100 ms against 3000 ms, and it is a tighter bound on the same
  * event rather than a shorter one — the 20 s ceiling still backstops it. */
-await booted(`!!document.querySelector('nav[data-nav] a, nav a')`);
+/* Gated on `#audioVolume`, which the DESTINATION page has and the previous one
+ * does not — NOT on a nav link.
+ *
+ * `Page.navigate` resolves when the navigation is committed to the BROWSER, not
+ * when the new document is the one `Runtime.evaluate` is talking to, and both
+ * documents share an origin, so anything they have in common is evidence of
+ * nothing. With a nav gate here, `booted()` returned true instantly against the
+ * still-live cries.html document, and the slider read further down then ran on a
+ * page that has no `#audioVolume`: a TypeError at the first `.value` assignment.
+ *
+ * This is the general shape of waiting for navigation over CDP, and it is the
+ * reason the two cross-page steps below each wait on something only their own page
+ * carries. The `#audioVolume` element is created in the toolbar, which is built
+ * before the module's audio init runs, so its presence is the tighter bound — and
+ * the rAF wait after it covers what the element's existence cannot.
+ */
+await booted(`!!document.getElementById('audioVolume')`);
 await until('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))', 4000);
 const afterSorting = await ev(
   `JSON.parse(localStorage.getItem('pokemon-algorithm:cry-volume') || '{}').muted`);
 ok(afterSorting !== true,
   `loading sorting.html does not write a site-wide mute into shared storage`
   + ` (muted: ${afterSorting}) — its switch starts off, and a page's own default is not a reader's choice`);
+
+
+/* THE SECOND GATE, and the one that was open.
+ *
+ * The first version of this fix made `muteForView()` skip `#save()`, which closed
+ * the path where LOADING sorting.html persisted its default mute — and left a
+ * worse one behind. `#save()` is reached from the volume setter too, and it
+ * serialised the effective mute rather than the stored one, so the default rode
+ * out through the volume slider instead. Measured on the tree with `muteForView`
+ * already present, in this order:
+ *
+ *   load sorting.html      → key null
+ *   drag the volume slider → {"volume":0.55,"muted":true}
+ *   open cries.html        → silent, and no control on that page to undo it
+ *
+ * A page default that reaches storage through a slider the reader is using for
+ * an unrelated reason is a worse bug than one written on load, because it looks
+ * like the reader's own doing. So the slider is exercised here, deliberately.
+ *
+ * The wait is on `volume === 0.55` and not on a duration, because that is the
+ * OTHER half of the same `#save()` write: it proves the write HAPPENED, rather
+ * than proving that nothing ran and therefore nothing was written. Polling for
+ * the absence being asserted — waiting for `muted` to still be undefined — would
+ * pass instantly on a page that never wrote at all, which is the vacuous form.
+ */
+await ev(`(() => { const s = document.getElementById('audioVolume');
+  s.value = '55'; s.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+await until(`JSON.parse(localStorage.getItem('pokemon-algorithm:cry-volume') || '{}').volume === 0.55`, 6000);
+const afterSlider = await ev(
+  `JSON.parse(localStorage.getItem('pokemon-algorithm:cry-volume') || '{}')`);
+ok(afterSlider.volume === 0.55,
+  `the volume slider writes the reader's level to shared storage (${afterSlider.volume})`);
+ok(afterSlider.muted !== true,
+  `and dragging sorting.html's volume slider does NOT persist that page's own default mute`
+  + ` (muted: ${afterSlider.muted}) — one field cannot carry both a page's decision and a reader's,`
+  + ` because #save() is reached from the volume setter too`);
+
 
 await send('Page.navigate',{url:`http://localhost:${process.env.CRY_PORT || 5500}/cries.html`});
 /* Was a fixed 4000 ms — and almost entirely redundant, because the press-play retry

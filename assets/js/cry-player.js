@@ -118,7 +118,10 @@ export class CriesPlayer {
   #ctx = null;
   #gain = null;
   #volume = DEFAULT_VOLUME;
-  #muted = false;
+  /** A mute the READER chose, and the only kind that is written to storage. */
+  #storedMuted = false;
+  /** A mute a PAGE decided for itself. Memory only — see `muteForView()`. */
+  #viewMuted = false;
   #unlockPromise = null;
   #current = null;
   #stopped = null;
@@ -159,7 +162,7 @@ export class CriesPlayer {
   constructor() {
     const prefs = readPrefs();
     this.#volume = prefs.volume;
-    this.#muted = prefs.muted;
+    this.#storedMuted = prefs.muted;
   }
 
   /** The AudioContext's own clock reading, or 0 before playback has unlocked it.
@@ -189,11 +192,55 @@ export class CriesPlayer {
     this.#save();
   }
 
-  get muted() { return this.#muted; }
+  /* The EFFECTIVE mute, and both fields feed it.
+   *
+   * This must be the OR of the two rather than either one alone, and each wrong
+   * answer fails silently in a direction the reader cannot undo:
+   *
+   *   #storedMuted only — sorting.html's own default is ignored, so the page that
+   *     documented "this is the only page that can fire a sound every few
+   *     milliseconds" would be LOUD BY DEFAULT. It is one checkbox away from a
+   *     drone and the default is the whole point.
+   *   #viewMuted only — an explicit un-mute from an earlier session is ignored, so
+   *     cries.html stays silent forever for a reader who turned sound on and
+   *     expects it to stay on.
+   */
+  get muted() { return this.#storedMuted || this.#viewMuted; }
   set muted(m) {
-    this.#muted = !!m;
+    this.#storedMuted = !!m;
     this.#applyGain();
     this.#save();
+  }
+
+  /**
+   * Mute for THIS PAGE VIEW, without writing the shared preference.
+   *
+   * WHY THIS EXISTS, AND IT IS NOT A NICETTY
+   *
+   * `sorting.html` starts with its cry switch off, on purpose: it is the only
+   * page that can fire a sound every few milliseconds, and 1,025 swaps is a lot
+   * of noise to arrive at uninvited. It used to express that default as
+   * `cryPlayer.muted = true`, and the setter persists — so merely LOADING
+   * sorting.html wrote `{muted: true}` into the site-wide `cry-volume` key, and
+   * every other page that plays a cry (cries.html, detail.html, spectrum.html)
+   * then read it back and went permanently silent. The reader had no way out
+   * except to return to sorting.html and tick a checkbox about swap sounds.
+   * `cries-gen1.html` was unaffected throughout, because it builds its own
+   * AudioContext and keeps its mute in per-lane memory that is never written
+   * anywhere.
+   *
+   * So the distinction is between a PAGE'S DEFAULT and A READER'S CHOICE. Only
+   * the second is a preference worth storing: "loudness is a site-wide setting"
+   * stays true, and the `muted` setter still persists for the explicit toggle,
+   * but a page deciding to be quiet on its own no longer speaks for pages it has
+   * not visited yet.
+   *
+   * Note the gain IS applied — this is not a request to the next page. It is
+   * silent for as long as this document is open, and gone on the next load.
+   */
+  muteForView(m) {
+    this.#viewMuted = !!m;
+    this.#applyGain();
   }
 
   /** Whether something is sounding right now. */
@@ -584,7 +631,10 @@ export class CriesPlayer {
 
   #applyGain() {
     if (!this.#gain) return;
-    const level = this.#muted ? 0 : this.#volume;
+    // The OR, for the same reason `get muted()` uses it: both fields are a mute
+    // the reader experiences, and picking one here would make a page's own
+    // default audible or a stored un-mute inaudible, with nothing to report it.
+    const level = this.muted ? 0 : this.#volume;
     const t = this.#ctx.currentTime;
     // Ramp rather than assign: clicking the mute button mid-cry otherwise pops.
     this.#gain.gain.cancelScheduledValues(t);
@@ -592,12 +642,31 @@ export class CriesPlayer {
     this.#gain.gain.linearRampToValueAtTime(level, t + STOP_RAMP);
   }
 
+  /* Writes the READER's preferences, and only those.
+   *
+   * `#storedMuted`, never the effective `muted`. `#save()` is reached from the
+   * volume setter as well as the mute setter, and that second caller is what
+   * closed the leak this method used to have: `#save()` serialised `#muted`,
+   * which by then could be a page's own `muteForView` default, so dragging
+   * sorting.html's volume slider persisted `muted: true` into the site-wide key
+   * and every cry page went permanently silent for a reader who had only ever
+   * adjusted the loudness. Measured, in that order:
+   *
+   *   load sorting.html            → key null
+   *   drag the volume slider      → {"volume":0.55,"muted":true}
+   *   open cries.html             → muted true, silent, with no control of its own
+   *
+   * So the split is the fix and not a tidiness: one field cannot carry both a
+   * page's decision and a reader's, because `#save()` cannot tell them apart.
+   */
   #save() {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ volume: this.#volume, muted: this.#muted }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ volume: this.#volume, muted: this.#storedMuted }));
     } catch {
-      // Storage unavailable (private mode, quota). The level still applies for
-      // this page view; it just will not be remembered.
+      // Storage unavailable (private mode, quota). Both levels still apply for this
+      // page view; they just will not be remembered. This was true of the page's
+      // own default mute only once the two were separate fields — before, a volume
+      // write dragged the default along with it.
     }
   }
 }
