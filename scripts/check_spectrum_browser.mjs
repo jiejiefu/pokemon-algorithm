@@ -117,6 +117,35 @@ const ev = async (expression) => {
   return r.result.value;
 };
 
+/** Poll a page expression until it is truthy. Returns whether it ever became so.
+ *
+ *  This file was 14.6 s, and 13.7 s of it was hardcoded waits. Same reason and same
+ *  two guarantees as the identical helper in check_cries_browser.mjs: every ceiling
+ *  below exceeds the sleep it replaced, so tolerance only goes UP, and a timeout
+ *  returns false so the assertion still runs and still reports its real number.
+ *  §3.G4 records what leaving these in cost on the sorting checker.
+ *
+ *  What this deliberately does NOT replace: the short in-page sampling intervals
+ *  below (the 130 ms between two `getImageData` calls, and so on). Those are not
+ *  guesses about how long a page takes — they are the measurement window of a
+ *  "did this canvas MOVE" check, and polling for the movement instead would make
+ *  the assertion vacuous. A wait and a sampling interval can look identical in the
+ *  source and mean opposite things. */
+async function until(expression, ceilingMs, step = 60) {
+  const deadline = Date.now() + ceilingMs;
+  for (;;) {
+    let v;
+    try { v = await ev(expression); } catch { v = false; }
+    if (v) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, step));
+  }
+}
+
+/** "The page is up": loaded AND past the point where its own DOM is built. */
+const booted = (extra = 'true') =>
+  until(`document.readyState === 'complete' && (${extra})`, 20000);
+
 /**
  * Ink on a canvas, counted by ALPHA over the whole surface and then by
  * difference from the ground colour.
@@ -145,7 +174,11 @@ const INK = `((sel) => {
 
 async function goto(query = '') {
   await send('Page.navigate', { url: `${PAGE}${query}` });
-  await new Promise((r) => setTimeout(r, 3500));
+  /* Was a fixed 3500 ms in every call to here. The status line is what the first
+   * block of checks reads, and it is filled only once a spectrogram has actually
+   * been computed — so it is the honest readiness signal, and it is also the value
+   * the assertions below report. `幀` is the marker that the frame count is in. */
+  await booted(`document.getElementById('sp-status')?.textContent.includes('幀')`);
 }
 
 try {
@@ -276,7 +309,11 @@ try {
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'true',
     'the play button reports pressed for the life of the playback');
 
-  await new Promise((r) => setTimeout(r, 1600));
+  /* Was a fixed 1600 ms, waiting for a cry to end. The page exposes exactly when
+   * that has happened — the play button releasing itself — and the assertion on the
+   * next line reads that same attribute, so waiting on it is waiting on the real
+   * thing rather than on a guess about how long this species lasts. */
+  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'false',
     'and releases it when the cry ends');
 
@@ -290,7 +327,9 @@ try {
     `the live curve is a different drawing from the spectrogram (${live.distinct} vs ${plot.distinct} distinct)`);
 
   await ev('document.getElementById("sp-play").click()');
-  await new Promise((r) => setTimeout(r, 300));
+  /* Was a fixed 300 ms. The live curve is fed by the analyser, so the observable
+   * that it has started is playback itself, which the button reports. */
+  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
   const liveMid = await ev(`${INK}("#sp-live")`);
   ok(liveMid.alpha === liveMid.px && liveMid.top / liveMid.px < 0.9,
     'the live curve is painted while audio is running');
@@ -346,7 +385,11 @@ try {
   // -----------------------------------------------------------------------
 
   await ev('document.querySelectorAll(".sp-source")[2].click()');
-  await new Promise((r) => setTimeout(r, 3000));
+  /* Was a fixed 3000 ms. This one renders the synthesised cry through gb-apu.js at
+   * 65,536 Hz — real arithmetic, so it genuinely takes time and a poll is the right
+   * shape rather than a smaller number. The status line naming 合成 is what the
+   * assertion below looks for, and it is set when that render lands. */
+  await until(`document.getElementById('sp-status')?.textContent.includes('合成')`, 30000);
   const gen1Status = await ev('document.getElementById("sp-status").textContent');
   ok(/合成/.test(gen1Status), `the synthesised cry path renders (${gen1Status})`);
 
@@ -357,10 +400,17 @@ try {
     'the cross-check panel says there is nothing to compare rather than showing a blank');
 
   await ev('document.getElementById("sp-play").click()');
-  await new Promise((r) => setTimeout(r, 350));
+  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'true',
     'the synthesised cry plays through the same player and the same clock');
-  await new Promise((r) => setTimeout(r, 2200));
+  /* Was a fixed 2200 ms. This one is a SAMPLING INTERVAL, not a readiness wait, and
+   * the difference is worth 3 s of wall clock. Nothing follows it that reads the
+   * end of playback: the button is simply clicked again to stop it. Polling for the
+   * natural release instead — which I tried first — waits for this species' cry to
+   * finish, and a synthesised Charizard runs longer than the 2200 ms the code used to
+   * allow itself, so the file got SLOWER: 14.6 s to 17.6 s, with every verdict
+   * unchanged. Waiting longer than the thing you are measuring is not more careful. */
+  await new Promise((r) => setTimeout(r, 500));
   await ev('document.getElementById("sp-play").click()');
 
   ok(problems.length === 0, `still no page exceptions after all three sources (${problems.slice(0, 2).join(' | ') || 'none'})`);
@@ -369,14 +419,40 @@ try {
   // Theme, and the mute.
   // -----------------------------------------------------------------------
 
+  /* A CHECK THAT COULD NEVER PASS, AND IT WAS FAILING FOR THAT REASON ALONE.
+   *
+   * This used to be: click the toggle, wait 500 ms, then assert
+   * `document.documentElement.dataset.theme === 'light'` — which assumes the page
+   * starts DARK and this click makes it light. Nothing establishes that. Headless
+   * Chrome reports `prefers-color-scheme: light` and the page honours it, so it
+   * loads LIGHT, the click makes it dark, and the assertion failed. Measured
+   * directly: theme on arrival `light`, after one click `dark`.
+   *
+   * It failed for the whole life of the check and looked like a spectrum redraw
+   * bug, which is the expensive way to be wrong — the reported message is about the
+   * ramp being theme-independent, and the actual cause was the check assuming a
+   * starting state it had not checked.
+   *
+   * What the page actually claims is direction-free: the ramp is
+   * theme-INDEPENDENT, so the plot must look the same after a switch either way.
+   * So the assertion now records the theme it started from, waits for the theme to
+   * DIFFER from it, and checks the plot still carries a real spectrogram. That is
+   * the real claim, it cannot fail merely because the OS prefers dark, and the
+   * precondition it waits for is strictly weaker than what it then asserts. */
+  const themeBefore = await ev('document.documentElement.dataset.theme');
   await ev('document.querySelector(".theme-toggle").click()');
-  await new Promise((r) => setTimeout(r, 500));
-  const lightTheme = await ev('document.documentElement.dataset.theme');
-  const lightPlot = await ev(`${INK}("#sp-plot")`);
-  ok(lightTheme === 'light' && lightPlot.distinct > 40,
-    'the spectrogram survives a theme switch — the ramp is theme-independent, so it redraws identical');
+  /* Was a fixed 500 ms, and the wait it was standing in for is a fact rather than a
+   * belief: the toggle sets `data-theme` synchronously (shared.js:547). Then TWO
+   * animation frames, so the redraw has been scheduled and painted. */
+  await until(`document.documentElement.dataset.theme !== ${JSON.stringify(themeBefore)}`, 6000);
+  await until('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))', 2000);
+  const themeAfter = await ev('document.documentElement.dataset.theme');
+  const switchedPlot = await ev(`${INK}("#sp-plot")`);
+  ok(themeAfter !== themeBefore && switchedPlot.distinct > 40,
+    `the spectrogram survives a theme switch (${themeBefore} -> ${themeAfter})`
+    + ` — the ramp is theme-independent, so it redraws identical (${switchedPlot.distinct} distinct colours)`);
   await ev('document.querySelector(".theme-toggle").click()');
-  await new Promise((r) => setTimeout(r, 400));
+  await until(`document.documentElement.dataset.theme === ${JSON.stringify(themeBefore)}`, 6000);
 
   /* The mute is asserted by reading the LIVE AudioParam, after a play, because the
    * AudioContext is built lazily and a probe before the first play reads a tap

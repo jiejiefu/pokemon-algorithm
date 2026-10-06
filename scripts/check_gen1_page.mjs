@@ -82,13 +82,43 @@ ws.addEventListener('message', (e) => {
  * boot is already covered. */
 await send('Page.addScriptToEvaluateOnNewDocument', { source: MUTE_TAP });
 await send('Page.navigate', { url: `http://localhost:${process.env.CRY_PORT || 5500}/cries-gen1.html` });
-await new Promise((r) => setTimeout(r, 3500));
+/* Was a fixed 3500 ms. The picker builds its 151 chips after load fires, so this
+ * waits for the chips rather than for a duration; the ceiling is 20 s. */
+await until(`document.readyState === 'complete' && document.querySelectorAll('#groups .cg-chip').length > 0`, 20000);
 
 async function evalJs(expr) {
   const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
   if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
   return r.result.value;
 }
+
+/** Poll a page expression until it is truthy. Returns whether it ever became so.
+ *
+ *  Same helper, same two guarantees, as the one in check_cries_browser.mjs and
+ *  check_spectrum_browser.mjs: every ceiling used below exceeds the sleep it
+ *  replaces, so tolerance only goes UP; and a timeout returns false, so the
+ *  assertion after it still runs and still reports its real measurement. There is
+ *  no flag that skips a check here.
+ *
+ *  Declared as a `function` rather than a `const` arrow on purpose: `evalJs` and
+ *  the 3500 ms navigation wait below are ordered the other way round in this file,
+ *  and a `const` helper above its first use is the temporal-dead-zone error that
+ *  cost a run here. Function declarations hoist, so the order stops mattering. */
+async function until(expression, ceilingMs, step = 60) {
+  const deadline = Date.now() + ceilingMs;
+  for (;;) {
+    let v;
+    try { v = await evalJs(expression); } catch { v = false; }
+    if (v) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, step));
+  }
+}
+
+/** The play button's own state, which is what "playback started/stopped" means on
+ *  this page — the same attribute `cry-autoplay.js` sets for its switch. */
+const playingIs = (want) =>
+  until(`document.getElementById('play')?.getAttribute('aria-pressed') === '${want}'`, 8000);
 
 let pass = 0; const fails = [];
 const ok = (c, w) => { if (c) pass++; else fails.push(w); console.log(`  ${c ? 'ok  ' : 'FAIL'} ${w}`); };
@@ -210,7 +240,12 @@ const sel = await evalJs(`(() => {
   other.click();
   return { id, name: other.textContent };
 })()`);
-await new Promise((r) => setTimeout(r, 400));
+/* Was a fixed 400 ms, then compared `cur-name` against what was just clicked.
+ * Polled on the page's own selection state — the `is-current` class moving to the
+ * clicked chip — rather than on `cur-name` matching, because the latter IS the next
+ * line's assertion and waiting for it would make the check pass by construction. The
+ * rendered text is still compared independently, which is the actual claim. */
+await until(`[...document.querySelectorAll('#groups .cg-chip')].some((b) => b.dataset.species === ${JSON.stringify(String(sel.id))} && b.classList.contains('is-current'))`, 8000);
 const after = await evalJs(`(() => {
   const d = document.getElementById('cur-name').textContent;
   const g = [...document.querySelectorAll('.cg-group')].find(x => x.textContent.includes(d.split(' · ')[0]));
@@ -392,7 +427,10 @@ const laneColour = await evalJs(`(() => {
   }), 300));
 })()`).then(async (v) => {
   await evalJs(`document.querySelector('.cg-lane-toggle[data-mute="5"]').click()`);
-  await new Promise((r) => setTimeout(r, 400));
+  /* Was a fixed 400 ms, then sampled the lane's pixels. The page marks the lane
+   * itself, so the wait is on that class rather than on the repaint having
+   * finished guessing; the pixel sample below is still what is asserted. */
+  await until(`document.querySelector('.cg-lane[data-ch="5"]')?.classList.contains('is-muted')`, 8000);
   v.after = await evalJs(`(() => {
     const c = document.querySelector('.cg-lane[data-ch="5"] canvas');
     const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let r=0,g=0,b=0,n=0; for (let i=0;i<d.length;i+=4) if (d[i+3]>10) { r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; } return n ? [Math.round(r/n),Math.round(g/n),Math.round(b/n),n] : null;
@@ -491,18 +529,29 @@ ok(/自動播放/.test(auto.text), 'and says so in its own label, so a page that
 eq(auto.playing, 'false', 'nothing is sounding on load — the switch is ON but the page is silent');
 
 await evalJs(`document.querySelector('[data-species]').click()`);
-await new Promise((r) => setTimeout(r, 250));
+await playingIs('true');
 eq(await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`), 'true',
   'clicking a species plays it while the switch is on');
 
 await evalJs(`document.querySelector('#autoplay-slot [role="switch"]').click()`);
-await new Promise((r) => setTimeout(r, 400));
+await playingIs('false');
 eq(await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`), 'false',
   'turning the switch off stops whatever is sounding');
 eq(await evalJs(`document.querySelector('#autoplay-slot [role="switch"]').getAttribute('aria-checked')`), 'false',
   'and the switch reports itself off');
-await evalJs(`[...document.querySelectorAll('[data-species]')].find((b) => !b.classList.contains('is-current')).click()`);
-await new Promise((r) => setTimeout(r, 300));
+const silentTarget = await evalJs(`(() => {
+  const b = [...document.querySelectorAll('[data-species]')].find((x) => !x.classList.contains('is-current'));
+  const id = b.dataset.species;
+  b.click();
+  return id;
+})()`);
+/* Was a fixed 300 ms. This one asserts the ABSENCE of playback, so it cannot wait
+ * for the thing it is checking would not happen — there is no condition that would
+ * ever make it true. It waits for the SELECTION to land instead (`is-current` moved
+ * to the clicked chip), which is the page having done the thing whose consequence is
+ * being checked. `playingIs('false')` is deliberately NOT used: it is already true
+ * before the click, so it would return instantly and measure the pre-click state. */
+await until(`[...document.querySelectorAll('#groups .cg-chip')].some((b) => b.dataset.species === ${JSON.stringify(String(silentTarget))} && b.classList.contains('is-current'))`, 8000);
 eq(await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`), 'false',
   'and a click with it off changes the species without making a sound');
 ok(await evalJs(`document.getElementById('cur-name').textContent.length > 0`),
