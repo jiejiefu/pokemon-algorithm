@@ -21,12 +21,39 @@
  * branch would be unpoliced.
  *
  * The harness runs from a temp tree, so a failed case cannot leave the working
- * tree modified. `assets/cries/` is copied for real rather than symlinked,
- * because several cases overwrite or delete a file inside it — through a symlink
- * that would destroy the actual audio and leave the repo 20 MB short.
+ * tree modified. `assets/cries/` is copied for real rather than symlinked or
+ * hardlinked, because several cases overwrite or delete a file inside it, and
+ * both of those reach THROUGH the link into the real audio: `copyFileSync` opens
+ * its destination `O_TRUNC`, so a hardlink is as destructive here as a symlink.
+ * That reasoning is why this file still copies the corpus at all — see below for
+ * how much it copies.
+ *
+ * THE WORKING TREE IS BUILT ONCE, NOT ONCE PER CASE
+ *
+ * This used to call `makeTree()` 22 times, and `makeTree` copied `assets/cries/`
+ * whole — 31 MB over 2,000 files, every time. That is 682 MB of write traffic to
+ * re-derive twenty-two copies of bytes nothing had edited, and it was half the
+ * wall clock: 22.6 s measured, of which ~11 s was copying and ~11 s the 22 real
+ * checker runs. `sorting.html`'s checker was cut from 93 s to 14 s by answering
+ * 1,025 sprite requests with a 71-byte stub for the same reason — a page-sized
+ * payload that is fetched repeatedly and read by nothing. The fix here is the
+ * stronger one, because nothing has to be faked: the corpus is still the real
+ * audio, the checker still magic-sniffs all 1,674 roster files, and the baseline
+ * still has to pass on the tree the cases run against.
+ *
+ * So there is ONE working tree, and a case restores what it touched instead of
+ * the tree being rebuilt. Restore reads from ROOT, which is never written to,
+ * which is what makes reusing the directory safe at all.
+ *
+ * The trap this shape invites is a hand-maintained list of "the paths a case is
+ * allowed to touch" — a second copy of the truth, and the thing that rots when a
+ * case grows a new mutation and forgets the list, at which point the NEXT case
+ * runs against a dirty tree and passes for the wrong reason. So there is no list:
+ * `io` is the only way a case reaches the corpus, and every `io` call records its
+ * own path. Forgetting is not possible because there is nothing to forget.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, copyFileSync, existsSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -78,19 +105,75 @@ function rosterEdit(src, which, action, id) {
   return src.replace(re, (_all, open, _body, close) => open + next.join(' ') + close);
 }
 
-function makeTree(mutate) {
-  const dir = join(tmpdir(), `cry-neg-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  for (const f of SRC) {
-    mkdirSync(join(dir, dirname(f)), { recursive: true });
-    cpSync(join(ROOT, f), join(dir, f));
+/**
+ * The single working tree, built from ROOT once.
+ *
+ * `SRC` and `DIRS` are re-copied before every case rather than diffed, because
+ * they are 330 KB in total and a diff that misses one file is a case that passes
+ * for the wrong reason. The corpus is NOT re-copied; see `io` below.
+ */
+const WORK = join(tmpdir(), `cry-neg-${process.pid}-${Math.random().toString(36).slice(2)}`);
+
+/** Every path under the corpus a case has touched since the last restore.
+ *  Relative to CRIES, so a case writes `latest/5.ogg` and not the full path. */
+const touched = new Set();
+
+/** Restore one repo-relative path into the working tree from ROOT.
+ *
+ *  ROOT is the pristine copy — the harness only ever writes inside WORK — so this
+ *  is what makes a mutated audio file come back to being the real recording. A
+ *  path that does not exist in ROOT is REMOVED instead, which is how a case that
+ *  created a file (`legacy/9999.ogg`) or deleted one (`latest/5.ogg`) is undone
+ *  by the same code path. Create, overwrite and delete therefore need no
+ *  separate bookkeeping, and `touched` can stay a plain Set of strings. */
+function restoreInto(rel) {
+  const src = join(ROOT, rel);
+  const dst = join(WORK, rel);
+  if (!existsSync(src)) {
+    rmSync(dst, { force: true, recursive: true });
+    return;
   }
-  for (const d of DIRS) cpSync(join(ROOT, d), join(dir, d), { recursive: true });
-  cpSync(join(ROOT, CRIES), join(dir, CRIES), { recursive: true });
+  mkdirSync(dirname(dst), { recursive: true });
+  // `SRC` holds files and `DIRS` holds `assets/css`, and they arrive from the same
+  // list — so one entry can be either and this has to be both, not whichever shape
+  // the list happened to have when it was written.
+  if (statSync(src).isDirectory()) {
+    rmSync(dst, { force: true, recursive: true });
+    cpSync(src, dst, { recursive: true });
+  } else {
+    copyFileSync(src, dst);
+  }
+}
+
+/** The only handle a case has on the corpus. Every method records the path it
+ *  changed, so restore is driven by what happened rather than by a list. */
+const io = {
+  /** Copy a corpus file over another, preserving the old within-tree source
+   *  semantics: the source is read from the working tree, which is pristine at
+   *  the top of every case because restore runs first. */
+  copy: (from, to) => { copyFileSync(join(WORK, CRIES, from), join(WORK, CRIES, to)); touched.add(join(CRIES, to)); },
+  write: (rel, data) => { writeFileSync(join(WORK, CRIES, rel), data); touched.add(join(CRIES, rel)); },
+  remove: (rel) => { rmSync(join(WORK, CRIES, rel), { force: true }); touched.add(join(CRIES, rel)); },
+};
+
+/** The one thing that is copied rather than restored: 31 MB over 2,000 files, and
+ *  paid exactly once for the whole run. Everything else `buildWork` would have
+ *  done is `prepare`'s job, because restoring is what every case after the first
+ *  needs anyway — copying here as well would just do it 22 times in a row. */
+function buildWork() {
+  mkdirSync(WORK, { recursive: true });
+  cpSync(join(ROOT, CRIES), join(WORK, CRIES), { recursive: true });
+}
+
+/** Put the tree back the way `buildWork` left it, then apply this case's mutation. */
+function prepare(mutate, files) {
+  for (const f of [...SRC, ...DIRS]) restoreInto(f);
+  for (const rel of touched) restoreInto(rel);
+  touched.clear();
 
   if (mutate) {
-    for (const f of [...SRC]) {
-      const p = join(dir, f);
+    for (const f of SRC) {
+      const p = join(WORK, f);
       const before = readFileSync(p, 'utf8');
       // `undefined` means "this case does not target this file". A returned
       // string IDENTICAL to the input means a stale anchor, and the case would
@@ -103,26 +186,29 @@ function makeTree(mutate) {
       writeFileSync(p, after);
     }
   }
-  return dir;
+  if (files) files(WORK, io);
 }
 
-function run(dir) {
+function run() {
   try {
-    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const out = execFileSync(process.execPath, [join(WORK, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     return { code: 0, out };
   } catch (e) {
     return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
   }
 }
 
-// Baseline first: if the unmutated copy does not pass, every case below would be
-// measuring the harness rather than the checker.
+buildWork();
+
+// Baseline first: if the unmutated tree does not pass, every case below would be
+// measuring the harness rather than the checker. This is also what proves the
+// reuse is sound — the corpus here is the real 31 MB one, so if `prepare()` left
+// anything dirty this is where it would show up.
 {
-  const dir = makeTree(null);
-  const { code, out } = run(dir);
+  prepare(null, null);
+  const { code, out } = run();
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
 }
 
 const textCases = [
@@ -145,7 +231,7 @@ const textCases = [
     // and only trips the 649 ceiling, which is a different case below.
     name: 'legacy claims an id that latest does not have, so it is no longer a subset',
     mutate: (f, s) => f.endsWith('cry-index.js') ? rosterEdit(s, 'legacy', 'add', 9999) : undefined,
-    files: (dir) => copyFileSync(join(dir, CRIES, 'legacy/1.ogg'), join(dir, CRIES, 'legacy/9999.ogg')),
+    files: (dir, io) => io.copy('legacy/1.ogg', 'legacy/9999.ogg'),
     expect: 'legacy ids absent from the latest roster',
   },
   {
@@ -161,7 +247,7 @@ const textCases = [
     mutate: (f, s) => f.endsWith('cry-index.js')
       ? rosterEdit(rosterEdit(s, 'legacy', 'add', 700), 'latest', 'add', 700)
       : undefined,
-    files: (dir) => copyFileSync(join(dir, CRIES, 'latest/700.ogg'), join(dir, CRIES, 'legacy/700.ogg')),
+    files: (dir, io) => io.copy('latest/700.ogg', 'legacy/700.ogg'),
     expect: 'legacy roster stops at 649',
   },
 
@@ -259,43 +345,41 @@ const textCases = [
   /* Container sniffing — the reason this checker does not trust the extension. */
   {
     name: 'the mislabeling note rots: 25.ogg is quietly made a real Ogg, and the count is stale',
-    files: (dir) => copyFileSync(join(dir, CRIES, 'legacy/25.ogg'), join(dir, CRIES, 'latest/25.ogg')),
+    files: (dir, io) => io.copy('legacy/25.ogg', 'latest/25.ogg'),
     expect: 'the roster species that are not Ogg are still exactly 25, 808, 809',
   },
   {
     name: 'legacy is refilled by copying latest, so the "different recording" claim is false',
-    files: (dir) => {
+    files: (dir, io) => {
       for (const f of ['1.ogg', '25.ogg', '649.ogg']) {
-        copyFileSync(join(dir, CRIES, 'latest', f), join(dir, CRIES, 'legacy', f));
+        io.copy(`latest/${f}`, `legacy/${f}`);
       }
     },
     expect: 'byte-identical copies of their latest counterpart',
   },
   {
     name: 'a roster file is an error body wearing an .ogg name',
-    files: (dir) => writeFileSync(join(dir, CRIES, 'latest/5.ogg'), '404: Not Found'),
+    files: (dir, io) => io.write('latest/5.ogg', '404: Not Found'),
     expect: 'not a known audio container',
   },
   {
     name: 'a roster file is a truncated stub below the minimum audio size',
-    files: (dir) => writeFileSync(join(dir, CRIES, 'latest/5.ogg'), Buffer.concat([
+    files: (dir, io) => io.write('latest/5.ogg', Buffer.concat([
       Buffer.from('OggS', 'latin1'), Buffer.alloc(64)])),
     expect: 'below the minimum audio size',
   },
   {
     name: 'a roster file is deleted, so its button 404s',
-    files: (dir) => rmSync(join(dir, CRIES, 'latest/5.ogg'), { force: true }),
+    files: (dir, io) => io.remove('latest/5.ogg'),
     expect: 'ids in a roster with no file behind them',
   },
 ];
 
 for (const c of textCases) {
-  const dir = makeTree(c.mutate);
-  if (c.files) c.files(dir);
-  const { code, out } = run(dir);
+  prepare(c.mutate, c.files);
+  const { code, out } = run();
   if (code !== 0 && caughtBy(out, c.expect)) pass(c.name);
   else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`);
-  rmSync(dir, { recursive: true, force: true });
 }
 
 /* Opposite direction. A species removed from the dataset must not read as a
@@ -310,7 +394,7 @@ for (const c of textCases) {
 const SHRINK_ID = 5;
 const LEGACY_HAD_SHRINK = LEGACY_CRY_IDS.has(SHRINK_ID);
 {
-  const dir = makeTree((f, s) => {
+  prepare((f, s) => {
     if (f === 'assets/data/pokemon_data.json') {
       return JSON.stringify(JSON.parse(s).filter((p) => p.id !== SHRINK_ID));
     }
@@ -321,13 +405,14 @@ const LEGACY_HAD_SHRINK = LEGACY_CRY_IDS.has(SHRINK_ID);
     }
     return undefined;
   });
-  rmSync(join(dir, CRIES, `latest/${SHRINK_ID}.ogg`), { force: true });
-  if (LEGACY_HAD_SHRINK) rmSync(join(dir, CRIES, `legacy/${SHRINK_ID}.ogg`), { force: true });
-  const { code, out } = run(dir);
+  io.remove(`latest/${SHRINK_ID}.ogg`);
+  if (LEGACY_HAD_SHRINK) io.remove(`legacy/${SHRINK_ID}.ogg`);
+  const { code, out } = run();
   code === 0 ? pass('a species dropped cleanly from the dataset, rosters and directory still passes')
              : fail(`a clean dataset shrink was reported as a defect — the checker is hardcoding completeness:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
 }
+
+rmSync(WORK, { recursive: true, force: true });
 
 console.log(failures
   ? `\nFAIL  ${failures} negative case(s) did not behave`
