@@ -12,12 +12,18 @@
  *
  * The expensive cases mutate the two generated JSON files, which means the
  * fixture tree is a few hundred KB rather than a few bytes — that is why there
- * are 34 cases and not forty.
+ * are 39 cases and not forty.
  *
  * Where the time goes, measured here: the checker's native-rate conformance loop
- * is 4.8 s of its 6.5 s, and 17 of the 34 cases below assert something that loop
- * never touches. Those 17 are the reason `stripConformance` exists — see the note
- * on CONFORMANCE_EXPECTS. The baseline always runs the whole checker.
+ * is 4.8 s of its 6.5 s, and 21 of the 39 cases below name an assertion that loop
+ * never produces. Those 21 are the reason `stripConformance` exists — see the note
+ * on CONFORMANCE_EXPECTS. The other 17 DO name it, so they keep it. The baseline
+ * always runs the whole checker.
+ *
+ * (This used to say "17 of the 34 ... assert something that loop never touches",
+ * which had the polarity backwards as well as the count: the 17 are the ones that
+ * keep the loop, and the 21 are the ones that lose it. Read that way it would send
+ * the next person to remove the wrong half.)
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -484,9 +490,9 @@ ok(`baseline: removing it drops exactly 4 of the ${fullCount} checks and nothing
 const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
 
 /* Heaviest first. The cases that need the conformance loop cost 5.7 s and the other
- * 18 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
+ * 21 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
  * last wave is whatever happened to be left, which is most often one long case that
- * holds four workers idle while three of them sit finished. Issuing the 16 long ones
+ * holds four workers idle while three of them sit finished. Issuing the 17 long ones
  * up front makes every trailing wave short, which is worth about one full wave.
  *
  * Results are still recorded against the ORIGINAL index, so this changes the order

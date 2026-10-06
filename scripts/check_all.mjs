@@ -104,7 +104,7 @@ const CHECKERS = [
   },
   {
     script: 'scripts/test_check_gen1_apu.mjs', checker: 'scripts/check_gen1_apu.mjs', group: 'cry-apu',
-    note: '34 cases, each a fresh checker in a temp tree',
+    note: '39 cases (17 need the conformance loop, 21 do not), each a fresh checker in a temp tree',
     inputs: [
       'assets/js/gb-apu.js',
       'assets/data/gen1_cries.json',
