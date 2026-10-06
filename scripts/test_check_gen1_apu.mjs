@@ -15,15 +15,41 @@
  * are 39 cases and not forty.
  *
  * Where the time goes, measured here: the checker's native-rate conformance loop
- * is 4.8 s of its 6.5 s, and 21 of the 39 cases below name an assertion that loop
- * never produces. Those 21 are the reason `stripConformance` exists — see the note
+ * is 4.8 s of its 6.5 s, and 22 of the 39 cases below name an assertion that loop
+ * never produces. Those 22 are the reason `stripConformance` exists — see the note
  * on CONFORMANCE_EXPECTS. The other 17 DO name it, so they keep it. The baseline
  * always runs the whole checker.
  *
- * (This used to say "17 of the 34 ... assert something that loop never touches",
- * which had the polarity backwards as well as the count: the 17 are the ones that
- * keep the loop, and the 21 are the ones that lose it. Read that way it would send
- * the next person to remove the wrong half.)
+ * (This used to say "17 of the 34 cases ... assert something that loop never
+ * touches", which had the polarity backwards as well as the count: the 17 are the
+ * ones that keep the loop, and the 21 were the ones that lose it. 21 + 17 = 38,
+ * which is not 39 — the sum was the tell, and it went unread. It is 22.)
+ *
+ * ---------------------------------------------------------------------------
+ * NOT IN check_all.mjs. THIS FILE IS RETIRED FROM THE DEFAULT RUN, ON PURPOSE.
+ * ---------------------------------------------------------------------------
+ *
+ * It cost 42 s — 22% of the suite, and the largest single entry in it — to prove a
+ * point that is about the CHECKER rather than about the synthesiser: that each of
+ * check_gen1_apu.mjs's 92 assertions fails when the thing it polices stops being
+ * true. §4 forbids a flag to skip a check, so the entry was removed rather than
+ * disabled; the file is untouched and still runs:
+ *
+ *     node scripts/test_check_gen1_apu.mjs      # ~42 s
+ *
+ * WHAT IS STILL CHECKED EVERY DAY: check_gen1_apu.mjs is still in the manifest, so
+ * the synthesis is still compared against the reference synthesiser's own output.
+ * That is the claim about the APU. This file is the claim about the checker.
+ *
+ * WHAT IS NO LONGER CHECKED: that each of those 92 assertions is load-bearing.
+ * Nothing else substitutes for it.
+ *
+ * IF YOU EDIT check_gen1_apu.mjs, this file's 39 `expect` strings are what tell a
+ * mutation case which assertion is supposed to fire, so editing an assertion's
+ * MESSAGE text silently invalidates them. The guard in check_gen1_apu.mjs reads this
+ * file and fails when an expectation no longer names an assertion it contains — so
+ * you will be told rather than left to discover it the next time someone runs this
+ * by hand.
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -41,6 +67,12 @@ const SRC = [
   'assets/js/gb-apu.js',
   'cries-gen1.html',
   'scripts/check_gen1_apu.mjs',
+  /* The harness reads ITSELF, not the checker's copy of it: check_gen1_apu.mjs carries
+   * a guard that reads this file to confirm its 39 expectations still name assertions
+   * that exist. Without this line that read is ENOENT inside every temp tree below and
+   * the guard fails all 39 cases — the cost of the guard being unconditional. A temp
+   * tree has to contain everything the checker opens, and this is something it opens. */
+  'scripts/test_check_gen1_apu.mjs',
 ];
 const CHECKER = 'scripts/check_gen1_apu.mjs';
 
@@ -490,7 +522,7 @@ ok(`baseline: removing it drops exactly 4 of the ${fullCount} checks and nothing
 const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
 
 /* Heaviest first. The cases that need the conformance loop cost 5.7 s and the other
- * 21 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
+ * 22 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
  * last wave is whatever happened to be left, which is most often one long case that
  * holds four workers idle while three of them sit finished. Issuing the 17 long ones
  * up front makes every trailing wave short, which is worth about one full wave.

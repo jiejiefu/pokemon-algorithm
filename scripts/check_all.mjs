@@ -102,17 +102,26 @@ const CHECKERS = [
       'cries-gen1.html',
     ],
   },
-  {
-    script: 'scripts/test_check_gen1_apu.mjs', checker: 'scripts/check_gen1_apu.mjs', group: 'cry-apu',
-    note: '39 cases (17 need the conformance loop, 21 do not), each a fresh checker in a temp tree',
-    inputs: [
-      'assets/js/gb-apu.js',
-      'assets/data/gen1_cries.json',
-      'assets/data/gen1_cry_sfx.json',
-      'assets/data/gen1_conformance.json',
-      'cries-gen1.html',
-    ],
-  },
+  /* test_check_gen1_apu.mjs IS DELIBERATELY NOT HERE, and this is where you are reading
+   * why. It is the 39-case mutation harness for check_gen1_apu.mjs — the thing that
+   * proves each of that checker's 92 assertions is LOAD-BEARING rather than trivially
+   * true — and it cost 42 s, 22% of the suite, for the largest single item in it.
+   *
+   * §4's rule is that there is no flag to skip a check, because a supported way to skip
+   * one is how it stops happening. So the mechanism had to be removal, not an opt-out,
+   * and the file stays on disk runnable with `node scripts/test_check_gen1_apu.mjs`.
+   *
+   * What that gives up, stated plainly: check_gen1_apu.mjs itself STILL RUNS below, so
+   * the synthesis is still compared against the reference on every pass. What is gone is
+   * the proof that each of the 92 assertions would fail if the thing it polices stopped
+   * being true. The two are not the same claim, and the second is the one this removal
+   * trades away.
+   *
+   * The guard that replaces the daily proof is small and lives in the checker: it reads
+   * the retired harness and fails if any of its 39 declared expectations no longer names
+   * an assertion the checker contains. It cannot prove an assertion is still meaningful
+   * — only that the harness is still pointed at something real.
+   */
 
   /* ---- cry: the generated tables ---- */
   {
