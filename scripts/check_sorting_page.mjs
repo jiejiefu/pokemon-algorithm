@@ -57,6 +57,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { deflateSync, crc32 } from 'node:zlib';
 
 const ROOT = join(import.meta.dirname, '..');
 const PORT = Number(process.env.SORT_PORT || 5500);
@@ -88,6 +89,85 @@ function stripComments(src, kind) {
 }
 
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+
+/* ------------------------------------------------------- STUBBED SPRITES
+ *
+ * The page boots by fetching 1,025 sprites, and they are 126.7 KB on average — about
+ * 130 MB and 1,025 PNG decodes per navigation, at concurrency 24. That was 85% of this
+ * checker's runtime and, through the mutation suite's full baseline, most of the
+ * suite's too. None of it is what the rendered half is measuring: the claims are that
+ * each lane canvas HOLDS INK, that five grid shapes are right, that a race finishes,
+ * and that a full six-lane race does not retain its history. A 71-byte sprite answers
+ * all four.
+ *
+ * What is given up, stated here because a reader will otherwise assume otherwise:
+ * that the sprite PATHS resolve and that the PNGs DECODE. A wrong `filename` or a 404
+ * still produces ink — PokemonNode.draw() skips an image whose naturalWidth is 0 —
+ * so that class of defect goes dark in this checker. Everything §3.G3 is about still
+ * works, because sprites painted into a hidden canvas give zero ink whichever sprite
+ * they are.
+ *
+ * The PNG is BUILT here rather than pasted in as a base64 constant, because a corrupt
+ * stub would leave every lane blank and the checker would then fail for a reason that
+ * has nothing to do with the page. Built means provably well-formed: a PNG is a
+ * signature plus length-prefixed, CRC32-suffixed chunks, and `zlib.crc32` gives the
+ * CRC Node's own zlib already computes, so there is no table to hand-copy.
+ */
+function pngChunk(type, data) {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length);
+  const typed = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(typed) >>> 0);
+  return Buffer.concat([len, typed, crc]);
+}
+function stubSprite() {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(4, 0);   // width  4
+  ihdr.writeUInt32BE(4, 4);   // height 4
+  ihdr[8] = 8;                // bit depth
+  ihdr[9] = 6;                // colour type 6 = RGBA
+  // OPAQUE white, and opacity is the load-bearing part: a blank canvas is transparent,
+  // so a transparent stub would make the ink check report zero for the right reason and
+  // fail for the wrong one. Opaque also means the stub fills its destination box, where
+  // a real sprite covers only ~60-70% of it after transparent padding — so the ink
+  // figures this checker prints are HIGHER than the real-sprite ones and are not
+  // comparable to them.
+  const raw = Buffer.from([0, 255, 255, 255, 255, 0, 255, 255, 255, 255, 0, 255, 255, 255, 255, 0, 255, 255, 255, 255]);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', deflateSync(raw)),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+/** Re-parse what we just built, so a malformed stub is a startup throw and not 33 red checks. */
+function assertWellFormedPng(png) {
+  const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  for (let i = 0; i < SIG.length; i++) if (png[i] !== SIG[i]) throw new Error('stub PNG has a bad signature');
+  const types = [];
+  let o = 8;
+  while (o < png.length) {
+    const len = png.readUInt32BE(o);
+    const type = png.slice(o + 4, o + 8).toString('ascii');
+    const crc = png.readUInt32BE(o + 8 + len);
+    if (crc32(png.slice(o + 4, o + 8 + len)) >>> 0 !== crc) throw new Error(`stub PNG chunk ${type} has a bad CRC`);
+    types.push(type);
+    o += 12 + len;
+  }
+  if (types.join(',') !== 'IHDR,IDAT,IEND') throw new Error(`stub PNG chunks are ${types.join(',')}, expected IHDR,IDAT,IEND`);
+  return png;
+}
+const STUB_PNG_B64 = assertWellFormedPng(stubSprite()).toString('base64');
+
+/* The URL pattern the stub answers. It has to match the ONE directory the page loads
+ * from and nothing else, or a stub would start masking a request the page is entitled
+ * to make for real. It is READ OUT OF shared.js rather than written down here, because
+ * a second copy of a path is a second thing to keep right: `ASSETS.images` changing is
+ * exactly the edit that would silently stop the interception, and the stub-count
+ * assertion below would then fire with no pointer to the cause. */
+const ASSETS_IMAGES = read('assets/js/shared.js').match(/images:\s*'([^']+)'/)?.[1];
+const SPRITE_GLOB = ASSETS_IMAGES ? `*${ASSETS_IMAGES}*` : '*assets/images/pokemon/*';
 
 /* ================================================================ STATIC */
 
@@ -248,6 +328,16 @@ check(/new SortRun\(lane\.nodes[\s\S]{0,200}?maxLoggedEvents: 0/.test(htmlCode),
   'race lanes build their SortRun with maxLoggedEvents: 0',
   () => 'a race lane is the only SortRun on this site that never rewinds, so its event log (~33 MB per lane at n=1,025, ~200 MB across six) is pure waste. Without maxLoggedEvents: 0 nothing bounds it.');
 
+/* The rendered half answers every sprite request with a 71-byte stub, which is what
+ * makes it ~20s instead of ~93s. The glob it intercepts is READ OUT OF shared.js
+ * rather than written down here, so the only thing that can desynchronise them is
+ * ASSETS.images changing — and this is the assertion that says so, with the cause in
+ * the message. Without it the only symptom is the stub-count check firing on a count,
+ * which says the interception stopped but not that a directory moved. */
+check(!!ASSETS_IMAGES && SPRITE_GLOB.includes(ASSETS_IMAGES),
+  `the sprite stub intercepts the page's own sprite directory (${ASSETS_IMAGES || 'not found in shared.js'})`,
+  () => `shared.js no longer declares an \`images:\` entry this checker can read, so SPRITE_GLOB fell back to a hard-coded "${SPRITE_GLOB}". That is the path §3.G's stub answers, and if the page moved its sprites the run would fetch 130 MB for real while every check still passed.`);
+
 console.log('\nstatic: sort-run.js documents what it does');
 
 /* The claim is not "the string never appears" — it is "it does not cite a checker
@@ -364,9 +454,30 @@ if (!existsSync(CHROME)) {
     await new Promise(r => ws.addEventListener('open', r, { once: true }));
     let id = 0; const waiting = new Map();
     const noise = [];
-    ws.addEventListener('message', e => {
+    /* `Fetch.requestPaused` is an EVENT, not a reply, and every one of them must be
+     * answered with `fulfillRequest` or the renderer sits there waiting for a message
+     * nobody sends. So the counter and the reply both live here, on the same
+     * dispatcher that resolves `send()` promises — and this handler is installed
+     * BEFORE `Fetch.enable` below, because enabling interception is what starts the
+     * events. A stub that silently fails to install would leave the page hanging on
+     * the first image rather than reporting anything useful. */
+    let stubbed = 0;
+    ws.addEventListener('message', async e => {
       const m = JSON.parse(e.data);
       if (m.id && waiting.has(m.id)) { waiting.get(m.id)(m); waiting.delete(m.id); }
+      if (m.method === 'Fetch.requestPaused') {
+        stubbed++;
+        await send('Fetch.fulfillRequest', {
+          requestId: m.params.requestId,
+          responseCode: 200,
+          responseHeaders: [
+            { name: 'Content-Type', value: 'image/png' },
+            { name: 'Cache-Control', value: 'no-store' },
+          ],
+          body: STUB_PNG_B64,
+        });
+        return;
+      }
       if (m.method === 'Runtime.exceptionThrown') noise.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text));
       if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') noise.push('console.error: ' + m.params.args.map(a => a.value ?? a.description).join(' '));
     });
@@ -378,12 +489,21 @@ if (!existsSync(CHROME)) {
     };
 
     await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
-    /* Live Server will serve algo.css straight from the HTTP cache, and the symptom
-     * is a check that reports the OLD stylesheet as though it were the new one —
-     * every case comes back with four columns and 225x140 canvases, which is the
-     * pre-fix auto-fit rule, and nothing about the run makes that obvious. */
+    /* `setCacheDisabled` is NOT what makes this run see the current stylesheet, and the
+     * reason is worth writing down because the opposite was believed for a while. One
+     * run reported the OLD `.al-lanes` rule — four columns, 225×140 canvases — and the
+     * first explanation was a stale HTTP cache. It was not: a concurrent session had
+     * reverted algo.css ON DISK, and the run went green the moment the edit was
+     * re-applied. So the flag was never the safeguard; treating it as one would mean
+     * believing the page is being tested fresh when nothing was checking it.
+     *
+     * It stays on, for a different reason: it means an edit made DURING a run is
+     * picked up rather than served from memory. With the sprite stub below, the
+     * refetch it forces costs 130 MB of image transfers that never happen anyway, so
+     * freshness is now free. */
     await send('Network.setCacheDisabled', { cacheDisabled: true });
     await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await send('Fetch.enable', { patterns: [{ urlPattern: SPRITE_GLOB, requestStage: 'Request' }] });
 
     /* Poll for the lane COUNT, never for "a canvas exists". A bare existence check
      * resolves against the PREVIOUS document the instant navigate returns, so the
@@ -550,26 +670,55 @@ if (!existsSync(CHROME)) {
       check(actual.ink > 2000, 'the canvases still hold ink after the result panel appears',
         () => `ink fell to ${actual.ink} once the panel was shown. finishRace() adds a grid row and the lane rows are 1fr, so every canvas shrinks — the ones that were cleared without a repaint would be blank here.`);
 
-      /* Single mode must be untouched by a race-mode fix: the three helpers were
-       * changed for the lanes, and the single canvas is the one they used to write to
-       * by accident. */
-      await send('Page.navigate', { url: `${BASE}/sorting.html?mode=single&algo=quick&key=id&speed=turbo&seed=424242` });
-      await evalJs(`new Promise(r => { const t = setInterval(() => { if (document.querySelector('#singleCanvas') && document.getElementById('singleCanvas').width > 0) { clearInterval(t); r(true); } }, 100); setTimeout(() => { clearInterval(t); r(false); }, 45000); })`);
+      /* Single mode must be untouched by a race-mode fix: the three helpers were changed for
+       * the lanes, and the single canvas is the one they used to write to by accident.
+       *
+       * Reached by CLICKING THE 單一 TAB, not by navigating — and this is not a
+       * shortcut, it is the same state for free. The page's boot sequence runs
+       * `setMode(state.mode)` and then `resetSingle()` UNCONDITIONALLY, so the
+       * single-mode canvas and its 1,025 nodes exist from the first paint whatever
+       * `mode=` says; a `mode=single` navigation was buying a second boot to obtain a
+       * state the first one already had. That boot was ~45s of the checker's runtime,
+       * and through the mutation suite's full baseline most of the suite's as well.
+       *
+       * If the nodes were somehow absent, the ink check below fails loudly rather than
+       * passing on an empty canvas — which is the correct failure mode here, and the
+       * reason this can be a click. */
+      await evalJs("document.getElementById('tabSingle').click()");
+      const switched = await evalJs(`new Promise(r => { const t = setInterval(() => {
+          if (document.getElementById('raceGrid').hidden === true && document.getElementById('singleCanvas').hidden === false) { clearInterval(t); r(true); }
+        }, 100); setTimeout(() => { clearInterval(t); r(false); }, 20000); })`);
+      check(switched,
+        'clicking the 單一 tab swaps the stage to single mode',
+        () => 'after clicking 單一, the race grid was still visible or the single canvas still hidden. setMode() is the page\'s own handler for that tab, so this is the page failing to respond to a control.');
       await evalJs(SETTLE);
       const single = JSON.parse(await evalJs(`(() => {
         const cv = document.getElementById('singleCanvas');
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
         let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
-        return JSON.stringify({ ink: n, raceHidden: document.getElementById('raceGrid').hidden, canvasHidden: cv.hidden });
+        return JSON.stringify({ ink: n, raceHidden: document.getElementById('raceGrid').hidden, canvasHidden: cv.hidden, w: cv.width, h: cv.height });
       })()`));
-      check(single.ink > 5000 && single.canvasHidden === false && single.raceHidden === true,
+      check(single.ink > 5000 && single.canvasHidden === false && single.raceHidden === true && single.w > 0,
         'single mode still paints its own canvas, and only its own',
-        () => `single canvas ink=${single.ink}, hidden=${single.canvasHidden}, race grid hidden=${single.raceHidden}. The race lanes drawing into this canvas was the bug; the reverse — single mode painting into a lane — would be the mirror image.`);
+        () => `single canvas ink=${single.ink}, hidden=${single.canvasHidden}, backing=${single.w}x${single.h}, race grid hidden=${single.raceHidden}. The race lanes drawing into this canvas was the bug; the reverse — single mode painting into a lane — would be the mirror image.`);
 
       check(noise.length === 0, 'the page produced no console errors or exceptions',
         () => noise.slice(0, 3).join(' | '));
 
+      /* The stub has to be PROVEN live, or the speedup is a claim nothing checks. A typo
+       * in the urlPattern falls through to the real sprite directory, all 33 rendered
+       * checks still pass, and the run quietly takes four times as long — the same shape
+       * as a silent skip-cache hit. One page load asks for 1,025 sprites, so requiring
+       * at least that many is the floor that proves interception happened, and the
+       * figure is printed so a regression in the pattern is visible rather than
+       * inferred from a timing. */
+      check(stubbed >= 1025,
+        `the sprite stub answered all ${stubbed.toLocaleString('en-US')} image requests (1,025 per page load)`,
+        () => `only ${stubbed} request(s) were intercepted, so the run fetched real sprites over HTTP — which is why it was slow. Either the glob "${SPRITE_GLOB}" no longer matches ${ASSETS_IMAGES} or Fetch.enable was not reached.`);
+
       console.log(`\n  measured: min ink across every configuration was ${minInk.toLocaleString('en-US')} px (a FLOOR, not a bound — sprites are mid-lerp on every frame)`);
+      console.log(`  note: that figure is with STUBBED 4×4 opaque sprites, so it is HIGHER than the real-sprite one and not comparable to it`);
+      console.log(`  stub answered ${stubbed.toLocaleString('en-US')} image requests; at 126.7 KB mean that is ~${(stubbed * 126.7 / 1024).toFixed(0)} MB not transferred`);
     } finally {
       chrome.kill();
     }

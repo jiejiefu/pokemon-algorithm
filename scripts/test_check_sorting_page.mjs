@@ -59,7 +59,16 @@ const FILES = [
   'assets/css/algo.css',
   'assets/js/sort-run.js',
   'assets/js/sorting-algorithms.js',
+  'assets/js/shared.js',
 ];
+
+/* The rendered half's check count. Hardcoded on purpose, and updating it is the
+ * point: the guard's job is to catch a strip that takes the WRONG number, and a
+ * derived number cannot do that (deriving it from the source is tautological). When a
+ * check is added to either half this has to move, which forces whoever added it to
+ * look at where the sentinels are — which is exactly the moment a misplaced sentinel
+ * would otherwise go unnoticed. */
+const EXPECTED_STRIP_DROP = 35;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -167,7 +176,9 @@ let fullTotal = null;
   if (code !== 0) fail(`the STRIPPED copy does not pass, so every fast case below is measuring a broken checker:\n${out}`);
   else if (fullTotal === null) fail('cannot compare strip sizes: the full baseline did not report a check count');
   else if (strippedTotal === null) fail('the stripped copy did not print "PASS  all N checks", so its check count is unknown');
-  else pass(`the stripped copy passes and drops exactly ${fullTotal - strippedTotal} checks (${fullTotal} → ${strippedTotal})`);
+  else if (fullTotal - strippedTotal !== EXPECTED_STRIP_DROP) {
+    fail(`the strip took ${fullTotal - strippedTotal} checks, expected exactly ${EXPECTED_STRIP_DROP} (${fullTotal} → ${strippedTotal}). A strip one check too WIDE would leave every cheap case asserting against a narrower checker, and they would all still pass; too NARROW and they are testing the browser for no reason. If you added or removed a check, update EXPECTED_STRIP_DROP deliberately.`);
+  } else pass(`the stripped copy passes and drops exactly ${EXPECTED_STRIP_DROP} checks (${fullTotal} → ${strippedTotal})`);
   rmSync(dir, { recursive: true, force: true });
 }
 
@@ -318,6 +329,17 @@ const cases = [
     name: 'a race lane goes back to logging its whole history',
     mutate: (f, s) => f === 'sorting.html' ? s.replace("                               { maxLoggedEvents: 0 });", ');') : undefined,
     expect: 'race lanes build their SortRun with maxLoggedEvents: 0',
+  },
+  {
+    /* The stub's glob is READ OUT OF shared.js so there is only one copy of the path.
+     * This case is the cost of that choice made visible: with the entry gone the
+     * checker cannot tell where the page loads sprites from, falls back to a literal,
+     * and would answer 1,025 real HTTP requests — still passing every check, at four
+     * times the runtime. Note that MOVING the directory does not trip this case, and
+     * should not: the glob follows the move, which is the whole point of deriving it. */
+    name: 'shared.js stops declaring the images path the sprite stub is derived from',
+    mutate: (f, s) => f === 'assets/js/shared.js' ? s.replace(/\n\s*images: '[^']*',/, '') : undefined,
+    expect: "the sprite stub intercepts the page's own sprite directory",
   },
 
   /* ---- sort-run.js's own claims ---- */

@@ -531,6 +531,8 @@ const CHECKERS = [
       'assets/css/algo.css',
       'assets/js/sort-run.js',
       'assets/js/sorting-algorithms.js',
+      /* read for ASSETS.images, which the sprite-stub glob is derived from */
+      'assets/js/shared.js',
       'assets/js/*',
     ],
   },

@@ -377,7 +377,7 @@ Two defects in `spectrum.html`'s header produced a **visibly broken page with no
 
 - **`paint()`, `ring()` and `sweep()` all closed over the module-level `ctx`**, which is the SINGLE-mode canvas. `frameRace()` cleared `lane.ctx` and then called `paint()`, which drew 130 sprites a frame into a canvas `setMode()` had set `hidden` — so every lane was cleared 60×/sec and nothing was ever drawn on it. **No exception, no failed request, no console output.** Only a screenshot or a canvas pixel count sees it; every shape check passes.
 - **`sweep(progress)` took a parameter and then tested the module-level `sweepAt`**, so a lane's own `lane.sweepAt` was read by nobody and the finish wipe could only ever appear on the single-mode canvas. All three helpers now take the context and the timestamp from the caller, and `sweep()` returns whether it is *still running* so the caller clears its own field — reaching back to zero a variable it no longer has a reference to is the same leak in the other direction.
-- **`count ink by ALPHA, and let the assertion return false.** A blank canvas is transparent, so alpha is the only thing distinguishing 「drew nothing」 from 「drew black」. Measured over the 5 layouts × 4 sample sizes, min ink per lane ranged **24,573 → 110,893** — but read that as a FLOOR, not a bound: sprites are mid-lerp on every frame, so one lane's ink moves a few percent between samples, and only a reading near zero means anything.
+- **`count ink by ALPHA, and let the assertion return false.** A blank canvas is transparent, so alpha is the only thing distinguishing 「drew nothing」 from 「drew black」. Measured over the 5 layouts × 4 sample sizes with REAL sprites, min ink per lane ranged **24,573 → 110,893** — but read that as a FLOOR, not a bound: sprites are mid-lerp on every frame, so one lane's ink moves a few percent between samples and only a reading near zero means anything. **§3.G4's checker prints a HIGHER figure against its own 71-byte stub** and says so; these are the real-sprite numbers.
 - **The lane layout is `data-lanes` on the container, and it is spelled out rather than derived** — 2 lanes `repeat(2,1fr)`, 3 `repeat(3,1fr)`, 4 `repeat(2,1fr)` (2×2, *not* 3+1), 5 a six-column grid with `span 2` / `span 3`, 6 `repeat(3,1fr)`. `cols = count <= 3 ? count : 3` is the formula that looks right and gives four lanes an empty cell. Five's `span 3` on its last two lanes is **positional**, which is why `buildRace()` **appends** `.al-result` instead of prepending it: a leading sibling shifts every `:nth-child` by one.
 - **`align-content: stretch` is load-bearing, not cosmetic.** A `center`ed row track is sized to its *content*, so each lane is exactly as tall as its head + canvas + stats, the canvas has no free space to grow into, and `flex: 1 1 auto` on it is a **no-op**. Measured with `center`: two lanes at n=1,025 gave 483×302 canvases and 9.5px sprites inside a 723px stage. With `stretch` the same box gives 483×655.
 - **`finishRace()` re-measures AFTER it writes the panel, not after unhiding it.** Unhiding an empty `<p>` gives it one line; filling it with a heading, six list items and a paragraph makes it several times taller, and the lane rows are `1fr`, so every canvas shrinks again. Measuring between the two left `lane.cfg` describing a box the reader is no longer looking at — the reported sprite size was 11.3px where the displayed box gives 14.8px. The ≤1px gap that remains between the CSS box and the backing store is `Math.floor` on a fractional `getBoundingClientRect()`, the same residual the main canvas has always had.
@@ -389,24 +389,32 @@ Two defects in `spectrum.html`'s header produced a **visibly broken page with no
 
 `sort` is the newest group, and it exists mostly because §3.G3's defect shipped through a 41-script suite: `rg -l "al-lanes"` returned only `sorting.html` and `algo.css`, and `rg -l "sort-run" scripts/` returned nothing. No checker read the page's DOM or its stylesheet, so six permanently blank canvases were invisible to everything the manifest covered.
 
-`check_sorting_page.mjs` (63 checks) is split in two, and the split is the design:
+`check_sorting_page.mjs` (66 checks) is split in two, and the split is the design:
 
-- **STATIC**, 30 checks, ~0.2 s. Reads `sorting.html` / `algo.css` / `sort-run.js` off disk. A stylesheet contract can be checked by reading it, and mutation-testable from a scratch tree.
-- **RENDERED**, 33 checks, ~93 s idle. Drives the real page over CDP and counts **ink by alpha**. A blank canvas is transparent, so alpha is the only thing that distinguishes 「drew nothing」 from 「drew black」.
+- **STATIC**, 31 checks, ~0.2 s. Reads `sorting.html` / `algo.css` / `sort-run.js` / `shared.js` off disk. A stylesheet contract can be checked by reading it, and mutation-testable from a scratch tree.
+- **RENDERED**, 35 checks, ~12 s. Drives the real page over CDP and counts **ink by alpha**. A blank canvas is transparent, so alpha is the only thing that distinguishes 「drew nothing」 from 「drew black」.
+
+**THE RENDERED HALF ANSWERS EVERY SPRITE WITH A 71-BYTE STUB, and that is a deliberate trade, not an optimisation to be proud of.** The page boots by fetching 1,025 sprites at 126.7 KB mean — **~130 MB and 1,025 PNG decodes per navigation**, which was 85% of this checker's runtime and, through the mutation suite's full baseline, most of the suite's. `Fetch.enable` + `Fetch.fulfillRequest` answers the lot with one 4×4 opaque PNG, and the single-mode half now clicks the 單一 tab instead of navigating, because the boot sequence runs `resetSingle()` unconditionally and both modes exist from the first paint.
+
+- **What the stub still catches:** everything §3.G3 is about. Sprites painted into a hidden canvas give zero ink whichever sprite they are, so the original defect is caught in full. So are the five lane shapes, the four sizes, the finish path, and the memory claim.
+- **What it gives up:** that the sprite **paths resolve and the PNGs decode**. `PokemonNode.draw()` skips an image whose `naturalWidth` is 0, so a wrong `filename` or a 404 would still produce ink. That class of defect is now uncovered here.
+- **The PNG is BUILT, not pasted.** A corrupt stub leaves every lane blank and the checker fails for a reason that has nothing to do with the page, so the chunk/CRC32 constructor runs at import and **re-parses its own output** (`assertWellFormedPng`) — a bad signature or CRC is a startup throw, not 35 red checks. It is **opaque** for the same reason inverted: a transparent stub would make the ink check report zero *for the right reason and fail for the wrong one*.
+- **THE STUB IS PROVEN LIVE, OR THE SPEEDUP IS A CLAIM NOTHING CHECKS.** A typo in the glob falls through to real sprites, all 35 rendered checks still pass, and the run quietly takes four times as long — the same shape as a silent skip-cache hit. So the intercepted-request count is asserted `>= 1,025` and printed, and the glob is **read out of `ASSETS.images` in `shared.js`** rather than written down, so the only thing that can desynchronise them is the page moving its sprites, and a static check says so with the cause in the message.
+- **Its ink figures are HIGHER than the real ones and not comparable.** An opaque stub fills its destination box; a real sprite covers ~60-70% of it after transparent padding. §3.G3's `24,573 → 110,893` is the real-sprite measurement and stays as the historical figure; the checker prints its own number with that caveat attached.
 
 **THE FAST LOOP IS `--static` ON THE HARNESS, AND ITS PLACEMENT IS THE POINT.**
 
 ```bash
-node scripts/test_check_sorting_page.mjs --static   # 0.5s — the 30 static checks
+node scripts/test_check_sorting_page.mjs --static   # 0.5s — the 31 static checks
 ```
 
-Two rules keep it honest. It is **not a flag on the checker** — §4 rules out a supported way to skip a check, because a cheap path becomes the path a reader reaches for by default; `check_sorting_page.mjs` has no such flag and never will. And it sits **above the harness's two baselines**, which is not a detail: it was originally below them, so pressing it still ran the 93s browser baseline and all 24 mutation cases first — **the fast loop took longer than the thing it was a shortcut for**, discovered by a reader asking why it was slow. A slow escape hatch is not an escape hatch.
+Two rules keep it honest. It is **not a flag on the checker** — §4 rules out a supported way to skip a check, because a cheap path becomes the path a reader reaches for by default; `check_sorting_page.mjs` has no such flag and never will. And it sits **above the harness's two baselines**, which is not a detail: it was originally below them, so pressing it still ran the browser baseline and all 25 mutation cases first — **the fast loop took longer than the thing it was a shortcut for**, discovered by a reader asking why it was slow. A slow escape hatch is not an escape hatch.
 
-**THE STRIP IS GUARDED BY A CHECK COUNT, not by "it still passes".** The harness copies the checker, deletes everything between the `RENDERED HALF` sentinels, and requires the stripped copy to pass having dropped **exactly 33** checks (63 → 30). A strip one check too wide would leave every cheap case asserting against a silently narrower checker, and all 24 would still pass — they only require their own detector, which a narrower checker satisfies more easily, not less. This is the same guard §3.F describes for the APU harness.
+**THE STRIP IS GUARDED BY A CHECK COUNT, not by "it still passes".** The harness copies the checker, deletes everything between the `RENDERED HALF` sentinels, and requires the stripped copy to pass having dropped **exactly 35** checks (66 → 31). That number is **hardcoded, and updating it is the point** — a strip one check too wide would leave every cheap case asserting against a silently narrower checker, and they would all still pass because they only require their own detector, which a narrower checker satisfies more easily, not less. Deriving the expected number from the source would be tautological, so adding a check forces whoever added it to look at where the sentinels are, which is exactly when a misplaced sentinel would otherwise go unnoticed.
 
-**`manual: true` ON THE HARNESS FOR A NEW REASON.** The existing manual entries (`check_gen1_page.mjs`, `check_cries_browser.mjs`) are manual because they open **no repo file**. This one opens plenty — it copies four files into a temp tree — but every read happens in a **child process over a tree outside ROOT**, and `record-inputs.cjs` ignores anything outside ROOT. Inheriting the `-r` preload would not help: the paths opened are the temp copies. So the list is hand-maintained and the flag says so with that reason attached rather than a generic one.
+**`manual: true` ON THE HARNESS FOR A NEW REASON.** The existing manual entries (`check_gen1_page.mjs`, `check_cries_browser.mjs`) are manual because they open **no repo file**. This one opens plenty — it copies five files into a temp tree — but every read happens in a **child process over a tree outside ROOT**, and `record-inputs.cjs` ignores anything outside ROOT. Inheriting the `-r` preload would not help: the paths opened are the temp copies. So the list is hand-maintained and the flag says so with that reason attached rather than a generic one.
 
-**24 CASES, AND TWO OF THEM WERE WRONG ON THE FIRST WRITE** — the §4 table's rule arriving from a new direction:
+**25 CASES, AND TWO OF THEM WERE WRONG ON THE FIRST WRITE** — the §4 table's rule arriving from a new direction:
 
 - *"a sweep() caller stops clearing its own timestamp"* declared `every sweep() call site passes its context explicitly`, and **passed for an unrelated reason**: the mutation kept `lane.ctx` as the first argument, so that assertion was satisfied. It needed a **new** assertion rather than a re-pointed `expect`, because clearing the timestamp was never guarded at all. Both callers are now asserted on the whole `if (!sweep(...)) <field> = 0;` statement.
 - *"a quoted step count is edited"* proved `docblock.includes('524,800')` is the wrong test **verbatim**: `524,800` also appears in the next paragraph, so editing the quote to `480,000` left the check green. Presence is not attribution. The assertion now requires the number to sit within 60 characters of the row's **anchor** wording, against a whitespace-collapsed copy so rewrapping does not break it. `claim` and `anchor` are separate fields on purpose — collapsing them forces the claim to be phrased exactly as the comment happens to phrase it, so a harmless reword breaks a check that was verifying something real.
@@ -415,21 +423,23 @@ Two rules keep it honest. It is **not a flag on the checker** — §4 rules out 
 
 **ONE PAGE LOAD, THEN THE READER'S OWN CONTROLS.** Navigating per case costs ~25 s because the page re-fetches 1,025 sprites; a first pass at this took half an hour across eight navigations, two fixed `sleep(9000)` waits, and a readiness poll that **matched the previous document** — producing a five-lane case that reported a lane of **zero ink**, which read as a rendering bug and was the harness measuring the wrong document. It now loads **once** and drives the algorithm chips and the sample-size select with `click()` and a `change` event, which is both faster and a better test: a control whose handler never fires is invisible to a URL-driven check.
 
+**`Network.setCacheDisabled` IS NOT WHAT KEEPS THE RUN FRESH, and the source no longer says it is.** One run reported the old `.al-lanes` rule and the first explanation was a stale HTTP cache. It was not: a **concurrent session had reverted `algo.css` on disk**, and the run went green the moment the edit was re-applied. Believing the flag was the safeguard means believing the page is being tested current when nothing was checking it. It stays on — an edit made *during* a run is then picked up — and with the sprite stub the refetch it forces costs nothing.
+
 ```bash
 # The everyday loop while editing anything the static half guards (0.5s)
 node scripts/test_check_sorting_page.mjs --static
 
-# Confirm the browser half (63 checks, ~1.5 min — needs :5500)
+# Confirm the browser half (66 checks, ~12s — needs :5500)
 node scripts/check_sorting_page.mjs
 
-# The whole group, with the harness (190s idle)
+# The whole group, with the harness (~31s)
 node scripts/check_all.mjs --only=sort
 
 # Everything EXCEPT it, while working on anything else
 node scripts/check_all.mjs --skip=sort
 ```
 
-**`--skip=sort` is the filter to reach for, and `--static` is the one to prefer.** 190 s is the fifth-largest group, but the honest advice is not "skip it" — most edits to this page touch the static contract, and the static loop answers that in 0.5 s. Reserve the browser half for when the rendering is the question.
+**`--skip=sort` IS THE WRONG ADVICE NOW, and saying so is the point.** It was the fifth-largest group at 190 s; the sprite stub and the tab-click brought it to **~31 s** (14 s + 17 s), which is cheaper than every other CDP group in the suite. The filter to reach for is `--static` at 0.5 s, and `--skip=sort` is only worth knowing in case something else you are running needs the machine.
 
 ### H. Category Pages vs. `types.html` — Two Different Questions
 
@@ -469,11 +479,14 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `cry-data` | 38.1 | 8 | `check_cry_index.mjs` 24 s — magic-sniffs 1,674 roster files |
 | `type` | 33.8 | 4 | `test_check_sv_index.mjs` 33 s |
 | `cry-page` | 44.1 | 8 | `check_spectrum_browser.mjs` 15 s, `check_cries_browser.mjs` 11 s, `check_gen1_page.mjs` 10 s (all CDP) |
+| `sort` | 31.0 | 2 | `check_sorting_page.mjs` 14 s and its harness 17 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **Not** in the table above because that run predates the group |
 | `nav` | 3.1 | 3 | `test_check_nav_pages.mjs` 3 s |
 | `data` | 0.9 | 4 | `check_learnsets.mjs` 1 s |
 | `model` | 0.1 | 1 | — |
 
 Three harnesses are **62% of the suite**, and the reason is structural rather than incidental: a negative case is a whole checker run in a temp tree, so `test_check_gen1_apu` alone is 36 of them. **These were measured on a loaded machine** (the run was competing with Chrome, 97% CPU), so treat them as an upper bound — `test_check_gen1_apu` is 34 s idle against the 120 s above — but the *proportions* are what a filter depends on, and they do not change with load.
+
+**`sort` is the exception that proves the shape is about the PAGE, not the harness.** Its harness is the same construct as the APU one — a whole checker run per baseline — yet it costs 17 s against 120 s, because the checker answers 1,025 sprite requests with a 71-byte stub and loads the page once (§3.G4). A negative case is only as expensive as the thing it is attacking.
 
 ---
 
