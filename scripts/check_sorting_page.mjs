@@ -441,6 +441,28 @@ if (!existsSync(CHROME)) {
   const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${dbg}`, '--disable-gpu', '--mute-audio',
     `--user-data-dir=${profile}`, '--window-size=1440,900', 'about:blank'], { stdio: 'ignore' });
 
+  /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it is what
+   * makes the profile removal above safe, and what makes the next run's port free.
+   *
+   * Removing the profile is not killing the browser. A headless Chrome left running
+   * holds its `--remote-debugging-port`, and `dbg` here is derived from the PID
+   * (`9400 + pid % 200`), so an orphan is a port collision waiting for the next run:
+   * the new Chrome cannot bind, `fetch(:dbg/json/list)` answers from the ORPHAN, and
+   * the checker drives a browser whose profile directory this process deleted under
+   * it. Measured: a `pkill` of this file during a run left the Chrome alive, and the
+   * pile reached 28 processes across four debug ports before it was cleared.
+   *
+   * `exit` covers a normal return, a `process.exit()`, and an uncaught throw — which
+   * is everything except a signal, so SIGINT and SIGTERM are mapped to the same exit
+   * path rather than left to orphan a browser. SIGKILL cannot be caught at all, which
+   * is the honest limit of this and the reason `check_all.mjs` prints the port a run
+   * is using. */
+  const stopChrome = () => { try { chrome.kill(); } catch {} };
+  process.on('exit', stopChrome);
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+  }
+
   const targets = await (async () => {
     for (let i = 0; i < 60; i++) {
       try { const r = await fetch(`http://127.0.0.1:${dbg}/json/list`); if (r.ok) return await r.json(); } catch {}

@@ -39,6 +39,20 @@ const chrome = spawn(CHROME, [
   `--user-data-dir=${profile}`,
   'about:blank',
 ], { stdio: 'ignore' });
+/* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
+ * next run's --remote-debugging-port free and it is what makes the profile removal above
+ * safe. A headless Chrome left running holds its debugging port, so an orphan is a port
+ * collision waiting for the next run: the new browser cannot bind and the checker fetches
+ * /json/list from the ORPHAN — driving a browser whose profile directory this process
+ * already deleted under it. 'exit' covers a normal return, a process.exit() and an
+ * uncaught throw, which is everything except a signal, so SIGINT and SIGTERM are mapped
+ * to the same path. SIGKILL cannot be caught at all, which is the honest limit. */
+const stopChrome = () => { try { chrome.kill(); } catch {} };
+process.on('exit', stopChrome);
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+}
+
 
 async function cdpTargets() {
   for (let i = 0; i < 60; i++) {

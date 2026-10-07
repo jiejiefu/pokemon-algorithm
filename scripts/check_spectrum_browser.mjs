@@ -69,6 +69,20 @@ const chrome = spawn(CHROME, [
   '--autoplay-policy=no-user-gesture-required',
   '--remote-debugging-port=9374', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore' });
+/* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
+ * next run's --remote-debugging-port free and it is what makes the profile removal above
+ * safe. A headless Chrome left running holds its debugging port, so an orphan is a port
+ * collision waiting for the next run: the new browser cannot bind and the checker fetches
+ * /json/list from the ORPHAN — driving a browser whose profile directory this process
+ * already deleted under it. 'exit' covers a normal return, a process.exit() and an
+ * uncaught throw, which is everything except a signal, so SIGINT and SIGTERM are mapped
+ * to the same path. SIGKILL cannot be caught at all, which is the honest limit. */
+const stopChrome = () => { try { chrome.kill(); } catch {} };
+process.on('exit', stopChrome);
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+}
+
 
 let targets;
 for (let i = 0; i < 80; i++) {
@@ -237,6 +251,49 @@ try {
     `both tables are reachable from the page (${cross.latest} latest, ${cross.legacy} legacy)`);
 
   const printed = await ev('document.getElementById("sp-cross").textContent');
+
+  /* 對表's four numeric columns are ALIGNED, which is the one property of this block
+   * that a source-shape check cannot answer and a reader notices immediately.
+   *
+   * It was 61px of drift and a header 98px off, from three causes that each look fine
+   * alone: content-sized `.sp-x-got`/`.sp-x-want` spans pushing everything after them,
+   * a header `<dl>` that was a SECOND grid with its own independently-sized `auto`
+   * column, and `min-width` on `.sp-x-rel`/`.sp-where` fixing their WIDTH while leaving
+   * their POSITION to float. `ch` cannot fix the last one either — it resolves against
+   * each `<dd>`'s own font-size, and the header is 10px where the rows are 13px.
+   *
+   * Measured, not asserted from the CSS: the spread of each column's left and right
+   * edge across all five rows, plus the header's own right edge against the rows'. A
+   * check that read the stylesheet would pass on a `grid-template-columns` that is
+   * declared and then overridden, which is the §3.G shape. */
+  const ALIGN = `(() => {
+    const box = document.getElementById('sp-cross');
+    const rows = [...box.querySelectorAll('.sp-x-rows > dd')];
+    const edges = rows.map(d => [...d.children].map(e => {
+      const r = e.getBoundingClientRect();
+      return [r.left, r.right];
+    }));
+    const spread = j => +(Math.max(...edges.map(r => r[j][0])) - Math.min(...edges.map(r => r[j][0]))).toFixed(2);
+    const headR = box.querySelector('.sp-x-head > dd > .sp-x-rel').getBoundingClientRect().right;
+    const rowR = box.querySelector('.sp-x-rows > dd > .sp-x-rel').getBoundingClientRect().right;
+    const dts = [...box.querySelectorAll('.sp-x-rows > dt')];
+    return {
+      cols: edges[0].length,
+      worstSpread: Math.max(...edges[0].map((_, j) => spread(j))),
+      headGap: +Math.abs(headR - rowR).toFixed(2),
+      dtOverflow: Math.max(...dts.map(d => d.scrollWidth - d.clientWidth)),
+    };
+  })()`;
+  const align = await ev(ALIGN);
+  ok(align.cols === 5, `對表's row carries all five columns — the two figures, the arrow, the %, and the absolute difference (${align.cols})`);
+  ok(align.worstSpread === 0, `and every one of them is aligned to 0.00px across all five rows (worst ${align.worstSpread}px)`);
+  ok(align.headGap === 0, `with the header's 相對差 sitting exactly over the column it labels (${align.headGap}px off)`);
+  /* Alignment is NECESSARY and not sufficient: the tracks are a fixed 270px, so a
+   * panel narrower than ~426px leaves the LABEL column 30px wide and the block is
+   * perfectly aligned and completely unreadable. Measured at the 1000px viewport
+   * where that happened, and the ≤1210px stack is what prevents it. */
+  ok(align.dtOverflow <= 1, `and no feature label overflows its own column at this width (${align.dtOverflow}px)`);
+
 
   /* The panel must name all THREE excluded features and BOTH reasons. Asserting the
    * count of names and nothing about the reasons would pass a page that listed

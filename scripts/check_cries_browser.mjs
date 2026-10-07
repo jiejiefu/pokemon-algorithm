@@ -41,6 +41,20 @@ process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true,
    the second is installed in the page, before any page script runs. See
    scripts/lib/mute-tap.mjs. */
 const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required','--remote-debugging-port=9370',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
+/* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
+ * next run's --remote-debugging-port free and it is what makes the profile removal above
+ * safe. A headless Chrome left running holds its debugging port, so an orphan is a port
+ * collision waiting for the next run: the new browser cannot bind and the checker fetches
+ * /json/list from the ORPHAN — driving a browser whose profile directory this process
+ * already deleted under it. 'exit' covers a normal return, a process.exit() and an
+ * uncaught throw, which is everything except a signal, so SIGINT and SIGTERM are mapped
+ * to the same path. SIGKILL cannot be caught at all, which is the honest limit. */
+const stopChrome = () => { try { chrome.kill(); } catch {} };
+process.on('exit', stopChrome);
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+}
+
 let targets; for(let i=0;i<80;i++){try{const r=await fetch('http://127.0.0.1:9370/json/list'); if(r.ok){targets=await r.json();break;}}catch{} await new Promise(r=>setTimeout(r,250));}
 const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
 await new Promise(r=>ws.addEventListener('open',r,{once:true}));
