@@ -63,19 +63,35 @@
     <div class="cp-intro">
       <h1>寶可夢穿搭</h1>
       <p class="cp-intro-lead">
-        上傳一張穿搭照片，點幾下衣服，這一頁會用<b>和 1,025 隻寶可夢完全相同的演算法</b>把
-        你點到的像素算成六個顏色，再和每一隻寶可夢的六色色盤比對，找出最像的那一隻。
+        上傳你的穿搭照片，點幾下身上的衣服，用<b>和 1,025 隻寶可夢完全相同的 MMCQ 演算法</b>提取六色色盤，
+        透過 OKLab 雙向感知色距找出最契合的穿搭夥伴；還能<b>直接將寶可夢放進照片任意位置合影</b>、縮放、翻轉並下載合照！
       </p>
+      <div class="of-roadmap" aria-label="穿搭配對三步驟">
+        <div class="of-roadmap-step">
+          <span class="of-roadmap-num">1</span>
+          <span class="of-roadmap-text">上傳相片 & 取樣測色</span>
+        </div>
+        <span class="of-roadmap-arrow" aria-hidden="true">→</span>
+        <div class="of-roadmap-step">
+          <span class="of-roadmap-num">2</span>
+          <span class="of-roadmap-text">OKLab 算出契合夥伴</span>
+        </div>
+        <span class="of-roadmap-arrow" aria-hidden="true">→</span>
+        <div class="of-roadmap-step">
+          <span class="of-roadmap-num">3</span>
+          <span class="of-roadmap-text">貼圖合影 & 匯出主題</span>
+        </div>
+      </div>
       <p class="cp-intro-note">
         色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a>，
-        距離度量用 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a>。
-        照片<b>不會離開你的瀏覽器</b> —— 解碼、取樣、量化、比對全部在這個分頁裡完成。
+        距離度量使用感知均勻的 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a>。
+        照片<b>100% 在你的瀏覽器本機運算</b> —— 解碼、取樣、量化、比對與照片合成全部在當前分頁完成，照片絕不上傳伺服器。
       </p>
     </div>
 
     <!-- ============================ upload ============================ -->
     <section class="of-section" aria-labelledby="sec-upload">
-      <h2 id="sec-upload">一、選一張照片</h2>
+      <h2 id="sec-upload">一、選一張穿搭照片</h2>
 
       <div class="of-drop" id="of-drop">
         <input type="file" id="of-file" accept="image/*" class="of-file-input"
@@ -83,7 +99,7 @@
         <label class="of-drop-label" for="of-file">
           <span class="of-drop-title">選擇或拖放一張照片</span>
           <span class="of-drop-hint" id="of-drop-hint">
-            JPG / PNG / WebP。整張照片會在瀏覽器裡縮到長邊 512 後再取樣，所以解析度再高也不會更準。
+            支援 JPG / PNG / WebP。照片會在瀏覽器本機縮到長邊 512 像素後取樣與比對，快速且保護隱私。
           </span>
         </label>
       </div>
@@ -93,7 +109,20 @@
 
     <!-- ============================= work ============================= -->
     <section class="of-section" id="of-work" aria-labelledby="sec-work" hidden>
-      <h2 id="sec-work">二、點你身上的衣服</h2>
+      <div class="of-work-header">
+        <h2 id="sec-work">二、點選衣物測色 & 夥伴合影</h2>
+        <div class="of-mode-tabs" role="tablist" aria-label="操作模式">
+          <button type="button" class="of-tab is-active" id="of-tab-sample" role="tab" aria-selected="true">
+            <span class="of-tab-icon">🎨</span>
+            <span>衣物測色取樣</span>
+          </button>
+          <button type="button" class="of-tab" id="of-tab-photo" role="tab" aria-selected="false" disabled>
+            <span class="of-tab-icon">📸</span>
+            <span>照片合影工作室</span>
+            <span class="of-tab-badge">拖曳·縮放</span>
+          </button>
+        </div>
+      </div>
 
       <div class="of-stage">
         <figure class="of-photo">
@@ -104,6 +133,18 @@
                can be redrawn. Kept separate, redrawing the marks is one clearRect. -->
           <canvas id="of-canvas" class="of-canvas"></canvas>
           <canvas id="of-marks" class="of-marks" aria-hidden="true"></canvas>
+
+          <!-- Companion Sticker Layer on the photo -->
+          <div id="of-companion-layer" class="of-companion-layer" hidden>
+            <div id="of-companion-sticker" class="of-companion-sticker" tabindex="0" role="button" aria-label="穿搭寶可夢貼圖，按住拖曳或點擊相片定位">
+              <img id="of-companion-sticker-img" class="of-companion-sticker-img" alt="" decoding="async">
+              <div class="of-companion-tag" id="of-companion-tag">
+                <span class="of-companion-tag-name" id="of-companion-tag-name"></span>
+                <span class="of-companion-tag-tip">✥ 拖曳移動</span>
+              </div>
+            </div>
+          </div>
+
           <figcaption class="of-photo-cap" id="of-photo-cap"></figcaption>
         </figure>
 
@@ -119,11 +160,56 @@
         </figure>
       </div>
 
-      <!-- Mode chips. Two questions, two answers, and the page says which one it
-           answered rather than leaving the reader to infer it from the result. -->
+      <!-- Mode chips (sampling mode). Two questions, two answers. -->
       <div class="of-modes" id="of-modes" role="radiogroup" aria-label="比對範圍" hidden></div>
-
       <p class="of-modes-note" id="of-modes-note"></p>
+
+      <!-- Sticky Companion Studio Dock: placed below the photo so tall 9:16 portrait photos require ZERO upward scrolling! -->
+      <div class="of-studio-bar" id="of-studio-bar" hidden>
+        <div class="of-studio-controls">
+          <div class="of-studio-group">
+            <label class="of-studio-label" for="of-companion-select">合影夥伴</label>
+            <select id="of-companion-select" class="of-studio-select"></select>
+          </div>
+
+          <div class="of-studio-group of-studio-group-scale">
+            <div class="of-studio-scale-header">
+              <label class="of-studio-label" for="of-companion-scale">大小縮放</label>
+              <span class="of-studio-val" id="of-scale-val">80%</span>
+            </div>
+            <div class="of-studio-scale-row">
+              <input type="range" id="of-companion-scale" min="40" max="180" value="80" step="5" class="of-range">
+              <div class="of-preset-pills">
+                <button type="button" class="of-pill" data-scale="50">小</button>
+                <button type="button" class="of-pill is-active" data-scale="80">中</button>
+                <button type="button" class="of-pill" data-scale="120">大</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="of-studio-group of-studio-group-actions">
+            <label class="of-studio-label">位置與面向</label>
+            <div class="of-studio-btn-row">
+              <button type="button" class="of-btn of-btn-sm" id="of-flip-btn" title="水平翻轉面向">⇄ 翻轉</button>
+              <div class="of-btn-group">
+                <button type="button" class="of-btn of-btn-sm" data-pos="tl" title="放置於左上">◴ 左上</button>
+                <button type="button" class="of-btn of-btn-sm" data-pos="tr" title="放置於右上">◷ 右上</button>
+                <button type="button" class="of-btn of-btn-sm" data-pos="bl" title="站立於左下">◺ 左下</button>
+                <button type="button" class="of-btn of-btn-sm" data-pos="br" title="站立於右下">◿ 右下</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="of-studio-group of-studio-group-dl">
+            <button type="button" class="of-btn-export-photo" id="of-download-photo-btn">
+              <span>📷 下載穿搭合照</span>
+            </button>
+          </div>
+        </div>
+        <div class="of-studio-hint">
+          💡 <strong>直幅相片最佳體驗：</strong>控制面板會智能吸附於螢幕底部。在相片<strong>任一處直接點擊</strong>即可放置，或按住寶可夢<strong>直接拖曳</strong>定位！
+        </div>
+      </div>
     </section>
 
     <!-- ============================ result =========================== -->
@@ -198,6 +284,19 @@
       file: document.getElementById('of-file'),
       fileMeta: document.getElementById('of-file-meta'),
       work: document.getElementById('of-work'),
+      tabSample: document.getElementById('of-tab-sample'),
+      tabPhoto: document.getElementById('of-tab-photo'),
+      studioBar: document.getElementById('of-studio-bar'),
+      companionLayer: document.getElementById('of-companion-layer'),
+      companionSticker: document.getElementById('of-companion-sticker'),
+      companionStickerImg: document.getElementById('of-companion-sticker-img'),
+      companionTag: document.getElementById('of-companion-tag'),
+      companionTagName: document.getElementById('of-companion-tag-name'),
+      companionSelect: document.getElementById('of-companion-select'),
+      companionScale: document.getElementById('of-companion-scale'),
+      scaleVal: document.getElementById('of-scale-val'),
+      flipBtn: document.getElementById('of-flip-btn'),
+      downloadPhotoBtn: document.getElementById('of-download-photo-btn'),
       canvas: document.getElementById('of-canvas'),
       marks: document.getElementById('of-marks'),
       photoCap: document.getElementById('of-photo-cap'),
@@ -251,6 +350,18 @@
 
     let currentPalette = null;
     let currentWinner = null;
+
+    // Active mode: 'sample' (測色取樣) | 'photo' (照片合影)
+    let activeMode = 'sample';
+
+    // Companion sticker placement & pose state
+    const companionState = {
+      x: 0.76,      // percentage across photo width (0.0 .. 1.0)
+      y: 0.94,      // percentage down photo height (0.0 .. 1.0, anchor at bottom)
+      scale: 0.85,  // relative scale factor
+      flip: false,  // horizontal flip
+      pokemonId: null, // explicit chosen species, or falls back to currentWinner.id
+    };
 
     // ---------------------------------------------------------------------
     // Loading the photo
@@ -514,6 +625,8 @@
         currentPalette = null;
         currentWinner = null;
         els.partnerImg.hidden = true;
+        els.tabPhoto.disabled = true;
+        switchMode('sample');
         return;
       }
 
@@ -523,6 +636,8 @@
         els.paletteSec.hidden = true;
         els.exportSec.hidden = true;
         els.partnerImg.hidden = true;
+        els.tabPhoto.disabled = true;
+        switchMode('sample');
         setStatus('這一次沒有量到顏色。換一點試試。');
         return;
       }
@@ -533,11 +648,163 @@
       currentPalette = rows;
       currentWinner = matchPalette(rows, 5)[0] || null;
 
+      if (currentWinner) {
+        els.tabPhoto.disabled = false;
+        if (activeMode === 'photo') {
+          updateCompanion();
+        } else {
+          updateCompanionSelect();
+        }
+      } else {
+        els.tabPhoto.disabled = true;
+        switchMode('sample');
+      }
+
       renderMeasured(rows);
       renderWinner();
       renderCandidates();
       renderPalette(rows);
       renderExport(rows);
+    }
+
+    // ---------------------------------------------------------------------
+    // Companion Photo Studio Methods
+    // ---------------------------------------------------------------------
+
+    function switchMode(mode) {
+      if (mode === 'photo' && !currentWinner) return;
+      activeMode = mode;
+      const isPhoto = mode === 'photo';
+
+      els.tabSample.classList.toggle('is-active', !isPhoto);
+      els.tabSample.setAttribute('aria-selected', !isPhoto);
+      els.tabPhoto.classList.toggle('is-active', isPhoto);
+      els.tabPhoto.setAttribute('aria-selected', isPhoto);
+
+      els.studioBar.hidden = !isPhoto;
+      els.companionLayer.hidden = !isPhoto;
+      els.marks.style.opacity = isPhoto ? '0.2' : '1';
+
+      if (isPhoto) {
+        updateCompanion();
+        els.photoCap.textContent = '📸 照片合影模式：點擊相片任意處立即放置寶可夢，或按住拖曳。滿意後可按「下載合照」！';
+      } else {
+        els.photoCap.textContent = '🎨 衣物測色模式：點照片上的衣物取樣。黃色點是實際比對的像素。想合照可點上方「照片合影工作室」。';
+      }
+    }
+
+    function updateCompanion() {
+      if (!photo) return;
+      const targetId = companionState.pokemonId || (currentWinner && currentWinner.id);
+      if (!targetId) return;
+
+      const name = speciesName(targetId);
+      els.companionStickerImg.src = artworkUrl(targetId);
+      els.companionStickerImg.alt = `${name} 貼圖`;
+      els.companionTagName.textContent = name;
+
+      const rect = els.canvas.getBoundingClientRect();
+      const photoW = rect.width || photo.width;
+      const stickerW = Math.max(70, Math.round(photoW * 0.42 * companionState.scale));
+
+      els.companionSticker.style.width = `${stickerW}px`;
+      els.companionSticker.style.left = `${companionState.x * 100}%`;
+      els.companionSticker.style.top = `${companionState.y * 100}%`;
+      els.companionSticker.style.transform = `translate(-50%, -100%) scaleX(${companionState.flip ? -1 : 1})`;
+
+      if (els.companionTag) {
+        els.companionTag.style.transform = `translateX(-50%) scaleX(${companionState.flip ? -1 : 1})`;
+      }
+
+      if (els.companionScale) {
+        els.companionScale.value = Math.round(companionState.scale * 100);
+      }
+      if (els.scaleVal) {
+        els.scaleVal.textContent = `${Math.round(companionState.scale * 100)}%`;
+      }
+      document.querySelectorAll('.of-preset-pills .of-pill').forEach((pill) => {
+        pill.classList.toggle('is-active', Number(pill.dataset.scale) === Math.round(companionState.scale * 100));
+      });
+
+      updateCompanionSelect();
+    }
+
+    function updateCompanionSelect() {
+      if (!els.companionSelect || !currentPalette) return;
+      const candidates = matchPalette(currentPalette, 5);
+      const currentId = companionState.pokemonId || (currentWinner && currentWinner.id);
+
+      els.companionSelect.innerHTML = candidates.map((m, idx) => {
+        const n = speciesName(m.id);
+        const sel = m.id === currentId ? ' selected' : '';
+        const title = idx === 0 ? `👑 最契合 · ${n}` : `#${idx + 1} · ${n}`;
+        return `<option value="${m.id}"${sel}>${escapeHtml(title)} (${formatPokemonId(m.id)})</option>`;
+      }).join('');
+    }
+
+    async function downloadCompositePhoto() {
+      if (!photo || !currentWinner) return;
+      const targetId = companionState.pokemonId || currentWinner.id;
+      const name = speciesName(targetId);
+
+      const btn = els.downloadPhotoBtn;
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<span>⏳ 產生中...</span>';
+      btn.disabled = true;
+
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = photo.width;
+        canvas.height = photo.height;
+        const ctx = canvas.getContext('2d');
+
+        // Draw photo
+        ctx.drawImage(els.canvas, 0, 0);
+
+        // Load artwork
+        const img = new Image();
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = artworkUrl(targetId);
+        });
+
+        if (img.naturalWidth) {
+          const px = companionState.x * photo.width;
+          const py = companionState.y * photo.height;
+
+          const baseW = photo.width * 0.42 * companionState.scale;
+          const aspect = img.naturalHeight / img.naturalWidth;
+          const baseH = baseW * aspect;
+
+          ctx.save();
+          ctx.translate(px, py);
+          if (companionState.flip) {
+            ctx.scale(-1, 1);
+          }
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+          ctx.shadowBlur = Math.max(12, baseW * 0.08);
+          ctx.shadowOffsetY = Math.max(6, baseH * 0.05);
+
+          ctx.drawImage(img, -baseW / 2, -baseH, baseW, baseH);
+          ctx.restore();
+        }
+
+        const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+        if (blob) {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `pokemon-outfit-${name}.png`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          flash(btn, '✅ 已下載合照！');
+        }
+      } catch (e) {
+        setStatus(`合成合照失敗：${e.message}`);
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { btn.innerHTML = originalHtml; }, 1500);
+      }
     }
 
     /**
@@ -647,8 +914,20 @@
       // as a rendering bug rather than as a picture.
       els.partnerImg.hidden = false;
       els.partnerImg.src = artworkUrl(m.id);
-      els.partnerImg.alt = `${name} 的官方立繪，擺在照片旁邊`;
-      els.partnerCap.textContent = `這就是你的寶可夢 —— 站在你旁邊，沒有擋住你。`;
+      els.partnerImg.alt = `${name} 的官方立繪`;
+      els.partnerCap.innerHTML = `
+        <div class="of-partner-cap-box">
+          <strong class="of-partner-cap-title">${escapeHtml(name)}</strong>
+          <span class="of-partner-cap-desc">最契合你穿搭風格的寶可夢夥伴</span>
+          <button type="button" class="of-btn-pose" id="of-btn-pose">📸 加入相片合影</button>
+        </div>`;
+      const poseBtn = els.partnerCap.querySelector('#of-btn-pose');
+      if (poseBtn) {
+        poseBtn.addEventListener('click', () => {
+          switchMode('photo');
+          els.work.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+      }
     }
 
     function renderCandidates() {
@@ -666,14 +945,30 @@
         const tag = record ? 'a' : 'span';
         const href = record ? ` href="${paletteUrl(record)}"` : '';
         return `
-          <${tag} class="of-candidate${on ? ' is-on' : ''}${record ? '' : ' is-plain'}"${href}>
-            <img src="${artworkUrl(m.id)}" alt="" width="56" height="56" loading="lazy" decoding="async">
-            <span class="of-candidate-body">
-              <span class="of-candidate-name">${escapeHtml(name)}</span>
-              <span class="of-candidate-meta">${formatPokemonId(m.id)} · ${m.score.toFixed(4)}</span>
-            </span>
-          </${tag}>`;
+          <div class="of-candidate${on ? ' is-on' : ''}${record ? '' : ' is-plain'}">
+            <${tag} class="of-candidate-link"${href}>
+              <img src="${artworkUrl(m.id)}" alt="" width="56" height="56" loading="lazy" decoding="async">
+              <span class="of-candidate-body">
+                <span class="of-candidate-name">${escapeHtml(name)}</span>
+                <span class="of-candidate-meta">${formatPokemonId(m.id)} · ${m.score.toFixed(4)}</span>
+              </span>
+            </${tag}>
+            <div class="of-candidate-actions">
+              <button type="button" class="of-candidate-pose-btn" data-pose-id="${m.id}" title="設為合照夥伴">📸 合照</button>
+            </div>
+          </div>`;
       }).join('');
+
+      els.candidates.querySelectorAll('[data-pose-id]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          companionState.pokemonId = Number(btn.dataset.poseId);
+          switchMode('photo');
+          updateCompanion();
+          els.work.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+      });
     }
 
     function renderPalette(rows) {
@@ -945,6 +1240,101 @@
     });
 
     els.canvas.addEventListener('click', (e) => addSample(e.clientX, e.clientY));
+
+    // Mode tabs
+    els.tabSample.addEventListener('click', () => switchMode('sample'));
+    els.tabPhoto.addEventListener('click', () => switchMode('photo'));
+
+    // Companion Scale Slider & Preset Pills
+    els.companionScale.addEventListener('input', (e) => {
+      companionState.scale = Number(e.target.value) / 100;
+      updateCompanion();
+    });
+    document.querySelectorAll('.of-preset-pills .of-pill').forEach((pill) => {
+      pill.addEventListener('click', () => {
+        companionState.scale = Number(pill.dataset.scale) / 100;
+        updateCompanion();
+      });
+    });
+
+    // Flip button
+    els.flipBtn.addEventListener('click', () => {
+      companionState.flip = !companionState.flip;
+      updateCompanion();
+    });
+
+    // Positioning preset buttons
+    document.querySelectorAll('[data-pos]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.pos;
+        if (p === 'tl') { companionState.x = 0.22; companionState.y = 0.38; }
+        else if (p === 'tr') { companionState.x = 0.78; companionState.y = 0.38; }
+        else if (p === 'bl') { companionState.x = 0.22; companionState.y = 0.94; }
+        else if (p === 'br') { companionState.x = 0.78; companionState.y = 0.94; }
+        updateCompanion();
+      });
+    });
+
+    // Companion select dropdown
+    els.companionSelect.addEventListener('change', (e) => {
+      companionState.pokemonId = Number(e.target.value);
+      updateCompanion();
+    });
+
+    // Download composite photo
+    els.downloadPhotoBtn.addEventListener('click', downloadCompositePhoto);
+
+    // Drag & Click positioning on photo in photo mode
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0;
+    let stickerStartX = 0, stickerStartY = 0;
+    let didDrag = false;
+
+    els.companionSticker.addEventListener('pointerdown', (e) => {
+      if (activeMode !== 'photo') return;
+      e.stopPropagation();
+      isDragging = true;
+      didDrag = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      stickerStartX = companionState.x;
+      stickerStartY = companionState.y;
+      els.companionSticker.setPointerCapture(e.pointerId);
+      els.companionSticker.classList.add('is-dragging');
+    });
+
+    els.companionSticker.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const rect = els.canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      const dx = (e.clientX - dragStartX) / rect.width;
+      const dy = (e.clientY - dragStartY) / rect.height;
+      if (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4) {
+        didDrag = true;
+      }
+      companionState.x = Math.max(0.08, Math.min(0.92, stickerStartX + dx));
+      companionState.y = Math.max(0.12, Math.min(0.98, stickerStartY + dy));
+      updateCompanion();
+    });
+
+    const endDrag = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      try { els.companionSticker.releasePointerCapture(e.pointerId); } catch {}
+      els.companionSticker.classList.remove('is-dragging');
+    };
+    els.companionSticker.addEventListener('pointerup', endDrag);
+    els.companionSticker.addEventListener('pointercancel', endDrag);
+
+    // Clicking anywhere on the companion layer in photo mode to instantly place
+    els.companionLayer.addEventListener('click', (e) => {
+      if (activeMode !== 'photo' || didDrag) return;
+      const rect = els.canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      companionState.x = Math.max(0.08, Math.min(0.92, (e.clientX - rect.left) / rect.width));
+      companionState.y = Math.max(0.12, Math.min(0.98, (e.clientY - rect.top) / rect.height));
+      updateCompanion();
+    });
 
     // The chip container handles a click on the canvas area too, so the marks
     // canvas (which sits on top) does not need its own listener — and giving the
