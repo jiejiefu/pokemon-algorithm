@@ -23,9 +23,39 @@
  * tree modified. Both image directories are copied for real rather than
  * symlinked, because three cases delete a file inside one — through a symlink
  * that would delete the actual asset and leave the repo one sprite short.
+ *
+ * ONE TREE, BUILT ONCE, RESTORED BETWEEN CASES — 22 s to about 3 s.
+ *
+ * It used to call `makeTree()` per case, and `makeTree()` copies 1,225 SV PNGs
+ * and 1,025 sprite PNGs along with the six source files. That is 2,250 files,
+ * sixteen times, for a checker that runs in 0.17 s: 22 s of the suite's 190 to
+ * re-derive 15 facts about `sv-index.js`, none of which a palette edit can
+ * have changed. This is the same trade `test_check_cry_index.mjs` already
+ * makes — see AGENTS.md §3.G5 — and it is made the same way.
+ *
+ * The trap this shape invites is a HAND-MAINTAINED LIST of "paths a case may
+ * touch". That is a second copy of the truth: a case grows a new mutation,
+ * forgets the list, and the NEXT case runs against a dirty tree and passes for
+ * the wrong reason. So there is no list. `io.write` and `io.remove` are the only
+ * handles a case has, and each records its own path; restore is driven by what
+ * happened rather than by what someone remembered. Disabling the restore makes
+ * cases fail (`got: [5.png] want: []`), which is what proves it is load-bearing
+ * rather than decorative.
+ *
+ * RESTORING THE SIX SOURCE FILES EVERY CASE is nearly free and they are small;
+ * restoring all 2,250 images every case is the cost being removed, so only
+ * `touched` paths are restored. Create, overwrite and delete all restore through
+ * one code path, because a path absent from ROOT has to be removed rather than
+ * copied.
+ *
+ * Hardlinks and symlinks are both refused for the reason §3.F records:
+ * `copyFileSync` opens its destination `O_TRUNC`, so a link is as destructive
+ * here as a symlink would be.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
+import {
+  readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, cpSync, rmSync,
+} from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -53,33 +83,61 @@ let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
 const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
-function makeTree(mutate) {
-  const dir = join(tmpdir(), `csv-neg-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  for (const f of SRC) {
-    mkdirSync(join(dir, dirname(f)), { recursive: true });
-    cpSync(join(ROOT, f), join(dir, f));
-  }
-  mkdirSync(join(dir, 'assets/images'), { recursive: true });
-  cpSync(join(ROOT, SV_IMAGES), join(dir, SV_IMAGES), { recursive: true });
-  cpSync(join(ROOT, SPRITE_IMAGES), join(dir, SPRITE_IMAGES), { recursive: true });
+/* ONE working tree, copied once. `process.on('exit')` rather than a line at the
+ * bottom, because the bottom does not run when a case throws — and a throw is
+ * exactly when the run is already going wrong. */
+const WORK = join(tmpdir(), `csv-neg-${Math.random().toString(36).slice(2)}`);
+mkdirSync(WORK, { recursive: true });
+process.on('exit', () => rmSync(WORK, { recursive: true, force: true }));
 
-  if (mutate) {
-    for (const f of [...SRC]) {
-      const p = join(dir, f);
-      const before = readFileSync(p, 'utf8');
-      // `undefined` means "this case does not target this file". A returned
-      // string IDENTICAL to the input means a stale anchor, and the case would
-      // then pass for the wrong reason — an error, not a no-op.
-      const after = mutate(f, before);
-      if (after === undefined) continue;
-      if (after === before) {
-        throw new Error(`mutation for ${f} did not change the file — the anchor string is stale, so this case would pass for the wrong reason`);
-      }
-      writeFileSync(p, after);
-    }
+mkdirSync(join(WORK, 'assets/images'), { recursive: true });
+for (const f of SRC) {
+  mkdirSync(join(WORK, dirname(f)), { recursive: true });
+  cpSync(join(ROOT, f), join(WORK, f));
+}
+cpSync(join(ROOT, SV_IMAGES), join(WORK, SV_IMAGES), { recursive: true });
+cpSync(join(ROOT, SPRITE_IMAGES), join(WORK, SPRITE_IMAGES), { recursive: true });
+
+/** Every path a case has changed since the last restore, relative to WORK. */
+const touched = new Set();
+
+/** The ONLY handles a case has on the corpus. Both record, so a case cannot
+ *  mutate something the restore does not know about. A case that reaches for
+ *  `rmSync` directly is bypassing this and the next case will inherit it. */
+const io = {
+  write: (rel, data) => { writeFileSync(join(WORK, rel), data); touched.add(rel); },
+  remove: (rel) => { rmSync(join(WORK, rel), { force: true }); touched.add(rel); },
+};
+
+function restore() {
+  for (const f of SRC) copyFileSync(join(ROOT, f), join(WORK, f));
+  for (const rel of touched) {
+    const abs = join(WORK, rel);
+    /* A path that exists in ROOT is copied back; one that does not was created
+       by the case and has to be removed. Both are the same restore, which is why
+       they are one code path and not two. */
+    if (existsSync(join(ROOT, rel))) copyFileSync(join(ROOT, rel), abs);
+    else rmSync(abs, { force: true });
   }
-  return dir;
+  touched.clear();
+}
+
+/** Apply a case's text mutation to WORK. `undefined` means "this case does not
+ *  target this file". A returned string IDENTICAL to the input means a stale
+ *  anchor, and the case would then pass for the wrong reason — an error, not a
+ *  no-op. */
+function applyTextMutations(mutate) {
+  for (const f of SRC) {
+    const p = join(WORK, f);
+    const before = readFileSync(p, 'utf8');
+    const after = mutate(f, before);
+    if (after === undefined) continue;
+    if (after === before) {
+      throw new Error(`mutation for ${f} did not change the file — the anchor string is stale, so this case would pass for the wrong reason`);
+    }
+    writeFileSync(p, after);
+    touched.add(f);
+  }
 }
 
 function run(dir) {
@@ -94,11 +152,10 @@ function run(dir) {
 // Baseline first: if the unmutated copy does not pass, every case below would be
 // measuring the harness rather than the checker.
 {
-  const dir = makeTree(null);
-  const { code, out } = run(dir);
+  restore();
+  const { code, out } = run(WORK);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
 }
 
 const cases = [
@@ -183,7 +240,7 @@ const cases = [
   },
   {
     name: 'a species loses its 96px sprite, so the fallback is no longer safe',
-    files: (dir) => rmSync(join(dir, SPRITE_IMAGES, '1.png'), { force: true }),
+    files: (io) => io.remove(`${SPRITE_IMAGES}/1.png`),
     expect: 'no 96px sprite to fall back to',
   },
 ];
@@ -192,17 +249,17 @@ const cases = [
 const imageCases = [
   {
     name: 'a file in the roster is deleted, so its chip 404s',
-    files: (dir) => rmSync(join(dir, SV_IMAGES, '5.png'), { force: true }),
+    files: (io) => io.remove(`${SV_IMAGES}/5.png`),
     expect: 'ids in the roster with no file behind them',
   },
   {
     name: 'a roster entry is a non-PNG body wearing a .png name (fetcher gotcha 2)',
-    files: (dir) => writeFileSync(join(dir, SV_IMAGES, '5.png'), '404: Not Found'),
+    files: (io) => io.write(`${SV_IMAGES}/5.png`, '404: Not Found'),
     expect: 'not PNGs',
   },
   {
     name: 'a roster file is a stub below the minimum artwork size',
-    files: (dir) => writeFileSync(join(dir, SV_IMAGES, '5.png'), Buffer.concat([
+    files: (io) => io.write(`${SV_IMAGES}/5.png`, Buffer.concat([
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)])),
     expect: 'below the minimum artwork size',
   },
@@ -211,14 +268,15 @@ const imageCases = [
 // One loop for both kinds of case. Text mutations and filesystem mutations are
 // independent hooks, and a case may use either or both; splitting them into two
 // loops is how the sprite case above ended up shipping a `files` hook that
-// nothing ever called.
+// nothing ever called. `files` takes the tracked `io` rather than a directory, so
+// a case cannot change a file the next case would inherit.
 for (const c of [...cases, ...imageCases]) {
-  const dir = makeTree(c.mutate);
-  if (c.files) c.files(dir);
-  const { code, out } = run(dir);
+  restore();
+  if (c.mutate) applyTextMutations(c.mutate);
+  if (c.files) c.files(io);
+  const { code, out } = run(WORK);
   if (code !== 0 && caughtBy(out, c.expect)) pass(c.name);
   else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`);
-  rmSync(dir, { recursive: true, force: true });
 }
 
 /* Opposite direction. A species removed from the dataset must not read as a
@@ -226,7 +284,8 @@ for (const c of [...cases, ...imageCases]) {
    and the checker has to accept it. A checker that only ever demanded 1025 would
    pass every case above and still be wrong. */
 {
-  const dir = makeTree((f, s) => {
+  restore();
+  applyTextMutations((f, s) => {
     if (f === 'assets/data/pokemon_data.json') {
       const data = JSON.parse(s).filter((p) => p.id !== 5);
       return JSON.stringify(data);
@@ -245,11 +304,11 @@ for (const c of [...cases, ...imageCases]) {
     }
     return undefined;
   });
-  rmSync(join(dir, SV_IMAGES, '5.png'), { force: true });
-  const { code, out } = run(dir);
+  io.remove(`${SV_IMAGES}/5.png`);
+  const { code, out } = run(WORK);
   code === 0 ? pass('a species dropped cleanly from the dataset, roster, directory and map still passes')
              : fail(`a clean dataset shrink was reported as a defect — the checker is hardcoding completeness:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  restore();
 }
 
 console.log(failures ? `\nFAIL  ${failures} negative case(s) did not behave` : '\nPASS  every negative case failed for the right reason');

@@ -588,7 +588,16 @@ const CASES = [
   },
 ];
 
-const baseline = await run(makeTree(null));
+/* The baseline tree is removed HERE, immediately after the run, rather than at the
+ * bottom of the file with the case trees. Two reasons, and the second is the one that
+ * mattered: a `rmSync` after this block would not run on the `process.exit(1)` below,
+ * which is exactly the path a RED baseline takes -- so the leak would have been
+ * invisible on every green run and total on every failing one. It leaked for years at
+ * 4.8 MB a run; §3.J records the same disease in the CDP checkers' Chrome profiles. */
+const baseDir = makeTree(null);
+const baseline = await run(baseDir);
+rmSync(baseDir, { recursive: true, force: true });
+
 ok('baseline: the checker passes on an unmutated copy of the tree', baseline.code === 0,
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-8).join('\n'));
 
