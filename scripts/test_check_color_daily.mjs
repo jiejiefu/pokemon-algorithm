@@ -27,11 +27,12 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // `categories.js` imports `shiny-index.js`, which imports nothing, but the point
@@ -73,20 +74,17 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
-  try {
-    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return { code: 0, out };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
-  }
-}
+/* Async, and on process.execPath rather than whatever 'node' is first on PATH. */
+const run = (dir) => new Promise((res) => {
+  execFile(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
 
 // Baseline first: if the unmutated copy does not pass, every case below would be
 // measuring the harness rather than the checker.
 {
   const dir = makeTree(null);
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
   rmSync(dir, { recursive: true, force: true });
@@ -225,20 +223,30 @@ const cases = [
 
 console.log(`\n${cases.length} negative cases, each must exit non-zero AND name its reason\n`);
 
-for (const c of cases) {
+/* Four at a time, in DECLARATION order out — see scripts/lib/pool.mjs for why the
+ * order is part of the contract rather than an accident of scheduling. Each case is
+ * its own `node` process against its own temp tree, so nothing here is shared. */
+const verdicts = await pool(cases.map((c) => async () => {
   let dir;
   try {
     dir = makeTree(c.mutate);
   } catch (e) {
-    fail(`${c.name}\n    harness: ${e.message}`);
-    continue;
+    return { name: c.name, detail: `harness: ${e.message}` };
   }
-  const { code, out } = run(dir);
-  rmSync(dir, { recursive: true, force: true });
-  if (code === 0) fail(`${c.name}\n    checker exited 0 — the invariant is not actually policed`);
-  else if (!caughtBy(out, c.expect)) fail(`${c.name}\n    exited ${code} but no FAIL line reported "${c.expect}"; it said:\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || '      (no FAIL line at all)'}`);
-  else pass(c.name);
-}
+  let code, out;
+  try {
+    ({ code, out } = await run(dir));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  if (code === 0) return { name: c.name, detail: 'checker exited 0 — the invariant is not actually policed' };
+  if (!caughtBy(out, c.expect)) {
+    return { name: c.name, detail: `exited ${code} but no FAIL line reported "${c.expect}"; it said:\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || '      (no FAIL line at all)'}` };
+  }
+  return { name: c.name, detail: '' };
+}));
+
+for (const v of verdicts) v.detail ? fail(`${v.name}\n    ${v.detail}`) : pass(v.name);
 
 console.log();
 if (failures) {

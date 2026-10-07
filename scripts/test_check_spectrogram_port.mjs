@@ -55,7 +55,7 @@
  * the per-feature descriptions below deliberately carry no values.
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import {
   cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync,
   writeFileSync,
@@ -64,6 +64,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy } from './lib/negative.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MODULE = 'assets/js/cry-spectrogram.js';
@@ -105,16 +106,12 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
-  try {
-    const stdout = execFileSync('node', [join(dir, CHECKER)], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    return { code: 0, out: `${stdout}` };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
-  }
-}
+/* Async, and on process.execPath rather than whatever 'node' is first on PATH — the
+ * baseline and the mutations must run the SAME interpreter or they are not comparable. */
+const run = (dir) => new Promise((res) => {
+  execFile(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
 
 const editModule = (dir, fn) => {
   const p = join(dir, MODULE);
@@ -267,25 +264,28 @@ const CASES = [
 
 console.log(`check_spectrogram_port.mjs — ${CASES.length - 1} mutations + 1 baseline\n`);
 
-const trees = [];
-try {
-  for (const c of CASES) {
-    const dir = makeTree(c.mutate);
-    trees.push(dir);
-    const { code, out } = run(dir);
-    if (c.baseline) {
-      const passed = code === 0 && /PASS  \d+ checks/.test(out) && !/SKIP/.test(out);
-      ok(c.name, passed,
-        passed ? out.match(/PASS  (\d+) checks/)[1] + ' checks'
-          : out.split('\n').filter((l) => /SKIP|FAIL|Error/.test(l)).slice(0, 2).join(' | '));
-      continue;
-    }
-    ok(c.name, code !== 0 && caughtBy(out, c.expect),
-      code === 0 ? 'the checker still passed' : caughtBy(out, c.expect) ? '' : `caught, but not by "${c.expect}"`);
+/* Four at a time, in DECLARATION order out — see scripts/lib/pool.mjs. Each tree is
+ * removed the moment its case finishes rather than at the end of the loop, so the
+ * pool holds four trees instead of nine and a crash leaves four behind, not nine. */
+const verdicts = await pool(CASES.map((c) => async () => {
+  const dir = makeTree(c.mutate);
+  let code, out;
+  try {
+    ({ code, out } = await run(dir));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-} finally {
-  for (const d of trees) rmSync(d, { recursive: true, force: true });
-}
+  if (c.baseline) {
+    const passed = code === 0 && /PASS  \d+ checks/.test(out) && !/SKIP/.test(out);
+    return [c.name, passed,
+      passed ? out.match(/PASS  (\d+) checks/)[1] + ' checks'
+        : out.split('\n').filter((l) => /SKIP|FAIL|Error/.test(l)).slice(0, 2).join(' | ')];
+  }
+  return [c.name, code !== 0 && caughtBy(out, c.expect),
+    code === 0 ? 'the checker still passed' : caughtBy(out, c.expect) ? '' : `caught, but not by "${c.expect}"`];
+}));
+
+for (const [name, pass, detail] of verdicts) ok(name, pass, detail);
 
 const failed = results.filter((r) => !r.pass);
 console.log('');
