@@ -724,3 +724,318 @@
   .cg-format { flex: 1 1 0; text-align: center; }
   .cg-hex-input { flex: 1 1 140px; }
 }
+
+/* =========================================================================
+   MMCQ Algorithm Anatomy (.ma-*)
+   ========================================================================= */
+
+.ma-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+@media (max-width: 860px) {
+  .ma-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.ma-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+.ma-canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-body);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  position: relative;
+}
+
+.ma-canvas {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease;
+}
+
+.ma-canvas:hover {
+  transform: scale(1.02);
+}
+
+.ma-canvas-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.ma-canvas-badge {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.ma-btn-toggle {
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--hairline-strong);
+  background: var(--bg-controls);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ma-btn-toggle:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.ma-slider-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ma-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.ma-slider-label {
+  color: var(--text-secondary);
+}
+
+.ma-slider-label strong {
+  color: var(--text-primary);
+}
+
+.ma-step-phase {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  background: rgba(234, 179, 8, 0.12);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ma-slider {
+  width: 100%;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+  height: 6px;
+  margin: 4px 0;
+}
+
+.ma-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.ma-cut-detail {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-body);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.ma-cut-detail-axis {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+.ma-cut-detail-axis[data-axis="r"] { background: rgba(239, 68, 68, 0.18); color: rgb(239, 68, 68); }
+.ma-cut-detail-axis[data-axis="g"] { background: rgba(34, 197, 94, 0.18); color: rgb(34, 197, 94); }
+.ma-cut-detail-axis[data-axis="b"] { background: rgba(59, 130, 246, 0.18); color: rgb(59, 130, 246); }
+
+.ma-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ma-input-mapping {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ma-input-mapping-lead {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ma-mapping-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-body);
+  border: 1px solid var(--hairline-strong);
+}
+
+.ma-mapping-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.ma-boxes-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ma-boxes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.ma-box-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.ma-box-card.is-active-target {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px var(--accent-gold);
+  background: linear-gradient(135deg, var(--bg-card), var(--surface-raised));
+}
+
+.ma-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ma-box-index {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ma-box-badge {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.ma-box-badge.is-hit {
+  background: var(--accent-gold);
+  color: rgb(0, 0, 0);
+}
+
+.ma-box-badge.is-empty {
+  background: rgba(239, 68, 68, 0.15);
+  color: rgb(239, 68, 68);
+}
+
+.ma-box-swatch-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ma-box-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ma-box-rep-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ma-box-hex {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ma-box-share {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.ma-box-bounds {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  background: var(--bg-body);
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--hairline);
+}

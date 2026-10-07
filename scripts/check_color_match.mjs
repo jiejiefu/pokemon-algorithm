@@ -1336,11 +1336,13 @@ console.log('\nthe sections this page does NOT own');
     ['sec-measured', 'the measured palette'],
     ['sec-gen-scale', 'the shade ramp'],
     ['sec-showcase', 'the component showcase'],
+    ['sec-gen-tiles', 'the tiles composition'],
+    ['sec-export', 'the theme export'],
   ]) {
     check(!src.includes(id), `${what} section is not on colors.html`,
-      () => `${id} is back; color.html already owns it`);
+      () => `${id} is back; color.html already owns it or it was removed`);
   }
-  for (const gone of ['#scale', '#showcase', '#cg-measured-palette', '#cg-collapse']) {
+  for (const gone of ['#scale', '#showcase', '#cg-measured-palette', '#cg-collapse', '#tiles', '#theme-code']) {
     check(!src.includes(`id="${gone.slice(1)}"`), `and neither is the ${gone} container`);
   }
 
@@ -1352,6 +1354,16 @@ console.log('\nthe sections this page does NOT own');
     () => 'showcaseHtml/wireShowcaseTabs are still imported');
   check(!/\.cg-measured\b|\.cg-collapse\b/.test(css),
     'and neither do the generator stylesheet rules that styled them');
+
+  check(!src.includes('themeCss'),
+    'themeCss helper does not survive the removal',
+    () => 'themeCss is still defined in colors.html');
+  check(!src.includes('copy-theme'),
+    'copy-theme button is not on colors.html',
+    () => 'copy-theme button is back');
+  check(!src.includes('copy-json'),
+    'copy-json button is not on colors.html',
+    () => 'copy-json button is back');
 
   // THE PAGE'S OWN COPY MUST NOT DESCRIBE WHAT WAS REMOVED. The meta description
   // and the intro paragraph both claimed 「生成明暗階、套用展示」 and 「同時擺出生成與
@@ -1369,18 +1381,11 @@ console.log('\nthe sections this page does NOT own');
   check(/link\.href = paletteUrl\(p\)/.test(src),
     'the measured palette is still one click away through paletteUrl()');
 
-  // And the ramp is still DERIVED — from the input colour — because the export
-  // ships it as eleven CSS variables. Removing the drawn section must not remove
-  // the value, or the exported theme silently loses its steps.
-  check(/const \{ scale, anchor \} = generateTailwindScale\(inputHex\)/.test(src),
-    'the ramp is still derived from the INPUT colour for the export');
-  check(/--cg-\$\{step\}/.test(src),
-    'and the export still emits all eleven steps');
   // BOTH forms count. `els.scale` is a USE, which throws on render; but adding the
   // KEY back to the `els` literal is the same dead reference one step earlier, and
   // it is null in exactly the same way. The first version of this assertion only
   // matched the use, so a mutation that put the dangling key back passed it.
-  const dangling = ['scale', 'showcase', 'measuredPalette', 'collapse']
+  const dangling = ['scale', 'showcase', 'measuredPalette', 'collapse', 'tiles', 'themeCode', 'copyTheme', 'copyJson']
     .filter(k => new RegExp(`els\\.${k}\\b`).test(src)
       || new RegExp(`getElementById\\('${k}'\\)`).test(src));
   check(dangling.length === 0,

@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0b1020">
-  <meta name="description" content="輸入任意色碼，以 OKLab 知覺距離比對 1,025 隻寶可夢的實測色盤，生成一組有量測基礎的主題色盤與 CSS 變數。">
+  <meta name="description" content="輸入任意色碼，以 OKLab 知覺距離比對 1,025 隻寶可夢的實測色盤，生成一組有量測基礎的主題色盤。">
   <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
        after the first paint is a visible flash, and a module cannot run early
        because module scripts are deferred. Identical on all five themed pages
@@ -79,7 +79,7 @@
       <h1>色彩生成器</h1>
       <p>
         轉一個顏色進來，這裡用 OKLab 知覺距離在 1,025 隻寶可夢的實測色盤裡找出最接近的幾隻，
-        再用那幾隻<strong>真的含有</strong>的顏色，連同你輸入的那一色組成一組主題色盤與 CSS 變數。
+        再用那幾隻<strong>真的含有</strong>的顏色，連同你輸入的那一色組成一組主題色盤。
         這一頁只做「生成」；那一隻的實測色盤、明暗階與套用範例在它的單一色盤頁。
       </p>
     </div>
@@ -153,23 +153,43 @@
       <div id="cg-alts" class="cg-alt-row"></div>
     </section>
 
-    <section class="cp-section" aria-labelledby="sec-gen-tiles">
-      <h2 id="sec-gen-tiles">生成組成</h2>
-      <div class="cp-tiles" id="tiles"></div>
+    <section class="cp-section" aria-labelledby="sec-mmcq">
+      <h2 id="sec-mmcq">MMCQ 演算法解剖</h2>
+      <p class="cp-prose">
+        量化流程固定 5 刀，把匹配到的那隻寶可夢的 96×96 正面圖集像素切成最多 6 個箱子。
+        拖動滑桿逐步觀察每一刀切在哪條軸上、切完後每個箱子裡有多少像素、代表色是什麼。
+      </p>
+      <div class="ma-layout">
+        <div class="ma-visual">
+          <div class="ma-canvas-wrap">
+            <canvas id="ma-canvas" class="ma-canvas" width="96" height="96"></canvas>
+            <div class="ma-canvas-actions">
+              <span class="ma-canvas-badge" id="ma-canvas-badge">96 × 96</span>
+              <button type="button" class="ma-btn-toggle" id="ma-toggle-overlay">隱藏分區</button>
+            </div>
+          </div>
+          <div class="ma-slider-control">
+            <div class="ma-slider-header">
+              <span class="ma-slider-label">第 <strong id="ma-step-num">5</strong> / 5 刀</span>
+              <span class="ma-step-phase" id="ma-step-phase">Phase 2</span>
+            </div>
+            <input id="ma-cut-slider" class="ma-slider" type="range" min="0" max="5" value="5" step="1">
+            <div class="ma-slider-ticks">
+              <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            </div>
+          </div>
+          <div class="ma-cut-detail" id="ma-cut-detail"></div>
+        </div>
+        <div class="ma-info">
+          <div class="ma-input-mapping" id="ma-input-mapping"></div>
+          <h3 class="ma-boxes-title">
+            <span id="ma-box-count">6</span> 個箱子
+          </h3>
+          <div class="ma-boxes-grid" id="ma-boxes-grid"></div>
+        </div>
+      </div>
     </section>
 
-    <section class="cp-section" aria-labelledby="sec-export">
-      <h2 id="sec-export">匯出主題</h2>
-      <p class="cp-prose">
-        以你輸入的顏色推導的 CSS 變數：十一階明暗梯加上主色、輔色與完整生成色盤，
-        可直接貼進自己的樣式表。
-      </p>
-      <div class="cp-actions">
-        <button id="copy-theme" class="btn" type="button">複製 CSS 變數</button>
-        <button id="copy-json" class="btn" type="button">複製 JSON</button>
-      </div>
-      <pre id="theme-code" class="cp-code"></pre>
-    </section>
   </main>
 
   <footer class="home-footer">
@@ -191,7 +211,7 @@
     } from './assets/js/shared.js';
     import {
       loadColorPalettes, paletteRows, spriteUrl, paletteGridHtml, paletteStripHtml,
-      generateTailwindScale, anchorIndex, describeHex, colorTemperature,
+      describeHex, colorTemperature,
       TEMPERATURE_ZH, findBySlug, paletteUrl, swatchStyle,
       formatShare, formatHex, HEX_FORMATS, hslToHex,
     } from './assets/js/color-palette.js';
@@ -199,6 +219,9 @@
       buildMatchIndex, matchPokemon, matchOf, paletteOf, matchIndexSize,
       primaryShareCount,
     } from './assets/js/color-match.js';
+    import {
+      loadSpritePixels, mmcqPalette, RSHIFT, hexOf as maHexOf,
+    } from './assets/js/mmcq-anatomy.js';
 
     initThemeToggle();
     // The third arg is the current page, so the 色彩 trigger marks itself
@@ -218,10 +241,16 @@
       alts: document.getElementById('cg-alts'),
       palette: document.getElementById('palette'),
       provenanceGenerated: document.getElementById('cg-provenance-generated'),
-      tiles: document.getElementById('tiles'),
-      themeCode: document.getElementById('theme-code'),
-      copyTheme: document.getElementById('copy-theme'),
-      copyJson: document.getElementById('copy-json'),
+      maCanvas: document.getElementById('ma-canvas'),
+      maCanvasBadge: document.getElementById('ma-canvas-badge'),
+      maToggleOverlay: document.getElementById('ma-toggle-overlay'),
+      maCutSlider: document.getElementById('ma-cut-slider'),
+      maStepNum: document.getElementById('ma-step-num'),
+      maStepPhase: document.getElementById('ma-step-phase'),
+      maCutDetail: document.getElementById('ma-cut-detail'),
+      maInputMapping: document.getElementById('ma-input-mapping'),
+      maBoxCount: document.getElementById('ma-box-count'),
+      maBoxesGrid: document.getElementById('ma-boxes-grid'),
     };
 
     /**
@@ -785,22 +814,212 @@
       }).join('');
     }
 
-    function renderTiles(rows, match, anchorStep) {
-      els.tiles.innerHTML = [
-        ['輸入色', inputHex.toUpperCase()],
-        ['輸入色名', describeHex(inputHex)],
-        ['色溫', TEMPERATURE_ZH[colorTemperature(inputHex)]],
-        ['匹配距離 ΔE', match ? match.distance.toFixed(4) : '—'],
-        ['生成色數', `${rows.length} 色`],
-        ['種子落在', anchorStep ? `${anchorStep} 階` : '—'],
-      ].map(([label, value]) => `
-        <div class="cp-tile">
-          <span class="cp-tile-label">${label}</span>
-          <span class="cp-tile-value">${value}</span>
-        </div>`).join('');
+
+    // -----------------------------------------------------------------
+    // MMCQ anatomy
+    // -----------------------------------------------------------------
+
+    let anatomyResult = null;
+    let anatomySpriteData = null;
+    let lastAnatomyId = -1;
+    let showOverlay = true;
+
+    /** Semi-transparent tint per box region on the canvas overlay. */
+    const MA_COLORS = [
+      [239, 68, 68],    // red
+      [34, 197, 94],    // green
+      [59, 130, 246],   // blue
+      [234, 179, 8],    // amber
+      [168, 85, 247],   // purple
+      [236, 72, 153],   // pink
+    ];
+
+    /**
+     * Load the sprite and run MMCQ for the given species, or redraw the
+     * current step if the species hasn't changed (input colour changed).
+     */
+    async function computeAnatomy(id) {
+      if (id === lastAnatomyId && anatomyResult) {
+        updateAnatomyStep(Number(els.maCutSlider.value));
+        return;
+      }
+      lastAnatomyId = id;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = spriteUrl(id);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const offscreen = document.createElement('canvas');
+      offscreen.width = img.naturalWidth;
+      offscreen.height = img.naturalHeight;
+      const octx = offscreen.getContext('2d');
+      octx.drawImage(img, 0, 0);
+      anatomySpriteData = octx.getImageData(0, 0, offscreen.width, offscreen.height);
+
+      const pixels = loadSpritePixels(anatomySpriteData);
+      anatomyResult = mmcqPalette(pixels, 6);
+
+      els.maCutSlider.value = '5';
+      updateAnatomyStep(5);
     }
 
-    let currentScale = null;
+    /** Draw the sprite onto ma-canvas, with optional box-region colour overlay. */
+    function drawAnatomyCanvas(step) {
+      if (!anatomySpriteData || !anatomyResult) return;
+      const canvas = els.maCanvas;
+      const ctx = canvas.getContext('2d');
+      const w = anatomySpriteData.width;
+      const h = anatomySpriteData.height;
+      canvas.width = w;
+      canvas.height = h;
+
+      const src = anatomySpriteData.data;
+      const result = new ImageData(new Uint8ClampedArray(src), w, h);
+
+      if (showOverlay) {
+        const boxes = anatomyResult.trace.steps[step];
+        for (let i = 0; i < src.length; i += 4) {
+          if (src[i + 3] < 200) continue;
+          const rq = src[i] >> RSHIFT;
+          const gq = src[i + 1] >> RSHIFT;
+          const bq = src[i + 2] >> RSHIFT;
+
+          let boxIdx = -1;
+          for (let bi = 0; bi < boxes.length; bi++) {
+            const box = boxes[bi];
+            if (rq >= box.r1 && rq <= box.r2 &&
+                gq >= box.g1 && gq <= box.g2 &&
+                bq >= box.b1 && bq <= box.b2) {
+              boxIdx = bi;
+              break;
+            }
+          }
+          if (boxIdx >= 0) {
+            const c = MA_COLORS[boxIdx % MA_COLORS.length];
+            const blend = 0.3;
+            result.data[i]     = Math.round(src[i] * (1 - blend) + c[0] * blend);
+            result.data[i + 1] = Math.round(src[i + 1] * (1 - blend) + c[1] * blend);
+            result.data[i + 2] = Math.round(src[i + 2] * (1 - blend) + c[2] * blend);
+          }
+        }
+      }
+      ctx.putImageData(result, 0, 0);
+    }
+
+    /**
+     * Find the anatomyResult.boxes entry matching a VBox by bounds, so the
+     * pixel-snapped representative can be shown at the final step.
+     */
+    function findFinalBox(vbox) {
+      if (!anatomyResult) return null;
+      return anatomyResult.boxes.find(b =>
+        b.bounds.r1 === vbox.r1 && b.bounds.r2 === vbox.r2 &&
+        b.bounds.g1 === vbox.g1 && b.bounds.g2 === vbox.g2 &&
+        b.bounds.b1 === vbox.b1 && b.bounds.b2 === vbox.b2
+      ) || null;
+    }
+
+    /** Redraw the anatomy section for the given slider step (0–5). */
+    function updateAnatomyStep(step) {
+      if (!anatomyResult) return;
+      const trace = anatomyResult.trace;
+      const boxes = trace.steps[step];
+
+      drawAnatomyCanvas(step);
+
+      // Slider readout
+      els.maStepNum.textContent = step;
+      els.maStepPhase.textContent =
+        step === 0 ? '初始' : step <= 4 ? 'Phase 1' : 'Phase 2';
+
+      // Cut detail
+      if (step === 0) {
+        els.maCutDetail.innerHTML =
+          '初始狀態：全部像素在單一箱子中，尚未切割。';
+      } else {
+        const cut = trace[step - 1];
+        const axisLabel = { r: '紅 (R)', g: '綠 (G)', b: '藍 (B)' }[cut.axis];
+        els.maCutDetail.innerHTML =
+          `<span class="ma-cut-detail-axis" data-axis="${cut.axis}">${cut.axis.toUpperCase()}</span>` +
+          `沿<strong>${axisLabel}</strong>軸在位置 <code>${cut.cut}</code> 切割 · ` +
+          `切前 ${cut.count.toLocaleString()} 像素、體積 ${cut.volume.toLocaleString()} · ` +
+          `切完得 <strong>${boxes.length}</strong> 箱`;
+      }
+
+      els.maCanvasBadge.textContent =
+        `${anatomySpriteData.width} × ${anatomySpriteData.height} · ${boxes.length} 箱`;
+      els.maBoxCount.textContent = boxes.length;
+
+      // Which box does the input colour fall into?
+      const ir = parseInt(inputHex.slice(1, 3), 16) >> RSHIFT;
+      const ig = parseInt(inputHex.slice(3, 5), 16) >> RSHIFT;
+      const ib = parseInt(inputHex.slice(5, 7), 16) >> RSHIFT;
+
+      let hitBox = -1;
+      for (let bi = 0; bi < boxes.length; bi++) {
+        const box = boxes[bi];
+        if (ir >= box.r1 && ir <= box.r2 &&
+            ig >= box.g1 && ig <= box.g2 &&
+            ib >= box.b1 && ib <= box.b2) {
+          hitBox = bi;
+          break;
+        }
+      }
+
+      els.maInputMapping.innerHTML =
+        `<span class="ma-input-mapping-lead">${
+          hitBox >= 0
+            ? `輸入色落在箱 #${hitBox + 1}`
+            : '輸入色不在任何箱子範圍內'
+        }</span>` +
+        `<span class="ma-mapping-chip">` +
+          `<span class="ma-mapping-swatch" style="background:${inputHex}"></span>` +
+          `${inputHex.toUpperCase()} → (${ir}, ${ig}, ${ib})` +
+        `</span>`;
+
+      // Box cards
+      const isFinal = step === trace.steps.length - 1;
+      els.maBoxesGrid.innerHTML = boxes.map((box, bi) => {
+        const avg = box.avg();
+        const count = box.count();
+        const volume = box.volume();
+        const isHit = bi === hitBox;
+        const isEmpty = count === 0;
+        const final = isFinal ? findFinalBox(box) : null;
+        const rep = final ? final.representative : null;
+        const swatchHex = rep || maHexOf(avg[0], avg[1], avg[2]);
+        const c = MA_COLORS[bi % MA_COLORS.length];
+        const tint = `rgba(${c[0]},${c[1]},${c[2]},0.5)`;
+
+        return `
+          <div class="ma-box-card${isHit ? ' is-active-target' : ''}"
+               style="border-left:3px solid ${tint}">
+            <div class="ma-box-header">
+              <span class="ma-box-index">
+                箱 #${bi + 1}
+                ${isHit ? '<span class="ma-box-badge is-hit">輸入色</span>' : ''}
+                ${isEmpty ? '<span class="ma-box-badge is-empty">空</span>' : ''}
+              </span>
+            </div>
+            ${!isEmpty ? `
+            <div class="ma-box-swatch-bar">
+              <span class="ma-box-swatch" style="background:${swatchHex}"></span>
+              <span class="ma-box-rep-info">
+                <span class="ma-box-hex">${swatchHex.toUpperCase()}</span>
+                <span class="ma-box-share">${count.toLocaleString()} 像素${rep ? ' · 代表色' : ' · 平均色'}</span>
+              </span>
+            </div>` : ''}
+            <div class="ma-box-bounds">
+              R [${box.r1}–${box.r2}]　G [${box.g1}–${box.g2}]　B [${box.b1}–${box.b2}]<br>
+              體積 ${volume.toLocaleString()}
+            </div>
+          </div>`;
+      }).join('');
+    }
 
     function render() {
       const matches = renderCandidates();
@@ -831,44 +1050,30 @@
         chip.appendChild(link);
       }
 
-      // The ramp is still derived — from the INPUT colour, not the matched
-      // Pokémon's primary — because the export below ships it as eleven CSS
-      // variables. It is simply no longer drawn: a grid the reader cannot see and
-      // cannot copy from is not a section, it is a string builder with headings.
-      const { scale, anchor } = generateTailwindScale(inputHex);
-      currentScale = scale;
-
-      renderTiles(rows, m, anchor);
-
       setStatus(
-        `已比對 ${matchIndexSize().toLocaleString('en-US')} 個實測色票` +
+        `${describeHex(inputHex)} · ${TEMPERATURE_ZH[colorTemperature(inputHex)]} · 已比對 ${matchIndexSize().toLocaleString('en-US')} 個實測色票` +
         (matches.length ? `，最接近的是 ${p ? p.names.zh : ''}` : ''),
         false
       );
 
-      els.themeCode.textContent = themeCss(rows, scale);
-
       document.title = `${inputHex.toUpperCase()} 生成色盤 · 色彩生成器`;
-    }
 
-    function themeCss(rows, scale) {
-      const hexes = rows.map(r => r[0]);
-      return [
-        '/* 由色彩生成器匯出 · 輸入色 ' + inputHex.toUpperCase() + (currentMatch
-          ? ' · 最接近 #' + formatPokemonId(currentMatch.id) : '') + ' */',
-        ':root {',
-        ...Object.entries(scale).map(([step, hex]) => `  --cg-${step}: ${hex};`),
-        `  --cg-primary: ${hexes[0]};`,
-        `  --cg-secondary: ${hexes[1] || hexes[0]};`,
-        '  /* 生成色盤，依序為輸入色與匹配寶可夢的實測色 */',
-        `  --cg-palette: ${hexes.join(', ')};`,
-        '}',
-      ].join('\n');
+      if (m) computeAnatomy(m.id).catch(console.error);
     }
 
     // ---------------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------------
+
+    els.maCutSlider.addEventListener('input', () => {
+      updateAnatomyStep(Number(els.maCutSlider.value));
+    });
+
+    els.maToggleOverlay.addEventListener('click', () => {
+      showOverlay = !showOverlay;
+      els.maToggleOverlay.textContent = showOverlay ? '隱藏分區' : '顯示分區';
+      updateAnatomyStep(Number(els.maCutSlider.value));
+    });
 
     // Delegated, because every one of these buttons is rebuilt on each render.
     document.addEventListener('click', async (event) => {
@@ -936,26 +1141,6 @@
       }
     }
 
-    els.copyTheme.addEventListener('click', async () => {
-      await copyText(els.themeCode.textContent);
-      els.copyTheme.textContent = '已複製';
-      setTimeout(() => { els.copyTheme.textContent = '複製 CSS 變數'; }, 1400);
-    });
-
-    els.copyJson.addEventListener('click', async () => {
-      await copyText(JSON.stringify({
-        input: inputHex,
-        matched: currentMatch ? {
-          id: currentMatch.id,
-          deltaEOk: Number(currentMatch.distance.toFixed(6)),
-        } : null,
-        generated: Object.fromEntries(generatedRows()),
-        measured: currentMatch ? paletteOf(currentMatch.id) : null,
-        scale: currentScale,
-      }, null, 2));
-      els.copyJson.textContent = '已複製';
-      setTimeout(() => { els.copyJson.textContent = '複製 JSON'; }, 1400);
-    });
 
     async function init() {
       try {

@@ -202,6 +202,8 @@ const CHECKERS = [
       'spectrum.html', 'assets/css/spectrum.css', 'assets/js/cry-spectrogram.js',
       'assets/js/cry-player.js', 'assets/js/cry-autoplay.js', 'assets/js/shared.js',
       'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
+      /* LIFTED OUT OF ITS FILE AND RUN over all 1,025 records, not shape-checked. */
+      'assets/js/species-ramp.js',
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
       /* The 傳說/幻之 claims are read against the data rather than asserted from
        * memory — 71 / 23 / and zero records carrying both flags. Found by
@@ -218,7 +220,11 @@ const CHECKERS = [
       'spectrum.html', 'assets/css/spectrum.css', 'assets/js/cry-spectrogram.js',
       'assets/js/cry-player.js', 'assets/js/cry-autoplay.js', 'assets/js/shared.js',
       'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
-      /* Copied into the tree because the checker reads them there, not in the repo. */
+      /* Copied into the tree because the checker reads them there, not in the repo.
+       * species-ramp.js is here for the same reason: the checker lifts the function
+       * out of its TEXT and runs it, so a harness tree without the file cannot test
+       * the live curve's ink at all. */
+      'assets/js/species-ramp.js',
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
       /* The 傳說/幻之 claims are read against the data rather than asserted from
        * memory — 71 / 23 / and zero records carrying both flags. Found by
@@ -441,6 +447,26 @@ const CHECKERS = [
       'assets/css/shared.css',
       'assets/css/colors-generator.css',
       'colors.html',
+    ],
+  },
+  {
+    script: 'scripts/check_mmcq_anatomy.mjs', group: 'color',
+    inputs: [
+      'assets/data/color_palettes.json',
+      'assets/js/mmcq-anatomy.js',
+      'scripts/lib/png.mjs',
+      'assets/images/sprite/*',
+    ],
+  },
+  {
+    script: 'scripts/test_check_mmcq_anatomy.mjs', checker: 'scripts/check_mmcq_anatomy.mjs', group: 'color',
+    inputs: [
+      'assets/data/color_palettes.json',
+      'assets/js/mmcq-anatomy.js',
+      'scripts/lib/png.mjs',
+      'scripts/lib/negative.mjs',
+      'scripts/check_mmcq_anatomy.mjs',
+      'assets/images/sprite/*',
     ],
   },
 

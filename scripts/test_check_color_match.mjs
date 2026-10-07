@@ -528,8 +528,8 @@ const CASES = [
     name: 'the measured palette section comes back',
     mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
       s,
-      '    <section class="cp-section" aria-labelledby="sec-gen-tiles">',
-      '    <section class="cp-section" aria-labelledby="sec-measured"><h2 id="sec-measured">x</h2></section>\n\n    <section class="cp-section" aria-labelledby="sec-gen-tiles">',
+      '  </main>',
+      '    <section class="cp-section" aria-labelledby="sec-measured"><h2 id="sec-measured">x</h2></section>\n  </main>',
     )),
     expect: 'the measured palette section is not on colors.html',
   },
@@ -541,11 +541,13 @@ const CASES = [
     expect: 'no showcase import survives the removal',
   },
   {
-    name: 'the generated ramp stops tracking the input colour',
+    name: 'the theme export section comes back',
     mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
-      s, 'const { scale, anchor } = generateTailwindScale(inputHex);',
-      'const { scale, anchor } = generateTailwindScale(m ? m.primaryHex : inputHex);')),
-    expect: 'the ramp is still derived from the INPUT colour for the export',
+      s,
+      '  </main>',
+      '    <section class="cp-section" aria-labelledby="sec-export"><h2 id="sec-export">匯出主題</h2></section>\n  </main>',
+    )),
+    expect: 'the theme export section is not on colors.html',
   },
   {
     // The page's own copy. The meta description kept promising 「生成明暗階、套用展示」
@@ -555,15 +557,15 @@ const CASES = [
     // either.
     name: 'the meta description promises the removed showcase and ramp again',
     mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
-      s, '生成一組有量測基礎的主題色盤與 CSS 變數。',
+      s, '生成一組有量測基礎的主題色盤。',
       '生成明暗階、主題變數與套用展示。')),
     expect: 'the page never promises a component showcase it does not render',
   },
   {
     name: 'an element reference survives for a removed container',
     mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
-      s, "      tiles: document.getElementById('tiles'),",
-      "      tiles: document.getElementById('tiles'),\n      scale: document.getElementById('scale'),")),
+      s, "      provenanceGenerated: document.getElementById('cg-provenance-generated'),",
+      "      provenanceGenerated: document.getElementById('cg-provenance-generated'),\n      scale: document.getElementById('scale'),")),
     expect: 'no element reference survives for a container that was removed',
   },
   {
