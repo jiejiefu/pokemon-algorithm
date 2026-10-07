@@ -11,9 +11,10 @@
  * The suite is twenty-odd scripts run by hand, and they are not equally expensive.
  * Measured here: `check_gen1_apu.mjs` is 6.0 s of which 5.0 s is one pass over the
  * 151-species corpus at 1,048,576 Hz — 146,311,704 samples — and
- * `test_check_gen1_apu.mjs` is 37.8 s because sixteen of its thirty-four cases need
- * that same pass. So forty seconds of every full run is spent re-deriving a fact
- * about `gb-apu.js`, which is a file a colour-palette edit cannot have changed.
+ * `test_check_gen1_apu.mjs` is 37.8 s because 17 of its 39 cases need that same pass.
+ * So forty seconds of every full run is spent re-deriving a fact about `gb-apu.js`,
+ * which is a file a colour-palette edit cannot have changed. That harness is no longer
+ * an entry at all — see RETIRED_HARNESSES, and the comment at the gap it left.
  *
  * The obvious fix — a `--quick` flag on the expensive checker — is the one thing
  * that must not be built. `check_gen1_apu.mjs` already says why in its own comment:
@@ -202,6 +203,12 @@ const CHECKERS = [
       'assets/js/cry-player.js', 'assets/js/cry-autoplay.js', 'assets/js/shared.js',
       'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
+      /* The 傳說/幻之 claims are read against the data rather than asserted from
+       * memory — 71 / 23 / and zero records carrying both flags. Found by
+       * `--prove-inputs`, which is the whole argument for it: a checker that reads
+       * a file nobody declared is skipped the moment that file changes, so the run
+       * goes green having verified nothing. */
+      'assets/data/pokemon_data.json',
     ],
   },
   {
@@ -213,6 +220,12 @@ const CHECKERS = [
       'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
       /* Copied into the tree because the checker reads them there, not in the repo. */
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
+      /* The 傳說/幻之 claims are read against the data rather than asserted from
+       * memory — 71 / 23 / and zero records carrying both flags. Found by
+       * `--prove-inputs`, which is the whole argument for it: a checker that reads
+       * a file nobody declared is skipped the moment that file changes, so the run
+       * goes green having verified nothing. */
+      'assets/data/pokemon_data.json',
     ],
   },
 
@@ -604,6 +617,98 @@ const CHECKERS = [
   },
 ];
 
+/* ---------------------------------------------------------------------------
+   HARNESSES THAT ARE NOT ENTRIES
+
+   A mutation harness can be taken out of the manifest without disabling it — no flag,
+   no opt-out, the entry is simply gone — because it is expensive and it proves a
+   claim about a CHECKER rather than about the site. That is a real trade and it is
+   recorded where the reader is already looking (the comment at the gap in CHECKERS
+   above, and AGENTS.md §3.G5). What is NOT acceptable is a removal that is invisible
+   the moment somebody edits an assertion message, because the harness's whole method
+   is a string that names an assertion: rename one description and every case pointing
+   at it silently stops pointing at it.
+
+   So the runner reads them. One row here is cheap — two files, no subprocess — and it
+   cannot be skipped by skipping the entry, because the entry is what is gone.
+   --------------------------------------------------------------------------- */
+const RETIRED_HARNESSES = [
+  { harness: 'scripts/test_check_gen1_apu.mjs', checker: 'scripts/check_gen1_apu.mjs' },
+];
+
+/* WHY ORPHANS ARE SLICED PER ASSERTION, AND WHY THAT IS NOT THE INTERESTING PART.
+   Each `expect` is tested against SOME ONE assertion's description rather than against
+   the file, because §3.G4 records what the weaker version cost: check_sorting_page.mjs
+   asserted `docblock.includes('524,800')` and the same number appears in the next
+   paragraph, so editing the quotation left the check green. Presence is not
+   attribution.
+
+   What this still cannot do is tell one assertion from another when two share a
+   description. Three of the 39 do — `byte-identical`, `Rhyhon`, `0.071` — and for
+   those it is a weaker claim than the harness makes. The harness resolves them with
+   `caughtBy`, which reads the FAIL lines; here there are no FAIL lines, because a
+   retired harness does not run. That limit is the price of retiring it and it is why
+   the harness is not gone, only unlisted. */
+function auditRetiredHarnesses() {
+  const bad = [];
+  const say = (pass, what) => {
+    if (!pass) bad.push(what);
+    console.log(`      ${pass ? 'ok  ' : 'FAIL'} ${what}`);
+  };
+
+  for (const { harness, checker } of RETIRED_HARNESSES) {
+    const hs = existsSync(join(ROOT, harness)) ? readFileSync(join(ROOT, harness), 'utf8') : null;
+    say(hs !== null,
+      `${harness} is still on disk`
+        + (hs === null
+          ? ' — it is gone, so editing an assertion message in the checker it attacks now has nothing saying the cases stopped pointing at it'
+          : ''));
+    if (hs === null) continue;
+
+    const cs = readFileSync(join(ROOT, checker), 'utf8');
+    /* Slice the checker into one chunk per assertion call. `eq` and `near` forward to
+       `ok`, so all three openers matter; `ok` on its own would miss two assertions and
+       the missing ones could then be renamed freely. */
+    const starts = [...cs.matchAll(/^\s*(?:eq|ok|near)\(/gm)].map((m) => m.index);
+    const chunks = starts.map((s, i) => cs.slice(s, starts[i + 1] ?? cs.length));
+    /* The source escapes an apostrophe inside a single-quoted description and the
+       harness's string holds it literally. Measured: 1 of the 39 stops matching
+       without this, so it is not tidying. */
+    const descriptions = chunks.map((c) => c.replace(/\\'/g, "'"));
+
+    const expectations = [...hs.matchAll(/^\s*expect:\s*(['"])([\s\S]*?)\1\s*,?\s*$/gm)].map((m) => m[2]);
+    const declared = [...hs.matchAll(/^\s{4}name: /gm)].length;
+
+    /* NON-VACUITY, AS AN IDENTITY RATHER THAN A FLOOR. Two independent parses of the
+       same file: how many cases are NAMED, and how many carry an expectation. If the
+       `expect:` key is ever renamed or reformatted the first count collapses to 0
+       while the second does not move, and "zero orphans" would then be reporting
+       nothing at all — the shape §3.B2 names, where a guard that can only be satisfied
+       by having nothing left to complain about is a guard that passes forever. A
+       floor would work today and stop working when the roster shrinks; the identity
+       cannot. */
+    say(expectations.length === declared,
+      `${harness}: all ${declared} of its cases carry an expectation it can be measured by`
+        + (expectations.length === declared
+          ? ''
+          : ` — ${expectations.length} matched the \`expect:\` key, so the orphans below would be a vacuous PASS`));
+
+    const orphans = expectations.filter((e) => !descriptions.some((c) => c.includes(e)));
+    say(orphans.length === 0,
+      `...and every one of those expectations still names an assertion in ${checker}`
+        + (orphans.length ? '' : ' — no assertion description has been edited out from under it'));
+    for (const o of orphans) {
+      console.log(`        orphaned: ${JSON.stringify(o)}`);
+    }
+
+    const claimed = /(\d+)\s+cases\b/.exec(hs.slice(0, hs.indexOf('*/')))?.[1];
+    say(claimed === String(declared),
+      `...and its header still claims the case count it actually has (${declared})`
+        + (claimed === String(declared) ? '' : ' — its header says ' + (claimed ?? 'nothing')));
+  }
+  return bad;
+}
+
 
 /* ---------------------------------------------------------------------------
    GLOBS
@@ -992,11 +1097,11 @@ async function main() {
       continue;
     }
 
-    /* `execFile` buffers, so nothing appears until the child exits — which for
-     * `test_check_gen1_apu.mjs` is 34 s idle and 120 s measured on a loaded machine,
-     * i.e. a terminal that looks hung for either. The line names what is about to run
-     * and is replaced by the result line, so the run is never silent for longer than
-     * one check. */
+    /* `execFile` buffers, so nothing appears until the child exits — which for the
+     * longest entry in the manifest is tens of seconds either way (11 s idle here,
+     * 42 s measured on a machine competing with Chrome at 97% CPU), i.e. a terminal
+     * that looks hung for either. The line names what is about to run and is replaced
+     * by the result line, so the run is never silent for longer than one check. */
     row('▶', pad, 'running…', '');
 
     const r = await run(c.script);
@@ -1025,6 +1130,16 @@ async function main() {
     mkdirSync(dirname(CACHE), { recursive: true });
     writeFileSync(CACHE, `${JSON.stringify(next, null, 2)}\n`);
   }
+
+  console.log('');
+  /* The retired-harness audit is not an entry and has no time column: it is two files
+     and a few regexes, and printing a duration for it would be a measurement of the
+     regex engine. It runs on EVERY invocation including `--only=nav`, because it is a
+     claim about the manifest rather than about any one checker's inputs, and a claim
+     about the manifest that only holds on some invocations is not a claim. */
+  console.log('  retired mutation harnesses');
+  const orphans = auditRetiredHarnesses();
+  if (orphans.length) failed += orphans.length;
 
   console.log('');
   console.log(`  ${ran} ran, ${skipped} skipped, ${failed} failed, ${secs(budget)} of checker time`);

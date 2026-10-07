@@ -29,11 +29,11 @@
  * NOT IN check_all.mjs. THIS FILE IS RETIRED FROM THE DEFAULT RUN, ON PURPOSE.
  * ---------------------------------------------------------------------------
  *
- * It cost 42 s — 22% of the suite, and the largest single entry in it — to prove a
- * point that is about the CHECKER rather than about the synthesiser: that each of
- * check_gen1_apu.mjs's 92 assertions fails when the thing it polices stops being
+ * It cost 42 s — a fifth of the suite, and at the time its largest single entry — to
+ * prove a point that is about the CHECKER rather than about the synthesiser: that each
+ * of check_gen1_apu.mjs's 92 assertions fails when the thing it polices stops being
  * true. §4 forbids a flag to skip a check, so the entry was removed rather than
- * disabled; the file is untouched and still runs:
+ * disabled; the file still runs:
  *
  *     node scripts/test_check_gen1_apu.mjs      # ~42 s
  *
@@ -42,14 +42,24 @@
  * That is the claim about the APU. This file is the claim about the checker.
  *
  * WHAT IS NO LONGER CHECKED: that each of those 92 assertions is load-bearing.
- * Nothing else substitutes for it.
+ * Nothing else substitutes for it. That is the whole trade, and it is a real one —
+ * a green suite here is not evidence that this harness would still catch anything.
  *
  * IF YOU EDIT check_gen1_apu.mjs, this file's 39 `expect` strings are what tell a
  * mutation case which assertion is supposed to fire, so editing an assertion's
- * MESSAGE text silently invalidates them. The guard in check_gen1_apu.mjs reads this
- * file and fails when an expectation no longer names an assertion it contains — so
- * you will be told rather than left to discover it the next time someone runs this
- * by hand.
+ * MESSAGE text silently invalidates them. check_all.mjs reads this file on every run
+ * and fails when an expectation no longer names an assertion the checker contains, so
+ * you will be told before you ever run this by hand.
+ *
+ * THAT GUARD IS IN check_all.mjs AND NOT HERE, for a reason worth keeping. It was
+ * first written INSIDE check_gen1_apu.mjs, which is a mistake this file is the proof
+ * of. Every case below runs the checker in a temp tree, and 22 of them run a tree
+ * whose checker has had `stripConformance` applied — so the guard read a stripped
+ * source, could not find the assertions 17 expectations name, emitted 17 failures, and
+ * broke the one assertion that exists to make stripping safe. A guard that reads the
+ * file under test is a guard that runs in every fixture too, and a fixture is not the
+ * file. The runner is not a fixture; the runner is the thing that owns the manifest,
+ * so the manifest's own reader is where a claim about the manifest belongs.
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -67,12 +77,12 @@ const SRC = [
   'assets/js/gb-apu.js',
   'cries-gen1.html',
   'scripts/check_gen1_apu.mjs',
-  /* The harness reads ITSELF, not the checker's copy of it: check_gen1_apu.mjs carries
-   * a guard that reads this file to confirm its 39 expectations still name assertions
-   * that exist. Without this line that read is ENOENT inside every temp tree below and
-   * the guard fails all 39 cases — the cost of the guard being unconditional. A temp
-   * tree has to contain everything the checker opens, and this is something it opens. */
-  'scripts/test_check_gen1_apu.mjs',
+  /* This file is NOT in the list, and used to have to be. check_gen1_apu.mjs once
+   * carried a guard that read its own harness, so every temp tree needed a copy of
+   * this file and the guard had to be taught to notice a stripped checker -- which it
+   * could not, because stripConformance removes the very assertions 17 of these
+   * expectations name. The guard now lives in check_all.mjs, which is not a fixture, so
+   * a temp tree contains everything the checker opens and nothing else. */
 ];
 const CHECKER = 'scripts/check_gen1_apu.mjs';
 

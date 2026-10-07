@@ -62,7 +62,6 @@ import {
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
-const readText = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 let checks = 0;
 const fails = [];
@@ -674,72 +673,6 @@ ok(/每幀旋轉一次/.test(dom) && /\|sweep\|/.test(dom) && /噪音通道不�
  * AGENTS.md §3.F, where it already is. */
 ok(!/(先被誤寫|比對才找出|內部斷言看得出來|三個以上|除錯)/.test(dom),
   'and does not spend the reader\'s time on how this page\'s own synthesis was debugged');
-
-/* ---------------------------------------------------------------------------
-   * THE RETIRED HARNESS, CHECKED FROM HERE.
-   *
-   * test_check_gen1_apu.mjs — the 39-case mutation suite that proves each assertion
-   * above is load-bearing rather than trivially true — was 42 s, a fifth of the whole
-   * suite, and is no longer in check_all.mjs's manifest. The file stays on disk and
-   * still runs by hand. This block is what replaces the daily proof, and it is
-   * deliberately small: it cannot tell whether an assertion is still MEANINGFUL, and
-   * nothing here pretends to. All it can tell is whether the retired harness is still
-   * pointed at something real.
-   *
-   * WHY IT LIVES HERE AND NOT IN ITS OWN FILE. A separate checker would need its own
-   * manifest entry, and an entry that exists only to read another entry is the kind of
-   * thing that stops being run. Inside the checker that stays, it costs three
-   * assertions and cannot be skipped by skipping anything else.
-   *
-   * WHY (b) IS SLICED PER ASSERTION. It tests whether each `expect` appears inside
-   * SOME ONE assertion's description, not whether it appears somewhere in this file.
-   * §3.G4 records the difference and it cost a test: check_sorting_page.mjs asserted
-   * that `docblock.includes('524,800')`, and the same number appears in the next
-   * paragraph, so editing the quotation left the check green. A substring of the file
-   * is evidence that a string is in the file. A substring of one assertion is evidence
-   * that the string NAMES that assertion, which is the thing that has to stay true.
-   */
-const HARNESS = 'scripts/test_check_gen1_apu.mjs';
-  let harnessSrc = null;
-  try { 
-    harnessSrc = readFileSync(join(ROOT, HARNESS), 'utf8');
-  } catch (e) { 
-    harnessSrc = null; 
-  }
-
-  ok(harnessSrc !== null,
-    `the retired mutation harness is still on disk at ${HARNESS}`
-      + (harnessSrc === null
-        ? ' — it is gone, so anyone who edits an assertion message below now has nothing telling them 39 cases stopped being pointed at it'
-        : ''));
-
-  if (harnessSrc !== null) {
-    const selfSrc = readText('scripts/check_gen1_apu.mjs');
-    const guardStart = selfSrc.indexOf('const HARNESS =');
-    const checkerCode = selfSrc.slice(0, guardStart);
-    const starts = [...checkerCode.matchAll(/^\s*(?:eq|ok|near)\(/gm)].map((m) => m.index);
-    const descriptions = starts.map((s, i) =>
-      checkerCode.slice(s, starts[i + 1] ?? checkerCode.length)).join('\n');
-    // Normalize escaped apostrophes for comparison (source has \' but harness has ')
-    const normDescriptions = descriptions.replace(/\\'/g, "'");
-    const expectations = [...harnessSrc.matchAll(/^\s*expect:\s*(['"])([\s\S]*?)\1\s*,?\s*$/gm)].map((m) => m[2]);
-    const orphans = expectations.filter((e) => !normDescriptions.includes(e));
-
-    eq(orphans, [],
-      `all ${expectations.length} of the retired harness's expectations still name an assertion in this checker`
-        + (orphans.length ? '' : ` — a message edit below has not invalidated them`));
-    if (orphans.length) {
-      for (const o of orphans) {
-        ok(false, `   orphaned expectation: ${JSON.stringify(o)} matches no assertion description in check_gen1_apu.mjs`);
-      }
-    }
-
-    const declared = [...harnessSrc.matchAll(/^\s{4}name: /gm)].length;
-    const claimed = /(\d+)\s+cases\b/.exec(harnessSrc.slice(0, harnessSrc.indexOf('*/')))?.[1];
-    eq(claimed === undefined ? '(none)' : claimed, String(declared),
-      `the retired harness's header still claims the case count it actually has`
-        + (claimed === undefined ? ' — its header does not state one' : ''));
-  }
 
 console.log('');
 console.log(`  base cries: ${bases.length}   species: ${cries.cries.length}`);
