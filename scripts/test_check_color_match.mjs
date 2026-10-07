@@ -36,8 +36,8 @@
 import {
   cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync,
 } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
+import { execFile } from 'node:child_process';
+import { cpus, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy, failLines } from './lib/negative.mjs';
@@ -88,16 +88,16 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
-  try {
-    const stdout = execFileSync('node', [join(dir, CHECKER)], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    return { code: 0, out: `${stdout}` };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
-  }
-}
+/* ONE RUNNER FOR THE BASELINE AND EVERY CASE. It used to be `execFileSync('node', …)`
+ * for the baseline and, after the pool landed, `execFile(process.execPath, …)` in the
+ * workers -- two runners differing in how the interpreter is named, so the baseline
+ * could have been passing under whichever `node` is first on PATH while the cases ran
+ * under the one running this file. Same claim, two machines. `process.execPath` is the
+ * interpreter that is actually executing, which is the only one that can be right. */
+const run = (dir) => new Promise((res) => {
+  execFile(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
 
 /** Rewrite the matcher module in the scratch tree. */
 const editModule = (dir, fn) => {
@@ -588,7 +588,7 @@ const CASES = [
   },
 ];
 
-const baseline = run(makeTree(null));
+const baseline = await run(makeTree(null));
 ok('baseline: the checker passes on an unmutated copy of the tree', baseline.code === 0,
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-8).join('\n'));
 
@@ -597,26 +597,79 @@ if (baseline.code !== 0) {
   process.exit(1);
 }
 
-for (const c of CASES) {
+/* ---------------------------------------------------------------------------
+ * THE POOL, and why this file is 4x faster for having it
+ * ---------------------------------------------------------------------------
+ *
+ * Every case here costs the same thing: `check_color_match.mjs` is 215 checks
+ * over a 6,148-colour corpus and runs 1.50 s on its own, and there is nothing
+ * cheap about any of them. There is no `stripConformance` equivalent, because
+ * the corpus scan is not one removable section -- it is what the checker IS.
+ * So 28 cases x 1.50 s is 42 s, and for 42 of the suite's 190 s that is paid to
+ * re-derive 28 facts about `color-match.js`, which a palette edit cannot change
+ * and neither can an algorithm edit elsewhere.
+ *
+ * That is the same argument §3.G5 makes for the APU harness and the same
+ * answer, one file over: this harness was SEQUENTIAL. `execFileSync` in a
+ * `for` loop, one child at a time, four cores sitting idle. The cases are
+ * independent -- each is its own `node` process against its own temp tree -- so
+ * running four at once changes nothing that is being claimed.
+ *
+ * `POOL` is capped at 4 for the reason `test_check_gen1_apu.mjs` caps it: other
+ * work shares this machine, and each worker is a full JIT-compiling interpreter
+ * rather than a thread.
+ *
+ * NO "HEAVIEST FIRST" ORDER HERE, and the absence is deliberate rather than
+ * forgotten. `test_check_gen1_apu.mjs` sorts because its cases run 5.7 s or
+ * 1.4 s depending on whether they keep the conformance loop, and a queue handed
+ * out in declaration order then ends on a long case that holds every worker
+ * idle. These 28 are 1.50 s +/- a little, so the last wave is short whichever
+ * order they are issued in and an ORDER array would be machinery with no
+ * effect. Measured: none.
+ *
+ * WHAT THIS DOES NOT CHANGE. Every case still runs, still asserts the same
+ * `expect` against the same FAIL lines, and is still reported in DECLARATION
+ * order -- results are recorded against the original index and printed after
+ * the pool drains, so a diff of two runs reads the same way it did before.
+ */
+const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
+
+let next = 0;
+const finished = new Array(CASES.length);
+
+async function runCase(i) {
+  const c = CASES[i];
   const dir = makeTree(c.mutate);
   let r;
   try {
-    r = run(dir);
+    r = await run(dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+
   // The last case is a REMOVAL of a guard: it is expected to leave the checker
   // green, so what it asserts is that the guard's own description is what makes
   // the removal visible to a reader. Treated as a case, it would fail.
   if (c.expect === null) {
     const removed = r.code === 0;
-    ok(c.name, removed, removed ? '' : 'expected the removal to be silent, and it was not');
-    continue;
+    return { name: c.name, pass: removed, detail: removed ? '' : 'expected the removal to be silent, and it was not' };
   }
   const named = r.code !== 0 && caughtBy(r.out, c.expect);
-  ok(c.name, named, named ? ''
-    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}`);
+  return { name: c.name, pass: named, detail: named ? ''
+    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}` };
 }
+
+await Promise.all(Array.from({ length: POOL }, async () => {
+  while (next < CASES.length) {
+    const i = next++;
+    finished[i] = await runCase(i);
+  }
+}));
+
+/* Printed only now, and in declaration order. The alternative — logging from
+ * inside the worker — makes the output order a property of the scheduler, so two
+ * green runs diff differently and a red one cannot be located by reading. */
+for (const r of finished) ok(r.name, r.pass, r.detail);
 
 // A case inserted against a comment that no longer exists is a case that never
 // runs, and the suite still reports PASS — the same shape as a mutation whose

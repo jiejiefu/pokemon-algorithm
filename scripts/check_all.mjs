@@ -428,7 +428,7 @@ const CHECKERS = [
   },
   {
     script: 'scripts/test_check_color_match.mjs', checker: 'scripts/check_color_match.mjs', group: 'color',
-    note: 'runs the above in child trees',
+    note: '28 cases in child trees, four at a time',
     // `assets/js/*` and not a file list: the suite COPIES every .js in that
     // directory into its scratch trees (`JS_TREE = readdirSync(...)`), so adding
     // one file to the directory is a change to this suite's inputs. Listing the
