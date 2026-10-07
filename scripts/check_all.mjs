@@ -821,10 +821,78 @@ const opts = {
   verbose: has('--verbose'),
   only: flagValue('only'),
   skip: flagValue('skip'),
+  help: has('--help') || has('-h'),
 };
 
 /** `--skip=cry` covers `cry-apu`, `cry-data` and `cry-page` without naming three. */
 const inGroup = (group, filters) => filters.some((f) => group === f || group.startsWith(`${f}-`));
+
+/* ---------------------------------------------------------------------------
+   --help
+   ---------------------------------------------------------------------------
+   A flag nobody can find is a flag nobody uses, and the reader who most needs
+   `--only` is someone who has just edited one file and wants the cheapest check
+   that covers it — which is the opposite of running everything. The runner already
+   knows every group and what it last cost; the table below is that knowledge with no
+   derivation step in front of it.
+
+   The costs are the CACHE's, so they are the last GREEN run's measured durations and
+   are labelled that way. A `-` means the entry has never run green here, which is a
+   real answer rather than a missing one — it means the cost is unknown, not zero.
+   --------------------------------------------------------------------------- */
+function help() {
+  const state = existsSync(CACHE) ? (() => { try { return JSON.parse(readFileSync(CACHE, 'utf8')); } catch { return {}; } })() : {};
+  const secsOf = (s) => (s == null ? '-' : `${Number(s).toFixed(1)}s`);
+
+  console.log(`
+  node scripts/check_all.mjs [options]
+
+    --only=<group>    run just these groups. 'cry' means cry-apu, cry-data, cry-page.
+    --skip=<group>    run everything except these. Takes the same prefixes.
+    --force           ignore the skip cache and run every selected entry.
+    --no-cache        do not read OR write the cache. Use when you want a real number
+                      rather than a remembered one, and when proving inputs.
+    --prove-inputs    run each checker under a recorder and fail if what it reads
+                      disagrees with the manifest's \`inputs\`. Slow: it runs the
+                      negative harnesses for real.
+    --help            this.
+
+  Groups, cheapest first. Costs are the last GREEN run, from the skip cache:
+
+    group       entries   last green total   its most expensive entry
+`);
+
+  const groups = new Map();
+  for (const c of CHECKERS) {
+    const g = c.group;
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(c);
+  }
+  const rows = [...groups].map(([g, cs]) => {
+    const total = cs.reduce((a, c) => a + (state[`${c.script.replace(/^scripts\//, '')}~`] ?? 0), 0);
+    const known = cs.some((c) => state[`${c.script.replace(/^scripts\//, '')}~`] != null);
+    const worst = cs
+      .map((c) => [c.script.replace(/^scripts\//, ''), state[`${c.script.replace(/^scripts\//, '')}~`] ?? 0])
+      .sort((a, b) => b[1] - a[1])[0];
+    return { g, n: cs.length, total: known ? `${total.toFixed(1)}s` : '-', worst };
+  }).sort((a, b) => (a.total === '-' ? 1 : b.total === '-' ? -1 : parseFloat(a.total) - parseFloat(b.total)));
+
+  for (const r of rows) {
+    const w = r.total === '-' ? '(never run green here)' : `${r.worst[0].replace(/\.mjs$/, '')} ${secsOf(r.worst[1])}`;
+    console.log(`    ${r.g.padEnd(12)} ${String(r.n).padStart(4)}   ${r.total.padStart(15)}   ${w}`);
+  }
+
+  console.log(`
+  Not an entry any more, and still runnable by hand — §3.G5 says what was traded:
+
+    node scripts/test_check_gen1_apu.mjs
+
+  One harness carries its own filter, and it is much cheaper than anything above —
+  it is the whole point of the sorting checker's split (§3.G4):
+
+    node scripts/test_check_sorting_page.mjs --static    # the 31 static checks, ~0.5s
+`);
+}
 
 const selected = CHECKERS.filter((c) => {
   if (opts.only.length && !inGroup(c.group, opts.only)) return false;
@@ -1028,6 +1096,7 @@ async function prove() {
    --------------------------------------------------------------------------- */
 
 async function main() {
+  if (opts.help) return help();
   if (opts.prove) return prove();
 
   let state = {};
