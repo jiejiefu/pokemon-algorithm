@@ -18,11 +18,12 @@
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = [
@@ -50,16 +51,12 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
-  try {
-    const stdout = execFileSync('node', [join(dir, CHECKER)], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    return { code: 0, out: `${stdout}` };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
-  }
-}
+/* Async, and on process.execPath rather than whatever 'node' is first on PATH — the
+ * baseline and the mutations must run the SAME interpreter to be comparable. */
+const run = (dir) => new Promise((res) => {
+  execFile(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8' },
+    (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
 
 const edit = (dir, fn) => {
   const p = join(dir, FEATURES);
@@ -205,22 +202,24 @@ const CASES = [
   },
 ];
 
-const baseline = run(makeTree(null));
+const baseline = await run(makeTree(null));
 ok('baseline: the checker passes on an unmutated copy of the tree', baseline.code === 0,
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-6).join('\n'));
 
-for (const c of CASES) {
+/* Four at a time, in DECLARATION order out — see scripts/lib/pool.mjs. */const verdicts = await pool(CASES.map((c) => async () => {
   const dir = makeTree(c.mutate);
   let r;
   try {
-    r = run(dir);
+    r = await run(dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
   const named = r.code !== 0 && caughtBy(r.out, c.expect);
-  ok(c.name, named, named ? ''
-    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}`);
-}
+  return [c.name, named, named ? ''
+    : `exit ${r.code}, expected the checker to report "${c.expect}" on a FAIL line; it said:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n') || '        (no FAIL line at all)'}`];
+}));
+
+for (const [name, pass, detail] of verdicts) ok(name, pass, detail);
 
 const failed = results.filter((r) => !r.pass);
 console.log('');
