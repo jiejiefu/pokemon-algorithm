@@ -519,6 +519,45 @@ if (!existsSync(CHROME)) {
       }, 100); setTimeout(() => { clearInterval(t); r(false); }, 45000); })`;
     const SETTLE = `new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 400))))`;
 
+    /* WAIT FOR THE GRID TO STOP BEING REBUILT, because a fixed wait is a guess.
+     *
+     * `SETTLE` is two frames plus 400 ms, and it was the ONLY thing between
+     * `sel.dispatchEvent(new Event('change'))` and reading the canvases. At n=100 and
+     * n=500 the rebuild finishes inside that. At n=1,025 it does not — 6,150 sprites
+     * are laid out — and the failure was silent and then loud in the wrong place:
+     *
+     *     ok   six lanes at n=1025 all have ink (min ∞ px)
+     *     Error: TypeError: Cannot read properties of undefined (reading 'click')
+     *
+     * `∞` because `Math.min()` of an empty array is `Infinity`, and `Infinity > 2000`
+     * is true, so the ink check certified a measurement that was never taken. Then the
+     * NEXT step threw, because the speed picker's button had not been built yet either.
+     * Same cause, two symptoms, and the check that should have caught it was the one
+     * that passed. §3.G5's rule applies: poll for the precondition for READING a live
+     * measurement, not for the asserted condition.
+     *
+     * The signal is the BACKING STORE, not the ink. Sprites are mid-lerp on every frame
+     * (§3.G3), so ink never stops moving and polling for it to settle would wait
+     * forever; a canvas's `width`/`height` do stop moving, and `finishRace()`
+     * re-measures every lane when the rebuild finishes, so two identical samples a step
+     * apart means the rebuild is over.
+     *
+     * A timeout returns `false` rather than throwing, so the assertion below still runs
+     * and still reports a real number — the diagnosis belongs in the message, not in a
+     * stack trace. */
+    const STABLE = (lanes) => `new Promise(r => { const t0 = Date.now(); let last = null, same = 0;
+        const tick = () => {
+          const cvs = [...document.querySelectorAll('.al-lane canvas')];
+          const sig = cvs.length === ${lanes}
+            ? cvs.map(cv => cv.width + 'x' + cv.height).join('|') : 'lanes=' + cvs.length;
+          if (sig !== '' && sig === last) same++; else { same = 0; last = sig; }
+          if (same >= 2) return r(true);
+          if (Date.now() - t0 > 20000) return r(false);
+          setTimeout(tick, 120);
+        };
+        tick();
+      })`;
+
     /* ink = non-transparent pixels, counted by ALPHA. */
     const INK = `(() => { const out = []; for (const cv of document.querySelectorAll('.al-lane canvas')) {
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
@@ -572,8 +611,6 @@ if (!existsSync(CHROME)) {
           cols: getComputedStyle(document.getElementById('raceGrid')).gridTemplateColumns.split(' ').length,
           lastChildIsResult: document.getElementById('raceGrid').lastElementChild.className,
         })`));
-        const inks = JSON.parse(await evalJs(INK));
-
         check(m.lanes === lanes && Number(m.dataLanes) === lanes,
           `${lanes} lanes render, and data-lanes says ${lanes}`,
           () => `expected ${lanes} lanes, found ${m.lanes} (data-lanes=${m.dataLanes}). buildRace() maps state.algos to cards, so a mismatch here means the picker, the state and the grid have drifted apart.`);
@@ -583,12 +620,18 @@ if (!existsSync(CHROME)) {
         check(/\bal-result\b/.test(m.lastChildIsResult),
           `.al-result is the LAST child of the lane grid at ${lanes} lanes`,
           () => `the last child is "${m.lastChildIsResult}". The five-lane shape selects its bottom two lanes by :nth-child, which only holds while the result panel is last.`);
+        const inks = JSON.parse(await evalJs(INK));
 
-        const laneMin = Math.min(...inks.map(i => i.ink));
+        /* The empty case is 0 ink, not 0 lanes. `Math.min()` of nothing is Infinity and
+         * Infinity beats every floor there is, so a query that matched no canvas used to
+         * report a PASS with a figure no reader could make sense of. Zero is the honest
+         * number: there is nothing on the screen, and "the emptiest lane holds 0" is
+         * what was seen. */
+        const laneMin = inks.length ? Math.min(...inks.map(i => i.ink)) : 0;
         minInk = Math.min(minInk, laneMin);
         check(laneMin > 2000,
           `all ${lanes} race canvases have ink (min ${laneMin.toLocaleString('en-US')} px)`,
-          () => `the emptiest lane holds ${laneMin} non-transparent pixels at ${lanes} lanes. Alpha is the measure on purpose: a blank canvas is TRANSPARENT, so a check that ignores alpha scores a pristine canvas as a perfect result. This is the defect that shipped — paint() drawing into the hidden single-mode canvas.`);
+          () => `the emptiest lane holds ${laneMin} non-transparent pixels at ${lanes} lanes${inks.length ? '' : ` — and INK found ${inks.length} canvases, so nothing was measured at all`}. Alpha is the measure on purpose: a blank canvas is TRANSPARENT, so a check that ignores alpha scores a pristine canvas as a perfect result. This is the defect that shipped — paint() drawing into the hidden single-mode canvas.`);
 
         /* The five-lane bottom two span half a row each, so they are 1.5x wider than
          * the three above. Asserted as a WIDTH ordering rather than as exact pixels:
@@ -621,16 +664,19 @@ if (!existsSync(CHROME)) {
             selectN: sel.value,
           })))));
         })()`));
-        await evalJs(SETTLE);
+        /* STABLE, not SETTLE, and this is the line that was the bug. The change handler
+         * rebuilds 6,150 sprites at n=1025, which does not fit inside two frames plus
+         * 400 ms, so the reading below used to be taken against a grid mid-rebuild. */
+        await evalJs(STABLE(6));
         const inks = JSON.parse(await evalJs(INK));
-        const laneMin = Math.min(...inks.map(i => i.ink));
+        const laneMin = inks.length ? Math.min(...inks.map(i => i.ink)) : 0;
         minInk = Math.min(minInk, laneMin);
         check(m.lanes === 6 && m.urlN === n && m.selectN === n,
           `changing the select to ${n} rebuilds the race and writes it to the URL`,
           () => `after the change: ${m.lanes} lanes, URL n=${m.urlN}, select=${m.selectN}. The control and the share link must agree, or one of them is a control that does nothing.`);
         check(laneMin > 2000,
           `six lanes at n=${n} all have ink (min ${laneMin.toLocaleString('en-US')} px)`,
-          () => `the emptiest lane holds ${laneMin} non-transparent pixels at n=${n}`);
+          () => `the emptiest lane holds ${laneMin} non-transparent pixels at n=${n}${inks.length ? '' : ` — and INK found ${inks.length} canvases, so nothing was measured at all`}`);
       }
 
       /* The finish path, at a size that completes inside a checker's budget. It is the
@@ -638,15 +684,32 @@ if (!existsSync(CHROME)) {
        * a branch — and the panel's own claim is what a reader will believe. Reached by
        * dropping the size select back to 250 and clicking 極快, rather than by
        * navigating: both are the reader's controls, and a navigation here would cost a
-       * fifth of the whole runtime. */
+       * fifth of the whole runtime.
+       *
+       * The two are now SEPARATE statements, and the order is the fix. Changing the
+       * select rebuilds the grid, which detaches the speed picker's children while the
+       * new ones are built; `.find(...)` then returned undefined and `.click()` threw
+       * `Cannot read properties of undefined`. Rebuild first, wait for the grid to hold
+       * still, and only then reach for a button that is guaranteed to exist — with the
+       * count returned so an empty picker is a readable failure and not a stack trace. */
       await evalJs(`(() => {
         const sel = document.getElementById('raceSizeSelect');
         sel.value = '250'; sel.dispatchEvent(new Event('change'));
-        [...document.querySelectorAll('#speedPicker button')].find(b => b.textContent === '極快').click();
-        return new URLSearchParams(location.search).get('speed');
+        return true;
       })()`);
+      await evalJs(STABLE(6));
+      const speeds = JSON.parse(await evalJs(`JSON.stringify({
+        present: [...document.querySelectorAll('#speedPicker button')].length,
+        fastest: [...document.querySelectorAll('#speedPicker button')].some(b => b.textContent === '極快'),
+      })`));
+      check(speeds.present > 0 && speeds.fastest,
+        'the speed picker is built before anything clicks it',
+        () => `#speedPicker has ${speeds.present} button(s) and ${speeds.fastest ? 'no' : 'no button labelled 極快'}. Clicking it before the grid finished rebuilding is what threw here; the count is reported so an empty picker is distinguishable from a renamed label.`);
+      if (speeds.present > 0 && speeds.fastest) {
+        await evalJs(`[...document.querySelectorAll('#speedPicker button')].find(b => b.textContent === '極快').click()`);
+      }
       await evalJs(READY.replace('%LANES%', '6'));
-      await evalJs(SETTLE);
+      await evalJs(STABLE(6));
       await evalJs("document.getElementById('btnRacePlay').click()");
       let done = null;
       for (let i = 0; i < 40; i++) {
@@ -720,7 +783,15 @@ if (!existsSync(CHROME)) {
         `the sprite stub answered all ${stubbed.toLocaleString('en-US')} image requests (1,025 per page load)`,
         () => `only ${stubbed} request(s) were intercepted, so the run fetched real sprites over HTTP — which is why it was slow. Either the glob "${SPRITE_GLOB}" no longer matches ${ASSETS_IMAGES} or Fetch.enable was not reached.`);
 
-      console.log(`\n  measured: min ink across every configuration was ${minInk.toLocaleString('en-US')} px (a FLOOR, not a bound — sprites are mid-lerp on every frame)`);
+      /* `minInk` starts at Infinity, which is the right identity for a minimum and the
+       * wrong thing to PRINT. Every contribution is now a real number (a configuration
+       * that measured nothing contributes 0, not Infinity), so the only way to reach
+       * `∞` here is for the loop above never to have run — which is a broken run, not
+       * a result, and saying so is worth a check of its own. */
+      check(Number.isFinite(minInk),
+        'every configuration the browser half visited was actually measured',
+        () => `minInk is still ${minInk}, so no configuration was read at all. The ink figures above were never taken, whatever they said.`);
+      console.log(`\n  measured: min ink across every configuration was ${Number.isFinite(minInk) ? minInk.toLocaleString('en-US') + ' px' : 'NOT MEASURED'} (a FLOOR, not a bound — sprites are mid-lerp on every frame)`);
       console.log(`  note: that figure is with STUBBED 4×4 opaque sprites, so it is HIGHER than the real-sprite one and not comparable to it`);
       console.log(`  stub answered ${stubbed.toLocaleString('en-US')} image requests; at 126.7 KB mean that is ~${(stubbed * 126.7 / 1024).toFixed(0)} MB not transferred`);
     } finally {

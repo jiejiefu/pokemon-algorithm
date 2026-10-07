@@ -67,8 +67,13 @@ const FILES = [
  * derived number cannot do that (deriving it from the source is tautological). When a
  * check is added to either half this has to move, which forces whoever added it to
  * look at where the sentinels are — which is exactly the moment a misplaced sentinel
- * would otherwise go unnoticed. */
-const EXPECTED_STRIP_DROP = 35;
+ * would otherwise go unnoticed.
+ *
+ * It moved 35 → 37 when `min ∞ px` was closed, and BOTH of those checks are in the
+ * rendered half, which is the point of the guard: `the speed picker is built before
+ * anything clicks it` and `every configuration the browser half visited was actually
+ * measured` have no static counterpart to move the total by instead. */
+const EXPECTED_STRIP_DROP = 37;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
