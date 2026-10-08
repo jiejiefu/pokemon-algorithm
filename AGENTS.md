@@ -495,7 +495,7 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 
 | harness | was | is | cases |
 | :--- | ---: | ---: | ---: |
-| `test_check_color_match.mjs` | 42 s | 13 s | 28 |
+| `test_check_color_match.mjs` | 42 s | 2.2 s | 28 |
 | `test_check_sv_index.mjs` | 22 s | 3.0 s | 15 |
 | `test_check_color_page.mjs` | 4.0 s | 1.1 s | 53 |
 | `test_check_spectrogram_port.mjs` | 4.9 s | 1.4 s | 9 |
@@ -595,7 +595,7 @@ All five now call `chrome.kill()` from the same `exit` handler that removes the 
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 46 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.5 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 92 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
+**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 46 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 82 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
 
 - **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
 - **Every manifest entry gets ONE line with a time column, and the column makes three different claims.** `6.0s` is measured this run, `last 6.0s` is a cache hit reporting the previous green run's measured duration (stored as `${name}~` beside the key and the `@` timestamp), and `-` is a row that never ran — a missing script, or a CDP checker with no server on `:5500`. One `row()` helper emits all of them, because five call sites each padding their own column is five chances for the table to drift; it pads the detail but never truncates it, because an `ok` line must fit 56 columns while a skip naming the Runtime Server rule must keep that sentence whole. Two traps are named in the source: the durations live in a **non-cached region of the output's meaning, not in `budget`** — a cache hit's number is real but was not paid for this run, which is why the legend says so and the summary total still sums only what ran; and the cached value is read with `== null`, because `Number(null)` is `0` and would print `last 0.0s` for every entry written before durations were stored. A `▶` line precedes each run because `execFile` buffers — without it, the 13 s of `test_check_color_match.mjs` is a terminal that looks hung.
@@ -608,7 +608,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
-**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is 92 s across 46 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
+**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is 82 s across 46 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
 
 **The mapping below is by WHAT YOU EDITED, not by group, because a group is an implementation detail and a file is what you have in your hand.** Each row is derived from the `inputs` lists in `check_all.mjs`, which is why `--prove-inputs` matters: a missing entry there is a file whose checker would be skipped after that file changed, so the first column is a claim and not a convenience.
 
@@ -629,14 +629,14 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 **AND WHEN YOU DO NOT KNOW WHICH GROUP OWNS A FILE, ASK.** `node scripts/check_all.mjs --prove-inputs` answers "which checkers read this file" from the recording rather than from a guess, and it is the same recording that keeps the cache honest. A grep cannot: `rg -l initHeaderNav *.html` lists `sorting.html` because its import names the symbol, and two other pages only because they mention it in a comment.
 
-**Know what a group costs before choosing a filter.** Measured from one full cold run, **92.1 s of checker time over 46 entries** — repeat runs of the same tree measured 88–103 s, so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
+**Know what a group costs before choosing a filter.** Measured from one full cold run, **82.1 s of checker time over 46 entries** — repeat runs of the same tree measured 81–103 s, so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
 
 | group | secs | entries | where its time goes |
 | :--- | ---: | ---: | :--- |
-| `color` | 30.7 | 13 | `test_check_color_match.mjs` 12 s — 28 cases over 6,148 corpus colours, was 42 s when it ran them one at a time. Then `test_check_mmcq_anatomy.mjs` 5.5 s |
-| `sort` | 21.0 | 2 | `check_sorting_page.mjs` 12 s and its harness 9 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **This is the group's only remaining cost and it is a browser, not a harness** |
-| `cry-page` | 20.8 | 8 | `check_cries_browser.mjs` 8.8 s, `check_spectrum_browser.mjs` 4.9 s, `check_gen1_page.mjs` 3.7 s (CDP) — every one is a real browser, and §3.G5 already removed their sleeps |
-| `cry-data` | 8.4 | 8 | `test_check_cry_index.mjs` 4.6 s, then `test_check_spectrogram_port.mjs` 1.4 s (was 5.0 s before §3.G7) |
+| `sort` | 22.0 | 2 | `check_sorting_page.mjs` 13 s and its harness 9 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **This is the group's only remaining cost and it is a browser, not a harness** |
+| `cry-page` | 21.0 | 8 | `check_cries_browser.mjs` 8.8 s, `check_spectrum_browser.mjs` 5 s, `check_gen1_page.mjs` 3.7 s (CDP) — every one is a real browser, and §3.G5 already removed their sleeps |
+| `color` | 19.5 | 13 | `test_check_mmcq_anatomy.mjs` 5.6 s, then `test_check_color_palettes.mjs` 2.5 s. `test_check_color_match.mjs` was **42 s** and is now 2.2 s — see below for the two reasons |
+| `cry-data` | 8.2 | 8 | `test_check_cry_index.mjs` 4.6 s, then `test_check_spectrogram_port.mjs` 1.4 s (was 5.0 s before §3.G7) |
 | `cry-apu` | 5.5 | **1** | `check_gen1_apu.mjs` alone. Its 39-case harness is no longer an entry — §3.G5 explains why it cannot be made cheaper and what was traded for it |
 | `type` | 3.2 | 4 | `test_check_sv_index.mjs` 3.0 s, was 22 s when it copied 2,250 images into a tree per case |
 | `nav` | 1.8 | 4 | `test_check_nav_pages.mjs` 1.5 s, `check_page_module_api.mjs` 0.1 s over 295 bindings in 17 pages |
@@ -646,7 +646,9 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 **What is left is a browser or it is the APU.** Of the ten most expensive entries, five are CDP checkers or the sorting checker, one is `check_gen1_apu.mjs`'s 151-species corpus render, and the rest are harnesses whose cost is one browser boot each. §3.G7 removed every harness-shaped cost that was removable; what remains is the work itself.
 
-**A mutation case is only as expensive as the thing it is attacking**, and that is now the whole question when a harness looks slow. Two examples in one commit: `test_check_color_match.mjs` went 42 s → 13 s because its cases were sequential, and `test_check_sv_index.mjs` went 22 s → 3 s because it copied 2,250 images into a fresh tree per case. Neither was a hard case — both were an unexamined default.
+**A mutation case is only as expensive as the thing it is attacking**, and that is now the whole question when a harness looks slow. `test_check_color_match.mjs` went **42 s → 2.2 s** across two commits, and neither commit was about a hard case — both were an unexamined default. The first was that its 28 cases ran sequentially (§3.G7). The second was that the checker it attacks spent 1,118 ms of its 1,310 ms scanning all 4,545 corpus colours to re-derive a frequency that has not moved since the corpus was 6,148 colours; the figure is now a pinned `6`, and the rule it documents is still exercised by the `#20317b` assertions beside it. `test_check_sv_index.mjs` went 22 s → 3 s because it copied 2,250 images into a fresh tree per case.
+
+**So the question to ask of a slow check is "what is this actually computing?", and the answer is usually in the profile rather than in the code.** Timing each `check()` individually found the one that mattered in a second; the section headings said `primary-first ranking`, which reads like arithmetic on a few species and is in fact a full-corpus sweep. §4's rule about a checker that prints a description whether it passes or fails has a sibling here: **a check's name is a claim about its cost, and the name is not evidence.**
 
 ---
 
