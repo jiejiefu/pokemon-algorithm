@@ -113,8 +113,10 @@
   <script type="module">
     import {
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
-      TYPE_EN_ZH,
+      TYPE_EN_ZH, typePair,
     } from './assets/js/shared.js';
+    import { TYPE_CHART_ORDER } from './assets/js/type-chart.js';
+    import { genusZh } from './assets/js/pokemon-lexicon.js';
     import {
       loadColorPalettes, paletteRows, primaryOf, spriteUrl,
       paletteStripHtml, paletteUrl,
@@ -226,7 +228,31 @@
       const primary = primaryOf(palettes, p.id, state.shiny);
       const sprite = spriteUrl(p.id, state.shiny);
       const name = p.names.zh;
-      return `<a class="cp-card" href="${paletteUrl(p)}" aria-label="${name} 的色彩頁">
+      // types_zh carries an official zh-TW name for every type on all 1,025
+      // records and its length always matches `types`. The fallback is here
+      // because a missing field would otherwise take the whole batch down on
+      // `.map` instead of degrading to the English-derived label.
+      const zhTypes = (p.types_zh || []).length === p.types.length
+        ? p.types_zh
+        : p.types.map(t => TYPE_EN_ZH[t] || t);
+      // The badge border is the CARD's own colour, cycled by index — the
+      // reference's `colors[index % colors.length]`, and the reason the badge
+      // reads as belonging to this palette rather than to the type. An empty
+      // palette leaves --p-c unset and CSS falls back to the hairline.
+      const types = p.types.map((t, i) => {
+        const border = rows.length ? rows[i % rows.length][0] : null;
+        return `<span class="cp-card-type"${border ? ` style="--p-c:${border}"` : ''}>${zhTypes[i]}</span>`;
+      }).join('');
+      // TWO hexes, not the reference's three: this card is 218px wide with 194px
+      // of body content, and three chips plus the remainder measured ~210px. The
+      // strip above already carries the picture for all five it shows, so this
+      // row is the readable one.
+      const codes = rows.slice(0, 2).map(([hex]) =>
+        `<span class="cp-card-code"><span class="cp-card-code-dot" style="background:${hex}"></span>${hex}</span>`
+      ).join('');
+      const codeMore = rows.length > 2
+        ? `<span class="cp-card-code-more">+${rows.length - 2} 色</span>` : '';
+      return `<a class="cp-card" href="${paletteUrl(p)}" aria-label="${name}（${zhTypes.join('、')}）的色彩頁">
         <div class="cp-card-strip" style="background:${primary}">
           ${paletteStripHtml(rows, { showRemainder: false })}
           <img class="cp-card-silhouette" src="${sprite}" alt="" width="96" height="96" loading="lazy" decoding="async">
@@ -234,14 +260,24 @@
         </div>
         <div class="cp-card-body">
           <p class="cp-card-name">${name}</p>
-          <p class="cp-card-name-en">${p.names.en}</p>
+          <p class="cp-card-genus">${genusZh(p)}</p>
+          <p class="cp-card-types">${types}</p>
+          <p class="cp-card-codes">${codes}${codeMore}</p>
         </div>
       </a>`;
     }
 
     function renderFilters() {
-      const typeRow = ['屬性', [...new Set(pokemon.flatMap(p => p.types))].sort()
-        .map(t => [t, TYPE_EN_ZH[t] || t])];
+      // The 18 types in TYPE_CHART_ORDER rather than in alphabetical order: that
+      // array is the one the type chart, types.html's grid and the type buckets
+      // on sorting.html already use, so this row reads in the same order as the
+      // rest of the site. Measured, both directions: all 18 appear in
+      // pokemon_data.json and all 18 in that array, with the same TitleCase
+      // casing, so no type can be silently dropped and none needs a fallback.
+      const typeRow = ['屬性', TYPE_CHART_ORDER.map(t => {
+        const { fill, text } = typePair(t);
+        return [t, TYPE_EN_ZH[t] || t, `--type-fill:rgb(${fill.join(',')});--type-ink:rgb(${text.join(',')})`];
+      })];
       const rarityRow = ['稀有度', RARITIES.map(([key, label]) => [key, label])];
       const genRow = ['世代', [...new Set(pokemon.map(p => String(p.generation)))]
         .sort((a, b) => Number(a) - Number(b))
@@ -253,14 +289,19 @@
       // (label='屬性', items=undefined) — a TypeError whose message is
       // "items.map is not a function" and which surfaced only as an empty
       // filter panel.
+      // The third slot is the type chips' own AA colour pair, and it is absent
+      // for the rarity and generation rows — which is what keeps those two rows
+      // on the neutral .cp-chip without a second class name for "plain".
       els.filters.innerHTML = [typeRow, rarityRow, genRow].map(([label, items]) => `
         <div class="cp-filterrow">
           <span class="cp-filterrow-label">${label}</span>
           <div class="cp-chipset">
-            ${items.map(([value, text]) => `
-              <button type="button" class="cp-chip" data-kind="${
+            ${items.map(([value, text, accent]) => `
+              <button type="button" class="cp-chip${accent ? ' cp-chip--type' : ''}" data-kind="${
                 label === '屬性' ? 'type' : label === '稀有度' ? 'rarity' : 'gen'
-              }" data-value="${value}" aria-pressed="${isOn(label, value)}">${text}</button>`).join('')}
+              }" data-value="${value}" aria-pressed="${isOn(label, value)}"${
+                accent ? ` style="${accent}"` : ''
+              }>${accent ? '<span class="cp-chip-dot" aria-hidden="true"></span>' : ''}${text}</button>`).join('')}
           </div>
         </div>`).join('');
     }

@@ -688,8 +688,71 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cp-card:hover .cp-seg-hex {
+/* The hex belongs to ITS OWN segment, so it appears on the segment under the
+   cursor rather than on all five at once when the card is hovered — five
+   simultaneous hexes answer "what colour is this" five times for one question.
+   Still scoped under `.cp-card`: paletteStripHtml() is also used by colors.html,
+   whose strip has no `.cp-card` ancestor, and that page's hexes stay hidden
+   exactly as before.
+   The label does NOT rely on the ink paletteStripHtml() puts on each `.cp-seg`:
+   that ink is correct for the segment's own fill, but the silhouette is painted
+   over that fill, so inheriting it is what made the hex read as half grey. It
+   carries its own scrim and colour instead — see the next rule. */
+.cp-card .cp-seg:hover .cp-seg-hex {
   display: block;
+}
+
+/* And lifted clear of the sprite, which is what stops the sprite painting over
+   the label. Two separate defects were fixed here and only one was the contrast:
+   the label was CLIPPED (below) and the sprite was OCCLUDING it. */
+.cp-card .cp-seg-hex {
+  position: relative;
+  z-index: 2;
+  /* 11px/600 was CLIPPED, not just dimmed: the strip is 216px across 5 segments
+     and .cp-seg clips, so each segment is 43px, while `#399494` measured 46.3px
+     at the old setting — 3.3px cut off every label. Measured across the 284
+     distinct hexes of the first 60 cards: 11/600 46.3px, 10/600 42.1px,
+     10/500 42.0px, 9/600 37.9px, against a 43px box. 10/500 fits with 1px to
+     spare and 10px matches the type badges and the hex row below, so it is the
+     smallest step that also lands on the card's existing type scale. */
+  font-size: 10px;
+  font-weight: 500;
+  /* The scrim, and the reason the silhouette is still on screen.
+     .cp-seg carries a swatchStyle() background AND an ink chosen to clear 4.5:1
+     against THAT fill — measured, 0 of 8,137 palette colours below the ratio. But
+     the silhouette's black sits on top of the fill at 0.4, rising to 0.6 once the
+     card is hovered, so that ink was being judged against a colour nobody chose:
+     49.3% of segments drop below 4.5:1 at rest and 62.8% on card hover, the worst
+     at 1.40:1 (white on #f61010). That is the "half grey hex" — legible only
+     where the sprite's own outline did not cross it, so the glyphs faded out in
+     patches.
+     A scrim fixes it with no timing, which a fade does not: white on
+     rgba(0,0,0,0.6) measures 5.74:1 worst case over the whole corpus, and the
+     worst case is a pure-#ffffff segment with NO sprite over it — the silhouette
+     can only ever darken the ground, which only helps white text. So one number
+     covers all 8,137 colours, both sprite opacities and both themes, including
+     wherever the sprite's shape crosses the label. Measured across alpha: 0.50
+     gives 3.95:1 and FAILS, 0.55 gives 4.74:1, 0.60 gives 5.74:1.
+     This is the reference's own mechanism (a translucent backdrop chip under its
+     hover hex, with the silhouette still at opacity-40). The first version of
+     this fix faded the sprite out instead, which traded away the card's
+     silhouette — the wrong cost for a problem a scrim does not have. */
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* The scrim makes the chip 48px wide in a 43px segment, so it spills ~2.5px onto
+   the neighbouring colour — invisible, because the scrim is what you see. This
+   rule is what stops `.cp-seg`'s own overflow:hidden cutting it, and it doubles
+   as the safety net for the 1px of headroom above: a font rendering tabular
+   figures a little wider now overlaps rather than silently clipping a glyph.
+   `.cp-strip`'s overflow:hidden still costs the OUTERMOST ~2.5px of padding on
+   segments 0 and 4 — empty space, not glyphs — which is why there are no
+   edge-alignment rules for them. */
+.cp-card .cp-seg:hover {
+  overflow: visible;
 }
 
 .cp-seg-more {
@@ -1739,13 +1802,110 @@
   text-overflow: ellipsis;
 }
 
-.cp-card-name-en {
+/* The species category (分類) — 種子寶可夢, 火蜥蜴寶可夢 — where the card used to
+   carry the English name. Same 12px muted treatment, and it fits: measured over
+   all 1,025 records the longest zh genus is 7 characters, 84px at this size
+   against 192px of body content, so no card ellipsises. The nowrap/ellipsis is
+   kept as insurance rather than as a claim that it is needed.
+   `.cp-card-genus`, not the old `.cp-card-name-en`: the class name has to match
+   what it holds, and a `-en` on a zh-TW label is a lie the next reader would
+   believe. */
+.cp-card-genus {
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* An OUTLINE pill whose border is tinted by the CARD'S OWN palette, not by the
+   type's colour — transcribed from the reference's explore card, which sets
+   `borderColor` to `colors[index % colors.length]`. Two deliberate deviations,
+   and the second is load-bearing.
+   1. The label is zh-TW. The reference prints the English type name because its
+      whole surface is English; this page's is not.
+   2. The border is mixed 50% with --text-secondary instead of the raw palette
+      hex. Measured over all 8,137 distinct palette colours: against the light
+      theme's #ffffff card, 44.6% fall under 3:1 and 6.1% are effectively
+      invisible, the worst being #ffffff at 1.00:1 — a white border on a white
+      card. The reference gets away with the raw hex because its card body is
+      dark in BOTH themes, so a pale colour always gives a bright border;
+      `--bg-card` here is #ffffff in light. --text-secondary measures 9.94:1
+      (light) and 10.27:1 (dark) on --bg-card, so the mix cannot vanish in
+      either theme, and unlike readableInk() it needs no theme-change
+      recomputation — which is the alternative this rejected. */
+.cp-card-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 5px 0 0;
+}
+
+/* 1.5px. 1px read as too thin to carry the palette tint at all, 2px read as
+   heavier than the 10px label it surrounds; 1.5px is the middle, and Chrome
+   computes it as exactly 1.5px (three device pixels at dpr 2) rather than
+   snapping it to a whole CSS pixel.
+   The padding is 6px rather than 7px because the ring, not the padding, is what
+   the reader sees. A 2-char label measures 36x19px at 1px border + 7px padding
+   and 35x18px here — 1px smaller on both axes than either — so the pill sits a
+   touch tighter than it did at 1px, which suits it rather than hurting it.
+   Raising the palette's share of the mix is the obvious next move and it is
+   wrong, measured both directions over all 8,137 palette colours and 5,123
+   adjacent badge pairs: at 50% the border is at worst 2.58:1 against the card
+   and 0% of badges fall below 1.5:1, while at 100% (the raw palette hex) 71.9%
+   fall below 3:1, 16.8% below 1.5:1, and the worst is 1.00:1 -- an invisible
+   border. Distinguishability and visibility trade against each other along this
+   one axis, and 50% is where the border still exists: median adjacent-badge dE
+   only falls 0.248 -> 0.124 across that whole range, and 0.124 is still a
+   "clear" distance -- two badges from one card were never similar in colour, so
+   thickness was the right lever and saturation is not available. */
+.cp-card-type {
+  padding: 0 6px;
+  border: 1.5px solid color-mix(in oklab, var(--p-c, var(--hairline-strong)) 50%, var(--text-secondary));
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* The readable hexes, transcribed from the reference's "Color Codes" row: a
+   small swatch, the hex in tabular figures, then how many are left. `.cp-strip`
+   above already shows all five it carries, so this row exists to make two of
+   them selectable text rather than for the swatch — which is why the swatch is
+   10px and the type is 11px, and why the remainder is a count and not a link
+   (the card itself is already the link to the full palette). */
+.cp-card-codes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid var(--hairline);
+}
+
+.cp-card-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-card-code-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+}
+
+.cp-card-code-more {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 /* The reference's second stop is `md:` = 768px, and the card minmax() is 190px,
@@ -1923,6 +2083,43 @@
   background: var(--bg-header-dex);
   border-color: transparent;
   color: #ffffff;
+}
+
+/* Type chips carry their own colour; the rarity and generation chips do not,
+   which is why this is a modifier and not a change to .cp-chip. A modifier also
+   means the two neutral rows are untouched, rather than neutral-by-default with
+   a colour that has to be switched off again. Only colors-explore.html mounts
+   .cp-chip at all.
+   --type-fill and --type-ink come from typePair() in shared.js, the same pair
+   the type badges use, so the fill already clears 4.5:1 against its own ink in
+   both themes. The dot is that SAME fill, not the raw TYPE_COLORS hex: pressing
+   a chip therefore spreads the dot across the pill instead of swapping one
+   colour for another, and the pill keeps its width, so the row does not reflow
+   around the button the reader just pressed. */
+.cp-chip--type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-chip--type .cp-chip-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--type-fill, var(--hairline-strong));
+}
+
+/* One class MORE specific than the neutral pressed rule above, and later in the
+   file, so it wins on both counts and needs no !important. Nothing here changes
+   on `background`, but `color` and `border-color` are in .cp-chip's 0.12s
+   transition, so a pressed chip finishes arriving a frame or two after its
+   background has already snapped — which is why the fill may read as settled
+   while the ink is still mid-interpolation if you screenshot on the click. */
+.cp-chip--type[aria-pressed='true'] {
+  background: var(--type-fill);
+  border-color: transparent;
+  color: var(--type-ink);
 }
 
 .cp-results-note {
