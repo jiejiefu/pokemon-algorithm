@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>康威生命遊戲 — 寶可夢世代生態演化 | 寶可夢演算法</title>
+  <meta name="description" content="用寶可夢生態演繹康威生命遊戲：鎖定 1 至 9 世代、御三家始祖、品種遺傳、持續存活進化與高資歷光環、野生遭遇群落突變，收集神獸成就獎章！">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/life.css">
+</head>
+<body class="life-body">
+  <header class="header header-maze">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁">
+      <span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <div class="life-toolbar">
+    <div class="life-group">
+      <button class="life-gen-badge" id="genBadge" type="button" title="切換世代與初始設定">第 1 世代 · 關都 ▾</button>
+      <button class="life-brush-preview" id="brushPreview" type="button" title="更換筆刷物種">
+        <img id="brushImg" src="assets/images/sprite/1.png" alt="妙蛙種子">
+        <span id="brushName">#0001 妙蛙種子</span>
+      </button>
+    </div>
+
+    <span class="life-divider" aria-hidden="true"></span>
+
+    <div class="life-group">
+      <div class="life-seg" id="toolSeg" role="group" aria-label="操作工具">
+        <button class="life-btn" type="button" data-tool="pan" title="平移畫布 (H)">🖐 平移</button>
+        <button class="life-btn is-active" type="button" data-tool="brush" title="放置細胞 (B)">✏ 放置</button>
+        <button class="life-btn" type="button" data-tool="eraser" title="抹除細胞 (E)">🧹 抹除</button>
+        <button class="life-btn" type="button" data-tool="stamp" title="陣型印章 (S)">✨ 印章</button>
+      </div>
+      <select class="life-select" id="stampSelect" hidden title="選擇經典生命遊戲陣型">
+        <option value="glider">滑翔翼 (Glider)</option>
+        <option value="lwss">輕型太空船 (LWSS)</option>
+        <option value="pulsar">脈衝星 (Pulsar)</option>
+        <option value="blinker">閃爍燈 (Blinker)</option>
+        <option value="toad">蟾蜍 (Toad)</option>
+        <option value="beacon">信標 (Beacon)</option>
+        <option value="gliderGun">高斯帕滑翔翼槍 (Gosper Gun)</option>
+      </select>
+    </div>
+
+    <span class="life-divider" aria-hidden="true"></span>
+
+    <div class="life-group">
+      <button class="life-btn life-btn-play" id="btnPlay" type="button" title="播放 / 暫停 (空白鍵)">▶ 播放</button>
+      <button class="life-btn" id="btnStep" type="button" title="單步演化 (N / →)">⏭ 單步</button>
+      <div class="life-seg" id="speedSeg" role="group" aria-label="演化速度">
+        <button class="life-btn" type="button" data-speed="0.5">0.5x</button>
+        <button class="life-btn is-active" type="button" data-speed="1">1x</button>
+        <button class="life-btn" type="button" data-speed="2">2x</button>
+        <button class="life-btn" type="button" data-speed="5">5x</button>
+        <button class="life-btn" type="button" data-speed="10">10x</button>
+      </div>
+    </div>
+
+    <span class="life-divider" aria-hidden="true"></span>
+
+    <div class="life-group">
+      <button class="life-btn life-btn-sm" id="btnReseed" type="button" title="隨機種子生成 (R)">🎲 隨機種子</button>
+      <button class="life-btn life-btn-sm" id="btnClear" type="button" title="清空盤面 (C)">🗑 清空</button>
+      <button class="life-btn life-btn-sm" id="btnCenter" type="button" title="重置視角 (0)">⌖ 置中</button>
+    </div>
+
+    <span class="life-divider" aria-hidden="true"></span>
+
+    <div class="life-group">
+      <label class="life-toggle-label" title="每輪有機率在網格上遭遇野生寶可夢群落"><input type="checkbox" id="chkWild" checked><span>野生遭遇</span></label>
+      <label class="life-toggle-label"><input type="checkbox" id="chkGrid" checked><span>格線</span></label>
+    </div>
+
+    <div class="life-group" style="margin-left: auto;">
+      <button class="life-btn life-btn-sm" id="btnDexDrawer" type="button">📖 圖鑑 (0/151)</button>
+      <button class="life-btn life-btn-sm" id="btnHofDrawer" type="button" style="border-color:var(--accent-gold); color:var(--accent-gold);">🏆 名人堂 (0/5)</button>
+      <button class="life-btn life-btn-sm" id="btnOpenSetup" type="button">⚙ 世代設定</button>
+    </div>
+  </div>
+
+  <main class="life-stage cursor-brush" id="lifeStage">
+    <canvas id="lifeCanvas" role="img" aria-label="寶可夢康威生命遊戲畫布"></canvas>
+
+    <div class="life-hud-container">
+      <!-- Top-Right Live Stats HUD -->
+      <div class="life-hud-stats" id="hudStats">
+        <div class="life-hud-title">
+          <span>生態演化數據</span>
+          <span class="life-hud-badge-live"><span class="life-live-dot"></span>LIVE</span>
+        </div>
+        <div class="life-hud-grid">
+          <div class="life-hud-metric">
+            <div class="life-metric-label">當前世代</div>
+            <div class="life-metric-val gold" id="statGen">0</div>
+          </div>
+          <div class="life-hud-metric">
+            <div class="life-metric-label">存活總人口</div>
+            <div class="life-metric-val" id="statPop">0</div>
+          </div>
+          <div class="life-hud-metric">
+            <div class="life-metric-label">累計解鎖家族</div>
+            <div class="life-metric-val" id="statFamilies">0</div>
+          </div>
+          <div class="life-hud-metric">
+            <div class="life-metric-label">野生遭遇次數</div>
+            <div class="life-metric-val" id="statWild">0</div>
+          </div>
+        </div>
+        <div class="life-hud-stages">
+          <div class="life-stage-legend">
+            <span><i class="life-dot-s0"></i>基礎型態 <strong id="stagePct0">0%</strong></span>
+            <span><i class="life-dot-s1"></i>一階 (Age≥5) <strong id="stagePct1">0%</strong></span>
+            <span><i class="life-dot-s2"></i>二階 (Age≥12) <strong id="stagePct2">0%</strong></span>
+          </div>
+          <div class="life-stage-bar">
+            <div class="life-stage-seg-0" id="stageBar0" style="width: 100%;"></div>
+            <div class="life-stage-seg-1" id="stageBar1" style="width: 0%;"></div>
+            <div class="life-stage-seg-2" id="stageBar2" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom-Right Camera Navigation HUD -->
+      <div class="life-hud-cam">
+        <span id="camCoords">(0, 0)</span>
+        <span style="opacity: 0.4;">|</span>
+        <span id="camZoom">100%</span>
+        <button class="life-cam-btn" id="btnZoomOut" type="button" title="縮小 (−)">−</button>
+        <button class="life-cam-btn" id="btnZoomIn" type="button" title="放大 (+)">+</button>
+        <button class="life-cam-btn" id="btnZoomReset" type="button" title="重置視角 (0)">⌂</button>
+      </div>
+    </div>
+
+    <div class="life-loading-overlay" id="loadingOverlay" hidden>
+      正在載入寶可夢資料庫與生態引擎…
+    </div>
+  </main>
+
+  <!-- Setup & Generation Lock Modal -->
+  <div class="life-modal-backdrop" id="setupModal" hidden>
+    <div class="life-modal-dialog">
+      <div class="life-modal-header">
+        <div>
+          <h2 class="life-modal-title">寶可夢生命遊戲 · 世代生態鎖定</h2>
+          <p class="life-modal-subtitle">選擇目標世代與始祖物種，探索專屬的繁衍進化與神獸解鎖之旅</p>
+        </div>
+        <button class="life-modal-close" id="setupClose" type="button" aria-label="關閉對話框">×</button>
+      </div>
+
+      <div class="life-modal-section-title">步驟 1：選擇目標世代 (Generation Lock)</div>
+      <div class="life-gen-tabs" id="setupGenTabs"></div>
+
+      <div class="life-modal-section-title">步驟 2：選擇始祖物種 (預設畫筆)</div>
+      <div class="life-starters-grid" id="setupStarters"></div>
+
+      <div class="life-modal-section-title">步驟 3：初始網格佈局</div>
+      <div class="life-seed-options">
+        <label class="life-seed-option is-selected">
+          <input type="radio" name="setupSeedMode" value="random" checked>
+          <div>
+            <div class="life-seed-title">🎲 隨機種子生成 (推薦)</div>
+            <div class="life-seed-desc">在網格中央按 20% 密度隨機分佈該世代的基礎型態寶可夢</div>
+          </div>
+        </label>
+        <label class="life-seed-option">
+          <input type="radio" name="setupSeedMode" value="blank">
+          <div>
+            <div class="life-seed-title">✏ 自由繪製空白網格</div>
+            <div class="life-seed-desc">保留空白畫布，由玩家自由點擊或使用陣型印章放置細胞</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="life-modal-actions">
+        <button class="life-btn-primary" id="setupSubmit" type="button">鎖定世代並開始模擬</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hall of Fame Drawer (神殿名人堂) -->
+  <aside class="life-drawer" id="hofDrawer" aria-label="神殿名人堂">
+    <div class="life-drawer-header">
+      <h3 class="life-drawer-title">🏆 神殿名人堂 · 神獸獎章</h3>
+      <button class="life-drawer-close" id="hofClose" type="button" aria-label="關閉名人堂">×</button>
+    </div>
+    <div class="life-drawer-content">
+      <div class="life-hof-progress-box">
+        <div class="life-hof-progress-label">
+          <span id="hofProgressText">下一面獎章進度: 0/6 (累計 0 家族)</span>
+        </div>
+        <div class="life-hof-progress-bar">
+          <div class="life-hof-progress-fill" id="hofProgressFill" style="width: 0%;"></div>
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0;">
+          💡 每在盤面上誕生或進化出 6 個不同進化家族，即可依圖鑑順序解鎖該世代的一面神獸獎章！
+        </p>
+      </div>
+      <div class="life-medals-list" id="hofMedalsList"></div>
+    </div>
+  </aside>
+
+  <!-- Generation Pokédex Drawer (世代圖鑑) -->
+  <aside class="life-drawer" id="dexDrawer" aria-label="世代圖鑑">
+    <div class="life-drawer-header">
+      <h3 class="life-drawer-title">📖 世代圖鑑庫</h3>
+      <button class="life-drawer-close" id="dexClose" type="button" aria-label="關閉圖鑑">×</button>
+    </div>
+    <div class="life-drawer-content">
+      <input class="life-dex-search" id="dexSearch" type="search" placeholder="搜尋名稱或編號…">
+      <div class="life-dex-grid" id="dexGrid"></div>
+    </div>
+  </aside>
+
+  <!-- Legendary Medal Celebration Toast -->
+  <div class="life-celebration-toast" id="celebrationToast" role="alert">
+    <div class="life-toast-icon">🏆</div>
+    <div class="life-toast-text">
+      <div class="life-toast-eyebrow">成就達成 · 神殿名人堂</div>
+      <div class="life-toast-headline" id="toastHeadline">獲得神獸成就獎章！</div>
+    </div>
+  </div>
+
+  <!-- Required scripts -->
+  <script type="module">
+    import { initHeaderNav } from './assets/js/shared.js';
+    initHeaderNav();
+  </script>
+  <script type="module" src="assets/js/life.js"></script>
+</body>
+</html>
