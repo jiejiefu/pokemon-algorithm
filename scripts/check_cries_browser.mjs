@@ -214,11 +214,57 @@ const drawn = await ev(canvasInk);
 ok(drawn.ink > 500,
   `probe waveform is drawn when a species is selected (${drawn.ink} inked pixels of ${drawn.w * drawn.h})`);
 
-await ev(`document.querySelector('[data-play="6"]').click()`);
-/* Was 900 ms, and the observable that play has landed is the one the page already
- * exposes for exactly this: `aria-pressed` on the card's own control, which is what
- * the play cursor section below is built on. */
-await until(`document.querySelector('[data-play="6"]')?.getAttribute('aria-pressed') === 'true'`, 6000);
+/* WAS: one `querySelector('[data-play="6"]').click()`, then
+ * `until(..., 6000)` whose RETURN VALUE WAS DISCARDED. That is worse than a fixed
+ * sleep, and it cost 6,046 ms of this file's 8,700 on every run.
+ *
+ * Defect 1, the wasted 6 s. The selector is the problem: `[data-play="6"]` matches the
+ * CARD's play span (cries.html:396, first in document order), not the probe's button
+ * (:516) — and the card was re-rendered by the selection two steps above, so the node
+ * that selector resolved to was DETACHED. A detached node does not bubble to the
+ * delegated listener on `#probe-play`, so the click was a silent no-op,
+ * `aria-pressed` never became true, and `until` burned its whole 6000 ms ceiling
+ * returning `false` into a const nobody read. Then the next assertion checked the mute
+ * tap, which takes 0 ms and passes — so a play that never started cost six seconds and
+ * reported nothing.
+ *
+ * Defect 2, which the first fix alone did NOT catch. Re-querying and asserting
+ * `aria-pressed === 'true'` is still vacuous HERE, because autoplay is ON by default
+ * (§3.G) and something is already sounding on arrival — so the assertion is satisfied
+ * by the page's default state and passes even with the click deleted. Verified:
+ * removing `b.click()` entirely left the file green. That is §3.G's shape exactly, an
+ * assertion that can be satisfied by having measured nothing, and it took a mutation
+ * to see rather than a reading.
+ *
+ * So there are two phases, and the ORDER is the check. A settled STOP first, because
+ * "it is playing" has to be a consequence of this press rather than of the page
+ * arriving that way. The stop is the cry ending on its own — the page releases it, and
+ * this file already relies on that in `scanInPage` below.
+ */
+const stopped = await until(
+  `document.querySelector(\x27#probe-play [data-play="6"]\x27)?.getAttribute(\x27aria-pressed\x27) !== \x27true\x27`,
+  8000);
+ok(stopped,
+  'the probe is silent before this press (aria-pressed false), so a press that does nothing is visible');
+/* Re-queried on every attempt, which is the whole fix: `renderProbe()` rewrites
+ * `#probe-play`'s innerHTML on every play and every stop (cries.html:516), so a node
+ * captured before the rewrite is DETACHED and does not bubble to the delegated handler.
+ * The `#probe-play` scope is not cosmetic either — that button is what the mute tap,
+ * the played-region scan and the play cursor all read, so pressing the card's span is
+ * a different claim. */
+let playing = false;
+for (let i = 0; i < 12 && !playing; i++) {
+  playing = await ev(`(() => {
+    const b = document.querySelector('#probe-play [data-play="6"]');
+    if (!b) return false;
+    if (b.getAttribute('aria-pressed') !== 'true') b.click();
+    return b.getAttribute('aria-pressed') === 'true';
+  })()`);
+  if (!playing) await new Promise(r => setTimeout(r, 100));
+}
+ok(playing,
+  `and the press starts playback — the click reaches the delegated handler on a LIVE node`
+  + ` (aria-pressed=true on #probe-play [data-play="6"] after a confirmed stop)`);
 
 /* The mute is a claim like any other, so it is asserted rather than assumed — the
    failure mode of a mute that quietly stopped working is a cry at a fifth of full
