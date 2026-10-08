@@ -1371,6 +1371,13 @@
    --------------------------------------------------------------------------- */
 
 .sp-about {
+  display: grid;
+  /* 6:4, which is `.sp-intro`'s split and for the same reason — a proportion that is
+   * correct at the width this page renders at stops being correct somewhere else. The
+   * prose wants a measure; the parameter column is reference material and does not. */
+  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+  gap: 4px 28px;
+  align-items: start;
   margin: 0 0 26px;
   padding: 14px 16px;
   background: var(--bg-secondary);
@@ -1393,6 +1400,123 @@
 
 .sp-about p:last-child {
   margin-bottom: 0;
+}
+
+/* The live curve's parameters, as a column rather than as more prose.
+ *
+ * A `<div role="note">` and NOT an `<aside>`, which is a deliberate reversal of what the
+ * element is for. `<aside>` on this page already means "the rail": `check_spectrum_page.mjs`
+ * asserts that no `<aside>` sits inside `<main>`, because an aside inside the skip-link's
+ * target is what put every rail button into it. This column is inside `<main>` and IS main
+ * content, so `role="note"` says 「this is a related but separable block」 without claiming
+ * the complementary landmark the rail already uses.
+ *
+ * Its own `max-width` is dropped because the track is already the measure — inheriting the
+ * prose's 78ch here would let a short column set its own ragged right edge. */
+.sp-about-live {
+  min-width: 0;
+  padding: 12px 13px 13px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.sp-about-live h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sp-about-live p {
+  margin: 0;
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+/* The two disclosures, reusing the `.sp-more` treatment exactly: same summary shape,
+ * same ▸ that rotates, same hairline rule above. One component rather than a second
+ * copy of it, for `cry-autoplay.js`'s reason — two copies of a disclosure drift
+ * invisibly. */
+.sp-about-why {
+  margin: 0 0 9px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+
+/* `.sp-about-why` and `.sp-more` get the SAME treatment from one selector list rather
+ * than a second copy of it. The disclosure is a component and `cry-autoplay.js` is one
+ * module for the reason in §3.G: two copies of a control drift invisibly, and this is
+ * the third one in this file that would have been a copy. */
+.sp-about-why > summary,
+.sp-more > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.sp-about-why > summary::-webkit-details-marker,
+.sp-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sp-about-why > summary::before,
+.sp-more > summary::before {
+  content: '▸';
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.sp-about-why[open] > summary::before,
+.sp-more[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* The paragraphs inside a disclosure, with ONE extra declaration that is not cosmetic.
+ *
+ * The browser hides a collapsed disclosure's content with a UA rule,
+ * `details:not([open]) > *:not(summary) { display: none }`, and that rule is defeated by
+ * ANY class selector on the same element — `.sp-about-why > p` outranks it on specificity.
+ * So styling the paragraphs at all is enough to make the disclosure permanently expanded:
+ * measured `open === false`, the <details> 43px tall, and every paragraph inside it still
+ * rendering with a client rect. The control that says "collapsed" was not collapsed, and no
+ * static check sees it because the DOM is correct — the defect is purely in the cascade.
+ *
+ * `content-visibility: hidden` restores it at the SAME specificity the paragraphs are
+ * styled with, so it is the declaration that has to exist and the reason it is here.
+ * `:not([open])` so it stops applying the moment the disclosure opens — a UA rule with no
+ * attribute selector would outrank it again and re-hide the content the reader just asked
+ * for, which is the second half of the same trap. */
+.sp-about-why:not([open]) > p,
+.sp-more:not([open]) > p {
+  content-visibility: hidden;
+}
+
+.sp-about-why > p,
+.sp-more > p {
+  margin: 0 0 8px;
+}
+
+.sp-about-why > p:last-child,
+.sp-more > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Provenance sits below the disclosures and is not one of them. It is where the audio
+ * came from, which is a different kind of statement from how it was analysed, and it is
+ * the line §3.F's record depends on. */
+.sp-about-src {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1457,6 +1581,20 @@
 
   .sp-numbers {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The parameter column stacks UNDER the prose, not beside it. At 900px the right
+   * track would be ~330px, which is below the ~400px the parameter column needs to
+   * hold a `<code>` run without breaking mid-token — and a reference table broken
+   * across lines reads worse than one that moved. Order is the DOM's, so this is one
+   * declaration and not a reordering. */
+  .sp-about {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .sp-about-live {
+    padding: 11px 12px 12px;
   }
 
   .sp-num-panel {

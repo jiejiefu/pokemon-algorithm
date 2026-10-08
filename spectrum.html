@@ -213,40 +213,113 @@
             </div>
           </section>
 
+          <!-- The live curve's own parameters, and this is the same sentence the
+               * canvas used to describe itself with. It stays reachable as the
+               * canvas's aria-describedby — that is not negotiable, and it is why the
+               * short caption under the curve keeps the one line it needs and the
+               * detail lives here. `check_spectrum_page.mjs` asserts both halves:
+               * that this column names the second measurement, and that the canvas
+               * still points at something that says it. -->
+          <!-- The peak/rms caveat gets its OWN disclosure rather than riding inside
+               * 「完整的計算細節」, and the split is the rule rather than a preference:
+               * peak and rms are two of the nine numbers the page SHOWS, so a reader who
+               * cannot compare them is being misled about something in front of them.
+               * `0.97` pre-emphasis and the 512-point FFT are engineering detail that
+               * changes no reading of the picture at all.
+               *
+               * NOTE FOR ANYONE EDITING THIS REGION: HTML comments do NOT nest, and a
+               * literal closing marker written inside one — even in prose about this very
+               * hazard — ends it immediately. An earlier version of this note was nested
+               * inside the block below and did exactly that: the comment-stripping every
+               * checker performs to read the markup then swallowed
+               * `<section class="sp-about">`, which surfaced five steps away as a dead
+               * CSS rule. Say 「closing marker」 instead of writing the characters. -->
+          <!-- TWO COLUMNS, and the right one is the live curve's parameter table.
+           *
+           * `sp-about` used to be five paragraphs of prose at 78ch: how the picture is
+           * computed, why peak/rms cannot be compared, what the colour scale means, and
+           * where the audio came from. Three of those are about the PICTURE; one was always
+           * about a second picture.
+           *
+           * The right column holds the 即時頻譜圖's parameters, which is where a reader
+           * looking for them actually is — and moving them here rather than into `sp-about`'s
+           * prose is what keeps the comparison intact. Both captions described the same mel
+           * pipeline from opposite ends (26 filters, 25 ms/no smoothing against 26 filters,
+           * 25 ms/10 ms hop, 16 kHz), and that contrast IS the live curve's disclosure: it is
+           * a different measurement. Put side by side in one column they collapse into a
+           * restatement of the same numbers.
+           *
+           * The 6:4 split is `.sp-intro`'s, for the reason §3.G records for 6:4 rather than
+           * 7:3: a split correct at the width this page renders at stops being correct
+           * somewhere else. The parameter column is reference material and does not want a
+           * wide measure; the prose does. -->
           <section class="sp-about" aria-labelledby="sp-about-h">
-            <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
-            <p>
-              解碼後先重採樣到 <code>16 kHz</code>，因為整個語料的原始取樣率從 8,000 到 48,000 都有，
-              而 784 個檔案是 32,728 Hz。不統一的話，濾波器就得分出一部分力氣去分辨「這支是誰 Encoded 的」。
-              選 16 kHz 是因為實測 98.2% 的能量在 8 kHz 以下。
-            </p>
-            <p>
-              接著 <code>0.97</code> 預強調、<code>25 ms</code> 對稱 Hamming 窗（跳距 <code>10 ms</code>）、
-              zero-pad 到 <code>512</code> 做 FFT 取功率，再過 <code>26</code> 條 HTK mel 三角濾波器
-              （<code>50 Hz</code> 到 <code>8 kHz</code>，每條面積正規化為 1）、取對數。全部寫在
-              <code>assets/js/cry-spectrogram.js</code>，參數與 <code>scripts/analyze_cries.py</code>
-              逐一相等，並由 <code>scripts/check_spectrogram_port.mjs</code> 拿同一段合成訊號餵給兩邊、
-              逐項比對：32 個可比特徵目前最差差 <code>4.3e-6</code>。
-            </p>
-            <p>
-              <code>peak</code> 和 <code>rms</code> 沒有參與對表，而且永遠不能參與。這兩項在腳本裡量的是
-              <strong>原始取樣率</strong>的訊號，而瀏覽器的 <code>decodeAudioData</code> 會先重採樣到裝置取樣率，
-              重採樣會把尖峰磨平——語料裡最大聲的 <code>latest/25.ogg</code> 在 libsndfile 下是 1.0391，
-              重採樣後低於 0.94。在瀏覽器量它，量到的是瀏覽器的重採樣器，不是那個音檔。
-              所以這一頁的 <code>peak</code> 與 <code>rms</code> 直接取自 <code>cry_features.json</code>，
-              並在數字旁邊標出出處。
-            </p>
-            <p>
-              色階是<strong>相對</strong>的：以每段叫聲自己的最強 mel 帶為 0 dB，下限 −60 dB。
-              若用絕對 dBFS，安靜的叫聲會整片變成底色。時間軸的解析度也是實話：最短的叫聲 0.18 秒，
-              在這麼寬的畫面上每一格會佔五十幾像素，那個塊狀<strong>就是</strong> 10 毫秒的跳距，
-              沒有為了好看而去平滑它。
-            </p>
-            <p>
-              出處：叫聲錄音取自 <a href="https://github.com/PokeAPI/cries">PokeAPI/cries</a>；
-              mel 管線與特徵表來自本站的 <code>scripts/analyze_cries.py</code>；
-              第一世代合成指令解析自 <a href="https://github.com/pret/pokered">pret/pokered</a>。
-            </p>
+              <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
+              <p>
+                音檔解碼後統一重採樣到 <code>16 kHz</code>，讓不同來源、不同原始取樣率的叫聲
+                可以放在同一個尺度上比較。不統一的話，頻譜裡就會混進「這個檔案原本怎麼被取樣」
+                的差異；而我們想比較的是叫聲，不是編碼方式。這也是離線分析使用的取樣率，
+                實測語料有 <strong>98.2%</strong> 的能量落在 <code>8 kHz</code> 以下，涵蓋足夠。
+              </p>
+              <p>
+                接著把聲音切成一段段 <strong>25 毫秒</strong>的片段，每 <strong>10 毫秒</strong>移動一次，
+                計算每段在 <strong>26 條 mel 頻帶</strong>上的能量再取對數。圖上每一格的亮度，
+                說的就是某個時間點的某個頻段有多少能量。時間軸保留原本的 10 毫秒取樣步距，
+                沒有額外平滑——你看到的格狀邊緣<strong>就是</strong>這套分析真正的時間解析度，
+                不是為了好看而加工出來的。
+              </p>
+              <p>
+                色階是<strong>相對</strong>的：以每段叫聲自己的最強 mel 頻帶作為 0 dB，下限 −60 dB。
+                這適合用來看「這一聲裡哪個頻率最強」，而不是比較不同叫聲誰的實際音量比較大；
+                安靜的叫聲也不會因為整體音量小就整片變成底色。
+              </p>
+
+              <details class="sp-about-why">
+                <summary>為什麼 peak 和 RMS 不能直接對比？</summary>
+                <p>
+                  這一頁的九個數字裡，<code>peak</code> 與 <code>rms</code> 沒有參與「對表」，
+                  而且永遠不能參與。離線表量的是<strong>原始取樣率</strong>的訊號，而瀏覽器的
+                  <code>decodeAudioData</code> 會先重採樣到裝置取樣率，重採樣會把尖峰磨平——
+                  語料裡最大聲的 <code>latest/25.ogg</code> 在 libsndfile 下是 1.0391，重採樣後低於 0.94。
+                  在瀏覽器量它，量到的是瀏覽器的重採樣器，不是那個音檔。所以這兩個數值直接沿用
+                  <code>cry_features.json</code>，並在數字旁邊標出出處。
+                </p>
+              </details>
+
+              <details class="sp-about-why">
+                <summary>完整的計算細節</summary>
+                <p>
+                  <code>0.97</code> 預強調、<code>25 ms</code> 對稱 Hamming 窗、zero-pad 到
+                  <code>512</code> 做 FFT 取功率，再過 <code>26</code> 條 HTK mel 三角濾波器
+                  （<code>50 Hz</code> 到 <code>8 kHz</code>，每條面積正規化為 1）、取對數。
+                  語料的原始取樣率從 <code>8,000</code> 到 <code>48,000</code> 都有，
+                  其中 784 個檔案是 32,728 Hz；全部寫在
+                  <code>assets/js/cry-spectrogram.js</code>。
+                </p>
+                <p>
+                  參數與 <code>scripts/analyze_cries.py</code> 逐一相等，並由
+                  <code>scripts/check_spectrogram_port.mjs</code> 拿同一段合成訊號餵給兩邊、
+                  逐項比對：32 個可比特徵目前最差差 <code>4.3e-6</code>。所以這張圖和
+                  <a href="cries.html">叫聲總覽</a>的排序與搜尋是同一套量測，不是另一套近似值。
+                </p>
+              </details>
+
+              <p class="sp-about-src">
+                出處：叫聲錄音取自 <a href="https://github.com/PokeAPI/cries">PokeAPI/cries</a>；
+                mel 管線與特徵表來自本站的 <code>scripts/analyze_cries.py</code>；
+                第一世代合成指令解析自 <a href="https://github.com/pret/pokered">pret/pokered</a>。
+              </p>
+            </div>
+
+            <div class="sp-about-live" role="note" aria-labelledby="sp-about-live-h">
+              <h3 id="sp-about-live-h">即時頻譜圖的參數</h3>
+              <p>
+                它和上面那張離線譜<strong>不是同一組參數</strong>：取樣率是裝置的
+                （通常 48 kHz，不是 16 kHz）、視窗 2048 點、平滑 0.3，約 42.7 毫秒，
+                對照離線譜的 25 毫秒、無平滑。同一組 mel 濾波器，但取樣率、視窗和平滑都不同，
+                所以它能回答的是「此刻能量落在哪裡」，那是離線譜做不到的；要數值請看上方「量測數值」。
+              </p>
+            </div>
           </section>
 
       </div>
@@ -1644,10 +1717,11 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
 
       el('sp-live-alt').innerHTML =
         '<b>這是第二次量測，不是上面那張圖的一部分。</b>'
-        + '它來自播放當下的 <code>AnalyserNode</code>：1024 個線性頻率 FFT bin 被摺進同一組 26 條 mel 濾波器，'
-        + '取樣率是裝置的（通常 48 kHz，不是 16 kHz），視窗 2048 點、平滑 0.3，約 42.7 毫秒——'
-        + '和離線譜的 25 毫秒、無平滑不是同一組參數。它能回答的是「此刻能量落在哪裡」，那是離線譜做不到的；'
-        + '要數值請看上方。靜音時這條曲線也會變平，因為取樣點在音量節點之後。'
+        + '它來自播放當下的 <code>AnalyserNode</code>，1024 個線性頻率 FFT bin 被摺進同一組 26 條 mel 濾波器，'
+        + '但<strong>不是同一組參數</strong>：裝置取樣率、2048 點視窗、平滑 0.3，'
+        + '對照離線譜的 25 毫秒、無平滑；完整參數列在頁尾「即時頻譜圖的參數」。'
+        + '它能回答的是「此刻能量落在哪裡」，那是離線譜做不到的；要數值請看上方。'
+        + '靜音時這條曲線也會變平，因為取樣點在音量節點之後。'
         + '<br><b>線條與填色是這一隻寶可夢自己的顏色</b>，用來告訴你現在聽的是誰；'
         + '太暗的顏色會往白色調，直到看得見為止——1,025 隻裡有 68 隻的原始顏色低於 3:1，'
         + '其中最暗的捷拉比邦 rgb(56,51,50) 只有 1.63:1。顏色是身分，不是數值，判斷強弱請看形狀。';

@@ -292,6 +292,50 @@ ok(introParas.length >= 3 && introParas.every(t =>
   t.startsWith('<strong>') && /<strong>(?:(?!<\/strong>)[\s\S])*?。<\/strong>/.test(t)),
   `all ${introParas.length} intro paragraphs OPEN WITH a bolded lead-in ending in a full stop, so they can be skimmed as claims`);
 
+/* THE TWO DISCLOSURES COLLAPSE, and a shape check cannot see this.
+ *
+ * Styling the paragraphs inside a `<details>` at all is enough to break it: the browser
+ * hides collapsed content with the UA rule `details:not([open]) > *:not(summary) { display:
+ * none }`, and ANY class selector on the same element outranks it. So a rule as ordinary as
+ * `.sp-about-why > p { margin: … }` left both disclosures permanently expanded — `open ===
+ * false` in the DOM while every paragraph still rendered with a client rect. No static check
+ * sees it, because the markup is correct; the defect is entirely in the cascade.
+ *
+ * `content-visibility: hidden` restores it, with `:not([open])` so it stops applying the
+ * moment the disclosure opens. Asserted on BOTH halves: that the rule exists, and that it
+ * is scoped to the collapsed state — an unconditional one would re-hide what the reader just
+ * asked for, which is the second half of the same trap.
+ *
+ * And asserted that the disclosures are the split they claim to be, with the peak/rms one
+ * named first, because peak and rms are two of the nine numbers ON SCREEN: a reader who
+ * cannot compare them is being misled about something in front of them, which is a
+ * different thing from `0.97` pre-emphasis changing no reading of the picture at all. */
+ok(/\.sp-about-why:not\(\[open\]\) > p[\s\S]{0,90}content-visibility:\s*hidden/.test(css),
+  'a collapsed sp-about disclosure hides its content — without this the UA display:none is outranked by any class selector and the control never collapses');
+/* The negative half, and it is written against the DECLARATION rather than with a
+ * loose regex over the stylesheet.
+ *
+ * The first version looked for any `.sp-about-why > p` rule whose body mentioned
+ * content-visibility, within four characters of a closing brace. Dropping the
+ * `:not([open])` from the real rule left the file with the declaration still present
+ * inside a `.sp-about-why > p` block, so the pattern matched and the assertion passed —
+ * which is §4's rule about an assertion that reads like the guard and is not one.
+ *
+ * This reads the rule that actually carries the declaration and asks whether its own
+ * selector is scoped to the collapsed state. A second, differently-scoped rule cannot
+ * satisfy it, because there is only one declaration in the file and it has one selector. */
+const cvCss = css.replace(/\/\*[\s\S]*?\*\//g, '');
+const cvRules = [...cvCss.matchAll(/([^{}]+)\{[^{}]*content-visibility:\s*hidden[^{}]*\}/g)]
+  .map((m) => m[1].trim());
+ok(cvRules.length > 0 && cvRules.every((sel) => /:not\(\[open\]\)/.test(sel)),
+  'and the declaration carrying it is scoped to :not([open]), because an unconditional one would hide the content again'
+  + ` the moment the reader opened it (${cvRules.length} rule(s) carry it: ${cvRules.join(' / ') || 'none'})`);
+eq((page.match(/<details class="sp-about-why">/g) || []).length, 2,
+  'the displaced engineering detail sits behind exactly two disclosures');
+ok(/<summary>為什麼 peak 和 RMS 不能直接對比？<\/summary>/.test(page)
+  && /<summary>完整的計算細節<\/summary>/.test(page),
+  "the peak/rms caveat first — those are two of the nine numbers the page shows, so it is a reader's caveat and not engineering detail");
+
 /* NO em-dashes in the intro, and the floor is 0 rather than 1 because the appositive that
  * used to be there left with the reveal paragraph.
  *
@@ -321,8 +365,25 @@ ok(introDashes === 0,
 ok(!/(零近似|毫無近似|絕非近似|並非.{0,4}近似值)/.test(page),
   'the page never claims its browser figures are approximation-free — its own 對表 measures 27-31% disagreement on three of five features');
 
-ok(/即時譜|這是第二次量測/.test(page) && /AnalyserNode/.test(page) && /不是同一組參數/.test(page),
-  'the live curve says it is a SECOND measurement with different rate, window and smoothing');
+/* The disclosure is SPLIT across two places now, and the assertion is split with it.
+ *
+ * The canvas caption carries the AnalyserNode detail and 「不是同一組參數」 because it is
+ * the canvas's `aria-describedby` — a screen reader gets the contrast at the moment the
+ * drawing is announced. The `sp-about` parameter column carries its own copy because that
+ * is where a reader goes looking for these numbers.
+ *
+ * So `.test(page)` on either string alone is satisfied while the OTHER half is deleted,
+ * and the mutation case that flips one copy finds the other and passes — which is exactly
+ * what happened: `replaceOrThrow` takes the first occurrence, and the case reported 「the
+ * checker still passed」 while the caption was the thing that had been edited. Asserting
+ * a COUNT is what makes the claim hold: the claim is that a reader meets it whichever of the
+ * two they read, and deleting one copy must fail. */
+const notSameParams = (page.match(/不是同一組參數/g) || []).length;
+eq(notSameParams, 2,
+  'the live curve says it is a SECOND measurement, in BOTH places a reader can meet it —'
+  + ` the canvas caption and the parameter column (${notSameParams} occurrences, and either one alone can be deleted)`);
+ok(/即時譜|這是第二次量測/.test(page) && /AnalyserNode/.test(page),
+  'and the caption that the canvas describes itself with carries the AnalyserNode detail');
 
 ok(/解碼器不同/.test(page) && /取樣率被改過/.test(page) && /兩個 bug/.test(page),
   'the cross-check panel gives all three causes of the difference between the two implementations');

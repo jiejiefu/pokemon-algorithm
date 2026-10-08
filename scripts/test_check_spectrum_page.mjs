@@ -175,6 +175,34 @@ const CASES = [
   },
 
   {
+    /* The cascade defect that no shape check can see: the DOM says `open === false`
+     * and every paragraph inside the disclosure still renders. `.sp-about-why > p` for a
+     * margin is enough, because it outranks the UA's `display: none`. */
+    name: 'the disclosure loses the rule that makes it collapse',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-about-why:not([open]) > p,\n.sp-more:not([open]) > p {\n  content-visibility: hidden;\n}',
+        '.sp-about-why > p {\n  color: red;\n}')),
+    expect: 'a collapsed sp-about disclosure hides its content',
+  },
+
+  {
+    /* The other half of the same trap: unscoped, it re-hides what the reader just opened. */
+    name: 'the collapse rule drops its :not([open]) guard',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-about-why:not([open]) > p,\n.sp-more:not([open]) > p {',
+        '.sp-about-why > p,\n.sp-more > p {')),
+    expect: 'it is scoped to :not([open])',
+  },
+
+  {
+    name: 'the peak/rms caveat is folded into the engineering-detail disclosure',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '<summary>為什麼 peak 和 RMS 不能直接對比？</summary>',
+        '<summary>完整的計算細節</summary>')),
+    expect: 'the peak/rms caveat first',
+  },
+
+  {
     /* §3.B1: the page keeps promising a reveal it no longer performs.
      *
      * The name said 「the intro」 and the string now lives in the PLOT'S CAPTION, so both
@@ -192,9 +220,21 @@ const CASES = [
 
   {
     name: 'the live curve stops disclosing that it is a different measurement',
-    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
-      replaceOrThrow(s, '不是同一組參數', '是同一組參數')),
-    expect: 'the live curve says it is a SECOND measurement',
+    /* The claim appears TWICE — the canvas caption and the parameter column in
+     * `sp-about` — so a single-string rewrite is undone by the other copy and the case
+     * passed while saying nothing. Rewriting ALL of them is what the claim requires: the
+     * failure being guarded is a page that denies the two measurements differ ANYWHERE,
+     * so the mutation has to deny it everywhere.
+     *
+     * `replaceAll` rather than `replace` for the same reason, and the expect names the
+     * count assertion because that is the one a partial rewrite cannot satisfy. */
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) => {
+      const before = s;
+      s = s.replaceAll('不是同一組參數', '是同一組參數');
+      if (s === before) throw new Error('mutation replaced nothing');
+      return s;
+    }),
+    expect: 'in BOTH places a reader can meet it',
   },
 
   {
