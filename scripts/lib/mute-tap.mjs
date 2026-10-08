@@ -46,6 +46,26 @@
 
 /** Source for `Page.addScriptToEvaluateOnNewDocument`. Runs before any page script. */
 export const MUTE_TAP = `(() => {
+  /* DOUBLE-INSTALL GUARD, and it is a guard rather than \`configurable: true\`.
+   *
+   * This source can run more than once in the SAME document, and the second run used to
+   * die on its own \`defineProperty\` — non-configurable properties cannot be redefined,
+   * so the throw came from line 53 with \`Cannot redefine property: __cdpMutedTap\`. It
+   * surfaced as an intermittent checker failure at roughly 1 run in 6, which is the
+   * worst way for it to surface: nothing about the page changed, and the line blamed
+   * whatever page exception happened to be reported last.
+   *
+   * The alternative fix — making the property \`configurable: true\` — stops the throw by
+   * giving up the one thing the property is FOR. Non-configurable is what stops the page
+   * deleting the record and substituting its own, and every assertion that reads
+   * \`TAP_PROBE\` is only worth something because it cannot. So the property stays
+   * non-configurable and the INSTALL becomes idempotent instead.
+   *
+   * Returning early is correct in both cases the guard can see. If this is a second run
+   * in the same document, \`window.AudioContext\` was already replaced by the first one
+   * and re-wrapping it would be wrong as well as redundant. If it is a genuinely new
+   * document, \`window\` is fresh, the property is absent, and the install runs normally. */
+  if (window.__cdpMutedTap) return;
   const Real = window.AudioContext || window.webkitAudioContext;
   const state = { taps: 0, tap: null, tapIn: [], error: null };
   // Non-configurable, so the page cannot overwrite the record of what was done to

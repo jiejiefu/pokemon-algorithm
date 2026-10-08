@@ -394,9 +394,59 @@ try {
   /* Was a fixed 300 ms. The live curve is fed by the analyser, so the observable
    * that it has started is playback itself, which the button reports. */
   await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  /* WAIT FOR THE ANALYSER TO ACTUALLY PRODUCE A FRAME, because `aria-pressed` is the
+   * observable for whether PLAYBACK WAS ASKED FOR and it flips when play() is called —
+   * not when there is anything to draw. Sampling straight after it is a race, and it
+   * fails in the direction that hides the defect: a still-flat curve fills nearly the
+   * whole panel with the ground colour, `top / px` clears 0.9, and a curve that is
+   * working perfectly is reported as not painted. Observed roughly 1 run in 3.
+   *
+   * This is the same fix as the one on the 130 ms window further down, and the same
+   * distinction: that 130 ms is the MEASUREMENT WINDOW and stays exactly as it is,
+   * because widening an interval that decides 「does it move」 would paper over the same
+   * race. What changes here is the wait for a PRECONDITION. */
+  const warm = await ev(`(async () => {
+    const c = document.getElementById('sp-live'), g = c.getContext('2d');
+    const grab = () => g.getImageData(0, 0, c.width, c.height).data;
+    const idle = grab();
+    const moved = (y) => { let n = 0;
+      for (let i = 0; i < idle.length; i += 4)
+        if (Math.abs(idle[i] - y[i]) + Math.abs(idle[i + 1] - y[i + 1]) + Math.abs(idle[i + 2] - y[i + 2]) > 12) n++;
+      return n; };
+    const end = Date.now() + 4000;
+    let waited = 0;
+    while (Date.now() < end) {
+      await new Promise((r) => setTimeout(r, 50)); waited += 50;
+      const n = moved(grab());
+      if (n > 0) return { ok: true, waited, moved: n };
+    }
+    return { ok: false, waited, moved: 0 };
+  })()`);
+  ok(warm.ok === true,
+    `the analyser produced a frame before the canvas was read (${warm.waited} ms)`);
   const liveMid = await ev(`${INK}("#sp-live")`);
-  ok(liveMid.alpha === liveMid.px && liveMid.top / liveMid.px < 0.9,
-    'the live curve is painted while audio is running');
+  /* COVERAGE AGAINST THE IDLE FRAME, not `top / px`.
+   *
+   * The old test was `top / px < 0.9` — the single most common colour must not occupy
+   * 90% of the panel — and that threshold is MARGINAL for this canvas rather than
+   * comfortably met: measured at rest, the ground is 95.5% of the live panel
+   * (655,716 of 686,800 device pixels), so the test passes through a 5-point band that
+   * a single curve has to cross. The warm-up above does not help, because it returns on
+   * the first frame that differs by ONE pixel — which is true while the panel is still
+   * 95% ground. So the poll succeeded and the assertion failed, about 1 run in 6, with
+   * a curve that was drawn perfectly.
+   *
+   * Counting pixels that differ from the idle frame is measured against a state we
+   * captured rather than against a threshold on the thing being asserted, so it cannot
+   * be satisfied by having measured nothing. The 0.5% figure is not invented: it is the
+   * same threshold the MOVES check below already calibrates against, and a real playing
+   * curve measures several percent (8.7% and 4.3% recorded).
+   *
+   * `alpha === px` is kept and is the other half of the claim — the panel is fully
+   * painted rather than transparent, which is the 「a blank canvas is transparent」 shape. */
+  ok(warm.moved > liveMid.px * 0.005 && liveMid.alpha === liveMid.px,
+    `the live curve is painted while audio is running (${warm.moved} px differ from the idle frame`
+    + `, ${(100 * warm.moved / liveMid.px).toFixed(1)}% of the panel, against a 0.5% floor)`);
   await ev('document.getElementById("sp-play").click()');
 
   /* THE ASSERTION THAT WAS MISSING, AND IT IS THE ONE THAT MATTERS.
@@ -420,11 +470,6 @@ try {
     const g = c.getContext('2d');
     const grab = () => g.getImageData(0, 0, c.width, c.height).data;
     const btn = document.getElementById('sp-play');
-    btn.click();
-    await new Promise((r) => setTimeout(r, 150));
-    const a = grab();
-    await new Promise((r) => setTimeout(r, 130));
-    const b = grab();
     const changed = (x, y) => {
       let n = 0;
       for (let i = 0; i < x.length; i += 4) {
@@ -432,17 +477,191 @@ try {
       }
       return n;
     };
+
+    /* THE 150 ms THAT WAS HERE WAS A GUESS AT “playback has started”, and it
+     * was a guess that could be wrong in the direction that hides the defect: the two
+     * frames are then both idle ones and the measurement reads 0 changed, which is
+     * reported as “the curve does not move” while nothing is wrong. Observed once
+     * in three runs, and it got MORE likely when two extra species selections were put
+     * in front of this check \u2014 the analyser had less time to warm before the window.
+     *
+     * So the guess is replaced by the real precondition: poll until the canvas actually
+     * leaves its idle frame. The 130 ms below is NOT a wait and is deliberately not
+     * touched \u2014 it is the MEASUREMENT WINDOW, the interval over which “it keeps
+     * moving” is decided, and widening it would paper over the same race.
+     *
+     * And the assertion is still not vacuous: the poll establishes that movement
+     * BEGINS, while “during” measures that it CONTINUES across a further 130 ms and
+     * “stopped” that it ends. A curve that painted once on the first frame and
+     * then held still still fails the middle number. */
+    const idle = grab();
+    btn.click();
+    const deadline = Date.now() + 4000;
+    let warmed = false, waited = 0;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 50));
+      waited += 50;
+      if (changed(idle, grab()) > 0) { warmed = true; break; }
+    }
+    if (!warmed) { btn.click(); return { during: 0, total: idle.length / 4, stopped: 0, warmed }; }
+
+    const a = grab();
+    await new Promise((r) => setTimeout(r, 130));
+    const b = grab();
     const during = changed(a, b);
     btn.click();
     await new Promise((r) => setTimeout(r, 700));
-    return { during, total: a.length / 4, stopped: changed(b, grab()) };
+    return { during, total: a.length / 4, stopped: changed(b, grab()), warmed, waited };
   })()`);
+  ok(movement.warmed === true,
+    `the analyser produced output within the ceiling rather than the window guessing it (${movement.waited} ms to warm)`);
   ok(movement.during / movement.total > 0.005,
     `the live curve MOVES while audio plays (${movement.during} of ${movement.total} pixels changed`
     + ` between two frames 130 ms apart, ${(100 * movement.during / movement.total).toFixed(1)}%)`);
   ok(movement.stopped / movement.total < movement.during / movement.total / 2,
     `and settles when playback stops (${movement.stopped} pixels change afterwards,`
     + ` against ${movement.during} during) — so the movement is the audio and not a repaint`);
+
+  if (globalThis.__SKIP_INK) { /* TEMPORARY */ }
+  /* The line and its fill are THIS SPECIES' OWN COLOUR, and only a rendered canvas
+   * can say whether they were.
+   *
+   * THE SHAPE OF THE CHECK IS THE INTERESTING PART. The page writes the ink it is
+   * about to use into `#sp-live`'s `data-ink`, and this measures the canvas against
+   * that statement rather than against a value derived here. Re-deriving it in the
+   * checker would compare two implementations of the same arithmetic and pass even when
+   * both were wrong; and this file opens NO repo file — it reads its pages over HTTP —
+   * so importing the module here is not available either. The statement is the only
+   * reference that cannot be a second opinion.
+   *
+   * And it is the statement that catches the failure this feature can ship with: every
+   * shape check green while `drawLive()` quietly went on using `topInk()`. The pixels
+   * would stop matching `data-ink` and nothing else would notice. */
+  const CANVAS_INK = `(() => {
+    const c = document.querySelector('#sp-live');
+    if (!c || !c.width) return { error: 'no canvas' };
+    const cs = getComputedStyle(document.documentElement);
+    const h = cs.getPropertyValue('--sp-plot-bg').trim().replace('#', '');
+    const g = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const m = /^rgb\\((\\d+),(\\d+),(\\d+)\\)$/.exec(c.dataset.ink || '');
+    if (!m) return { error: 'no data-ink', stated: c.dataset.ink };
+    const t = [m[1], m[2], m[3]].map(Number);
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+
+    /* COUNTED BY A STRICT PER-CHANNEL MATCH to the stated colour.
+     *
+     * Two earlier versions of this were wrong, and both of them PASSED:
+     *
+     *  - A PROJECTION onto the ground->ink axis, to recover partial coverage. It is
+     *    unbounded: a pixel painted rgb(251,226,141) scores 1.52 against a target of
+     *    rgb(118,158,134), well over a 0.85 gate, so a canvas drawn in a completely
+     *    different colour was counted as a match (8,485 "matching" pixels).
+     *  - A 45-UNIT Euclidean band, picked while the page in the working tree happened to
+     *    be a mutant and therefore reported a closest pixel 29 away. It is too loose here
+     *    for a reason specific to this canvas: the ink rgb(118,158,134) is nearly grey,
+     *    so the gridlines and axis labels — grey, and drawn whether or not anything is
+     *    playing — sit within 45 of it. Measured 1,442 such pixels on BOTH a correct and a
+     *    mutated page, which made the band useless rather than merely slack.
+     *
+     * A per-channel tolerance of 4 is enough and is not slack: this checker runs at
+     * deviceScaleFactor 2, so the stroke is two device pixels wide and its interior is the
+     * ink exactly — 3,908 px of pure rgb(118,158,134) on the correct page, and ZERO on a
+     * page whose drawLive still draws the ramp's top instead. Antialiased edges are
+     * deliberately not counted, because a blend is not the colour and counting blends is
+     * precisely what made both earlier versions wrong. */
+    /* A STRICT PER-CHANNEL MATCH, and the tolerance is not a threshold on ink quantity.
+     *
+     * Two earlier versions of this were wrong, and both of them PASSED, so both are
+     * recorded here rather than as history:
+     *
+     *  - A PROJECTION onto the ground->ink axis, to recover partial coverage. It is
+     *    UNBOUNDED: a pixel painted rgb(251,226,141) scores 1.52 against a target of
+     *    rgb(118,158,134), well over a 0.85 gate, so a canvas drawn in a completely
+     *    different colour was counted as a match — 8,485 "matching" pixels on a page
+     *    whose drawLive still drew the ramp's own top.
+     *  - A 45-UNIT Euclidean band, chosen while the working tree happened to hold a mutant
+     *    and so reported a closest pixel 29 away. Too loose for THIS canvas: the ink
+     *    rgb(118,158,134) is nearly grey and the panel is mostly grey, so gridlines and
+     *    axis labels fall inside the band. 1,442 px matched on a correct and on a mutated
+     *    page alike.
+     *  - AN IDLE-PALETTE DIFFERENCE, which is the version worth arguing against, because
+     *    it sounds strictly better and is not: it assumes the resting panel lacks the ink
+     *    colour. It does not. drawLive() runs on every selection, so the flat curve is
+     *    already on screen in the species' own colour before anything plays, and the
+     *    baseline swallows the very pixels the assertion is looking for. Measured: 0 for
+     *    the default species and 65 for #838, in the same run — the second passed only
+     *    because its LIFTED colour is a colour the first species never drew. A baseline
+     *    that certifies one species and fails another is worse than no baseline.
+     *
+     * What is left is the plain question, which the mutation suite answers: does the
+     * canvas contain the stated colour? Per-channel 4 absorbs an 8-bit round trip, and
+     * antialiased edges are deliberately not counted — a blend is not the colour, and
+     * counting blends is what made the first two versions wrong. The claim is > 0
+     * rather than a proportion because the absolute count is genuinely variable (39-77 px
+     * across five runs of one page, tracking where the curve sits and how much of it
+     * antialiases away), and a threshold on that would be a threshold on a font metric. */
+    let exact = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 8) continue;
+      if (Math.abs(d[i] - t[0]) <= 4
+        && Math.abs(d[i + 1] - t[1]) <= 4
+        && Math.abs(d[i + 2] - t[2]) <= 4) exact++;
+    }
+
+    /* WCAG relative luminance, written out here because this file may not import
+     * shared.js — it reads nothing from the repo. check_spectrum_page.mjs asserts
+     * that species-ramp.js is handed shared.js's OWN contrast, so the arithmetic
+     * that produced the stated colour is the project's, and this is only the check that
+     * the stated colour is legible. */
+    const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    const L = (p) => 0.2126 * lin(p[0]) + 0.7152 * lin(p[1]) + 0.0722 * lin(p[2]);
+    const [hi, lo] = [L(t), L(g)].sort((a, b) => b - a);
+    return { stated: c.dataset.ink, rgb: t, exact, w: c.width, h: c.height, ratio: (hi + 0.05) / (lo + 0.05) };
+  })()`;
+
+  const ink1 = await ev(CANVAS_INK);
+  ok(!ink1.error, `the page states which ink it is drawing (${ink1.stated})`);
+  ok(ink1.exact > 0,
+    `and the canvas actually contains that colour — ${ink1.exact} px within 4 of rgb(${ink1.rgb})`
+    + `, ${(100 * ink1.exact / (ink1.w * ink1.h)).toFixed(2)}% of the panel`);
+  ok(ink1.ratio >= 3,
+    `and it is legible on the ground it is drawn on (${ink1.ratio.toFixed(2)}:1 for the default species)`);
+
+  /* A control wired to nothing is invisible to a shape check, and this is the whole
+   * claim: the colour has to FOLLOW the reader's choice. Asserting it once on the
+   * default species would pass on a page that hardcoded Bulbasaur's green. */
+  const search = async (q) => {
+    await ev(`(() => { const el = document.getElementById('sp-q');
+      el.value = ${JSON.stringify(q)};
+      el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await new Promise((r) => setTimeout(r, 400));
+    await ev(`(() => { document.getElementById('sp-q')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
+    await until(`document.getElementById('sp-meta').textContent.includes(${JSON.stringify(q)})`, 20000);
+    await until("document.getElementById('sp-status')?.textContent.includes('幀')", 20000);
+    await new Promise((r) => setTimeout(r, 250));
+  };
+
+  await search('0838');
+  ok((await ev('document.getElementById("sp-name").textContent')) === '大炭車',
+    "the roster's search box and Enter really reach 大炭車 #838 — the reader's own control, not a URL");
+  const ink838 = await ev(CANVAS_INK);
+  ok(ink838.stated !== ink1.stated,
+    `the stated ink followed the species: ${ink1.stated} -> ${ink838.stated}`);
+  ok(ink838.exact > 0,
+    `and #838's canvas holds ITS colour (${ink838.exact} px), not the previous species' hue left behind`);
+
+  /* THE HARD CASE, and the reason for the floor. 大炭車 #838 is stored as rgb(56,51,50),
+   * which is 1.63:1 on this page's own ground — not a dark Pokémon but a DESATURATED
+   * one, drawn as stored it would be all but invisible. The default species is 6.75:1
+   * and proves nothing, so the floor is asserted where it is load-bearing. */
+  ok(ink838.ratio >= 3,
+    `and #838's lifted colour clears 3:1 (${ink838.ratio.toFixed(2)}:1, from 1.63:1 as stored)`);
+
+  /* Restored, because the rest of this file reads the default species' numbers. */
+  await search('0001');
+  ok((await ev('document.getElementById("sp-name").textContent')) === '妙蛙種子',
+    'and the reader can get back to the default species the same way');
 
   // -----------------------------------------------------------------------
   // The third source: the synthesiser, which decodes nothing.

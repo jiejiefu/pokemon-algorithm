@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>叫聲頻譜 · 寶可夢演算法</title>
-  <meta name="description" content="1025 隻寶可夢叫聲的 mel 頻譜圖，播放時由左往右揭開。最新錄音、舊錄音與第一世代合成叫聲可以在同一張圖上比較。">
+  <meta name="description" content="1025 隻寶可夢叫聲的 mel 時頻圖，播放時由左往右揭開。最新錄音、舊錄音與第一世代合成叫聲可以在同一張圖上比較。">
   <link rel="icon" type="image/png" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <script>
@@ -41,140 +41,228 @@
     <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
   </header>
 
-  <main id="main" class="sp-main">
-    <div class="sp-page">
+  <!-- THE ROW. `sp-layout` is the flex line and it is FULL BLEED, because the
+       rail is a rail: `cries.html` gives `.cy-shell` the same treatment, so the
+       panel's `background` and `border-right` reach the viewport edge instead of
+       floating 200px inside the 1180px measure. The right column carries the
+       measure, on `.sp-page` inside `<main>`. -->
+  <div class="sp-layout">
 
-      <section class="sp-intro">
-        <div class="sp-intro-body">
-          <h1>叫聲頻譜</h1>
-          <p>
-            一段叫聲裡有多少能量落在哪個頻率上，那就是頻譜圖。<strong>橫軸是時間，縱軸是頻率</strong>；
-            每一格是一段 25 毫秒的訊號在 26 條 mel 濾波器上的能量。低音在下方、高音在上方，
-            越亮代表能量越多。
-          </p>
-          <p>
-            全部在瀏覽器裡算。解碼後重採樣到 16 kHz，跑一條和
-            <code>scripts/analyze_cries.py</code> 完全相同的 mel 管線，所以這張圖和
-            <a href="cries.html">叫聲總覽</a>用來排序與搜尋的特徵表是<strong>同一個量測</strong>，
-            不是另一套近似值；頁面下方會把兩邊逐項對表給你看。
-          </p>
-          <p class="sp-claim">
-            這一頁有三種來源，可以互相比較：<strong>最新錄音 1,025 隻</strong>、
-            <strong>舊錄音 649 隻</strong>、以及<strong>第一世代合成 151 隻</strong>。
-            最後一種不是錄音，是從 pokered 的指令表重新合成的，所以它和錄音能放在同一張圖上直接比對
-            高低起伏——這是<a href="cries-gen1.html">第一世代叫聲實驗室</a>做不到的事，那一頁畫的是波形，
-            這裡畫的是頻率。
-          </p>
-          <p>
-            還有一件事要說清楚：頻譜圖在按下播放<strong>之前</strong>就整段算好了。播放時畫面由左往右揭開，
-            揭開速度對齊音訊時鐘——那是同一組像素、同一個量測，只是配合你的耳朵一起走。
-            揭開<strong>不等於</strong>「正在分析」。
-          </p>
-        </div>
-      </section>
+    <!-- The rail is a SIBLING of `<main>`, not a descendant. The controls are not
+         the page's main content, and nesting them inside `<main>` puts every
+         button in the skip-link target — `cries.html:43,100` is the shape here. -->
+    <aside class="sp-left-panel" aria-label="選擇寶可夢">
+      <h2 class="sp-panel-head">選擇寶可夢</h2>
 
-      <section class="sp-controls" aria-label="選擇叫聲">
-        <span class="sp-label" id="sp-source-label">來源</span>
+      <!-- The source radiogroup, COLLAPSED, and the summary names the ACTIVE one.
+           A collapsed control that does not say what it is set to is a control the
+           reader has to open just to find out, which is most of the cost of opening
+           it — so the value travels with the label. -->
+      <details class="sp-box">
+        <summary id="sp-source-label">來源<span class="sp-summary-value" id="sp-source-now"></span></summary>
         <div class="sp-sources" role="radiogroup" aria-labelledby="sp-source-label" id="sp-sources"></div>
+      </details>
 
-        <div class="sp-search">
-          <input id="sp-q" type="search" placeholder="搜尋名稱或編號，例如 妙蛙種子、charmander、0006"
-                 autocomplete="off" aria-label="搜尋寶可夢">
-          <button id="sp-random" class="sp-btn" type="button">隨機一隻</button>
+      <div class="sp-search">
+        <input id="sp-q" type="search" placeholder="搜尋名稱或編號，例：妙蛙種子、charmander、0006"
+               autocomplete="off" aria-label="搜尋寶可夢">
+      </div>
+
+      <span class="sp-filter-label" id="sp-rarity-label">稀有度</span>
+      <div class="sp-filters" role="group" aria-labelledby="sp-rarity-label" id="sp-filters"></div>
+
+      <span class="sp-filter-label" id="sp-gen-label">世代</span>
+      <div class="sp-filters" role="group" aria-labelledby="sp-gen-label" id="sp-gens"></div>
+
+      <div class="sp-transport">
+        <button id="sp-play" class="sp-btn sp-btn-play" type="button" aria-pressed="false">▶ 播放</button>
+        <button id="sp-random" class="sp-btn" type="button">隨機一隻</button>
+        <div id="sp-autoplay-slot"></div>
+      </div>
+      <p id="sp-status" class="sp-status" role="status"></p>
+
+      <!-- THE PAGE'S ONLY SCROLL CONTAINER. The rail is `overflow: hidden` at a
+           fixed viewport height so this one can grow into the space the controls
+           above it leave; two nested scrollers is the shape users misread. Below
+           900px the rail goes static and this stops being a scroller at all.
+
+           THE COVER GRID LIVES IN HERE, and that is not a tidiness choice. It was
+           first placed as a sibling of this box, above it — which put 24 chips at
+           44px, 1,226px of them, into a rail whose total height is 900px and which
+           does not scroll. Opening it squeezed the roster from 271px to 9px and
+           put 876px of the grid past the rail's bottom edge, where nothing could
+           reach it: chips 15 through 24 were simply not on the screen and not
+           reachable by scrolling. Measured, not reasoned.
+
+           Inside the scroller the grid is reachable the way every other long list
+           on this page is, and the rail keeps the one-scroller property that the
+           static check asserts. The summary is sticky so it stays available while
+           you are down among the chips. -->
+      <div class="sp-roster" id="sp-roster">
+        <div class="sp-roster-head">
+          <span id="sp-roster-count"></span>
+          <button id="sp-clear" class="sp-clear" type="button" hidden>清除篩選</button>
         </div>
 
-        <span class="sp-label" id="sp-chips-label" style="margin-top:14px">快速選擇</span>
-        <div class="sp-chips" role="group" aria-labelledby="sp-chips-label" id="sp-chips"></div>
+        <details class="sp-covers">
+          <summary id="sp-chips-label">封面神獸快速選取</summary>
+          <div class="sp-chips" role="group" aria-labelledby="sp-chips-label" id="sp-chips"></div>
+        </details>
 
-        <div class="sp-actions">
-          <button id="sp-play" class="sp-btn" type="button" aria-pressed="false">▶ 播放</button>
-          <div id="sp-autoplay-slot"></div>
-          <p id="sp-status" class="sp-status" role="status"></p>
-        </div>
-      </section>
+        <div id="sp-roster-list"></div>
+        <p class="sp-empty" id="sp-empty" hidden></p>
+        <div class="sp-sentinel" id="sp-sentinel" aria-hidden="true"></div>
+      </div>
+    </aside>
 
-      <section class="sp-hero" aria-labelledby="sp-hero-h">
-        <div class="sp-hero-head">
-          <h2 id="sp-hero-h">頻譜圖</h2>
-          <figure class="sp-figure">
-            <img id="sp-art" src="assets/images/sprite/1.png" alt="" width="28" height="28">
-            <b id="sp-name">—</b>
-          </figure>
-          <span class="sp-hero-id" id="sp-meta"></span>
-        </div>
+    <main id="main" class="sp-main">
+      <div class="sp-page">
 
-        <canvas id="sp-plot" class="sp-plot" role="img" aria-describedby="sp-plot-alt"></canvas>
-        <p id="sp-plot-alt" class="sp-caption"></p>
+          <div class="sp-intro">
+            <div class="sp-intro-body">
+              <h1>叫聲頻譜</h1>
+              <p>
+                <strong>這張圖在說什麼。</strong>橫軸是時間，縱軸是頻率，低音在下方、高音在上方。
+                每一格是一段 25 毫秒的訊號在 26 條 mel 濾波器上的能量，每 10 毫秒取一格，
+                越亮代表能量越多。叫聲越短，每格在畫面上就越寬。
+              </p>
+              <p>
+                <strong>它和<a href="cries.html">叫聲總覽</a>是同一個量測。</strong>解碼後重採樣到 16 kHz，
+                跑一條和 <code>scripts/analyze_cries.py</code> 一模一樣的 mel 管線，不是另一套近似值。
+                那邊用來排序與搜尋的特徵，就是這張圖的來源。下方的<strong>「對表」把兩邊逐項攤開，
+                包含對不上的地方</strong>：同一個檔案，瀏覽器算的質心可以離離線表 27%。
+              </p>
+              <p class="sp-claim">
+                <strong>三種來源，可以疊在同一張圖上比。</strong>最新錄音 1,025 隻、舊錄音 649 隻、
+                第一世代合成 151 隻。最後一種不是錄音，是從 pokered 的指令表重新合成的，
+                所以 Game Boy 時代的叫聲能跟現代錄音並排比較頻域起伏。這是
+                <a href="cries-gen1.html">第一世代叫聲實驗室</a>做不到的事，那一頁畫的是波形。
+              </p>
+              <p>
+                <strong>揭開不等於正在分析。</strong>時頻圖在按下播放<strong>之前</strong>就整段算好了。
+                播放時畫面由左往右揭開，速度對齊音訊時鐘——那是同一組像素、同一個量測，
+                只是配合你的耳朵一起走。
+              </p>
+            </div>
 
-        <div class="sp-plot-legend">
-          <span class="sp-ramp" aria-hidden="true"></span>
-          <span id="sp-ramp-label"></span>
-          <span>每格 25 毫秒、跳距 10 毫秒。橫軸上每一格佔的寬度不一樣：叫聲越短，每格在畫面上越寬。</span>
-        </div>
-      </section>
+            <!-- The species on screen, at the 96px front sprite — the guaranteed floor
+                 for every one of the 1,025 (ASSETS.sprites in shared.js, §3.E). This is
+                 `cries-gen1.html`'s intro shape, same 6:4 split and the same
+                 `align-self: center` that puts the sprite beside the MIDDLE of the
+                 prose rather than its first line, which is where the eye goes reading
+                 down a block of text.
 
-      <section class="sp-live" aria-labelledby="sp-live-h">
-        <h2 id="sp-live-h">即時譜</h2>
-        <canvas id="sp-live" class="sp-live-canvas" role="img" aria-describedby="sp-live-alt"></canvas>
-        <p id="sp-live-alt" class="sp-caption"></p>
-      </section>
+                 It used to be a 28px chip in the plot's own heading, beside the name.
+                 Two things were wrong with that: a 28px sprite is a token rather than
+                 an image, and it put the identity of the thing being plotted in a row
+                 whose job was to name the CHART. `alt=""` on purpose — the caption
+                 directly below carries the name and the number, so describing the
+                 image would read the same two facts twice. -->
+            <figure class="sp-intro-art">
+              <img id="sp-art" src="assets/images/sprite/1.png" alt="" width="96" height="96" decoding="async">
+              <figcaption>
+                <b id="sp-name">—</b>
+                <span class="sp-intro-id" id="sp-meta"></span>
+              </figcaption>
+            </figure>
+          </div>
 
-      <section class="sp-numbers" aria-labelledby="sp-num-h">
-        <div>
-          <h2 id="sp-num-h">量測數值</h2>
-          <dl class="sp-stats" id="sp-stats"></dl>
-        </div>
-        <div>
-          <h2>對表</h2>
-          <div class="sp-cross" id="sp-cross"></div>
-        </div>
-      </section>
+          <section class="sp-hero" aria-labelledby="sp-hero-h">
+            <div class="sp-hero-head">
+              <h2 id="sp-hero-h">時頻圖</h2>
+            </div>
 
-      <section class="sp-about" aria-labelledby="sp-about-h">
-        <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
-        <p>
-          解碼後先重採樣到 <code>16 kHz</code>，因為整個語料的原始取樣率從 8,000 到 48,000 都有，
-          而 784 個檔案是 32,728 Hz。不統一的話，濾波器就得分出一部分力氣去分辨「這支是誰 Encoded 的」。
-          選 16 kHz 是因為實測 98.2% 的能量在 8 kHz 以下。
-        </p>
-        <p>
-          接著 <code>0.97</code> 預強調、<code>25 ms</code> 對稱 Hamming 窗（跳距 <code>10 ms</code>）、
-          zero-pad 到 <code>512</code> 做 FFT 取功率，再過 <code>26</code> 條 HTK mel 三角濾波器
-          （<code>50 Hz</code> 到 <code>8 kHz</code>，每條面積正規化為 1）、取對數。全部寫在
-          <code>assets/js/cry-spectrogram.js</code>，參數與 <code>scripts/analyze_cries.py</code>
-          逐一相等，並由 <code>scripts/check_spectrogram_port.mjs</code> 拿同一段合成訊號餵給兩邊、
-          逐項比對：32 個可比特徵目前最差差 <code>4.3e-6</code>。
-        </p>
-        <p>
-          <code>peak</code> 和 <code>rms</code> 沒有參與對表，而且永遠不能參與。這兩項在腳本裡量的是
-          <strong>原始取樣率</strong>的訊號，而瀏覽器的 <code>decodeAudioData</code> 會先重採樣到裝置取樣率，
-          重採樣會把尖峰磨平——語料裡最大聲的 <code>latest/25.ogg</code> 在 libsndfile 下是 1.0391，
-          重採樣後低於 0.94。在瀏覽器量它，量到的是瀏覽器的重採樣器，不是那個音檔。
-          所以這一頁的 <code>peak</code> 與 <code>rms</code> 直接取自 <code>cry_features.json</code>，
-          並在數字旁邊標出出處。
-        </p>
-        <p>
-          色階是<strong>相對</strong>的：以每段叫聲自己的最強 mel 帶為 0 dB，下限 −60 dB。
-          若用絕對 dBFS，安靜的叫聲會整片變成底色。時間軸的解析度也是實話：最短的叫聲 0.18 秒，
-          在這麼寬的畫面上每一格會佔五十幾像素，那個塊狀<strong>就是</strong> 10 毫秒的跳距，
-          沒有為了好看而去平滑它。
-        </p>
-        <p>
-          出處：叫聲錄音取自 <a href="https://github.com/PokeAPI/cries">PokeAPI/cries</a>；
-          mel 管線與特徵表來自本站的 <code>scripts/analyze_cries.py</code>；
-          第一世代合成指令解析自 <a href="https://github.com/pret/pokered">pret/pokered</a>。
-        </p>
-      </section>
+            <canvas id="sp-plot" class="sp-plot" role="img" aria-describedby="sp-plot-alt"></canvas>
+            <p id="sp-plot-alt" class="sp-caption"></p>
 
-    </div>
-  </main>
+            <div class="sp-plot-legend">
+              <span class="sp-ramp" aria-hidden="true"></span>
+              <span id="sp-ramp-label"></span>
+              <span>每格 25 毫秒、跳距 10 毫秒。橫軸上每一格佔的寬度不一樣：叫聲越短，每格在畫面上越寬。</span>
+            </div>
+          </section>
+
+          <section class="sp-live" aria-labelledby="sp-live-h">
+            <h2 id="sp-live-h">即時頻譜圖</h2>
+            <canvas id="sp-live" class="sp-live-canvas" role="img" aria-describedby="sp-live-alt"></canvas>
+            <p id="sp-live-alt" class="sp-caption"></p>
+          </section>
+
+          <!-- BOTH halves are `.sp-num-panel`, and that is a fix rather than a
+               restyle. The right half used to carry its own `background` +
+               `border` + `padding` while the left sat on the page ground, so the
+               only visible group boundary was a rule spanning half the section —
+               which reads as one column's table rule rather than as a group edge.
+               Same panel treatment also removes a measured 14.00px: `.sp-cross`
+               pushed its first row down by its own 12px of padding, on a 19.8px
+               line box against the left block's `normal` 12px one. The headings
+               already aligned exactly; the rows did not. -->
+          <section class="sp-numbers" id="sp-numbers" aria-labelledby="sp-num-h">
+            <div class="sp-num-panel">
+              <h2 id="sp-num-h">量測數值</h2>
+              <p class="sp-num-sub">與離線表可逐項對比的 5 項</p>
+              <dl class="sp-stats" id="sp-stats"></dl>
+
+              <details class="sp-more">
+                <summary>其餘 4 項量測值</summary>
+                <dl class="sp-stats sp-stats-more" id="sp-stats-more"></dl>
+              </details>
+            </div>
+            <div class="sp-num-panel">
+              <h2 id="sp-cross-h">對表</h2>
+              <p class="sp-num-sub">這一頁算的，逐項對上離線表的 5 項</p>
+              <div class="sp-cross" id="sp-cross" aria-labelledby="sp-cross-h"></div>
+            </div>
+          </section>
+
+          <section class="sp-about" aria-labelledby="sp-about-h">
+            <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
+            <p>
+              解碼後先重採樣到 <code>16 kHz</code>，因為整個語料的原始取樣率從 8,000 到 48,000 都有，
+              而 784 個檔案是 32,728 Hz。不統一的話，濾波器就得分出一部分力氣去分辨「這支是誰 Encoded 的」。
+              選 16 kHz 是因為實測 98.2% 的能量在 8 kHz 以下。
+            </p>
+            <p>
+              接著 <code>0.97</code> 預強調、<code>25 ms</code> 對稱 Hamming 窗（跳距 <code>10 ms</code>）、
+              zero-pad 到 <code>512</code> 做 FFT 取功率，再過 <code>26</code> 條 HTK mel 三角濾波器
+              （<code>50 Hz</code> 到 <code>8 kHz</code>，每條面積正規化為 1）、取對數。全部寫在
+              <code>assets/js/cry-spectrogram.js</code>，參數與 <code>scripts/analyze_cries.py</code>
+              逐一相等，並由 <code>scripts/check_spectrogram_port.mjs</code> 拿同一段合成訊號餵給兩邊、
+              逐項比對：32 個可比特徵目前最差差 <code>4.3e-6</code>。
+            </p>
+            <p>
+              <code>peak</code> 和 <code>rms</code> 沒有參與對表，而且永遠不能參與。這兩項在腳本裡量的是
+              <strong>原始取樣率</strong>的訊號，而瀏覽器的 <code>decodeAudioData</code> 會先重採樣到裝置取樣率，
+              重採樣會把尖峰磨平——語料裡最大聲的 <code>latest/25.ogg</code> 在 libsndfile 下是 1.0391，
+              重採樣後低於 0.94。在瀏覽器量它，量到的是瀏覽器的重採樣器，不是那個音檔。
+              所以這一頁的 <code>peak</code> 與 <code>rms</code> 直接取自 <code>cry_features.json</code>，
+              並在數字旁邊標出出處。
+            </p>
+            <p>
+              色階是<strong>相對</strong>的：以每段叫聲自己的最強 mel 帶為 0 dB，下限 −60 dB。
+              若用絕對 dBFS，安靜的叫聲會整片變成底色。時間軸的解析度也是實話：最短的叫聲 0.18 秒，
+              在這麼寬的畫面上每一格會佔五十幾像素，那個塊狀<strong>就是</strong> 10 毫秒的跳距，
+              沒有為了好看而去平滑它。
+            </p>
+            <p>
+              出處：叫聲錄音取自 <a href="https://github.com/PokeAPI/cries">PokeAPI/cries</a>；
+              mel 管線與特徵表來自本站的 <code>scripts/analyze_cries.py</code>；
+              第一世代合成指令解析自 <a href="https://github.com/pret/pokered">pret/pokered</a>。
+            </p>
+          </section>
+
+      </div>
+    </main>
+
+  </div>
 
   <footer class="site-footer">
     <p>本站為靜態網站，所有資料與圖片皆來自公開來源。叫聲錄音取自 PokeAPI/cries，頻譜分析於瀏覽器端即時計算。</p>
   </footer>
 
   <script type="module">
-    import { initThemeToggle, initHeaderNav, formatPokemonId, ASSETS } from './assets/js/shared.js';
+    import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS, contrast, hexToRgb } from './assets/js/shared.js';
+    import { speciesInk } from './assets/js/species-ramp.js';
     import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
     import { cryPlayer } from './assets/js/cry-player.js';
     import { mountAutoplay } from './assets/js/cry-autoplay.js';
@@ -213,9 +301,104 @@
       base: null,        // offscreen canvas holding the finished spectrogram
       dims: null,        // { w, h } in DEVICE pixels, shared by draw and repaint
       lut: null,
+      /* The live curve's ink, computed ONCE per species in `select()`.
+       *
+       * `drawLive()` runs on every animation frame while audio plays, so anything
+       * derived per frame here would be a per-frame cost for a value that only changes
+       * when the reader picks a different Pokémon — the shape §3.G calls out as a
+       * "field that is read every frame and written nowhere" in reverse. */
+      liveInk: null,
+      /* The plot's own ground, resolved once per species for the same reason. The
+       * contrast floor is measured against the colour the plot ACTUALLY paints, so
+       * this cannot be a constant in this file: `spectrum.css` owns it. */
+      plotGround: [7, 5, 14],
       playing: false,
       raf: 0,
       progress: { startedAt: null, duration: 0, now: 0 },
+
+      /* THE RAIL'S FILTER AND SCROLL STATE, and they are three fields because
+       * they are three different quantities.
+       *
+       *   `filter`  which facets are on. They COMPOSE, and they compose on the
+       *             CURRENT SOURCE's roster rather than on all 1,025 species,
+       *             because a species the selected source has no recording for
+       *             cannot be selected. Measured per source: 傳說 71 / 35 / 4 and
+       *             幻之 23 / 13 / 1 for latest / legacy / gen1.
+       *   `q`       the search text, lowercased once here rather than on every
+       *             comparison in the render loop.
+       *   `batches` how many 60-row batches are on screen. It is a BATCH COUNT
+       *             and not a scroll offset — the shape `cries.html` had to split
+       *             `state.gen` into two fields for, where one field serving as
+       *             both a filter and a page counter made each of them mean
+       *             nothing. */
+      filter: { legendary: false, mythical: false, baby: false, gen: 0 },
+      q: '',
+      batches: 1,
+    };
+
+    /** Rows per batch. `cries.html` uses 60 for the same reason: every row carries
+     *  a sprite, and a list of 1,025 of them eager is the ~130 MB of decode the
+     *  sorting page was measured at. Lazy + batched is what keeps the rail cheap. */
+    const ROSTER_BATCH = 60;
+
+    /** The nine generations, as BARE NUMBERS.
+     *
+     *  Not `[gen, label]` pairs, and the reason is a checker rather than taste:
+     *  `check_spectrum_page.mjs` counts `/\[\d+, '…'\]/g` to assert the 24-chip
+     *  cover roster is 24 entries, so one `[1, '第 1 世代']` literal would take
+     *  that count to 25. Verified. The labels are derived here instead. */
+    const GEN_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/** The three rarity facets, as data rather than as three hand-written chips, so
+     *  `buildFilters()` cannot build one of them and forget the other. The field is
+     *  `pokemon_data.json`'s own flag name — a third copy of "which species are
+     *  legendary" is a third thing to keep right.
+     *
+     *  These three are MUTUALLY EXCLUSIVE in the data: measured over all 1,025
+     *  species, zero carry two of the flags. So any two of them compose to an empty
+     *  list, which is a fact the page has to be able to say out loud — see
+     *  `emptyReason()`.
+     *
+     *  寶寶 earns its place here on measurement rather than on taxonomy. Its cries
+     *  are 0.60x the corpus median duration, 1.15x the centroid and 1.27x the zero
+     *  crossing rate, and 18 of its 19 species sit at or below the median length —
+     *  10 of them in the bottom fifth (皮寶寶 at the 1st percentile, 皮丘 at the 5th).
+     *  A shorter, brighter, faster cry is exactly what a time-frequency plot is for,
+     *  so the facet puts a real cluster of outliers in front of the reader rather
+     *  than a category label. The 第一世代合成 source has none of them, which the
+     *  chip reports as 0 and disables. */
+const RARITY = [
+      { key: 'legendary', label: '傳說', field: 'is_legendary' },
+      { key: 'mythical', label: '幻之', field: 'is_mythical' },
+      { key: 'baby', label: '寶寶', field: 'is_baby' },
+    ];
+
+    /**
+     * One Chinese label per comparable feature, in ONE place.
+     *
+     * 對表 used to print the raw `FEATURE_NAMES` entry — `dur`, `centroid`,
+     * `rolloff85` — while its sibling 300px away called the same quantities 長度,
+     * 質心 and 85% 能量截止. Linking the two blocks therefore meant matching English
+     * identifiers against Chinese ones by eye, across a language boundary, which is
+     * the one thing a page whose whole argument is "these two implementations agree"
+     * cannot ask of its reader.
+     *
+     * Both blocks read this now, so a rename is a one-line edit and the two tables
+     * cannot drift apart — the same reason `pokemonDetailUrl()` exists for URLs.
+     *
+     * 對表 prints BOTH halves of each name: the Chinese label above, the `FEATURE_NAMES`
+     * identifier beside it in muted small text. Dropping the identifier was tried and
+     * reverted — it removes the cross-language matching, but the identifier is also the
+     * key into `cry_features.json` and into `analyze_cries.py`, so a reader checking
+     * this page's claim needs it on screen. Carrying both, the two blocks now present
+     * the same five quantities under the same two names.
+     */
+    const FEATURE_LABELS = {
+      dur: '長度',
+      zcr: '過零率',
+      centroid: '質心',
+      rolloff85: '85% 能量截止',
+      flux: '頻譜通量',
     };
 
     /**
@@ -318,6 +501,21 @@
      * they are returned separately rather than one `w` meaning both. The DPR cap
      * of 2 matches cry-player.js's and the cry pages': a 3x phone display triples
      * the fill cost of a 300px-tall image for no visible gain on a data plot.
+     *
+     * THE USER SPACE IS DEVICE PIXELS, and every drawing function has to say so.
+     *
+     * No `setTransform` is applied here, so one user-space unit is one device
+     * pixel. That is right for `createImageData` and for the `drawImage` that blits
+     * the finished spectrogram, both of which are inherently device-resolution —
+     * but it means a `ctx.font = '10px'` declaration draws text TEN DEVICE PIXELS
+     * tall, which is 5 CSS px on every 2x display: a retina laptop, a phone, or a
+     * browser zoomed once. The frequency labels on the plot and the dB labels on
+     * the live curve were written as if those were CSS pixels, and they are half
+     * the size they were authored to be on exactly the hardware most readers own.
+     *
+     * So the two functions that draw VECTORS set `setTransform(dpr, …)` and work in
+     * CSS pixels, and the ones that touch pixels do not. `dpr` comes back from here
+     * for exactly that.
      */
     function sizeCanvas(canvas, cssHeight) {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -410,7 +608,11 @@
     function paintReveal(ratio) {
       const dims = state.dims;
       if (!dims || !state.base) return;
-      const { ctx, w, h } = sizeCanvas(el('sp-plot'), 300);
+      const { ctx, w, h, dpr } = sizeCanvas(el('sp-plot'), 300);
+      /* DEVICE space for the three things that are inherently device-resolution:
+       * clearing, blitting the cached spectrogram, and veiling it. `drawAxes` then
+       * switches to CSS pixels for the labels and restores on the way out. */
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, w, h);
       ctx.drawImage(state.base, 0, 0);
 
@@ -424,13 +626,14 @@
         ctx.restore();
       }
 
-      drawAxes(ctx, w, h);
+      drawAxes(ctx, w, h, dpr);
 
       if (!reduced() && ratio > 0 && ratio < 1) {
         ctx.save();
         ctx.strokeStyle = getComputedStyle(document.documentElement)
           .getPropertyValue('--sp-plot-ink').trim() || '#f2f4f8';
-        ctx.lineWidth = 1;
+        /* In device space, so a hairline means a hairline rather than a 2px bar. */
+        ctx.lineWidth = dpr;
         const x = Math.round(ratio * w) + 0.5;
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -440,25 +643,39 @@
       }
     }
 
-    function drawAxes(ctx, w, h) {
-      const cs = getComputedStyle(document.documentElement);
+    /** The frequency gridlines and their labels, in CSS pixels.
+     *
+     *  The transform is set and restored here rather than left in place, because the
+     *  caller is drawing device-resolution pixels immediately afterwards and a stray
+     *  `dpr` scale would silently scale them. */
+    function drawAxes(ctx, w, h, dpr) {
+      const cw = w / dpr;
+      const ch = h / dpr;
       ctx.save();
-      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cs = getComputedStyle(document.documentElement);
+      /* 12 CSS px, and it is CSS px because of the transform above. The old value
+       * read 10 and drew in device pixels, so it rendered at 5 CSS px on a 2x
+       * display — legible in a screenshot taken at 1x and unreadable on the machine
+       * the reader is actually holding. */
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
       ctx.textBaseline = 'bottom';
       ctx.textAlign = 'left';
       for (const hz of [100, 250, 500, 1000, 2000, 4000, 8000]) {
         const band = nearestBand(hz);
         if (band < 0) continue;
-        const y = h - 1 - Math.floor(((band + 0.5) * h) / N_MEL);
-        if (y < 22 || y > h - 4) continue;
+        const y = ch - 1 - Math.floor(((band + 0.5) * ch) / N_MEL);
+        /* The 26 and 6 are headroom for the 12px label: the old 22 and 4 were sized
+         * for a 5-CSS-px glyph and would have clipped the first and last labels. */
+        if (y < 26 || y > ch - 6) continue;
         ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, Math.round(y) + 0.5);
-        ctx.lineTo(w, Math.round(y) + 0.5);
+        ctx.lineTo(cw, Math.round(y) + 0.5);
         ctx.stroke();
         ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
-        ctx.fillText(hz >= 1000 ? `${hz / 1000} kHz` : `${hz} Hz`, 5, Math.round(y) - 3);
+        ctx.fillText(hz >= 1000 ? `${hz / 1000} kHz` : `${hz} Hz`, 6, Math.round(y) - 4);
       }
       ctx.restore();
     }
@@ -510,12 +727,18 @@
      * true reading rather than a defect, and the caption says so.
      */
     function drawLive() {
-      const { ctx, w, h } = sizeCanvas(el('sp-live'), 170);
+      const { ctx, w, h, dpr } = sizeCanvas(el('sp-live'), 170);
+      /* CSS pixels for the whole panel — see `sizeCanvas`'s docblock for why the
+       * tick text was half-size before this. Every constant below is a CSS px, which
+       * is what they were written as. */
+      const cw = w / dpr;
+      const ch = h / dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const cs = getComputedStyle(document.documentElement);
       const bg = cs.getPropertyValue('--sp-plot-bg').trim() || '#07050e';
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, cw, ch);
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, 0, cw, ch);
 
       /* THE AXIS IS THE ANALYSER'S OWN DECLARED RANGE, and it is fixed.
        *
@@ -539,29 +762,33 @@
        */
       const CEIL_DB = -10;
       const FLOOR_DB = -100;
-      const PAD_T = 10;
-      const PAD_B = 22;
-      const plotH = h - PAD_T - PAD_B;
+      /* Padding and label gutters, in CSS px. Raised from 10 / 22 / 16 because the
+       * 12px type needs room: the dB labels are drawn at x=4 inside a gutter that
+       * was sized for a 5-CSS-px glyph, so the curve started 16px in and the mel
+       * labels had nowhere to sit. */
+      const PAD_T = 14;
+      const PAD_B = 26;
+      const plotH = ch - PAD_T - PAD_B;
       const dbToY = (db) => PAD_T + (1 - Math.max(0, Math.min(1, (db - FLOOR_DB) / (CEIL_DB - FLOOR_DB)))) * plotH;
 
       /* Gridlines every 20 dB, each labelled, so the scale is readable rather than
        * implied. `LEVEL_H` is the strip reserved for them and `PAD_B` the one for
        * the mel-axis labels. */
-      const LEVEL_H = 16;
-      ctx.font = '10px system-ui, -apple-system, sans-serif';
+      const LEVEL_H = 28;
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
       for (let db = 0; db >= -100; db -= 20) {
         const y = Math.round(dbToY(db)) + 0.5;
-        if (y < PAD_T - 1 || y > h - PAD_B) continue;
+        if (y < PAD_T - 1 || y > ch - PAD_B) continue;
         ctx.strokeStyle = cs.getPropertyValue('--sp-plot-grid').trim() || '#ffffff26';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(LEVEL_H, y);
-        ctx.lineTo(w, y);
+        ctx.lineTo(cw, y);
         ctx.stroke();
         ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
-        ctx.fillText(`${db}`, 2, y);
+        ctx.fillText(`${db}`, 4, y);
       }
 
       const spec = cryPlayer.spectrum();
@@ -587,21 +814,32 @@
       }
 
       const x0 = LEVEL_H + 1;
-      const plotW = w - x0 - 2;
+      const plotW = cw - x0 - 4;
       const yOf = (m) => [x0 + (m / (N_MEL - 1)) * plotW, dbToY(levels[m])];
       const flat = hi <= FLOOR_DB + 0.5;
 
       ctx.beginPath();
-      ctx.moveTo(x0, h - PAD_B);
+      ctx.moveTo(x0, ch - PAD_B);
       for (let m = 0; m < N_MEL; m++) ctx.lineTo(...yOf(m));
-      ctx.lineTo(x0 + plotW, h - PAD_B);
+      ctx.lineTo(x0 + plotW, ch - PAD_B);
       ctx.closePath();
+      /* THE LINE AND ITS FILL ARE THIS SPECIES' OWN COLOUR, not the ramp's top.
+       *
+       * The ramp's top (`#fbe28d`) is a constant, so a reader had no way to tell whose
+       * cry they were hearing from the live curve — and the species is the one thing
+       * this page already knows, since `state.id` is what every other panel is keyed
+       * to. `state.liveInk` is that species' `pokemon_data.json` rgb, lifted only as far
+       * as the plot ground requires (`species-ramp.js`); the fallback is the ramp's top
+       * for a species with no measured colour, and never the previous species' hue. */
+      const ink = state.liveInk
+        ? `rgb(${state.liveInk.join(',')})`
+        : topInk();
       ctx.globalAlpha = 0.3;
-      ctx.fillStyle = topInk();
+      ctx.fillStyle = ink;
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = topInk();
-      ctx.lineWidth = Math.max(1, Math.round(w / 900));
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = Math.max(1, Math.round(cw / 700));
       ctx.beginPath();
       for (let m = 0; m < N_MEL; m++) {
         const [x, y] = yOf(m);
@@ -626,15 +864,15 @@
       ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
       ctx.fillStyle = cs.getPropertyValue('--sp-plot-muted').trim() || '#9aa3b2';
-      if (Number.isFinite(hi) && !flat) ctx.fillText(`最高 ${Math.round(hi)} dB`, w - 3, 1);
+      if (Number.isFinite(hi) && !flat) ctx.fillText(`最高 ${Math.round(hi)} dB`, cw - 6, 3);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
       for (const hz of [100, 1000, 4000, 8000]) {
         const band = nearestBand(hz);
         if (band < 0) continue;
         const x = x0 + (band / (N_MEL - 1)) * plotW;
-        ctx.textAlign = x > w - 46 ? 'right' : 'left';
-        ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, x, h - 3);
+        ctx.textAlign = x > cw - 46 ? 'right' : 'left';
+        ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, x, ch - 6);
       }
       ctx.textAlign = 'left';
     }
@@ -676,21 +914,62 @@
       for (const chip of el('sp-chips').children) {
         chip.setAttribute('aria-pressed', String(Number(chip.dataset.id) === id));
       }
+      /* The roster's own highlight. The list is NOT re-rendered: this is the one
+       * place that would replace the pressed row mid-click, and it would re-issue
+       * every lazy sprite in the batch for a colour change. */
+      highlightRow();
       writeUrl();
 
       el('sp-status').textContent = '計算中…';
+      /* Staleness that LOOKS like data is the worst of the three failure modes
+       * here, and `sp-name`/`sp-art` were updated a few lines above — so the
+       * previous species' five numbers and its whole comparison table sit under the
+       * NEW species' name and sprite for the length of the decode, undimmed, at
+       * full contrast. Two numbers that cannot both be true, and nothing marking
+       * which is current. Dimmed rather than cleared: the reader keeps their place
+       * and can see the value change, which is what an instrument should do. */
+      el('sp-numbers').classList.add('is-loading');
       let got;
       try {
         got = await samplesFor(id);
       } catch (err) {
         el('sp-status').textContent = `無法取得這隻的叫聲：${err.message}`;
+        el('sp-numbers').classList.remove('is-loading');
         return;
       }
       // A species changed while this one was decoding must not overwrite it.
+      // It must not clear `is-loading` either: whoever set the class last is the
+      // call still in flight, and un-dimming here would present ITS pending state
+      // as current — the same staleness bug one layer down.
       if (state.id !== id) return;
 
+      el('sp-numbers').classList.remove('is-loading');
       const rows = analyseCry(got.samples, got.rate);
       state.rows = rows;
+      /* The live curve is drawn in THIS species' sprite colour, lifted only as far as
+       * it needs to be to stay visible on the plot ground.
+       *
+       * Resolved here rather than inside `drawLive()` because the ground has to be read
+       * from CSS and the lift is 51 iterations of a contrast ratio — neither belongs in
+       * a 60fps path. `null` for a species with no measured colour, and `drawLive()`
+       * falls back to the ramp's own top rather than leaving the PREVIOUS species' hue
+       * on screen, which would tint one cry with another creature's. `cries.html:666`
+       * writes the same guard for the same reason. */
+      state.plotGround = hexToRgb(
+        getComputedStyle(document.documentElement).getPropertyValue('--sp-plot-bg').trim(),
+      ) || state.plotGround;
+      state.liveInk = speciesInk(meta?.rgb, state.plotGround, contrast);
+      /* The page STATES which ink it is about to draw, and `check_spectrum_browser.mjs`
+       * checks the canvas against it. A canvas has no other programmatic handle, and
+       * the alternative — the checker re-deriving the ink — compares two
+       * implementations of the same arithmetic, which passes even when both are wrong.
+       * Written once per selection rather than per frame: `drawLive()` runs at 60fps
+       * and a data attribute nothing reads in the browser is a write per frame of
+       * nothing.
+       *
+       * This is the hook that catches the failure this feature can ship with: every
+       * shape check passing while `drawLive()` went on using `topInk()`. */
+      el('sp-live').dataset.ink = state.liveInk ? `rgb(${state.liveInk.join(',')})` : '';
       drawPlot();
       drawLive();
       renderStats(rows, got.note);
@@ -711,29 +990,52 @@
      * column of nine numbers with two of them from somewhere else is a table that
      * lies by omission — so each `dt` carries its provenance and the two that are
      * quoted say which file and which sample rate.
+     *
+     * FIVE OF THEM ARE PRIMARY AND FOUR ARE BEHIND A DISCLOSURE, and the split is
+     * `ROBUST` rather than a judgement call: those five are exactly the features
+     * 「對表」 compares against the offline table, so the two blocks now show the
+     * same five quantities and the overlap is visible rather than inferred.
+     *
+     * The four that moved are the four that could not be compared anyway:
+     *
+     *   - `peak` and `rms` are read FROM `storedRow()` — the same array 對表 reads —
+     *     so those rows could never disagree with anything on this page. They were
+     *     decoration carrying a provenance note, and the note was the honest part.
+     *   - `flatness` is excluded by this page's own measurement: 31% between the
+     *     two implementations on a real file, which is why ROBUST dropped it.
+     *   - 最強 mel 帶 is a reading of the picture, not a comparison axis.
      */
     function renderStats(rows, note) {
       const stored = storedRow();
       const loud = loudestBand(rows.logMel, BANK);
-      const items = [
-        ['長度', `${rows.duration.toFixed(3)} s`, `瀏覽器重算 · ${note}`],
+      const rowHtml = ([k, v, w]) =>
+        `<dt>${escapeHtml(k)}<span class="sp-where">${escapeHtml(w)}</span></dt>`
+        + `<dd>${escapeHtml(v)}</dd>`;
+
+      /* The five, named from FEATURE_LABELS so this block and 對表 cannot disagree
+       * about what `centroid` is called. */
+      const idx = (n) => FEATURE_NAMES.indexOf(n);
+      const hz = (v) => `${Math.round(v)} Hz`;
+      el('sp-stats').innerHTML = [
+        [`${FEATURE_LABELS.dur}`, `${rows.duration.toFixed(3)} s`, `瀏覽器重算 · ${note}`],
+        [`${FEATURE_LABELS.zcr} zcr`, `${Math.round(rows.features[idx('zcr')])} /s`, '瀏覽器重算'],
+        [`${FEATURE_LABELS.centroid} centroid`, hz(rows.features[idx('centroid')]), '瀏覽器重算'],
+        [FEATURE_LABELS.rolloff85, hz(rows.features[idx('rolloff85')]), '瀏覽器重算'],
+        [`${FEATURE_LABELS.flux} flux`, rows.features[idx('flux')].toFixed(3), '瀏覽器重算'],
+      ].map(rowHtml).join('');
+
+      el('sp-stats-more').innerHTML = [
         ['峰值 peak', stored ? stored[1].toFixed(4) : '—', 'cry_features.json · 原始取樣率'],
         ['均方根 rms', stored ? stored[2].toFixed(4) : '—', 'cry_features.json · 原始取樣率'],
-        ['過零率 zcr', `${Math.round(rows.features[3])} /s`, '瀏覽器重算'],
-        ['質心 centroid', `${Math.round(rows.features[4])} Hz`, '瀏覽器重算'],
-        ['85% 能量截止', `${Math.round(rows.features[5])} Hz`, '瀏覽器重算'],
-        ['平坦度', rows.features[6].toFixed(5), '瀏覽器重算'],
-        ['頻譜通量', rows.features[7].toFixed(3), '瀏覽器重算'],
-        ['最強 mel 帶', `${Math.round(loud.hz)} Hz`, `取自上圖 · 第 ${loud.frame + 1}/${rows.nFrames} 幀`],
-      ];
-      el('sp-stats').innerHTML = items.map(([k, v, w]) =>
-        `<dt>${escapeHtml(k)}<span class="sp-where">${escapeHtml(w)}</span></dt><dd>${escapeHtml(v)}</dd>`).join('');
+        ['平坦度 flatness', rows.features[idx('flatness')].toFixed(5), '瀏覽器重算 · 兩套實作差 31%，不列入對表'],
+        ['最強 mel 帶', hz(loud.hz), `取自上圖 · 第 ${loud.frame + 1}/${rows.nFrames} 幀`],
+      ].map(rowHtml).join('');
 
       el('sp-plot-alt').innerHTML =
-        `<b>${escapeHtml(el('sp-name').textContent)}</b> 的 mel 頻譜圖：`
+        `<b>${escapeHtml(el('sp-name').textContent)}</b> 的 mel 時頻圖：`
         + `${rows.duration.toFixed(2)} 秒、${rows.nFrames} 幀、${N_MEL} 條 mel 帶，`
-        + `最強的一格在 ${Math.round(loud.hz)} Hz。質心 ${Math.round(rows.features[4])} Hz，`
-        + `平坦度 ${rows.features[6].toFixed(4)}。完整數字在下方「量測數值」。`;
+        + `最強的一格在 ${Math.round(loud.hz)} Hz。質心 ${Math.round(rows.features[idx('centroid')])} Hz，`
+        + `平坦度 ${rows.features[idx('flatness')].toFixed(4)}。完整數字在下方「量測數值」。`;
     }
 
     function storedRow() {
@@ -781,33 +1083,73 @@
           : '<p>這隻沒有對應的特徵列。</p>';
         return;
       }
-      const rowsHtml = ROBUST.map((i) => {
+      const unit = (name) => (name === 'dur' ? ' s' : name === 'zcr' || name === 'flux' ? '' : ' Hz');
+      const items = ROBUST.map((i) => {
         const name = FEATURE_NAMES[i];
         const got = rows.features[i];
         const want = stored[i];
         const diff = Math.abs(got - want);
-        const unit = name === 'dur' || name === 'zcr' || name === 'flux' ? '' : ' Hz';
-        return `<dt>${escapeHtml(name)}</dt><dd>`
-          + `${formatValue(got)}${unit} → ${formatValue(want)}${unit}`
-          + `<span class="sp-where">差 ${formatValue(diff)}${unit}</span></dd>`;
-      }).join('');
+        return { name, got, want, diff, rel: want ? (diff / Math.abs(want)) * 100 : 0 };
+      });
 
-      const worst = UNCOMPARABLE.map((i) => FEATURE_NAMES[i]);
+      /* THE VERDICT COMES FIRST, and it is the number the block exists to produce.
+       *
+       *  It used to be the fourth paragraph, at the bottom of a half-width column,
+       * so a reader had to read five numbers, then three paragraphs, to assemble the
+       * one conclusion those five exist to support. Worst-relative first, named, and
+       * carrying the cause that measurement identified — because a bare "27.5%" with
+       * no attribution reads as a defect in the pipeline rather than as the decoder
+       * difference the third paragraph explains at length.
+       *
+       *  Worst by RELATIVE, not by absolute. The five rows are a duration, a rate, two
+       *  frequencies and another rate, so 「差 688」 is the largest number on the
+       *  block and 「差 0.0004」 the smallest, and neither ordering means anything. */
+      const worst = items.reduce((a, b) => (b.rel > a.rel ? b : a));
+
+      const rowsHtml = items.map(({ name, got, want, diff, rel }) =>
+        `<dt>${escapeHtml(FEATURE_LABELS[name])}<em class="sp-x-id">${escapeHtml(name)}</em></dt><dd>`
+        + `<span class="sp-x-got">${formatValue(got)}${unit(name)}</span>`
+        + `<span class="sp-x-arrow" aria-hidden="true">→</span>`
+        + `<span class="sp-x-want">${formatValue(want)}${unit(name)}</span>`
+        + `<span class="sp-x-rel">${rel < 0.005 ? '0%' : `${rel.toFixed(1)}%`}</span>`
+        + `<span class="sp-where">差 ${formatValue(diff)}${unit(name)}</span></dd>`).join('');
+
+      const excluded = UNCOMPARABLE.map((i) => FEATURE_NAMES[i]);
       box.innerHTML = `
-        <dl>${rowsHtml}</dl>
-        <p>左邊是這一頁在瀏覽器算的，右邊是 <code>cry_features.json</code> 存的。這一頁算得對嗎？
-        兩邊的差異有三個來源，都量得出來：</p>
-        <p><b>解碼器不同。</b>這裡是瀏覽器，那張表是 libsndfile。同一個檔案解出來的 PCM 就不一樣，
-        而 34 項裡有 13 項是標準差，儲存值常在 0.002 附近——相對差會在幾乎是零的數字上報出巨大的分歧，
-        所以這一欄只列儲存值本身有意義、而且穩定的五項。</p>
-        <p><b>取樣率被改過。</b><code>decodeAudioData</code> 會先重採樣到裝置取樣率（通常是 48 kHz）。
-        實測同一隻寶可夢，解碼成原生 32,728 Hz 時質心差 3.6%，解碼成 48 kHz 時差 27%。</p>
-        <p><b>指令碼本身的重採樣有兩個 bug</b>（振幅縮放與截止頻率，後者還隨檔案長短變動），
-        所以 <code>${escapeHtml(worst.join('、'))}</code> 這三項不列入對表——前兩項是瀏覽器拿不到
-        檔案的原始取樣率，第三項是因為指令碼的重採樣會整體縮放訊號，而只有 m0 看得見整體縮放。</p>`;
+        <p class="sp-x-verdict"><b>${items.length} 項可比</b>，最大相對差
+          <b class="sp-x-worst">${worst.rel < 0.005 ? '0' : worst.rel.toFixed(1)}%</b>
+          （${escapeHtml(FEATURE_LABELS[worst.name])}，來自解碼後的重採樣）。</p>
+
+        <dl class="sp-x-head" aria-hidden="true">
+          <dt></dt>
+          <dd><span class="sp-x-got">這一頁算的</span><span class="sp-x-arrow"></span
+              ><span class="sp-x-want">離線表存的</span><span class="sp-x-rel">相對差</span></dd>
+        </dl>
+        <dl class="sp-x-rows">${rowsHtml}</dl>
+
+        <details class="sp-x-why">
+          <summary>差異從哪來？三個來源</summary>
+          <p>兩邊的差異有三個來源，都量得出來：</p>
+          <ol>
+            <li><b>解碼器不同。</b>這裡是瀏覽器，那張表是 libsndfile。同一個檔案解出來的 PCM 就不一樣，
+            而 34 項裡有 13 項是標準差，儲存值常在 0.002 附近——相對差會在幾乎是零的數字上報出巨大的分歧，
+            所以這一欄只列儲存值本身有意義、而且穩定的五項。</li>
+            <li><b>取樣率被改過。</b><code>decodeAudioData</code> 會先重採樣到裝置取樣率（通常是 48 kHz）。
+            實測同一隻寶可夢，解碼成原生 32,728 Hz 時質心差 3.6%，解碼成 48 kHz 時差 27%。</li>
+            <li><b>指令碼本身的重採樣有兩個 bug</b>（振幅縮放與截止頻率，後者還隨檔案長短變動），
+            所以 <code>${escapeHtml(excluded.join('、'))}</code> 這三項不列入對表——前兩項是瀏覽器拿不到
+            檔案的原始取樣率，第三項是因為指令碼的重採樣會整體縮放訊號，而只有 m0 看得見整體縮放。</li>
+          </ol>
+        </details>`;
     }
 
     function formatValue(v) {
+      /* An EXACT zero printed as `0.00e+0` because it fell through to the
+       * exponential band. In 對表's difference column that is the one row a reader
+       * most wants to read as agreement, and `0.00e+0` reads like a measurement too
+       * small to resolve. `tabular-nums` aligns digits, not exponents, so it was
+       * also the widest token in the column. */
+      if (v === 0) return '0';
       const a = Math.abs(v);
       if (a >= 100) return v.toFixed(0);
       if (a >= 1) return v.toFixed(2);
@@ -946,11 +1288,24 @@
           if (state.source === key) return;
           state.source = key;
           for (const other of host.children) other.setAttribute('aria-checked', String(other === b));
+          /* The box is collapsed by default, so the only place the active source is
+           * written down is its summary. A reader who has narrowed 1,025 rows to
+           * nothing and cannot tell which of the three rosters they are looking at
+           * has lost the one fact the radiogroup exists to establish. */
+          el('sp-source-now').textContent = `${r.label} · ${r.desc}`;
           buildChips();
+          /* The counts on the filter chips are a property of the SOURCE, so a
+           * source change has to rebuild them or 舊錄音 keeps advertising the 71
+           * legendaries it only has 35 of. The roster restarts at one batch
+           * because the previous batch count belonged to a different set. */
+          buildFilters();
+          resetRoster();
+          renderRoster();
           select(ROSTERS[key].ids[0]);
         });
         host.append(b);
       }
+      el('sp-source-now').textContent = `${ROSTERS[state.source].label} · ${ROSTERS[state.source].desc}`;
     }
 
     /** `?source=…&id=…`, per §3.A's query-parameter convention. */
@@ -961,24 +1316,262 @@
       history.replaceState(null, '', `${location.pathname}?${params}`);
     }
 
-    function pick(query, { play = false } = {}) {
-      const ids = ROSTERS[state.source].ids;
-      const q = String(query || '').trim().toLowerCase();
-      let hit = null;
+    // ---------------------------------------------------------------------
+    // The rail: facets, search, and the roster
+    // ---------------------------------------------------------------------
+
+    /** Does one species survive one facet set? The single filter definition.
+     *
+     *  `gen` is a single-select NUMBER rather than a set, so a second generation
+     *  press replaces the first. That is also what the chip can honestly claim:
+     *  two generation chips reading `aria-pressed` at once would announce a union
+     *  this function does not compute. */
+    function passes(id, f) {
+      const p = state.meta.get(id);
+      if (!p) return false;
+      if (f.legendary && !p.is_legendary) return false;
+      if (f.mythical && !p.is_mythical) return false;
+      if (f.baby && !p.is_baby) return false;
+      if (f.gen && p.generation !== f.gen) return false;
+      return true;
+    }
+
+    /** The search predicate, and the only one.
+     *
+     *  zh matches as a SUBSTRING because Chinese names are short and are rarely
+     *  prefixed — 「火」 should find 噴火龍 and 火炎猴 alike. en matches as a
+     *  PREFIX, because a substring of it returns Charizard, Charmander and
+     *  Charmeleon for "char" and nothing else a reader wanted. Digits match
+     *  either the bare id or the zero-padded `#0006` form, because both are
+     *  things people actually type. */
+    function matchesQuery(id, q) {
+      if (!q) return true;
+      const p = state.meta.get(id);
+      if (!p) return false;
       if (/^\d+$/.test(q)) {
-        const id = Number(q);
-        hit = ids.includes(id) ? id : (ids.find((i) => formatPokemonId(i).includes(q)) ?? null);
-      } else if (q) {
-        hit = ids.find((id) => {
-          const n = state.meta.get(id)?.names;
-          return n && (n.zh?.includes(query.trim()) || n.en?.toLowerCase().startsWith(q));
-        }) ?? null;
+        /* Substring against the PADDED id, never the bare one.
+         *
+         *  `String(id).includes('6')` answers 「which ids contain a 6」 — measured at
+         *  273 species for a box holding 「0006」, because 16 and 26 and 106 all
+         *  contain the character. `formatPokemonId(id).includes(q)` is anchored by
+         *  the fixed-width padding and answers the question that was asked.
+         *
+         *  And it narrows as you type — 6, then 06, then 006, then 0006 — which is
+         *  what a box that FILTERS A LIST should do. The old jump-to-a-hit behaviour
+         *  wanted the first match at every keystroke, which is why it could afford
+         *  to be this loose. */
+        return id === Number(q) || formatPokemonId(id).includes(q);
       }
-      if (hit === null) {
-        el('sp-status').textContent = q ? `找不到「${query.trim()}」` : '';
+      return (p.names?.zh?.includes(q) ?? false)
+        || (p.names?.en?.toLowerCase().startsWith(q) ?? false);
+    }
+
+    /** What the list shows: the source's roster, narrowed by facets and by the box.
+     *
+     *  Read from `ROSTERS[state.source].ids` and never from all 1,025 species, so a
+     *  species the selected source has no recording for cannot be listed, let
+     *  alone selected into a decode that would fail. */
+    /** What the list shows: the source's roster, narrowed by facets and by the box.
+     *
+     *  Read from `ROSTERS[state.source].ids` and never from all 1,025 species, so a
+     *  species the selected source has no recording for cannot be listed, let
+     *  alone selected into a decode that would fail.
+     *
+     *  `narrowing` is derived from RARITY rather than written out. It named
+     *  `f.legendary || f.mythical || f.gen` by hand, and adding 寶寶 to `passes()`
+     *  without adding it here left the short-circuit false when 寶寶 was the ONLY
+     *  facet on — so `passes()` never ran and the button narrowed nothing while its
+     *  own count read 19. It composed correctly with a generation, because a
+     *  generation made `narrowing` true, which is why a spot check on that pair
+     *  passed. Two lists of one set of keys, and the second one missed the entry. */
+    function visibleIds() {
+      const ids = ROSTERS[state.source].ids;
+      const f = state.filter;
+      const q = state.q;
+      const narrowing = RARITY.some((r) => f[r.key]) || Boolean(f.gen) || Boolean(q);
+      const out = [];
+      for (const id of ids) {
+        if (narrowing && !passes(id, f)) continue;
+        if (q && !matchesQuery(id, q)) continue;
+        out.push(id);
+      }
+      return out;
+    }
+
+    function rowHtml(id) {
+      const p = state.meta.get(id);
+      const types = (p.types_zh || []).join('／');
+      return `<button type="button" class="sp-row" data-id="${id}" aria-pressed="${state.id === id}">`
+        + `<img src="${spriteUrl(p, id)}" alt="" width="28" height="28" loading="lazy" decoding="async">`
+        + `<span class="sp-row-text">`
+        + `<span class="sp-row-name">${escapeHtml(p.names?.zh ?? id)}</span>`
+        + `<span class="sp-row-meta">#${formatPokemonId(id)}`
+        + `${types ? ` · ${escapeHtml(types)}` : ''}</span>`
+        + `</span></button>`;
+    }
+
+    /** Re-render the list. Called when the SET changes, and NOT on selection. */
+    function renderRoster() {
+      const ids = visibleIds();
+      const want = Math.min(ids.length, state.batches * ROSTER_BATCH);
+      el('sp-roster-list').innerHTML = ids.slice(0, want).map(rowHtml).join('');
+      el('sp-roster-count').textContent = `${ids.length} / ${ROSTERS[state.source].ids.length} 隻`;
+      /* Off RARITY, not written out: this named all three flags by hand twice, and
+       * a fourth facet would have left the 清除 button hidden while its filter was
+       * on. */
+      el('sp-clear').hidden = !(RARITY.some((r) => state.filter[r.key])
+        || state.filter.gen || state.q);
+      const empty = el('sp-empty');
+      empty.hidden = ids.length > 0;
+      if (ids.length === 0) empty.textContent = emptyReason();
+      el('sp-sentinel').hidden = want >= ids.length;
+    }
+
+    /** Only the highlight moves.
+     *
+     *  Re-rendering on selection would replace the very row the reader pressed,
+     *  mid-click — the detached-node failure `colors.html` had, where rebuilding a
+     *  grid per keystroke left references pointing at nodes that no longer bubble
+     *  to the delegated handler and the control went dead after first use. */
+    function highlightRow() {
+      for (const row of el('sp-roster-list').children) {
+        row.setAttribute('aria-pressed', String(Number(row.dataset.id) === state.id));
+      }
+    }
+
+    /** Why the list is empty, in the reader's terms.
+     *
+     *  The three rarity facets are MUTUALLY EXCLUSIVE in the data — measured over
+     *  all 1,025 records, zero carry two of the flags — so pressing any two of them
+     *  yields nothing. That is a fact about the DATA rather than a bug, and
+     *  `categories.js` already records 傳說/幻之 as exclusive. Saying so is the
+     *  difference between a reader who presses 清除 and a reader who thinks the page
+     *  is broken.
+     *
+     *  It is written as a LIST of the pressed facets rather than as a hand-picked
+     *  pair, because with three flags there are three pairs and one triple, and a
+     *  message that named only the first would be wrong for the other two. */
+    function emptyReason() {
+      const f = state.filter;
+      const rarities = RARITY.filter((r) => f[r.key]).map((r) => r.label);
+      if (rarities.length > 1) {
+        return `沒有結果：${rarities.join('、')}在資料裡互斥，沒有任何一隻同時是其中兩種。`;
+      }
+      const bits = [...rarities];
+      if (f.gen) bits.push(`第 ${f.gen} 世代`);
+      if (state.q) bits.push(`「${state.q}」`);
+      if (!bits.length) return `${ROSTERS[state.source].label}沒有可顯示的寶可夢。`;
+      return `沒有符合 ${bits.join('＋')} 的寶可夢。`;
+    }
+
+    /** How many of the source's roster survive this facet set, INCLUDING the
+     *  facets already on. This is the number a chip shows. */
+    function countWith(f) {
+      let n = 0;
+      for (const id of ROSTERS[state.source].ids) if (passes(id, f)) n++;
+      return n;
+    }
+
+    /** How many of the source's roster match `f` and NOTHING ELSE — no facet from
+     *  the UI folded in. This is the source's own answer, and it is a different
+     *  question from the one the number on a chip asks. */
+    function sourceCount(f) {
+      let n = 0;
+      for (const id of ROSTERS[state.source].ids) if (passes(id, f)) n++;
+      return n;
+    }
+
+    /** The rarity chips and the generation chips.
+     *
+     *  TWO QUESTIONS, and conflating them is a bug this shipped once.
+     *
+     *  `sourceCount` answers 「can the SELECTED SOURCE produce this at all」, and it
+     *  is what decides `disabled`. On 舊錄音 four of the nine generations hold
+     *  nothing, so those chips must be dead — or they offer a filter with nothing
+     *  behind it, which is worse than not offering it.
+     *
+     *  `countWith` answers 「how many would I get if I pressed this」, and it is what
+     *  the number on the chip is. It includes the OTHER facets, because that is the
+     *  useful answer and because it is what makes a zero legible.
+     *
+     *  Driving `disabled` from the second made 幻之 permanently un-pressable the
+     *  moment 傳說 was on: their combined count is 0, the flags being mutually
+     *  exclusive, so the chip greyed itself out — and with it went the empty state
+     *  and the sentence explaining the zero. A control whose own number stops you
+     *  reaching the explanation of that number is worse than no number at all.
+     *
+     *  A chip you have switched ON is never disabled, for the same reason
+     *  `cries.html` never disables its selected generation: there would be no way
+     *  back. */
+    function buildFilters() {
+      const chip = (attr, key, label, n, on, disabled) =>
+        `<button type="button" class="sp-filter" ${attr}="${key}" aria-pressed="${on}"`
+        + `${disabled ? ' disabled' : ''}>${escapeHtml(label)}`
+        + `<span class="sp-filter-n">${n}</span></button>`;
+
+      el('sp-filters').innerHTML = RARITY.map((r) => chip(
+        'data-facet', r.key, r.label,
+        countWith({ ...state.filter, [r.key]: true }),
+        state.filter[r.key],
+        sourceCount({ [r.key]: true }) === 0)).join('');
+
+      /* BARE DIGITS, and 「世代」 is the label above them.
+ *
+ *  Written out as 「第 1 代」 the nine chips need ~79px each, so a 312px rail fits
+ *  three per row and they take three rows — measured at 106px, which was a third
+ *  of everything above the roster on a 900px viewport. A digit plus its count is
+ *  ~49px, six fit per row, and the same block costs 69px. Under a 世代 heading
+ *  the unit is not lost, it is stated once instead of nine times.
+ *
+ *  Measured, not assumed: 1,025 species spread 151 / 100 / 135 / 107 / 156 / 72 /
+ *  88 / 96 / 120 across the nine. */
+el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
+        'data-gen', String(g), String(g),
+        countWith({ ...state.filter, gen: g }),
+        state.filter.gen === g,
+        sourceCount({ gen: g }) === 0)).join('');
+    }
+
+    function resetRoster() {
+      state.batches = 1;
+    }
+
+    /** One path every facet change takes, so the chip counts, the list, the empty
+     *  state and the batch count cannot be refreshed in some orders and not others. */
+    function afterFilterChange() {
+      resetRoster();
+      buildFilters();
+      renderRoster();
+    }
+
+    /** Batches of 60, intersected INSIDE the rail.
+     *
+     *  `root` is `.sp-roster` rather than the viewport, and that is load-bearing:
+     *  the rail is the scroller, so an observer on the document would never see
+     *  the sentinel leave it — it would sit below a viewport that does not scroll,
+     *  `isIntersecting` would stay false for ever, and the list would stop at 60
+     *  rows with nothing on screen to say why. */
+    let rosterObserver = null;
+    function observeRoster() {
+      if (rosterObserver) rosterObserver.disconnect();
+      /* Without IntersectionObserver there is nothing to batch FOR, so the whole
+       * filtered set is the right answer rather than a degraded one. */
+      if (!('IntersectionObserver' in window)) {
+        state.batches = Number.MAX_SAFE_INTEGER;
+        renderRoster();
         return;
       }
-      select(hit, { play });
+      rosterObserver = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        const total = visibleIds().length;
+        const next = Math.min(state.batches + 1, Math.max(1, Math.ceil(total / ROSTER_BATCH)));
+        if (next === state.batches) return;
+        state.batches = next;
+        renderRoster();
+      }, { root: el('sp-roster'), rootMargin: '300px' });
+      /* The SAME sentinel node is observed for the life of the page; `renderRoster()`
+       * only toggles its `hidden`, which does not detach it. */
+      rosterObserver.observe(el('sp-sentinel'));
     }
 
     // ---------------------------------------------------------------------
@@ -1008,6 +1601,11 @@
       buildLut();
       buildSources();
       buildChips();
+      /* The rail is built BEFORE the first `select()`, so `highlightRow()` inside
+       * it has rows to move and the initial species arrives already marked. */
+      buildFilters();
+      renderRoster();
+      observeRoster();
 
       autoplay = mountAutoplay(el('sp-autoplay-slot'), {
         label: '自動播放',
@@ -1023,16 +1621,96 @@
         + '它來自播放當下的 <code>AnalyserNode</code>：1024 個線性頻率 FFT bin 被摺進同一組 26 條 mel 濾波器，'
         + '取樣率是裝置的（通常 48 kHz，不是 16 kHz），視窗 2048 點、平滑 0.3，約 42.7 毫秒——'
         + '和離線譜的 25 毫秒、無平滑不是同一組參數。它能回答的是「此刻能量落在哪裡」，那是離線譜做不到的；'
-        + '要數值請看上方。靜音時這條曲線也會變平，因為取樣點在音量節點之後。';
+        + '要數值請看上方。靜音時這條曲線也會變平，因為取樣點在音量節點之後。'
+        + '<br><b>線條與填色是這一隻寶可夢自己的顏色</b>，用來告訴你現在聽的是誰；'
+        + '太暗的顏色會往白色調，直到看得見為止——1,025 隻裡有 68 隻的原始顏色低於 3:1，'
+        + '其中最暗的捷拉比邦 rgb(56,51,50) 只有 1.63:1。顏色是身分，不是數值，判斷強弱請看形狀。';
 
       el('sp-play').addEventListener('click', () => toggle());
+
+      /* `insertAdjacentHTML` rather than replacing innerHTML, so 「隨機一隻」 stays in
+       * the markup where it is readable without JS, greppable, and present if the
+       * module never runs.
+       *
+       * `orbit` and not `shuffle`. `shuffle` is the exact glyph for this button and
+       * it is deliberately NOT in shared.js's ICON_PATHS — the file's own comment
+       * says those four are drawn by static markup elsewhere, so writing the path a
+       * second time here would be exactly the duplication that table exists to
+       * prevent. `orbit` is two arrows chasing round a circle, which is the same
+       * idea and is one copy. */
+      el('sp-random').insertAdjacentHTML('afterbegin', iconSvg('orbit'));
+
       el('sp-random').addEventListener('click', () => {
-        const ids = ROSTERS[state.source].ids;
+        /* From the VISIBLE set, not the whole roster. A 「隨機一隻」 button that
+         * ignores the filters above it and selects something the reader cannot see
+         * is the same bug as the roster listing species the source has no
+         * recording for. */
+        const ids = visibleIds();
+        if (!ids.length) return;
         select(ids[Math.floor(Math.random() * ids.length)], { play: true });
       });
-      el('sp-q').addEventListener('change', () => pick(el('sp-q').value));
+
+      /* Search FILTERS the list rather than jumping to a hit. The rail exists so a
+       * reader can work DOWN a list one cry at a time, and a box that teleported
+       * them off that list would fight it. Debounced because each keystroke
+       * re-renders sixty rows and re-counts 1,025 species against two facets. */
+      let searchTimer = 0;
+      el('sp-q').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          state.q = el('sp-q').value.trim().toLowerCase();
+          afterFilterChange();
+        }, 120);
+      });
+      /* Enter selects the first visible row, which is the accelerator the old
+       * jump-to-a-hit behaviour had. The list is left alone so the reader can
+       * keep arrow-ing down from there. */
       el('sp-q').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') pick(el('sp-q').value);
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        clearTimeout(searchTimer);
+        state.q = el('sp-q').value.trim().toLowerCase();
+        const first = visibleIds()[0];
+        if (first === undefined) {
+          el('sp-status').textContent = `找不到「${el('sp-q').value.trim()}」`;
+          afterFilterChange();
+          return;
+        }
+        select(first, { play: true });
+      });
+
+      /* Delegated, and attached ONCE to the container rather than per row. Both
+       * halves matter: `renderRoster()` replaces the list's innerHTML, so a
+       * listener on a row would die with it, and re-binding 60 listeners per
+       * keystroke is the other half of the same cost. `colors.html`'s grid died
+       * this way and this is the shape that prevents it. */
+      el('sp-roster-list').addEventListener('click', (e) => {
+        const row = e.target.closest('.sp-row');
+        if (!row) return;
+        select(Number(row.dataset.id), { play: true });
+      });
+
+      el('sp-filters').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-facet]');
+        if (!b || b.disabled) return;
+        const key = b.dataset.facet;
+        state.filter[key] = !state.filter[key];
+        afterFilterChange();
+      });
+
+      el('sp-gens').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-gen]');
+        if (!b || b.disabled) return;
+        const g = Number(b.dataset.gen);
+        state.filter.gen = state.filter.gen === g ? 0 : g;
+        afterFilterChange();
+      });
+
+      el('sp-clear').addEventListener('click', () => {
+        state.filter = { legendary: false, mythical: false, baby: false, gen: 0 };
+        state.q = '';
+        el('sp-q').value = '';
+        afterFilterChange();
       });
 
       // The ramp is theme-independent (spectrum.css's header says why), but the

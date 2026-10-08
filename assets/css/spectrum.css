@@ -23,6 +23,22 @@
    different things depending on the reader's theme setting, which is the one thing
    a colour scale must never do. What does change per theme is everything around
    it — the labels, the axes, the caption, the playhead.
+
+   THE RAIL IS `cries.html`'s PANEL, AT A DIFFERENT WIDTH
+   ------------------------------------------------------
+   The shape — full-bleed flex line, sticky rail with its own background and a
+   `border-right`, a measured column beside it, both sides static below 900px —
+   is `cries.html`'s, deliberately, so the two cry pages read as one tool. The
+   width is the only difference: `cries.html` pins 340px because its rail holds
+   one species' numbers, and this rail holds a scrollable roster of up to 1,025
+   rows plus a filter block, so it takes a share of the row instead of a constant.
+
+   It is `clamp(240px, 25%, 340px)` rather than a flat 25% for the reason
+   `cries.html:68-79` gives for 6:4 instead of 7:3 — a percentage that is correct
+   at the width the page actually renders at stops being correct somewhere else.
+   At 1,360px and under this IS the 1:3 split that was asked for; above it, the
+   340px ceiling takes over, because a rail that is 640px wide on a 2,560px display
+   is not a rail.
    --------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
@@ -50,6 +66,17 @@
 
   /* The plot's own ground. Not a theme token because the ramp is not: see the
      file header. */
+  /* The height of `.sp-roster-head`, stated ONCE because two sticky offsets are
+     derived from it: the head pins at 0 and the cover summary has to pin directly
+     beneath it, or the two overlap and one of them covers the other's text. A
+     literal 28px in both rules would be two things to keep right; this is one. */
+  --sp-roster-head-h: 28px;
+
+  /* Inline-code radius. It was a bare `3px` in two rules while the token set is
+     12/15/20px, so it could not come from --radius-* and was never going to be
+     changed alongside them. Declared here because that is what it is. */
+  --sp-code-radius: 4px;
+
   --sp-plot-bg: #07050e;
   --sp-plot-grid: #ffffff26;
   --sp-plot-ink: #f2f4f8;
@@ -57,7 +84,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   2. Page frame
+   2. Page frame, and the row
    --------------------------------------------------------------------------- */
 
 .sp-app {
@@ -66,8 +93,21 @@
   min-height: 100dvh;
 }
 
+/* `.sp-app > .header` must keep MATCHING shared.css's class. The markup carries
+   `class="header"`, so renaming this selector would silently stop the whole
+   header block from matching — and `test_check_spectrum_page.mjs` has a case
+   that turns exactly that rename into a red test. */
 .sp-app > .header {
   flex: 0 0 auto;
+}
+
+/* The flex line. `align-items: flex-start` so the rail's own height is its
+   content's and not the tallest column's. */
+.sp-layout {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
 }
 
 .sp-main {
@@ -82,72 +122,154 @@
 }
 
 /* ---------------------------------------------------------------------------
-   3. Intro
+   3. The rail
    --------------------------------------------------------------------------- */
 
-/* One column, measure-limited. There is no sprite column here because there is no
-   hero image: the plot IS the hero, and a 450px artwork beside it would take the
-   width the frequency axis needs. The species' identity is a 28px sprite in the
-   control row, which is where the reader is choosing it from. */
-.sp-intro-body {
-  max-width: 68ch;
+.sp-left-panel {
+  flex: 0 0 clamp(240px, 25%, 340px);
+  width: clamp(240px, 25%, 340px);
+  box-sizing: border-box;
+  align-self: stretch;
+  position: sticky;
+  top: 0;
+
+  /* The rail is a viewport-height COLUMN and it scrolls ONLY as a fallback.
+   *
+   *  It was `overflow: hidden`, on the reasoning that a rail which does not scroll
+   *  leaves exactly one scroller in the page. That is right on a tall screen and
+   *  wrong below about 600px, and it was measured rather than guessed:
+   *
+   *    viewport   roster   play button visible
+   *      900px     325px   yes
+   *      700px     126px   yes
+   *      560px       1px   yes
+   *      500px       1px   NO — clipped, and nothing could scroll to it
+   *
+   *  The roster is a flex item, so as the viewport shrinks it is the roster that
+   *  gives way, and past a point there is nothing left of it. `overflow: hidden`
+   *  then turned a squeezed layout into an unreachable one.
+   *
+   *  `cries.css:50-62` gives `.cy-panel` `max-height: 100vh; overflow-y: auto`, so
+   *  a sidebar that scrolls when its content does not fit is this project's
+   *  convention and not an exception to it. With the roster's floor below, only one
+   *  of the two ever has anything to scroll: on a tall screen the roster fills the
+   *  leftover space exactly and the rail does not overflow at all. */
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+
+  display: flex;
+  flex-direction: column;
+  padding: 16px 14px 14px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--hairline);
 }
 
-.sp-intro h1 {
-  margin: 0 0 10px;
-}
-
-.sp-intro p {
-  margin: 0 0 12px;
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
-
-/* The disclosure paragraph. Not a footnote and not muted to nothing: the two
-   sentences a reader is most likely to be misled by are what this page does not
-   claim, so they belong where the claim is made rather than at the bottom of a
-   scrolling page. */
-.sp-intro .sp-claim {
+.sp-panel-head {
+  font-size: 15px;
+  margin: 0 0 8px;
   color: var(--text-primary);
-  border-left: 2px solid var(--sp-4);
-  padding-left: 12px;
+}
+
+/* Section labels for the two filter blocks. They are `<summary>` elements now — the
+   source radiogroup's label is its own summary — so there is no separate label class
+   for it, and `check_spectrum_page.mjs` fails on a rule left behind for one. */
+.sp-filter-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin: 13px 0 6px;
+}
+
+/* Two collapsibles in the rail — the source radiogroup and the cover grid — and one
+   class for both. They are the same control: a bordered box whose summary is the
+   label AND, for the sources, the current value. */
+.sp-box {
+  margin-top: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.sp-box > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-sm);
+}
+
+/* The marker is the default disclosure triangle, restyled rather than removed,
+   because `list-style: none` above would otherwise take it away with no visible
+   replacement and the control would stop reading as expandable. */
+.sp-box > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sp-box > summary::before {
+  content: '▸';
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.sp-box[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.sp-box > summary:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: -2px;
+}
+
+/* What the collapsed sources box currently says. The reader can narrow a 1,025-row
+   list to nothing and then have no way to tell which of the three rosters they are
+   looking at, which is the one thing the radiogroup exists to establish. */
+.sp-summary-value {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------------------
-   4. Controls
+   4. Sources
    --------------------------------------------------------------------------- */
 
-.sp-controls {
-  margin: 20px 0 18px;
-  padding: 14px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-}
-
-.sp-label {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  margin-bottom: 7px;
-}
-
-/* Three sources, one row. A `radiogroup` of buttons rather than a `<select>`:
-   the reader needs to see all three at once to understand that this page covers
-   recorded AND synthesised cries, which is the thing the page is for. */
+/* Three sources, stacked, ONE line each: name left, count right.
+ *
+ *  They were a wrapping row in the full-width layout and 2-line cards here, and
+ *  both were wrong for a rail. The wrap stranded one chip on a second line; the
+ *  cards cost 168px of a 900px viewport, and that number is measured rather than
+ *  guessed. On one line the same three fit in ~106px.
+ *
+ *  The count stays because it is the radiogroup's whole argument: 1,025 / 649 /
+ *  151 is what says this page covers recordings AND a synthesis of them. */
 .sp-sources {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 7px 9px;
 }
 
 .sp-source {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 7px 12px;
-  min-height: 44px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 11px;
+  min-height: 34px;
   background: var(--bg-card);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
@@ -155,10 +277,16 @@
   text-align: left;
   font: inherit;
   color: var(--text-secondary);
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.sp-source:hover {
+  border-color: var(--hairline-strong);
+  color: var(--text-primary);
 }
 
 .sp-source[aria-checked='true'] {
-  border-color: var(--sp-4);
+  border-color: var(--accent-gold);
   color: var(--text-primary);
   background: var(--bg-controls);
 }
@@ -174,17 +302,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------------------------------------------------------------------------
+   5. Search
+   --------------------------------------------------------------------------- */
+
 .sp-search {
-  display: flex;
-  gap: 8px;
-  align-items: center;
   margin-top: 12px;
-  flex-wrap: wrap;
 }
 
 .sp-search input {
-  flex: 1 1 220px;
-  min-width: 0;
+  width: 100%;
   min-height: 44px;
   padding: 8px 12px;
   background: var(--bg-card);
@@ -195,17 +322,83 @@
   font-size: 14px;
 }
 
-.sp-search input:focus-visible,
-.sp-btn:focus-visible,
-.sp-source:focus-visible,
-.sp-chip:focus-visible {
-  outline: 2px solid var(--accent-gold);
-  outline-offset: 2px;
+/* ---------------------------------------------------------------------------
+   6. Filters
+   --------------------------------------------------------------------------- */
+
+.sp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* A filter chip is `cries.html`'s `.cy-chip`: a pill, `aria-pressed` carrying the
+   state so the visual and the announced one cannot drift apart. */
+.sp-filter {
+  padding: 5px 8px;
+  min-height: 32px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.sp-filter:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--hairline-strong);
+}
+
+.sp-filter[aria-pressed='true'] {
+  color: var(--text-primary);
+  border-color: var(--accent-gold);
+}
+
+/* The count is on the chip rather than in a sentence, because a reader who
+   presses 幻之 on 第一世代合成 gets ONE row and on 舊錄音 gets none, and the chip
+   that says 0 before the press is what makes that legible. */
+.sp-filter-n {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-filter[aria-pressed='true'] .sp-filter-n {
+  color: var(--text-secondary);
+}
+
+/* A facet the ACTIVE SOURCE cannot produce. Old recordings hold gens 1–5 and the
+   Gen I synthesis holds one, so on those sources four of the nine generation
+   chips are dead. They are disabled rather than hidden: silently dropping chips
+   leaves a reader wondering why the source changed, and a dimmed chip with a 0
+   on it answers the question itself. */
+.sp-filter:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------------
+   7. Transport, autoplay, and the readout
+   --------------------------------------------------------------------------- */
+
+.sp-transport {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 
 .sp-btn {
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 13px;
   background: var(--bg-card);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
@@ -213,6 +406,11 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.sp-btn:hover {
+  border-color: var(--hairline-strong);
 }
 
 .sp-btn[aria-pressed='true'] {
@@ -220,83 +418,31 @@
   color: var(--accent-gold);
 }
 
-/* 24 suggestions. A named entry point, the same device `colors.html` uses for its
-   legendary grid, and built ONCE in init() — rebuilding it per keystroke threw
-   away 24 buttons AND left every reference pointing at a detached node, which
-   does not bubble to a delegated document handler, so the control went dead
-   after its first use. */
-.sp-chips {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  gap: 6px;
-  margin-top: 12px;
+/* The play control is the rail's primary action, so it is the wider of the two
+   buttons on the first line rather than a line of its own — at a 900px viewport
+   every row above the roster is a row the reader does not get to scroll. */
+.sp-btn-play {
+  flex: 2 1 auto;
+  font-weight: 600;
 }
 
-/* Two lines, because each cell now carries the species AND the game it covers. One
-   line would truncate 「伽勒爾 · 劍／盾」 to 「伽勒爾 · 劍」, which is the other legendary.
-   The target is 44px either way (WCAG 2.2 SC 2.5.8), so the second line comes out of
-   the cell's height rather than out of the target's. */
-.sp-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
-  min-height: 44px;
+#sp-random {
+  flex: 1 1 auto;
+}
+
+/* Its own box, because the status string is long — 「最新錄音 · 0.939 秒 → 16 kHz
+   · 0.939 秒 · 92 幀 × 26 帶」 is three wrapped lines in a 300px rail — and an
+   unboxed `role="status"` paragraph at 11px reads as orphaned text rather than as
+   the readout of the picture above it. */
+.sp-status {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  min-height: 20px;
   background: var(--bg-card);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  font: inherit;
   font-size: 11px;
-  color: var(--text-secondary);
-  text-align: left;
-  min-width: 0;
-}
-
-.sp-chip[aria-pressed='true'] {
-  border-color: var(--sp-4);
-  color: var(--text-primary);
-}
-
-.sp-chip img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  flex: 0 0 auto;
-}
-
-.sp-chip > span {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.sp-chip > span > em {
-  font-style: normal;
-  font-size: 10px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sp-chip[aria-pressed='true'] > span > em {
-  color: var(--text-secondary);
-}
-
-.sp-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.sp-status {
-  margin: 0;
-  font-size: 12px;
+  line-height: 1.55;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -367,7 +513,392 @@
 }
 
 /* ---------------------------------------------------------------------------
-   5. The plot
+   8. The cover roster, collapsed — INSIDE the roster's scroller
+   --------------------------------------------------------------------------- */
+
+/* This block sits inside `.sp-roster`, not beside it. See the comment on the
+   markup: as a sibling of the scroller its 1,226px of chips overflowed a rail
+   that does not scroll, and 876px of the grid was unreachable. `margin-top` is
+   gone with the move — it is in the scroller's flow now. */
+.sp-covers {
+  margin-bottom: 6px;
+}
+
+/* Sticky, and that is what makes it usable from inside a scroller: the grid below
+   it is 1,226px tall, so without this the only way back to the roster is to
+   scroll 1,226px upward. It needs an opaque background and a z-index to sit over
+   the rows it scrolls past. */
+.sp-covers > summary {
+  position: sticky;
+  top: var(--sp-roster-head-h);
+  z-index: 2;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.sp-covers > summary::before {
+  align-self: center;
+}
+
+/* 24 suggestions. A named entry point, the same device `colors.html` uses for its
+   legendary grid, and built ONCE in init() — rebuilding it per keystroke threw
+   away 24 buttons AND left every reference pointing at a detached node, which
+   does not bubble to a delegated document handler, so the control went dead
+   after its first use. One column in a rail this narrow. */
+.sp-chips {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  padding: 4px 7px 9px;
+}
+
+.sp-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  min-height: 44px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: left;
+  min-width: 0;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.sp-chip:hover {
+  border-color: var(--hairline-strong);
+  color: var(--text-primary);
+}
+
+.sp-chip[aria-pressed='true'] {
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+}
+
+.sp-chip img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.sp-chip > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sp-chip > span > em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-chip[aria-pressed='true'] > span > em {
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   9. The roster — the page's only scroller
+   --------------------------------------------------------------------------- */
+
+/* A FLOOR, and it is load-bearing in the direction `min-height: 0` was.
+ *
+ *  `min-height: 0` let the roster shrink to nothing — measured at 1px on a 560px
+ *  viewport — which is how a flex item hands its space to its siblings. A floor of
+ *  120px, about three rows, means that below that point the RAIL overflows instead
+ *  and the rail scrolls. So the two rules are a pair: whichever one has room takes
+ *  the slack, and neither can be squeezed out of existence. */
+.sp-roster {
+  flex: 1 1 auto;
+  min-height: 120px;
+  margin-top: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--hairline);
+}
+
+.sp-roster-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* The height is the `--sp-roster-head-h` the cover summary's sticky offset reads,
+     so the two cannot drift into overlapping each other.
+     `margin-top` and not `padding-top` on the scroller above: padding on a scroll
+     container is part of the sticky containing block, so it left both pinned
+     headers floating 8px below the top edge instead of flush against it. */
+  height: var(--sp-roster-head-h);
+  margin-top: 8px;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 1;
+}
+
+.sp-clear {
+  margin-left: auto;
+  padding: 2px 7px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.sp-clear:hover {
+  color: var(--text-primary);
+  border-color: var(--hairline-strong);
+}
+
+.sp-clear[hidden] {
+  display: none;
+}
+
+.sp-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 4px 7px;
+  min-height: 44px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--text-secondary);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.sp-row:hover {
+  background: var(--bg-card);
+  border-color: var(--hairline);
+  color: var(--text-primary);
+}
+
+.sp-row[aria-pressed='true'] {
+  border-color: var(--accent-gold);
+  background: var(--bg-controls);
+  color: var(--text-primary);
+}
+
+/* `pixelated`, because the file is 96px art scaled to 28 and the browser's
+   smoothing turns it into a smudge — the whole point of showing it is that the
+   reader recognises the Pokémon. `cries.css` sets it on every sprite it draws. */
+.sp-row img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.sp-row-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.sp-row-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-row-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-row[aria-pressed='true'] .sp-row-meta {
+  color: var(--text-secondary);
+}
+
+.sp-empty {
+  margin: 10px 4px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.sp-empty[hidden] {
+  display: none;
+}
+
+/* The batch trigger. Two lines tall so it can be intersected while still below
+   the fold rather than only once it is visible. */
+.sp-sentinel {
+  height: 2px;
+}
+
+.sp-sentinel[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   10. Intro — prose and the species, two columns
+   --------------------------------------------------------------------------- */
+
+/* 6:4, the same split `cries.html` and `cries-gen1.html` both use, and for the
+   reason `cries.css:68-79` gives: 7:3 would leave the prose ~700px at the width
+   this page renders at, well past the 68ch measure it is set to, so the extra room
+   buys nothing and takes width from the plot. 6:4 lands the prose near 600px,
+   still above 571px of measure, so the paragraph wraps where the measure says
+   rather than where the grid happens to end.
+ *
+ * `minmax(0, …)` on both tracks is what stops a long unbroken string from
+ * refusing to shrink. */
+.sp-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+  gap: 8px 28px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.sp-intro-body {
+  min-width: 0;
+  max-width: 68ch;
+}
+
+.sp-intro h1 {
+  margin: 0 0 10px;
+}
+
+.sp-intro p {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* The lead-in on each paragraph.
+ *
+ * Every paragraph now opens with a bolded sentence that names what it is about —
+ * 「這張圖在說什麼。」 「它和叫聲總覽是同一個量測。」 「揭開不等於正在分析。」 — so a
+ * reader who skims gets four labelled claims instead of four undifferentiated
+ * blocks. That is the whole structural change: no new sections, no nested cards, no
+ * icons, the same four facts at the same length.
+ *
+ * `font-weight: 600` and NOT a colour change, because a second colour would read as
+ * a link and the claims are not links. The one exception is the first paragraph,
+ * where the lead-in wraps `cries.html` and therefore has to look like the link it is. */
+.sp-intro-body > p > strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sp-intro-body > p > strong a {
+  font-weight: 600;
+}
+
+/* The disclosure paragraph. Not a footnote and not muted to nothing: the two
+   sentences a reader is most likely to be misled by are what this page does not
+   claim, so they belong where the claim is made rather than at the bottom of a
+   scrolling page. */
+.sp-intro .sp-claim {
+  color: var(--text-primary);
+  border-left: 2px solid var(--sp-4);
+  padding-left: 12px;
+}
+
+/* The species column. `align-self: center` puts the sprite beside the middle of the
+   prose rather than beside its first line — which is where the eye goes when
+   reading down a block of text, and is `cries.css:108-113`'s reason verbatim. */
+.sp-intro-art {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  text-align: center;
+}
+
+/* 96px art drawn at 112, `pixelated` so the scaling is nearest-neighbour: smoothed,
+   a sprite is a smudge, and the point of showing it is that the reader recognises
+   the Pokémon. The drop shadow is the project's one, not a new one. */
+.sp-intro-art img {
+  display: block;
+  width: 112px;
+  height: 112px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+
+.sp-intro-art figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-intro-art figcaption b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.sp-intro-id {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* One column below the width at which a 6:4 split would leave the prose too narrow
+   to keep a 68ch measure — the same breakpoint `cries.css:133` uses for the same
+   reason. The sprite goes ABOVE the prose on the way down, because a reader who
+   has lost the columns still wants to know what they are looking at first. */
+@media (max-width: 980px) {
+  .sp-intro {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sp-intro-art {
+    justify-self: start;
+    order: -1;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sp-intro-art img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .sp-intro-art figcaption {
+    margin-top: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   11. The plot
    --------------------------------------------------------------------------- */
 
 .sp-hero {
@@ -385,35 +916,6 @@
 .sp-hero-head h2 {
   margin: 0;
   font-size: 15px;
-}
-
-.sp-hero-id {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The identity strip. Sprite and name side by side INSIDE one `flex: none`
-   figure: as siblings of the plot their width was decided by the name, so a
-   28px sprite next to a 60px strip and a 28px sprite next to a 168px strip is a
-   caption that changes size with its neighbour. */
-.sp-figure {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-  margin: 0;
-}
-
-.sp-figure img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.sp-figure b {
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .sp-plot {
@@ -466,7 +968,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   6. The live curve
+   12. The live curve
    --------------------------------------------------------------------------- */
 
 .sp-live {
@@ -488,33 +990,62 @@
 }
 
 /* ---------------------------------------------------------------------------
-   7. The numbers
+   13. The numbers — 量測數值 and 對表
    --------------------------------------------------------------------------- */
 
+/* BOTH halves are the same object. The right one used to carry its own background,
+   border and padding while the left sat on the page ground, so the only visible
+   group boundary was a rule spanning half the section — which reads as one column's
+   table rule rather than as a group edge. Giving both the panel treatment also
+   removes a MEASURED 14.00px misalignment: `.sp-cross` pushed its own first row
+   down by 12px of padding, and sat on a 19.8px line box against the left block's
+   `normal` 12px one. The headings already aligned exactly; the rows did not. */
 .sp-numbers {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
   margin: 0 0 22px;
+  align-items: start;
 }
 
-@media (max-width: 900px) {
-  .sp-numbers {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.sp-num-panel {
+  padding: 12px 14px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  transition: opacity 0.15s;
+}
+
+/* Dimmed, not cleared, while a cry is being decoded: the reader keeps their place
+   and watches the value change. `select()` writes the new species' NAME and SPRITE
+   before awaiting, so without this the previous species' numbers sit under the new
+   name at full contrast — two numbers that cannot both be true, with nothing saying
+   which is current. */
+.sp-numbers.is-loading .sp-num-panel {
+  opacity: 0.38;
 }
 
 .sp-numbers h2 {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 15px;
+}
+
+/* The one line that says which five, and why five. Without it "5 項可比" in the
+   neighbouring block is a number the reader has to trust. */
+.sp-num-sub {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
 }
 
 .sp-stats {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 5px 12px;
+  gap: 6px 12px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .sp-stats dt {
@@ -522,68 +1053,321 @@
   min-width: 0;
 }
 
-/* Every value is printed, not rounded into a vibe, and `tabular-nums` so a
-   column of them lines up. */
+/* Every value is printed, not rounded into a vibe, and `tabular-nums` so a column
+   of them lines up. Measured: 0.00px of variance across all five labels and all
+   five values, which is what lets the rest of this section change type sizes
+   without rebuilding the alignment. */
 .sp-stats dd {
   margin: 0;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+  font-weight: 600;
 }
 
+/* THE PROVENANCE LINE, and it is no longer the smallest type on the page.
+   It was 10px, carrying the two things this page most needs read — where each
+   number came from, and how far the two implementations differ — while the canvas
+   caption that the stylesheet itself calls the disclosure slot got 12px. An
+   inversion: the disclosure hierarchy was upside down. */
 .sp-where {
   display: block;
-  font-size: 10px;
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.45;
   color: var(--text-muted);
   font-weight: 400;
 }
 
-.sp-cross {
-  padding: 12px 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
+/* The four that are not comparable, behind a disclosure. */
+.sp-more {
+  margin-top: 10px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+
+.sp-more > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
   font-size: 12px;
-  line-height: 1.65;
+  font-weight: 600;
   color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
 }
 
-.sp-cross dl {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  margin: 0 0 8px;
+.sp-more > summary::-webkit-details-marker {
+  display: none;
 }
 
-.sp-cross p {
-  margin: 0;
-  max-width: none;
-  font-size: 12px;
-  line-height: 1.65;
-  color: var(--text-secondary);
-}
-
-.sp-cross code {
+.sp-more > summary::before {
+  content: '▸';
   font-size: 11px;
-  background: var(--bg-card);
-  padding: 1px 4px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.sp-more[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.sp-more > summary:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
   border-radius: 3px;
 }
 
-.sp-cross dt {
+.sp-stats-more {
+  padding-top: 6px;
+  font-size: 12px;
+}
+
+/* ---- 對表 ---- */
+
+/* Typography only. The panel is `.sp-num-panel` now, so this box no longer paints
+   a second surface inside the first — which is also what removed the 14px. */
+.sp-cross {
+  font-size: 13px;
+}
+
+/* THE VERDICT, at the top, because it is the number the block exists to produce.
+   It used to be the fourth paragraph at the bottom of a half-width column: five
+   numbers and three paragraphs had to be read before the one conclusion they
+   support could be assembled. */
+.sp-x-verdict {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.6;
   color: var(--text-secondary);
 }
 
-.sp-cross dd {
-  margin: 0;
+.sp-x-verdict b {
   color: var(--text-primary);
+  font-weight: 600;
+}
+
+.sp-x-worst {
+  color: var(--accent-gold);
   font-variant-numeric: tabular-nums;
+}
+
+.sp-x-rows,
+.sp-x-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+/* THE FOUR NUMERIC COLUMNS ARE FIXED TRACKS, shared by the header and the rows.
+ *
+ * Measured before this change, on the 5 rows: `got`/`want`/`rel`/`where` each drifted
+ * 31-61px from row to row, and the header's 相對差 sat 98px right of row 1's 0%.
+ * Three independent causes, and fixing one leaves the other two looking fine:
+ *
+ *  1. The spans were content-sized. `.sp-x-got` ranges 22.8px (「647」) to 53.8px
+ *     (「0.9386 s」), so `.sp-x-want`, `.sp-x-rel` and `.sp-where` were all pushed a
+ *     different amount by every row. Content-sized is the wrong unit for a column.
+ *  2. The header was a SECOND grid, so its `1fr auto` column was sized independently
+ *     of the rows' — 282.1px one place and 284.1px the other. One set of tracks has
+ *     to be one set of tracks; two `grid-template-columns` declarations on two grids
+ *     is two things to keep equal, and they were already not equal.
+ *  3. `ch` — the obvious unit for tabular numbers — CANNOT be used here, because `ch`
+ *     resolves against the element's OWN font-size. The header is 10px and the rows
+ *     are 13px, so `7ch` is 42px in one and 54.6px in the other, and the tracks stay
+ *     ragged by exactly the ratio of the two font sizes. Only `px` is immune.
+ *
+ * The four widths are the measured maxima plus one digit of slack, because
+ * `formatValue` prints a thousands separator and 「2,153」 is a digit wider than
+ * 「1,656」: got 60 (needed 53.8), want 58 (51.2), rel 46, where 92. The header's own
+ * labels are right-aligned inside the same tracks and are all narrower — 「這一頁算的」
+ * is 50px in a 60px track — so a header can never widen the track it labels. */
+.sp-x-head > dd,
+.sp-x-rows > dd {
+  display: grid;
+  grid-template-columns: 60px 14px 58px 46px 92px;
+  justify-content: end;
+  align-items: baseline;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Numbers are RIGHT-aligned inside their track, not the track's own left edge, so the
+ * digits themselves line up rather than merely the boxes. `tabular-nums` is what makes
+ * that true of a zero as well as a nine. */
+.sp-x-head > dd > span,
+.sp-x-rows > dd > span {
+  min-width: 0;
   text-align: right;
 }
 
+.sp-x-head {
+  gap: 0 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.sp-x-head dt,
+.sp-x-rows dt {
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+/* The `FEATURE_NAMES` identifier beside the Chinese label. Muted and smaller, so
+   it reads as the key rather than as a second name competing with the first — and
+   it is what makes 對表 present the same five quantities as 量測數值 under the same
+   two names, instead of asking the reader to match `centroid` against 質心 by eye. */
+.sp-x-id {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.35;
+  font-style: normal;
+  color: var(--text-muted);
+}
+
+/* The arrow has a key, and it is above it.
+   Both sides used to live in one `<dd>` — verified as a single text run, so one
+   colour, one weight, one alignment — and the sentence explaining which side was
+   which rendered BELOW the five rows that used it. Three fixes rather than one:
+   position, weight, and a header row that repeats the mapping at the point of use. */
+.sp-x-got {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.sp-x-want {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.sp-x-arrow {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* The RELATIVE figure is the one that can be ranked, so it is the one given weight.
+   Its width is no longer declared here — it is a grid track shared with the header,
+   and a second min-width would be a second number that could disagree with it. */
+.sp-x-rel {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The absolute difference keeps its slot as the sub-line, because it is what tells a
+   reader the scale of the disagreement that the percentage above it summarises. */
+.sp-where {
+  color: var(--text-muted);
+}
+
+/* The three causes, behind a disclosure. They were four `<p>` at 0px margins —
+   measured `p0.bottom === p1.y`, so 199px of body copy was one continuous block
+   broken only by a `<b>` lead-in — at the identical 12px/weight 400 as the numeric
+   labels, which meant a reader who wanted a number and a reader who wanted the
+   justification were served at the same volume.
+   The disclosure is the product and NOT ONE WORD of it is cut: it moves from
+   permanent-and-undifferentiated to on-demand, which is the difference between
+   showing your work and making the reader sift for it. */
+.sp-x-why {
+  margin-top: 12px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+
+.sp-x-why > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.sp-x-why > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sp-x-why > summary::before {
+  content: '▸';
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.sp-x-why[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.sp-x-why > summary:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Explanation drops to the disclosure tier the page already uses (`.sp-caption`,
+   `.sp-about p`), so data and prose stop sharing a visual level. */
+.sp-x-why p,
+.sp-x-why ol {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.sp-x-why ol {
+  padding-left: 20px;
+}
+
+.sp-x-why li {
+  margin-bottom: 7px;
+}
+
+.sp-x-why li:last-child {
+  margin-bottom: 0;
+}
+
+.sp-x-why b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 /* ---------------------------------------------------------------------------
-   8. About
+   13b. Inline code — one rule for both panels, and DERIVED rather than token-picked
+   ---------------------------------------------------------------------------
+   Measured, light theme: the 對表 panel painted `rgb(255,255,255)` and so did all
+   three of its `<code>` chips, with `border-width: 0`. `--bg-card` and
+   `--bg-secondary` are both `#ffffff` in light, so `cry_features.json`,
+   `decodeAudioData` and `peak、rms、m0` rendered as plain prose with 4px of padding:
+   the code affordance present in one theme and absent in the other, while 138 static
+   and 43 CDP checks stayed green. Neither block's own stylesheet flagged it, and the
+   bundled detector cannot see this section at all — both blocks ship empty and fill
+   via innerHTML.
+
+   `--bg-controls` fails the other way: `#e9edf6` in light, but `#111830` in dark,
+   which is exactly `--bg-secondary`, so the chip disappears again. Mixing the panel
+   toward its OWN text colour differs by construction in both themes and introduces no
+   new hex — and `color-mix` is already an idiom here (`cries.css`'s warning chip). */
+.sp-cross code,
+.sp-about code {
+  font-size: 11px;
+  background: color-mix(in srgb, var(--text-primary) 9%, var(--bg-secondary));
+  border: 1px solid var(--hairline);
+  padding: 1px 5px;
+  border-radius: var(--sp-code-radius);
+}
+
+/* ---------------------------------------------------------------------------
+   14. About
    --------------------------------------------------------------------------- */
 
 .sp-about {
@@ -611,15 +1395,104 @@
   margin-bottom: 0;
 }
 
-.sp-about code {
-  font-size: 11px;
-  background: var(--bg-card);
-  padding: 1px 4px;
-  border-radius: 3px;
+/* ---------------------------------------------------------------------------
+   15. Focus, and below 900px
+   --------------------------------------------------------------------------- */
+
+.sp-search input:focus-visible,
+.sp-btn:focus-visible,
+.sp-source:focus-visible,
+.sp-filter:focus-visible,
+.sp-chip:focus-visible,
+.sp-row:focus-visible,
+.sp-clear:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Below 900px the rail leaves the side and becomes a block above the content.
+   With it in flow the whole page is one scroller, so a sticky viewport-height rail
+   would pin over the content it is meant to sit beside — the same reason
+   `cries.css` drops its panel's stickiness at the same breakpoint. */
+@media (max-width: 900px) {
+  .sp-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sp-left-panel {
+    flex: 1 1 auto;
+    width: auto;
+    position: static;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* The roster stops being a scroller, because nothing above it needs pinning any
+     more and two scrollers on a phone is one too many. */
+  .sp-roster {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .sp-roster-head {
+    position: static;
+  }
+
+  .sp-sources {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sp-source {
+    flex: 1 1 160px;
+  }
+
+  .sp-main {
+    padding: 20px 16px 48px;
+  }
+
+  .sp-numbers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sp-num-panel {
+    padding: 11px 12px 12px;
+  }
+
+  /* One column at this width would otherwise run 5 rows, then a disclosure, then a
+     verdict, 5 more rows, and 3 paragraphs of explanation, with nothing but the
+     section headings to separate them. */
+  .sp-num-panel {
+    padding: 12px 13px 13px;
+  }
 }
 
 /* ---------------------------------------------------------------------------
-   9. Reduced motion
+   15b. 對表's four numeric tracks need ~426px of panel: 294px of tracks plus the
+   12px column gap plus ~120px for the widest label (「85% 能量截止」 over
+   `rolloff85`). Side by side, the panel is 467px at 1400px but only 387px at 1200px,
+   so the tracks ate the label column down to 30px at 1000px — every column still
+   perfectly aligned and the block still completely unreadable, which is the state
+   this breakpoint exists to prevent. Alignment is necessary and not sufficient; a
+   label with nowhere to go fails just as hard as a ragged one.
+   The crossover is measured, not rounded: side by side the label column is 105px at
+   1200px and 97.9px at 1181px, then the stack kicks in and it jumps to 525px. 1210 is
+   the round number above the seam, so the narrowest the label column ever gets while
+   the panels are still side by side is ~108px — enough for 「85% 能量截止」 with slack.
+   This is a separate rule rather than a wider `@media` because the 900px one below is
+   about the PAGE's layout collapsing, and this one is about one panel's contents. */
+@media (max-width: 1210px) {
+  .sp-numbers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   16. Reduced motion
    ---------------------------------------------------------------------------
    The reveal is the one animated thing on this page, and it is the only part
    that moves at all when nothing is playing. With the preference set the plot is
@@ -629,7 +1502,16 @@
    decoration. */
 @media (prefers-reduced-motion: reduce) {
   .sp-autoplay-track,
-  .sp-autoplay-track::after {
+  .sp-autoplay-track::after,
+  .sp-source,
+  .sp-filter,
+  .sp-chip,
+  .sp-row,
+  .sp-num-panel,
+  .sp-box > summary::before,
+  .sp-covers > summary::before,
+  .sp-more > summary::before,
+  .sp-x-why > summary::before {
     transition: none;
   }
 }

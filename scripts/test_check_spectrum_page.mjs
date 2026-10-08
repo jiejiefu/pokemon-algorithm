@@ -53,8 +53,20 @@ const SRC = [
   'assets/js/shared.js',
   'assets/js/gb-apu.js',
   'scripts/analyze_cries.py',
+  /* The checker LIFTS speciesInk out of this file and runs it over all 1,025 records.
+     A harness tree without it fails its own BASELINE — the harness telling the truth
+     about its inputs rather than a mutation being caught. */
+  'assets/js/species-ramp.js',
   'assets/data/cry_features.json',
   'assets/data/gen1_cries.json',
+  /* The checker reads this for the 傳說/幻之 facet counts AND, now, to sweep the live
+     curve's ink over every record. It was MISSING here while `check_all.mjs` declared
+     it, so every one of this harness's cases was reporting FAIL — including the
+     baseline — because `read()` throws on a file the tree does not have, before any
+     assertion is reached. A harness whose baseline is red measures nothing, and the
+     failure mode is loud rather than silent, which is the only reason it was findable:
+     `check_all.mjs` declaring a file is not the same as the harness copying it. */
+  'assets/data/pokemon_data.json',
 ];
 
 const results = [];
@@ -285,6 +297,69 @@ const CASES = [
     mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
       replaceOrThrow(s, "className: 'sp-autoplay',", "className: 'cy-autoplay',")),
     expect: 'the autoplay switch is the shared module asked for this page\'s prefix',
+  },
+
+  /* ---- the live curve's ink ------------------------------------------------
+   *
+   * Four cases, and each one names the assertion that detects IT rather than the one
+   * that happens to go red. The first version of the visibility case asserted 「all
+   * 1,025 clear the floor」 and that assertion was satisfied by a function that lifts
+   * every colour all the way to white — 1,025 colours clearing 3:1 is not the claim,
+   * it is the claim's absence wearing its shape. The pair below is the one that
+   * separates them: a floor, and a ceiling on what the floor costs. */
+
+  {
+    // The whole feature, gone, with the function left in place so the "does it exist"
+    // assertions stay green and only the MEASURED one can catch this.
+    name: 'the visibility floor is removed and the raw colour is drawn',
+    mutate: (dir) => edit(dir, 'assets/js/species-ramp.js', (s) =>
+      replaceOrThrow(s, 'if (contrast(src, ground) >= min) return src.slice();',
+        'if (contrast(src, ground) >= min) return src.slice();\n  return src.slice();')),
+    expect: 'every one of the 1025 lands at or above 3:1 against the plot ground',
+  },
+
+  {
+    // A STRIDE too coarse: still clears the floor on every record, and overshoots it —
+    // x5.5 in luminance against the real x3.2, and 20° of hue against a 12° ceiling.
+    name: 'the lift takes 0.34-sized strides, clearing the floor but overshooting the colour',
+    mutate: (dir) => edit(dir, 'assets/js/species-ramp.js', (s) =>
+      replaceOrThrow(s, 't += 0.02', 't += 0.34')),
+    expect: 'by no more than 12',
+  },
+
+  {
+    // THE OTHER HALF OF THE SAME FAILURE, and the one the case above cannot reach.
+    // Removing the `break` sends all 68 to pure white — which clears 3:1 everywhere,
+    // so the floor assertion passes and the hue assertion reports 0° for every one of
+    // them because a pure grey has no hue. It is caught only by the luminance ceiling,
+    // which is why that ceiling exists and why this case expects it and not the hue.
+    name: 'the loop stops at the first clearing step and now runs to white',
+    mutate: (dir) => edit(dir, 'assets/js/species-ramp.js', (s) =>
+      replaceOrThrow(s, 'if (contrast(fill, ground) >= min) break;',
+        'if (contrast(fill, ground) >= min && false) break;')),
+    expect: 'by at most x4 in relative luminance',
+  },
+
+  {
+    // Lift toward BLACK instead of white. Every one of these assertions except one is
+    // satisfied by it, because a black curve on a near-black ground still "returns a
+    // colour for all 1,025" and the export signature is untouched.
+    name: 'the lift runs toward black instead of toward the ground opposite',
+    mutate: (dir) => edit(dir, 'assets/js/species-ramp.js', (s) =>
+      replaceOrThrow(s, 'const towards = ground.some(v => v > 127) ? 0 : 255;',
+        'const towards = 0;')),
+    expect: 'every one of the 1025 lands at or above 3:1 against the plot ground',
+  },
+
+  {
+    // The 60fps shape. `drawLive()` is the frame loop; putting the resolution there
+    // computes a contrast ratio sixty times a second for a value that changes when the
+    // reader picks a Pokémon. The assertion reads drawLive()'s own body.
+    name: 'the ink is resolved inside the 60fps frame loop instead of once per selection',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '      state.liveInk = speciesInk(meta?.rgb, state.plotGround, contrast);',
+        '      state.liveInk = null;\n      globalThis.__perFrame = () => speciesInk(meta?.rgb, state.plotGround, contrast);')),
+    expect: 'the ink is resolved in select() and stored on state',
   },
 ];
 

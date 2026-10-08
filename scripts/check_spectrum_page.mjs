@@ -76,6 +76,9 @@ const eq = (got, want, what) => {
 
 const page = read('spectrum.html');
 const css = read('assets/css/spectrum.css');
+/* Read ONCE: `readJson` does not cache and this table is 2.8 MB, and two sections
+ * below now both need it — the 傳說/幻之 facet counts and the live curve's ink sweep. */
+const pokemon = readJson('assets/data/pokemon_data.json');
 const mod = read('assets/js/cry-spectrogram.js');
 const py = read('scripts/analyze_cries.py');
 const player = read('assets/js/cry-player.js');
@@ -235,6 +238,58 @@ ok(robustNames.includes('dur') && robustNames.includes('centroid')
 ok(/整段算好/.test(page) && /不等於/.test(page),
   'the intro says the spectrogram is computed BEFORE playback, and that the reveal is not a live analysis');
 
+/* Every intro paragraph opens with a bolded lead-in naming what it is about, so a
+ * reader who skims gets four labelled claims instead of four undifferentiated blocks.
+ *
+ * `>= 4` rather than `=== 4` on purpose: the invariant is that NO paragraph is
+ * unlabelled, so a fifth paragraph added later is covered by the same assertion
+ * rather than escaping it — the per-paragraph half is what does the work.
+ *
+ * The lead-in is matched as an ELEMENT, not as text. One of them wraps `cries.html`,
+ * so a `[^<]*` body matches three of the four and silently skips the fourth — which is
+ * the §3.G shape: the assertion that reads like the guard is not the guard. The
+ * tempered token refuses to cross a `</strong>`, so "some strong tag somewhere in the
+ * paragraph ends in a full stop" cannot be satisfied by the wrong one, and
+ * `startsWith` is what makes the claim `OPENS WITH` rather than `contains`.
+ *
+ * Each paragraph's INNER content is captured rather than the markup being split on
+ * `</p>`. Splitting leaves the `<h1>` glued to the front of the first chunk, so the
+ * chunk that actually opens with a lead-in is the one that appears not to — and the
+ * `<p>`-stripping written to correct that then has to know about the heading too. */
+const introParas = [...((page.match(/<div class="sp-intro-body">[\s\S]*?<\/div>/) || [, ''])[0]
+  .matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g))].map(m => m[1].trim());
+ok(introParas.length >= 4 && introParas.every(t =>
+  t.startsWith('<strong>') && /<strong>(?:(?!<\/strong>)[\s\S])*?。<\/strong>/.test(t)),
+  `all ${introParas.length} intro paragraphs OPEN WITH a bolded lead-in ending in a full stop, so they can be skimmed as claims`);
+
+/* ONE em-dash appositive in the intro, not one per paragraph.
+ *
+ * `impeccable detect` fired `em-dash-overuse` at 8+ in this 490-char block, and the
+ * rewrite above was what put it there — every one of the four paragraphs had come to
+ * pivot on `——`, which is the exact cadence tic that rule describes. It is kept as an
+ * assertion rather than left as advice because a shape check CAN measure it, and the
+ * count is a property of the copy rather than of the DOM.
+ *
+ * The one survivor is 音訊時鐘——那是同一組像素, a genuine appositive. The three that
+ * were replaced were decoration (P1), a full stop that had been flattened into a dash
+ * (P2), and another full stop (P3) — so the floor is not zero, and a future paragraph
+ * that needs a dash still has room. */
+const introDashes = (introParas.join('\n').match(/—|--/g) || []).length;
+ok(introDashes <= 2,
+  `the intro uses at most one em-dash appositive (${introDashes} dashes), because all four paragraphs pivoting on —— is what tripped em-dash-overuse`);
+
+/* The page's own copy must not claim precision the page's own table disproves.
+ *
+ * §3.B1's rule, and it was nearly broken by an editor: a rewrite of this intro
+ * proposed 「瀏覽器端零近似值運算」 and 「並非粗略的近似值」 as a headline, directly above
+ * the 對表 that prints 31.4% / 27.5% / 29.3% disagreement on three of its five compared
+ * features. A reader who scrolls finds the page contradicting its own subtitle, so the
+ * superlative is banned by name rather than trusted to taste. 「完全相同」 is fine and is
+ * asserted to still be there: it describes the PIPELINE, which is literally the same
+ * code, and that is what the port checker proves. */
+ok(!/(零近似|毫無近似|絕非近似|並非.{0,4}近似值)/.test(page),
+  'the page never claims its browser figures are approximation-free — its own 對表 measures 27-31% disagreement on three of five features');
+
 ok(/即時譜|這是第二次量測/.test(page) && /AnalyserNode/.test(page) && /不是同一組參數/.test(page),
   'the live curve says it is a SECOND measurement with different rate, window and smoothing');
 
@@ -268,16 +323,116 @@ for (const sel of cssSelectors) {
 /* `.header` is shared.css's, and writing `.sp-header` here would be a bug: the
  * markup in the page carries `class="header"`, so renaming the selector would
  * silently stop the whole header block from matching. Shared tokens are used, never
- * redefined — which is what the second half of this assertion checks. */
+ * redefined — which is what the second half of this assertion checks.
+ *
+ * `is-*` state modifiers are allowed, and the project already has the precedent:
+ * `cries.css` ships `.cy-chip.is-warning`. The rule those follow is that a state
+ * modifier is never a selector on its own — it is always compounded with a prefixed
+ * block class, so it cannot address anything outside this page's vocabulary. The
+ * assertion below is the check that they are, so the exemption cannot become a
+ * hiding place for a second unprefixed name. */
 const SHARED = new Set(['header']);
-const foreign = [...classes].filter((c) => !c.startsWith('sp-') && !SHARED.has(c));
+const isState = (c) => /^is-[a-z0-9-]+$/.test(c);
+const foreign = [...classes].filter((c) => !c.startsWith('sp-') && !SHARED.has(c) && !isState(c));
 eq(foreign, [],
-  `every class in spectrum.css is sp-prefixed except the shared tokens it must not redefine`
+  `every class in spectrum.css is sp-prefixed, a shared token, or an is-* state modifier`
   + ` (${classes.size} classes)`);
+
+/* The exemption's price, paid here: an `is-*` selector in this stylesheet must be
+ * used ONLY compounded with an `sp-` class in the page, or it is just an unprefixed
+ * name that escaped. `.sp-numbers.is-loading` passes; a bare `.is-loading` would not. */
+for (const state of [...classes].filter(isState)) {
+  const bare = new RegExp(`\\.(?:[a-z]+ )?${state}\\b(?!\\S)`).test(cssCode);
+  const compounded = new RegExp(`\\.sp-[a-z0-9-]+\\.${state}\\b`).test(cssCode);
+  ok(!bare || compounded,
+    `${state} is only ever selected compounded with an sp- class, so it cannot address another page's state`);
+}
 
 const redefinesShared = [...cssCode.matchAll(/^\.(header|site-nav|theme-toggle|nav-toggle)\s*\{/gm)];
 eq(redefinesShared.map((m) => m[1]), [],
   'and shared.css\'s own classes are never redefined here, only used as a qualifier');
+
+/* ---------------------------------------------------------------------------
+   5b. THE OTHER HALF OF THE SAME CLAIM — AND THE ONE THAT HAD NO ASSERTION
+   ---------------------------------------------------------------------------
+   Everything above reads the STYLESHEET and asks whether the things in it are
+   allowed. This reads the PAGE and asks whether the things in it are STYLED.
+
+   The difference is not tidiness. A previous edit to this page replaced
+   spectrum.css's whole "Controls" section with a comment saying the rules were
+   "kept for reference", and did not keep them: fifteen selectors went with it —
+   `.sp-label .sp-sources .sp-source .sp-search .sp-btn .sp-chips .sp-chip
+   .sp-actions .sp-status .sp-autoplay{,-track,-text} .sp-hero .sp-hero-head
+   .sp-hero-id` — so the source radios, the search box, the 24 chips, the play
+   button and the autoplay switch all rendered on browser defaults.
+
+   Nothing went red. Not this file's 87 checks, not the 43 in
+   `check_spectrum_browser.mjs`, not a single assertion anywhere in the project.
+   The reason is precisely the claim above: "every class in spectrum.css is
+   sp-prefixed" is satisfied by a stylesheet containing NO control rules at all,
+   because the set it measures is the set of classes that EXIST. A rule that
+   cannot see an absence is the §4 failure shape, and it is invisible from the
+   inside — the assertion looks like the guard.
+
+   So: every class the page puts on the DOM must resolve to a rule. Non-`sp-`
+   names are the two other owners' — derived, not listed, because a hand-kept
+   allowlist is a second copy of the truth that rots the first time someone adds a
+   shared class. The autoplay family is derived from the PREFIX the page asks
+   `mountAutoplay` for, because `cry-autoplay.js` builds those three node names at
+   runtime and no amount of reading the markup will find them. */
+const markup = page.slice(0, page.indexOf('<script type="module">'))
+  .replace(/<!--[\s\S]*?-->/g, '');
+const script = page.slice(page.indexOf('<script type="module">'));
+
+const markupClasses = new Set();
+for (const m of markup.matchAll(/class="([^"]+)"/g)) {
+  for (const c of m[1].split(/\s+/)) if (c) markupClasses.add(c);
+}
+/* Class names the script ASSIGNS, which never appear in the markup at all. */
+for (const m of script.matchAll(/\.className\s*=\s*'([^']+)'/g)) markupClasses.add(m[1]);
+for (const m of script.matchAll(/class="(sp-[^"]*)"/g)) markupClasses.add(m[1]);
+
+/* The autoplay switch's three node names, read out of the prefix the page passes
+   rather than written down — the same reasoning as reading the six header modifier
+   names out of shared.css instead of restating them. */
+const autoplayPrefix = page.match(/className: '(sp-[a-z-]+)'/)?.[1];
+ok(Boolean(autoplayPrefix),
+  'the autoplay switch is mounted with a `sp-` prefix the class audit can read, not a literal the stylesheet has to be told about separately');
+const runtimeClasses = autoplayPrefix
+  ? new Set([autoplayPrefix, `${autoplayPrefix}-track`, `${autoplayPrefix}-text`])
+  : new Set();
+
+/* SCOPED TO `sp-`, and the scoping is the point rather than a convenience.
+ *
+ *  The subject is the classes THIS PAGE owns. Auditing every class in the markup
+ *  drags in the site's chrome — and the first thing it found was `.site-footer`,
+ *  which is styled in NO stylesheet in the project and is used by `cries.html`
+ *  too. That is a real orphan and a real fact, but it is pre-existing and
+ *  site-wide, and asserting it here would make this file the owner of every page's
+ *  footer while nothing anywhere fixes it. Naming it instead of allowlisting it is
+ *  the honest form: a fact written down is one a reader can act on, and a fact in
+ *  a Set is one they cannot see. */
+ok(!/class="[^"]*\b(?:cy|cp|cg)-/.test(markup) && !/className = '(?:cy|cp|cg)-/.test(script),
+  'the page uses no `cy-`, `cp-` or `cg-` class — those belong to cries.css and the colour pages, and borrowing one is a stylesheet-order collision waiting to happen');
+
+const ownUnstyled = [...markupClasses]
+  .filter((c) => c.startsWith('sp-'))
+  .filter((c) => !classes.has(c))
+  .filter((c) => !runtimeClasses.has(c))
+  .sort();
+eq(ownUnstyled, [],
+  `every sp- class the page puts on the DOM resolves to a rule in spectrum.css`
+  + ` (${markupClasses.size} classes in the markup, ${runtimeClasses.size} of them built at runtime by cry-autoplay.js)`);
+
+/* And the direction section 5 already covers, stated as the same sentence so a
+   reader scanning the output sees both halves of one claim rather than a rule
+   about the stylesheet and then a hole where the page should have been. */
+const unused = [...classes]
+  .filter((c) => c.startsWith('sp-'))
+  .filter((c) => !markupClasses.has(c) && !runtimeClasses.has(c))
+  .sort();
+eq(unused, [],
+  'and no sp- rule in spectrum.css is dead — the two halves together are the claim, not the half that cannot fail');
 
 ok(/linear-gradient\(to right,\s*var\(--sp-0\), var\(--sp-1\), var\(--sp-2\), var\(--sp-3\), var\(--sp-4\), var\(--sp-5\)\)/.test(css.replace(/\s+/g, ' ')),
   'the legend gradient is built from the same six custom properties the script reads, so a legend cannot drift from the picture');
@@ -298,8 +453,193 @@ eq((page.match(/#[0-9a-fA-F]{6}\b/g) ?? []).filter((h) => !RAMP_FALLBACKS.includ
   `the page carries no ramp colour outside the four with a stated reason (${RAMP_FALLBACKS.join(' ')})`);
 
 // ---------------------------------------------------------------------------
-// 6. The player's additions, and that they are additive.
+// 5b. The live curve's ink — a real measurement, run over all 1,025 records.
 // ---------------------------------------------------------------------------
+
+/* THE FUNCTION IS LIFTED OUT OF ITS FILE AND RUN, rather than its source shape
+ * checked, because this is arithmetic and arithmetic is the kind of claim this project
+ * does not accept on trust. `speciesInk` is lifted for the reason §3.B1 gives for
+ * `check_color_match.mjs`: a regex over the same lines passes for any mutation that
+ * leaves the substrings in place — deleting the loop, inverting the comparison, or
+ * lifting toward black instead of white all leave `t += 0.02` sitting right where it
+ * was.
+ *
+ * `contrast` is passed IN rather than imported by the module, precisely so this works:
+ * the lifted body has no module graph, and if the module imported `shared.js` the
+ * checker would have to build one or reimplement luminance — and reimplementing it is
+ * how the 0.03928 / 0.04045 breakpoint disagreement gets in. */
+const rampSrc = read('assets/js/species-ramp.js');
+ok(/export function speciesInk\(rgb, ground, contrast, min = 3\)/.test(rampSrc),
+  'species-ramp.js exports speciesInk(rgb, ground, contrast, min) — contrast as a PARAMETER, so the lift is runnable outside a browser');
+ok(!/^import /m.test(rampSrc),
+  'and the module imports nothing at all: an import would make the function impossible to lift and run against the real corpus');
+
+/* The WHOLE FILE is evaluated, not just the exported function, because the function has
+ * a module-level helper (`clamp255`) and lifting only the export throws
+ * `clamp255 is not defined` — which is a loud failure, but a copy of the declaration
+ * here would be a second copy to keep right. This only works because the assertion
+ * above establishes the module imports nothing, so its whole text is evaluable. */
+const speciesInk = new Function(`${rampSrc.replace(/^export /gm, '')}\nreturn speciesInk;`)();
+
+/* `shared.js`'s OWN WCAG ratio — LIFTED FROM ITS TEXT, not imported.
+ *
+ * `await import()` was the first attempt and it is wrong for two reasons, both found by
+ * `--prove-inputs`. Executing `shared.js` runs its module body, which reads
+ * `form-names.js`, `form-names-zh.js` and `shiny-index.js` at import time — three files
+ * the manifest would then have to declare for a checker that wants two arithmetic
+ * functions — and it does all of that to compute a ratio that is four lines long.
+ *
+ * Lifting the three contiguous declarations instead means the checker depends on
+ * shared.js's TEXT and on nothing else, which is the same bargain `cry-spectrogram.js`
+ * makes for the reason its own checks record: a module that imports nothing can be
+ * lifted and run, and a module that imports something has to be executed. The lift is
+ * not a copy to keep right — it is shared.js's own source, evaluated in place, so the
+ * 0.03928 breakpoint that `shared.js:251` documents keeping on purpose is the one that
+ * produced every figure in AGENTS.md. A restated 0.04045 luminance would disagree with
+ * all of them, and the disagreement would live in the one function whose whole job is
+ * a threshold.
+ *
+ * The three are taken as ONE span because they are contiguous and depend on each other:
+ * `contrast` closes over `luminance`, which closes over `toLinear`. Lifting `contrast`
+ * alone would throw on an undefined identifier. */
+const sharedSrc = read('assets/js/shared.js');
+const wcagSpan = sharedSrc.match(
+  /const toLinear = v => \{[\s\S]*?export const contrast = \(a, b\) => \{[\s\S]*?\n\};\n/,
+);
+ok(!!wcagSpan,
+  'shared.js\'s own toLinear + luminance + contrast are three contiguous declarations, and this lift found them');
+/* The lift RETURNS the function, so it is assigned rather than destructured — the
+ * `{ contrast: wcag } =` form that worked with `await import()` reads a property off a
+ * module namespace object, and a bare function has none, so `wcag` came out undefined
+ * and every record reported "no colour to draw". */
+const wcag = new Function(`${wcagSpan[0].replace('export const', 'const')}\nreturn contrast;`)();
+
+/* The ground is read out of the stylesheet, not written here. `--sp-plot-bg` is
+ * declared once in `:root` and not overridden per theme, so there is exactly one
+ * ground — and a checker that hardcoded it would be asserting a value the stylesheet
+ * owns, which is the direction the sixth section above already fails. */
+const groundHex = (css.match(/--sp-plot-bg:\s*(#[0-9a-fA-F]{6})/) || [, ''])[1];
+const ground = [1, 3, 5].map((i) => parseInt(groundHex.slice(i, i + 2), 16));
+ok(groundHex !== '', `the plot ground is read from spectrum.css rather than restated (${groundHex})`);
+
+const INK_FLOOR = 3;
+const hueOf = (rgb) => {
+  const mx = Math.max(...rgb), mn = Math.min(...rgb);
+  if (mx === mn) return null;
+  const d = mx - mn;
+  const h = mx === rgb[0] ? ((rgb[1] - rgb[2]) / d + 6) % 6
+    : mx === rgb[1] ? (rgb[2] - rgb[0]) / d + 2
+    : (rgb[0] - rgb[1]) / d + 4;
+  return h * 60;
+};
+const sweep = pokemon.filter((p) => p.id <= 1025).map((p) => {
+  const ink = speciesInk(p.rgb, ground, wcag, INK_FLOOR);
+  const c0 = hueOf(p.rgb), c1 = ink && hueOf(ink);
+  const drift = c0 === null || c1 === null ? 0
+    : Math.min(Math.abs(c1 - c0), 360 - Math.abs(c1 - c0));
+  return { id: p.id, zh: p.names.zh, rgb: p.rgb, ink, ratio: ink ? wcag(ink, ground) : 0, drift };
+});
+
+/* The whole claim, on all 1,025. 6.6% of species are below the floor before lifting
+ * and NONE after, and that is the assertion — not 「the function exists」 and not 「one
+ * species was checked」, both of which pass on a lift that does nothing. */
+eq(sweep.filter((s) => s.ink === null).length, 0,
+  'speciesInk returns a colour for all 1,025 records — none is left with nothing to draw');
+const below = sweep.filter((s) => s.ratio < INK_FLOOR);
+eq(below.length, 0,
+  `and every one of the ${sweep.length} lands at or above ${INK_FLOOR}:1 against the plot ground (worst ${Math.min(...sweep.map((s) => s.ratio)).toFixed(3)}:1)`);
+eq(sweep.filter((s) => s.ink && JSON.stringify(s.ink) === JSON.stringify(s.rgb)).length, 957,
+  '957 of them pass through BYTE FOR BYTE, because a species already legible must keep its exact stored colour');
+
+/* The lift is the point, so its cost is measured rather than assumed: 68 records change
+ * at all, and the largest hue movement among them is 8°. A floor that rescued visibility
+ * by destroying the colour would satisfy the contrast assertion above perfectly. */
+const lifted = sweep.filter((s) => s.ink && JSON.stringify(s.ink) !== JSON.stringify(s.rgb));
+eq(lifted.length, 68,
+  `and the other 68 are lifted — measured, not a constant: ${lifted.length} records fall below ${INK_FLOOR}:1 as stored`);
+ok(Math.max(...lifted.map((s) => s.drift)) <= 12,
+  `by no more than 12° of hue, so the curve still reads as that Pokémon (worst ${Math.max(...lifted.map((s) => s.drift)).toFixed(1)}°)`);
+
+/* AND A SECOND CEILING, ON BRIGHTNESS, because the hue one has a hole in it exactly
+ * where the problem is worst.
+ *
+ * `hueOf()` returns null for a colour whose channels are equal, and this page's lifted
+ * records are largely greys — 大炭車, 捷克羅姆, 薩戮德, 巨炭山 are the four worst in the
+ * corpus and every one of them is a desaturation, not a darkness. So the hue assertion
+ * above measures 0° for all of them and a lift that destroyed their colour would sail
+ * through it. That is the §3.B2 shape again in a new place: the detector skips exactly
+ * the population the defect is concentrated in.
+ *
+ * Relative luminance is already in hand because `contrast` was lifted from shared.js,
+ * and it does not care whether a colour has a hue. Measured: the real 2% lift gains at
+ * most x3.2 with a median of x1.26, while lifting to the first step that clears with a
+ * 0.34 stride gains x5.5 and removing the `break` entirely sends all 68 to pure white
+ * for a gain around x30. A ceiling of x4 has room over the real figure and catches both.
+ *
+ * The floor assertion above passes on every one of those too — 1,025 colours clearing
+ * 3:1 is the claim's ABSENCE wearing its shape, and only a ceiling on cost can tell a
+ * rescue from a repaint. */
+const lumOf = (rgb) => {
+  const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+};
+const gains = lifted.map((s) => lumOf(s.ink) / Math.max(lumOf(s.rgb), 1e-9));
+ok(Math.max(...gains) <= 4,
+  `and by at most x4 in relative luminance, which is the ceiling that covers the 68 GREY records the hue check cannot see (worst x${Math.max(...gains).toFixed(1)}, median x${gains.slice().sort((a, b) => a - b)[gains.length >> 1].toFixed(2)})`);
+
+/* THE FLOOR IS ABOUT GRAPHICAL OBJECTS, NOT TEXT, and the number is written down
+ * because the alternative was picked without one. 3:1 is WCAG 1.4.11's figure for a
+ * graphical object, and this curve's meaning is carried by its SHAPE — the colour is
+ * identity. 4.5:1 would be the bar for text and would lift 273 records instead of 68,
+ * moving the median species further from its own colour for a distinction no reader is
+ * being asked to make. */
+ok(/graphical|SC 1\.4\.11|3:1/.test(rampSrc) && /INK_FLOOR = 3/.test(page + rampSrc + read('scripts/check_spectrum_page.mjs')),
+  'the 3:1 floor is the WCAG graphical-object figure and is stated as such, rather than a round number that looked fine');
+
+/* The page's own copy must not promise what the arithmetic delivers — §3.B1. The
+ * caption is this canvas's `aria-describedby`, so it is also the alt text, and it now
+ * carries the measured figures (68 of 1,025; 1.63:1) rather than a reassurance. */
+ok(/線條與填色是這一隻寶可夢自己的顏色/.test(page) && /68/.test(page) && /1\.63:1/.test(page),
+  'the live curve\'s caption says the line is this species\'s own colour AND quotes the measured floor it had to be lifted past');
+ok(/顏色是身分，不是數值/.test(page),
+  'and says the colour is identity rather than a value, because a reader looking at a tinted curve will otherwise read the tint as a measurement');
+
+/* It is drawn from `state`, resolved once per species — NOT per frame. `drawLive()`
+ * runs on every animation frame while audio plays, and this is the §3.G shape read in
+ * the other direction: a field written on selection and read sixty times a second is
+ * correct, and the same expression inlined into the frame loop is a per-frame cost for
+ * a value that only changes when the reader picks a different Pokémon. */
+ok(/state\.liveInk = speciesInk\(/.test(page),
+  'the ink is resolved in select() and stored on state, so the 60fps drawLive() never recomputes it');
+ok(/const ink = state\.liveInk/.test(page) && !/ctx\.strokeStyle = topInk\(\)/.test(page),
+  'and drawLive() reads that state rather than the ramp\'s constant top colour');
+ok(/speciesInk\(meta\?\.rgb/.test(page) && /state\.plotGround = hexToRgb\(/.test(page),
+  'the ink comes from the species record\'s own rgb, measured against the ground as read from CSS — so neither is a constant in the page');
+
+/* The page STATES the ink it is about to draw, in `data-ink`, and the browser checker
+ * measures the canvas against that statement.
+ *
+ * Asserted here as well, because that statement is load-bearing for a check living in
+ * another file that opens no repo file: if the page stops writing it, `CANVAS_INK`
+ * returns `{ error: 'no data-ink' }`, one assertion fails, and the other seven in that
+ * block go on passing against a stale attribute. The value also has to come from the
+ * SAME state field `drawLive()` reads — otherwise the browser ends up checking the
+ * canvas against a reference that no longer describes it, which passes exactly when the
+ * page draws the wrong colour and states the right one.
+ *
+ * And it is written once per selection rather than per frame: `drawLive()` runs at
+ * 60fps, and a data attribute nothing reads in the browser is a write per frame of
+ * nothing. The second assertion below is the one that catches it moving. */
+ok(/dataset\.ink = state\.liveInk \? `rgb\(\$\{state\.liveInk\.join\(','\)\}\)` : ''/.test(page),
+  'the page publishes the ink it is about to draw as data-ink, taken from the same state field drawLive() reads');
+const frameBody = page.slice(page.indexOf('function drawLive()'), page.indexOf('function drawLive()') + 4000);
+ok(!/dataset\.ink/.test(frameBody),
+  'and it is written once per selection, not inside the 60fps frame path');
+ok(/state\.liveInk\s*\n\s*\/\*|state\.liveInk = speciesInk/.test(page)
+  && /state\.liveInk/.test(page.slice(page.indexOf('function drawLive()'))),
+  'while drawLive() does read state.liveInk, so the attribute and the pixels come from one value');
+
+
 
 for (const [name, re] of [
   ['decoded()', /^ {2}(?:async )?decoded\(/m],
@@ -377,8 +717,24 @@ ok(/for \(let db = 0; db >= -100; db -= 20\)/.test(drawLive) && /fillText\(`\$\{
 ok(/最高 \$\{Math\.round\(hi\)\} dB/.test(drawLive),
   'and the peak is printed as a number, because the nearest gridline can be 10 dB away');
 
-/* The 24 chips are the COVER roster, and the edition label is part of the answer. */
-const coverPairs = (page.match(/\[\d+, '[^']+'\]/g) || []);
+/* The 24 chips are the COVER roster, and the edition label is part of the answer.
+ *
+ * SCOPED TO THE `COVERS` LITERAL, and that scoping is the fix rather than a nicety.
+ * This counted `/\[\d+, '…'\]/g` over the WHOLE file, which is the shape §4 calls out:
+ * an assertion that reads like the guard and measures the page. The rail added
+ * nine generation chips, and building them from `[1, '第 1 世代']`-shaped pairs —
+ * the obvious way to write a `{value, label}` table — would have taken this count
+ * to 25 and turned an honest red into an inexplicable one. Verified: one such
+ * literal takes 24 to 25. Slicing to the array the assertion is actually about
+ * makes it survive an unrelated table gaining a shape it shares. */
+const coversStart = page.indexOf('const COVERS = [');
+const coversEnd = page.indexOf('];', coversStart);
+ok(coversStart > 0 && coversEnd > coversStart,
+  `the COVERS literal is locatable, so the 24-pair assertion has something to slice (chars ${coversStart}..${coversEnd})`);
+const coversBlock = coversStart > 0 && coversEnd > coversStart
+  ? page.slice(coversStart, coversEnd)
+  : '';
+const coverPairs = (coversBlock.match(/\[\d+, '[^']+'\]/g) || []);
 ok(coverPairs.length === 24,
   `the quick-pick grid is 24 [id, edition] pairs — ids and editions, never names (${coverPairs.length})`);
 
@@ -464,6 +820,271 @@ const gen1 = readJson('assets/data/gen1_cries.json');
 eq(gen1.cries.length, 151, 'the first-generation table is the 151 species the page offers as a third source');
 ok(gen1.cries.every((c) => c.pitch !== undefined && c.length !== undefined),
   'and every row carries the two bytes renderSpeciesCry needs, so the third source cannot half-render');
+
+// ---------------------------------------------------------------------------
+// 9. The rail's SHAPE — the layout claims that are only in the markup
+// ---------------------------------------------------------------------------
+/* Four claims a screenshot cannot make and a `getElementById` probe cannot
+ * either, because each is about the RELATIONSHIP between two elements rather than
+ * about either one existing. All four are load-bearing in a specific way. */
+
+const asideAt = markup.indexOf('<aside class="sp-left-panel"');
+const mainAt = markup.indexOf('<main id="main" class="sp-main"');
+ok(asideAt > 0 && mainAt > 0 && asideAt < mainAt,
+  'the rail is a SIBLING of `<main>`, not a descendant — the controls are not main content, so they must not be inside the skip-link target');
+ok(!/<main[^>]*>[\s\S]*<aside/.test(markup),
+  'and specifically: no `<aside>` sits inside `<main>`, which is the shape that put every rail button in the skip link\'s destination');
+
+ok(mainAt > 0 && markup.indexOf('class="sp-intro"') > mainAt,
+  'the intro lives inside the right column, above the plot — the rail holds controls, not prose');
+ok(markup.indexOf('class="sp-hero"') > markup.indexOf('class="sp-intro"'),
+  'and the plot follows it, so the page still reads 「what this is → what you are looking at」');
+
+/* The intro is TWO COLUMNS, with the species in the second one. Asserted as the
+ * grid's own declaration rather than as the presence of the figure, because a
+ * `.sp-intro-art` in the markup with no grid rule beside it renders as a full-width
+ * block under the prose — which looks almost right and is the layout this moved away
+ * from. */
+ok(/grid-template-columns:\s*minmax\(0, 6fr\) minmax\(0, 4fr\)/.test(cssCode),
+  'the intro is a 6:4 grid, the same split cries.html and cries-gen1.html use — 7:3 would leave the prose past its own 68ch measure');
+const introStart = markup.indexOf('class="sp-intro"');
+const introEnd = markup.indexOf('</div>', markup.indexOf('sp-intro-art'));
+const introBlock = introStart > 0 ? markup.slice(introStart, introEnd + 6) : '';
+ok(introBlock.indexOf('sp-intro-body') > 0 && introBlock.indexOf('sp-intro-art') > 0
+  && introBlock.indexOf('sp-intro-body') < introBlock.indexOf('sp-intro-art'),
+  'and the prose comes first with the sprite figure second, so the 6fr track is the text');
+ok(markup.indexOf('id="sp-art"') > introStart && markup.indexOf('id="sp-art"') < introEnd,
+  'the plotted species is identified in the intro column — it used to be a 28px chip in the plot\'s heading, which named the chart rather than its subject');
+ok(!markup.includes('class="sp-figure"') && !classes.has('sp-figure'),
+  'and that 28px identity strip is gone from both the markup and the stylesheet, rather than left behind as a second thing to keep right');
+ok(/@media \(max-width: 980px\)[\s\S]{0,400}grid-template-columns:\s*minmax\(0, 1fr\)/.test(cssCode),
+  'below the width where 6:4 would break the measure, the intro collapses to one column');
+
+/* The rail is a viewport-height column that does NOT scroll, and the roster is
+ * the one thing inside it that does. Two assertions because either alone is
+ * satisfied by a broken pair: `overflow: hidden` without a scrolling child is a
+ * rail you cannot reach the bottom of, and a scrolling child without it is a
+ * double scroller. `cries.css` drops stickiness at 900px for the same reason the
+ * sticky version needs an escape. */
+const railBlock = (() => {
+  const start = css.indexOf('.sp-left-panel {');
+  if (start < 0) return '';
+  return css.slice(start, css.indexOf('}', start));
+})();
+ok(/height:\s*100vh/.test(railBlock) && /position:\s*sticky/.test(railBlock)
+  && /overflow-y:\s*auto/.test(railBlock),
+  'the rail is sticky and exactly one viewport tall, and scrolls ONLY as a fallback — `cries.css` gives `.cy-panel` the same treatment, and without it a short viewport clipped the play button');
+const rosterBlock = (() => {
+  const start = css.indexOf('.sp-roster {');
+  if (start < 0) return '';
+  return css.slice(start, css.indexOf('}', start));
+})();
+ok(/overflow-y:\s*auto/.test(rosterBlock) && /min-height:\s*1\d\dpx/.test(rosterBlock),
+  'the roster scrolls, and has a FLOOR of about three rows — `min-height: 0` let it shrink to a measured 1px on a 560px viewport, which is a squeezed layout rather than a working one');
+ok(!/min-height:\s*0[;\s]/.test(rosterBlock),
+  'and it is explicitly not `min-height: 0`, which is the value that hands the whole rail to its siblings');
+
+/* TWO scrollers, and the PAIR is the claim.
+ *
+ * This asserted exactly one, on the reasoning that a sidebar which does not scroll
+ * leaves a single scroller in the page. True on a tall screen, and false below
+ * about 600px — measured: the roster is 325px at a 900px viewport and 126px at 700,
+ * then 1px at 560, and at 500 the play button is clipped with nothing able to scroll
+ * to it. So the rail became a fallback scroller (`cries.css`'s `.cy-panel` shape)
+ * and the roster took a floor, and between them only one ever has anything to
+ * scroll.
+ *
+ * Asserted as a count because the failure is a THIRD element arriving, and a
+ * prohibition on some selector would not see it whichever element it was. */
+const scrollers = [...cssCode.matchAll(/overflow-y:\s*auto/g)].length;
+eq(scrollers, 2,
+  'two vertical scrollers and no more: the roster for the list, the rail for the case where the chrome is taller than the viewport');
+
+/* EVERY SCROLLABLE REGION LIVES INSIDE THE SCROLLPORT, and this is the check for a
+ * defect that shipped and that nothing could see.
+ *
+ * The 24-chip cover grid was first a SIBLING of `.sp-roster`, above it, inside a rail
+ * that is `overflow: hidden` at `100vh`. Expanded, the chips are 1,226px tall in a
+ * 900px rail: the roster was squeezed from 271px to 9px and 876px of the grid sat
+ * past the rail's bottom edge, where `overflow: hidden` put it permanently out of
+ * reach. Chips 15 through 24 could not be seen and could not be scrolled to.
+ *
+ * Measured in a browser, not reasoned: the difference between the two layouts is
+ * whether the block is a descendant of the element that scrolls. That is a
+ * relationship between two elements, which is exactly what a `getElementById`
+ * presence probe and a `querySelectorAll` count both miss — the chips were built,
+ * and there were 24 of them, on both layouts. */
+const coversAt = markup.indexOf('<details class="sp-covers">');
+const rosterBoxAt = markup.indexOf('<div class="sp-roster" id="sp-roster">');
+ok(coversAt > 0 && rosterBoxAt > 0 && coversAt > rosterBoxAt,
+  'the cover grid is INSIDE the roster\'s scroller, not beside it — beside it, 1,226px of chips overflow a rail that cannot scroll and 876px of them are unreachable');
+const rosterEnd = markup.indexOf('<div class="sp-sentinel"', rosterBoxAt);
+ok(rosterEnd > coversAt,
+  'and it is inside that box rather than after it, which is the difference between reachable and not');
+ok(!/\.sp-covers\s*\{[^}]*max-height/.test(cssCode),
+  'and the grid is not given its own max-height instead — a second scrollport would trade the clipping for the nested-scroller problem');
+
+/* TWO STICKY HEADERS IN ONE SCROLLPORT, and their offsets come from ONE number.
+ *
+ * The roster head pins at 0 and the cover summary has to pin directly beneath it.
+ * Two literals would be two things to keep right, and the failure is silent and
+ * ugly: they overlap, and one of them covers the other's text. */
+ok(/--sp-roster-head-h:\s*\d+px/.test(css),
+  'the two sticky offsets are derived from one custom property, so they cannot drift into overlapping');
+const headRule = (cssCode.slice(cssCode.indexOf('.sp-roster-head {'), cssCode.indexOf('}', cssCode.indexOf('.sp-roster-head {'))));
+const sumRule = (cssCode.slice(cssCode.indexOf('.sp-covers > summary {'), cssCode.indexOf('}', cssCode.indexOf('.sp-covers > summary {'))));
+ok(/top:\s*0/.test(headRule) && /top:\s*var\(--sp-roster-head-h\)/.test(sumRule),
+  'the head pins at 0 and the summary pins at the head\'s own height');
+ok(!/padding-top:\s*\d/.test(rosterBlock),
+  'and the scroller carries no padding-top: padding on a scroll container is inside the sticky containing block, which left both headers floating below the top edge');
+
+/* The rail's own scroller, and the observer that feeds it. The `root` is the part
+ * that is easy to get wrong and impossible to see: the rail scrolls, not the
+ * document, so an observer on the document never sees the sentinel leave it and
+ * the list silently stops at one batch. */
+ok(/root:\s*el\('sp-roster'\)/.test(script),
+  'the roster batches on an IntersectionObserver rooted at the RAIL, not at the document — the rail is the scroller');
+ok(/rootMargin:\s*'300px'/.test(script) && /ROSTER_BATCH = 60/.test(script),
+  'with a margin and a batch size, so rows load before the sentinel is visible rather than after');
+
+/* The two claims about facets that are DATA claims and therefore cannot be read
+ * off the source: the composition rule, and the mutual exclusivity it implies. */
+ok(/const RARITY = \[[\s\S]{0,200}is_legendary[\s\S]{0,200}is_mythical/.test(script),
+  'both rarity facets are declared from `pokemon_data.json`\'s own flag names, so a third copy of 「which species are legendary」 cannot start here');
+ok(/互斥/.test(script),
+  'the page says 傳說 and 幻之 are mutually exclusive, because they are: zero of 1,025 records carry both, and pressing both yields an empty list');
+eq(pokemon.filter((p) => p.id <= 1025 && p.is_legendary && p.is_mythical).length, 0,
+  'and that is measured against the data rather than asserted from memory');
+eq(pokemon.filter((p) => p.id <= 1025 && p.is_legendary).length, 71, '71 legendaries');
+eq(pokemon.filter((p) => p.id <= 1025 && p.is_mythical).length, 23, '23 mythicals');
+
+/* The facets narrow the SOURCE's roster, not all 1,025 species. This is the bug
+ * the shape of `visibleIds()` is chosen against, so it is asserted structurally:
+ * it must read the roster, or a species with no recording for the selected source
+ * becomes a row that decodes into a failure. */
+const visibleBody = script.slice(script.indexOf('function visibleIds()'));
+ok(/ROSTERS\[state\.source\]\.ids/.test(visibleBody.slice(0, 400)),
+  'the visible list is built from the SELECTED SOURCE\'s roster, so a species the source has no recording for cannot be listed');
+
+/* And the search is a filter on that list rather than a jump away from it — the
+   whole reason the rail exists. */
+ok(/addEventListener\('input'/.test(script) && /afterFilterChange\(\)/.test(script),
+  'the search box filters the roster rather than selecting and hiding it, which is what lets a reader work down a list one cry at a time');
+ok(!/\bpick\(/.test(script),
+  'and the old jump-to-a-hit `pick()` is gone — it selected one species and left the list alone, which is the opposite affordance');
+
+/* The numeric branch, which was wrong on the first write and is here because
+ * 「0006」 returning 273 species is a real number, not a plausible-looking one.
+ *
+ * `String(id).includes(q)` after stripping the leading zeros answers 「which ids
+ * contain a 6」 — 16, 26, 106, 246 — so a box holding 「0006」 offered a quarter of
+ * the roster. Matching the PADDED id is anchored by the fixed-width padding, and
+ * it narrows as you type (6 → 06 → 006 → 0006), which is what a filtering box
+ * should do and what the old jump-to-a-hit version could not afford. */
+/* Comments and string literals stripped, and that is not tidiness — the comment
+ * ABOVE this assertion quotes `String(id).includes('6')` in order to explain why
+ * it is banned, so an unmasked search finds its own documentation and the check
+ * fails on the page being correct. Same false positive `check_page_module_api.mjs`
+ * documents for a page's prose about a member it does not call. */
+const matchesBody = script.slice(script.indexOf('function matchesQuery('))
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '');
+ok(!/String\(id\)\.includes/.test(matchesBody),
+  'a numeric search matches the ZERO-PADDED id, never the bare one — matching the bare id answers 「which ids contain a 6」 and matched 273 species for 「0006」');
+ok(/formatPokemonId\(id\)\.includes\(q\)/.test(matchesBody),
+  'and it does match the padded form, which is the form readers actually type');
+
+/* Facet COMPOSITION, and the two questions it took a probe to separate.
+ *
+ * The first version drove `disabled` from the same count it printed on the chip,
+ * which made 幻之 permanently un-pressable: with 傳說 on, their combined count is 0
+ * (the flags are mutually exclusive), so the chip greyed itself out — and with it
+ * went the empty state and the sentence on the page explaining the zero. A control
+ * whose own number stops you reaching the explanation of that number is worse than
+ * no number.
+ *
+ * So `sourceCount` — the source's answer with no UI facet folded in — decides
+ * `disabled`, and `countWith` — which folds the others in — decides the printed
+ * number. Both have to exist and they have to be different functions. */
+ok(/function sourceCount\(/.test(script) && /function countWith\(/.test(script),
+  'the two facet counts are separate functions, because 「can this source produce it」 and 「how many would I get」 are different questions');
+const buildFiltersBody = script.slice(script.indexOf('function buildFilters()'));
+ok(/sourceCount\(\{ \[r\.key\]: true \}\) === 0/.test(buildFiltersBody),
+  'and `disabled` comes from the source-only count, so a facet the source HAS is never greyed out');
+ok(/countWith\(\{ \.\.\.state\.filter/.test(buildFiltersBody),
+  'while the number printed on the chip includes the other facets, so a zero explains itself');
+ok(buildFiltersBody.indexOf('sourceCount') < buildFiltersBody.lastIndexOf('countWith'),
+  'and the two are not the same expression spelled twice');
+
+/* The 24-chip grid is COLLAPSED, and its summary is its own accessible label.
+ * Expanded it is 12 rows of 44px — roughly 530px of a viewport-height rail —
+ * which would push the roster the reader came for off the bottom. */
+ok(/<details class="sp-covers">/.test(markup) && !/<details class="sp-covers" open/.test(markup),
+  'the cover grid is a <details> and it is not `open`, so it costs one summary row instead of half the rail');
+ok(/<summary id="sp-chips-label">/.test(markup) && /aria-labelledby="sp-chips-label"/.test(markup),
+  'and the `<summary>` IS the group label, so the accessible name is the text on screen rather than a visually-hidden span nobody can find');
+
+/* The source radiogroup is collapsed the same way, and its summary states the ACTIVE
+ * source. A collapsed control that does not say what it is set to is a control the
+ * reader has to open just to find out — and this one decides which 1,025-row list
+ * they are looking at, so the value has to travel with the label. */
+ok(/<details class="sp-box">/.test(markup) && !/<details class="sp-box" open/.test(markup),
+  'the source radiogroup is a collapsed <details> too — collapsed it costs 40px instead of 129px, which is 89px of roster');
+ok(/<summary id="sp-source-label">來源<span class="sp-summary-value" id="sp-source-now">/.test(markup),
+  'and its summary carries the active source, so narrowing the list to nothing does not take the answer with it');
+ok(/el\('sp-source-now'\)\.textContent/.test(script),
+  'which is written from `buildSources()` on every change, so it cannot drift from `aria-checked`');
+ok(/aria-labelledby="sp-source-label"/.test(markup),
+  'and the radiogroup is still labelled by that summary, so the accessible name survives the collapse');
+
+/* THE CANVAS TEXT IS IN CSS PIXELS, and this is the second DPR bug this page has
+ * had. `sizeCanvas` sizes the backing store in device pixels and applies no
+ * `setTransform`, so one user-space unit is one device pixel — which is what
+ * `createImageData` and `drawImage` need, and what makes a `ctx.font = '10px'`
+ * declaration render 10 DEVICE pixels: 5 CSS px on any 2x display.
+ *
+ * The tick labels on both canvases were written as if 10 were CSS px, so they were
+ * half the authored size on every retina laptop, phone and once-zoomed browser —
+ * and a screenshot taken at 1x shows them at the right size, which is why it
+ * survived.
+ *
+ * PER FUNCTION, and that is the whole difficulty. A whole-file search for
+ * `setTransform(dpr` is satisfied by EITHER canvas, so removing it from one leaves
+ * the other's in place and the check goes green — which is exactly how the three
+ * mutation cases written for this first passed against a checker that cannot see
+ * them. This file already documents the same trap for `drawPlot`'s fitted span. */
+const bodyOf = (name) => {
+  const start = script.indexOf(`function ${name}(`);
+  if (start < 0) return '';
+  const end = script.indexOf('\n    function ', start + 1);
+  return script.slice(start, end === -1 ? script.length : end);
+};
+const axesSource = bodyOf('drawAxes');
+const liveSource = bodyOf('drawLive');
+
+ok(/ctx\.setTransform\(dpr, 0, 0, dpr, 0, 0\)/.test(axesSource),
+  'the plot\'s axis labels are drawn under a CSS-pixel transform, so they are not half-size on a 2x display');
+ok(/ctx\.setTransform\(dpr, 0, 0, dpr, 0, 0\)/.test(liveSource),
+  'and so are the live panel\'s — each canvas checked in its OWN body, because a whole-file search is satisfied by whichever one survives');
+ok(/function drawAxes\(ctx, w, h, dpr\)/.test(script) && /const cw = w \/ dpr;/.test(axesSource),
+  'the axis function takes `dpr` and divides the device size down, so its positions are CSS px throughout');
+ok(/ctx\.setTransform\(1, 0, 0, 1, 0, 0\)/.test(script),
+  'and the two places that genuinely need device pixels — the ImageData build and the cached blit — say so explicitly');
+ok(/ctx\.font = '12px/.test(axesSource) && /ctx\.font = '12px/.test(liveSource),
+  'the tick type is 12 CSS px on BOTH canvases');
+/* One missed `w` draws a gridline past the right edge, which reads as a label that
+ * is present but oddly placed rather than as a scaling mistake. */
+const axesCoords = axesSource.replace(/const cw = w \/ dpr;[\s\S]*?const ch = h \/ dpr;/, '');
+ok(!/\bw\b\s*-\s*1\s*-|\bh\b\s*-\s*1\s*-|lineTo\(w,/.test(axesCoords),
+  'the axis labels position off the CSS dimensions, not the device ones — one missed `w` draws a gridline past the right edge');
+ok(/const LEVEL_H = 2\d/.test(liveSource) && /const PAD_T = 1\d/.test(liveSource),
+  'and the live panel reserves enough gutter for the larger type — the 12px labels need more than the 16px strip sized for a 5px glyph');
+
+/* The source summary, scoped to `buildSources()` for the same reason: the same
+ * assignment also sits in the click handler, so a whole-file search is satisfied by
+ * whichever of the two survives. */
+ok(/el\('sp-source-now'\)\.textContent\s*=\s*`\$\{ROSTERS\[state\.source\]/.test(bodyOf('buildSources')),
+  'which is written from `buildSources()` on every change, so it cannot drift from `aria-checked`');
 
 console.log('');
 if (fails.length) {
