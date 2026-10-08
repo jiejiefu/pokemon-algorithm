@@ -20,6 +20,15 @@ coverage.xml
 node_modules/
 dist/
 build/
+# .cache/ holds the §4 SKIP CACHE, and it is the entire reason a second full run
+# costs 0.0s. Written by scripts/check_all.mjs, ~12 KB: one content hash per
+# checker over the files it declared in `inputs`, plus the previous green run's
+# duration and timestamp. Deleting it is safe and costs nothing but one slow run —
+# every checker just re-runs once and writes it back — so it is ignored rather
+# than defended. `.cache/recorded-inputs.json` is written only by --prove-inputs
+# and is what proves the manifest's input lists against what the checkers
+# actually read. The harness scratch directories that land under .cache/ are
+# per-case temp trees, not state; deleting a stale one is harmless. See §4.
 .cache/
 .vite/
 

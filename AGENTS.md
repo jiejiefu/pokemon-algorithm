@@ -599,6 +599,14 @@ All five now call `chrome.kill()` from the same `exit` handler that removes the 
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
+**`.cache/` IS THE SKIP CACHE, AND DELETING IT COSTS ONE SLOW RUN AND NOTHING ELSE.** `scripts/check_all.mjs` writes `.cache/check-state.json` — one content hash per checker over the files it declared in `inputs` (globs expanded first), plus the previous green run's duration and timestamp. Unchanged inputs mean the entry is skipped and reported with the cost it last cost. It is the whole reason a second full run is **0.0 s** rather than 70 s, and the gitignored 12 KB is the cheapest performance work in the project. Three things about it are named because each is a way the mechanism can be green and wrong:
+
+- **A FAIL never refreshes an entry**, so a `last 6.0s` is always a green run's measurement. A duration remembered from a failing one would be the one number on the page that does not describe a passing check.
+- **`--force` exists for a checker that passed for a reason other than its inputs** — a missing Chrome, a stale server. The cache trusts the last green result on this machine and nothing else.
+- **A FAIL is not a skip either.** Nothing is written on the failure path, so the next run re-runs it rather than remembering it as answered.
+
+`.cache/recorded-inputs.json` is written only by `--prove-inputs`, and `.cache/algo-neg/` is a harness scratch tree rather than state — a leftover there means some run was interrupted, and deleting it is harmless.
+
 **`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 46 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 70 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
 
 - **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
@@ -620,12 +628,15 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | :--- | :--- | :--- |
 | `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data` | the spectrum page's claims are split across a CDP checker, a page checker and the port checker |
 | `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | `cry` is the prefix for `cry-apu`, `cry-data` and `cry-page` |
-| `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `node scripts/test_check_sorting_page.mjs --static` first, then `--only=sort` | the static half is 31 checks at ~0.5 s and catches the stylesheet contract; the browser half is a real page and costs 10 s |
-| `colors*.css`, `color-palette.js`, `color-match.js`, `colors.html` | `--only=color` | 11 entries, and 13 s of it is one harness |
+| `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `node scripts/test_check_sorting_page.mjs --static` first, then `--only=sort` | the static half is 31 checks at ~0.5 s and catches the stylesheet contract; the browser half is a real page and costs 7.6 s |
+| `colors*.css`, `color-palette.js`, `color-match.js`, `colors.html`, `mmcq.js` | `--only=color` | 13 entries, and **nothing above 2.3 s** — this group used to be one 42 s harness and is now thirteen small ones |
 | `sv-index.js`, `sv-sources.json`, `types.html`, any `assets/images/**` | `--only=type` | |
 | `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read by `check_page_module_api.mjs` over every page, and by the nav checker. It is also the one file whose glob coverage matters: `assets/js/*` is declared as a glob because harnesses copy the whole directory |
 | `*.json` under `assets/data/` | the group that owns the table, not `data` | `data` is four cheap checks over learnsets, categories and evolution. The cry tables are `cry-data`, the palettes are `color` |
 | anything in `scripts/` | `--force --only=<its group>` | editing a checker does not invalidate a cache entry that was written before, and `--force` is the only way to be sure |
+| **a file that is in no row above** | `--help` first, then `--only` on what it names | `--help` prints every group with its last green cost, sorted cheapest first, so an unlisted file is a 3-second question rather than a guess. If it is still unclear, `--prove-inputs` names the checkers that read it (see below) |
+
+**AND IF YOU ALREADY KNOW YOU ONLY NEEDED ONE GROUP, RUNNING THE WHOLE SUITE IS STILL CHEAP.** The skip cache is content-keyed, so a second full run is 0.0 s and even the first one after an unrelated edit only pays for the checkers whose declared `inputs` actually moved. `--only` is for the case where you want the answer *now* rather than after 70 s of waiting; it is not a correctness measure, and `--force` on a group you did not touch buys nothing.
 
 **`--only=cry` IS A PREFIX MATCH, NOT A LIST, and that is why it is the right default.** `inGroup()` tests `group === f || group.startsWith(f + '-')`, so `--only=cry` picks up three groups and `--skip=cry` drops three, without anyone maintaining a fourth list of what "cry" means.
 
