@@ -566,12 +566,24 @@ if (!existsSync(CHROME)) {
      *
      * A timeout returns `false` rather than throwing, so the assertion below still runs
      * and still reports a real number — the diagnosis belongs in the message, not in a
-     * stack trace. */
-    const STABLE = (lanes) => `new Promise(r => { const t0 = Date.now(); let last = null, same = 0;
+     * stack trace.
+     *
+     * IT NOW COVERS THE WHOLE BROWSER HALF, and the savings are the same shape as the
+     * bug: five lane counts and one tab switch each spent 543 ms and 452 ms, which is
+     * the 400 ms sleeping while the page had already finished. `READY` already
+     * answered "are the right NUMBER of lanes on screen"; `STABLE` answers the separate
+     * question of whether the rebuild behind that number has stopped moving, which is
+     * the one `SETTLE` was guessing at. Two polls, two different facts.
+     *
+     * The selector is a parameter because the 單一 tab leaves no `.al-lane` at all —
+     * there `#singleCanvas` is the thing that has to stop re-measuring, and passing
+     * the lane count there would wait for a count that can never be right.
+     */
+    const STABLE = (sel, want) => `new Promise(r => { const t0 = Date.now(); let last = null, same = 0;
         const tick = () => {
-          const cvs = [...document.querySelectorAll('.al-lane canvas')];
-          const sig = cvs.length === ${lanes}
-            ? cvs.map(cv => cv.width + 'x' + cv.height).join('|') : 'lanes=' + cvs.length;
+          const cvs = [...document.querySelectorAll('${sel}')];
+          const sig = cvs.length === ${want}
+            ? cvs.map(cv => cv.width + 'x' + cv.height).join('|') : 'count=' + cvs.length;
           if (sig !== '' && sig === last) same++; else { same = 0; last = sig; }
           if (same >= 2) return r(true);
           if (Date.now() - t0 > 20000) return r(false);
@@ -579,6 +591,7 @@ if (!existsSync(CHROME)) {
         };
         tick();
       })`;
+    const STABLE_LANES = (lanes) => STABLE('.al-lane canvas', lanes);
 
     /* ink = non-transparent pixels, counted by ALPHA. */
     const INK = `(() => { const out = []; for (const cv of document.querySelectorAll('.al-lane canvas')) {
@@ -591,7 +604,7 @@ if (!existsSync(CHROME)) {
       await send('Page.navigate', { url: `${BASE}/sorting.html?mode=race&algos=${'bubble,selection,insertion,quick,merge,heap'.split(',').slice(0, lanes).join(',')}&n=${n}&speed=fast&seed=424242` });
       const ok = await evalJs(READY.replace('%LANES%', String(lanes)));
       if (!ok) throw new Error(`the race grid never reached ${lanes} lanes at n=${n}`);
-      await evalJs(SETTLE);
+      await evalJs(STABLE_LANES(lanes));
     };
 
     /* ONE load for all five lane counts, via the reader's own chips.
@@ -625,7 +638,7 @@ if (!existsSync(CHROME)) {
           await evalJs(SET_LANES(lanes));
           const got = await evalJs(READY.replace('%LANES%', String(lanes)));
           if (!got) throw new Error(`unchecking to ${lanes} lanes left the grid at ${lanes} !== ${lanes}`);
-          await evalJs(SETTLE);
+          await evalJs(STABLE_LANES(lanes));
         }
         const m = JSON.parse(await evalJs(`JSON.stringify({
           lanes: document.querySelectorAll('.al-lane').length,
@@ -674,7 +687,7 @@ if (!existsSync(CHROME)) {
        * lanes first, by chip — the loop above left the grid at two. */
       await evalJs(SET_LANES(6));
       await evalJs(READY.replace('%LANES%', '6'));
-      await evalJs(SETTLE);
+      await evalJs(STABLE_LANES(6));
       for (const n of ['100', '500', '1025']) {
         const m = JSON.parse(await evalJs(`(() => {
           const sel = document.getElementById('raceSizeSelect');
@@ -689,7 +702,7 @@ if (!existsSync(CHROME)) {
         /* STABLE, not SETTLE, and this is the line that was the bug. The change handler
          * rebuilds 6,150 sprites at n=1025, which does not fit inside two frames plus
          * 400 ms, so the reading below used to be taken against a grid mid-rebuild. */
-        await evalJs(STABLE(6));
+        await evalJs(STABLE_LANES(6));
         const inks = JSON.parse(await evalJs(INK));
         const laneMin = inks.length ? Math.min(...inks.map(i => i.ink)) : 0;
         minInk = Math.min(minInk, laneMin);
@@ -719,7 +732,7 @@ if (!existsSync(CHROME)) {
         sel.value = '250'; sel.dispatchEvent(new Event('change'));
         return true;
       })()`);
-      await evalJs(STABLE(6));
+      await evalJs(STABLE_LANES(6));
       const speeds = JSON.parse(await evalJs(`JSON.stringify({
         present: [...document.querySelectorAll('#speedPicker button')].length,
         fastest: [...document.querySelectorAll('#speedPicker button')].some(b => b.textContent === '極快'),
@@ -731,11 +744,22 @@ if (!existsSync(CHROME)) {
         await evalJs(`[...document.querySelectorAll('#speedPicker button')].find(b => b.textContent === '極快').click()`);
       }
       await evalJs(READY.replace('%LANES%', '6'));
-      await evalJs(STABLE(6));
+      await evalJs(STABLE_LANES(6));
       await evalJs("document.getElementById('btnRacePlay').click()");
       let done = null;
-      for (let i = 0; i < 40; i++) {
-        await new Promise(r => setTimeout(r, 700));
+      /* The step is 250 ms, not 700, and the ceiling is UNCHANGED at 28 s — which is the
+       * point of naming both. A faster step does not shorten the race or raise the
+       * chance of missing it; it only shortens the wait AFTER the race has already
+       * finished, which is where the time was going: at turbo a six-lane 250-sample
+       * race is over in about a second, and a 700 ms step then reports it up to 700 ms
+       * late, every run. The ceiling stays where it was so a race that genuinely hangs
+       * still fails after ~28 s rather than after 7.
+       *
+       * This is a wait for a THING TO HAPPEN, not a wait for a measurement to settle,
+       * so the step size only trades latency against round-trips. The 40 samples are
+       * unchanged. */
+      for (let i = 0; i < 112; i++) {
+        await new Promise(r => setTimeout(r, 250));
         done = JSON.parse(await evalJs(`JSON.stringify({ shown: !document.querySelector('.al-result').hidden, ranks: [...document.querySelectorAll('.al-lane-rank')].map(e => e.textContent).filter(Boolean) })`));
         if (done.shown) break;
       }
@@ -780,7 +804,7 @@ if (!existsSync(CHROME)) {
       check(switched,
         'clicking the 單一 tab swaps the stage to single mode',
         () => 'after clicking 單一, the race grid was still visible or the single canvas still hidden. setMode() is the page\'s own handler for that tab, so this is the page failing to respond to a control.');
-      await evalJs(SETTLE);
+      await evalJs(STABLE('#singleCanvas', 1));
       const single = JSON.parse(await evalJs(`(() => {
         const cv = document.getElementById('singleCanvas');
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
