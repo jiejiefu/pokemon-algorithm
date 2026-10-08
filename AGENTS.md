@@ -495,7 +495,9 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 
 | harness | was | is | cases |
 | :--- | ---: | ---: | ---: |
-| `test_check_color_match.mjs` | 42 s | 2.2 s | 28 |
+| `test_check_color_match.mjs` | 42 s | 2.3 s | 28 |
+| `test_check_mmcq_anatomy.mjs` | 5.6 s | 2.2 s | 4 |
+| `test_check_color_palettes.mjs` | 2.5 s | 1.7 s | 18 |
 | `test_check_sv_index.mjs` | 22 s | 3.0 s | 15 |
 | `test_check_color_page.mjs` | 4.0 s | 1.1 s | 53 |
 | `test_check_spectrogram_port.mjs` | 4.9 s | 1.4 s | 9 |
@@ -513,7 +515,9 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 
 **A POOL'S PREMISE IS THAT CASES ARE INDEPENDENT, and four harnesses cannot use it at all** because their cases share ONE working tree and restore it between cases — `test_check_cry_index.mjs` and `test_check_sv_index.mjs` among them. Pooling those would interleave their restores. There is no assertion for this and there cannot be: it is a property of what the case does to the directory, and the harness knows it because it wrote the harness.
 
-**SIX OF THE NINE USED `execFileSync('node', …)`, WHICH IS A DIFFERENT INTERPRETER FROM `process.execPath`.** A baseline and its mutations have to run the same machine to be comparable, and 'node' first on PATH is not the machine executing the harness when the suite is launched by something else. All nine now use `process.execPath`.
+**ELEVEN NOW, AND TWO OF THEM ALSO LEAKED STDERR.** `execSync` inherits stderr by default, so `runCheckerIn` in `test_check_color_palettes.mjs` sent every mutated child's failure reports to the PARENT's stderr instead of into the captured `out`. With `2>&1` that interleaved 27 lines of the checker's own output into the harness's report, and diffing the pooled version against it looked like 27 missing verdicts rather than a leak. `caughtBy` matches against the checker's COMBINED output, so half of that output was arriving out of band and no case could have relied on it.
+
+**SEVEN OF THE ELEVEN USED `execFileSync('node', …)`, WHICH IS A DIFFERENT INTERPRETER FROM `process.execPath`.** A baseline and its mutations have to run the same machine to be comparable, and 'node' first on PATH is not the machine executing the harness when the suite is launched by something else. All eleven now use `process.execPath`.
 
 **EACH CASE REMOVES ITS OWN TREE IN A `finally` NOW, WHICH MATTERS ONLY BECAUSE OF THE POOL.** The old shape collected every tree in an array and swept them after the loop; with four workers that is four live trees instead of 36, and a crash leaves four behind rather than all of them.
 
@@ -595,7 +599,7 @@ All five now call `chrome.kill()` from the same `exit` handler that removes the 
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 46 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 82 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
+**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 46 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 70 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
 
 - **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
 - **Every manifest entry gets ONE line with a time column, and the column makes three different claims.** `6.0s` is measured this run, `last 6.0s` is a cache hit reporting the previous green run's measured duration (stored as `${name}~` beside the key and the `@` timestamp), and `-` is a row that never ran — a missing script, or a CDP checker with no server on `:5500`. One `row()` helper emits all of them, because five call sites each padding their own column is five chances for the table to drift; it pads the detail but never truncates it, because an `ok` line must fit 56 columns while a skip naming the Runtime Server rule must keep that sentence whole. Two traps are named in the source: the durations live in a **non-cached region of the output's meaning, not in `budget`** — a cache hit's number is real but was not paid for this run, which is why the legend says so and the summary total still sums only what ran; and the cached value is read with `== null`, because `Number(null)` is `0` and would print `last 0.0s` for every entry written before durations were stored. A `▶` line precedes each run because `execFile` buffers — without it, the 13 s of `test_check_color_match.mjs` is a terminal that looks hung.
@@ -608,7 +612,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
-**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is 82 s across 46 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
+**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is 70 s across 46 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
 
 **The mapping below is by WHAT YOU EDITED, not by group, because a group is an implementation detail and a file is what you have in your hand.** Each row is derived from the `inputs` lists in `check_all.mjs`, which is why `--prove-inputs` matters: a missing entry there is a file whose checker would be skipped after that file changed, so the first column is a claim and not a convenience.
 
@@ -629,13 +633,13 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 **AND WHEN YOU DO NOT KNOW WHICH GROUP OWNS A FILE, ASK.** `node scripts/check_all.mjs --prove-inputs` answers "which checkers read this file" from the recording rather than from a guess, and it is the same recording that keeps the cache honest. A grep cannot: `rg -l initHeaderNav *.html` lists `sorting.html` because its import names the symbol, and two other pages only because they mention it in a comment.
 
-**Know what a group costs before choosing a filter.** Measured from one full cold run, **82.1 s of checker time over 46 entries** — repeat runs of the same tree measured 81–103 s, so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
+**Know what a group costs before choosing a filter.** Measured from one full cold run, **69.9 s of checker time over 46 entries** — repeat runs of the same tree measured 70–103 s, so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
 
 | group | secs | entries | where its time goes |
 | :--- | ---: | ---: | :--- |
-| `sort` | 22.0 | 2 | `check_sorting_page.mjs` 13 s and its harness 9 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **This is the group's only remaining cost and it is a browser, not a harness** |
-| `cry-page` | 21.0 | 8 | `check_cries_browser.mjs` 8.8 s, `check_spectrum_browser.mjs` 5 s, `check_gen1_page.mjs` 3.7 s (CDP) — every one is a real browser, and §3.G5 already removed their sleeps |
-| `color` | 19.5 | 13 | `test_check_mmcq_anatomy.mjs` 5.6 s, then `test_check_color_palettes.mjs` 2.5 s. `test_check_color_match.mjs` was **42 s** and is now 2.2 s — see below for the two reasons |
+| `sort` | 18.6 | 2 | `test_check_sorting_page.mjs` 11 s and `check_sorting_page.mjs` 7.6 s — the harness's cost IS the checker's full baseline, so it tracks it one-for-one. **This is the group's only remaining cost and it is a browser, not a harness** |
+| `cry-page` | 16.8 | 8 | `check_spectrum_browser.mjs` 5 s, `check_cries_browser.mjs` 4.8 s, `check_gen1_page.mjs` 3.6 s (CDP) — every one is a real browser, and §3.G5 already removed their sleeps |
+| `color` | 15.1 | 13 | nothing above 2.3 s. `test_check_color_match.mjs` was **42 s** and is now 2.3 s — see below for the two reasons |
 | `cry-data` | 8.2 | 8 | `test_check_cry_index.mjs` 4.6 s, then `test_check_spectrogram_port.mjs` 1.4 s (was 5.0 s before §3.G7) |
 | `cry-apu` | 5.5 | **1** | `check_gen1_apu.mjs` alone. Its 39-case harness is no longer an entry — §3.G5 explains why it cannot be made cheaper and what was traded for it |
 | `type` | 3.2 | 4 | `test_check_sv_index.mjs` 3.0 s, was 22 s when it copied 2,250 images into a tree per case |
