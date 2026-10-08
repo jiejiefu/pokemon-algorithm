@@ -175,11 +175,19 @@ const CASES = [
   },
 
   {
-    // §3.B1: the intro keeps promising a reveal it no longer performs.
-    name: 'the intro stops saying the spectrogram is computed before playback',
+    /* §3.B1: the page keeps promising a reveal it no longer performs.
+     *
+     * The name said 「the intro」 and the string now lives in the PLOT'S CAPTION, so both
+     * were updated together — a case whose name points at a location the mutation no longer
+     * touches is a case that reads as covering something it does not. */
+    name: 'the page stops saying the spectrogram is computed before playback',
     mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
       replaceOrThrow(s, '整段算好了', '邊播邊算好了')),
-    expect: 'the intro says the spectrogram is computed BEFORE playback',
+    /* The expect had said 「the intro」 too, and after the sentence moved that was a case
+     * naming an assertion which no longer exists: it matched nothing, so the case passed
+     * for the wrong reason. §4's rule — a case's expect must name the assertion that
+     * actually detects its mutation. */
+    expect: 'the page says the spectrogram is computed BEFORE playback',
   },
 
   {

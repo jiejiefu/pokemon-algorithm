@@ -141,11 +141,6 @@
                 所以 Game Boy 時代的叫聲也能和現代錄音畫在同一張時頻圖上比高低起伏。
                 這是<a href="cries-gen1.html">第一世代叫聲實驗室</a>做不到的事，那一頁畫的是波形。
               </p>
-              <p>
-                <strong>揭開，不代表正在分析。</strong>整張時頻圖在按下播放之前就整段算好了。
-                播放時，畫面只是按照音訊時鐘從左往右揭開同一組已經算好的像素，
-                讓同一份量測跟著你的耳朵一起走。揭開<strong>不等於</strong>「正在分析」。
-              </p>
             </div>
 
             <!-- The species on screen, at the 96px front sprite — the guaranteed floor
@@ -1038,7 +1033,35 @@ const RARITY = [
         `<b>${escapeHtml(el('sp-name').textContent)}</b> 的 mel 時頻圖：`
         + `${rows.duration.toFixed(2)} 秒、${rows.nFrames} 幀、${N_MEL} 條 mel 帶，`
         + `最強的一格在 ${Math.round(loud.hz)} Hz。質心 ${Math.round(rows.features[idx('centroid')])} Hz，`
-        + `平坦度 ${rows.features[idx('flatness')].toFixed(4)}。完整數字在下方「量測數值」。`;
+        + `平坦度 ${rows.features[idx('flatness')].toFixed(4)}。完整數字在下方「量測數值」。`
+        /* The reveal disclosure LIVES HERE rather than in the intro, and it is here for
+         * two reasons that are both about proximity rather than about length.
+         *
+         * First, this is the caption the canvas's `aria-describedby` points at, so the
+         * sentence is the plot's alt text: a reader using a screen reader gets the claim
+         * that this is one pre-computed measurement, not a live analysis, at the moment
+         * the drawing is announced.
+         *
+         * Second, and the reason it was moved rather than deleted: the intro had grown to
+         * four paragraphs of prose and this was the fourth, about a PLAYBACK MECHANIC.
+         * It is the only one of the four that is not about the picture itself, and it is
+         * the one thing here a reader is most likely to get wrong — the wipe looks exactly
+         * like live analysis, and nothing else on the page says otherwise. A caption
+         * beside the animating plot answers the question where the question is asked,
+         * and the intro gets to be three paragraphs about what the picture shows.
+         *
+         * Both `check_spectrum_page.mjs` and the mutation case in
+         * `test_check_spectrum_page.mjs` assert this sentence exists, and the mutation
+         * proves it by rewriting this caption's own wording into the opposite claim.
+         *
+         * WHICH IS WHY THIS COMMENT MUST NOT QUOTE THE SENTENCE. `replaceOrThrow` takes
+         * the FIRST match in the file, so a version of this comment that quoted the
+         * clause by name made the mutation rewrite THIS comment, leave the caption
+         * intact, and pass — a case that proved its checker by editing its own
+         * documentation. The string now appears exactly once in the file, which is the
+         * only reason the case can mean anything. */
+        + `<br><b>整張圖在按下播放之前就整段算好了</b>：播放時只是按照音訊時鐘，從左往右揭開同一組像素，`
+        + `所以耳朵和眼睛一起走。揭開<strong>不等於</strong>「正在分析」。`;
     }
 
     function storedRow() {

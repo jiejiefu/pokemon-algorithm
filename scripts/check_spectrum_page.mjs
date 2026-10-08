@@ -234,16 +234,46 @@ ok(robustNames.includes('dur') && robustNames.includes('centroid')
 // 4. The page's three disclosures are in the DOM.
 // ---------------------------------------------------------------------------
 
-/* The intro paragraph, which §3.B1 is about. */
-ok(/整段算好/.test(page) && /不等於/.test(page),
-  'the intro says the spectrogram is computed BEFORE playback, and that the reveal is not a live analysis');
+/* The reveal disclosure, which §3.G records as load-bearing: without it a reader has
+ * no way to know the wipe is not a live analysis — it looks exactly like one.
+ *
+ * It says the two halves as ONE claim and the check keeps them as ONE assertion, because
+ * a page that computed the image before playback and did not say so would pass a check on
+ * either half alone. `.test(page)` rather than `.test(intro)` on purpose: this sentence
+ * lives in the PLOT'S CAPTION, not the intro, and that move is recorded in the source
+ * beside it. The caption is what the canvas's aria-describedby points at, so it is also
+ * the plot's alt text — the claim is delivered where the drawing is announced, and the
+ * intro stays three paragraphs about the picture rather than four about a mechanic. */
+ok(/整段算好/.test(page) && /不等於/.test(page) && /揭開/.test(page),
+  'the page says the spectrogram is computed BEFORE playback, and that the reveal is not a live analysis');
+/* And it is a CAPTION, not a comment: the string has to reach the DOM, so a mutation
+ * that deletes the whole line cannot satisfy this by leaving the words in a comment.
+ *
+ * The window is 2,200 characters rather than a tight one because the docblock explaining
+ * WHY this sentence moved is inside the same statement, and a 900-char window measured
+ * the blocklist of its own justification. The check that the words are in the caption
+ * and not in a comment is done by taking the LAST 不等於 before the statement ends,
+ * which is the one in the string literal — a comment above the code would not be. */
+const capStart = page.indexOf("el('sp-plot-alt').innerHTML");
+const capEnd = page.indexOf('function storedRow', capStart);
+const cap = page.slice(capStart, capEnd);
+/* Strip the block comment inside the statement before looking for the words, which is
+ * what makes this 「in the caption」 rather than 「near the caption」: without the strip the
+ * docblock I wrote to explain the move satisfies the check on its own, which is the
+ * §3.G shape where the explanation explains the assertion instead of the code. */
+const capCode = cap.replace(/\/\*[\s\S]*?\*\//g, '');
+ok(capStart > 0 && /不等於/.test(capCode) && /整段算好了/.test(capCode) && /<br>/.test(capCode),
+  'and it is said in the plot caption the canvas describes itself with, so it is the plot\'s alt text and not a source comment');
 
 /* Every intro paragraph opens with a bolded lead-in naming what it is about, so a
- * reader who skims gets four labelled claims instead of four undifferentiated blocks.
+ * reader who skims gets labelled claims instead of undifferentiated blocks.
  *
- * `>= 4` rather than `=== 4` on purpose: the invariant is that NO paragraph is
- * unlabelled, so a fifth paragraph added later is covered by the same assertion
- * rather than escaping it — the per-paragraph half is what does the work.
+ * `>= 3`, not `>= 4` and not a fixed count, because the count is now a CONSEQUENCE rather
+ * than a target. The intro was four paragraphs until the reveal disclosure moved to the
+ * plot's caption, so it is three; a fourth about the picture would make this four, and a
+ * hardcoded 4 would then fail on a copy change that broke nothing. The invariant worth
+ * guarding is that NO paragraph is unlabelled, and the per-paragraph half is what enforces
+ * it — the count is printed so a change in it is visible rather than silent.
  *
  * The lead-in is matched as an ELEMENT, not as text. One of them wraps `cries.html`,
  * so a `[^<]*` body matches three of the four and silently skips the fourth — which is
@@ -258,25 +288,26 @@ ok(/整段算好/.test(page) && /不等於/.test(page),
  * `<p>`-stripping written to correct that then has to know about the heading too. */
 const introParas = [...((page.match(/<div class="sp-intro-body">[\s\S]*?<\/div>/) || [, ''])[0]
   .matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g))].map(m => m[1].trim());
-ok(introParas.length >= 4 && introParas.every(t =>
+ok(introParas.length >= 3 && introParas.every(t =>
   t.startsWith('<strong>') && /<strong>(?:(?!<\/strong>)[\s\S])*?。<\/strong>/.test(t)),
   `all ${introParas.length} intro paragraphs OPEN WITH a bolded lead-in ending in a full stop, so they can be skimmed as claims`);
 
-/* ONE em-dash appositive in the intro, not one per paragraph.
+/* NO em-dashes in the intro, and the floor is 0 rather than 1 because the appositive that
+ * used to be there left with the reveal paragraph.
  *
- * `impeccable detect` fired `em-dash-overuse` at 8+ in this 490-char block, and the
- * rewrite above was what put it there — every one of the four paragraphs had come to
- * pivot on `——`, which is the exact cadence tic that rule describes. It is kept as an
- * assertion rather than left as advice because a shape check CAN measure it, and the
- * count is a property of the copy rather than of the DOM.
+ * `impeccable detect` fired `em-dash-overuse` at 8+ in this block, and a rewrite was what
+ * put it there — every paragraph had come to pivot on `——`, which is the exact cadence
+ * tic that rule describes. It is kept as an assertion rather than left as advice because a
+ * shape check CAN measure it, and the count is a property of the copy, not the DOM.
  *
- * The one survivor is 音訊時鐘——那是同一組像素, a genuine appositive. The three that
+ * The last survivor was 音訊時鐘——那是同一組像素, in the paragraph that moved to the
+ * caption, where it is now part of the sentence that says what the reveal actually is.
  * were replaced were decoration (P1), a full stop that had been flattened into a dash
  * (P2), and another full stop (P3) — so the floor is not zero, and a future paragraph
  * that needs a dash still has room. */
 const introDashes = (introParas.join('\n').match(/—|--/g) || []).length;
-ok(introDashes <= 2,
-  `the intro uses at most one em-dash appositive (${introDashes} dashes), because all four paragraphs pivoting on —— is what tripped em-dash-overuse`);
+ok(introDashes === 0,
+  `the intro uses no em-dashes at all (${introDashes} found), because every paragraph pivoting on —— is what tripped em-dash-overuse, and the one appositive that was left went to the caption with the paragraph it belonged to`);
 
 /* The page's own copy must not claim precision the page's own table disproves.
  *
