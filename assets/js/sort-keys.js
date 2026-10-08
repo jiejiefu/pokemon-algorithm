@@ -102,6 +102,10 @@ export const SORT_KEYS = [
     },
   },
   {
+    id: 'name-en', label: '英文名稱（A–Z）', short: '英文',
+    compare: (a, b) => a.data.names.en.localeCompare(b.data.names.en, 'en') || a.data.id - b.data.id,
+  },
+  {
     /* Single-key ON PURPOSE — see the file header. 18 types over 1,025 records
      * means heavy ties, which is exactly what the 顯示原始順序 toggle needs in
      * order to show that a stable algorithm keeps the shuffled relative order

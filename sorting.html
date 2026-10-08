@@ -89,6 +89,10 @@
         <input type="checkbox" id="rainbowToggle">
         <span>顯示原始順序</span>
       </label>
+      <label class="al-toggle" for="gridIndicesToggle">
+        <input type="checkbox" id="gridIndicesToggle">
+        <span>顯示行列索引</span>
+      </label>
       <button class="btn btn-utility al-btn-xs" type="button" id="btnCopyLink">複製連結</button>
     </div>
   </div>
@@ -281,6 +285,7 @@
       speed: pick(params.get('speed'), SPEED_TIERS.map(s => s.id), 'normal'),
       legacy: params.get('legacy') === '1',
       rainbow: params.get('rainbow') === '1',
+      gridIndices: params.get('gridIndices') === '1',
     };
     if (state.algos.length < 2) state.algos = ['bubble', 'quick'];
     let speed = SPEED_TIERS.find(s => s.id === state.speed);
@@ -296,6 +301,7 @@
       else { p.set('algos', state.algos.join(',')); p.set('n', state.n); p.delete('algo'); }
       if (state.legacy) p.set('legacy', '1'); else p.delete('legacy');
       if (state.rainbow) p.set('rainbow', '1'); else p.delete('rainbow');
+      if (state.gridIndices) p.set('gridIndices', '1'); else p.delete('gridIndices');
       history.replaceState(null, '', u);
     }
 
@@ -520,7 +526,38 @@
       g.restore();
     }
 
-    function paint(g, nodes, events, showHighlights) {
+    function drawGridIndices(g, cfg) {
+      const cols = cfg.COLS;
+      const rows = cfg.ROWS;
+      const padX = cfg.PADDING_X;
+      const padY = cfg.PADDING_Y;
+      const w = cfg.CANVAS_WIDTH;
+      const h = cfg.CANVAS_HEIGHT;
+
+      g.save();
+      g.font = `${Math.max(8, Math.min(12, padX * 0.12))}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+      g.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+
+      // Column numbers at bottom
+      for (let c = 0; c < cols; c++) {
+        const x = c * padX + padX / 2;
+        const y = h - 4;
+        g.fillText(String(c + 1), x, y);
+      }
+
+      // Row numbers at left
+      g.textAlign = 'right';
+      for (let r = 0; r < rows; r++) {
+        const x = 4;
+        const y = r * padY + padY / 2;
+        g.fillText(String(r + 1), x, y);
+      }
+      g.restore();
+    }
+
+    function paint(g, nodes, events, showHighlights, showGridIndices) {
       for (const n of nodes) n.draw(g);
       if (state.rainbow) {
         g.save();
@@ -531,6 +568,9 @@
           g.beginPath(); g.arc(n.x, n.y, n.size * 0.6, 0, Math.PI * 2); g.stroke();
         }
         g.restore();
+      }
+      if (showGridIndices && CFG) {
+        drawGridIndices(g, CFG);
       }
       if (showHighlights && events.length) {
         let compare = null, mark = null, move = null;
@@ -723,7 +763,7 @@
         if (single.run.done) { single.playing = false; sweepAt = performance.now(); }
       }
       for (const n of single.nodes) n.update();
-      paint(ctx, single.nodes, events, single.playing);
+      paint(ctx, single.nodes, events, single.playing, state.gridIndices);
       if (events.length) {
         const last = events[events.length - 1];
         highlightPseudo(single.algo, last);
@@ -940,6 +980,13 @@
       syncUrl();
     });
 
+    const gridIndicesToggle = document.getElementById('gridIndicesToggle');
+    gridIndicesToggle.checked = state.gridIndices;
+    gridIndicesToggle.addEventListener('change', () => {
+      state.gridIndices = gridIndicesToggle.checked;
+      syncUrl();
+    });
+
     document.getElementById('btnCopyLink').addEventListener('click', async () => {
       const btn = document.getElementById('btnCopyLink');
       const label = btn.textContent;
@@ -984,7 +1031,13 @@
       cryPlayer.muted = !e.target.checked;
       // Restart the throttle window on enable, or the first swap after ticking the
       // box is swallowed by a gap opened while the reader was reaching for it.
-      if (e.target.checked) lastCryAt = 0;
+      // Also clear the page's view mute (#viewMuted) so the reader's explicit
+      // choice overrides the page default. Without this, #storedMuted=false but
+      // #viewMuted=true still mutes via the OR in get muted().
+      if (e.target.checked) {
+        lastCryAt = 0;
+        cryPlayer.muteForView(false);
+      }
     });
     document.getElementById('audioVolume').addEventListener('input', e => { cryPlayer.volume = Number(e.target.value) / 100; });
     document.getElementById('audioLegacy').addEventListener('change', e => {
