@@ -97,3 +97,11 @@ infopoke_net_*.html
 # test_check_gen1_cries.mjs mirrors them under data-sources/ on first run and
 # reuses the copy; delete the directory to force a re-fetch.
 data-sources/pokered-cry/
+
+# pokeapi_evolution_chains.json is the 541-chain cache behind
+# assets/data/evolution_levels.json. 473 KB of a third-party API's JSON that
+# changes whenever PokeAPI ships a change, and which fetch_evolution_levels.py
+# rebuilds offline from -- or refetches with --refresh. Same rule as the
+# InfoPoke captures above: the JSON the script PRODUCES is tracked, the raw
+# response is not.
+data-sources/pokeapi_evolution_chains.json

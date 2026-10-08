@@ -27,7 +27,18 @@
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--hairline);
-  z-index: 20;
+  /* 5, deliberately BELOW `.header`'s 10 in shared.css, and the reason is the
+     line above: `backdrop-filter` creates a stacking context, which makes a
+     z-index on an otherwise `position: static` box take effect. At 20 this bar
+     outranked the header and the nav dropdown lost its top 55px to it — measured
+     over CDP, 5 of 22 hit-test points along an open 445px `.site-nav-panel`
+     resolved to `.life-toolbar` / `.life-btn` / `.life-seg`, so the dropdown was
+     unclickable across exactly this bar's band (y 55-146). life.html was the only
+     page affected: maze/sorting carry `.control-bar`, which has neither a filter
+     nor a z-index, and every other page was measured at 0 blocked points.
+     Nothing here needs to beat the header — the drawers (50), modal backdrop
+     (100) and toast (120) are `position: fixed` and already sit above both. */
+  z-index: 5;
   flex-wrap: wrap;
 }
 
@@ -384,6 +395,17 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* The level the legend reports is the MODE of what the cells on this board
+   actually evolved at, so it is a parenthetical rather than part of the label:
+   the label 「一階」 is the stage, the number is the commonest threshold among
+   the species currently on screen, and it changes as the board's mix does.
+   `font-style: normal` because <em> would otherwise italicise a number. */
+.life-stage-legend em {
+  font-style: normal;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .life-dot-s0 { width: 6px; height: 6px; border-radius: 50%; background: #3498db; }
@@ -970,6 +992,20 @@
   transform: translateX(-50%) translateY(0);
   opacity: 1;
   pointer-events: auto;
+}
+
+/* A wild encounter is a different KIND of news from a medal, so it reads in the
+   site's cyan rather than gold. One box, two tones: a second stacked toast would
+   compete for the same z-index 120 and one of them would hide behind the other.
+   The 2px border and its glow move together, since the border IS the accent
+   here — recolouring the glow alone left a gold frame round a cyan card. */
+.life-celebration-toast.is-wild {
+  border-color: #7ee7ff;
+  box-shadow: 0 10px 40px rgba(126, 231, 255, 0.28);
+}
+
+.life-celebration-toast.is-wild .life-toast-icon {
+  animation: none; /* the trophy's bounce reads as celebration; a wild arrival is not one */
 }
 
 .life-toast-icon {

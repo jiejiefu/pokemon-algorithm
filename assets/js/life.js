@@ -13,6 +13,7 @@ import {
 import {
   GameEngine,
   buildGenMetadata,
+  FALLBACK_EVOLUTION_LEVEL,
   PATTERNS,
   cellKey
 } from './life-engine.js';
@@ -21,6 +22,7 @@ import {
 let allPokemon = [];
 let evolutionChains = {};
 let generationsData = [];
+let evolutionLevels = null;
 let currentMetadata = null;
 let engine = null;
 
@@ -71,15 +73,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load all master data in parallel
   try {
-    const [pokes, evos, genRes] = await Promise.all([
+    const [pokes, evos, genRes, levelRes] = await Promise.all([
       loadPokemonData(),
       loadEvolutionChains(),
-      fetch('assets/data/generations.json').then(r => r.json())
+      fetch('assets/data/generations.json').then(r => r.json()),
+      fetch('assets/data/evolution_levels.json').then(r => r.json())
     ]);
 
     allPokemon = pokes;
     evolutionChains = evos;
     generationsData = genRes;
+    // Without this table every evolution falls back to the corpus median, so a
+    // failed fetch would silently flatten all 489 distinct thresholds to one.
+    evolutionLevels = levelRes;
 
     // Default to Generation 1 with Bulbasaur
     setupGeneration(1, 1, true);
@@ -143,6 +149,8 @@ function cacheDOMElements() {
   els.stagePct0 = document.getElementById('stagePct0');
   els.stagePct1 = document.getElementById('stagePct1');
   els.stagePct2 = document.getElementById('stagePct2');
+  els.stageLevel1 = document.getElementById('stageLevel1');
+  els.stageLevel2 = document.getElementById('stageLevel2');
 
   // Camera HUD
   els.camZoom = document.getElementById('camZoom');
@@ -168,6 +176,8 @@ function cacheDOMElements() {
   els.dexGrid = document.getElementById('dexGrid');
   els.celebrationToast = document.getElementById('celebrationToast');
   els.toastHeadline = document.getElementById('toastHeadline');
+  els.toastIcon = document.querySelector('#celebrationToast .life-toast-icon');
+  els.toastEyebrow = document.querySelector('#celebrationToast .life-toast-eyebrow');
 }
 
 // --- Setup & Generation Locking ----------------------------------------------
@@ -175,9 +185,10 @@ function setupGeneration(gen, starterId, isRandomSeed = true) {
   currentMetadata = buildGenMetadata(gen, allPokemon, evolutionChains, generationsData);
 
   if (!engine) {
-    engine = new GameEngine(currentMetadata);
+    engine = new GameEngine(currentMetadata, evolutionLevels);
   } else {
     engine.reset(currentMetadata);
+    engine.setEvolutionLevels(evolutionLevels);
   }
 
   // Set default active species to chosen starter
@@ -188,6 +199,15 @@ function setupGeneration(gen, starterId, isRandomSeed = true) {
   if (els.genBadge) {
     els.genBadge.textContent = `第 ${gen} 世代 · ${currentMetadata.region} ▾`;
   }
+
+  // The legend's own sentence, written once from the constant the engine uses so
+  // the number in the tooltip cannot drift from the number in the gate.
+  const legendNote =
+    `以該物種的真實進化等級為準（Lv.7–Lv.64）；` +
+    `遊戲中沒有等級條件的進化使用全站中位數 Lv.${FALLBACK_EVOLUTION_LEVEL}。` +
+    `括號內為當前盤面最常見的實際進化等級。`;
+  if (els.stageLevel1 && els.stageLevel1.parentElement) els.stageLevel1.parentElement.title = legendNote;
+  if (els.stageLevel2 && els.stageLevel2.parentElement) els.stageLevel2.parentElement.title = legendNote;
 
   // Center camera
   centerCamera();
@@ -290,6 +310,13 @@ function stepSimulation() {
     updateHallOfFameDrawer();
   }
 
+  // A wild pack landed. Announced BEFORE the medal so that an encounter never
+  // gets silently overwritten by a medal earned from the family it discovered —
+  // the encounter is the more specific news of the two.
+  if (stats.wildSpawnEvent) {
+    showWildEncounter(stats.wildSpawnEvent);
+  }
+
   updateHUD(stats);
   updateDexDrawerUnlocked();
 }
@@ -374,8 +401,13 @@ function renderCanvas(timestamp) {
         ctx.fillRect(scr.x, scr.y, effCell, effCell);
       }
 
-      // Veteran single-stage aura (golden corners / glow)
-      if (cell.isVeteran && cell.age >= 5) {
+      // Veteran single-stage aura (golden corners / glow).
+      //
+      // Measured against FALLBACK_EVOLUTION_LEVEL, not a literal 5: the claim the
+      // gold corner is making is "this one has reached the level at which the ones
+      // that DO evolve would have, and never will". The old `age >= 5` was true of
+      // essentially every cell five generations in, so the glow marked nothing.
+      if (cell.isVeteran && cell.level >= engine.fallbackEvolutionLevel) {
         ctx.save();
         ctx.strokeStyle = '#f5c542';
         ctx.lineWidth = 2;
@@ -427,14 +459,18 @@ function renderCanvas(timestamp) {
       const radius = (effCell * 0.5) + (effCell * 1.2 * progress);
       const alpha = 1 - progress;
 
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.strokeStyle = fx.tone === 'wild'
+        ? `rgba(126, 231, 255, ${alpha})`
+        : `rgba(255, 255, 255, ${alpha})`;
       ctx.lineWidth = 3 * (1 - progress);
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Outer gold starburst ring
-      ctx.strokeStyle = `rgba(245, 197, 66, ${alpha * 0.7})`;
+      // Outer starburst ring
+      ctx.strokeStyle = fx.tone === 'wild'
+        ? `rgba(46, 204, 113, ${alpha * 0.7})`
+        : `rgba(245, 197, 66, ${alpha * 0.7})`;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 1.25, 0, Math.PI * 2);
@@ -492,6 +528,37 @@ function renderCanvas(timestamp) {
 }
 
 // --- HUD & Stats Updating -----------------------------------------------------
+/**
+ * The level at which the cells currently on the board most often entered a stage.
+ *
+ * Taken from `evolvedAtLevel` — the level each cell REACHED to evolve, captured at
+ * that moment rather than read back later, because a cell's own `level` keeps
+ * climbing after it evolves and would otherwise report where it is now, not
+ * where the gate was. Ties go to the lower level, which is the order a reader
+ * scans the legend in.
+ *
+ * Null when no cell has entered that stage, and the legend then shows a dash
+ * rather than the fallback: naming Lv.30 for an empty stage would be claiming a
+ * level nobody on the board reached.
+ */
+function commonEvolveLevel(stage) {
+  const counts = new Map();
+  for (const cell of engine.cells.values()) {
+    if (cell.stage !== stage) continue;
+    if (typeof cell.evolvedAtLevel !== 'number') continue;
+    counts.set(cell.evolvedAtLevel, (counts.get(cell.evolvedAtLevel) || 0) + 1);
+  }
+  let best = null;
+  let bestCount = 0;
+  for (const [level, count] of counts) {
+    if (count > bestCount || (count === bestCount && best !== null && level < best)) {
+      best = level;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 function updateHUD(stats = null) {
   if (!engine) return;
 
@@ -530,6 +597,11 @@ function updateHUD(stats = null) {
   if (els.stagePct0) els.stagePct0.textContent = `${p0}%`;
   if (els.stagePct1) els.stagePct1.textContent = `${p1}%`;
   if (els.stagePct2) els.stagePct2.textContent = `${p2}%`;
+
+  const lvl1 = commonEvolveLevel(1);
+  const lvl2 = commonEvolveLevel(2);
+  if (els.stageLevel1) els.stageLevel1.textContent = lvl1 === null ? '' : `(Lv.${lvl1})`;
+  if (els.stageLevel2) els.stageLevel2.textContent = lvl2 === null ? '' : `(Lv.${lvl2})`;
 
   // Update Drawer button badges
   if (els.btnDexDrawer) {
@@ -600,15 +672,73 @@ function updateHallOfFameDrawer() {
   });
 }
 
-function showCelebrationToast(medal) {
+/** Hide the announcer, cancelling any pending timer from a previous message. */
+function hideToast() {
+  clearTimeout(toastHideTimer);
+  if (els.celebrationToast) els.celebrationToast.classList.remove('is-visible');
+}
+
+let toastHideTimer = 0;
+
+/**
+ * One announcer, two tones. `role="alert"` on the element means whatever arrives
+ * here is announced either way, and a second stacked toast would fight the first
+ * for the same 120 z-index — so the tone is a class, not a second box.
+ */
+function showToast({ icon, eyebrow, headline, tone, duration = 4000 }) {
   if (!els.celebrationToast) return;
-  if (els.toastHeadline) {
-    els.toastHeadline.textContent = `解鎖成就獎章！#${String(medal.id).padStart(4, '0')} ${medal.names.zh}`;
-  }
+  if (els.toastIcon) els.toastIcon.textContent = icon;
+  if (els.toastEyebrow) els.toastEyebrow.textContent = eyebrow;
+  if (els.toastHeadline) els.toastHeadline.textContent = headline;
+
+  els.celebrationToast.classList.toggle('is-wild', tone === 'wild');
   els.celebrationToast.classList.add('is-visible');
-  setTimeout(() => {
-    els.celebrationToast.classList.remove('is-visible');
-  }, 4000);
+
+  clearTimeout(toastHideTimer);
+  toastHideTimer = setTimeout(hideToast, duration);
+}
+
+function showCelebrationToast(medal) {
+  showToast({
+    icon: '🏆',
+    eyebrow: '成就達成 · 神殿名人堂',
+    headline: `解鎖成就獎章！#${String(medal.id).padStart(4, '0')} ${medal.names.zh}`,
+    tone: 'medal',
+    duration: 4000
+  });
+}
+
+/**
+ * A wild encounter was announced nowhere at all before this existed.
+ *
+ * `wildSpawnEvent` came back from tick() and no page code read it, so an
+ * encounter was a 0.16s flicker at 10x speed followed by silence — the reader
+ * could not tell it had happened from not having happened.
+ *
+ * The same gold burst the evolution shockwave uses, at the spawn point, because
+ * the pack really did just arrive; the cyan tone is deliberate rather than a
+ * second colour set, since a wild arrival is a different KIND of event from a
+ * medal and reusing gold for both is what made the medal feel unearned.
+ */
+function showWildEncounter(event) {
+  const sp = event.species;
+  const name = sp.names?.zh || `#${sp.id}`;
+
+  visualEffects.push({
+    x: event.x + 0.5,
+    y: event.y + 0.5,
+    startTime: performance.now(),
+    duration: 1100,
+    tone: 'wild'
+  });
+
+  showToast({
+    icon: '🌿',
+    eyebrow: '野生遭遇 · 生態事件',
+    headline: `#${String(sp.id).padStart(4, '0')} ${name} ×${event.count}`,
+    tone: 'wild',
+    duration: 2200
+  });
 }
 
 // --- Pokédex Drawer -----------------------------------------------------------

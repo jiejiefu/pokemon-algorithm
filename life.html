@@ -135,8 +135,8 @@
         <div class="life-hud-stages">
           <div class="life-stage-legend">
             <span><i class="life-dot-s0"></i>基礎型態 <strong id="stagePct0">0%</strong></span>
-            <span><i class="life-dot-s1"></i>一階 (Age≥5) <strong id="stagePct1">0%</strong></span>
-            <span><i class="life-dot-s2"></i>二階 (Age≥12) <strong id="stagePct2">0%</strong></span>
+            <span><i class="life-dot-s1"></i>一階 <em id="stageLevel1"></em> <strong id="stagePct1">0%</strong></span>
+            <span><i class="life-dot-s2"></i>二階 <em id="stageLevel2"></em> <strong id="stagePct2">0%</strong></span>
           </div>
           <div class="life-stage-bar">
             <div class="life-stage-seg-0" id="stageBar0" style="width: 100%;"></div>
@@ -237,7 +237,10 @@
     </div>
   </aside>
 
-  <!-- Legendary Medal Celebration Toast -->
+  <!-- Announcer: legendary medals AND wild encounters, one box.
+       `role="alert"` is on the element, so both kinds are announced. The eyebrow
+       and icon are overwritten by showToast() — the markup below is only what
+       shows before the first message. -->
   <div class="life-celebration-toast" id="celebrationToast" role="alert">
     <div class="life-toast-icon">🏆</div>
     <div class="life-toast-text">

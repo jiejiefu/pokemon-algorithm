@@ -598,6 +598,37 @@ const CHECKERS = [
     ],
   },
 
+  /* ---- life ---- */
+  {
+    // `--prove-inputs` says life.css and life.js are NOT read here, which is
+    // true and was wrong in the manifest before: this checker drives the engine
+    // and reads the HTML string, and it never opened either. They belong to
+    // check_life_browser.mjs below, which is the one that opens them.
+    script: 'scripts/check_life_page.mjs', group: 'algo',
+    inputs: [
+      'life.html', 'assets/js/life-engine.js',
+      'assets/data/pokemon_data.json', 'assets/data/evolution_chains.json',
+      'assets/data/generations.json', 'assets/data/evolution_levels.json',
+    ],
+  },
+  // The levels table is its own entry rather than folded into the page checker:
+  // it is generated, its fetcher is a separate script, and every claim in
+  // check_evolution_levels.mjs is about the TABLE (coverage floor, the exact set
+  // of pairs with no level, the fallback being the median). Merging them would
+  // make an edit to the engine look like it invalidated the table.
+  {
+    script: 'scripts/check_evolution_levels.mjs', group: 'algo',
+    inputs: ['assets/data/evolution_levels.json', 'assets/data/pokemon_data.json', 'assets/js/life-engine.js'],
+  },
+  // manual: true for the same reason as the other CDP checkers — its pages
+  // arrive over HTTP from Live Server, so `--prove-inputs` would record it
+  // opening NO repo file at all.
+  {
+    script: 'scripts/check_life_browser.mjs', group: 'algo', needsServer: true, manual: true,
+    inputs: ['life.html', 'assets/css/life.css', 'assets/css/shared.css', 'assets/js/life.js',
+             'assets/js/life-engine.js', 'assets/js/shared.js'],
+  },
+
   /* ---- models ---- */
   {
     script: 'scripts/check_glb.mjs', group: 'model',
