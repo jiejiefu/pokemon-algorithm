@@ -28,6 +28,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { caughtBy } from './lib/negative.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_mmcq_anatomy.mjs';
@@ -135,22 +136,24 @@ const CASES = [
   },
 ];
 
-for (const c of CASES) {
+/* Four at a time, in DECLARATION order out -- see scripts/lib/pool.mjs. Each case is
+ * its own `node` process against its own temp tree and the checker re-derives all 2,050
+ * palettes from the sprites on every run, so a case costs ~1.4 s of real work rather
+ * than any shared setup. Sequentially that is 5.6 s with four cores idling. */
+const verdicts = await pool(CASES.map((c) => async () => {
   const dir = makeTree(c.mutate);
-  const { code, out } = await run(dir);
-  rmSync(dir, { recursive: true, force: true });
-
-  if (code === 0) {
-    fail(`${c.name}: exited with 0 (expected failure naming "${c.expect}")`);
-    continue;
+  let code, out;
+  try {
+    ({ code, out } = await run(dir));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
+  if (code === 0) return { name: c.name, detail: `exited with 0 (expected failure naming "${c.expect}")` };
+  if (caughtBy(out, c.expect)) return { name: c.name, detail: null };
+  return { name: c.name, detail: `failed, but NOT caught by expected assertion "${c.expect}". Output was:\n${out}` };
+}));
 
-  if (caughtBy(out, c.expect)) {
-    pass(`${c.name}`);
-  } else {
-    fail(`${c.name}: failed, but NOT caught by expected assertion "${c.expect}". Output was:\n${out}`);
-  }
-}
+for (const v of verdicts) v.detail === null ? pass(v.name) : fail(`${v.name}: ${v.detail}`);
 
 console.log(`\n${failures ? `FAIL  ${failures} of ${CASES.length + 1} checks failed` : `PASS  every negative case failed for the right reason`}`);
 process.exit(failures ? 1 : 0);

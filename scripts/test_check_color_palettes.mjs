@@ -12,11 +12,12 @@
  */
 
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy } from './lib/negative.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = join(ROOT, 'scripts/check_color_palettes.mjs');
@@ -190,16 +191,13 @@ function makeTree(mutate) {
   return dir;
 }
 
-function runCheckerIn(dir) {
-  try {
-    return { code: 0, out: execFileSync('node', ['scripts/check_color_palettes.mjs'], {
-      encoding: 'utf8',
-      cwd: dir,
-    }) };
-  } catch (err) {
-    return { code: err.status ?? 1, out: `${err.stdout ?? ''}${err.stderr ?? ''}` };
-  }
-}
+/* Async, and on process.execPath rather than whatever 'node' is first on PATH --
+ * the baseline case and the nine mutations must run the same interpreter to be
+ * comparable, which is what makes the baseline worth anything. */
+const runCheckerIn = (dir) => new Promise((resolve) => {
+  execFile(process.execPath, ['scripts/check_color_palettes.mjs'], { encoding: 'utf8', cwd: dir },
+    (err, stdout, stderr) => resolve({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
+});
 
 /** Rewrite one anchor in the copied module, refusing a stale anchor. */
 function patch(file, from, to) {
@@ -329,12 +327,16 @@ for (const c of cases) {
   );
 }
 
-for (const c of namingCases) {
+/* Four at a time, in DECLARATION order out -- see scripts/lib/pool.mjs. Each case
+ * builds its OWN tree through `setup()`, so the cases share nothing and the pool
+ * premise holds; the baseline is inside the same list on purpose, because a tree that
+ * fails for an unrelated reason would otherwise make the other nine "pass". */
+const namingVerdicts = await pool(namingCases.map((c) => async () => {
   let code;
   let out;
   let threw = null;
   try {
-    ({ code, out } = runCheckerIn(c.setup()));
+    ({ code, out } = await runCheckerIn(c.setup()));
   } catch (err) {
     threw = err;
     code = 1;
@@ -346,14 +348,17 @@ for (const c of namingCases) {
   // A harness that throws (stale anchor, missing module) is NOT a passing
   // mutation case -- it is a case that never ran the checker.
   const missingReason = threw || (c.expectText && !caughtBy(out, c.expectText));
-  const pass = !wrongCode && !missingReason;
+  return { name: c.name, pass: !wrongCode && !missingReason, threw, code, expectCode, expectText: c.expectText, out };
+}));
 
-  if (!pass) failed += 1;
+for (const v of namingVerdicts) {
+  if (!v.pass) failed += 1;
   console.log(
-    `${pass ? '  ok  ' : '  FAIL'}  ${c.name}` +
-      (threw ? `\n          harness threw: ${threw.message}` : '') +
-      (wrongCode && !threw ? `  (exit ${code}, expected ${expectCode})` : '') +
-      (missingReason && !threw ? `\n          no FAIL line reported: ${c.expectText}\n          ${out.trim().split('\n').slice(0, 4).join('\n          ')}` : '')
+    `${v.pass ? '  ok  ' : '  FAIL'}  ${v.name}` +
+      (v.threw ? `\n          harness threw: ${v.threw.message}` : '') +
+      (!v.threw && v.code !== v.expectCode ? `  (exit ${v.code}, expected ${v.expectCode})` : '') +
+      (!v.threw && v.expectText && !caughtBy(v.out, v.expectText)
+        ? `\n          no FAIL line reported: ${v.expectText}\n          ${v.out.trim().split('\n').slice(0, 4).join('\n          ')}` : '')
   );
 }
 
