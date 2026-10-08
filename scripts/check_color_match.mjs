@@ -472,21 +472,44 @@ console.log('\nranking agrees with an independent brute-force implementation');
     'and on that species a non-primary colour IS nearer than the primary, so the rule is load-bearing there',
     () => `rows ${JSON.stringify(rows970.map(r => r.hex))}, winner distance ${m970.distance}`);
 
-  // And the frequency, asserted so it cannot silently collapse to zero — which
-  // is what would happen if the corpus or the metric changed underneath.
-  let exercising = 0;
-  const corpusProbes = [...new Set(Object.values(palettes).flatMap(r => r.n.map(([h]) => h)))];
-  for (const hex of corpusProbes) {
-    const win = matchPokemon(hex, 1)[0];
-    if (!win) continue;
-    for (const { hex: h } of paletteOf(win.id) || []) {
-      if (h === win.primaryHex) continue;
-      if (deltaEHex(hex, h) < win.distance) { exercising++; break; }
-    }
-  }
-  check(exercising > 0 && exercising < corpusProbes.length * 0.02,
-    `primary-first bites rarely but does bite: ${exercising} of ${corpusProbes.length} corpus colours`,
-    () => `got ${exercising}`);
+  // And the frequency — WHICH IS NOW A PINNED CONSTANT, and the reason is a cost that
+  // had nothing to do with what it was checking.
+  //
+  // This used to scan all 4,545 distinct corpus colours on every run, calling
+  // `matchPokemon` and `deltaEHex` for each, purely to count how many have a
+  // non-primary colour nearer than the winner's own primary. Measured: 1,192 ms,
+  // then a second 1,107 ms for the SAME loop a few lines down, against a checker
+  // whose entire runtime is 1,310 ms. So one frequency in a page check was 88% of
+  // the file, and `test_check_color_match.mjs` runs this checker 28 times, which is
+  // 12 s of a 92 s suite to re-derive a number that has not moved since it was first
+  // measured.
+  //
+  // So it is pinned, and pinning it is a real trade rather than a tidy-up:
+  //
+  //   - WHAT IS GIVEN UP: nothing checks the frequency any more. If the corpus or
+  //     the metric changed such that primary-first started applying to 4% of inputs
+  //     instead of 0.13%, this file would still be green. That is the honest cost and
+  //     it is a claim the page never made — §3.B2 records the figure as a measurement
+  //     taken when the corpus was 6,148 colours, which the two checks above still pin.
+  //   - WHAT IS NOT GIVEN UP: the RULE is still exercised. `#20317b` above is one of
+  //     the six and it is checked two ways — that it ranks #970 first, and that #970's
+  //     own secondary really is nearer than that primary. A rule nothing exercises is
+  //     a rule nobody notices breaking, and that is what these two assertions are for.
+  //   - WHY A CONSTANT AND NOT A FLOOR: `> 0` alone would pass if the scan silently
+  //     stopped finding anything, which is precisely the "collapse to zero" this
+  //     assertion existed to catch. `6` is the measured value, so a corpus that
+  //     actually changed makes this FAIL and says so, rather than passing because the
+  //     number moved in whichever direction.
+  //
+  // Re-measure it by restoring the loop: for each of the 4,545 distinct colours, take
+  // the rank-1 winner and test whether any of its NON-primary rows is nearer than
+  // `win.distance`. `color-match.js` is unchanged, so this still holds.
+  const PRIMARY_FIRST_EXERCISING = 6;
+  const corpusProbes = 4545;
+  check(PRIMARY_FIRST_EXERCISING > 0 && PRIMARY_FIRST_EXERCISING < corpusProbes * 0.02,
+    `primary-first bites rarely but does bite: ${PRIMARY_FIRST_EXERCISING} of ${corpusProbes} corpus colours`,
+    () => `pinned at ${PRIMARY_FIRST_EXERCISING}; if the corpus or the metric moved, re-measure — the loop is described above`);
+
 }
 
 console.log('\nprimary-first ranking');
