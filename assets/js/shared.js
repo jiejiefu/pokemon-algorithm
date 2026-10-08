@@ -777,7 +777,7 @@ export const NAV = [
         items: [
           { href: 'sorting.html', label: '排序演算法視覺化', desc: '6 種排序 × 1025 隻寶可夢' },
           { href: 'maze.html', label: '像素迷宮 BFS / DFS', desc: '路徑尋找的探索差異' },
-          { href: 'life.html', label: '康威生命遊戲', desc: '寶可夢世代生態演化' },
+          { href: 'life.html', label: '進化生命遊戲', desc: '寶可夢世代生態演化' },
         ],
       },
     ],
