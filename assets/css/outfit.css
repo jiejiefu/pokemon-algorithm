@@ -464,7 +464,7 @@
 /* `.cp-strip`'s own height and radius come from a rule scoped to an identity
  * card in colors.css, so a plain strip in a different box has neither. */
 .of-winner-strip .cp-strip {
-  height: 84px;
+  height: 64px;
   border-radius: var(--radius-sm, 6px);
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--border-strong);
@@ -488,6 +488,9 @@
 }
 .of-winner-eyebrow {
   display: block;
+  /* Its own row above both columns, so it needs its own separation — the name's
+   * `margin-top` used to do this while the two were in the same block. */
+  margin-bottom: .5rem;
   font-size: .72rem;
   letter-spacing: .1em;
   text-transform: uppercase;
