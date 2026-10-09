@@ -244,6 +244,9 @@ const CHECKERS = [
       'assets/js/outfit-palette.js',
       'assets/js/color-match.js',
       'assets/data/color_palettes.json',
+      // Read for the 140px name-track premise: it asserts no zh name in the
+      // corpus is wider than the track, which is a claim about THIS file.
+      'assets/data/pokemon_data.json',
       'assets/images/sprite/*',
       'assets/images/sprite/shiny/*',
       // The page checker parses SAMPLES out of outfit.html and asserts each

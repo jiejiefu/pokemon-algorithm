@@ -711,6 +711,42 @@ for (const s of samplePaths) {
   ok(s.name.trim().length > 0, `${s.url} carries a caption, so a thumbnail is never nameless`);
 }
 
+/* The premise behind `.of-winner-ident`'s fixed 140px left track.
+ *
+ * That track is sized to the widest name in the corpus, and the measurement says
+ * the widest is EXACTLY 140px — every one of the 1,025 zh names is CJK with no
+ * latin character anywhere, so at 28px their widths are 28 / 56 / 84 / 112 / 140px
+ * and 140px is the ceiling with nothing above it. check_outfit_browser.mjs
+ * asserts the rendered consequence (the name is still on one line) but it can
+ * only ever see the ONE species its fixture matched. This asserts the premise,
+ * over the whole corpus, so a future name that is one character too long turns
+ * something red at the data layer instead of wrapping silently in one card. */
+{
+  const rows = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json'), 'utf8'));
+  const list = Array.isArray(rows) ? rows : (rows.pokemon || []);
+  const names = list.map((r) => (r.names || {}).zh || r.name_zh || '').filter(Boolean);
+  // East Asian Wide/Fullwidth count as 1em; anything else (latin, punctuation)
+  // is under half, and a 0.55 allowance is generous to the wrong side — a name
+  // that looks too wide here would only ever be a false alarm, never a miss.
+  const em = (n) => [...n].reduce(
+    (a, c) => a + (/[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFF60]/.test(c) ? 1 : 0.55), 0);
+  const widest = names.map((n) => ({ n, em: em(n) })).sort((a, b) => b.em - a.em);
+  const NAME_PX = 140;              // 5 CJK glyphs at the 1.75rem name size
+  const widestEm = widest.length ? widest[0].em : 0;
+  ok(names.length === 1025,
+    `every species has a zh name to size the track against (${names.length} of 1,025)`);
+  ok(widestEm <= 5,
+    `and the widest name fits the 140px track: ${widest[0] ? widest[0].n : '—'} at ${widestEm.toFixed(2)} em against 5.00 (${NAME_PX}px) — a longer one needs the track widened, and the browser checker's one-species wrap assertion would not see it coming`);
+  ok(widest.filter((w) => w.em > 5).length === 0,
+    'no name in the corpus exceeds the track — asserted as a COUNT over all of them rather than as the single maximum, so a shrink in the data cannot pass by being narrower than the one name already checked');
+  // The first version of this was `regex.test(names.every(...) ? 'x' : 'y')`, which
+  // asks whether the string "x" is CJK. It is not, so it failed every run and said
+  // nothing — an assertion shaped like a guard and testing nothing.
+  const withLatin = names.filter((n) => /[A-Za-z]/.test(n));
+  ok(withLatin.length === 0,
+    `every zh name is CJK with no latin character, which is WHAT MAKES the widths quantised (${withLatin.length} do: ${withLatin.slice(0, 3).join(', ')}) — one latin glyph inside a 5-character name would push it past 140px while a character count still said 5`);
+}
+
 console.log('');
 if (failures) {
   console.log(`${failures} of ${checks} checks failed`);

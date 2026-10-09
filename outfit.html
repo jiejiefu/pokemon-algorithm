@@ -1229,13 +1229,33 @@
                  column's own first line and the portrait's top aligns with it. -->
             <div class="of-winner-text">
             <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
+            <!-- TWO COLUMNS, TWO CHILDREN, the same shape as .of-winner-main: the
+                 name and id on the left, the matched species' palette on the right,
+                 and auto-placement alone decides which is which.
+
+                 The strip LIVES HERE rather than under the portrait, and that is the
+                 relationship it was always describing. These are not the artwork's
+                 colours — they are six colours measured off the sprite — so under
+                 the picture the strip read as a caption for a picture. Beside the
+                 NAME it reads as an attribute of the thing named.
+
+                 The left track is a fixed 140px, which is EXACTLY the width of the
+                 longest name in the corpus: all 1,025 zh names are CJK, so their
+                 widths are 28/56/84/112/140px and 140px is the ceiling, with zero
+                 slack above it. check_outfit_page.mjs asserts that premise from
+                 pokemon_data.json and this card's checker asserts the consequence
+                 (the name still on one line), so a sixth-character name turns
+                 something red instead of silently wrapping. -->
             <div class="of-winner-ident">
-              <h3 class="of-winner-name">
-                ${record
-                  ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
-                  : `<span>${escapeHtml(name)}</span>`}
-              </h3>
-              <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
+              <div class="of-winner-ident-text">
+                <h3 class="of-winner-name">
+                  ${record
+                    ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
+                    : `<span>${escapeHtml(name)}</span>`}
+                </h3>
+                <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
+              </div>
+              ${ownStrip ? `<div class="of-winner-strip">${ownStrip}</div>` : ''}
             </div>
             <!-- 2x2, ordered so the two SCORES sit together on the bottom row and
                  the two DESCRIPTIONS of the answer sit together on the top. The
@@ -1260,7 +1280,6 @@
               <a href="${paletteUrl(record)}">單一色盤</a>
             </p>` : ''}
             </div>
-            ${ownStrip ? `
             <!-- of-winner-img, not -sprite: artworkUrl is the 475px official
                  artwork, while spriteUrl is the 96px front sprite the workbench
                  uses. The old name said sprite and loaded artwork.
@@ -1268,12 +1287,16 @@
                  LAST in the DOM on purpose: two children, two columns, and
                  auto-placement is what puts this one on the right. Reading content
                  first is also the right order for a screen reader. Narrow widths
-                 move it visually with order rather than by reordering the DOM. -->
+                 move it visually with order rather than by reordering the DOM.
+
+                 UNCONDITIONAL now, and it used to sit inside the palette's own
+                 conditional because it shared a box with the strip. A portrait that
+                 only renders when a palette exists is a portrait whose absence is
+                 unexplained. -->
             <figure class="of-winner-fig">
               <img class="of-winner-img" src="${artworkUrl(m.id)}" alt="${escapeHtml(name)}"
                    width="274" height="274" decoding="async">
-              <div class="of-winner-strip">${ownStrip}</div>
-            </figure>` : ''}
+            </figure>
           </div>
         </div>`;
 

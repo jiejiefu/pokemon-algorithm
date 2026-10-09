@@ -960,6 +960,31 @@ const strip = await ev(`(() => {
     // absurdly wide" — and at 5:4 the portrait is 40% of the card, so the proxy
     // went red while the thing it stood for got BETTER. Measuring the tracks is
     // the claim itself.
+    // WHERE THE STRIP LIVES, and how far it sits from the name. The strip moved
+    // out of the portrait figure and into .of-winner-ident, so every assertion
+    // that used to be about the figure's contents now describes a different box,
+    // and nothing here would have noticed a strip that stayed behind.
+    stripInIdent: !!document.querySelector('.of-winner-ident .of-winner-strip'),
+    stripLeftInFig: !!document.querySelector('.of-winner-fig .of-winner-strip'),
+    stripW: (() => { const t = document.querySelector('.of-winner-strip');
+      return t ? Math.round(t.getBoundingClientRect().width) : null; })(),
+    // Measured from the ident's own left edge, NOT from the name's text: that is
+    // what makes this the stability claim. Offset-from-text would look the same
+    // for one species and move with the name for the other 1,024.
+    stripOffset: (() => { const a = document.querySelector('.of-winner-ident');
+      const t = document.querySelector('.of-winner-strip');
+      return a && t ? Math.round(t.getBoundingClientRect().left - a.getBoundingClientRect().left) : null; })(),
+    stripRightSlack: (() => { const a = document.querySelector('.of-winner-ident');
+      const t = document.querySelector('.of-winner-strip');
+      return a && t ? Math.round(a.getBoundingClientRect().right - t.getBoundingClientRect().right) : null; })(),
+    // Does the name still fit its 140px track on ONE line? The track is sized to
+    // the longest name in the corpus with zero slack, so this is the assertion
+    // that turns a future six-character name red instead of a silent wrap.
+    nameLines: (() => { const n = document.querySelector('.of-winner-name');
+      if (!n) return null;
+      const lh = parseFloat(getComputedStyle(n).lineHeight);
+      return { h: Math.round(n.getBoundingClientRect().height), lh: Math.round(lh),
+               text: n.textContent.trim() }; })(),
     figColW: fig ? Math.round(fig.getBoundingClientRect().width) : null,
     textColW: (() => { const t = document.querySelector('.of-winner-text');
       return t ? Math.round(t.getBoundingClientRect().width) : null; })(),
@@ -1009,6 +1034,16 @@ ok(strip.mainTop !== null && strip.figTop !== null && Math.abs(strip.figTop - st
 ok(strip.eyebrowBottom !== null && strip.identTop !== null
      && strip.identTop - strip.eyebrowBottom <= 24,
   `and the name follows the eyebrow directly, with the eyebrow's own margin between them (${strip.identTop - strip.eyebrowBottom}px; the broken layout left 256)`);
+ok(strip.stripInIdent && !strip.stripLeftInFig,
+  'the palette strip lives in .of-winner-ident, beside the name — it describes the species, not the artwork, and inside the figure it read as a caption for the picture');
+ok(strip.stripW !== null && Math.abs(strip.stripW - 140) <= 1,
+  `and it is the fixed 140px rather than filling its track (${strip.stripW}px) — filling it would run the bar back to the card's right edge, which is the opposite of sitting against the name`);
+ok(strip.stripRightSlack !== null && strip.stripRightSlack >= 30,
+  `with real blank space to its right, so it reads as belonging to the name (${strip.stripRightSlack}px of slack)`);
+ok(strip.stripOffset !== null && Math.abs(strip.stripOffset - 156) <= 2,
+  `and its left edge sits at a FIXED offset from the card, not from the name's text (${strip.stripOffset}px; 140 + the 16px gap). Measured from the container on purpose — offset-from-text is the same number for one species and moves for the other 1,024`);
+ok(strip.nameLines !== null && strip.nameLines.h <= strip.nameLines.lh * 1.6,
+  `and the name still fits that 140px track on one line (${strip.nameLines.text} at ${strip.nameLines.h}px, line-height ${strip.nameLines.lh}) — the track is sized to the longest name in the corpus with zero slack, so this is the assertion that catches a longer one`);
 ok(strip.figBottom !== null && strip.identBottom !== null && strip.figBottom > strip.identBottom,
   `and the portrait extends past the identity block, so it shares the reading column's row rather than owning one of its own (${strip.figBottom} vs ${strip.identBottom})`);
 ok(strip.figColW !== null && strip.textColW !== null

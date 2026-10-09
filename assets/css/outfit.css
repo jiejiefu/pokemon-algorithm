@@ -599,27 +599,42 @@
  *
  * This is a vertical-axis no-op below 640px: the head is `column-reverse` there
  * with `align-items: flex-start`, so the block was already content-width. */
-.of-winner-ident { flex: 0 1 auto; min-width: 0; }
+.of-winner-ident {
+  min-width: 0;
+  display: grid;
+  /* 140px, not content-sized, and that is the whole argument for the number.
+   * Measured over all 1,025 zh names: none contains a latin character, so every
+   * name's width is a whole number of em at 28px — 28 / 56 / 84 / 112 / 140px —
+   * and 140px is the ceiling. `auto` would have hugged the name, which is the
+   * tidier-looking answer and the wrong one: the strip's left edge would then
+   * move between 28px and 140px depending on the species, so a fixed-size
+   * readout would sit at a different x on every card. Fixed puts it at the same
+   * x always. There is ZERO slack above the longest name, which is why
+   * check_outfit_page.mjs asserts the 140px premise from pokemon_data.json and
+   * check_outfit_browser.mjs asserts the name is still on one line.
+   *
+   * No `grid-column` on the children: two children, two tracks, auto-placement.
+   * `minmax(0, 1fr)` on the second so a wide id line cannot push the strip out. */
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 0 16px;
+}
+.of-winner-ident-text { min-width: 0; }
 
 /* `flex: none` so the figure's width is decided by the image and the strip and
  * not by the card's row — colors-generator.css documents the same trap it hit:
  * as a sibling of the name, the strip's width followed the length of the species
- * NAME. **It is `width: 100%` now rather than a fixed 200px, because with the
- * column at `auto` the column and the figure were each derived from the other** —
- * changing either meant editing both. The figure is now decided by the column
- * alone, and the strip is as wide as the portrait above it, which settles the
- * width question by construction rather than by a magic number.
+ * NAME. It is `width: 100%`, decided by the column alone.
  *
- * Stacked rather than side by side: an image beside its own strip would be a row
- * wider than the artwork needs, which leaves the strip reading as a separate
- * panel instead of as the artwork's caption. Stacked, the strip sits under the
- * thing it describes. */
+ * The strip used to be in here too, which is what this rule was FOR — it was a
+ * column with an image above a palette, and there was a long comment about
+ * stacking them rather than putting them side by side. The strip now lives in
+ * `.of-winner-ident` beside the NAME, because it describes the species rather
+ * than the picture, so the `gap`, the `column` direction and that whole argument
+ * went with it. One child, one column, and `gap` deleted rather than left at 10px
+ * to govern nothing. */
 .of-winner-fig {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  flex: none;
+  display: block;
   margin: 0;
   width: 100%;
 }
@@ -643,7 +658,17 @@
  * at 200px, a DOWNSCALE, where nearest-neighbour throws away exactly the
  * averaging that makes a reduction look clean. The rule was inherited from the
  * other page along with the old name. */
-.of-winner-strip { width: 100%; align-self: stretch; }
+/* **Fixed 140px with the rest of the track left blank, on purpose.** It was
+ * `width: 100%` when it belonged to the portrait column, where filling the column
+ * was right. Now that it sits in the ident's second track, filling that track
+ * would run it all the way back to the card's right edge — which is the opposite
+ * of 「靠向名稱」 and would make the move pointless. `justify-self: start` plus a
+ * width is what puts it hard against the name block and leaves the blank.
+ *
+ * At 140px the five segments are 28px each, so the strip is a legible colour
+ * readout rather than the 276px bar it was. The per-segment hex stays hidden: at
+ * 28px there is no room for `#3A7BD5`, and it was already hidden at 55px. */
+.of-winner-strip { width: 140px; justify-self: start; }
 
 /* `.cp-strip`'s own height and radius come from a rule scoped to an identity
  * card in colors.css, so a plain strip in a different box has neither. */
@@ -678,6 +703,11 @@
    * placement this file just stopped doing by hand. */
   .of-winner-main { grid-template-columns: minmax(0, 1fr); }
   .of-winner-main > .of-winner-fig { order: -1; }
+  /* 140 + 16 + 140 is 296px of fixed track, and a 360px phone leaves the card
+   * about 284px of content once its own padding is taken out. So the ident
+   * stacks too: name and id on one row, the strip below it, still left-aligned
+   * against the text rather than centred. */
+  .of-winner-ident { grid-template-columns: minmax(0, 1fr); gap: .5rem 0; }
 }
 .of-winner-eyebrow {
   display: block;
