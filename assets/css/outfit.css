@@ -17,13 +17,85 @@
  * are inline styles carrying measured values.
  */
 
-.of-section { margin-top: 2.4rem; }
-.of-section > h2 { margin-bottom: 1rem; }
-.of-sub {
-  margin: 1.8rem 0 .8rem;
-  font-size: 1rem;
+.of-section { margin-top: 0; }
+.of-section > h2 {
+  margin: 0 0 .9rem;
+  /* The winner's name is 28px. A 24px section heading above it read as a
+     demotion — the payoff was smaller than the label announcing it, which is
+     the hierarchy inverted rather than merely flat. 20 keeps three real steps:
+     16 body / 20 section / 28 name. */
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: .01em;
+}
+/* ---------------------------------------------------------------------------
+   Two bounded surfaces
+   ---------------------------------------------------------------------------
+
+   The page is one workflow with a clear break in it: the reader brings a photo
+   and works ON it, then reads the result back. Those are two different jobs, and
+   they were five equal-weight blocks separated by one repeated `2.4rem` — which
+   is the same rhythm five times, and a repeated rhythm is no rhythm. Now each
+   job is a card, the space BETWEEN them is the generous interval, and the space
+   inside them is tight. */
+
+.of-workbench,
+.of-readout {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.25rem;
+}
+/* Every mode switch and every "join the photo" button calls
+   `scrollIntoView({block:'start'})` on this section, which parks its heading
+   underneath the 55px sticky header — the heading is half the height of what
+   covers it. `scroll-margin-top` is the only place that offset can live: it
+   belongs to the scroll container, and adding a `padding-top` to the header
+   instead would push every page's content down to fix one page's scroll. */
+.of-workbench { scroll-margin-top: 72px; }
+.of-readout { scroll-margin-top: 72px; }
+.of-readout {
+  display: grid;
+  gap: 2.25rem;
+  margin-top: 1.25rem;
+}
+.of-readout > .of-section + .of-section {
+  padding-top: 2.25rem;
+  border-top: 1px solid var(--border);
+}
+
+/* The note paragraphs JS writes into two of these containers had no rule at all
+   anywhere in the project — `.cp-note` exists only as a class name — so they
+   rendered as bare 16px `<p>`s at the same weight as the data around them. */
+.of-note {
+  margin: .7rem 0 0;
+  font-size: .8rem;
+  line-height: 1.7;
   color: var(--text-secondary);
 }
+
+/* ---------------------------------------------------------------------------
+   Intro
+   --------------------------------------------------------------------------- */
+
+.of-intro-lead {
+  margin: 0;
+  /* The lead ran the full viewport width — about 90 CJK characters a line, which
+     is past the point where the eye can find the next line's start. */
+  max-width: 68ch;
+  font-size: .95rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.of-intro-lead b { color: var(--text-primary); font-weight: 600; }
+.of-intro-note {
+  margin: .9rem 0 0;
+  max-width: 78ch;
+  font-size: .8rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+.of-intro-note b { color: var(--text-secondary); }
 
 /* ---------------------------------------------------------------------------
    Upload
@@ -84,9 +156,9 @@
    The stage: photo on the left, the Pokémon on the right
    --------------------------------------------------------------------------- */
 
-/* Two tracks, and the second one is sized by its content.
+/* Three tiers, and the widths are measured rather than chosen.
  *
- * The first track is CAPPED at 480px, and that cap is not cosmetic. It was
+ * The photo track is CAPPED, and that cap is not cosmetic. It was
  * `minmax(0, 1fr)` first, which on a 1400px viewport handed a 384x512 working
  * canvas a 1141x1521 display box: a 3x upscale of a picture already too big to
  * read, which then pushed the sprite — bottom-aligned against a 1521px row —
@@ -94,18 +166,62 @@
  * the two to be near each other, and no amount of correct colour fixes a sprite
  * stranded in the far corner.
  *
- * 480px is chosen because a 3:4 portrait then displays at 480x640, which fits a
- * laptop viewport without scrolling and leaves the sprite within a few hundred
- * pixels of the subject's lower half. */
+ * 420px, down from 480: a 3:4 portrait displays at 420x560, which is comfortably
+ * readable while leaving the companion within a couple of hundred pixels of the
+ * subject's lower half. `check_outfit_browser.mjs` caps the photo at 560px and
+ * requires the partner's feet within 4px of the photo's bottom edge, so
+ * `align-items: end` below is load-bearing rather than decorative.
+ *
+ *   < 700px   one column — photo, then companion, then chips.
+ *   >= 700px  two columns — the photo and its companion side by side. This is
+ *             the tier that matters: it is where "standing beside" is true, and
+ *             it is the one the browser checker measures at Chrome's default
+ *             800px window.
+ *   >= 1100px three columns — the chips join them. They used to sit under the
+ *             photo at full page width, which put the control that decides WHAT
+ *             gets measured the furthest thing from the thing it changes while
+ *             the right half of the card stayed empty. Below 1100 there is not
+ *             room for a third column without squeezing the chips to two words
+ *             per row, so they go back underneath rather than being squeezed. */
 .of-stage {
   display: grid;
-  grid-template-columns: minmax(0, 480px) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
   justify-content: start;
-  gap: 1.2rem;
-  margin: 1.2rem 0;
+  gap: 1rem 1.2rem;
+}
+/* The third column is ONE grid item, not three rows that each claim to be it. */
+.of-stage-panel {
+  grid-column: 1;
+  min-width: 0;                  /* so the caveat wraps instead of overflowing */
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.of-modes { margin: 0; }
+.of-modes-note { margin: .5rem 0 0; }
+
+@media (min-width: 700px) {
+  .of-stage { grid-template-columns: minmax(0, 420px) auto; }
+  /* Two tracks means no room for a panel beside them, so it spans the stage
+     underneath — still one item, still one column. */
+  .of-stage-panel { grid-column: 1 / -1; max-width: 520px; margin-top: .2rem; }
 }
 
+@media (min-width: 1100px) {
+  .of-stage { grid-template-columns: minmax(0, 420px) auto minmax(0, 1fr); }
+  /* The chips decide WHAT gets measured, so the panel sits at the reader's
+     eye-level entry point beside the photo rather than down at the sprite's
+     caption line. `align-items: end` on the grid still governs the photo and the
+     sprite, which is what the browser checker pins. */
+  .of-stage-panel { grid-column: 3; margin-top: 0; }
+}
+
+/* Also a scroll target now — the 合照 button scrolls here rather than to the
+   section, since the list moved inside the section. Without this it lands flush
+   at y=0, under the 55px sticky header. */
+.of-photo { scroll-margin-top: 72px; }
 .of-photo {
   position: relative;
   margin: 0;
@@ -163,10 +279,13 @@
   flex-direction: column;
   align-items: center;
   gap: .4rem;
-  max-width: 260px;
+  max-width: 220px;
 }
 .of-partner-img {
-  width: clamp(140px, 22vw, 240px);
+  /* Scaled with the photo's new cap. A 240px sprite beside a 420px photo is a
+     companion half the height of the person, which reads as a child standing in
+     the frame rather than a partner beside them. */
+  width: clamp(130px, 19vw, 200px);
   height: auto;
   display: block;
   /* The artwork is 475px of PNG with real transparency, so it composites onto
@@ -183,13 +302,8 @@
 }
 
 @media (max-width: 620px) {
-  /* Below this the two tracks together are narrower than the sprite is legible
-     at, so it goes UNDER the photo. The order is photo first because the photo
-     is what the reader is looking at, and `auto-placement` puts it there without
-     an explicit `order`. */
-  .of-stage { grid-template-columns: minmax(0, 1fr); }
   .of-partner { max-width: none; align-self: center; }
-  .of-partner-img { width: min(56vw, 240px); }
+  .of-partner-img { width: min(48vw, 200px); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -246,85 +360,269 @@
    Measured / winner / candidates
    --------------------------------------------------------------------------- */
 
+/* These six numbers are instrumentation, not the answer — the answer is the card
+   below them. They get one tight, low-contrast row so they read as a readout
+   rather than as six competing headlines. */
 .of-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: .7rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .5rem;
+  margin-bottom: 1.25rem;
 }
 .of-tile {
-  padding: .7rem .8rem;
-  border-radius: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  padding: .55rem .7rem;
+  border-radius: 9px;
+  background: var(--bg-controls);
+  border: 1px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: .2rem;
+  gap: .15rem;
 }
-.of-tile-label { font-size: .72rem; color: var(--text-secondary); }
+.of-tile-label { font-size: .68rem; color: var(--text-muted); }
 .of-tile-value {
-  font-size: .95rem;
+  font-size: .875rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.of-winner { margin: 1.4rem 0; }
+.of-winner { margin: 0 0 1.5rem; }
+/* The payoff. It was a 1400px-wide card with four 333px score boxes stranded in
+   a row, and `.of-winner-main` — the element supposed to hold the card's
+   contents — had no rule anywhere in the project, so the wrapper everyone
+   assumed was doing the layout was doing nothing at all. */
 .of-winner-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1.2rem;
+  gap: .9rem;
+  padding: 1.25rem;
   border-radius: 16px;
-  background: var(--bg-card);
+  background: var(--bg-controls);
   border: 1px solid var(--border-strong);
+}
+.of-winner-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* The identity block and the portrait sit on one line, portrait to the RIGHT.
+ *
+ * The `of-` prefixes are not a naming preference. `cg-winner-fig` /
+ * `cg-winner-sprite` / `cg-winner-strip` are colors.html's, in a card whose
+ * column is 380px wide, and this card is 1108px — copying those declarations
+ * would bring 64px strips and an identity-card layout along with them. The
+ * shared thing here is `.cp-strip`, which is why exactly one rule below scopes
+ * it, and does so from this file. */
+.of-winner-head {
+  display: flex;
+  align-items: center;
+  /* NO `justify-content: space-between`. It was here, and it was not the thing
+   * doing the damage — see `.of-winner-ident` below. `space-between` packs the
+   * LAST item to the end of the line, so it is not a harmless default: it is a
+   * second mechanism pushing the same way, and both had to go together. Measured
+   * with only one of the two reverted: the figure stayed at x=1040px. */
+  gap: 1rem 1.25rem;
+  width: 100%;
+}
+/* `flex: 0 1 auto`, and the `0` is the whole fix: no grow, shrink allowed, basis
+ * auto. The block is now as wide as its longest line (the eyebrow) instead of
+ * filling the card, so the figure sits against it rather than against the far
+ * edge — measured, it moved from x=1040 to x=456 with no change in card height.
+ *
+ * `min-width: 0` stays so a long species name shrinks instead of forcing the row
+ * wider; stress-tested at 11 characters the row came to 490px of a 1060px card.
+ *
+ * This is a vertical-axis no-op below 640px: the head is `column-reverse` there
+ * with `align-items: flex-start`, so the block was already content-width. */
+.of-winner-ident { flex: 0 1 auto; min-width: 0; }
+
+/* `flex: none` so the figure's width is decided by the sprite and the strip and
+ * not by the card's row — colors-generator.css documents the same trap it hit:
+ * as a sibling of the name, the strip's width followed the length of the
+ * species NAME. 96px here rather than colors.html's 64px because this card is
+ * nearly three times as wide and can afford legible segments. */
+.of-winner-fig {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  margin: 0;
+}
+.of-winner-sprite {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  /* 96px artwork scaled down to 84. Nearest-neighbour, so it stays the crisp
+   * pixel sprite rather than a resampled blur — the same reason
+   * cg-winner-sprite carries it. */
+  image-rendering: pixelated;
+}
+.of-winner-strip { width: 96px; align-self: center; }
+
+/* `.cp-strip`'s own height and radius come from a rule scoped to an identity
+ * card in colors.css, so a plain strip in a different box has neither. */
+.of-winner-strip .cp-strip {
+  height: 84px;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+/* Five segments across 96px is 19px a piece: room for the proportions, none for
+ * a label. `paletteStripHtml()`'s default limit is 5 with a "+1" chip for the
+ * sixth, and at this width that chip would be ~14px of illegible digits — so it
+ * is dropped rather than shrunk. The strip is `role="img"` and its aria-label
+ * already reads 「共 6 色，主要 5 色」, and both links under the card open the
+ * full palette. */
+.of-winner-strip .cp-seg-hex,
+.of-winner-strip .cp-seg-more { display: none; }
+
+@media (max-width: 640px) {
+  /* Below this the name and a 180px figure cannot share a 358px line without the
+   * name wrapping mid-word, and a name broken across lines is worse than a
+   * taller card. Stacked, portrait first — the same order colors.html uses. */
+  .of-winner-head { flex-direction: column-reverse; align-items: flex-start; gap: .7rem; }
+  .of-winner-ident { width: 100%; }
+  .of-winner-fig { align-self: flex-start; }
 }
 .of-winner-eyebrow {
   display: block;
-  font-size: .78rem;
-  letter-spacing: .04em;
-  color: var(--text-secondary);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 .of-winner-name {
-  margin: .2rem 0 .1rem;
-  font-size: 1.7rem;
+  margin: .25rem 0 .1rem;
+  /* Above the 1.25rem section heading: it is the answer the whole page exists to
+     give, and 1.7rem against a 24px h2 was the wrong way round. */
+  font-size: 1.75rem;
   line-height: 1.2;
 }
+.of-winner-name a { color: inherit; text-decoration-color: var(--accent-gold); }
 .of-winner-id {
-  margin: 0 0 .8rem;
-  font-size: .85rem;
+  margin: 0 0 .7rem;
+  font-size: .8rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
+/* Four across, but capped: `auto-fit, minmax(140px, 1fr)` in a 1150px card
+   gave 333px boxes holding a six-character number, so the row read as four
+   near-empty cards rather than as a readout. At 620px they are 145px each and
+   hold their value on one line. */
 .of-winner-scores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: .6rem;
-  margin: 0 0 .9rem;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: .5rem;
+  margin: 0;
+  width: 100%;
+  max-width: 620px;
 }
 .of-winner-scores > div {
-  padding: .55rem .7rem;
+  padding: .5rem .65rem;
   border-radius: 8px;
-  background: var(--bg-controls);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
 }
 .of-winner-scores dt {
-  font-size: .72rem;
-  color: var(--text-secondary);
-  margin-bottom: .15rem;
+  font-size: .68rem;
+  color: var(--text-muted);
+  margin-bottom: .1rem;
 }
 .of-winner-scores dd {
   margin: 0;
-  font-size: 1rem;
+  font-size: .95rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.of-winner-note { font-size: .85rem; color: var(--text-secondary); margin: 0 0 .7rem; }
-.of-winner-links { display: flex; gap: 1rem; font-size: .88rem; margin: 0; }
+.of-winner-note { font-size: .8rem; font-weight: 600; color: var(--text-primary); margin: .8rem 0 0; }
+/* Three points instead of one paragraph, so each direction can be a line of its
+   own. `width: 100%` is not optional: `.of-winner-main` is `align-items:
+   flex-start`, which shrinks a flex child to fit-content — an unset `<ul>`
+   would then be as wide as its widest bullet and wrap at that, not at the card. */
+.of-winner-why {
+  width: 100%;
+  margin: .4rem 0 0;
+  padding-left: 1.15rem;
+  font-size: .78rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.of-winner-why li + li { margin-top: .25rem; }
+.of-winner-why b { color: var(--text-primary); font-weight: 600; }
+.of-winner-links { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .8rem; margin: .6rem 0 0; }
+.of-winner-links a {
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.of-winner-links a:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 
+@media (min-width: 1000px) {
+  /* The card is a flex column at every width — the eyebrow, the name, the id,
+     the four numbers, the caveat and the links are one column of related facts
+     about ONE species, and splitting them across two tracks would put the
+     identity and its measurements on opposite sides of a 1.1rem gap. */
+  .of-winner-card { padding: 1.4rem 1.5rem; }
+}
+
+/* The runners-up, as a workbench control. Four cards in the stage's third
+ * column — measured 348px wide, beside a 618px photo that previously had 640px
+ * of nothing next to it.
+ *
+ * `1fr` and not `auto-fill, minmax(212px, 1fr)`: the track happens to collapse
+ * to one column at 348px today, but that is arithmetic about a width rather than
+ * a statement about the list, so the next card-size change would silently turn
+ * it back into a row without anything looking edited. */
+.of-swap {
+  width: 100%;
+  margin-top: 1.1rem;
+  padding-top: .9rem;
+  border-top: 1px dashed var(--border);
+}
+.of-swap-title {
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--text-primary);
+}
+.of-swap-note {
+  margin: .2rem 0 .6rem;
+  font-size: .72rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.of-swap .of-candidates {
+  grid-template-columns: 1fr;
+  gap: .4rem;
+  /* 380px against a 450px column. `.of-candidate-actions` uses `margin-left: auto`
+   * to right-pin 合照, which is right in a narrow column and wrong in a wide
+   * one: at full width the button sat ~330px from a two-character name, so a
+   * row read as two unrelated things rather than one card. */
+  max-width: 380px;
+}
+/* 44px, down from 56: four cards plus the chips, the caveat and this heading
+   have to fit the photo's own row height (618px measured at 1400px viewport),
+   and at 117px each they measured 468px before anything else was counted. */
+.of-swap .of-candidate { padding: .4rem .5rem; border-radius: 10px; }
+.of-swap .of-candidate img { width: 44px; height: 44px; }
+.of-swap .of-candidate-pose-btn { padding: .25rem .5rem; }
+
+/* Five cards at `auto-fit, minmax(200px, 1fr)` in a 1150px card meant 272px
+   each — airy for a list of also-rans whose only job is to be compared at a
+   glance. Tighter, and `auto-fill` rather than `auto-fit` so the fifth wraps as
+   one deliberate orphan instead of stretching the last row. */
 .of-candidates {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: .6rem;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: .55rem;
 }
 .of-candidate {
   display: flex;
@@ -338,7 +636,14 @@
   text-decoration: none;
 }
 .of-candidate:hover { border-color: var(--accent-gold); }
-.of-candidate.is-on { border-color: var(--accent-gold); background: var(--bg-controls); }
+/* **This is now a live state, not a label.** It marks the companion currently in
+ * the photo, and it is written by markCurrentCandidate() on every swap — so a
+ * static tint would be indistinguishable from the card merely being first. */
+.of-candidate.is-on {
+  border-color: var(--accent-gold);
+  background: color-mix(in srgb, var(--accent-gold) 10%, var(--bg-card));
+  box-shadow: inset 3px 0 0 var(--accent-gold);
+}
 /* No record -> no href -> a <span>, so it must not wear the affordance. */
 .of-candidate.is-plain { cursor: default; }
 .of-candidate.is-plain:hover { border-color: var(--border); }
@@ -349,7 +654,15 @@
   flex: none;
 }
 .of-candidate-body { display: flex; flex-direction: column; min-width: 0; }
-.of-candidate-name { font-size: .92rem; }
+.of-candidate-name {
+  font-size: .88rem;
+  /* Fixed card height, deliberately. The column of four has to fit the photo's
+     own row (measured 618px, with 11px to spare at 1400px viewport), and a name
+     that wrapped would spend that margin on a second line. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .of-candidate-meta {
   font-size: .78rem;
   color: var(--text-secondary);
@@ -360,40 +673,83 @@
    Palette
    --------------------------------------------------------------------------- */
 
-.of-names { margin-top: .9rem; display: grid; gap: .35rem; }
+/* Six rows stretched across a full-width page with `margin-left: auto` on the
+   share put the hex and the percentage a screen apart with a colour name and
+   nothing between them. Fixed columns turn six loose rows into one legible
+   table without touching the markup, because every row is the same four cells. */
+.of-names {
+  margin-top: .9rem;
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
 .of-name-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px 84px minmax(0, 1fr) 56px;
   align-items: center;
-  gap: .6rem;
-  font-size: .85rem;
+  gap: .7rem;
+  padding: .45rem .7rem;
+  font-size: .8rem;
   font-variant-numeric: tabular-nums;
 }
+.of-name-row + .of-name-row { border-top: 1px solid var(--border); }
 .of-name-chip {
   width: 18px;
   height: 18px;
   border-radius: 5px;
   border: 1px solid var(--border-strong);
-  flex: none;
 }
 .of-name-hex { font-family: var(--font-mono, monospace); }
 .of-name-zh { color: var(--text-secondary); }
-.of-name-share { margin-left: auto; color: var(--text-secondary); }
+.of-name-share { text-align: right; color: var(--text-secondary); }
+
+@media (max-width: 520px) {
+  .of-name-row { grid-template-columns: 22px minmax(0, 1fr) 52px; }
+  /* The hex is the same information the swatch already carries, in a form that
+     can be copied; on a phone the colour name is worth the row more. */
+  .of-name-hex { display: none; }
+}
 
 /* The copy affordance paletteGridHtml already renders; this only confirms it. */
 .cp-cell.is-copied { outline: 3px solid var(--accent-gold); }
 
+/* The controls that produce the code, and the code. Side by side from 1000px,
+   because the block is about 35 characters wide and it was rendering in a
+   1400 x 380 box — roughly four fifths empty, which read as "there is more
+   here" rather than "this is all of it". */
+.of-export-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .8rem;
+  align-items: start;
+}
+.of-export-controls { display: grid; gap: .5rem; align-content: start; }
+.of-export-hint { margin: 0; }
 .of-code {
-  margin-top: .9rem;
-  max-height: 380px;
+  margin: 0;
+  max-height: 340px;
   overflow: auto;
-  padding: 1rem;
+  padding: .9rem 1rem;
   border-radius: 12px;
   background: var(--bg-controls);
   border: 1px solid var(--border);
-  font-size: .8rem;
-  line-height: 1.5;
+  font-size: .78rem;
+  line-height: 1.6;
   white-space: pre;
   tab-size: 2;
+}
+
+/* AFTER the base rule on purpose: same specificity, so source order decides, and
+   this one has to win. Placed above it, the one-column base overrode it and the
+   code stayed full-width — which is exactly how a media query that reads
+   correctly in the stylesheet can have no effect in the browser. */
+@media (min-width: 1000px) {
+  /* 340px, measured: the three format buttons total ~330px with their gaps, so
+     this is the width at which the segmented control stops wrapping after its
+     second option — a split that reads as two controls rather than one. */
+  .of-export-row { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -404,13 +760,16 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: .8rem;
+  justify-content: flex-start;
+  gap: .5rem .8rem;
   margin-bottom: 1rem;
 }
-.of-work-header > h2 { margin: 0; }
-
+.of-work-header > h2 { margin: 0; flex: 1 1 auto; }
+/* The tabs used to sit at the far right of a full-width row, a thousand pixels
+   from the heading they belong to and from the photo they switch. They belong
+   beside the heading; that is the whole association the row is expressing. */
 .of-mode-tabs {
+  flex: none;
   display: inline-flex;
   background: var(--bg-controls);
   border: 1px solid var(--border-strong);
@@ -446,7 +805,7 @@
 }
 .of-tab-badge {
   font-size: .7rem;
-  background: rgba(255, 214, 102, .18);
+  background: color-mix(in srgb, var(--accent-gold) 16%, transparent);
   color: var(--accent-gold);
   padding: .1rem .4rem;
   border-radius: 999px;
@@ -491,19 +850,18 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .6rem;
-  margin-top: 1rem;
-  margin-bottom: .6rem;
-  padding: .5rem .8rem;
+  gap: .5rem .6rem;
+  margin: 1rem 0 0;
+  padding: .55rem .8rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  font-size: .82rem;
+  font-size: .8rem;
 }
 .of-roadmap-step {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
+  gap: .45rem;
 }
 .of-roadmap-num {
   display: inline-flex;
@@ -513,7 +871,21 @@
   height: 20px;
   border-radius: 50%;
   background: var(--accent-gold);
-  color: #111;
+  /* **A token, because `#111` was a false claim in the light theme.**
+     `--accent-gold` is gold in dark and Poké Ball red (#b3122a) in light, so the
+     hardcoded near-black this used to carry measured 2.7:1 there — on the digit
+     that tells the reader which of the three steps they are on. `--on-accent` is
+     the ink that belongs on top of the accent in whichever theme is active, and
+     it is the pair shared.css already documents as 11.62:1 on gold.
+
+     **Measured, both themes: 11.62:1 dark, 6.92:1 light** (6.92 because light's
+     gold is a deep red and its ink is white). `impeccable detect` reports this
+     rule as 2.7:1 in BOTH themes, because it resolves `--on-accent` from the
+     first `:root` block and then pairs it with light's `--accent-gold` — dark
+     ink on light red, a pairing that occurs in neither theme. It is a resolution
+     bug in the scan, not a defect here; check_outfit_browser.mjs measures both
+     ratios in the live DOM, which is the only form of this claim worth reading. */
+  color: var(--on-accent);
   font-weight: 700;
   font-size: .72rem;
 }
@@ -522,8 +894,71 @@
   font-weight: 500;
 }
 .of-roadmap-arrow {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: .8rem;
+}
+
+/* ---------------------------------------------------------------------------
+   The export row's buttons.
+   `.cp-btn` is defined in colors.css ONLY as `.cp-panel-row .cp-btn`, so the
+   three format toggles and the copy/download pair rendered as the browser's
+   default grey chrome — measured at `background: rgb(107,107,107)`, `2px
+   outset`, `border-radius: 0`. The fix is scoped HERE rather than by widening
+   the colors.css selector: §3.B1's rule is that a `.cp-*` component three other
+   pages share does not get edited for a need one page has, and the answer is
+   an `of-` rule, not a broader one. */
+.of-export-controls .cp-actions { gap: .4rem; }
+.of-export-controls .cp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;              /* WCAG 2.2 SC 2.5.8 */
+  /* Tight enough that the three format options stay on one line in a 340px
+     column. They are one segmented control, and a wrap after the second option
+     reads as two controls. */
+  padding: .38rem .68rem;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-controls);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+.of-export-controls .cp-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+/* `aria-pressed` is the state, not a class: renderExport() rewrites this whole
+   row on every render, so a class-based active state would have to be reapplied
+   by hand every time. The attribute is already correct by construction. */
+.of-export-controls .cp-btn[aria-pressed="true"] {
+  color: var(--accent-gold);
+  background: var(--bg-card);
+  border-color: var(--accent-gold);
+}
+.of-export-controls .cp-btn:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+/* The last two are the actions rather than the format choice, so they read as
+   the end of the row instead of a fifth option in the same segmented control. */
+.of-export-controls #of-copy,
+.of-export-controls #of-download {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.of-export-controls #of-download {
+  color: var(--on-accent);
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  font-weight: 600;
+}
+.of-export-controls #of-download:hover {
+  color: var(--on-accent);
+  filter: brightness(1.06);
 }
 
 /* Studio Toolbar - Sticky Bottom Dock */
@@ -532,34 +967,132 @@
   bottom: 12px;
   z-index: 50;
   margin-top: .9rem;
-  margin-bottom: .8rem;
-  padding: .85rem 1.1rem;
-  background: rgba(18, 26, 47, 0.94);
+  padding: .7rem .85rem;
+  /* `backdrop-filter` is what makes that z-index mean anything at all: on a
+     static element the number is inert. AGENTS.md §3.K3 is the same shape on
+     life.html, where a decorative value on a non-positioned element silently
+     started beating the header. This one IS positioned, so it is honest — but
+     the pairing is the reason to keep both or neither. */
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--accent-gold);
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  /* A translucent fill is what makes the blur readable rather than decorative,
+     and `color-mix` is used rather than a second hardcoded rgba pair per theme:
+     the dock is now the third theme-scoped colour literal this file had, and the
+     two it replaced were a dark navy in one theme and pure white in the other —
+     which is how a "translucent" surface ends up opaque in one and see-through
+     in the other. */
+  background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  /* Wide and soft, not wide and glowing: a translucent sticky surface needs a
+     shadow big enough to read as floating. The scan flags a 1px border with a
+     >20px blur as a tell, and the border is what separates this from the card
+     behind it — a smaller shadow merges the two instead of lifting the dock. */
+  box-shadow: var(--shadow-dock, 0 6px 18px rgba(0, 0, 0, .38));
   display: flex;
   flex-direction: column;
-  gap: .75rem;
+  gap: .7rem;
   animation: ofFadeIn .2s ease;
 }
 :root[data-theme="light"] .of-studio-bar {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--accent-gold);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  --shadow-dock: 0 6px 18px rgba(15, 23, 48, .12);
 }
 @keyframes ofFadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* --- the disclosure ---------------------------------------------------------
+   The state is a class on the bar, and it is only consulted on narrow screens:
+   from 900px up the sheet is a grid whether or not the class is there, so a
+   resize across the breakpoint cannot leave the controls unreachable behind a
+   stale `is-open`. `aria-expanded` therefore describes the class, not the
+   layout, which is the only way the two can be made to agree. */
+.of-studio-head {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.of-studio-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-controls);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.of-studio-toggle:hover { border-color: var(--border-strong); }
+.of-studio-toggle:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+.of-studio-toggle-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.of-studio-chevron {
+  flex: none;
+  color: var(--text-secondary);
+  transition: transform .18s ease;
+}
+.of-studio-bar.is-open .of-studio-chevron { transform: rotate(180deg); }
+
+.of-studio-sheet { display: none; }
+.of-studio-bar.is-open .of-studio-sheet {
+  display: grid;
+  gap: .7rem;
+}
+@media (min-width: 900px) {
+  /* A plain open dock, exactly as before: no chevron, no second tap, and the
+     toggle leaves the tab order entirely rather than hiding while staying
+     focusable.
+     `display: contents` on the sheet promotes its two children into the bar's
+     own flex line, which is what lets the primary action sit at the END of the
+     controls row instead of alone on a row of its own above them — the toggle
+     that shared that header row is gone here, so without this the header
+     collapses to a single stranded button. `order` puts it back at the end. */
+  .of-studio-toggle { display: none; }
+  .of-studio-bar .of-studio-sheet { display: contents; }
+  /* **Sticky only where it earns it.** A sticky element does not reserve space
+   * where it is stuck, so it paints over whatever it passes — and with the
+   * swap list now in the stage's third column, the dock was landing on that
+   * list's heading every time the workbench was scrolled to the top (measured:
+   * the dock at y 768-888 over a heading at y 806-824, hiding all 18px of it).
+   *
+   * Sticky was introduced for tall 9:16 portraits on a PHONE, where the collapsed
+   * 57px strip keeps the controls reachable over a long scroll and costs 5% of
+   * the viewport. At 900px and up the photo is beside its controls and the dock
+   * sits directly under it, so pinning it buys nothing and costs the third
+   * column its heading. */
+  .of-studio-bar { position: static; }
+  .of-studio-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: .7rem .9rem;
+  }
+  .of-studio-head { order: 2; }
+  .of-studio-controls { order: 1; flex: 1 1 auto; }
+  .of-studio-hint { order: 3; flex: 1 0 100%; }
+}
+
 .of-studio-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 1rem 1.4rem;
+  gap: .8rem 1.2rem;
 }
 .of-studio-group {
   display: flex;
@@ -623,43 +1156,58 @@
 .of-pill.is-active {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: rgba(255, 214, 102, .12);
+  background: color-mix(in srgb, var(--accent-gold) 14%, transparent);
 }
 
 .of-studio-btn-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: .35rem;
 }
+/* The one filled primary action on the page, so it is the one button allowed a
+   colour of its own. It was a hardcoded orange-to-coral gradient with a
+   `#e6a23c` glow behind it on a near-black dock — a coloured glow on a dark
+   ground reads as a rendering artefact rather than as emphasis, and it cannot
+   follow the theme because it was never a token. `--accent-gold` already is the
+   page's "do this" colour and it is red in the light theme, so the button does
+   not have to know which one it is in. */
 .of-btn-export-photo {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: .4rem;
-  padding: .5rem 1rem;
-  background: linear-gradient(135deg, #e6a23c, #f56c6c);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: .85rem;
+  min-height: 38px;
+  padding: .45rem .95rem;
+  background: var(--accent-gold);
+  color: var(--on-accent);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: .82rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(230, 162, 60, .3);
-  transition: transform .15s ease, box-shadow .15s ease;
+  transition: filter .15s ease, transform .15s ease;
 }
 .of-btn-export-photo:hover {
+  filter: brightness(1.07);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(230, 162, 60, .4);
 }
-.of-btn-export-photo:active {
-  transform: translateY(0);
+.of-btn-export-photo:active { transform: translateY(0); }
+.of-btn-export-photo:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
 }
+.of-btn-export-photo:disabled { opacity: .6; cursor: progress; }
 
 .of-studio-hint {
-  font-size: .8rem;
+  margin: 0;
+  font-size: .78rem;
+  line-height: 1.65;
   color: var(--text-secondary);
   border-top: 1px dashed var(--border);
   padding-top: .6rem;
 }
+.of-studio-hint b { color: var(--text-primary); font-weight: 600; }
 
 /* ---------------------------------------------------------------------------
    Companion Sticker Layer on the photo
@@ -723,7 +1271,9 @@
 }
 .of-companion-tag-tip {
   color: var(--text-secondary);
-  font-size: .68rem;
+  /* .68rem computed to 10.88px, under the 11px floor for functional text —
+     and this is the only text telling a reader the sticker can be dragged. */
+  font-size: .72rem;
 }
 
 /* Pose Button on Partner Card */
@@ -744,19 +1294,28 @@
 }
 .of-btn-pose {
   margin-top: .2rem;
-  padding: .3rem .75rem;
+  min-height: 30px;
+  padding: .3rem .8rem;
   border-radius: 999px;
   border: 1px solid var(--accent-gold);
-  background: rgba(255, 214, 102, .12);
+  background: color-mix(in srgb, var(--accent-gold) 14%, transparent);
   color: var(--accent-gold);
   font-size: .78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background-color .15s ease, color .15s ease;
 }
 .of-btn-pose:hover {
   background: var(--accent-gold);
-  color: #111;
+  /* `#111` on the accent was 2.7:1 in the light theme, where the accent is red.
+     This is the same fix as `.of-roadmap-num`, and it is here for the same
+     reason: `--on-accent` is the ink that belongs on this fill in whichever
+     theme is active. */
+  color: var(--on-accent);
+}
+.of-btn-pose:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
 }
 
 /* Candidate posing button */
@@ -779,19 +1338,24 @@
 }
 
 @media (max-width: 620px) {
+  .of-workbench,
+  .of-readout { padding: 1rem .9rem; border-radius: 15px; }
+  .of-readout { gap: 1.75rem; }
+  .of-readout > .of-section + .of-section { padding-top: 1.75rem; }
+}
+
+@media (max-width: 620px) {
   .of-studio-bar {
     bottom: 8px;
-    padding: .75rem .9rem;
-    border-radius: 14px;
+    padding: .6rem .7rem;
+    border-radius: 13px;
   }
-  .of-studio-controls {
-    gap: .7rem;
-  }
-  .of-studio-group-dl {
-    width: 100%;
-  }
-  .of-btn-export-photo {
-    width: 100%;
-    justify-content: center;
-  }
+  .of-studio-controls { gap: .7rem; }
+  /* The head row is the whole collapsed dock, so the toggle takes the width and
+     the primary action keeps only what its label needs. */
+  .of-btn-export-photo { flex: none; padding: .45rem .8rem; }
+  .of-range { width: 100%; }
+  .of-studio-group-scale { flex: 1 1 100%; }
+  .of-studio-select { width: 100%; }
+  .of-studio-group:first-child { flex: 1 1 100%; }
 }

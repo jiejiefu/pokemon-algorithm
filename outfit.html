@@ -39,7 +39,30 @@
   <style>
     /* Page shell only, for the same reason colors.html keeps its shell inline:
        these are the two sizes this one page uses and they belong with the markup
-       they apply to. Components stay in outfit.css. */
+       they apply to. Components stay in outfit.css.
+
+       `.cp-page` is the load-bearing one and it used to be MISSING from this file:
+       colors.html and colors-explore.html each define it in their own shell, so
+       the name looked like it came from a stylesheet and nothing caught its
+       absence here. The page rendered edge to edge at the full viewport width —
+       the lead paragraph at ~90 CJK characters a line and a 460px palette cell
+       wide. These four declarations are deliberately identical to colors.html's,
+       because the three colour pages sharing a name should share a measure. */
+    .cp-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    .cp-intro {
+      margin-bottom: 28px;
+    }
+
+    .cp-intro h1 {
+      font-size: 28px;
+      margin: 0 0 6px;
+    }
+
     :root { color-scheme: dark; }
     :root[data-theme="light"] { color-scheme: light; }
     body { overflow-x: hidden; }
@@ -61,31 +84,37 @@
 
   <main class="cp-page">
     <div class="cp-intro">
-      <h1>寶可夢穿搭</h1>
-      <p class="cp-intro-lead">
-        上傳你的穿搭照片，點幾下身上的衣服，用<b>和 1,025 隻寶可夢完全相同的 MMCQ 演算法</b>提取六色色盤，
-        透過 OKLab 雙向感知色距找出最契合的穿搭夥伴；還能<b>直接將寶可夢放進照片任意位置合影</b>、縮放、翻轉並下載合照！
+      <h1>寶可夢穿搭夥伴</h1>
+      <p class="of-intro-lead">
+        上傳今天的穿搭照片，點幾下身上的衣服，就能算出專屬的六色色盤——用的是<b>和 1,025 隻寶可夢完全相同的 MMCQ 演算法</b>，
+        再以 <b>OKLab 雙向感知色距</b>比對（兩個方向各算一次），找出配色最合的寶可夢夥伴。
+        還能<b>把寶可夢直接放進照片裡</b>，縮放、翻轉、隨意擺位，最後下載成圖。
       </p>
       <div class="of-roadmap" aria-label="穿搭配對三步驟">
         <div class="of-roadmap-step">
           <span class="of-roadmap-num">1</span>
-          <span class="of-roadmap-text">上傳相片 & 取樣測色</span>
+          <span class="of-roadmap-text">上傳照片 &amp; 點擊測色</span>
         </div>
         <span class="of-roadmap-arrow" aria-hidden="true">→</span>
         <div class="of-roadmap-step">
           <span class="of-roadmap-num">2</span>
-          <span class="of-roadmap-text">OKLab 算出契合夥伴</span>
+          <span class="of-roadmap-text">OKLab 比對出夥伴</span>
         </div>
         <span class="of-roadmap-arrow" aria-hidden="true">→</span>
         <div class="of-roadmap-step">
           <span class="of-roadmap-num">3</span>
-          <span class="of-roadmap-text">貼圖合影 & 匯出主題</span>
+          <span class="of-roadmap-text">生成合影 &amp; 匯出主題</span>
         </div>
       </div>
-      <p class="cp-intro-note">
+      <!-- Privacy leads, and the enumeration stays. 「照片不會離開你的裝置」 is the
+           one unusual thing this page can truthfully say, and it is only credible
+           because the next clause names the five stages that never leave. Swapping
+           the enumeration for 「請放心使用」 turns a measurement into a reassurance,
+           which is the opposite of what the rest of this copy does. -->
+      <p class="of-intro-note">
+        🔒 <b>照片不會離開你的裝置</b>：解碼、取樣、量化、比對與照片合成全部在你的瀏覽器裡完成，照片絕不上傳任何伺服器。
         色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a>，
         距離度量使用感知均勻的 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a>。
-        照片<b>100% 在你的瀏覽器本機運算</b> —— 解碼、取樣、量化、比對與照片合成全部在當前分頁完成，照片絕不上傳伺服器。
       </p>
     </div>
 
@@ -108,9 +137,13 @@
     </section>
 
     <!-- ============================= work ============================= -->
-    <section class="of-section" id="of-work" aria-labelledby="sec-work" hidden>
+    <!-- ============================= work =============================
+         `.of-workbench` is the page's first bounded surface: the reader brought a
+         photo and works on it here, so everything they operate lives inside one
+         card rather than floating as five equal-weight sections. -->
+    <section class="of-section of-workbench" id="of-work" aria-labelledby="sec-work" hidden>
       <div class="of-work-header">
-        <h2 id="sec-work">二、點選衣物測色 & 夥伴合影</h2>
+        <h2 id="sec-work">二、點選衣物測色 &amp; 夥伴合影</h2>
         <div class="of-mode-tabs" role="tablist" aria-label="操作模式">
           <button type="button" class="of-tab is-active" id="of-tab-sample" role="tab" aria-selected="true">
             <span class="of-tab-icon">🎨</span>
@@ -125,7 +158,7 @@
       </div>
 
       <div class="of-stage">
-        <figure class="of-photo">
+        <figure class="of-photo" id="of-photo">
           <!-- Two canvases, not one. The photo never changes after it is drawn, so
                the marks could be baked into it — but baking them means every new
                sample repaints 262k pixels, and a canvas that carries both the image
@@ -137,7 +170,7 @@
           <!-- Companion Sticker Layer on the photo -->
           <div id="of-companion-layer" class="of-companion-layer" hidden>
             <div id="of-companion-sticker" class="of-companion-sticker" tabindex="0" role="button" aria-label="穿搭寶可夢貼圖，按住拖曳或點擊相片定位">
-              <img id="of-companion-sticker-img" class="of-companion-sticker-img" alt="" decoding="async">
+              <img id="of-companion-sticker-img" class="of-companion-sticker-img" alt="" decoding="async" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
               <div class="of-companion-tag" id="of-companion-tag">
                 <span class="of-companion-tag-name" id="of-companion-tag-name"></span>
                 <span class="of-companion-tag-tip">✥ 拖曳移動</span>
@@ -155,63 +188,113 @@
              being squeezed to nothing on a narrow screen, and the pair wraps to
              one column below 560px where the sprite goes under the photo. -->
         <figure class="of-partner" id="of-partner">
-          <img id="of-partner-img" class="of-partner-img" alt="" decoding="async" hidden>
+          <img id="of-partner-img" class="of-partner-img" alt="" decoding="async" hidden src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
           <figcaption class="of-partner-cap" id="of-partner-cap"></figcaption>
         </figure>
-      </div>
 
-      <!-- Mode chips (sampling mode). Two questions, two answers. -->
-      <div class="of-modes" id="of-modes" role="radiogroup" aria-label="比對範圍" hidden></div>
-      <p class="of-modes-note" id="of-modes-note"></p>
+        <!-- Mode chips (sampling mode). Two questions, two answers. Inside the
+             stage on a wide screen so they sit beside the photo they measure; the
+             DOM order is photo -> sprite -> chips, which is also the order they
+             read in once the tracks collapse, so nothing reorders on a phone. -->
+        <!-- The stage's third column, as ONE grid item.
+             **Three separate grid children pinned to `grid-column: 3` do not
+             stack — they each take their own ROW**, which put the caveat below
+             the photo and the swap list below that, in three rows pretending to
+             be one column. `align-items: end` then bottom-aligned each of them
+             into a row as tall as the photo. A column has to be one box. -->
+        <div class="of-stage-panel">
+          <div class="of-modes" id="of-modes" role="radiogroup" aria-label="比對範圍" hidden></div>
+          <p class="of-modes-note" id="of-modes-note"></p>
 
-      <!-- Sticky Companion Studio Dock: placed below the photo so tall 9:16 portrait photos require ZERO upward scrolling! -->
-      <div class="of-studio-bar" id="of-studio-bar" hidden>
-        <div class="of-studio-controls">
-          <div class="of-studio-group">
-            <label class="of-studio-label" for="of-companion-select">合影夥伴</label>
-            <select id="of-companion-select" class="of-studio-select"></select>
-          </div>
-
-          <div class="of-studio-group of-studio-group-scale">
-            <div class="of-studio-scale-header">
-              <label class="of-studio-label" for="of-companion-scale">大小縮放</label>
-              <span class="of-studio-val" id="of-scale-val">80%</span>
-            </div>
-            <div class="of-studio-scale-row">
-              <input type="range" id="of-companion-scale" min="40" max="180" value="80" step="5" class="of-range">
-              <div class="of-preset-pills">
-                <button type="button" class="of-pill" data-scale="50">小</button>
-                <button type="button" class="of-pill is-active" data-scale="80">中</button>
-                <button type="button" class="of-pill" data-scale="120">大</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="of-studio-group of-studio-group-actions">
-            <label class="of-studio-label">位置與面向</label>
-            <div class="of-studio-btn-row">
-              <button type="button" class="of-btn of-btn-sm" id="of-flip-btn" title="水平翻轉面向">⇄ 翻轉</button>
-              <div class="of-btn-group">
-                <button type="button" class="of-btn of-btn-sm" data-pos="tl" title="放置於左上">◴ 左上</button>
-                <button type="button" class="of-btn of-btn-sm" data-pos="tr" title="放置於右上">◷ 右上</button>
-                <button type="button" class="of-btn of-btn-sm" data-pos="bl" title="站立於左下">◺ 左下</button>
-                <button type="button" class="of-btn of-btn-sm" data-pos="br" title="站立於右下">◿ 右下</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="of-studio-group of-studio-group-dl">
-            <button type="button" class="of-btn-export-photo" id="of-download-photo-btn">
-              <span>📷 下載穿搭合照</span>
-            </button>
+        <!-- The runners-up, as a WORKBENCH control rather than a result. They sit
+             in the stage's spare column — measured 348px wide and holding a 38px
+             chip row beside a 618px photo — and the job of a card here is no
+             longer "here is another result" but "put this one in the photo
+             instead". One wrapper so the heading and the list it names can never
+             be visible without each other. -->
+          <div class="of-swap" id="of-swap" hidden>
+            <h3 class="of-swap-title">換一個夥伴</h3>
+            <p class="of-swap-note">前五名裡的另外四隻。按「合照」就換進相片。</p>
+            <div class="of-candidates" id="of-candidates"></div>
           </div>
         </div>
-        <div class="of-studio-hint">
-          💡 <strong>直幅相片最佳體驗：</strong>控制面板會智能吸附於螢幕底部。在相片<strong>任一處直接點擊</strong>即可放置，或按住寶可夢<strong>直接拖曳</strong>定位！
+      </div>
+
+
+      <!-- Sticky Companion Studio Dock.
+           A disclosure on narrow screens, a plain open dock from 900px up.
+
+           The dock was `position: sticky; bottom: 12px` and unconditional, and on
+           a 390x844 phone that measured 310px tall — 36.7% of the viewport,
+           permanently, covering 19.6% of the photo itself: the reader could not
+           see the jeans they were clicking, nor the companion's feet, which is the
+           whole point of a photo you can stand a creature in. Collapsing the
+           controls into a sheet costs one tap and puts the dock back to a ~60px
+           summary strip. The download button lives in the header row rather than
+           inside the sheet so the one action a reader came here for is always
+           reachable without expanding anything. -->
+      <div class="of-studio-bar" id="of-studio-bar" hidden>
+        <div class="of-studio-head">
+          <button type="button" class="of-studio-toggle" id="of-studio-toggle"
+                  aria-expanded="false" aria-controls="of-studio-sheet">
+            <span class="of-studio-toggle-icon" aria-hidden="true">&#127925;</span>
+            <span class="of-studio-toggle-text" id="of-studio-toggle-text">合影工作室</span>
+            <span class="of-studio-chevron" aria-hidden="true">▾</span>
+          </button>
+          <button type="button" class="of-btn-export-photo" id="of-download-photo-btn">
+            <span>📷 下載穿搭合照</span>
+          </button>
+        </div>
+
+        <div class="of-studio-sheet" id="of-studio-sheet">
+          <div class="of-studio-controls">
+            <div class="of-studio-group">
+              <label class="of-studio-label" for="of-companion-select">合影夥伴</label>
+              <select id="of-companion-select" class="of-studio-select"></select>
+            </div>
+
+            <div class="of-studio-group of-studio-group-scale">
+              <div class="of-studio-scale-header">
+                <label class="of-studio-label" for="of-companion-scale">大小縮放</label>
+                <span class="of-studio-val" id="of-scale-val">80%</span>
+              </div>
+              <div class="of-studio-scale-row">
+                <input type="range" id="of-companion-scale" min="40" max="180" value="80" step="5" class="of-range">
+                <div class="of-preset-pills">
+                  <button type="button" class="of-pill" data-scale="50">小</button>
+                  <button type="button" class="of-pill is-active" data-scale="80">中</button>
+                  <button type="button" class="of-pill" data-scale="120">大</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="of-studio-group of-studio-group-actions">
+              <span class="of-studio-label" id="of-place-label">位置與面向</span>
+              <div class="of-studio-btn-row" role="group" aria-labelledby="of-place-label">
+                <button type="button" class="of-btn of-btn-sm" id="of-flip-btn" title="水平翻轉面向">⇄ 翻轉</button>
+                <div class="of-btn-group">
+                  <button type="button" class="of-btn of-btn-sm" data-pos="tl" title="放置於左上">◴ 左上</button>
+                  <button type="button" class="of-btn of-btn-sm" data-pos="tr" title="放置於右上">◷ 右上</button>
+                  <button type="button" class="of-btn of-btn-sm" data-pos="bl" title="站立於左下">◺ 左下</button>
+                  <button type="button" class="of-btn of-btn-sm" data-pos="br" title="站立於右下">◿ 右下</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="of-studio-hint">
+            💡 在相片<strong>任一處直接點擊</strong>即可放置，或按住寶可夢<strong>直接拖曳</strong>定位。
+          </p>
         </div>
       </div>
     </section>
 
+    <!-- ============================ readout ==========================
+         The page's second bounded surface. These three sections used to be three
+         more top-level blocks each separated by one repeated 2.4rem, which gave a
+         500px-tall result, a 190px palette and a 380px code block the same visual
+         weight. One card, three rhythms inside it. Every id and every `hidden`
+         toggle in render() is untouched — only the wrapper is new. -->
+    <div class="of-readout">
     <!-- ============================ result =========================== -->
     <section class="of-section" id="of-result" aria-labelledby="sec-result" hidden>
       <h2 id="sec-result">三、最接近的一隻</h2>
@@ -219,28 +302,34 @@
       <div class="of-measured" id="of-measured"></div>
 
       <div class="of-winner" id="of-winner"></div>
-
-      <h3 class="of-sub">其他候選</h3>
-      <div class="of-candidates" id="of-candidates"></div>
     </section>
 
     <!-- ============================ palette =========================== -->
     <section class="of-section" id="of-palette-sec" aria-labelledby="sec-palette" hidden>
       <h2 id="sec-palette">四、你的六色色盤</h2>
       <div id="of-palette"></div>
-      <p class="cp-note" id="of-palette-note"></p>
+      <p class="of-note" id="of-palette-note"></p>
     </section>
 
     <!-- ============================ export ============================ -->
     <section class="of-section" id="of-export-sec" aria-labelledby="sec-export" hidden>
       <h2 id="sec-export">五、把它變成主題</h2>
-      <p class="cp-note">
-        這組顏色可以直接匯出成 CSS 變數、Tailwind 設定或 JSON —— 和
-        <a href="colors.html">色彩生成器</a>用的是同一組函式，所以匯出來的格式完全一致。
+      <p class="of-note">
+        這一組顏色可以直接變成前端用的主題：<b>CSS 變數</b>、<b>Tailwind v3 設定檔</b>、<b>Tailwind v4 CSS</b> 或 <b>JSON</b>，一鍵複製或下載。
+        跟<a href="colors.html">色彩生成器</a>用的是同一組函式，所以格式完全一致。
       </p>
-      <div class="cp-actions" id="of-actions"></div>
-      <pre class="of-code" id="of-code" tabindex="0"></pre>
+      <!-- The code block is ~35 characters wide and was rendering in a 1400px,
+           380px-tall box: roughly four fifths empty. It now sits in a column of
+           its own beside the controls that produce it. -->
+      <div class="of-export-row">
+        <div class="of-export-controls">
+          <div class="cp-actions" id="of-actions"></div>
+          <p class="of-note of-export-hint">點上方任一格式即時切換；「複製」與「下載」輸出目前選取的格式。</p>
+        </div>
+        <pre class="of-code" id="of-code" tabindex="0" aria-label="產生的主題碼"></pre>
+      </div>
     </section>
+    </div><!-- /.of-readout -->
   </main>
 
   <footer class="home-footer">
@@ -260,11 +349,11 @@
       pokemonDetailUrl,
     } from './assets/js/shared.js';
     import {
-      loadColorPalettes, artworkUrl, paletteGridHtml, paletteUrl,
+      loadColorPalettes, artworkUrl, paletteGridHtml, paletteStripHtml, paletteUrl,
       paletteToThemeTokens, themeToTailwindV4Css, themeToTailwindV3Config, themeToJson,
       describeHex, formatShare, formatHex,
     } from './assets/js/color-palette.js';
-    import { buildMatchIndex, matchPalette, pixelToOklab as toLab } from './assets/js/color-match.js';
+    import { buildMatchIndex, matchPalette, paletteOf, pixelToOklab as toLab } from './assets/js/color-match.js';
     import { snapToReal } from './assets/js/mmcq.js';
     import {
       fitWorkingSize, discRadius, discCoordinates, boundsOf,
@@ -284,9 +373,13 @@
       file: document.getElementById('of-file'),
       fileMeta: document.getElementById('of-file-meta'),
       work: document.getElementById('of-work'),
+      photoFigure: document.getElementById('of-photo'),
+      swap: document.getElementById('of-swap'),
       tabSample: document.getElementById('of-tab-sample'),
       tabPhoto: document.getElementById('of-tab-photo'),
       studioBar: document.getElementById('of-studio-bar'),
+      studioToggle: document.getElementById('of-studio-toggle'),
+      studioToggleText: document.getElementById('of-studio-toggle-text'),
       companionLayer: document.getElementById('of-companion-layer'),
       companionSticker: document.getElementById('of-companion-sticker'),
       companionStickerImg: document.getElementById('of-companion-sticker-img'),
@@ -350,6 +443,10 @@
 
     let currentPalette = null;
     let currentWinner = null;
+    // The full top-5 ranking for the current selection. Held rather than
+    // re-derived, because render() and renderCandidates() both need it and the
+    // matcher walks all 1,025 palettes every time it is called.
+    let currentRanks = [];
 
     // Active mode: 'sample' (測色取樣) | 'photo' (照片合影)
     let activeMode = 'sample';
@@ -617,10 +714,17 @@
       renderMarks();
       renderModes();
 
+      // **The swap block moved out of `#of-result`, so `#of-result`'s `hidden`
+      //   no longer covers it.** Every exit below therefore writes all four,
+      //   as a contiguous group: a comment between two sibling writes is enough
+      //   to separate them, and the gate check in check_outfit_browser.mjs
+      //   pairs each readout write with a swap write within a few lines —
+      //   which is why these four lines are adjacent and stay that way.
       const has = samples.length > 0;
       els.result.hidden = !has;
       els.paletteSec.hidden = !has;
       els.exportSec.hidden = !has;
+      els.swap.hidden = !has;
       if (!has) {
         currentPalette = null;
         currentWinner = null;
@@ -635,6 +739,7 @@
         els.result.hidden = true;
         els.paletteSec.hidden = true;
         els.exportSec.hidden = true;
+        els.swap.hidden = true;
         els.partnerImg.hidden = true;
         els.tabPhoto.disabled = true;
         switchMode('sample');
@@ -646,7 +751,17 @@
       // with — see mmcq.js's header for why there is one of it and not two.
       const rows = snapToReal(pixels, 6);
       currentPalette = rows;
-      currentWinner = matchPalette(rows, 5)[0] || null;
+      // **One ranking, not two.** This used to call matchPalette(rows, 5) here
+      // for `[0]` and then call it AGAIN inside renderCandidates() — two full
+      // 1,025-species OKLab scans per click, with the second one's result
+      // discarded except for the cards. The list needs all five anyway.
+      const ranks = matchPalette(rows, 5);
+      currentRanks = ranks;
+      currentWinner = ranks[0] || null;
+      // Gated on there being RUNNERS-UP, not on there being a winner: the
+      // heading says there are four others, and a ranking of one leaves it
+      // claiming four over an empty list.
+      els.swap.hidden = ranks.length < 2;
 
       if (currentWinner) {
         els.tabPhoto.disabled = false;
@@ -662,7 +777,7 @@
 
       renderMeasured(rows);
       renderWinner();
-      renderCandidates();
+      renderCandidates(ranks);
       renderPalette(rows);
       renderExport(rows);
     }
@@ -721,6 +836,15 @@
       }
       if (els.scaleVal) {
         els.scaleVal.textContent = `${Math.round(companionState.scale * 100)}%`;
+      }
+      // The collapsed dock's summary has to carry the two numbers a reader would
+      // otherwise read off the controls inside it, because on a phone those
+      // controls are one tap away and hidden: who is standing in the photo, and
+      // how big. A header that says only 「合影工作室」 tells the reader nothing
+      // about the state they cannot see.
+      if (els.studioToggleText) {
+        const pct = `${Math.round(companionState.scale * 100)}%`;
+        els.studioToggleText.textContent = `${name} · ${pct}`;
       }
       document.querySelectorAll('.of-preset-pills .of-pill').forEach((pill) => {
         pill.classList.toggle('is-active', Number(pill.dataset.scale) === Math.round(companionState.scale * 100));
@@ -833,7 +957,7 @@
           <span class="of-tile-label">${label}</span>
           <span class="of-tile-value">${value}</span>
         </div>`).join('')}</div>
-      <p class="cp-note">
+      <p class="of-note">
         占比不會加到 100%，這是對的：六個顏色是一份樣本，沒被報出來的像素輸掉了分區。
         1,025 隻寶可夢的實測色盤中位數也只有 71.96% —— 用的是同一個演算法，行為也必須一樣。
       </p>`;
@@ -879,27 +1003,50 @@
         ? record.types_zh
         : [];
 
+      // The matched species' OWN measured palette, as the same five-colour strip
+      // colors.html's winner card wears. `paletteOf()` returns { hex, share }
+      // records and `paletteStripHtml()` takes [hex, share] pairs — the map IS the
+      // conversion, and skipping it renders five segments of `undefined`.
+      //
+      // This is the Pokémon's palette, not the reader's: section 四 below shows
+      // what was measured off their outfit, and this shows the six colours that
+      // were measured off the sprite and ranked against it. Neither answer is
+      // derivable from the other.
+      const ownPalette = (paletteOf(m.id) || []).map(e => [e.hex, e.share]);
+      const ownStrip = ownPalette.length ? paletteStripHtml(ownPalette) : '';
+
       els.winner.innerHTML = `
         <div class="of-winner-card">
           <div class="of-winner-main">
-            <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
-            <h3 class="of-winner-name">
-              ${record
-                ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
-                : `<span>${escapeHtml(name)}</span>`}
-            </h3>
-            <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
+            <div class="of-winner-head">
+              <div class="of-winner-ident">
+                <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
+                <h3 class="of-winner-name">
+                  ${record
+                    ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
+                    : `<span>${escapeHtml(name)}</span>`}
+                </h3>
+                <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
+              </div>
+              ${ownStrip ? `
+              <figure class="of-winner-fig">
+                <img class="of-winner-sprite" src="${artworkUrl(m.id)}" alt="${escapeHtml(name)}"
+                     width="84" height="84" decoding="async">
+                <div class="of-winner-strip">${ownStrip}</div>
+              </figure>` : ''}
+            </div>
             <dl class="of-winner-scores">
               <div><dt>色盤距離</dt><dd>${m.score.toFixed(4)}</dd></div>
-              <div><dt>穿搭 → 牠</dt><dd>${m.forward.toFixed(4)}</dd></div>
-              <div><dt>牠 → 穿搭</dt><dd>${m.reverse.toFixed(4)}</dd></div>
-              <div><dt>牠的主色</dt><dd>${escapeHtml(formatHex(m.primaryHex))} ${formatShare(m.primaryShare)}</dd></div>
+              <div><dt>穿搭 → 寶可夢</dt><dd>${m.forward.toFixed(4)}</dd></div>
+              <div><dt>寶可夢 → 穿搭</dt><dd>${m.reverse.toFixed(4)}</dd></div>
+              <div><dt>寶可夢的主色</dt><dd>${escapeHtml(formatHex(m.primaryHex))} ${formatShare(m.primaryShare)}</dd></div>
             </dl>
-            <p class="of-winner-note">
-              兩個方向都列出來了，因為它們回答不同的問題：<b>穿搭 → 牠</b> 是「牠的六色能不能蓋住你點的顏色」，
-              <b>牠 → 穿搭</b> 是反過來問的。只看第一個方向的話，一隻塞滿連續相近顏色的寶可夢
-              可以零懲罰地贏下任何同色系的穿搭。
-            </p>
+            <p class="of-winner-note">💡 為什麼要「雙向」比對？</p>
+            <ul class="of-winner-why">
+              <li><b>穿搭 → 寶可夢</b>：你點的每一個顏色，都要在牠的六色裡找到最接近的一個。</li>
+              <li><b>寶可夢 → 穿搭</b>：同一個演算法方向對調——牠的每一個顏色，也得在你的穿搭裡找到最接近的一個。</li>
+              <li>兩者各佔一半。少了後者，一組連續漸層的褐色就能零懲罰地蓋住任何褐色穿搭。</li>
+            </ul>
             ${record ? `<p class="of-winner-links">
               <a href="${pokemonDetailUrl(record)}">完整資料頁</a>
               <a href="${paletteUrl(record)}">單一色盤</a>
@@ -930,22 +1077,30 @@
       }
     }
 
-    function renderCandidates() {
-      const all = matchPalette(currentPalette, 5);
+    function renderCandidates(ranks) {
+      // `slice(1)`, and the winner is dropped rather than filtered out:
+      // `currentWinner` IS `ranks[0]`, so the slice is exact and cannot quietly
+      // drop a sixth card if two species ever tie.
       // Every candidate here is a real species with a palette in
       // color_palettes.json, so a missing pokemon_data.json record is a data
       // fault rather than an expected case. It still has to render as SOMETHING:
       // `paletteUrl()` needs a record, and handing it a fabricated one is how a
       // dead link gets a sprite next to it. So the card falls back to a <span>,
       // which is not a link, and the absence is visible instead of clickable.
-      els.candidates.innerHTML = all.map((m) => {
+      els.candidates.innerHTML = ranks.slice(1).map((m) => {
         const name = speciesName(m.id);
         const record = speciesOf(m.id);
-        const on = currentWinner && m.id === currentWinner.id;
+        // **The companion, not the winner.** This was `m.id === currentWinner.id`,
+        // which is why the highlight never moved when you swapped the companion:
+        // it was answering "is this the answer" in a list whose cards now mean
+        // "put this one in the photo". Same expression as `updateCompanion()`,
+        // so there is one definition of who is in the photo rather than two.
+        const on = m.id === (companionState.pokemonId || (currentWinner && currentWinner.id));
         const tag = record ? 'a' : 'span';
         const href = record ? ` href="${paletteUrl(record)}"` : '';
         return `
-          <div class="of-candidate${on ? ' is-on' : ''}${record ? '' : ' is-plain'}">
+          <div class="of-candidate${on ? ' is-on' : ''}${record ? '' : ' is-plain'}"
+               ${on ? 'aria-current="true"' : ''}>
             <${tag} class="of-candidate-link"${href}>
               <img src="${artworkUrl(m.id)}" alt="" width="56" height="56" loading="lazy" decoding="async">
               <span class="of-candidate-body">
@@ -966,8 +1121,34 @@
           companionState.pokemonId = Number(btn.dataset.poseId);
           switchMode('photo');
           updateCompanion();
-          els.work.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          // **The scroll target moved with the cards.** This used to be
+          // `els.work`, which was right while the list sat BELOW the workbench.
+          // It now lives INSIDE it, so that call would scroll the reader back up
+          // to the top of the workbench — away from the photo they just picked a
+          // partner for. The photo is what they need to see next.
+          els.photoFigure.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          markCurrentCandidate();
         });
+      });
+    }
+
+    /**
+     * Reflect the chosen companion on the cards.
+     *
+     * A separate pass rather than a re-render: the list is already correct in
+     * every other respect, and rebuilding its innerHTML would rebind four
+     * listeners and repaint four sprites to move one class. It is also the only
+     * place the state is written, because `updateCompanion()` runs on every
+     * drag, scale and pose change and must not be dragging a highlight along.
+     */
+    function markCurrentCandidate() {
+      const targetId = companionState.pokemonId || (currentWinner && currentWinner.id);
+      els.candidates.querySelectorAll('.of-candidate').forEach((card) => {
+        const btn = card.querySelector('[data-pose-id]');
+        const on = !!btn && Number(btn.dataset.poseId) === targetId;
+        card.classList.toggle('is-on', on);
+        if (on) card.setAttribute('aria-current', 'true');
+        else card.removeAttribute('aria-current');
       });
     }
 
@@ -1244,6 +1425,21 @@
     // Mode tabs
     els.tabSample.addEventListener('click', () => switchMode('sample'));
     els.tabPhoto.addEventListener('click', () => switchMode('photo'));
+
+    // The dock's disclosure. **The open state lives in a CLASS, not in `hidden`,
+    // and the wide layout never consults it** — CSS decides that the sheet is a
+    // grid from 900px up regardless. That is why this handler does not need to
+    // know the viewport: a resize across the breakpoint cannot leave the sheet
+    // hidden behind a stale class, and `aria-expanded` describes the class rather
+    // than the layout, which is the only way the two can agree.
+    function setStudioOpen(open) {
+      els.studioBar.classList.toggle('is-open', open);
+      els.studioToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    setStudioOpen(false);
+    els.studioToggle.addEventListener('click', () => {
+      setStudioOpen(els.studioToggle.getAttribute('aria-expanded') !== 'true');
+    });
 
     // Companion Scale Slider & Preset Pills
     els.companionScale.addEventListener('input', (e) => {

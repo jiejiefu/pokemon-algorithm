@@ -29,7 +29,7 @@
  * against 2,050 real sprites.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -518,6 +518,434 @@ const json = await ev(`(async () => {
 // dark — so the count is pinned rather than loosened to `> 0`, which would pass
 // on an empty object.
 ok(json.parsed && json.keys === 5, `the JSON format parses into the five expected top-level keys (${json.keys})`);
+
+// --- the studio dock's disclosure -------------------------------------------
+//
+// **THE PHOTO STUDIO WAS ENTIRELY UNCHECKED until this block existed.**
+// `rg -n "studio|of-tab|companion" scripts/` returned nothing at all: no
+// assertion in this file or any other touched `switchMode()`, the dock, the
+// sticker or the mode tabs, so the second half of this page shipped unverified
+// through a suite of 45 checks. It is now on disk as a disclosure, which is the
+// change most likely to make a control unreachable, so it is checked for
+// reachability in BOTH states rather than for the CSS that hides it.
+//
+// The measurement that motivated it, at 390x844: the dock was 310px tall — 36.7%
+// of the viewport — and covered 19.6% of the photo, permanently. The reader
+// could not see the garment they were clicking or the companion's feet. The bar
+// is now a ~57px summary strip, so the ceiling below is 90px: high enough for the
+// header row at any locale, low enough that it cannot be the old 310.
+const dock = await ev(`(async () => {
+  document.getElementById('of-tab-photo').click();
+  await new Promise(r => setTimeout(r, 250));
+  const bar = document.getElementById('of-studio-bar');
+  const toggle = document.getElementById('of-studio-toggle');
+  const sheet = document.getElementById('of-studio-sheet');
+  const dl = document.getElementById('of-download-photo-btn');
+  const r = bar.getBoundingClientRect();
+  return {
+    shown: !bar.hidden,
+    barH: Math.round(r.height),
+    hasToggle: !!toggle,
+    // The SHEET's own display, not the select's: a child of a display:none
+    // parent still computes its own display as block, so reading the control
+    // reports it visible in both states and the assertion can never fail.
+    sheetDisplay: getComputedStyle(sheet).display,
+    toggleDisplay: getComputedStyle(toggle).display,
+    expanded: toggle.getAttribute('aria-expanded'),
+    downloadVisible: getComputedStyle(dl).display !== 'none',
+    summary: document.getElementById('of-studio-toggle-text').textContent.trim(),
+    sheetExists: !!sheet,
+  };
+})()`);
+ok(dock.shown, 'entering photo mode shows the studio dock');
+ok(dock.hasToggle && dock.sheetExists,
+  'the dock is a disclosure with a real target, not a label over nothing');
+ok(dock.downloadVisible,
+  'the primary action is reachable without expanding the disclosure — it is in the header row, not the sheet');
+ok(dock.sheetDisplay === 'none',
+  `and the controls are collapsed by default here, so the dock is a summary strip rather than a wall (${dock.barH}px)`);
+ok(dock.barH <= 90,
+  `the collapsed dock is short enough to leave the photo alone (${dock.barH}px, was 310px and 36.7% of a 844px viewport)`);
+ok(/·/.test(dock.summary) && dock.summary.length > 3,
+  `the collapsed strip states the two numbers its hidden controls would have shown (${dock.summary})`);
+
+const opened = await ev(`(async () => {
+  document.getElementById('of-studio-toggle').click();
+  await new Promise(r => setTimeout(r, 150));
+  const before = document.getElementById('of-companion-scale').value;
+  document.getElementById('of-companion-scale').value = '140';
+  document.getElementById('of-companion-scale').dispatchEvent(new Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 150));
+  return {
+    expanded: document.getElementById('of-studio-toggle').getAttribute('aria-expanded'),
+    sheetDisplay: getComputedStyle(document.getElementById('of-studio-sheet')).display,
+    before, after: document.getElementById('of-companion-scale').value,
+    stickerW: parseFloat(document.getElementById('of-companion-sticker').style.width),
+    readout: document.getElementById('of-scale-val').textContent,
+  };
+})()`);
+ok(opened.expanded === 'true' && opened.sheetDisplay !== 'none',
+  'expanding the disclosure reveals the controls it stands for');
+ok(opened.after !== opened.before && opened.readout === '140%',
+  `and the scale slider still drives the sticker from inside the sheet (${opened.before}% -> ${opened.after}%, readout ${opened.readout}, sticker ${opened.stickerW}px)`);
+
+// And the wide layout is the other half of the contract: the toggle must not
+// merely be invisible there, it must be out of the tab order, or a keyboard user
+// lands on a control whose effect is already applied. The viewport is resized
+// rather than the CSS re-read, because "display:none at 900px" and "no
+// `display:none` in the stylesheet" are the same claim and only one of them is
+// what a reader meets.
+await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
+const wide = await ev(`(async () => {
+  await new Promise(r => setTimeout(r, 300));
+  const toggle = document.getElementById('of-studio-toggle');
+  const sel = document.getElementById('of-companion-select');
+  return {
+    toggleDisplay: getComputedStyle(toggle).display,
+    sheetDisplay: getComputedStyle(document.getElementById('of-studio-sheet')).display,
+    // An element inside a display:none subtree is not focusable, so this is the
+    // property the claim is actually about rather than the declaration.
+    focusable: sel.getBoundingClientRect().width > 0,
+    aria: toggle.getAttribute('aria-expanded'),
+  };
+})()`);
+ok(wide.toggleDisplay === 'none',
+  'the disclosure control is out of the layout on a wide screen, not merely hidden');
+ok(wide.sheetDisplay !== 'none' && wide.focusable,
+  'and the dock is simply open there — the same markup, no second state to keep in sync');
+await send('Emulation.clearDeviceMetricsOverride');
+
+// --- the COPY itself ---------------------------------------------------------
+//
+// Nothing above reads a single string on this page: the suite checks
+// `.of-winner-{name,id,eyebrow,scores,links}` and the DOM, and a rewrite of the
+// lead paragraph or the privacy note would leave all 71 checks green having
+// verified nothing about it. These two are aimed at the likeliest way this copy
+// breaks: a paste from an external suggestion, which arrived here carrying
+// hallucinated [cite] markers and a bare ampersand.
+//
+// **OFF THE DISK, not off the page — and that is the whole point.** The first
+// version of the ampersand guard read `el.outerHTML`, which cannot fail: the
+// HTML serialiser escapes a text-node `&` back to `&amp;`, so a file that had
+// said `& 取樣測色` and a file that said `&amp; 取樣測色` serialise identically.
+// The mutation to the bare form passed. `textContent` is no better — it decodes
+// both to the same character. Only the source can tell them apart, so this
+// reads the file, which also makes it the first thing in this checker to open a
+// repo file at all. That is why `check_all.mjs` keeps its `manual: true` rather
+// than dropping it: the inputs list still describes a page arriving over HTTP,
+// and one read does not make that recording verifiable.
+const copySrc = readFileSync(new URL('../outfit.html', import.meta.url), 'utf8');
+// Up to the inline module, NOT to `</body>`: the module script lives inside
+// `<body>`, so slicing to the end counted every `&&` in the JavaScript as a
+// markup error — 47 of them, none of them real.
+const BODY = copySrc.slice(copySrc.indexOf('<body>'), copySrc.indexOf('<script type="module">'));
+const bare = (BODY.match(/&(?!amp;|lt;|gt;|quot;|#\d|#x[a-f0-9])/g) || []);
+ok(bare.length === 0,
+  `no unescaped ampersand in the markup — "&amp; " is required, and a bare one parses only because browsers forgive it (${bare.length} found: ${bare.slice(0, 3).join(' ') || 'none'})`);
+ok(!BODY.includes('[cite') && !BODY.includes('shared[cite'),
+  'no citation artefact left in the file — those come from pasting an external suggestion verbatim');
+
+// --- the winner's OWN palette, as the five-colour strip -----------------------
+//
+// Section 四 shows what was measured off the READER's outfit; this strip shows
+// the six colours measured off the matched SPRITE. Both are six colours in the
+// same component, which is exactly why the strip is easy to wire to the wrong one
+// silently — so the assertion is identity, not shape: the first segment must
+// equal the hex already printed in the 「寶可夢的主色」 tile on the same card.
+const strip = await ev(`(() => {
+  const segs = [...document.querySelectorAll('.of-winner-strip .cp-seg')];
+  const bar = document.querySelector('.of-winner-strip .cp-strip');
+  const sprite = document.querySelector('.of-winner-sprite');
+  const dts = [...document.querySelectorAll('.of-winner-scores dt')];
+  const primaryTile = [...document.querySelectorAll('.of-winner-scores > div')]
+    .find(d => d.querySelector('dt').textContent.trim() === '寶可夢的主色');
+  // Hexes off each segment's own title attribute, which paletteStripHtml()
+  // writes as "HEX · share" — so this compares what the component CLAIMS it drew
+  // against the tile the matcher computed, with no colour parsing between them.
+  // Reached for after parsing the inline background instead, which came back
+  // null: this lives in a template literal, so a backslash-d in the class
+  // arrives as a literal "d". (No backticks in these comments either — one ends
+  // the literal. Both halves of the same trap, hit several times today.)
+  const segHexes = segs.map(s => {
+    const m = (s.getAttribute('title') || '').match(/#[0-9A-Fa-f]{6}/);
+    return m ? m[0].toUpperCase() : null;
+  });
+  const ident = document.querySelector('.of-winner-ident');
+  const fig = document.querySelector('.of-winner-fig');
+  const head = document.querySelector('.of-winner-head');
+  const card = document.querySelector('.of-winner-card');
+  const fb = fig ? fig.getBoundingClientRect() : null;
+  const ib = ident ? ident.getBoundingClientRect() : null;
+  return {
+    segs: segs.length,
+    segHexes,
+    aria: bar ? bar.getAttribute('aria-label') : null,
+    moreDisplay: (() => { const m = document.querySelector('.of-winner-strip .cp-seg-more');
+      return m ? getComputedStyle(m).display : 'absent'; })(),
+    hexLabels: (() => { const h = document.querySelector('.of-winner-strip .cp-seg-hex');
+      return h ? getComputedStyle(h).display : 'absent'; })(),
+    primary: primaryTile ? (primaryTile.querySelector('dd').textContent.trim().match(/#[0-9a-f]{6}/i) || [null])[0].toUpperCase() : null,
+    labels: dts.map(d => d.textContent.trim()),
+    spriteSrc: sprite ? sprite.getAttribute('src') : null,
+    spriteDecoded: sprite ? sprite.naturalWidth > 0 : false,
+    figRightOfName: !!(fig && ident) && fig.getBoundingClientRect().left > ident.getBoundingClientRect().left,
+    // Not a distance between the two: that is definitionally the flex gap and
+    // can never exceed it, so asserting on it passes at 456px and 1040px alike.
+    // Three mutations confirmed it. What differs is the MECHANISM.
+    identFlexGrow: ident ? parseFloat(getComputedStyle(ident).flexGrow) : null,
+    headJustify: head ? getComputedStyle(head).justifyContent : null,
+    headContentW: (fb && ib) ? Math.round(fb.right - ib.left) : null,
+    cardInnerW: card ? Math.round(card.getBoundingClientRect().width) : null,
+  };
+})()`);
+ok(strip.segs === 5 && /主要 5 色/.test(strip.aria || ''),
+  `the winner card wears a five-colour strip that says so out loud (${strip.segs} segments, aria "${strip.aria}") — the sixth is not silently implied`);
+ok(strip.segs === 5 && strip.primary !== null && strip.segHexes[0] === strip.primary,
+  `and its first segment is the MATCHED species' primary, cross-checked against the hex printed in the same card (${strip.segHexes[0]} vs ${strip.primary}) — not the reader's own palette, which is also six colours`);
+ok(strip.moreDisplay === 'none' && strip.hexLabels === 'none',
+  `the "+1" chip and per-segment hexes are dropped rather than shrunk to illegible digits (${strip.moreDisplay} / ${strip.hexLabels}), with the count carried by the aria-label instead`);
+ok(/^assets\/images\/pokemon\/\d+\.png$/.test(strip.spriteSrc || '') && strip.spriteDecoded,
+  `the portrait beside it is the 475px artwork and it decoded (${strip.spriteSrc})`);
+ok(strip.figRightOfName,
+  'and the figure sits to the right of the name, not left of it — the two share one row rather than stacking');
+ok(strip.identFlexGrow === 0,
+  `the identity block does not grow to fill the card (flex-grow ${strip.identFlexGrow}) — this is what pushed the portrait from x=456 to x=1040`);
+ok(strip.headJustify === 'normal' || strip.headJustify === 'flex-start',
+  `and the head row is not end-packed (justify-content: ${strip.headJustify}) — a second mechanism pushing the same way`);
+ok(strip.headContentW !== null && strip.cardInnerW !== null
+     && strip.headContentW / strip.cardInnerW <= 0.8,
+  `and the row's content leaves the card's right side empty (${strip.headContentW} of ${strip.cardInnerW}px, ${Math.round(strip.headContentW / strip.cardInnerW * 100)}%; was 96%)`);
+ok(strip.labels.length === 4 && strip.labels[1] === '穿搭 → 寶可夢' && strip.labels[2] === '寶可夢 → 穿搭',
+  `the score tiles keep 寶可夢 rather than 牠 in both directions (${strip.labels.slice(1, 3).join(' | ')})`);
+
+// --- the swap list: a region that MOVED, so nothing was watching it ----------
+//
+// `rg -n "candidate" scripts/check_outfit_browser.mjs` returned nothing before
+// this block. The list used to be gated by `#of-result`'s `hidden`, and now it
+// is a separate container inside the workbench with its own gate — so a missed
+// write on either early-return path in `render()` would leave the PREVIOUS
+// click's four cards on screen, and every other check in this file would still
+// pass. It is asserted by identity, not by shape: the winner's name must be
+// ABSENT from the list, and the selected card must be the species the sticker is
+// actually showing.
+const swap = await ev(`(() => {
+  const block = document.getElementById('of-swap');
+  const cards = [...document.querySelectorAll('#of-candidates .of-candidate')];
+  const winnerName = (document.querySelector('.of-winner-name') || {}).textContent || '';
+  const stickerAlt = (document.getElementById('of-companion-sticker-img') || {}).alt || '';
+  return {
+    exists: !!block,
+    // Membership, not a class: a second COPY of the container with no cards in
+    // it is exactly the shape a "no .of-candidate in the readout" check misses,
+    // because the thing being forbidden is the container, not its children.
+    inWorkbench: !!document.getElementById('of-candidates')
+      && !!document.getElementById('of-work').querySelector('#of-candidates'),
+    inReadout: !!document.querySelector('.of-readout #of-candidates'),
+    count: cards.length,
+    heading: (document.querySelector('.of-swap-title') || {}).textContent || '',
+    winnerAbsent: !cards.some((c) => (c.textContent || '').includes(winnerName.trim())),
+    currentCount: cards.filter((c) => c.getAttribute('aria-current') === 'true').length,
+    currentName: (cards.find((c) => c.getAttribute('aria-current') === 'true') || {}).textContent || '',
+    stickerAlt,
+    poseButtons: cards.filter((c) => c.querySelector('[data-pose-id]')).length,
+  };
+})()`);
+ok(swap.exists && swap.count === 4,
+  `the swap list holds exactly the four runners-up (${swap.count} cards under 「${swap.heading}」)`);
+ok(swap.winnerAbsent,
+  `and the winner is not among them — it has its own card above, not a duplicate here`);
+ok(swap.poseButtons === 4,
+  `every card can still be swapped into the photo (${swap.poseButtons}/4 carry 合照)`);
+ok(swap.inWorkbench && !swap.inReadout,
+  'and the list lives in the workbench, with no second copy left behind in the readout');
+// The one that catches a stale list: a card marked current must be the species the
+// sticker is showing, so a leftover from the previous click cannot pass as one.
+ok(swap.currentCount <= 1 && (!swap.stickerAlt || swap.stickerAlt.split(' ')[0] === swap.currentName.trim().split('\n')[0] || swap.currentCount === 0),
+  `at most one card claims to be in the photo, and it is the one there (${swap.currentCount} marked, sticker "${swap.stickerAlt}")`);
+
+// And the swap itself, including the scroll target — which was `els.work` while
+// the list sat BELOW the workbench and became wrong the moment it moved inside.
+const swapped = await ev(`(async () => {
+  const cards = [...document.querySelectorAll('#of-candidates .of-candidate')];
+  const target = cards[cards.length - 1].querySelector('[data-pose-id]');
+  const wanted = Number(target.dataset.poseId);
+  const before = document.getElementById('of-canvas').getBoundingClientRect().top;
+  target.click();
+  await new Promise(r => setTimeout(r, 700));
+  const after = document.getElementById('of-canvas').getBoundingClientRect().top;
+  return {
+    wanted,
+    stickerSrc: document.getElementById('of-companion-sticker-img').getAttribute('src'),
+    // Split rather than a regex, for two reasons. A backslash-d written here is
+    // a template-literal escape, so the browser sees a literal "d" and the regex
+    // silently stops matching digits — a working button reports as broken. And a
+    // backtick in this comment would end the template literal outright, which is
+    // AGENTS.md's nested-backtick trap and presents as 25 mislabelled verdicts
+    // rather than one broken file.
+    stickerId: (document.getElementById('of-companion-sticker-img').getAttribute('src') || '')
+      .split('/').pop().split('.')[0],
+    tagName: (document.getElementById('of-companion-tag-name') || {}).textContent || '',
+    marked: [...document.querySelectorAll('#of-candidates .of-candidate')]
+      .filter(c => c.getAttribute('aria-current') === 'true')
+      .map(c => (c.querySelector('[data-pose-id]') || {}).dataset?.poseId),
+    scrollBefore: Math.round(before), scrollAfter: Math.round(after),
+    photoTop: Math.round(document.getElementById('of-photo').getBoundingClientRect().top),
+    viewportH: innerHeight,
+    photoVisible: document.getElementById('of-photo').getBoundingClientRect().top < innerHeight,
+  };
+})()`);
+// `src` is a path, so the comparison is on the id inside it — comparing the two
+// strings whole is a mismatch that reports a working button as broken.
+ok(String(swapped.wanted) === swapped.stickerId,
+  `pressing 合照 puts that species in the photo (${swapped.tagName}, ${swapped.stickerSrc})`);
+ok(swapped.marked.length === 1 && String(swapped.wanted) === swapped.marked[0],
+  `and the highlight moves to it, so the state is a companion and not just a winner (marked: ${swapped.marked.join(',')})`);
+// The claim is that the photo ends up where the reader can act on it — near the
+// top, and BELOW the sticky header rather than under it. "It scrolled" alone
+// would be satisfied by scrolling in exactly the wrong direction, which is what
+// the old `els.work` target did: it moved the reader to the top of the workbench,
+// away from the photo, and any assertion phrased as "the scroll position
+// changed" would have passed it.
+ok(swapped.photoTop >= 40 && swapped.photoTop < 140,
+  `and the view lands on the photo, clear of the sticky header rather than under it (photo top ${swapped.photoTop}px in a ${swapped.viewportH}px viewport; canvas top went ${swapped.scrollBefore} -> ${swapped.scrollAfter})`);
+
+// The initial `is-on` is invisible to the check above, and deliberately so: at
+// boot the companion IS the winner, and the winner is not in this list, so the
+// correct state is that NOTHING here is marked. A mutation that swapped the
+// expression for the old `currentWinner` comparison would therefore also render
+// nothing marked — and pass.
+//
+// It becomes observable on the NEXT re-render, because `companionState.pokemonId`
+// survives one: choose a runner-up, then sample again, and the card for the
+// chosen species must still be marked. That is also the stale-state case — a
+// render that ignored the choice would leave the highlight on the old card.
+// **Re-select the SAME garment chip, not a third sample on the canvas.** Both
+// call render(), and only the first leaves the palette alone — so the top five
+// is byte-identical and the chosen companion is guaranteed to still be in it.
+// A new sample re-ranks, the chosen species drops out of the top five, and the
+// correct answer becomes "nothing marked" — which is what let two mutations
+// through: they also mark nothing, and mark nothing was legal.
+//
+// The first version of this clicked the canvas while still in PHOTO mode, where
+// the companion layer covers it with inset:0 and swallows the click as the
+// placement target. The chip count never moved and the assertion read state the
+// previous step had already left behind.
+const rerendered = await ev(`(async () => {
+  document.getElementById('of-tab-sample').click();
+  await new Promise(r => setTimeout(r, 200));
+  const chosen = (document.getElementById('of-companion-sticker-img').getAttribute('src') || '')
+    .split('/').pop().split('.')[0];
+  const listed = () => [...document.querySelectorAll('#of-candidates .of-candidate')]
+    .map(c => (c.querySelector('[data-pose-id]') || {}).dataset?.poseId);
+  const marked = () => [...document.querySelectorAll('#of-candidates .of-candidate')]
+    .filter(c => c.getAttribute('aria-current') === 'true')
+    .map(c => (c.querySelector('[data-pose-id]') || {}).dataset?.poseId);
+  const before = { listed: listed(), marked: marked() };
+
+  document.querySelector('#of-modes [data-of-chip="garment:0"]').click();
+  await new Promise(r => setTimeout(r, 600));
+  return { chosen, before, after: { listed: listed(), marked: marked() } };
+})()`);
+ok(rerendered.chosen !== '' && rerendered.after.listed.length === 4
+     && JSON.stringify(rerendered.after.listed) === JSON.stringify(rerendered.before.listed),
+  `re-selecting a chip re-rendered the list without re-ranking it (companion ${rerendered.chosen}, list unchanged: ${rerendered.after.listed.join(',')})`);
+// Now unconditional, and it can be: the precondition above guarantees the list
+// did not change, so the chosen species IS in it and exactly one card must say
+// so. This is the assertion that catches a render() that ignores the pick — the
+// old `currentWinner` comparison marks nothing at all here, and a nothing-marked
+// list is only legal when the companion is genuinely absent from it.
+ok(rerendered.after.marked.length === 1
+     && rerendered.after.marked[0] === rerendered.chosen,
+  `and after the re-render exactly the chosen companion is still marked — a render that ignores the pick leaves the highlight on the old card, or on none (companion ${rerendered.chosen}, marked ${rerendered.after.marked.join(',') || 'none'})`);
+
+// `render()` writes the readout's `hidden` on every path that stops it showing,
+// and the swap block moved out of the readout's gate — so every one of those
+// writes has to be accompanied by one for the swap block, or a stale list from
+// the previous click stays on screen.
+//
+// Two of the paths are exercised above. The third — a selection that measured
+// nothing — cannot be reached through this fixture: every pixel of it is opaque
+// and chromatic by construction, so `pixelsFor()` is never empty and the branch
+// never runs. That makes a behavioural check impossible rather than merely
+// absent, and it is the one place a source check is the honest detector.
+//
+// **Positional, not a count.** A count is blind here in both directions:
+// dropping one swap write leaves two against two, which satisfies any `>=` a
+// third of them does not. So this asks the narrower question — does every write
+// that hides the readout have a partner within a few lines — and it FAILS LOOSE
+// if the slice came out empty. The first version of this check passed with
+// `0 writes, 0 exits` on a marker that had not moved, because
+// `renderMarks` is DEFINED ABOVE `render()`, so the slice ran backwards and
+// compared an empty string against itself. Asserting a floor on the number of
+// occurrences is what turns that back into a red line.
+const gate = await ev(`(() => {
+  const src = document.querySelector('script[type=module]').textContent;
+  const from = src.indexOf('function render() {');
+  // To the NEXT top-level function after it. Anchoring on a function named in
+  // prose is how the first version ended up slicing backwards.
+  const rest = from >= 0 ? src.slice(from) : '';
+  const to = rest.search(/\\n {4}function /);
+  const body = to > 0 ? rest.slice(0, to) : '';
+  const hits = (needle) => {
+    const out = []; let i = 0;
+    while ((i = body.indexOf(needle, i)) !== -1) { out.push(i); i += needle.length; }
+    return out;
+  };
+  const resultAt = hits('els.result.hidden');
+  const swapAt = hits('els.swap.hidden');
+  return {
+    bodyLen: body.length,
+    resultAt, swapAt,
+    partnered: resultAt.map((i) => swapAt.some((j) => Math.abs(j - i) < 260)),
+  };
+})()`);
+ok(gate.bodyLen > 400 && gate.resultAt.length >= 2 && gate.swapAt.length >= 2,
+  `the render() gate check found the function it is about (${gate.bodyLen} chars, ${gate.resultAt.length} readout writes, ${gate.swapAt.length} swap writes) — an empty slice must not compare equal to itself`);
+ok(gate.partnered.length > 0 && gate.partnered.every(Boolean),
+  `every write that hides the readout also hides the swap block (${gate.resultAt.length} readout writes, ${gate.swapAt.length} swap writes, unpartnered: ${gate.resultAt.length - gate.partnered.filter(Boolean).length}) — the other two paths are covered above; this one cannot be reached through a fixture whose every pixel is opaque`);
+
+// --- the ink on the accent, in BOTH themes ----------------------------------
+//
+// `.of-roadmap-num`, `.of-btn-pose:hover` and the export button all put
+// `var(--on-accent)` on `var(--accent-gold)`. They used to put a hardcoded
+// `#111` there, which measured 2.7:1 in the light theme — where `--accent-gold`
+// is Poké Ball red — on the digit that tells the reader which of the three
+// steps they are on.
+//
+// **The ratios are measured, not read from the declaration**, because the two
+// tokens are defined in different `:root` blocks: a static read pairs dark's
+// ink with light's gold and produces a number that describes neither theme.
+const ratioOf = `
+  const lum = (c) => { const m = c.slice(c.indexOf('(') + 1, c.indexOf(')')).split(',').map(Number);
+    const f = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };`;
+// The fill is READ OFF THE ELEMENT, not from `--accent-gold`: the download
+// button paints with `color-mix(...)`, whose computed backgroundColor is the
+// mixed colour, so asking the element is both simpler and the thing a reader
+// actually sees. Only the ink is taken from a token, because that is the value
+// under test.
+const inkOf = `(sel) => { const cs = getComputedStyle(document.querySelector(sel));
+  return { fg: cs.color, fill: cs.backgroundColor, r: +ratio(cs.color, cs.backgroundColor).toFixed(2) }; }`;
+
+const darkInk = await ev(`(() => { ${ratioOf}
+  const digits = (${inkOf})('.of-roadmap-num');
+  const dl = (${inkOf})('.of-btn-export-photo');
+  return { digits, dl };
+})()`);
+ok(darkInk.digits.r >= 4.5 && darkInk.dl.r >= 4.5,
+  `the accent ink passes AA on the accent fill in dark (digits ${darkInk.digits.r}:1, primary action ${darkInk.dl.r}:1)`);
+
+await ev(`document.querySelector('.theme-toggle').click()`);
+await new Promise((r) => setTimeout(r, 400));
+const lightInk = await ev(`(() => { ${ratioOf}
+  return { digits: (${inkOf})('.of-roadmap-num'), dl: (${inkOf})('.of-btn-export-photo') };
+})()`);
+ok(lightInk.digits.r >= 4.5 && lightInk.dl.r >= 4.5,
+  `and in light, where the accent is a deep red rather than gold — this is the case a hardcoded #111 failed at 2.7:1 (digits ${lightInk.digits.r}:1, primary action ${lightInk.dl.r}:1)`);
+await ev(`document.querySelector('.theme-toggle').click()`);
+await new Promise((r) => setTimeout(r, 400));
 
 // --- final state -----------------------------------------------------------
 
