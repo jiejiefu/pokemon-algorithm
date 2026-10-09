@@ -690,17 +690,35 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Four across, but capped: `auto-fit, minmax(140px, 1fr)` in a 1150px card
-   gave 333px boxes holding a six-character number, so the row read as four
-   near-empty cards rather than as a readout. At 620px they are 145px each and
-   hold their value on one line. */
+/* 2x2, pinned. NOT `auto-fit`.
+ *
+ * This was `auto-fit, minmax(128px, 1fr)` with a `max-width: 620px`, written when
+ * the card was 1150px wide and four across was the intent. The reading column is
+ * 420px now — measured, and printed by check_outfit_browser.mjs — and at 420px
+ * auto-fit resolves to THREE tracks, so the four tiles came out 3 + 1: three
+ * 135px boxes over one tile stretched to the full 420px by `1fr`. An orphan row,
+ * in the one element that reports the page's answer.
+ *
+ * The `max-width: 620px` went with it: 420 < 620, so it could no longer be
+ * reached, and a second width constraint contradicting the column it lives in is
+ * two things to keep right for nothing.
+ *
+ * **Why a pinned count rather than a raised floor.** `minmax(200px, 1fr)` also
+ * gives 2 columns at 420px, and keeps auto-fitting upward — which is the trap:
+ * the moment the reading column passes 616px it resolves to three tracks and the
+ * orphan comes back, silently, because nothing about the rule changed. detail.css
+ * hit exactly this with six `.stat-row`s and left the conclusion written down:
+ * "Do not reintroduce a column count here." Pinning makes the balance structural
+ * instead of a width that happens to divide evenly.
+ *
+ * At 420px each tile is 206px, which holds `#3A7BD5 35.7%` on one line. Below
+ * 640px the card goes to one column and they are 175px, still one line. */
 .of-winner-scores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: .5rem;
   margin: 0;
   width: 100%;
-  max-width: 620px;
 }
 .of-winner-scores > div {
   padding: .5rem .65rem;

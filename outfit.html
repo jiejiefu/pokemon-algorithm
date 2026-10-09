@@ -1237,11 +1237,17 @@
               </h3>
               <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
             </div>
-            <dl class="of-winner-scores">            <dl class="of-winner-scores">
+            <!-- 2x2, ordered so the two SCORES sit together on the bottom row and
+                 the two DESCRIPTIONS of the answer sit together on the top. The
+                 order used to be distance, forward, reverse, primary — which split
+                 each pair across a row boundary in a 2x2 for no reason.
+                 「寶可夢主色」 lost its 「的」 so the tile is two words and fits the
+                 grid it is in. -->
+            <dl class="of-winner-scores">
               <div><dt>色盤距離</dt><dd>${m.score.toFixed(4)}</dd></div>
+              <div><dt>寶可夢主色</dt><dd>${escapeHtml(formatHex(m.primaryHex))} ${formatShare(m.primaryShare)}</dd></div>
               <div><dt>穿搭 → 寶可夢</dt><dd>${m.forward.toFixed(4)}</dd></div>
               <div><dt>寶可夢 → 穿搭</dt><dd>${m.reverse.toFixed(4)}</dd></div>
-              <div><dt>寶可夢的主色</dt><dd>${escapeHtml(formatHex(m.primaryHex))} ${formatShare(m.primaryShare)}</dd></div>
             </dl>
             <p class="of-winner-note">💡 為什麼要「雙向」比對？</p>
             <ul class="of-winner-why">

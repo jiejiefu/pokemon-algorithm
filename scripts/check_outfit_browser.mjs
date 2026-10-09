@@ -892,7 +892,7 @@ const strip = await ev(`(() => {
   const img = document.querySelector('.of-winner-img');
   const dts = [...document.querySelectorAll('.of-winner-scores dt')];
   const primaryTile = [...document.querySelectorAll('.of-winner-scores > div')]
-    .find(d => d.querySelector('dt').textContent.trim() === '寶可夢的主色');
+    .find(d => d.querySelector('dt').textContent.trim() === '寶可夢主色');
   // Hexes off each segment's own title attribute, which paletteStripHtml()
   // writes as "HEX · share" — so this compares what the component CLAIMS it drew
   // against the tile the matcher computed, with no colour parsing between them.
@@ -948,6 +948,25 @@ const strip = await ev(`(() => {
     // "the underline is the text's own colour" rather than as "not red": in the
     // dark theme the accent is gold, and a rule that only banned red would pass
     // there while the two colours were still needlessly different.
+    // The score grid's SHAPE, which nothing here was reading. auto-fit at a
+    // 420px reading column resolved to three tracks and left the fourth tile
+    // alone on a second row, stretched to the full column by 1fr — an orphan
+    // row in the one element that reports the page's answer. Every other
+    // assertion about these tiles reads their TEXT and is blind to that.
+    // Grouped by y, so the claim is about rows and not about the template.
+    scoreRows: (() => {
+      const box = document.querySelector('.of-winner-scores');
+      if (!box) return null;
+      const rows = new Map();
+      for (const t of box.children) {
+        const r = t.getBoundingClientRect();
+        const k = Math.round(r.y);
+        if (!rows.has(k)) rows.set(k, []);
+        rows.get(k).push({ label: t.querySelector('dt').textContent.trim(),
+                          w: Math.round(r.width) });
+      }
+      return [...rows.values()].map(cells => cells.map(c => c.label + ':' + c.w));
+    })(),
     nameLinkColor: (() => { const a = document.querySelector('.of-winner-name a');
       return a ? getComputedStyle(a).color : null; })(),
     nameUnderlineColor: (() => { const a = document.querySelector('.of-winner-name a');
@@ -987,8 +1006,18 @@ ok(strip.cardInnerW !== null && strip.imgW / strip.cardInnerW <= 0.35,
   `and the portrait takes no more than a third of the card (${strip.imgW} of ${strip.cardInnerW}px, ${Math.round(strip.imgW / strip.cardInnerW * 100)}%)`);
 ok(strip.nameUnderlineColor === strip.nameLinkColor,
   `the underline under the species name is the name's own colour, not a second one (${strip.nameUnderlineColor} vs ${strip.nameLinkColor}) — it used to be --accent-gold, which is Poké Ball red in the light theme and reads as an error state`);
-ok(strip.labels.length === 4 && strip.labels[1] === '穿搭 → 寶可夢' && strip.labels[2] === '寶可夢 → 穿搭',
-  `the score tiles keep 寶可夢 rather than 牠 in both directions (${strip.labels.slice(1, 3).join(' | ')})`);
+ok(strip.labels.length === 4 && strip.labels[2] === '穿搭 → 寶可夢' && strip.labels[3] === '寶可夢 → 穿搭',
+  `the score tiles keep 寶可夢 rather than 牠 in both directions (${strip.labels.slice(2).join(' | ')})`);
+ok(strip.labels.length === 4 && strip.labels[0] === '色盤距離' && strip.labels[1] === '寶可夢主色',
+  `and the pairs are grouped rather than split: distance and primary on top, the two directions below (${strip.labels.slice(0, 2).join(' | ')})`);
+// The orphan-row claim, as a claim ABOUT ROWS: every row holds the same number
+// of tiles. Written as a count so it can be false — asserting the row count is 2
+// alone would pass on 1x4 and on 4x1, both of which are unbalanced the other way.
+ok(strip.scoreRows !== null && strip.scoreRows.length === 2
+     && strip.scoreRows.every(r => r.length === 2),
+  `the four score tiles are 2x2 with no orphan row (${strip.scoreRows.map(r => r.length).join('+')} per row: ${(strip.scoreRows || []).map(r => r.join(' ')).join(' / ')})`);
+ok(strip.scoreRows !== null && strip.scoreRows.every(r => r.every(c => c.split(':')[1] >= 150)),
+  `and no tile is squeezed below 150px by a narrower reading column (${(strip.scoreRows || []).flat().map(c => c.split(':')[1]).join(', ')}px)`);
 
 // --- the swap list: a region that MOVED, so nothing was watching it ----------
 //
