@@ -5,7 +5,7 @@ Build assets/data/generations.json from infopoke_net_generations.html.
 The file holds ONLY curated content — the things that cannot be derived:
 
     gen, numeral, region, year, description, mechanics[], games[], newTypes[],
-    starters[]
+    starters[], letsGoStarters[] (gen 1 only)
 
 Deliberately NOT stored, because they can be computed from pokemon_data.json and
 would only be able to go stale:
@@ -23,6 +23,11 @@ three ids of each generation works for eight of nine and is wrong for the fifth:
 generation 5 opens with 494 Victini, which is mythical, so the real starters are
 495 / 498 / 501. The list is read positionally from the page instead, and
 STARTERS_EXPECTED asserts it.
+
+`letsGoStarters` is the second such field, for a blunter reason: the source has no
+Let's Go section, so it is a constant here rather than a parse. It is a constant
+HERE rather than a key added to the JSON by hand, because a hand-added key is
+erased by the next run of this script and nothing reports it — see LETS_GO_STARTERS.
 
 Parsing notes, each of which was a wrong answer first:
 
@@ -64,6 +69,18 @@ STARTERS_EXPECTED = {
 NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
 # Only these two generations introduce a type.
 NEW_TYPES_EXPECTED = {2: ['惡', '鋼'], 6: ['妖精']}
+
+# `letsGoStarters` is the SECOND field that cannot be inferred, and it is here for
+# a reason worth stating: the source page has no Let's Go section at all, so a
+# key added to generations.json by hand lives exactly as long as nobody re-runs
+# this script. That is not a hypothetical — the key was hand-added once, and
+# life.html's Let's Go switch then rendered nothing after a regeneration, with no
+# checker able to say why.
+#
+# Pokemon Let's Go Pikachu / Eevee gives you a starter and its partner rather than
+# three starters, and for generation 1 that pair is Pikachu (25) and Eevee (133).
+# Two entries rather than three is the real shape of the game, not an omission.
+LETS_GO_STARTERS = {1: [25, 133]}
 
 
 def clean(s):
@@ -160,6 +177,8 @@ def main():
         if entry['newTypes'] != NEW_TYPES_EXPECTED.get(n, []):
             errors.append('gen %d: newTypes %s, expected %s'
                           % (n, entry['newTypes'], NEW_TYPES_EXPECTED.get(n, [])))
+        if n in LETS_GO_STARTERS:
+            entry['letsGoStarters'] = LETS_GO_STARTERS[n]
         if not 4 <= len(entry['mechanics']) <= 6:
             errors.append('gen %d: %d mechanics chips, expected 4-6'
                           % (n, len(entry['mechanics'])))

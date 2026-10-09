@@ -198,12 +198,54 @@ export function buildGenMetadata(gen, allPokemon, evolutionChains, generations) 
     region: genDef ? genDef.region : '',
     totalSpeciesCount: genSpecies.length,
     allGenSpecies: genSpecies,
+    dexRoster: buildDexRoster(genNum, genSpecies, speciesById, evolutionChains),
     speciesById,
     starters,
     legendaries,
     familyTrees,
     baseSpeciesList
   };
+}
+
+/**
+ * The Pokédex drawer's roster, as an ordered list with one optional section.
+ *
+ * ONE list, because the drawer and the 「圖鑑 (n/N)」 counter used to read two
+ * different things: the counter said `totalSpeciesCount` (151 for Gen 1) while
+ * the drawer rendered 156 tiles, because the Eevee section removed 4 species from
+ * the main list and appended all 9. A denominator that is not the number of rows
+ * is a claim about progress the reader can check and find false.
+ *
+ * The section appears only where its ROOT is seeded — Gen 1 has Eevee, Gen 2 does
+ * not — so this is one rule and not a per-generation exception. Its members come
+ * from the family's own chain rather than a second hardcoded id list, which is why
+ * 水/雷/火伊布 leave the 151 and rejoin the nine: they are not a duplicate roster,
+ * they are the same nine species filed under the branch that reaches them.
+ */
+function buildDexRoster(genNum, genSpecies, speciesById, evolutionChains) {
+  let main = genSpecies;
+  const sections = [];
+
+  for (const rootId of CROSS_GEN_BRANCH_ROOTS) {
+    const root = speciesById.get(rootId);
+    if (!root || root.generation !== genNum) continue;
+
+    const chain = evolutionChains[String(root.evolution_chain_id)];
+    const members = (chain ? chain.main_line : []).filter(n => n.id <= 1025);
+    if (members.length === 0) continue;
+
+    const inSection = new Set(members.map(n => n.id));
+    main = main.filter(s => !inSection.has(s.id));
+    sections.push({
+      section: BRANCH_SECTIONS.get(rootId) || { label: '', note: '' },
+      species: members.map(n => speciesById.get(n.id)).filter(Boolean)
+    });
+  }
+
+  return [
+    ...main.map(species => ({ species, section: null })),
+    ...sections.flatMap(s => s.species.map(species => ({ species, section: s.section })))
+  ];
 }
 
 /**
@@ -247,6 +289,83 @@ const WILD_SITE_TRIES = 500;
 
 /** Wild-pool weight for a family that has a stage 1 or stage 2 to evolve into. */
 const EVOLVABLE_WEIGHT = 3;
+
+/**
+ * The ONE family whose branch is drawn from the whole dex rather than from this
+ * generation's members.
+ *
+ * The page locks a generation on which species are SEEDED, not on which the
+ * player can end up holding — and Eevee is the case where the difference is the
+ * whole feature: 仙子伊布 (#700) is a Gen 6 species, so a Gen 1 board that drew
+ * its branch from Gen 1 members could never produce it, and 「大家都喜歡仙子伊布」
+ * is not a reason to make the most-wanted evolution unreachable in the most
+ * played generation.
+ *
+ * It is a named set rather than a flag for a reason. Of the 489 edges in
+ * evolution_levels.json, 70 cross a generation boundary, and most of them are
+ * worse: #172 Pichu -> #25 Pikachu and #236 Slowpoke -> #106 Slowbro are
+ * backwards in the other direction, and #52 Primeape -> #863 Annihilape would
+ * put a Gen 8 form on a Gen 1 board. Generation-locking is right for all of
+ * those and wrong only for Eevee, so the exception is one id rather than a
+ * policy. `check_life_page.mjs` asserts this set is exactly {133}.
+ */
+export const CROSS_GEN_BRANCH_ROOTS = new Set([133]);
+
+/**
+ * Where a cross-generation branch's members go in the Pokédex drawer.
+ *
+ * Keyed by the same root, so a second exception needs one entry here and nowhere
+ * else. The section exists because the branch's members are NOT all this
+ * generation's species: on a Gen 1 board the drawer would otherwise list four
+ * Eeveelutions among the 151 and the other five nowhere at all, while being
+ * reachable the moment the cross-gen branch is on.
+ */
+export const BRANCH_SECTIONS = new Map([
+  [133, { label: '★ 伊布家族', note: '可進化為任一分支，含跨世代型態' }]
+]);
+
+/**
+ * How likely each of Eevee's eight destinations is, per evolution.
+ *
+ * THE ONLY INVENTED NUMBERS IN THE ENGINE, and they are a design choice rather
+ * than game data — the games gate these on stones, friendship, a location and a
+ * move, none of which this simulation models. They are keyed by species id
+ * rather than inlined at the call site for one reason: `check_life_page.mjs`
+ * asserts this map's key set is exactly the `to` set of Eevee's eight real
+ * edges, so a ninth Eeveelution or a mistyped id is a red test instead of a
+ * silent no-op (an id absent from this map falls back to weight 1, which is how
+ * a typo hides).
+ *
+ * 仙子伊布 carries 1 on purpose. Under the original 3/2/1 scheme with the branch
+ * restricted to one generation it was unreachable at all; with the branch opened
+ * up it lands at 1/16 per Eevee.
+ */
+export const BRANCH_WEIGHTS = new Map([
+  [134, 3], // 水伊布  water stone
+  [135, 3], // 雷伊布  thunder stone
+  [136, 3], // 火伊布  fire stone
+  [196, 2], // 太陽伊布  friendship, daytime
+  [197, 2], // 月亮伊布  friendship, night
+  [470, 1], // 葉伊布   mossy rock / eternal forest
+  [471, 1], // 冰伊布   icy rock / snowy route
+  [700, 1]  // 仙子伊布  fairy move
+]);
+
+/**
+ * Species that stop evolving entirely while a given mode is on.
+ *
+ * A Let's Go Pikachu is the partner you are given, not a thing you raise, and
+ * Let's Go's stones are a post-game mechanic the engine does not model — so under
+ * Let's Go it is frozen rather than quietly becoming a Thunder-Stone Raichu.
+ *
+ * Keyed by mode rather than hardcoded as `speciesId === 25` in the evolution
+ * path, because the ID-only version froze Pikachu on EVERY Gen 1 board too, and
+ * #26 Raichu's only source on a Gen 1 board is a Pikachu that evolves. That made
+ * one of the 151 tiles permanently unreadable, with no checker able to see it.
+ */
+export const MODE_FROZEN_SPECIES = new Map([
+  ['letsGo', new Set([25])]
+]);
 
 /**
  * Level used for evolutions the games do not gate on a level.
@@ -351,7 +470,7 @@ export function pickWildSite(cells, rng = Math.random) {
  * the checkers can drive it in bare Node.
  */
 export class GameEngine {
-  constructor(metadata, evolutionLevels = null) {
+  constructor(metadata, evolutionLevels = null, mode = '') {
     this.metadata = metadata;
     this.cells = new Map(); // key -> Cell
     this.generation = 0;
@@ -364,6 +483,7 @@ export class GameEngine {
     this.wildRate = 0.02; // 2% chance per tick
 
     this.setEvolutionLevels(evolutionLevels);
+    this.setMode(mode);
     this.rebuildWildIndex();
   }
 
@@ -375,11 +495,83 @@ export class GameEngine {
    * evolve would have, and never will". Under the old Age>=5 rule that was true
    * of nearly every cell five generations in, which made the gold corner mean
    * nothing at all.
+   *
+   * The SAME table is also the engine's evolution topology, which is the reason
+   * it is worth building an index out of. `levels` and `unlevelled` between them
+   * are all 489 steps PokeAPI reports, keyed by BOTH ends, so they answer "what
+   * can this species become, and at what level" without inventing anything.
+   * `unlevelled` was previously loaded and never read — it was only reachable as
+   * the absence of a key.
    */
   setEvolutionLevels(evolutionLevels) {
     this.evolutionLevels = (evolutionLevels && evolutionLevels.levels) || {};
     this.unlevelledSteps = (evolutionLevels && evolutionLevels.unlevelled) || {};
     this.fallbackEvolutionLevel = FALLBACK_EVOLUTION_LEVEL;
+
+    // fromId -> [{ to, level, trigger, detail }], in one array per source so a
+    // species with two routes to the same destination stays two entries and the
+    // weighted draw sees them twice.
+    this.evolutionEdges = new Map();
+    const push = (fromId, edge) => {
+      if (!this.evolutionEdges.has(fromId)) this.evolutionEdges.set(fromId, []);
+      this.evolutionEdges.get(fromId).push(edge);
+    };
+    for (const [from, row] of Object.entries(this.evolutionLevels)) {
+      for (const [to, level] of Object.entries(row)) {
+        push(Number(from), { to: Number(to), level, trigger: 'level-up', detail: `Lv.${level}` });
+      }
+    }
+    for (const [from, row] of Object.entries(this.unlevelledSteps)) {
+      for (const step of row) {
+        push(Number(from), { to: step.to, level: null, trigger: step.trigger, detail: step.detail });
+      }
+    }
+  }
+
+  /**
+   * The species frozen by the mode the engine is currently running, if any.
+   *
+   * `mode` is the setup modal's Lets Go switch, which is a real mode rather than
+   * a display flag: the seed roster differs, so the engine has to know.
+   */
+  setMode(mode) {
+    this.mode = mode || '';
+    this.frozenSpecies = MODE_FROZEN_SPECIES.get(this.mode) || null;
+  }
+
+  /**
+   * Species `fromId` can become on this board, newest generation's rules aside.
+   *
+   * Generation-locked by default. The one exception is CROSS_GEN_BRANCH_ROOTS,
+   * and the filter is what makes the exception mean something: without the
+   * `generation === this.metadata.gen` test, a Gen 1 Eevee would have no
+   * reachable destinations at all, because 水/雷/火伊布 would be filtered out by
+   * the branch rules and the other five by the generation.
+   */
+  successorsOf(fromId) {
+    const edges = this.evolutionEdges.get(fromId);
+    if (!edges || edges.length === 0) return [];
+    if (CROSS_GEN_BRANCH_ROOTS.has(fromId)) return edges;
+    const gen = this.metadata.gen;
+    return edges.filter(e => this.metadata.speciesById.get(e.to)?.generation === gen);
+  }
+
+  /**
+   * One edge, drawn proportionally to BRANCH_WEIGHTS.
+   *
+   * A single candidate is returned as-is rather than run through `Math.random`,
+   * which is both cheaper and one fewer thing to be surprised by.
+   */
+  weightedPick(edges) {
+    if (edges.length === 1) return edges[0];
+    let total = 0;
+    for (const e of edges) total += BRANCH_WEIGHTS.get(e.to) ?? 1;
+    let roll = Math.random() * total;
+    for (const e of edges) {
+      roll -= BRANCH_WEIGHTS.get(e.to) ?? 1;
+      if (roll <= 0) return e;
+    }
+    return edges[edges.length - 1];
   }
 
   /**
@@ -599,7 +791,7 @@ export class GameEngine {
     return topFam;
   }
 
-  /**
+/**
    * The level at which `fromId` actually evolves into `toId`.
    *
    * Keyed by BOTH ends of the step, because a species can evolve at different
@@ -632,33 +824,38 @@ export class GameEngine {
    *
    * `newLevel` is the cell's level AFTER this generation's survival check.
    *
+   * Successors come from the real edge list in evolution_levels.json rather than
+   * from the family tree's stage columns, and that is the whole of the fix for
+   * the branch bug: `evolution_chains.json` numbers `stage` by DEX ORDER (the
+   * generator has no `evolves_from` column to number by, which is why its own
+   * comment says so), so Eevee's eight branches read as eight successive stages
+   * and only 水伊布 was ever reachable. The stage columns are still what SEEDS a
+   * family and what a brushed cell's stage is; they are just no longer what
+   * decides where a cell goes.
+   *
    * Strictly one stage per generation, and always the NEXT one. The old code
    * tried stage 2 first and fell back to stage 1, which with real levels let a
    * level-32 Bulbasaur jump straight to Venusaur and never be an Ivysaur — the
-   * games have no such shortcut. Walking 0 -> 1 -> 2 also handles the families
-   * that legitimately skip: buildGenMetadata puts a branching family's raw
-   * stage-3 species in `stage1Members`, so Eevee and Tyrogue still go straight
-   * from their base form to the far form, which is what they do in the games.
+   * games have no such shortcut.
    */
   checkCellEvolution(cell, newLevel) {
     const unchanged = { speciesId: cell.speciesId, stage: cell.stage, evolved: false, requiredLevel: null };
 
-    const famInfo = this.speciesFamilyMap.get(cell.speciesId);
-    if (!famInfo) return unchanged;
+    // A frozen species keeps its stage AND its level, so a Let's Go Pikachu
+    // accumulates tenure and can still earn the veteran aura.
+    if (this.frozenSpecies && this.frozenSpecies.has(cell.speciesId)) return unchanged;
 
     const nextStage = cell.stage + 1;
     if (nextStage > 2) return unchanged;
 
-    const candidates = nextStage === 2 ? famInfo.tree.stage2 : famInfo.tree.stage1;
+    const candidates = this.successorsOf(cell.speciesId);
     if (candidates.length === 0) return unchanged;
 
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    if (pick.id === cell.speciesId) return unchanged;
-
-    const requiredLevel = this.evolutionLevelFor(cell.speciesId, pick.id);
+    const pick = this.weightedPick(candidates);
+    const requiredLevel = pick.level ?? this.evolutionLevelFor(cell.speciesId, pick.to);
     if (newLevel < requiredLevel) return unchanged;
 
-    return { speciesId: pick.id, stage: nextStage, evolved: true, requiredLevel };
+    return { speciesId: pick.to, stage: nextStage, evolved: true, requiredLevel };
   }
 
   /**

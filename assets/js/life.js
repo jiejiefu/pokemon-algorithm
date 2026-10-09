@@ -127,6 +127,8 @@ function cacheDOMElements() {
   els.btnCenter = document.getElementById('btnCenter');
   els.btnOpenSetup = document.getElementById('btnOpenSetup');
   els.btnDexDrawer = document.getElementById('btnDexDrawer');
+  els.btnDexCount = document.getElementById('btnDexCount');
+  els.btnHofCount = document.getElementById('btnHofCount');
   els.btnHofDrawer = document.getElementById('btnHofDrawer');
   els.stampSelect = document.getElementById('stampSelect');
   els.speedSeg = document.getElementById('speedSeg');
@@ -164,6 +166,7 @@ function cacheDOMElements() {
   els.setupClose = document.getElementById('setupClose');
   els.setupTabs = document.getElementById('setupGenTabs');
   els.setupStarters = document.getElementById('setupStarters');
+  els.stepStarter = document.getElementById('stepStarter');
   els.setupSubmit = document.getElementById('setupSubmit');
   els.hofDrawer = document.getElementById('hofDrawer');
   els.hofClose = document.getElementById('hofClose');
@@ -181,14 +184,15 @@ function cacheDOMElements() {
 }
 
 // --- Setup & Generation Locking ----------------------------------------------
-function setupGeneration(gen, starterId, isRandomSeed = true) {
+function setupGeneration(gen, starterId, isRandomSeed = true, mode = '') {
   currentMetadata = buildGenMetadata(gen, allPokemon, evolutionChains, generationsData);
 
   if (!engine) {
-    engine = new GameEngine(currentMetadata, evolutionLevels);
+    engine = new GameEngine(currentMetadata, evolutionLevels, mode);
   } else {
     engine.reset(currentMetadata);
     engine.setEvolutionLevels(evolutionLevels);
+    engine.setMode(mode);
   }
 
   // Set default active species to chosen starter
@@ -604,11 +608,22 @@ function updateHUD(stats = null) {
   if (els.stageLevel2) els.stageLevel2.textContent = lvl2 === null ? '' : `(Lv.${lvl2})`;
 
   // Update Drawer button badges
-  if (els.btnDexDrawer) {
-    els.btnDexDrawer.textContent = `圖鑑 (${engine.unlockedSpecies.size}/${currentMetadata.totalSpeciesCount})`;
+  //
+  // The count lives in its own <span> rather than in the button's textContent.
+  // Assigning textContent to the button is what erased the icon: the first tick
+  // after load replaced `<svg>圖鑑 (0/151)</button>` with a bare string, and no
+  // check noticed because a checker that only reads the numbers sees them either
+  // way. `.icon` is 1em and `margin-right: .3em`, so an icon at the end of a
+  // button also sits 0.3em off centre; the span is what keeps them apart.
+  if (els.btnDexCount) {
+    // The denominator is the drawer's own roster length, not totalSpeciesCount.
+    // On Gen 1 those differ: the 伊布家族 section files four species out of the
+    // 151 and appends nine, so the drawer shows 156 tiles and a `/151` was a
+    // claim about progress the reader could check and find false.
+    els.btnDexCount.textContent = `圖鑑 (${engine.unlockedSpecies.size}/${currentMetadata.dexRoster.length})`;
   }
-  if (els.btnHofDrawer) {
-    els.btnHofDrawer.textContent = `名人堂 (${engine.unlockedMedals.length}/${currentMetadata.legendaries.length})`;
+  if (els.btnHofCount) {
+    els.btnHofCount.textContent = `傳說 (${engine.unlockedMedals.length}/${currentMetadata.legendaries.length})`;
   }
 }
 
@@ -657,14 +672,14 @@ function updateHallOfFameDrawer() {
     card.innerHTML = `
       <div class="life-medal-icon-wrap">
         <img src="assets/images/pokemon/${leg.id}.png" alt="${leg.names.zh}">
-        ${!isUnlocked ? '<div class="life-medal-lock-badge">🔒</div>' : ''}
+        ${!isUnlocked ? '<div class="life-medal-lock-badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></div>' : ''}
       </div>
       <div class="life-medal-info">
         <div class="life-medal-name">#${String(leg.id).padStart(4, '0')} ${leg.names.zh}</div>
         <div class="life-medal-tag">${leg.types_zh ? leg.types_zh.join(' / ') : ''} · ${leg.genus || ''}</div>
       </div>
       <div class="life-medal-status ${isUnlocked ? 'unlocked' : 'locked'}">
-        ${isUnlocked ? '已獲得 🏆' : `${requiredFamilies} 家族解鎖`}
+        ${isUnlocked ? '已獲得 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg>' : `${requiredFamilies} 家族解鎖`}
       </div>
     `;
 
@@ -687,7 +702,7 @@ let toastHideTimer = 0;
  */
 function showToast({ icon, eyebrow, headline, tone, duration = 4000 }) {
   if (!els.celebrationToast) return;
-  if (els.toastIcon) els.toastIcon.textContent = icon;
+  if (els.toastIcon) els.toastIcon.innerHTML = icon;
   if (els.toastEyebrow) els.toastEyebrow.textContent = eyebrow;
   if (els.toastHeadline) els.toastHeadline.textContent = headline;
 
@@ -700,8 +715,8 @@ function showToast({ icon, eyebrow, headline, tone, duration = 4000 }) {
 
 function showCelebrationToast(medal) {
   showToast({
-    icon: '🏆',
-    eyebrow: '成就達成 · 神殿名人堂',
+    icon: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg>',
+    eyebrow: '成就達成 · 傳說',
     headline: `解鎖成就獎章！#${String(medal.id).padStart(4, '0')} ${medal.names.zh}`,
     tone: 'medal',
     duration: 4000
@@ -733,7 +748,7 @@ function showWildEncounter(event) {
   });
 
   showToast({
-    icon: '🌿',
+    icon: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.05 8.05c-2.73 2.73-2.73 7.15-.02 9.88 1.47-3.4 4.09-6.24 7.36-7.93-2.77 2.34-4.71 5.61-5.39 9.32 2.6 1.23 5.8.78 7.95-1.37C19.43 14.47 20 4 20 4S9.53 4.57 6.05 8.05z"/></svg>',
     eyebrow: '野生遭遇 · 生態事件',
     headline: `#${String(sp.id).padStart(4, '0')} ${name} ×${event.count}`,
     tone: 'wild',
@@ -748,20 +763,18 @@ function updateDexDrawer() {
   const filterText = els.dexSearch ? els.dexSearch.value.trim().toLowerCase() : '';
   els.dexGrid.innerHTML = '';
 
-  const speciesList = currentMetadata.allGenSpecies;
-
-  for (const sp of speciesList) {
+  const renderSpecies = (sp, extraClass = '') => {
     const isUnlocked = engine ? engine.unlockedSpecies.has(sp.id) : false;
     const zh = sp.names.zh;
     const idStr = String(sp.id).padStart(4, '0');
 
     if (filterText && !zh.toLowerCase().includes(filterText) && !idStr.includes(filterText)) {
-      continue;
+      return null;
     }
 
     const item = document.createElement('button');
     item.type = 'button';
-    item.className = `life-dex-item ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${sp.id === activeSpeciesId ? 'is-selected' : ''}`;
+    item.className = `life-dex-item ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${sp.id === activeSpeciesId ? 'is-selected' : ''} ${extraClass}`;
     item.title = `${zh} (#${idStr})`;
 
     item.innerHTML = `
@@ -777,7 +790,30 @@ function updateDexDrawer() {
       closeDrawers();
     });
 
-    els.dexGrid.appendChild(item);
+    return item;
+  };
+
+  // The roster, and the section headers, come from ONE list — the same one the
+  // 「圖鑑 (n/N)」 counter divides by. Rendering sections here while the
+  // denominator lived in updateHUD is how the drawer came to show 156 tiles
+  // against a `/151`.
+  let lastSection = null;
+  for (const entry of currentMetadata.dexRoster) {
+    if (entry.section !== lastSection) {
+      lastSection = entry.section;
+      if (entry.section) {
+        const header = document.createElement('div');
+        header.className = 'life-dex-section-header';
+        const label = document.createElement('span');
+        label.textContent = entry.section.label;
+        const note = document.createElement('small');
+        note.textContent = entry.section.note;
+        header.append(label, note);
+        els.dexGrid.appendChild(header);
+      }
+    }
+    const item = renderSpecies(entry.species, entry.section ? 'life-dex-branch' : '');
+    if (item) els.dexGrid.appendChild(item);
   }
 }
 
@@ -816,6 +852,7 @@ function closeDrawers() {
 // --- Setup Modal --------------------------------------------------------------
 let modalSelectedGen = 1;
 let modalSelectedStarterId = 1;
+let modalLetsGoMode = false;
 
 function openSetupModal() {
   if (!els.setupModal) return;
@@ -862,11 +899,62 @@ function renderSetupStarters(gen) {
   els.setupStarters.innerHTML = '';
 
   const genDef = generationsData.find(x => x.gen === gen);
-  const starterIds = genDef ? genDef.starters : [];
+  if (!genDef) return;
+
+  // For Gen 1, determine which starter list to use based on Let's Go mode
+  let starterIds = genDef.starters;
+  if (gen === 1 && modalLetsGoMode && genDef.letsGoStarters) {
+    starterIds = genDef.letsGoStarters;
+  }
   const starters = starterIds.map(id => allPokemon.find(p => p.id === id)).filter(Boolean);
 
   if (starters.length > 0 && !starters.some(s => s.id === modalSelectedStarterId)) {
     modalSelectedStarterId = starters[0].id;
+  }
+
+  // The Let's Go switch lives in step 2's title, because it is what changes
+  // step 2's cards. It used to be found with
+  // `.life-modal-section-title:nth-of-type(2)`, which resolves to the element
+  // that is both that class AND the dialog's 2nd <div> — and `.life-modal-header`
+  // is the 1st, so the match was step 1 (選擇目標世代). A screenshot agreed and no
+  // check did: a switch that swaps the starter list sat above the generation
+  // tabs, two sections away from the only thing it changes.
+  const titleEl = els.stepStarter;
+  if (titleEl) {
+    const existingToggle = titleEl.querySelector('.life-lets-go-toggle');
+    if (gen === 1 && genDef.letsGoStarters) {
+      if (!existingToggle) {
+        const toggleDiv = document.createElement('div');
+        toggleDiv.className = 'life-lets-go-toggle';
+        titleEl.appendChild(toggleDiv);
+      }
+      const toggle = titleEl.querySelector('.life-lets-go-toggle');
+      // Re-bound rather than added to, because the innerHTML below replaces both
+      // inputs on every render: a listener added without being re-assigned dies on
+      // the first change event and the switch stops working after one use.
+      toggle.innerHTML = `
+        <label class="life-lets-go-option ${!modalLetsGoMode ? 'is-selected' : ''}">
+          <input type="radio" name="letsGoMode" value="classic" ${!modalLetsGoMode ? 'checked' : ''}>
+          <span>經典模式</span>
+        </label>
+        <label class="life-lets-go-option ${modalLetsGoMode ? 'is-selected' : ''}">
+          <input type="radio" name="letsGoMode" value="letsgo" ${modalLetsGoMode ? 'checked' : ''}>
+          <span>Let's Go 模式</span>
+        </label>
+      `;
+      toggle.querySelectorAll('input[name="letsGoMode"]').forEach(input => {
+        input.addEventListener('change', () => {
+          modalLetsGoMode = input.value === 'letsgo';
+          modalSelectedStarterId = modalLetsGoMode ? 25 : 1;
+          renderSetupStarters(gen);
+        });
+      });
+    } else if (existingToggle) {
+      // Remove the switch for every other generation. `.life-modal-section-title`
+      // is the class all three steps' titles carry, so this cannot be expressed as
+      // a selector that only ever matches step 2.
+      existingToggle.remove();
+    }
   }
 
   starters.forEach(starter => {
@@ -896,7 +984,13 @@ function bindEvents() {
   els.btnPlay?.addEventListener('click', () => {
     isPlaying = !isPlaying;
     els.btnPlay.classList.toggle('is-playing', isPlaying);
-    els.btnPlay.textContent = isPlaying ? '⏸ 暫停' : '▶ 播放';
+    // The glyph and the label both have to follow `isPlaying`, and they came in
+    // mismatched: the button drew a PLAY triangle on 暫停 and PAUSE bars on 播放.
+    // Two controls in two states and both of them wrong, which is why the glyph
+    // is derived from the same boolean as the label rather than typed beside it.
+    els.btnPlay.innerHTML = isPlaying
+      ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>暫停'
+      : '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg>播放';
   });
 
   // Step
@@ -904,7 +998,7 @@ function bindEvents() {
     if (isPlaying) {
       isPlaying = false;
       els.btnPlay.classList.remove('is-playing');
-      els.btnPlay.textContent = '▶ 播放';
+      els.btnPlay.innerHTML = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg>播放';
     }
     stepSimulation();
   });
@@ -971,13 +1065,16 @@ function bindEvents() {
   els.setupSubmit?.addEventListener('click', () => {
     const seedModeInput = document.querySelector('input[name="setupSeedMode"]:checked');
     const isRandom = seedModeInput ? seedModeInput.value === 'random' : true;
-    setupGeneration(modalSelectedGen, modalSelectedStarterId, isRandom);
+    // The mode is a real mode, not a label: it changes the seed roster AND
+    // freezes Pikachu in the engine, so it is passed rather than kept here.
+    setupGeneration(modalSelectedGen, modalSelectedStarterId, isRandom, modalLetsGoMode ? 'letsGo' : '');
     closeSetupModal();
   });
 
   // Drawers triggers
   els.btnHofDrawer?.addEventListener('click', () => {
     closeDrawers();
+    updateHallOfFameDrawer();
     els.hofDrawer?.classList.add('is-open');
   });
   els.hofClose?.addEventListener('click', () => {

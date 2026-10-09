@@ -52,10 +52,10 @@
 
     <div class="life-group">
       <div class="life-seg" id="toolSeg" role="group" aria-label="操作工具">
-        <button class="life-btn" type="button" data-tool="pan" title="平移畫布 (H)">🖐 平移</button>
-        <button class="life-btn is-active" type="button" data-tool="brush" title="放置細胞 (B)">✏ 放置</button>
-        <button class="life-btn" type="button" data-tool="eraser" title="抹除細胞 (E)">🧹 抹除</button>
-        <button class="life-btn" type="button" data-tool="stamp" title="陣型印章 (S)">✨ 印章</button>
+        <button class="life-btn" type="button" data-tool="pan" title="平移畫布 (H)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.26-1.23c.56-.56 1.47-.56 2.03 0l3.17 3.17V4c0-1.1.9-2 2-2s2 .9 2 2v8h1V1.5c0-1.1.9-2 2-2s2 .9 2 2V11h1V2.5c0-1.1.9-2 2-2s2 .9 2 2V11h1V5.5c0-1.1.9-2 2-2s2 .9 2 2z"/></svg>平移</button>
+        <button class="life-btn is-active" type="button" data-tool="brush" title="放置細胞 (B)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>放置</button>
+        <button class="life-btn" type="button" data-tool="eraser" title="抹除細胞 (E)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>抹除</button>
+        <button class="life-btn" type="button" data-tool="stamp" title="陣型印章 (S)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L10 14 5.5 15.5 4 20l4.5-1.5L10 22l1.5-4.5L16 16l-4.5-1.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>印章</button>
       </div>
       <select class="life-select" id="stampSelect" hidden title="選擇經典生命遊戲陣型">
         <option value="glider">滑翔翼 (Glider)</option>
@@ -71,8 +71,8 @@
     <span class="life-divider" aria-hidden="true"></span>
 
     <div class="life-group">
-      <button class="life-btn life-btn-play" id="btnPlay" type="button" title="播放 / 暫停 (空白鍵)">▶ 播放</button>
-      <button class="life-btn" id="btnStep" type="button" title="單步演化 (N / →)">⏭ 單步</button>
+      <button class="life-btn life-btn-play" id="btnPlay" type="button" title="播放 / 暫停 (空白鍵)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg>播放</button>
+      <button class="life-btn" id="btnStep" type="button" title="單步演化 (N / →)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>單步</button>
       <div class="life-seg" id="speedSeg" role="group" aria-label="演化速度">
         <button class="life-btn" type="button" data-speed="0.5">0.5x</button>
         <button class="life-btn is-active" type="button" data-speed="1">1x</button>
@@ -85,9 +85,9 @@
     <span class="life-divider" aria-hidden="true"></span>
 
     <div class="life-group">
-      <button class="life-btn life-btn-sm" id="btnReseed" type="button" title="隨機種子生成 (R)">🎲 隨機種子</button>
-      <button class="life-btn life-btn-sm" id="btnClear" type="button" title="清空盤面 (C)">🗑 清空</button>
-      <button class="life-btn life-btn-sm" id="btnCenter" type="button" title="重置視角 (0)">⌖ 置中</button>
+      <button class="life-btn life-btn-sm" id="btnReseed" type="button" title="隨機種子生成 (R)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5.5 5.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3 8c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM13 12.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-4 3c-.83 0-1.5-.67-1.5-1.5S8.17 12.5 9 12.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm0-6c-.83 0-1.5-.67-1.5-1.5S8.17 7.5 9 7.5s1.5.67 1.5 1.5S9.83 9.5 9 9.5z"/></svg>隨機種子</button>
+      <button class="life-btn life-btn-sm" id="btnClear" type="button" title="清空盤面 (C)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>清空</button>
+      <button class="life-btn life-btn-sm" id="btnCenter" type="button" title="重置視角 (0)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>置中</button>
     </div>
 
     <span class="life-divider" aria-hidden="true"></span>
@@ -98,9 +98,9 @@
     </div>
 
     <div class="life-group" style="margin-left: auto;">
-      <button class="life-btn life-btn-sm" id="btnDexDrawer" type="button">📖 圖鑑 (0/151)</button>
-      <button class="life-btn life-btn-sm" id="btnHofDrawer" type="button" style="border-color:var(--accent-gold); color:var(--accent-gold);">🏆 名人堂 (0/5)</button>
-      <button class="life-btn life-btn-sm" id="btnOpenSetup" type="button">⚙ 世代設定</button>
+      <button class="life-btn life-btn-sm" id="btnDexDrawer" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75-.05.25-.05.5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg><span id="btnDexCount">圖鑑 (0/151)</span></button>
+      <button class="life-btn life-btn-sm" id="btnHofDrawer" type="button" style="border-color:var(--accent-gold); color:var(--accent-gold);"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg><span id="btnHofCount">傳說 (0/5)</span></button>
+      <button class="life-btn life-btn-sm" id="btnOpenSetup" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>世代設定</button>
     </div>
   </div>
 
@@ -116,15 +116,15 @@
         </div>
         <div class="life-hud-grid">
           <div class="life-hud-metric">
-            <div class="life-metric-label">當前世代</div>
+            <div class="life-metric-label">當前迭代</div>
             <div class="life-metric-val gold" id="statGen">0</div>
           </div>
           <div class="life-hud-metric">
-            <div class="life-metric-label">存活總人口</div>
+            <div class="life-metric-label">存活寶可夢</div>
             <div class="life-metric-val" id="statPop">0</div>
           </div>
           <div class="life-hud-metric">
-            <div class="life-metric-label">累計解鎖家族</div>
+            <div class="life-metric-label">累計解鎖族群</div>
             <div class="life-metric-val" id="statFamilies">0</div>
           </div>
           <div class="life-hud-metric">
@@ -153,7 +153,7 @@
         <span id="camZoom">100%</span>
         <button class="life-cam-btn" id="btnZoomOut" type="button" title="縮小 (−)">−</button>
         <button class="life-cam-btn" id="btnZoomIn" type="button" title="放大 (+)">+</button>
-        <button class="life-cam-btn" id="btnZoomReset" type="button" title="重置視角 (0)">⌂</button>
+        <button class="life-cam-btn" id="btnZoomReset" type="button" title="重置視角 (0)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button>
       </div>
     </div>
 
@@ -176,7 +176,7 @@
       <div class="life-modal-section-title">步驟 1：選擇目標世代 (Generation Lock)</div>
       <div class="life-gen-tabs" id="setupGenTabs"></div>
 
-      <div class="life-modal-section-title">步驟 2：選擇始祖物種 (預設畫筆)</div>
+      <div class="life-modal-section-title" id="stepStarter">步驟 2：選擇始祖物種 (預設畫筆)</div>
       <div class="life-starters-grid" id="setupStarters"></div>
 
       <div class="life-modal-section-title">步驟 3：初始網格佈局</div>
@@ -184,14 +184,14 @@
         <label class="life-seed-option is-selected">
           <input type="radio" name="setupSeedMode" value="random" checked>
           <div>
-            <div class="life-seed-title">🎲 隨機種子生成 (推薦)</div>
+            <div class="life-seed-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5.5 5.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3 8c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM13 12.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-4 3c-.83 0-1.5-.67-1.5-1.5S8.17 12.5 9 12.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm0-6c-.83 0-1.5-.67-1.5-1.5S8.17 7.5 9 7.5s1.5.67 1.5 1.5S9.83 9.5 9 9.5z"/></svg>隨機種子生成 (推薦)</div>
             <div class="life-seed-desc">在網格中央按 20% 密度隨機分佈該世代的基礎型態寶可夢</div>
           </div>
         </label>
         <label class="life-seed-option">
           <input type="radio" name="setupSeedMode" value="blank">
           <div>
-            <div class="life-seed-title">✏ 自由繪製空白網格</div>
+            <div class="life-seed-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>自由繪製空白網格</div>
             <div class="life-seed-desc">保留空白畫布，由玩家自由點擊或使用陣型印章放置細胞</div>
           </div>
         </label>
@@ -203,11 +203,11 @@
     </div>
   </div>
 
-  <!-- Hall of Fame Drawer (神殿名人堂) -->
-  <aside class="life-drawer" id="hofDrawer" aria-label="神殿名人堂">
+  <!-- Hall of Fame Drawer (傳說) -->
+  <aside class="life-drawer" id="hofDrawer" aria-label="傳說">
     <div class="life-drawer-header">
-      <h3 class="life-drawer-title">🏆 神殿名人堂 · 神獸獎章</h3>
-      <button class="life-drawer-close" id="hofClose" type="button" aria-label="關閉名人堂">×</button>
+      <h3 class="life-drawer-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg>傳說 · 神獸獎章</h3>
+      <button class="life-drawer-close" id="hofClose" type="button" aria-label="關閉傳說">×</button>
     </div>
     <div class="life-drawer-content">
       <div class="life-hof-progress-box">
@@ -217,9 +217,7 @@
         <div class="life-hof-progress-bar">
           <div class="life-hof-progress-fill" id="hofProgressFill" style="width: 0%;"></div>
         </div>
-        <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0;">
-          💡 每在盤面上誕生或進化出 6 個不同進化家族，即可依圖鑑順序解鎖該世代的一面神獸獎章！
-        </p>
+<p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0;"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>每在盤面上誕生或進化出 6 個不同進化家族，即可依圖鑑順序解鎖該世代的一面神獸獎章！</p>
       </div>
       <div class="life-medals-list" id="hofMedalsList"></div>
     </div>
@@ -228,7 +226,7 @@
   <!-- Generation Pokédex Drawer (世代圖鑑) -->
   <aside class="life-drawer" id="dexDrawer" aria-label="世代圖鑑">
     <div class="life-drawer-header">
-      <h3 class="life-drawer-title">📖 世代圖鑑庫</h3>
+      <h3 class="life-drawer-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75-.05.25-.05.5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>世代圖鑑庫</h3>
       <button class="life-drawer-close" id="dexClose" type="button" aria-label="關閉圖鑑">×</button>
     </div>
     <div class="life-drawer-content">
@@ -242,9 +240,9 @@
        and icon are overwritten by showToast() — the markup below is only what
        shows before the first message. -->
   <div class="life-celebration-toast" id="celebrationToast" role="alert">
-    <div class="life-toast-icon">🏆</div>
+    <div class="life-toast-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg></div>
     <div class="life-toast-text">
-      <div class="life-toast-eyebrow">成就達成 · 神殿名人堂</div>
+      <div class="life-toast-eyebrow">成就達成 · 傳說</div>
       <div class="life-toast-headline" id="toastHeadline">獲得神獸成就獎章！</div>
     </div>
   </div>

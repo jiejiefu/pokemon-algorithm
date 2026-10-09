@@ -632,15 +632,20 @@ const CHECKERS = [
 
   /* ---- life ---- */
   {
-    // `--prove-inputs` says life.css and life.js are NOT read here, which is
-    // true and was wrong in the manifest before: this checker drives the engine
-    // and reads the HTML string, and it never opened either. They belong to
-    // check_life_browser.mjs below, which is the one that opens them.
+    // `--prove-inputs` says life.css and life.js are NOT read here, which
+    // was true once and is not any more: life.js arrived when the Let's Go
+    // toggle and the icon set became guarded, and an input this checker opens
+    // but the manifest does not declare is a file whose edit will not re-run
+    // it — so the guard silently goes stale, which is worse than not having it.
+    // extract_generations.py is declared for the same reason: the check asserts
+    // the extractor OWNS letsGoStarters, and a regeneration that dropped the
+    // constant has to invalidate this entry.
     script: 'scripts/check_life_page.mjs', group: 'algo',
     inputs: [
-      'life.html', 'assets/js/life-engine.js',
+      'life.html', 'assets/js/life.js', 'assets/js/life-engine.js',
       'assets/data/pokemon_data.json', 'assets/data/evolution_chains.json',
       'assets/data/generations.json', 'assets/data/evolution_levels.json',
+      'scripts/extract_generations.py',
     ],
   },
   // The levels table is its own entry rather than folded into the page checker:

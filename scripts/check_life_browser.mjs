@@ -312,7 +312,140 @@ const legendLevel = Number(String(evolved.legend || '').replace(/[()]/g, '').rep
 ok(legendLevel >= 7 && legendLevel <= 64, `the reported level is inside the corpus range 7..64 (got ${legendLevel})`);
 
 /* ==========================================================================
-   5. NO CONSOLE ERRORS
+   5. THE LET'S GO SWITCH, AND WHERE IT LANDS
+   ========================================================================== */
+/* It was mounted with `.life-modal-section-title:nth-of-type(2)`, which matches
+ * the element that is both that class AND the dialog's 2nd <div> — and
+ * .life-modal-header is the 1st, so the control that swaps the starter list
+ * rendered inside 步驟 1 (選擇目標世代). The static checker can only see that the
+ * selector is gone; this one reads the RENDERED box, because the bug was never
+ * that a selector existed, it was that a real box was in the wrong row. */
+await ev(`(() => {
+  document.getElementById('setupModal').hidden = false;
+  document.getElementById('loadingOverlay').hidden = true;
+  return true;
+})()`);
+await sleep(250);
+
+const toggleBox = JSON.parse(await ev(`(() => {
+  const t = document.querySelector('.life-lets-go-toggle');
+  if (!t) return JSON.stringify({ missing: true });
+  const starters = document.getElementById('setupStarters');
+  const genTabs = document.getElementById('setupGenTabs');
+  const r = t.getBoundingClientRect();
+  const sr = starters.getBoundingClientRect();
+  const gr = genTabs.getBoundingClientRect();
+  const step = t.closest('.life-modal-section-title');
+  return JSON.stringify({
+    text: step ? step.textContent.trim().slice(0, 30) : '',
+    top: Math.round(r.top), bottom: Math.round(r.bottom),
+    startersTop: Math.round(sr.top), startersBottom: Math.round(sr.bottom),
+    genTabsTop: Math.round(gr.top), genTabsBottom: Math.round(gr.bottom),
+    selected: !!t.querySelector('.is-selected')
+  });
+})()`));
+ok(!toggleBox.missing, "the Let's Go switch rendered for Gen 1");
+ok(toggleBox.selected, "one of 經典模式 / Let's Go 模式 is marked selected");
+ok(/始祖物種/.test(toggleBox.text || ''),
+  `the switch sits in step 2's title, got "${toggleBox.text}"`);
+// Box geometry, because "in the title" is a DOM relationship and the bug was a
+// layout one: the switch has to be ON the same row as the starter cards, and
+// must NOT be over the generation tabs.
+ok(toggleBox.bottom <= toggleBox.startersTop + 40,
+  `the switch sits above the starter cards (switch bottom ${toggleBox.bottom}, cards top ${toggleBox.startersTop})`);
+// And BELOW the generation tabs, because step 2 is after step 1. The first
+// version of this assertion had the comparison the other way round and failed on
+// a page that was already correct — a check that cannot be satisfied is not
+// evidence either.
+ok(toggleBox.top > toggleBox.genTabsBottom,
+  `the switch is below the generation tabs, not in their row (switch top ${toggleBox.top}, tabs bottom ${toggleBox.genTabsBottom})`);
+
+/* The switch has to actually SWITCH. The radios' innerHTML is rewritten on every
+ * render, so a listener attached without being re-assigned survives exactly one
+ * change event and the control goes dead after a single use. */
+const switched = JSON.parse(await ev(`(() => {
+  const before = [...document.querySelectorAll('#setupStarters .life-starter-card img')]
+    .map(i => i.getAttribute('src'));
+  document.querySelector('input[name="letsGoMode"][value="letsgo"]').click();
+  const after = [...document.querySelectorAll('#setupStarters .life-starter-card img')]
+    .map(i => i.getAttribute('src'));
+  return JSON.stringify({ before, after, stillSelected: !!document.querySelector('.life-lets-go-toggle .is-selected') });
+})()`));
+eq(switched.after.length, 2, "Let's Go mode offers two starters, not three");
+ok(switched.before.length === 3 && switched.after.length === 2,
+  `the roster changed: ${switched.before.length} classic starters -> ${switched.after.length} Let's Go`);
+// Clicking it a second time is the half that goes dead when the listener is
+// re-bound wrongly: same target, opposite state.
+const switchedBack = JSON.parse(await ev(`(() => {
+  document.querySelector('input[name="letsGoMode"][value="classic"]').click();
+  return JSON.stringify({
+    n: document.querySelectorAll('#setupStarters .life-starter-card').length
+  });
+})()`));
+eq(switchedBack.n, 3, 'the switch still works after a second use');
+
+/* The counter divides by the number of tiles, which is 156 on Gen 1 and not the
+ * 151 that `totalSpeciesCount` reports. Read the rendered string, not the
+ * function: the denominator is the whole claim. */
+await ev(`document.getElementById('setupClose').click(); true`);
+await sleep(200);
+const dexCounter = JSON.parse(await ev(`(() => {
+  document.getElementById('btnDexDrawer').click();
+  const tiles = document.querySelectorAll('#dexGrid .life-dex-item').length;
+  const heads = document.querySelectorAll('#dexGrid .life-dex-section-header').length;
+  const label = document.getElementById('btnDexCount').textContent;
+  document.getElementById('dexClose').click();
+  return JSON.stringify({ tiles, heads, label });
+})()`));
+eq(dexCounter.tiles, 156, 'the drawer renders 156 tiles on Gen 1');
+eq(dexCounter.heads, 1, 'and one section header');
+ok(/\/156\)$/.test(dexCounter.label || ''),
+  `the counter divides by the tiles it renders, got "${dexCounter.label}"`);
+
+/* Every icon must paint. `.icon` is fill-only, so a stroke-drawn glyph renders as
+ * a filled silhouette — invisible to a text check and obvious in a screenshot.
+ *
+ * The glyphs are serialised into standalone documents and drawn as images
+ * because `drawImage` refuses a live SVGElement: it is an SVGElement, not one of
+ * the SVGImageElement / HTMLImageElement / canvas types the signature allows.
+ * `currentColor` then resolves against the standalone document's default colour,
+ * which is fine — the assertion is about ALPHA, not about hue. */
+const iconInk = JSON.parse(await ev(`(async () => {
+  const svgs = [...document.querySelectorAll('svg.icon')];
+  const painted = async svg => {
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', '48');
+    clone.setAttribute('height', '48');
+    const url = 'data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(new XMLSerializer().serializeToString(clone));
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const c = document.createElement('canvas');
+    c.width = 48; c.height = 48;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, 48, 48);
+    const d = g.getImageData(0, 0, 48, 48).data;
+    let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
+    return n;
+  };
+  const blank = [];
+  let okCount = 0;
+  for (const svg of svgs) {
+    let n = 0;
+    try { n = await painted(svg); } catch (e) { n = 0; }
+    if (n > 40) okCount++; else blank.push((svg.parentElement?.id || svg.parentElement?.className || '?') + ':' + n);
+  }
+  return JSON.stringify({ total: svgs.length, painted: okCount, blank });
+})()`));
+eq(iconInk.total > 15, true, `life.html carries its icon set (${iconInk.total} found)`);
+eq(iconInk.blank, [], 'every inline icon paints ink, not a blank box');
+eq(iconInk.painted, iconInk.total,
+  `all ${iconInk.total} icons have visible pixels (${iconInk.painted} did)`);
+
+/* ==========================================================================
+   6. NO CONSOLE ERRORS
    ========================================================================== */
 eq(logs, [], 'no console errors or uncaught exceptions during the whole run');
 

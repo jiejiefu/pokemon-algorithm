@@ -544,6 +544,51 @@
   gap: 6px;
 }
 
+.life-modal-section-title .life-lets-go-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+
+.life-modal-section-title .life-lets-go-option {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: transparent;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.life-modal-section-title .life-lets-go-option:hover {
+  background: rgba(245, 197, 66, 0.08);
+}
+
+.life-modal-section-title .life-lets-go-option.is-selected {
+  border-color: var(--accent-gold);
+  background: rgba(245, 197, 66, 0.12);
+  box-shadow: 0 2px 8px rgba(245, 197, 66, 0.15);
+}
+
+.life-modal-section-title .life-lets-go-option input[type="radio"] {
+  accent-color: var(--accent-gold);
+  margin: 0;
+}
+
+.life-modal-section-title .life-lets-go-option span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .life-gen-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -588,9 +633,10 @@
 
 .life-starters-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
+  justify-content: center;
 }
 
 .life-starter-card {
@@ -637,6 +683,47 @@
   border-radius: 10px;
   color: #fff;
   font-weight: 600;
+}
+
+/* Pokédex Section Header & Eevee Family */
+.life-dex-section-header {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+
+.life-dex-section-header span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.life-dex-section-header small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.life-dex-branch {
+  position: relative;
+}
+
+/* An icon that is the button's ONLY content: `.icon` carries
+ * margin-right: .3em to sit against text, and left in place here it offsets the
+ * glyph 0.3em to the right of the button's centre box. */
+.life-cam-btn .icon {
+  margin-right: 0;
+  vertical-align: middle;
+}
+
+/* Same reason, for the badge: the lock is centred by flex, so the trailing gap
+ * has to go or it sits 0.3em right of true. */
+.life-medal-lock-badge .icon {
+  margin-right: 0;
 }
 
 .life-seed-options {
