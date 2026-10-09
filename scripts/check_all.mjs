@@ -458,11 +458,24 @@ const CHECKERS = [
     ],
   },
   {
+    /* `scripts/lib/png.mjs` is NOT declared here and must not be. The runner puts
+     * every `scripts/lib/` file into the cache key unconditionally, and implements
+     * that by DELETING them from the recording before comparing it (libFiles() +
+     * `seen.delete(skip)` in prove()). So a manifest entry that names one is asking
+     * for a file to be present in a set it was just removed from — a MISMATCH that
+     * cannot be satisfied by any run, and this pair was the only two reporting one.
+     *
+     * It went unnoticed because it is invisible in a normal run: `--prove-inputs` is
+     * the only thing that looks, and the failure says "declared but not read", which
+     * reads like the manifest UNDER-declaring rather than the opposite.
+     *
+     * The same applies to `scripts/check_mmcq_anatomy.mjs` in the harness entry: a
+     * harness's `checker:` is in the key by definition. It is still in the key — it
+     * is in the key FOREVER, that is the point — it is just not spelled here twice. */
     script: 'scripts/check_mmcq_anatomy.mjs', group: 'color',
     inputs: [
       'assets/data/color_palettes.json',
       'assets/js/mmcq-anatomy.js',
-      'scripts/lib/png.mjs',
       'assets/images/sprite/*',
     ],
   },
@@ -471,9 +484,6 @@ const CHECKERS = [
     inputs: [
       'assets/data/color_palettes.json',
       'assets/js/mmcq-anatomy.js',
-      'scripts/lib/png.mjs',
-      'scripts/lib/negative.mjs',
-      'scripts/check_mmcq_anatomy.mjs',
       'assets/images/sprite/*',
     ],
   },
