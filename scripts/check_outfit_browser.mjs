@@ -228,8 +228,9 @@ const clicked = await ev(`(async () => {
   const canvas = document.getElementById('of-canvas');
   const r = canvas.getBoundingClientRect();
   // Left field, comfortably away from the seam at the horizontal midpoint.
-  const x = r.left + r.width * 0.2;
-  const y = r.top + r.height * 0.5;
+  const FX = 0.2, FY = 0.5;
+  const x = r.left + r.width * FX;
+  const y = r.top + r.height * FY;
   canvas.dispatchEvent(new MouseEvent('click', { clientX: x, clientY: y, bubbles: true }));
   for (let i = 0; i < 40; i++) {
     await new Promise(r2 => setTimeout(r2, 100));
@@ -237,6 +238,7 @@ const clicked = await ev(`(async () => {
   }
   const chips = [...document.querySelectorAll('#of-modes [data-of-chip]')];
   return {
+    clickFX: FX, clickFY: FY,
     resultShown: document.getElementById('of-result').hidden === false,
     chips: chips.map(b => ({ text: b.textContent.replace(/\\s+/g, ' ').trim(), on: b.classList.contains('is-on') })),
     winner: (document.querySelector('.of-winner-name') || {}).textContent,
@@ -432,6 +434,69 @@ const marks = await ev(`(() => {
 // "drew black". §3.G.
 ok(marks.ink > 200,
   `the sampled pixels are drawn on the photo, so the reader can see what was measured (${marks.ink} inked of ${marks.w * marks.h})`);
+
+// --- the ring is centred on the click, not on the disc's first pixel --------
+//
+// The ring is the ONLY fully-opaque mark on this canvas: the dots are
+// rgba(255,226,150,0.85) and the footprint box is rgba(255,214,102,0.55),
+// while the ring is solid #ffd666. So it can be isolated by colour and measured
+// on its own — which is the whole difficulty, because the DASHED BOX is already
+// centred on the disc, so a bounding box over all ink looks correct whichever
+// way the ring is drawn and passes on the broken version.
+//
+// The bug guarded: kept[0], which discCoordinates hands back row-major, is the
+// disc's top-left-most surviving pixel. The ring was drawn a full radius up and
+// to the left of the click — 18 marks pixels off at a disc radius of 18.
+const ring = await ev(`(async () => {
+  // The ring is supposed to be the DISC's radius, so the module's own function is
+  // the thing to compare against rather than a number written down here.
+  const { discRadius } = await import('./assets/js/outfit-palette.js');
+  const c = document.getElementById('of-marks');
+  const photo = document.getElementById('of-canvas');
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, n = 0;
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      // Solid #ffd666 = rgb(255,214,102). Anti-aliased rim pixels fall outside
+      // this window and are ignored, which trims the box symmetrically.
+      if (d[i] > 244 && d[i + 1] > 196 && d[i + 1] < 230 && d[i + 2] > 82 && d[i + 2] < 120 && d[i + 3] > 240) {
+        n++;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  const pr = photo.getBoundingClientRect();
+  return {
+    n,
+    centre: n ? [Math.round((minX + maxX) / 2), Math.round((minY + maxY) / 2)] : null,
+    w: n ? maxX - minX : 0, h: n ? maxY - minY : 0,
+    // Fractions, not client coordinates: loadFile() scrolls the workbench into
+    // view after the click, so a client y captured then is stale by the time the
+    // marks are read — measured 350px off before this.
+    want: [Math.round(${clicked.clickFX} * c.width), Math.round(${clicked.clickFY} * c.height)],
+    wantDiameter: 2 * discRadius(photo.width, photo.height),
+  };
+})()`);
+ok(ring.n > 60,
+  `the ring is drawn, and can be told from the dots and the footprint box by being the one opaque mark (${ring.n}px of solid #ffd666)`);
+ok(ring.centre !== null
+     && Math.abs(ring.centre[0] - ring.want[0]) <= 3
+     && Math.abs(ring.centre[1] - ring.want[1]) <= 3,
+  `and its centre is the click (ring at ${ring.centre}, click at ${ring.want}) — it was drawn on kept[0], the disc's top-left pixel, a full radius up and to the left`);
+ok(ring.w > 0 && Math.abs(ring.w - ring.h) <= 3,
+  `and it is round rather than an ellipse (${ring.w}x${ring.h}px) — which is what mixing sx and sy for the radius would produce`);
+// Its radius is the DISC's, not a number of its own. Roundness does not catch a
+// uniformly wrong radius — a 1.6x ring is still a circle, and it passed that check.
+//
+// The tolerance is 8px against a measured shortfall of 5, and the shortfall is
+// structural rather than jitter: only fully-opaque core pixels are counted, so
+// the stroke's anti-aliased rim (~1px a side) and the outermost blend are
+// trimmed off both edges. Read as "within a stroke's width or two", not as a
+// bound the ring has to sit inside.
+ok(ring.w > 0 && Math.abs(ring.w - ring.wantDiameter) <= 8,
+  `and its diameter is the disc's (${ring.w}px measured, ${ring.wantDiameter}px from discRadius; the 5px is the anti-aliased rim, which only opaque core pixels count), so the ring is the measurement footprint and not decoration`);
 
 // --- a second click changes the question ----------------------------------
 

@@ -595,7 +595,17 @@
         return;
       }
 
-      samples.push(sample);
+      // **The click point is kept, because it was being reconstructed wrongly.**
+      // `sampleDisc` returns { pixels, kept, radius, rejected } — the disc's
+      // geometry but not where it was aimed — so `renderMarks` reached for
+      // `kept[0]`, and `discCoordinates` scans row by row, top-left first. That
+      // made `kept[0]` the disc's TOP-LEFT-most surviving pixel, not its centre,
+      // so the ring was drawn a full radius up and to the left of where the
+      // reader actually clicked. Stored here rather than added to
+      // sampleDisc's return: that module's job is deciding which pixels count,
+      // its own internal `centre` is the median COLOUR, and this is the page's
+      // notion of an interaction the module deliberately does not hold.
+      samples.push({ ...sample, at: [x, y] });
       // Default to the whole outfit as soon as there is more than one thing to
       // measure, because "which Pokémon is my OUTFIT" is what the page is named
       // after. A single click is a single garment, and the chip row says so.
@@ -671,9 +681,16 @@
           ctx.fillStyle = active ? 'rgba(255, 226, 150, 0.85)' : 'rgba(255, 255, 255, 0.42)';
           ctx.fill();
         }
-        // A hollow ring at the click point, so the reader can tell which dot is
-        // the click they made and which are the pixels the disc kept.
-        const [kx, ky] = sample.kept[0] || [0, 0];
+        // A hollow ring at the disc's own radius, centred on the click: the
+        // FOOTPRINT of what was measured. The dots inside it are the pixels the
+        // disc actually kept.
+        //
+        // It used to read `kept[0]`, which is the disc's top-left-most surviving
+        // pixel (discCoordinates scans row-major), so the ring sat a full radius
+        // above the dots it was supposed to outline. It also claimed in a comment
+        // to mark "which dot is the click" — a job concentric geometry cannot do:
+        // the click is now simply the centre of the ring.
+        const [kx, ky] = sample.at || [0, 0];
         ctx.save();
         ctx.strokeStyle = active ? '#ffd666' : 'rgba(255,255,255,0.55)';
         ctx.lineWidth = Math.max(1, 2 * sx);
@@ -1018,9 +1035,13 @@
       els.winner.innerHTML = `
         <div class="of-winner-card">
           <div class="of-winner-main">
+            <!-- The eyebrow spans both columns, above them. It was inside the
+                 identity block, which made it the LONGEST line there and set
+                 that block's width — so the portrait sat against the end of a
+                 sentence rather than against the name it belongs to. -->
+            <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
             <div class="of-winner-head">
               <div class="of-winner-ident">
-                <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
                 <h3 class="of-winner-name">
                   ${record
                     ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
