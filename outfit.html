@@ -1191,27 +1191,32 @@
       els.winner.innerHTML = `
         <div class="of-winner-card">
           <div class="of-winner-main">
-            <!-- The eyebrow spans both columns, above them. It was inside the
-                 identity block, which made it the LONGEST line there and set
-                 that block's width — so the portrait sat against the end of a
-                 sentence rather than against the name it belongs to. -->
+            <!-- TWO COLUMNS ON THE CARD BODY ITSELF: the reading column on the
+                 left, the portrait and its palette in a column of their own on
+                 the right. The figure used to sit inside the identity block's
+                 row, which capped it at 84px because it had to share a line with
+                 the name — and that row existed only to hold two things. Removing
+                 it frees the whole right third of a 1108px card. -->
+            <!-- The eyebrow spans both columns. It was inside the identity block,
+                 which made it the LONGEST line there and set that block's width. -->
             <span class="of-winner-eyebrow">${escapeHtml(modeLabel(selection) || '')}最接近</span>
-            <div class="of-winner-head">
-              <div class="of-winner-ident">
-                <h3 class="of-winner-name">
-                  ${record
-                    ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
-                    : `<span>${escapeHtml(name)}</span>`}
-                </h3>
-                <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
-              </div>
-              ${ownStrip ? `
-              <figure class="of-winner-fig">
-                <img class="of-winner-sprite" src="${artworkUrl(m.id)}" alt="${escapeHtml(name)}"
-                     width="84" height="84" decoding="async">
-                <div class="of-winner-strip">${ownStrip}</div>
-              </figure>` : ''}
+            <div class="of-winner-ident">
+              <h3 class="of-winner-name">
+                ${record
+                  ? `<a href="${paletteUrl(record)}">${escapeHtml(name)}</a>`
+                  : `<span>${escapeHtml(name)}</span>`}
+              </h3>
+              <p class="of-winner-id">${formatPokemonId(m.id)}${types.length ? ' · ' + escapeHtml(types.join(' · ')) : ''}</p>
             </div>
+            ${ownStrip ? `
+            <!-- of-winner-img, not -sprite: artworkUrl is the 475px official
+                 artwork, while spriteUrl is the 96px front sprite the workbench
+                 uses. The old name said sprite and loaded artwork. -->
+            <figure class="of-winner-fig">
+              <img class="of-winner-img" src="${artworkUrl(m.id)}" alt="${escapeHtml(name)}"
+                   width="200" height="200" decoding="async">
+              <div class="of-winner-strip">${ownStrip}</div>
+            </figure>` : ''}
             <dl class="of-winner-scores">
               <div><dt>色盤距離</dt><dd>${m.score.toFixed(4)}</dd></div>
               <div><dt>穿搭 → 寶可夢</dt><dd>${m.forward.toFixed(4)}</dd></div>

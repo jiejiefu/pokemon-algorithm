@@ -518,11 +518,31 @@
   background: var(--bg-controls);
   border: 1px solid var(--border-strong);
 }
+/* The card BODY is the two-column layout: reading column left, portrait column
+ * right. It used to be a flex column whose only row held the name and the
+ * portrait, which is what capped the portrait at 84px — it had to share a line
+ * with the name and there was no width left over. Removing that row gives the
+ * portrait a column of its own.
+ *
+ * `auto` rather than a fixed width so the right column is exactly as wide as the
+ * artwork, and the left takes the rest. `align-items: start` so a short left
+ * column does not stretch the portrait's box. */
 .of-winner-main {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem 1.5rem;
+}
+.of-winner-main > .of-winner-eyebrow,
+.of-winner-main > .of-winner-ident,
+.of-winner-main > .of-winner-scores,
+.of-winner-main > .of-winner-note,
+.of-winner-main > .of-winner-why,
+.of-winner-main > .of-winner-links { grid-column: 1; }
+.of-winner-main > .of-winner-fig {
+  grid-column: 2;
+  grid-row: 1 / -1;
 }
 
 /* The identity block and the portrait sit on one line, portrait to the RIGHT.
@@ -533,52 +553,59 @@
  * would bring 64px strips and an identity-card layout along with them. The
  * shared thing here is `.cp-strip`, which is why exactly one rule below scopes
  * it, and does so from this file. */
-.of-winner-head {
-  display: flex;
-  align-items: center;
-  /* NO `justify-content: space-between`. It was here, and it was not the thing
-   * doing the damage — see `.of-winner-ident` below. `space-between` packs the
-   * LAST item to the end of the line, so it is not a harmless default: it is a
-   * second mechanism pushing the same way, and both had to go together. Measured
-   * with only one of the two reverted: the figure stayed at x=1040px. */
-  gap: 1rem 1.25rem;
-  width: 100%;
-}
-/* `flex: 0 1 auto`, and the `0` is the whole fix: no grow, shrink allowed, basis
- * auto. The block is now as wide as its longest line (the eyebrow) instead of
- * filling the card, so the figure sits against it rather than against the far
- * edge — measured, it moved from x=1040 to x=456 with no change in card height.
+/* **The `flex: 0 1 auto` that used to be the whole fix here is now INERT**, and
+ * leaving it would be a comment about a mechanism that no longer runs: this is a
+ * grid item, and flex properties do nothing to a grid item. What does the job is
+ * `minmax(0, 1fr)` on `.of-winner-main` — a bare `1fr` is `minmax(auto, 1fr)`, and
+ * that `auto` minimum lets a long species name push the reading column wider than
+ * its share. So the claim `min-width: 0` still carries is the SAME one the `0`
+ * used to, one level down: a long name shrinks inside its column instead of
+ * widening the card. Measured at 11 characters, the row came to 490px of a 1060px
+ * card.
  *
- * `min-width: 0` stays so a long species name shrinks instead of forcing the row
- * wider; stress-tested at 11 characters the row came to 490px of a 1060px card.
+ * The measured history, kept because the numbers are what convinced the grid was
+ * worth it: as a flex item with `flex-grow: 1` the block filled the card and the
+ * portrait sat at x=1040. With no grow it sat at x=456. It now sits at x=460 —
+ * column 2 of a two-column grid, decided by the grid rather than by a flex.
  *
  * This is a vertical-axis no-op below 640px: the head is `column-reverse` there
  * with `align-items: flex-start`, so the block was already content-width. */
 .of-winner-ident { flex: 0 1 auto; min-width: 0; }
 
-/* `flex: none` so the figure's width is decided by the sprite and the strip and
+/* `flex: none` so the figure's width is decided by the image and the strip and
  * not by the card's row — colors-generator.css documents the same trap it hit:
- * as a sibling of the name, the strip's width followed the length of the
- * species NAME. 96px here rather than colors.html's 64px because this card is
- * nearly three times as wide and can afford legible segments. */
+ * as a sibling of the name, the strip's width followed the length of the species
+ * NAME. The strip is now as wide as the portrait above it, which settles that by
+ * construction rather than by a magic number.
+ *
+ * Stacked rather than side by side: at 200px the image and a 200px strip would
+ * sit in a 410px row, which is wider than the artwork needs and leaves the strip
+ * reading as a separate panel instead of as the artwork's caption. Stacked, the
+ * column is 200px wide and the strip sits under the thing it describes. */
 .of-winner-fig {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   flex: none;
   margin: 0;
+  width: 200px;
 }
-.of-winner-sprite {
-  width: 84px;
-  height: 84px;
-  flex: none;
-  /* 96px artwork scaled down to 84. Nearest-neighbour, so it stays the crisp
-   * pixel sprite rather than a resampled blur — the same reason
-   * cg-winner-sprite carries it. */
-  image-rendering: pixelated;
+/* `of-winner-img`, not `-sprite`: this is `artworkUrl`, the 475px official
+ * artwork. `spriteUrl` is the 96px front sprite the workbench companion uses. */
+.of-winner-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
 }
-.of-winner-strip { width: 96px; align-self: center; }
+/* **No `image-rendering: pixelated` here, and that is the fix for the resize.**
+ * colors.html carries it because it displays the 96px sprite at 84px — an
+ * UPSCALE, where nearest-neighbour keeps the pixel grid. This is 475px artwork
+ * at 200px, a DOWNSCALE, where nearest-neighbour throws away exactly the
+ * averaging that makes a reduction look clean. The rule was inherited from the
+ * other page along with the old name. */
+.of-winner-strip { width: 100%; align-self: stretch; }
 
 /* `.cp-strip`'s own height and radius come from a rule scoped to an identity
  * card in colors.css, so a plain strip in a different box has neither. */
@@ -588,22 +615,27 @@
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--border-strong);
 }
-/* Five segments across 96px is 19px a piece: room for the proportions, none for
- * a label. `paletteStripHtml()`'s default limit is 5 with a "+1" chip for the
- * sixth, and at this width that chip would be ~14px of illegible digits — so it
- * is dropped rather than shrunk. The strip is `role="img"` and its aria-label
- * already reads 「共 6 色，主要 5 色」, and both links under the card open the
- * full palette. */
+/* ONLY the "+1" chip is load-bearing here. `paletteStripHtml()` defaults to a
+ * limit of 5 with a remainder chip for the sixth, and `.cp-seg-more` is
+ * `display: flex` in colors.css, so at this width it would draw a sixth segment
+ * whose "more" label sits in a fraction of the bar. Dropping it is the choice;
+ * the strip is role="img" and its aria-label already reads 「共 6 色，主要 5 色」,
+ * and both links under the card open the full palette.
+ *
+ * `.cp-seg-hex` is listed for symmetry and is a NO-OP: colors.css already sets
+ * it to `display: none` and only reveals it on hover inside a `.cp-card`, which
+ * this is not. Writing the rule makes it read as a decision taken here. */
 .of-winner-strip .cp-seg-hex,
 .of-winner-strip .cp-seg-more { display: none; }
 
 @media (max-width: 640px) {
-  /* Below this the name and a 180px figure cannot share a 358px line without the
-   * name wrapping mid-word, and a name broken across lines is worse than a
-   * taller card. Stacked, portrait first — the same order colors.html uses. */
-  .of-winner-head { flex-direction: column-reverse; align-items: flex-start; gap: .7rem; }
-  .of-winner-ident { width: 100%; }
-  .of-winner-fig { align-self: flex-start; }
+  /* Below this a 200px portrait leaves the reading column ~180px, and a species
+   * name wraps mid-word — which is worse than a taller card. So the grid becomes
+   * ONE column and `order` puts the portrait FIRST, the order colors.html uses.
+   * `order` rather than DOM order because the DOM order is the reading order, and
+   * that should stay true for a screen reader at every width. */
+  .of-winner-main { grid-template-columns: minmax(0, 1fr); }
+  .of-winner-main > .of-winner-fig { grid-column: 1; grid-row: 1; order: -1; }
 }
 .of-winner-eyebrow {
   display: block;

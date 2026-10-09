@@ -860,7 +860,7 @@ ok(!BODY.includes('[cite') && !BODY.includes('shared[cite'),
 const strip = await ev(`(() => {
   const segs = [...document.querySelectorAll('.of-winner-strip .cp-seg')];
   const bar = document.querySelector('.of-winner-strip .cp-strip');
-  const sprite = document.querySelector('.of-winner-sprite');
+  const img = document.querySelector('.of-winner-img');
   const dts = [...document.querySelectorAll('.of-winner-scores dt')];
   const primaryTile = [...document.querySelectorAll('.of-winner-scores > div')]
     .find(d => d.querySelector('dt').textContent.trim() === '寶可夢的主色');
@@ -877,7 +877,7 @@ const strip = await ev(`(() => {
   });
   const ident = document.querySelector('.of-winner-ident');
   const fig = document.querySelector('.of-winner-fig');
-  const head = document.querySelector('.of-winner-head');
+  const main = document.querySelector('.of-winner-main');
   const card = document.querySelector('.of-winner-card');
   const fb = fig ? fig.getBoundingClientRect() : null;
   const ib = ident ? ident.getBoundingClientRect() : null;
@@ -891,15 +891,17 @@ const strip = await ev(`(() => {
       return h ? getComputedStyle(h).display : 'absent'; })(),
     primary: primaryTile ? (primaryTile.querySelector('dd').textContent.trim().match(/#[0-9a-f]{6}/i) || [null])[0].toUpperCase() : null,
     labels: dts.map(d => d.textContent.trim()),
-    spriteSrc: sprite ? sprite.getAttribute('src') : null,
-    spriteDecoded: sprite ? sprite.naturalWidth > 0 : false,
+    imgSrc: img ? img.getAttribute('src') : null,
+    imgDecoded: img ? img.naturalWidth > 0 : false,
+    imgW: img ? Math.round(img.getBoundingClientRect().width) : 0,
     figRightOfName: !!(fig && ident) && fig.getBoundingClientRect().left > ident.getBoundingClientRect().left,
     // Not a distance between the two: that is definitionally the flex gap and
     // can never exceed it, so asserting on it passes at 456px and 1040px alike.
-    // Three mutations confirmed it. What differs is the MECHANISM.
-    identFlexGrow: ident ? parseFloat(getComputedStyle(ident).flexGrow) : null,
-    headJustify: head ? getComputedStyle(head).justifyContent : null,
-    headContentW: (fb && ib) ? Math.round(fb.right - ib.left) : null,
+    // What differs is the MECHANISM — and it is a grid now, since
+    // .of-winner-main carries the two columns itself, and flex-grow on a grid
+    // item reads as a real number while meaning nothing.
+    mainCols: main ? getComputedStyle(main).gridTemplateColumns : null,
+    figColStart: fig ? getComputedStyle(fig).gridColumnStart : null,
     cardInnerW: card ? Math.round(card.getBoundingClientRect().width) : null,
   };
 })()`);
@@ -909,17 +911,20 @@ ok(strip.segs === 5 && strip.primary !== null && strip.segHexes[0] === strip.pri
   `and its first segment is the MATCHED species' primary, cross-checked against the hex printed in the same card (${strip.segHexes[0]} vs ${strip.primary}) — not the reader's own palette, which is also six colours`);
 ok(strip.moreDisplay === 'none' && strip.hexLabels === 'none',
   `the "+1" chip and per-segment hexes are dropped rather than shrunk to illegible digits (${strip.moreDisplay} / ${strip.hexLabels}), with the count carried by the aria-label instead`);
-ok(/^assets\/images\/pokemon\/\d+\.png$/.test(strip.spriteSrc || '') && strip.spriteDecoded,
-  `the portrait beside it is the 475px artwork and it decoded (${strip.spriteSrc})`);
-ok(strip.figRightOfName,
-  'and the figure sits to the right of the name, not left of it — the two share one row rather than stacking');
-ok(strip.identFlexGrow === 0,
-  `the identity block does not grow to fill the card (flex-grow ${strip.identFlexGrow}) — this is what pushed the portrait from x=456 to x=1040`);
-ok(strip.headJustify === 'normal' || strip.headJustify === 'flex-start',
-  `and the head row is not end-packed (justify-content: ${strip.headJustify}) — a second mechanism pushing the same way`);
-ok(strip.headContentW !== null && strip.cardInnerW !== null
-     && strip.headContentW / strip.cardInnerW <= 0.8,
-  `and the row's content leaves the card's right side empty (${strip.headContentW} of ${strip.cardInnerW}px, ${Math.round(strip.headContentW / strip.cardInnerW * 100)}%; was 96%)`);
+// `of-winner-img`, not `-sprite`: artworkUrl is the 475px official artwork and
+// spriteUrl is the 96px front sprite the workbench uses. The class used to say
+// sprite while loading artwork, and the old name is what invited the pixelated
+// rendering this no longer carries.
+ok(/^assets\/images\/pokemon\/\d+\.png$/.test(strip.imgSrc || '') && strip.imgDecoded,
+  `the portrait beside it is the 475px artwork and it decoded (${strip.imgSrc})`);
+ok(strip.imgW >= 160,
+  `and it is displayed at a size worth calling a portrait rather than a marker (${strip.imgW}px; was 84px, capped by sharing a row with the name)`);
+ok(strip.mainCols !== null && strip.mainCols.split(' ').length === 2,
+  `the card body is two columns, reading left and portrait right (${strip.mainCols})`);
+ok(strip.figColStart === '2' && strip.figRightOfName,
+  'and the figure is in the RIGHT one — column 2, spanning the rows, to the right of the name');
+ok(strip.cardInnerW !== null && strip.imgW / strip.cardInnerW <= 0.35,
+  `and the portrait takes no more than a third of the card (${strip.imgW} of ${strip.cardInnerW}px, ${Math.round(strip.imgW / strip.cardInnerW * 100)}%)`);
 ok(strip.labels.length === 4 && strip.labels[1] === '穿搭 → 寶可夢' && strip.labels[2] === '寶可夢 → 穿搭',
   `the score tiles keep 寶可夢 rather than 牠 in both directions (${strip.labels.slice(1, 3).join(' | ')})`);
 
