@@ -488,6 +488,20 @@ const CHECKERS = [
     script: 'scripts/check_page_module_api.mjs', group: 'nav',
     inputs: ['*.html', 'assets/js/*.js'],
   },
+  {
+    /* Every `<script>` on every page must parse. This is the only entry that
+     * looks at index.html, types.html and generations.html — three pages with
+     * innerHTML template literals that NO CDP checker boots, so a syntax error
+     * in any of them is invisible to the other 46 entries. The six pages that
+     * ARE booted fail loudly instead, which is how the backtick-in-a-comment
+     * defect kept announcing itself; these three would not.
+     *
+     * A parse rather than a grep for backticks, because nested template literals
+     * are everywhere in this repo and are perfectly legal, so grepping buries the
+     * signal under the project's own idioms. See the script's header. */
+    script: 'scripts/check_js_syntax.mjs', group: 'nav',
+    inputs: ['*.html'],
+  },
   /* ---- nav and structure ---- */
   {
     /* Reads every page in the root, which is the claim: the nav is on all of them
