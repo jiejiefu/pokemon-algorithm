@@ -35,6 +35,7 @@
 | [`model3d.html`](./model3d.html) | GLB 3D model viewer driven by `model3d-viewer.js`; the file roster is generated into `glb-index.js` and the models live in `assets/glbs/` |
 | [`collections.html`](./collections.html) | Special collections hub: 11 cards in 4 groups (稀有與傳說 / 熱門分類 / 遊戲與活動 / 特殊形態), 2 of which are `upcoming` and render as non-links |
 | [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`). 11 categories, one per config in `categories.js`; the roster + a zh-Hant introduction. Does not link to `types.html` — see §3.H |
+| [`outfit.html`](./outfit.html) | Outfit companion lab: pick a garment disc on a photo, MMCQ → six colours, then bidirectional OKLab against all 1,025 palettes. Three ways in — file picker, two bundled presets in `assets/images/outfit-samples/`, and a pasted image URL. See §3.L |
 | [`generations.html`](./generations.html) | Chronological generation guide: 9 generations, 38 games, and 27 regional starters |
 | [`cries-gen1.html`](./cries-gen1.html) | Generation I cry lab: a Game Boy APU re-synthesises all 151 cries from their 38 base command lists, with pitch/length/volume controls, per-channel mute and a timeline that marks the end-of-cry crash |
 | [`spectrum.html`](./spectrum.html) | Cry spectrum lab: a mel spectrogram for all 1,025 recorded cries, 649 legacy recordings and the 151 re-synthesised Generation I ones, revealed left to right in time with the audio, with a live energy curve and the browser's own features differenced against `cry_features.json` on screen. See §3.G1 |
@@ -696,6 +697,31 @@ Measured over CDP at 1440×900: with the dropdown open, **5 of 22 hit-test point
 The fix is one value (20 → 5). The guard is `check_life_browser.mjs`, and it is a **hit-test rather than a z-index comparison**, because both declarations are individually correct and no static check can see the interaction. It includes a **control page on the same probe**, since "zero blocked points" could equally mean a probe that finds nothing anywhere.
 
 **Expect this shape wherever a decorative value on a non-positioned element starts meaning something** — a `filter`, a `backdrop-filter`, `transform`, `perspective`, `contain` or `will-change` will each do it, and each looks like an inert declaration in review.
+
+### L. `outfit.html` Gains Two Ways In, And `new File([blob], name)` Silently Drops The MIME Type
+
+The page takes a photo three ways: the file picker, two bundled presets, and a pasted URL. The first shipped as one line each and the second shipped broken.
+
+**`new File(parts, name)` DOES NOT INHERIT `blob.type` — THE `type` OPTION DEFAULTS TO `""`.** So `loadSample()`'s first version built a File from a `response.blob()` of a perfectly good JPEG, handed it to the existing `loadFile()`, and `loadFile`'s own guard read `!file.type.startsWith('image/')` and printed **「這不是一個圖片檔。請選 JPG、PNG 或 WebP。」** — about a file the same server had just answered `Content-Type: image/jpeg` for. No exception, no console output, and the thumbnail on screen was the very picture it refused. `check_outfit_browser.mjs` caught it with 「the caption names the preset photo's real dimensions」, which is a *shape* claim rather than a colour claim, so it fired on the rejected load rather than on anything visual. Both call sites now pass `{ type: blob.type }` explicitly, and the browser checker's mutation case (delete that third argument) still fails — verified, not assumed.
+
+Expect this shape anywhere a `Blob` becomes a `File`: the two look like the same object and share neither this field nor any other.
+
+**THE PRESET ROW IS A SIBLING OF `.of-drop`, NEVER A CHILD, because the file input covers the zone.** `.of-file-input` is `position:absolute; inset:0` at `opacity:0` (outfit.css:121) — deliberately, so the real control is focusable and in the tab order. Anything nested inside `.of-drop` therefore sits *under* the input and never receives a click, and it looks correct in review because a thumbnail inside an upload box is exactly where a thumbnail belongs. §3.G2's bare `class="header"` in the same shape: a valid declaration producing a valid, wrong page.
+
+**A PASTED URL IS NOT OURS TO DECIDE, AND THE PAGE SAYS SO IN THREE SEPARATE PLACES.** A static host cannot proxy, so `fetch` on a cross-origin image succeeds **only** when that server answers `Access-Control-Allow-Origin`. Measured for this page: `raw.githubusercontent.com`, `upload.wikimedia.org`, `images.unsplash.com` and `picsum.photos` all send `access-control-allow-origin: *`; Facebook/Instagram album URLs do not. So `loadUrl()` distinguishes four outcomes, because a bare CORS rejection is a `TypeError` whose message says nothing about the cause:
+
+| state | why it is a separate branch |
+| :--- | :--- |
+| not a URL | `new URL()` threw; name it rather than sending it to `fetch` |
+| non-`http(s)` scheme | `javascript:` is the dangerous one, and it is why the scheme is checked rather than left to `fetch` |
+| fetched, not `image/*` | a 404 page, a paywall and a hotlink block all arrive as `200 text/html`; caught here, because `createImageBitmap` would throw later with a message about the *image* rather than the response |
+| CORS-blocked | the single most likely outcome, and the only one the reader can act on — so it gets its own sentence, not 「失敗」 |
+
+**ONLY THE REJECTION PATH IS CHECKED IN THE BROWSER SUITE, AND THAT IS THE WHOLE OF IT.** Asserting a *successful* remote fetch needs a second origin that sends CORS, and every checker here runs on one host — it would be asserting on Live Server's own behaviour. `check_outfit_browser.mjs` therefore drives all four rejection states and says in a comment why the fifth is absent, because "we didn't test the working case" is otherwise a thing a reader has to notice themselves.
+
+**THE PRIVACY NOTE GAINED A CLAUSE, because the feature made the sentence less absolute than it was.** 「照片不會離開你的裝置」 was true and load-bearing, and a URL fetch *is* a request that leaves the device. The note now says which of the two the reader is doing, in the same enumerating style as the rest of that paragraph: the claim is about a photo, not about the network, and a new network path on a page whose headline promise is about network is exactly the change that should force the sentence to be re-read.
+
+**`SAMPLES` IS PARSED OUT OF THE HTML BY `check_outfit_page.mjs`, NOT RESTATED.** Every declared path is asserted to exist, be over 1 KB, be repo-relative (an absolute URL would bypass the manifest's coverage and make the presets track someone else's server), and be ASCII so it needs no escaping. A hardcoded copy would keep passing after the page moved a preset — the same reasoning `check_nav_pages` uses for the six header-modifier names.
 
 ---
 

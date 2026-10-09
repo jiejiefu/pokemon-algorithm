@@ -36,7 +36,7 @@
  *    the reader cannot check.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -670,6 +670,45 @@ console.log('sampling: which pixels are measured');
     'a row with extra columns is still read as a pair, not destructured into two scalars');
   eq(boundsOf(['nope', null, [7, 8]]), { x: 7, y: 8, width: 1, height: 1 },
     'malformed entries are skipped rather than throwing');
+}
+
+console.log('');
+console.log('preset photos: every path the page declares must exist on disk');
+
+/**
+ * The `SAMPLES` array, parsed out of `outfit.html`.
+ *
+ * Read from the page rather than restated here, for the reason `check_nav_pages`
+ * reads the six header-modifier names out of `shared.css`: a hardcoded copy is a
+ * second thing to keep right, and it would keep passing after the page moved a
+ * sample. The parse is deliberately narrow — a JS array of string pairs — and it
+ * is the ONLY thing in this suite that opens an HTML file.
+ */
+const OUTFIT_HTML = readFileSync(join(ROOT, 'outfit.html'), 'utf8');
+const samplesBlock = OUTFIT_HTML.match(/const SAMPLES = \[([\s\S]*?)\n {4}\];/);
+ok(!!samplesBlock, 'outfit.html declares a SAMPLES array for the preset photos');
+
+const samplePaths = samplesBlock
+  ? [...samplesBlock[1].matchAll(/\[\s*'([^']+)'\s*,\s*'([^']+)'\s*\]/g)].map((m) => ({ url: m[1], name: m[2] }))
+  : [];
+
+ok(samplePaths.length >= 2, `the preset row has at least the two bundled photos (found ${samplePaths.length})`);
+ok(new Set(samplePaths.map((s) => s.url)).size === samplePaths.length,
+  'no two presets share a path, so the row cannot render two identical thumbnails');
+
+for (const s of samplePaths) {
+  // Absolute URLs would bypass the manifest's `assets/images/**` coverage and
+  // mean the presets track someone else's server.
+  ok(!/^https?:/i.test(s.url), `${s.url} is a repo-relative path, so it ships with the site`);
+  const p = join(ROOT, s.url);
+  let size = 0;
+  let exists = true;
+  try { size = statSync(p).size; } catch { exists = false; }
+  ok(exists, `${s.url} exists on disk`);
+  ok(exists && size > 1024, `${s.url} is a real image, not a stub (${size} bytes)`);
+  ok(/^[\x20-\x7e]+$/.test(s.url) && !/[\s"']/.test(s.url),
+    `${s.url} is ASCII and needs no URL escaping`);
+  ok(s.name.trim().length > 0, `${s.url} carries a caption, so a thumbnail is never nameless`);
 }
 
 console.log('');

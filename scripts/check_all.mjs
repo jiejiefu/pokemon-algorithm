@@ -246,6 +246,10 @@ const CHECKERS = [
       'assets/data/color_palettes.json',
       'assets/images/sprite/*',
       'assets/images/sprite/shiny/*',
+      // The page checker parses SAMPLES out of outfit.html and asserts each
+      // path resolves, so the page and this list have to invalidate together.
+      'outfit.html',
+      'assets/images/outfit-samples/*',
     ],
   },
   {
@@ -267,6 +271,7 @@ const CHECKERS = [
       'assets/js/outfit-palette.js',
       'assets/data/pokemon_data.json',
       'assets/data/color_palettes.json',
+      'assets/images/outfit-samples/*',
     ],
   },
 

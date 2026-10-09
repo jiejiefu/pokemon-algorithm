@@ -153,6 +153,125 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Preset photos & pasted URLs
+
+   New components, so new rules: nothing here touches an existing `.of-*`, a
+   `.cp-*` or a shared token (§3.B1).
+   --------------------------------------------------------------------------- */
+
+.of-samples {
+  margin-top: 1.4rem;
+}
+
+.of-samples-label,
+.of-url-label {
+  display: block;
+  font-size: .85rem;
+  color: var(--text-secondary);
+  margin-bottom: .55rem;
+}
+
+.of-samples-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .7rem;
+}
+
+/* A `<button>`, not a `<div>` with a click handler: it is reachable by keyboard
+   and announced as a control with no extra wiring. The whole card is the target
+   — 96px wide and ~108px tall — so it clears WCAG 2.2 SC 2.5.8 (24x24) on both
+   axes without the label needing to be part of the hit area. */
+.of-samples-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .45rem;
+  width: 128px;
+  padding: .5rem .4rem .6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+}
+.of-samples-item:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-controls);
+  transform: translateY(-2px);
+}
+.of-samples-item:focus-visible {
+  outline: 3px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* 4:3, matching the photos' own aspect closely enough that neither thumbnail
+   is letterboxed. `object-fit: cover` rather than `contain` so a differently
+   shaped source still fills the box instead of shrinking into it. */
+.of-samples-thumb {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.of-samples-name {
+  line-height: 1.35;
+  text-align: center;
+}
+
+.of-url {
+  margin-top: 1.4rem;
+}
+
+.of-url-row {
+  display: flex;
+  gap: .6rem;
+  align-items: stretch;
+  max-width: 560px;
+}
+
+.of-url-input {
+  flex: 1 1 auto;
+  min-width: 0; /* a flex item's default min-width would stop it shrinking */
+  padding: .6rem .75rem;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--text-primary);
+  background: var(--bg-controls);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+}
+.of-url-input::placeholder { color: var(--text-muted); }
+.of-url-input:focus-visible {
+  outline: 3px solid var(--accent-gold);
+  outline-offset: 1px;
+  border-color: var(--accent-gold);
+}
+
+.of-url-hint {
+  margin-top: .55rem;
+  font-size: .8rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 62ch;
+}
+.of-url-hint code {
+  font-size: .95em;
+  padding: .05em .3em;
+  border-radius: 4px;
+  background: var(--bg-controls);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+  .of-url-row { flex-direction: column; }
+}
+
+/* ---------------------------------------------------------------------------
    The stage: photo on the left, the Pokémon on the right
    --------------------------------------------------------------------------- */
 

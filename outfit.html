@@ -110,9 +110,16 @@
            one unusual thing this page can truthfully say, and it is only credible
            because the next clause names the five stages that never leave. Swapping
            the enumeration for 「請放心使用」 turns a measurement into a reassurance,
-           which is the opposite of what the rest of this copy does. -->
+           which is the opposite of what the rest of this copy does.
+
+           The last clause exists because a URL fetch IS a request that leaves the
+           device, and the sentence above is about a photo, not about the network.
+           A reader who pastes an address should be told which of the two they are
+           doing — and the answer is "neither uploads anything", stated as a fact
+           rather than as reassurance. -->
       <p class="of-intro-note">
         🔒 <b>照片不會離開你的裝置</b>：解碼、取樣、量化、比對與照片合成全部在你的瀏覽器裡完成，照片絕不上傳任何伺服器。
+        （唯一會發出請求的是下面「貼上圖片網址」——那是你自己去取一張公開圖片，並不是把你的照片傳出去。）
         色盤演算法參考 <a href="https://lokeshdhakar.com/projects/color-thief/" rel="noopener noreferrer" target="_blank">color-thief</a>，
         距離度量使用感知均勻的 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a>。
       </p>
@@ -131,6 +138,34 @@
             支援 JPG / PNG / WebP。照片會在瀏覽器本機縮到長邊 512 像素後取樣與比對，快速且保護隱私。
           </span>
         </label>
+      </div>
+
+      <!-- Two ways in that are not the file picker, and they are siblings of
+           `.of-drop` rather than children of it: `.of-file-input` is
+           `position:absolute; inset:0` at opacity 0 (outfit.css), so anything
+           nested inside the zone would sit *under* the input and never receive a
+           click. Both feed the same `loadFile`. -->
+      <div class="of-samples">
+        <span class="of-samples-label" id="of-samples-label">或直接試用範例照片</span>
+        <div class="of-samples-row" id="of-samples" role="group" aria-labelledby="of-samples-label"></div>
+      </div>
+
+      <div class="of-url">
+        <label class="of-url-label" for="of-url-input">或貼上圖片網址</label>
+        <div class="of-url-row">
+          <input type="url" id="of-url-input" class="of-url-input"
+                 placeholder="https://… 的 .jpg / .png / .webp"
+                 aria-describedby="of-url-hint" spellcheck="false"
+                 autocomplete="off" inputmode="url">
+          <button type="button" class="of-btn" id="of-url-go">載入</button>
+        </div>
+        <p class="of-url-hint" id="of-url-hint">
+          貼上圖片的網址直接載入。能不能讀到取決於<strong>對方的伺服器有沒有送 CORS 標頭</strong> ——
+          GitHub Pages 是純靜態託管，無法代你轉一手，所以多數圖片空間（Facebook／Instagram 相簿、
+          私人相簿）會被瀏覽器擋下。成功的常見例子是
+          <code>raw.githubusercontent.com</code>、<code>upload.wikimedia.org</code>、Unsplash。
+          被擋時請改用上傳。
+        </p>
       </div>
 
       <p class="of-file-meta" id="of-file-meta" hidden></p>
@@ -372,6 +407,10 @@
       drop: document.getElementById('of-drop'),
       file: document.getElementById('of-file'),
       fileMeta: document.getElementById('of-file-meta'),
+      samples: document.getElementById('of-samples'),
+      urlInput: document.getElementById('of-url-input'),
+      urlGo: document.getElementById('of-url-go'),
+      urlHint: document.getElementById('of-url-hint'),
       work: document.getElementById('of-work'),
       photoFigure: document.getElementById('of-photo'),
       swap: document.getElementById('of-swap'),
@@ -540,6 +579,123 @@
     function setStatus(message) {
       els.fileMeta.hidden = false;
       els.fileMeta.textContent = message;
+    }
+
+    // ---------------------------------------------------------------------
+    // Preset photos & pasted URLs
+    // ---------------------------------------------------------------------
+
+    /**
+     * The two bundled sample photos.
+     *
+     * `[url, name]` pairs only. The caption shown under each thumbnail is a
+     * description of the picture, not a second copy of the filename, and the
+     * filenames are ASCII precisely so they are safe in a URL without escaping.
+     */
+    const SAMPLES = [
+      ['assets/images/outfit-samples/kanto-trio.jpg', '範例 · 小智小剛小霞'],
+      ['assets/images/outfit-samples/team-rocket.jpg', '範例 · 火箭隊'],
+    ];
+
+    /**
+     * Load one of the bundled samples.
+     *
+     * Fetch → Blob → `File` → the SAME `loadFile`. A preset photo must not be a
+     * second code path: the existing one already handles EXIF rotation, revoking
+     * the object URL on both the success and failure branches, `fitWorkingSize`,
+     * the caption line and the scroll to the workbench. Duplicating any of that
+     * is how a preset ends up behaving differently from an upload in exactly the
+     * way nobody notices.
+     */
+    async function loadSample(url, name) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const blob = await res.blob();
+        loadFile(new File([blob], name, { type: blob.type }));
+      } catch (e) {
+        setStatus(`範例照片載入失敗（${e.message}）。請改用上傳。`);
+      }
+    }
+
+    /**
+     * Load an image from a pasted URL.
+     *
+     * **Whether this can work is not ours to decide**, and pretending otherwise
+     * would be the bug: a static host cannot proxy, so `fetch` on a cross-origin
+     * image succeeds only when that server answers with
+     * `Access-Control-Allow-Origin`. Measured for this page — `raw.githubusercontent.com`,
+     * `upload.wikimedia.org`, `images.unsplash.com` and `picsum.photos` all send
+     * `access-control-allow-origin: *`, and Facebook/Instagram album URLs do not.
+     *
+     * So the three states are all explicit, because a bare CORS rejection is a
+     * `TypeError` whose message says nothing about the cause:
+     *
+     *  - not a URL at all → say so, and name what the field accepts;
+     *  - fetched but not an image → say that, because an HTML error page served
+     *    with `200` otherwise fails deep inside `createImageBitmap` instead;
+     *  - blocked by CORS → say THAT, not 「失敗」. It is the single most likely
+     *    outcome and the reader can do something about it: upload the file.
+     */
+    async function loadUrl(raw) {
+      const value = String(raw || '').trim();
+      if (!value) {
+        setStatus('先貼上一個圖片網址。');
+        els.urlInput.focus();
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = new URL(value);
+      } catch (e) {
+        setStatus(`這看起來不是一個網址：${value}。請貼完整的 https://… 網址。`);
+        return;
+      }
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        setStatus(`只接受 http 或 https 的網址，收到的是 ${parsed.protocol}//。`);
+        return;
+      }
+
+      const btn = els.urlGo;
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '載入中…';
+
+      try {
+        const res = await fetch(parsed.href);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const type = res.headers.get('content-type') || '';
+        // A 404 page, a login wall and a hotlink block all arrive as HTML with a
+        // 200. Checking here names the cause; `createImageBitmap` would throw
+        // later with a message about the image rather than about the response.
+        if (type && !type.startsWith('image/')) {
+          setStatus(`那個網址回傳的是 ${type}，不是圖片（可能是付費牆或防盜鏈）。請改用上傳。`);
+          return;
+        }
+        const blob = await res.blob();
+        if (!blob.size) {
+          setStatus('那個網址回傳了空內容。請改用上傳。');
+          return;
+        }
+        // The blob's own name is a hex string, so the caption gets the host
+        // instead — which is the thing a reader would recognise the picture by.
+        const name = decodeURIComponent(parsed.pathname.split('/').pop() || parsed.hostname);
+        // **`{ type: blob.type }` is load-bearing.** The File constructor's `type`
+        // defaults to "" and does NOT inherit it from the parts — so without
+        // this, `loadFile`'s `file.type.startsWith('image/')` guard rejects a
+        // perfectly good JPEG and the page says 「這不是一個圖片檔」 about a
+        // server that returned image/jpeg. The file loaded; the type did not.
+        loadFile(new File([blob], name, { type: blob.type || 'image/jpeg' }));
+      } catch (e) {
+        // `fetch` only rejects for network-level failures, and a CORS block is
+        // indistinguishable from one at this point — which is exactly why it
+        // gets its own sentence rather than the exception's text.
+        setStatus(`讀不到那個網址：${e.message}。若對方沒有送 CORS 標頭，瀏覽器就會擋下讀取（GitHub Pages 無法代轉）；請改用上傳。`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
     }
 
     /**
@@ -1414,6 +1570,32 @@
     els.file.addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (f) loadFile(f);
+    });
+
+    // The preset row. Built ONCE, here, rather than inside a render function:
+    // these two thumbnails never change state, and rebuilding them would
+    // re-request both images on every load for no reason.
+    els.samples.innerHTML = SAMPLES.map(([url, name], i) => `
+      <button type="button" class="of-samples-item" data-of-sample="${i}">
+        <img class="of-samples-thumb" src="${escapeHtml(url)}" alt="" width="96" height="72"
+             loading="lazy" decoding="async">
+        <span class="of-samples-name">${escapeHtml(name)}</span>
+      </button>`).join('');
+    els.samples.querySelectorAll('[data-of-sample]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const [url, name] = SAMPLES[Number(btn.dataset.ofSample)];
+        loadSample(url, name);
+      });
+    });
+
+    // Enter submits, and so does the button. Both call the SAME function, so
+    // there is no path that skips the protocol check or the content-type check.
+    els.urlGo.addEventListener('click', () => loadUrl(els.urlInput.value));
+    els.urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadUrl(els.urlInput.value);
+      }
     });
 
     // Drag and drop. Both dragenter and dragleave are tracked with a counter,

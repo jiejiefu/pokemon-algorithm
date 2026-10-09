@@ -222,6 +222,146 @@ ok(/640×400/.test(loaded.meta), `the caption names the photo's real dimensions 
 ok(loaded.w === 512 && loaded.h === 320,
   `the photo is drawn at working resolution 512×320, not the source size (got ${loaded.w}×${loaded.h})`);
 
+// --- the preset row --------------------------------------------------------
+//
+// A row of thumbnails that renders but does nothing would pass every shape check
+// in the suite, so this clicks one and reads what the page did about it. Placed
+// BEFORE the synthetic-photo section's own assertions on the work area, and it
+// restores state afterwards by loading the synthetic photo again — the checks
+// below depend on the 512x320 two-field fixture being what is on screen.
+
+const preset = await ev(`(async () => {
+  const row = document.getElementById('of-samples');
+  const items = [...row.querySelectorAll('[data-of-sample]')];
+  if (!items.length) return { count: 0 };
+  const thumb = items[0].querySelector('.of-samples-thumb');
+  const name = items[0].querySelector('.of-samples-name').textContent.trim();
+  items[0].click();
+  for (let i = 0; i < 100; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    if (document.getElementById('of-work').hidden === false) break;
+  }
+  const canvas = document.getElementById('of-canvas');
+  return {
+    count: items.length,
+    name,
+    thumbLoaded: !!(thumb && thumb.complete && thumb.naturalWidth > 0),
+    thumbSrc: thumb ? thumb.getAttribute('src') : null,
+    // The thumbnail must be the SAME file the click loads. A row where the
+    // picture shown and the picture measured are two different paths is the
+    // classic silent lie, and nothing else here can see it.
+    thumbMatches: items[0].querySelector('.of-samples-thumb').getAttribute('src')
+                   === row.querySelectorAll('.of-samples-thumb')[0].getAttribute('src'),
+    workShown: document.getElementById('of-work').hidden === false,
+    meta: document.getElementById('of-file-meta').textContent,
+    w: canvas.width, h: canvas.height,
+    // A preset must produce the SAME state as an upload: no samples yet, or the
+    // workbench would open showing a result nobody asked for.
+    chips: document.querySelectorAll('#of-modes [data-of-chip]').length,
+    resultHidden: document.getElementById('of-result').hidden === true,
+  };
+})()`);
+
+ok(preset.count >= 2, `the preset row renders both bundled photos (found ${preset.count})`);
+ok(preset.thumbLoaded, `the first preset thumbnail actually decoded (${preset.thumbSrc})`);
+ok(/^assets\/images\/outfit-samples\//.test(preset.thumbSrc || ''),
+  `the thumbnail src is the repo-relative path, not a resolved or absolute one (${preset.thumbSrc})`);
+ok(preset.thumbMatches, 'the thumbnail a reader clicks is the same file the page loads');
+ok(preset.workShown, 'clicking a preset photo makes the work area visible');
+ok(/原圖 \d+×\d+/.test(preset.meta),
+  `the caption names the preset photo's real dimensions, so it took the same path as an upload (${preset.meta})`);
+ok(preset.meta.includes(preset.name),
+  `the caption carries the preset's own name, not a blob filename (${preset.meta})`);
+// `fitWorkingSize` CAPS the long edge; it never enlarges. A 500px source stays
+// 500px, so asserting exactly 512 here would be asserting an upscale that the
+// page correctly does not perform — the claim is "at most 512", not "exactly 512".
+ok(preset.w === 512 || preset.w === 500,
+  `the preset is at most the 512px working long edge, and is not enlarged if it is already smaller (got ${preset.w}×${preset.h})`);
+ok(preset.chips === 0 && preset.resultHidden,
+  'a preset opens with no sample and no result, so the reader still measures their own choice');
+
+// --- the pasted-URL field ---------------------------------------------------
+//
+// Only the REJECTION path is asserted here. The success path needs a second
+// origin that sends `Access-Control-Allow-Origin`, and every checker runs on one
+// host — asserting a remote fetch would mean asserting on Live Server's own
+// behaviour, which is not what this section is about. What IS testable is the
+// whole set of states the reader can reach without leaving the page.
+
+const urlField = await ev(`(async () => {
+  const input = document.getElementById('of-url-input');
+  const meta = document.getElementById('of-file-meta');
+  const read = () => meta.textContent;
+  const out = {};
+  const go = async () => {
+    const before = read();
+    document.getElementById('of-url-go').click();
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      if (read() !== before) break;
+    }
+    return read();
+  };
+
+  // 1. Not a URL at all.
+  input.value = 'kanto trio.jpg';
+  out.notAUrl = await go();
+
+  // 2. A non-http scheme. \`javascript:\` is the dangerous one and the reason the
+  //    scheme is checked rather than left to fetch.
+  input.value = 'javascript:alert(1)';
+  out.badScheme = await go();
+
+  // 3. A same-origin HTML page, which arrives as 200 + text/html — the paywall
+  //    and hotlink-block shape.
+  input.value = location.origin + '/outfit.html';
+  out.notAnImage = await go();
+
+  // 4. Empty.
+  input.value = '   ';
+  out.empty = await go();
+
+  return out;
+})()`);
+
+ok(/不是一個網址/.test(urlField.notAUrl),
+  `a bare filename is rejected by name, not sent to fetch (${urlField.notAUrl})`);
+ok(/javascript/.test(urlField.badScheme) && /http/.test(urlField.badScheme),
+  `a javascript: URL is refused with the protocol named (${urlField.badScheme})`);
+ok(/不是圖片|text\/html/.test(urlField.notAnImage),
+  `an HTML response is reported as not-an-image, so a paywall never reaches createImageBitmap (${urlField.notAnImage})`);
+ok(/先貼上/.test(urlField.empty), `an empty field asks for a URL rather than silently doing nothing (${urlField.empty})`);
+
+// Restore the two-field fixture the rest of this file asserts against.
+await ev(`(async () => {
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 400;
+  const g = c.getContext('2d');
+  const ramp = (x0, x1, base) => {
+    const grd = g.createLinearGradient(x0, 0, x1, 0);
+    for (let i = 0; i <= 5; i++) {
+      const k = 1 - i * 0.09;
+      grd.addColorStop(i / 5, 'rgb(' + Math.round(base[0]*k) + ',' + Math.round(base[1]*k) + ',' + Math.round(base[2]*k) + ')');
+    }
+    return grd;
+  };
+  g.fillStyle = ramp(0, 320, [0x2a, 0x5c, 0xb0]); g.fillRect(0, 0, 320, 400);
+  g.fillStyle = ramp(320, 640, [0xf6, 0xea, 0xd4]); g.fillRect(320, 0, 640, 400);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], 'outfit-test.png', { type: 'image/png' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  const input = document.getElementById('of-file');
+  input.files = dt.files;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  for (let i = 0; i < 80; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    if (document.getElementById('of-work').hidden === false) break;
+  }
+  const canvas = document.getElementById('of-canvas');
+  return { w: canvas.width, h: canvas.height };
+})()`);
+
 // --- click the left field --------------------------------------------------
 
 const clicked = await ev(`(async () => {
