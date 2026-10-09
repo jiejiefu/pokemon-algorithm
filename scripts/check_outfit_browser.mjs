@@ -954,6 +954,15 @@ const strip = await ev(`(() => {
     // row in the one element that reports the page's answer. Every other
     // assertion about these tiles reads their TEXT and is blind to that.
     // Grouped by y, so the claim is about rows and not about the template.
+    // The two column widths, so the CLAIM can be the ratio rather than a
+    // share-of-card figure. The old assertion was "the portrait takes no more
+    // than a third of the card", which was a proxy for "the tiles are not
+    // absurdly wide" — and at 5:4 the portrait is 40% of the card, so the proxy
+    // went red while the thing it stood for got BETTER. Measuring the tracks is
+    // the claim itself.
+    figColW: fig ? Math.round(fig.getBoundingClientRect().width) : null,
+    textColW: (() => { const t = document.querySelector('.of-winner-text');
+      return t ? Math.round(t.getBoundingClientRect().width) : null; })(),
     scoreRows: (() => {
       const box = document.querySelector('.of-winner-scores');
       if (!box) return null;
@@ -985,7 +994,7 @@ ok(strip.moreDisplay === 'none' && strip.hexLabels === 'none',
 // rendering this no longer carries.
 ok(/^assets\/images\/pokemon\/\d+\.png$/.test(strip.imgSrc || '') && strip.imgDecoded,
   `the portrait beside it is the 475px artwork and it decoded (${strip.imgSrc})`);
-ok(strip.imgW >= 160,
+ok(strip.imgW >= 240,
   `and it is displayed at a size worth calling a portrait rather than a marker (${strip.imgW}px; was 84px, capped by sharing a row with the name)`);
 ok(strip.mainCols !== null && strip.mainCols.split(' ').length === 2,
   `the card body is two columns, reading left and portrait right (${strip.mainCols})`);
@@ -1002,8 +1011,16 @@ ok(strip.eyebrowBottom !== null && strip.identTop !== null
   `and the name follows the eyebrow directly, with the eyebrow's own margin between them (${strip.identTop - strip.eyebrowBottom}px; the broken layout left 256)`);
 ok(strip.figBottom !== null && strip.identBottom !== null && strip.figBottom > strip.identBottom,
   `and the portrait extends past the identity block, so it shares the reading column's row rather than owning one of its own (${strip.figBottom} vs ${strip.identBottom})`);
-ok(strip.cardInnerW !== null && strip.imgW / strip.cardInnerW <= 0.35,
-  `and the portrait takes no more than a third of the card (${strip.imgW} of ${strip.cardInnerW}px, ${Math.round(strip.imgW / strip.cardInnerW * 100)}%)`);
+ok(strip.figColW !== null && strip.textColW !== null
+     && Math.abs(strip.figColW / strip.textColW - 4 / 5) <= 0.05,
+  `and the two columns are 5:4 as asked (portrait ${strip.figColW}px to reading ${strip.textColW}px, ratio ${(strip.figColW / strip.textColW).toFixed(3)} against 0.800)`);
+// The share-of-card claim is GONE, and it was a proxy: it stood for "the score
+// tiles are not absurdly wide", and at 5:4 the portrait is 40% of the card, so
+// the proxy went red while the thing it represented improved. Asserted on the
+// tracks and on the tiles instead.
+ok(strip.cardInnerW !== null && strip.figColW !== null
+     && strip.figColW / strip.cardInnerW <= 0.45,
+  `and the reading column still holds the majority of the card (${strip.figColW} of ${strip.cardInnerW}px for the portrait, ${Math.round(strip.figColW / strip.cardInnerW * 100)}%)`);
 ok(strip.nameUnderlineColor === strip.nameLinkColor,
   `the underline under the species name is the name's own colour, not a second one (${strip.nameUnderlineColor} vs ${strip.nameLinkColor}) — it used to be --accent-gold, which is Poké Ball red in the light theme and reads as an error state`);
 ok(strip.labels.length === 4 && strip.labels[2] === '穿搭 → 寶可夢' && strip.labels[3] === '寶可夢 → 穿搭',

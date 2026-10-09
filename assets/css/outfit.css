@@ -552,11 +552,24 @@
  * `align-items: start` — the portrait's top edge aligns with the eyebrow, the
  * reading column's own first line. Measured identical to `main`'s top edge, which
  * is what the checker asserts; the eyebrow's own `margin-bottom` supplies the
- * separation between it and the name. */
+ * separation between it and the name.
+ *
+ * **5:4, and BOTH tracks are minmax(0, Nfr) rather than one of them `auto`.** The
+ * white score tiles decided it: with the right column at `auto` it was pinned to
+ * the portrait's own 200px, which left the reading column 416px and each score
+ * tile 204px — a box holding one short number, in the element the page exists to
+ * answer with. At 5:4 the portrait is 274px and the tiles 167px, so both halves of
+ * that complaint improve at once. A literal 2:1 would have been a NO-OP: it
+ * resolves to 411px / 205px here against 416px / 200px now.
+ *
+ * The `0` on BOTH tracks, not just the first. A bare `Nfr` is
+ * `minmax(auto, Nfr)`, and that `auto` minimum is content-driven — one long
+ * species name or one wide tile would push the tracks off 5:4 with no edit to the
+ * rule to explain it. */
 .of-winner-main {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
   align-items: start;
   gap: 1rem 1.5rem;
 }
@@ -591,13 +604,16 @@
 /* `flex: none` so the figure's width is decided by the image and the strip and
  * not by the card's row — colors-generator.css documents the same trap it hit:
  * as a sibling of the name, the strip's width followed the length of the species
- * NAME. The strip is now as wide as the portrait above it, which settles that by
- * construction rather than by a magic number.
+ * NAME. **It is `width: 100%` now rather than a fixed 200px, because with the
+ * column at `auto` the column and the figure were each derived from the other** —
+ * changing either meant editing both. The figure is now decided by the column
+ * alone, and the strip is as wide as the portrait above it, which settles the
+ * width question by construction rather than by a magic number.
  *
- * Stacked rather than side by side: at 200px the image and a 200px strip would
- * sit in a 410px row, which is wider than the artwork needs and leaves the strip
- * reading as a separate panel instead of as the artwork's caption. Stacked, the
- * column is 200px wide and the strip sits under the thing it describes. */
+ * Stacked rather than side by side: an image beside its own strip would be a row
+ * wider than the artwork needs, which leaves the strip reading as a separate
+ * panel instead of as the artwork's caption. Stacked, the strip sits under the
+ * thing it describes. */
 .of-winner-fig {
   display: flex;
   flex-direction: column;
@@ -605,14 +621,20 @@
   gap: 10px;
   flex: none;
   margin: 0;
-  width: 200px;
+  width: 100%;
 }
 /* `of-winner-img`, not `-sprite`: this is `artworkUrl`, the 475px official
  * artwork. `spriteUrl` is the 96px front sprite the workbench companion uses. */
 .of-winner-img {
   display: block;
-  width: 200px;
-  height: 200px;
+  /* `aspect-ratio` rather than a second fixed length. The width comes from the
+   * column and the ratio supplies the other side, so there is no height here to
+   * fall out of step with `.of-winner-fig` when the ratio changes. `object-fit`
+   * stays because the artwork is 475x475 and the column is not exactly square at
+   * every width. */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
   object-fit: contain;
 }
 /* **No `image-rendering: pixelated` here, and that is the fix for the resize.**
@@ -645,7 +667,7 @@
 .of-winner-strip .cp-seg-more { display: none; }
 
 @media (max-width: 640px) {
-  /* Below this a 200px portrait leaves the reading column ~180px, and a species
+  /* Below this a 274px portrait leaves the reading column ~120px, and a species
    * name wraps mid-word — which is worse than a taller card. So the grid becomes
    * ONE column and the portrait goes FIRST, the order colors.html uses.
    *
