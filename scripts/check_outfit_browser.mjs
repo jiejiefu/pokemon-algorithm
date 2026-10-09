@@ -930,8 +930,28 @@ const strip = await ev(`(() => {
     // .of-winner-main carries the two columns itself, and flex-grow on a grid
     // item reads as a real number while meaning nothing.
     mainCols: main ? getComputedStyle(main).gridTemplateColumns : null,
-    figColStart: fig ? getComputedStyle(fig).gridColumnStart : null,
     cardInnerW: card ? Math.round(card.getBoundingClientRect().width) : null,
+    // THE VERTICAL AXIS, which is where the two-column rewrite actually broke.
+    // figColStart and figRightOfName were both TRUE in the broken state —
+    // the portrait really was in column 2 and really was right of the name — so
+    // nothing about those two numbers could have told the two layouts apart.
+    mainTop: main ? Math.round(main.getBoundingClientRect().top) : null,
+    figTop: fig ? Math.round(fig.getBoundingClientRect().top) : null,
+    figBottom: fig ? Math.round(fig.getBoundingClientRect().bottom) : null,
+    identTop: ident ? Math.round(ident.getBoundingClientRect().top) : null,
+    identBottom: ident ? Math.round(ident.getBoundingClientRect().bottom) : null,
+    eyebrowBottom: (() => { const e = document.querySelector('.of-winner-eyebrow');
+      return e ? Math.round(e.getBoundingClientRect().bottom) : null; })(),
+    // The underline under the species name was painted with --accent-gold, which
+    // shared.css documents as Poké Ball RED in the light theme. Red on its own
+    // reads as an error state, so the page's ANSWER looked flagged. Asserted as
+    // "the underline is the text's own colour" rather than as "not red": in the
+    // dark theme the accent is gold, and a rule that only banned red would pass
+    // there while the two colours were still needlessly different.
+    nameLinkColor: (() => { const a = document.querySelector('.of-winner-name a');
+      return a ? getComputedStyle(a).color : null; })(),
+    nameUnderlineColor: (() => { const a = document.querySelector('.of-winner-name a');
+      return a ? getComputedStyle(a).textDecorationColor : null; })(),
   };
 })()`);
 ok(strip.segs === 5 && /主要 5 色/.test(strip.aria || ''),
@@ -950,10 +970,23 @@ ok(strip.imgW >= 160,
   `and it is displayed at a size worth calling a portrait rather than a marker (${strip.imgW}px; was 84px, capped by sharing a row with the name)`);
 ok(strip.mainCols !== null && strip.mainCols.split(' ').length === 2,
   `the card body is two columns, reading left and portrait right (${strip.mainCols})`);
-ok(strip.figColStart === '2' && strip.figRightOfName,
-  'and the figure is in the RIGHT one — column 2, spanning the rows, to the right of the name');
+ok(strip.figRightOfName,
+  'and the figure is in the RIGHT one — to the right of the name, not left of it');
+// These three are the ones that were missing. A grid-row of 1 / -1 resolves
+// against the EXPLICIT grid, which had one line, so the portrait landed in row 1
+// beside the EYEBROW; row 1 grew to the portrait's height and column 1 held the
+// eyebrow above ~256px of nothing. Every assertion above passed in that state.
+ok(strip.mainTop !== null && strip.figTop !== null && Math.abs(strip.figTop - strip.mainTop) <= 1,
+  `and the portrait's TOP is the card body's top — no empty row above the reading column (fig ${strip.figTop} vs main ${strip.mainTop})`);
+ok(strip.eyebrowBottom !== null && strip.identTop !== null
+     && strip.identTop - strip.eyebrowBottom <= 24,
+  `and the name follows the eyebrow directly, with the eyebrow's own margin between them (${strip.identTop - strip.eyebrowBottom}px; the broken layout left 256)`);
+ok(strip.figBottom !== null && strip.identBottom !== null && strip.figBottom > strip.identBottom,
+  `and the portrait extends past the identity block, so it shares the reading column's row rather than owning one of its own (${strip.figBottom} vs ${strip.identBottom})`);
 ok(strip.cardInnerW !== null && strip.imgW / strip.cardInnerW <= 0.35,
   `and the portrait takes no more than a third of the card (${strip.imgW} of ${strip.cardInnerW}px, ${Math.round(strip.imgW / strip.cardInnerW * 100)}%)`);
+ok(strip.nameUnderlineColor === strip.nameLinkColor,
+  `the underline under the species name is the name's own colour, not a second one (${strip.nameUnderlineColor} vs ${strip.nameLinkColor}) — it used to be --accent-gold, which is Poké Ball red in the light theme and reads as an error state`);
 ok(strip.labels.length === 4 && strip.labels[1] === '穿搭 → 寶可夢' && strip.labels[2] === '寶可夢 → 穿搭',
   `the score tiles keep 寶可夢 rather than 牠 in both directions (${strip.labels.slice(1, 3).join(' | ')})`);
 

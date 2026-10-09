@@ -538,24 +538,27 @@
  * portrait a column of its own.
  *
  * `auto` rather than a fixed width so the right column is exactly as wide as the
- * artwork, and the left takes the rest. `align-items: start` so a short left
- * column does not stretch the portrait's box. */
+ * artwork, and the left takes the rest.
+ *
+ * **There is no `grid-column` or `grid-row` anywhere on the children, and that is
+ * the fix rather than an omission.** Two children in two columns auto-place into
+ * row 1 each. The previous version named seven children individually and placed
+ * the portrait with `grid-row: 1 / -1`, and `-1` resolves against the EXPLICIT
+ * grid — which had one line, so the span was one row. The portrait landed in row
+ * 1 BESIDE THE EYEBROW, row 1 became 274px tall for its sake, and column 1 showed
+ * the eyebrow above ~256px of empty space. Auto-placement has no line to
+ * misresolve.
+ *
+ * `align-items: start` — the portrait's top edge aligns with the eyebrow, the
+ * reading column's own first line. Measured identical to `main`'s top edge, which
+ * is what the checker asserts; the eyebrow's own `margin-bottom` supplies the
+ * separation between it and the name. */
 .of-winner-main {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 1rem 1.5rem;
-}
-.of-winner-main > .of-winner-eyebrow,
-.of-winner-main > .of-winner-ident,
-.of-winner-main > .of-winner-scores,
-.of-winner-main > .of-winner-note,
-.of-winner-main > .of-winner-why,
-.of-winner-main > .of-winner-links { grid-column: 1; }
-.of-winner-main > .of-winner-fig {
-  grid-column: 2;
-  grid-row: 1 / -1;
 }
 
 /* The identity block and the portrait sit on one line, portrait to the RIGHT.
@@ -644,11 +647,15 @@
 @media (max-width: 640px) {
   /* Below this a 200px portrait leaves the reading column ~180px, and a species
    * name wraps mid-word — which is worse than a taller card. So the grid becomes
-   * ONE column and `order` puts the portrait FIRST, the order colors.html uses.
-   * `order` rather than DOM order because the DOM order is the reading order, and
-   * that should stay true for a screen reader at every width. */
+   * ONE column and the portrait goes FIRST, the order colors.html uses.
+   *
+   * **`order`, not DOM order.** The figure is last in the markup so that
+   * auto-placement finds it in column 2, which leaves the reading content first
+   * for a screen reader at every width. `order: -1` moves it visually on narrow
+   * screens without touching that. A `grid-row` here would have reintroduced the
+   * placement this file just stopped doing by hand. */
   .of-winner-main { grid-template-columns: minmax(0, 1fr); }
-  .of-winner-main > .of-winner-fig { grid-column: 1; grid-row: 1; order: -1; }
+  .of-winner-main > .of-winner-fig { order: -1; }
 }
 .of-winner-eyebrow {
   display: block;
@@ -667,7 +674,15 @@
   font-size: 1.75rem;
   line-height: 1.2;
 }
-.of-winner-name a { color: inherit; text-decoration-color: var(--accent-gold); }
+/* `color: inherit` only. This also used to say `text-decoration-color:
+ * var(--accent-gold)`, which painted the underline under the species name in
+ * Poké Ball RED — shared.css documents that --accent-gold is red in the light
+ * theme by design, and red on its own reads as an error state, so a name that is
+ * the page's ANSWER came out looking flagged. Removing the declaration restores
+ * the user-agent default, which draws the underline in `currentColor` — the
+ * name's own colour. The underline stays, because it is the only affordance
+ * marking this as a link to the species' palette. */
+.of-winner-name a { color: inherit; }
 .of-winner-id {
   margin: 0 0 .7rem;
   font-size: .8rem;
