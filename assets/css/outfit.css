@@ -59,6 +59,19 @@
   gap: 2.25rem;
   margin-top: 1.25rem;
 }
+/* **`[hidden]` alone CANNOT hide this wrapper**, and that is not a subtlety — it
+ * is the reason this rule exists. All three sections inside start `hidden`, so
+ * before any photo is loaded the wrapper is an empty 42px card: a border, a
+ * background and 1.25rem of padding around nothing. The obvious fix is to put
+ * `hidden` on the wrapper too, and it does not work: an author `display: grid`
+ * beats the user-agent's `[hidden] { display: none }` no matter the specificity,
+ * because the UA sheet loses to any author declaration. Measured in Chrome:
+ * `.g { display: grid }` + `hidden` computes `display: grid`, while
+ * `.n { display: none }` + `hidden` computes `none`. Same fix `shared.css`
+ * already uses for `.site-nav-drawer[hidden]`. */
+.of-readout[hidden] {
+  display: none;
+}
 .of-readout > .of-section + .of-section {
   padding-top: 2.25rem;
   border-top: 1px solid var(--border);

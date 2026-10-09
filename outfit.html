@@ -328,8 +328,16 @@
          more top-level blocks each separated by one repeated 2.4rem, which gave a
          500px-tall result, a 190px palette and a 380px code block the same visual
          weight. One card, three rhythms inside it. Every id and every `hidden`
-         toggle in render() is untouched — only the wrapper is new. -->
-    <div class="of-readout">
+         toggle in render() is untouched — only the wrapper is new.
+
+         The wrapper carries `hidden` too, and not decoratively: all three
+         sections start hidden, so without it the page opened on an empty card —
+         a border, a background and 1.25rem of padding around nothing. The
+         `hidden` ATTRIBUTE alone would not have fixed that, because this
+         wrapper's own `display: grid` beats the UA stylesheet's
+         `[hidden] { display: none }`; `.of-readout[hidden]` in outfit.css is what
+         makes it real. -->
+    <div class="of-readout" id="of-readout" hidden>
     <!-- ============================ result =========================== -->
     <section class="of-section" id="of-result" aria-labelledby="sec-result" hidden>
       <h2 id="sec-result">三、最接近的一隻</h2>
@@ -445,6 +453,7 @@
       palette: document.getElementById('of-palette'),
       paletteNote: document.getElementById('of-palette-note'),
       exportSec: document.getElementById('of-export-sec'),
+      readout: document.getElementById('of-readout'),
       actions: document.getElementById('of-actions'),
       code: document.getElementById('of-code'),
     };
@@ -893,11 +902,21 @@
       //   to separate them, and the gate check in check_outfit_browser.mjs
       //   pairs each readout write with a swap write within a few lines —
       //   which is why these four lines are adjacent and stay that way.
+      //
+      //   `els.readout` is the WRAPPER, and it is written here for the same
+      //   reason rather than because it owns anything: the three sections inside
+      //   it are all hidden, and a card with a border, a background and 1.25rem
+      //   of padding around nothing still renders. Hiding the wrapper is the
+      //   only thing that removes the empty card. It is grouped with its
+      //   children so there is one place where "the readout is showing" is
+      //   decided, and the gate check below pairs it with them for the same
+      //   reason it pairs `result` with `swap`.
       const has = samples.length > 0;
       els.result.hidden = !has;
       els.paletteSec.hidden = !has;
       els.exportSec.hidden = !has;
       els.swap.hidden = !has;
+      els.readout.hidden = !has;
       if (!has) {
         currentPalette = null;
         currentWinner = null;
@@ -913,6 +932,7 @@
         els.paletteSec.hidden = true;
         els.exportSec.hidden = true;
         els.swap.hidden = true;
+        els.readout.hidden = true;
         els.partnerImg.hidden = true;
         els.tabPhoto.disabled = true;
         switchMode('sample');

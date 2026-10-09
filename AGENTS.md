@@ -723,6 +723,22 @@ Expect this shape anywhere a `Blob` becomes a `File`: the two look like the same
 
 **`SAMPLES` IS PARSED OUT OF THE HTML BY `check_outfit_page.mjs`, NOT RESTATED.** Every declared path is asserted to exist, be over 1 KB, be repo-relative (an absolute URL would bypass the manifest's coverage and make the presets track someone else's server), and be ASCII so it needs no escaping. A hardcoded copy would keep passing after the page moved a preset — the same reasoning `check_nav_pages` uses for the six header-modifier names.
 
+### M. An Author `display` Beats `[hidden]`, And The Obvious Fix For An Empty Card Does Not Work
+
+`.of-readout` opened the page as an empty 40px card — a border, a background and 1.25rem of padding around three `hidden` sections. **Putting `hidden` on the wrapper does not fix it**, and that is the whole finding: an author `display: grid` beats the user-agent's `[hidden] { display: none }`, because the UA sheet loses to *any* author declaration regardless of specificity. Measured in headless Chrome on the same box:
+
+```
+inline display:grid + hidden   -> computed=grid   h=0
+stylesheet .g{display:grid} + hidden -> computed=grid
+stylesheet .n{display:none}    + hidden -> computed=none
+```
+
+So it needed `.of-readout[hidden] { display: none; }` — the fix `shared.css` already uses for `.site-nav-drawer[hidden]`, and the reason that rule exists there in the first place. **Expect this shape on any wrapper whose own `display` is not `block`:** grid, flex, and `inline-flex` all silently defeat the attribute that every other element on the page relies on, and `element.hidden === true` still reads `true` while the box paints.
+
+**The guard asserts the COMPUTED BOX, not the attribute,** because the attribute is the thing that lies. `check_outfit_browser.mjs` reads `getComputedStyle().display` and `getBoundingClientRect().height` on a fresh load, and the two halves are separately load-bearing — verified by mutation: deleting the CSS rule while keeping the attribute reproduces **exactly** the 40px card, and deleting `els.readout.hidden` from `render()` trips the source gate. A checker that only read `.hidden` would have passed both.
+
+**THE WRAPPER IS WRITTEN INSIDE THE SAME CONTIGUOUS GROUP AS ITS CHILDREN, and the existing gate check was extended to pair it.** §3.G's rule is that a comment between two sibling writes is enough to separate them, and `render()`'s gate check already paired every `els.result.hidden` with an `els.swap.hidden` within 260 characters. A wrapper is a fifth thing that must be hidden on every exit, so `els.readout` joined that group and the pairing became mutual rather than counted — a path that hid all three sections but left the card's own border on screen would pass every other assertion in the file.
+
 ---
 
 ## 4. Verification & Testing Commands

@@ -166,6 +166,35 @@ ok(await ev(`!!document.querySelector('.site-nav [href="outfit.html"]')`),
 ok(await ev(`!!document.getElementById('of-drop')`), 'the upload zone is present');
 ok(await ev(`document.getElementById('of-work').hidden === true`), 'the work area starts hidden, before a photo exists');
 
+// --- the empty card that was not there ------------------------------------
+//
+// **The `hidden` attribute is not the claim; the computed box is.** An author
+// `display: grid` beats the user-agent's `[hidden] { display: none }`, so a
+// wrapper that is `hidden` in the DOM can still paint a border, a background
+// and 1.25rem of padding around three hidden sections. Measured, not read.
+const emptyCard = await ev(`(() => {
+  const r = document.getElementById('of-readout');
+  const cs = getComputedStyle(r);
+  return {
+    hidden: r.hidden,
+    display: cs.display,
+    h: r.getBoundingClientRect().height,
+    // Its three sections, all of which start hidden.
+    sections: [...r.children].filter(n => n.hidden).length,
+    total: r.children.length,
+    // Where the page's content ENDS, which is what a reader actually sees.
+    bottom: Math.round(r.getBoundingClientRect().bottom),
+  };
+})()`);
+
+ok(emptyCard.hidden, 'the readout wrapper is hidden before any photo exists');
+ok(emptyCard.display === 'none',
+  `and that hidden ACTUALLY hides it — computed display is none, not ${emptyCard.display}`);
+ok(emptyCard.h === 0,
+  `so it occupies no height at all before a photo exists (${emptyCard.h}px)`);
+ok(emptyCard.sections === emptyCard.total && emptyCard.total === 3,
+  `and all three sections inside it start hidden (${emptyCard.sections}/${emptyCard.total}) — a wrapper whose children are visible would need a different fix`);
+
 // --- hand the page a synthetic photo ---------------------------------------
 
 // Two fields with a hard seam. Left is a deep blue, right is a warm cream, so a
@@ -1103,16 +1132,25 @@ const gate = await ev(`(() => {
   };
   const resultAt = hits('els.result.hidden');
   const swapAt = hits('els.swap.hidden');
+  // The WRAPPER is paired the same way, and for the same reason: it is a fifth
+  // thing that must be hidden on every exit, and a path that hid all four
+  // sections but left the wrapper showing would put an empty bordered card where
+  // the answer should be. Counting it is not enough — position is the claim.
+  const readoutAt = hits('els.readout.hidden');
+  const near = (own, other) => own.every((i) => other.some((j) => Math.abs(j - i) < 260));
   return {
     bodyLen: body.length,
-    resultAt, swapAt,
+    resultAt, swapAt, readoutAt,
     partnered: resultAt.map((i) => swapAt.some((j) => Math.abs(j - i) < 260)),
+    readoutPartnered: near(resultAt, readoutAt) && near(readoutAt, resultAt),
   };
 })()`);
 ok(gate.bodyLen > 400 && gate.resultAt.length >= 2 && gate.swapAt.length >= 2,
   `the render() gate check found the function it is about (${gate.bodyLen} chars, ${gate.resultAt.length} readout writes, ${gate.swapAt.length} swap writes) — an empty slice must not compare equal to itself`);
 ok(gate.partnered.length > 0 && gate.partnered.every(Boolean),
   `every write that hides the readout also hides the swap block (${gate.resultAt.length} readout writes, ${gate.swapAt.length} swap writes, unpartnered: ${gate.resultAt.length - gate.partnered.filter(Boolean).length}) — the other two paths are covered above; this one cannot be reached through a fixture whose every pixel is opaque`);
+ok(gate.readoutAt.length >= 2 && gate.readoutPartnered,
+  `the wrapper is hidden beside every readout write (${gate.readoutAt.length} wrapper writes for ${gate.resultAt.length} section writes) — a path that hid all three sections but left the card's own border on screen would pass every check above`);
 
 // --- the ink on the accent, in BOTH themes ----------------------------------
 //
