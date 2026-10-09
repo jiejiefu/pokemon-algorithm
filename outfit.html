@@ -1275,6 +1275,19 @@
               <li><b>寶可夢 → 穿搭</b>：同一個演算法方向對調——牠的每一個顏色，也得在你的穿搭裡找到最接近的一個。</li>
               <li>兩者各佔一半。少了後者，一組連續漸層的褐色就能零懲罰地蓋住任何褐色穿搭。</li>
             </ul>
+            <!-- PROVENANCE, because the card shows two images' worth of things and
+                 a reader is right to wonder why they disagree. Kept above the links
+                 so it reads as the last note before you go look something up.
+
+                 Deliberately carries NO pixel dimensions. They are not uniform —
+                 measured, 10 of the sprites are 128x128 and 19 of the artworks are
+                 not 475x475 — so any figure written here would be true of the large
+                 majority and false of the rest, which is exactly the kind of number
+                 that reads as verified and is not. The distinction that matters is
+                 which operation each image is doing, not how big it is. -->
+            <p class="of-winner-source">
+              這條色條的六色，是從<i>正面 sprite</i> 量化出來的，所以每一隻寶可夢都用同一種來源、同一套方法量，六色之間才可比。頭像與照片合照用的是<i>官方 artwork</i>，那是拿來看的圖，不參與任何數值。兩個來源不同不是不一致：比對要的是能互相比的數字，顯示要的是圖本身。
+            </p>
             ${record ? `<p class="of-winner-links">
               <a href="${pokemonDetailUrl(record)}">完整資料頁</a>
               <a href="${paletteUrl(record)}">單一色盤</a>

@@ -673,7 +673,7 @@
 /* `.cp-strip`'s own height and radius come from a rule scoped to an identity
  * card in colors.css, so a plain strip in a different box has neither. */
 .of-winner-strip .cp-strip {
-  height: 64px;
+  height: 42px;
   border-radius: var(--radius-sm, 6px);
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--border-strong);
@@ -805,6 +805,21 @@
 }
 .of-winner-why li + li { margin-top: .25rem; }
 .of-winner-why b { color: var(--text-primary); font-weight: 600; }
+/* Quieter than `.of-winner-note`, which is a question the page is asking. This is
+ * the page answering a question the reader has, so it gets muted text at normal
+ * weight rather than a heading. The `<i>` on the two image kinds is emphasis, not
+ * italics-with-meaning, so it is styled rather than left to the browser. */
+.of-winner-source {
+  margin: .7rem 0 0;
+  font-size: .74rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+.of-winner-source i {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
 .of-winner-links { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .8rem; margin: .6rem 0 0; }
 .of-winner-links a {
   padding: .3rem .7rem;

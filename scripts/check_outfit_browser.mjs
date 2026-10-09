@@ -985,6 +985,32 @@ const strip = await ev(`(() => {
       const lh = parseFloat(getComputedStyle(n).lineHeight);
       return { h: Math.round(n.getBoundingClientRect().height), lh: Math.round(lh),
                text: n.textContent.trim() }; })(),
+    // The provenance paragraph. Its claim is the one a reader is right to doubt:
+    // the card shows a portrait AND a colour strip, both attributed to the matched
+    // species, and they come from different images. Nothing else on the page says
+    // so, so a rewrite that dropped the sentence would leave the page making a
+    // claim it never admits to — which is why the wording itself is asserted.
+    // The strip's height is a design constant like the 140px width, so it is
+    // asserted like one. It was 64px, then 42px, and nothing noticed either time —
+    // the browser checks all read text and colour, so a bar quietly doubling in
+    // height passes every one of them.
+    stripH: (() => { const t = document.querySelector('.of-winner-strip .cp-strip');
+      return t ? Math.round(t.getBoundingClientRect().height) : null; })(),
+    sourceText: (() => { const n = document.querySelector('.of-winner-source');
+      // FOUR backslashes in the source, so the template literal emits two and
+      // the regex sees ONE. Inside a template literal \s is not an escape
+      // sequence — it arrives as a bare s, so the regex became /s+/g and
+      // replaced every letter s in the page with a space, rendering
+      // 「正面 sprite」 as 「正面  prite」. Same trap as the backslash-d noted
+      // three claims above, one character away.
+      return n ? n.textContent.replace(/[\\s]+/g, ' ').trim() : null; })(),
+    sourceBeforeLinks: (() => {
+      const a = document.querySelector('.of-winner-source');
+      const b = document.querySelector('.of-winner-links');
+      return !!(a && b)
+        ? (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+        : null;
+    })(),
     figColW: fig ? Math.round(fig.getBoundingClientRect().width) : null,
     textColW: (() => { const t = document.querySelector('.of-winner-text');
       return t ? Math.round(t.getBoundingClientRect().width) : null; })(),
@@ -1038,12 +1064,20 @@ ok(strip.stripInIdent && !strip.stripLeftInFig,
   'the palette strip lives in .of-winner-ident, beside the name — it describes the species, not the artwork, and inside the figure it read as a caption for the picture');
 ok(strip.stripW !== null && Math.abs(strip.stripW - 140) <= 1,
   `and it is the fixed 140px rather than filling its track (${strip.stripW}px) — filling it would run the bar back to the card's right edge, which is the opposite of sitting against the name`);
+ok(strip.stripH !== null && Math.abs(strip.stripH - 42) <= 1,
+  `and the bar is the 42px it was set to (${strip.stripH}px; 64px before) — a height nothing measured would double without a single check turning red`);
 ok(strip.stripRightSlack !== null && strip.stripRightSlack >= 30,
   `with real blank space to its right, so it reads as belonging to the name (${strip.stripRightSlack}px of slack)`);
 ok(strip.stripOffset !== null && Math.abs(strip.stripOffset - 156) <= 2,
   `and its left edge sits at a FIXED offset from the card, not from the name's text (${strip.stripOffset}px; 140 + the 16px gap). Measured from the container on purpose — offset-from-text is the same number for one species and moves for the other 1,024`);
 ok(strip.nameLines !== null && strip.nameLines.h <= strip.nameLines.lh * 1.6,
   `and the name still fits that 140px track on one line (${strip.nameLines.text} at ${strip.nameLines.h}px, line-height ${strip.nameLines.lh}) — the track is sized to the longest name in the corpus with zero slack, so this is the assertion that catches a longer one`);
+ok(strip.sourceText !== null && strip.sourceText.includes('正面 sprite') && strip.sourceText.includes('官方 artwork'),
+  `the card says which image each half came from (${strip.sourceText ? strip.sourceText.slice(0, 46) + '…' : 'the paragraph is missing'}) — a portrait and a palette both attributed to one species come from different files, and nothing else on the page admits it`);
+ok(strip.sourceText !== null && /不是不一致|才可比|不參與/.test(strip.sourceText),
+  'and that the difference is deliberate rather than an inconsistency, so a reader who spots two different images is not left guessing which one is wrong');
+ok(strip.sourceBeforeLinks === true,
+  'and it sits ABOVE the links, as the last note before the reader goes and looks something up');
 ok(strip.figBottom !== null && strip.identBottom !== null && strip.figBottom > strip.identBottom,
   `and the portrait extends past the identity block, so it shares the reading column's row rather than owning one of its own (${strip.figBottom} vs ${strip.identBottom})`);
 ok(strip.figColW !== null && strip.textColW !== null
