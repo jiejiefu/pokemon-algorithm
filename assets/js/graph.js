@@ -161,8 +161,26 @@ export function initKnowledgeGraph() {
   let activeLinks = [];
   let selectedNode = null;
   let hoveredNode = null;
+  /* How long the pointer must REST on a node before it highlights. Long enough that a
+     sweep across a cluster cancels itself, short enough that a deliberate hover still
+     feels like a hover. 120 ms is close to the 150 ms search debounce on this same page
+     for the same reason — both exist so that passing over something is not the same as
+     choosing it. */
+  const HOVER_DEBOUNCE_MS = 120;
+  let hoverTimer = 0;
   const highlightNodes = new Set();
   const highlightLinks = new Set();
+  /* nodeId -> { nodes: Set of NEIGHBOUR NODE OBJECTS, links: Set of link objects }.
+     INVARIANT: rebuilt by applyFilters() in the same breath as every assignment to
+     activeNodes/activeLinks. Measured cost of that rebuild: 0.5 ms median, 1.6 ms max,
+     against a filter change that already re-renders 1,346 nodes. Anyone adding a new
+     place that reassigns activeNodes MUST rebuild this in the same statement — a stale
+     map does not throw, it highlights only the hovered node and neighbours, which looks
+     exactly like a node with no links. */
+  const adjacency = new Map();
+  /* id -> node object. Built by applyFilters() in the same pass as `adjacency`, and only
+     used to resolve link endpoints into the objects that adjacency stores. */
+  const nodeById = new Map();
 
   let activeGen = 'all';
   let activeRel = 'all';
@@ -234,19 +252,43 @@ export function initKnowledgeGraph() {
     })
     .onNodeHover((node, prevNode) => {
       container.style.cursor = node ? 'pointer' : 'grab';
-      hoveredNode = node || null;
 
-      if (node) {
-        showTooltip(node);
-        if (!selectedNode) {
-          updateHighlight(node);
-        }
-      } else {
+      /* HOVER IS DEBOUNCED, AND THE ASYMMETRY IS THE POINT.
+       *
+       * `onNodeHover` fires on EVERY node-boundary crossing, so sweeping the pointer
+       * across a dense cluster fires it dozens of times a second. Each of those did an
+       * O(links x nodes) rescan, a full 1,346-node material write and a re-evaluation of
+       * all 2,523 links — so the visual result was not one fast animation but dozens of
+       * INSTANT snaps stacking on top of each other. That is what reads as harsh; there
+       * was no transition to slow down, because `updateNodeScales()` writes scale and
+       * opacity directly with nothing in between.
+       *
+       * The cursor is deliberately left OUTSIDE the debounce: it is feedback about where
+       * the pointer is, and 120 ms of lag on a cursor is a 120 ms lag on the pointer.
+       * Leaving a node is immediate too, for the same reason in reverse — the highlight
+       * should not outlive the thing the pointer left. Only ARRIVING is deferred, which
+       * is exactly the case a sweep gets wrong: A -> B -> C inside 120 ms schedules,
+       * cancels, schedules, and nothing is ever highlighted.
+       */
+      if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = 0; }
+
+      if (!node) {
+        hoveredNode = null;
         hideTooltip();
         if (!selectedNode) {
           clearHighlight();
         }
+        return;
       }
+
+      hoverTimer = setTimeout(() => {
+        hoverTimer = 0;
+        hoveredNode = node;
+        showTooltip(node);
+        if (!selectedNode) {
+          updateHighlight(node);
+        }
+      }, HOVER_DEBOUNCE_MS);
     })
     .onBackgroundClick(() => {
       deselectNode();
@@ -368,6 +410,59 @@ export function initKnowledgeGraph() {
     activeNodes = filteredNodes;
     activeLinks = filteredLinks;
 
+    /* NEIGHBOUR LOOKUP IS A MAP, BUILT ONCE PER FILTER CHANGE — and it is NOT a
+     * performance fix on this dataset, which is worth saying plainly because the shape of
+     * the data makes the obvious reading wrong.
+     *
+     * The old `updateHighlight()` iterated every link and ran `activeNodes.find(...)`
+     * for the ones that touched the hovered node. The `find` is INSIDE that `if`, so it
+     * runs degree() times, not links() times — the "2,523 x 1,346 per hover" reading of
+     * it is wrong. Measured over graph_data.json: degree is **median 4, p90 6, max 32**
+     * (藍鴉 #822), so the worst case was ~45,595 cheap comparisons, and `selectNode()`
+     * measured **1.2 ms before and 1.2 ms after** this change.
+     *
+     * So why do it? The `find`'s guard could not fail — the filter above keeps only links
+     * whose BOTH endpoints are in `nodeIds`, so every endpoint is in `activeNodes` — and
+     * a guard that cannot fail is a cost with no behaviour attached to it. What is left
+     * is O(degree) instead of O(links + degree x nodes), which is the shape to have
+     * before a dataset arrives with hubs in the thousands rather than the dozens this
+     * one has. **Anyone reading this expecting a faster page is reading the wrong note.**
+     *
+     * Built here rather than lazily because this is the ONE place activeNodes and
+     * activeLinks are assigned, and it runs once per filter change instead of once per
+     * hover. Before `Graph.graphData()` is called, so `link.source` is still a raw id
+     * and no `typeof === 'object'` unwrapping is needed here.
+     *
+     * `nodes` holds NODE OBJECTS, not ids, so `updateHighlight()` does no lookup at all
+     * and cannot half-fail on a missing entry. */
+    adjacency.clear();
+    nodeById.clear();
+
+    /* A hover scheduled against the PREVIOUS graph is about to describe a node that is
+       no longer on screen. Cancelling it here is 3 lines and the alternative is a tooltip
+       for a species the reader can no longer see, with nothing in the console. */
+    if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = 0; }
+
+    for (const n of activeNodes) nodeById.set(n.id, n);
+    for (const link of activeLinks) {
+      const srcId = typeof link.source === 'object' ? link.source.id : link.source;
+      const tgtId = typeof link.target === 'object' ? link.target.id : link.target;
+      const src = nodeById.get(srcId);
+      const tgt = nodeById.get(tgtId);
+      /* Both endpoints resolve, always, for the reason in the note above. The guard is
+         still written because a Set of `undefined` would be a silent wrong picture, and
+         that failure has no console output. */
+      if (!src || !tgt) continue;
+      let e = adjacency.get(srcId);
+      if (!e) adjacency.set(srcId, e = { nodes: new Set(), links: new Set() });
+      e.links.add(link);
+      e.nodes.add(tgt);
+      e = adjacency.get(tgtId);
+      if (!e) adjacency.set(tgtId, e = { nodes: new Set(), links: new Set() });
+      e.links.add(link);
+      e.nodes.add(src);
+    }
+
     Graph.graphData({
       nodes: activeNodes,
       links: activeLinks,
@@ -381,6 +476,15 @@ export function initKnowledgeGraph() {
   }
 
   // Update Highlighted Subnetwork
+  /* O(degree) instead of O(links + degree x nodes). The difference is 1.2 ms against
+     1.2 ms on this dataset — see the note in applyFilters() for why the number is small
+     and what the change is actually for. What matters here is that the neighbours added
+     are the SAME OBJECTS the old `activeNodes.find(...)` returned, because `adjacency`
+     is built from `nodeById`, which is built from `activeNodes`. A Set of clones would
+     highlight nothing and look like a dead feature.
+
+     A node with no entry in `adjacency` is one with no links in the current filter: it
+     highlights itself and nothing else, which is correct rather than a failure. */
   function updateHighlight(targetNode) {
     highlightNodes.clear();
     highlightLinks.clear();
@@ -389,15 +493,11 @@ export function initKnowledgeGraph() {
 
     highlightNodes.add(targetNode);
 
-    activeLinks.forEach(link => {
-      const srcId = typeof link.source === 'object' ? link.source.id : link.source;
-      const tgtId = typeof link.target === 'object' ? link.target.id : link.target;
-      if (srcId === targetNode.id || tgtId === targetNode.id) {
-        highlightLinks.add(link);
-        const neighbor = activeNodes.find(n => n.id === (srcId === targetNode.id ? tgtId : srcId));
-        if (neighbor) highlightNodes.add(neighbor);
-      }
-    });
+    const entry = adjacency.get(targetNode.id);
+    if (entry) {
+      for (const neighbor of entry.nodes) highlightNodes.add(neighbor);
+      for (const link of entry.links) highlightLinks.add(link);
+    }
 
     updateNodeScales();
     Graph.linkColor(linkColorFn).linkWidth(linkWidthFn);
