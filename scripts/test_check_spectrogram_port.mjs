@@ -77,6 +77,15 @@ const BASE = join(tmpdir(), 'spectrogram-neg');
 mkdirSync(BASE, { recursive: true });
 if (!existsSync(join(BASE, '.venv'))) symlinkSync(VENV, join(BASE, '.venv'), 'dir');
 
+/* BASE IS REMOVED ON EXIT. Each case's `tree-*` inside it is removed on its own, but
+ * BASE itself was created here at module load and owned by nothing, so one empty
+ * directory survived every run of this harness — 0 bytes, which is why it went unnoticed
+ * next to the 5.6 GB leak it was found alongside. Removing the parent also sweeps any
+ * case tree whose own `rmSync` was skipped, and `force: true` makes this a no-op when
+ * the directory is already gone. The `.venv` symlink inside is a link, not a copy, so
+ * this cannot delete the real virtualenv — which is the whole reason BASE exists. */
+process.on('exit', () => { try { rmSync(BASE, { recursive: true, force: true }); } catch { /* already gone */ } });
+
 const results = [];
 const ok = (name, pass, detail = '') => {
   results.push({ name, pass });
