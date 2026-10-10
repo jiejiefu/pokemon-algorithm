@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const PORT = 5500;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -112,10 +115,20 @@ async function run() {
   }
 
   // Capture screenshot
+  //
+  // Under `.cache/`, resolved from THIS FILE rather than the process CWD. The
+  // original wrote a bare relative path, so the file landed in whatever
+  // directory the test happened to be launched from — the repo root under
+  // `check_all.mjs`, which is how a 545 KB PNG became an untracked file that
+  // `git status` shows on every subsequent run. `.cache/` is already gitignored
+  // (it holds the §4 skip cache), so nothing new has to be taught to ignore it,
+  // and the artefact is deleted rather than left to accumulate.
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   const buf = Buffer.from(shot.data, 'base64');
-  writeFileSync('screenshot_graph3d.png', buf);
-  console.log('Saved screenshot_graph3d.png, bytes:', buf.length);
+  const shotPath = join(ROOT, '.cache', 'graph', 'screenshot_graph3d.png');
+  mkdirSync(dirname(shotPath), { recursive: true });
+  writeFileSync(shotPath, buf);
+  console.log('Saved screenshot (gitignored):', shotPath.replace(`${ROOT}/`, ''), 'bytes:', buf.length);
 
   ws.close();
   cleanup();
