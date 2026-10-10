@@ -22,6 +22,31 @@ import { caughtBy, failLines } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/* EVERY SCRATCH DIRECTORY IS TRACKED AT CREATION AND REMOVED ON EXIT.
+ *
+ * The per-case `finally { rmSync(dir) }` blocks below already clean up on the happy path
+ * and on a throw inside `run()`. They cannot cover the one window that leaks: `makeTree()`
+ * calls `mkdtempSync` and then copies files and mutates the copy, so a stale anchor, a
+ * missing source file or a `cpSync` failure throws AFTER the directory exists but BEFORE
+ * the caller's `finally` is ever entered. The caller has no `dir` to clean up, because
+ * `makeTree()` never returned one.
+ *
+ * Registering at creation closes that window without depending on where the throw happens,
+ * and it is the same fix as test_check_color_palettes.mjs. Measured: this harness left one
+ * partial tree per run — 4-5 files, never a complete one, which is what "threw halfway
+ * through makeTree" looks like on disk.
+ *
+ * The existing finally blocks stay: they free the space promptly during a long run, and
+ * `force: true` makes the exit-time removal a no-op for anything already gone.
+ */
+const SCRATCH = new Set();
+const track = (dir) => (SCRATCH.add(dir), dir);
+process.on('exit', () => {
+  for (const dir of SCRATCH) {
+    try { rmSync(dir, { recursive: true, force: true }); } catch { /* already gone */ }
+  }
+});
 const SRC = [
   'cries.html',
   'assets/css/cries.css',
@@ -38,7 +63,7 @@ const ok = (name, pass, detail = '') => {
 };
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'criespage-neg-'));
+  const dir = track(mkdtempSync(join(tmpdir(), 'criespage-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));

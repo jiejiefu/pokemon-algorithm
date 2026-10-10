@@ -38,6 +38,31 @@ import { caughtBy, failLines } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/* EVERY SCRATCH DIRECTORY IS TRACKED AT CREATION AND REMOVED ON EXIT.
+ *
+ * The per-case `finally { rmSync(dir) }` blocks below already clean up on the happy path
+ * and on a throw inside `run()`. They cannot cover the one window that leaks: `makeTree()`
+ * calls `mkdtempSync` and then copies files and mutates the copy, so a stale anchor, a
+ * missing source file or a `cpSync` failure throws AFTER the directory exists but BEFORE
+ * the caller's `finally` is ever entered. The caller has no `dir` to clean up, because
+ * `makeTree()` never returned one.
+ *
+ * Registering at creation closes that window without depending on where the throw happens,
+ * and it is the same fix as test_check_color_palettes.mjs. Measured: this harness left one
+ * partial tree per run — 4-5 files, never a complete one, which is what "threw halfway
+ * through makeTree" looks like on disk.
+ *
+ * The existing finally blocks stay: they free the space promptly during a long run, and
+ * `force: true` makes the exit-time removal a no-op for anything already gone.
+ */
+const SCRATCH = new Set();
+const track = (dir) => (SCRATCH.add(dir), dir);
+process.on('exit', () => {
+  for (const dir of SCRATCH) {
+    try { rmSync(dir, { recursive: true, force: true }); } catch { /* already gone */ }
+  }
+});
 const PYTHON = join(ROOT, '..', '.venv', 'bin', 'python');
 const CACHE = join(ROOT, 'data-sources', 'pokered-cry');
 const REPO = 'https://raw.githubusercontent.com/pret/pokered/master';
@@ -63,7 +88,7 @@ const ok = (name, pass, detail = '') => {
 // ---------------------------------------------------------------------------
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'cry1-neg-'));
+  const dir = track(mkdtempSync(join(tmpdir(), 'cry1-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
@@ -334,13 +359,13 @@ function shuffleCase() {
     console.log(`  ..   mirrored ${cacheNote.fetched} upstream files into data-sources/pokered-cry/`);
   }
 
-  const scratch = mkdtempSync(join(tmpdir(), 'cry1-shuf-'));
+  const scratch = track(mkdtempSync(join(tmpdir(), 'cry1-shuf-')));
   const asmShuffled = join(scratch, 'cries.asm');
   writeFileSync(asmShuffled, shuffledRows(readFileSync(join(CACHE, 'cries.asm'), 'utf8')));
 
   // The fixture has to carry pokemon_data.json and the fetcher, which is the
   // minimal tree fetch_gen1_cries.py touches.
-  const fixture = mkdtempSync(join(tmpdir(), 'cry1-gen-'));
+  const fixture = track(mkdtempSync(join(tmpdir(), 'cry1-gen-')));
   for (const f of ['assets/data/pokemon_data.json', FETCHER]) {
     mkdirSync(join(fixture, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(fixture, f));
@@ -362,7 +387,7 @@ function shuffleCase() {
   // And the regenerated table must match what is committed, which is the other
   // half of the claim: the shuffle does not quietly drop or reorder species.
   const committed = readFileSync(join(ROOT, 'assets/data/gen1_cries.json'), 'utf8');
-  const f2 = mkdtempSync(join(tmpdir(), 'cry1-gen2-'));
+  const f2 = track(mkdtempSync(join(tmpdir(), 'cry1-gen2-')));
   try {
     for (const f of ['assets/data/pokemon_data.json', FETCHER]) {
       mkdirSync(join(f2, dirname(f)), { recursive: true });
