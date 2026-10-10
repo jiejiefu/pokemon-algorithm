@@ -687,6 +687,44 @@ const CHECKERS = [
   },
 
   /* ---- models ---- */
+  /* graph.html's browser check and the harness that attacks it. `manual: true` is
+   * correct and only partly because of HTTP: the checker reads graph_data.json directly
+   * (so --prove-inputs RECORDS it and the "read but not declared" direction still
+   * applies), while graph.html, graph.js and the two stylesheets arrive over the wire
+   * and are hand-listed — the same weakest claim the other two manual CDP entries make,
+   * and it is printed as such on every run rather than hidden behind a green tick.
+   *
+   * The harness serves its own mutated copy on its own port rather than rewriting
+   * graph.js in place, because Tier A runs three entries at once and a checker reading
+   * assets/js/ at that moment would see the mutation. */
+  {
+    script: 'scripts/check_graph_browser.mjs', group: 'model', browser: true, needsServer: true, manual: true,
+    note: 'page inputs read off the HTML; graph_data.json is recorded',
+    inputs: [
+      'graph.html',
+      'assets/css/graph.css',
+      'assets/css/shared.css',
+      'assets/js/graph.js',
+      'assets/js/shared.js',
+      'assets/js/three.min.js',
+      'assets/js/3d-force-graph.min.js',
+      'assets/data/graph_data.json',
+    ],
+  },
+  {
+    script: 'scripts/test_check_graph_browser.mjs',
+    checker: 'scripts/check_graph_browser.mjs',
+    group: 'model', browser: true, needsServer: true, manual: true,
+    note: 'serves a mutated tree per case, so it never writes to the repo',
+    inputs: [
+      'graph.html',
+      'assets/css/graph.css',
+      'assets/css/shared.css',
+      'assets/js/graph.js',
+      'assets/js/shared.js',
+      'assets/data/graph_data.json',
+    ],
+  },
   {
     script: 'scripts/check_glb.mjs', group: 'model',
     inputs: [
