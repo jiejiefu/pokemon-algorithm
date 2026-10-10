@@ -53,7 +53,8 @@
 pokemon-algorithm/
 ├── assets/          css/ · js/ · data/ · cries/ · glbs/ · images/
 ├── docs/            incidents/ — the receipts behind §3, one file per area
-├── scripts/         check_all.mjs · check_*.mjs · test_check_*.mjs · lib/ · *.py
+├── scripts/         verification: check_*.mjs · test_check_*.mjs · lib/
+│                    data pipeline: *.py   (two layers, explained below)
 └── data-sources/    raw CSV/XLSX + per-id provenance (never fetched at runtime)
 ```
 
@@ -74,6 +75,8 @@ pokemon-algorithm/
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,523 links for `graph.html` |
 
 Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
+
+**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 58 files are verification — 35 `check_*.mjs`, 15 `test_check_*.mjs` mutation harnesses, 2 standalone tests (`test_cry_overlap.mjs` is a manifest entry in `cry-page`; `test_graph_browser.mjs` is a CDP smoke test that is **not** one) and 6 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 27 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
 
 **`scripts/lib/` is shared and small on purpose** — `negative.mjs` is the one definition of what "caught by" means, `pool.mjs` the one worker pool (§3.G7), `cdp-port.mjs` the one place a Chrome path and debug port live, `png.mjs` builds its own test PNGs, `mute-tap.mjs` silences audio before any page script, and `record-inputs.cjs` proves §4's input lists. Editing any of them invalidates every cache entry, which is why they are hashed into every key unconditionally.
 
