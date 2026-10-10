@@ -76,7 +76,17 @@ const chrome = spawn(CHROME, [
   `--user-data-dir=${profile}`,
   `--window-size=1400,900`,
   'about:blank',
-], { stdio: 'ignore' });
+/* Chrome's own stderr is CAPTURED, not inherited, and the reason is that a renderer
+   that dies under WebGL contention says so here and nowhere else: the CDP side reports
+   the same "Inspected target navigated or closed" -32000 that a navigation produces,
+   which is a message that cannot tell the two apart. `stdio: 'ignore'` — what this used
+   to be — threw the only evidence away, which is why this entry spent its life being
+   "flaky" with no way to tell flaky from crashed. Only the tail is kept, and only when
+   something went wrong, because a 1400x900 WebGL page is chatty on a normal run. */
+], { stdio: ['ignore', 'ignore', 'pipe'] });
+
+let chromeErr = '';
+chrome.stderr?.on('data', d => { chromeErr = (chromeErr + d).slice(-4000); });
 
 const cleanup = () => {
   try { chrome.kill('SIGKILL'); } catch (e) {}
@@ -84,6 +94,18 @@ const cleanup = () => {
 };
 process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(130); });
+
+/* The method a pending call was waiting on, kept so a transport failure can name
+     itself. "Inspected target navigated or closed" is a -32000 that says WHERE nothing:
+     every CDP call in this file goes through `send`, so an unannotated crash reported a
+     bare message and the reader had to bisect the file by hand to find which step lost
+     the renderer. Two runs of this entry failed differently under tier B's three-at-a-
+     time pool — one a transport error, one a dossier that had not opened yet — and
+     without this line the first of those is indistinguishable from a page bug.
+     Module scope, not local to run(), because the report is printed by the .catch
+     BELOW run() and a variable declared inside the function it reports on is not in
+     scope there. */
+let lastMethod = '(none)';
 
 async function run() {
   /* Wait for Chrome to publish the port it chose, then for the page target on it. */
@@ -130,9 +152,15 @@ async function run() {
     }
   });
 
+/* The method a pending call was waiting on, kept so a transport failure can name
+     itself. See the module-scope declaration above. NOT reset on success: every call
+     here is awaited one at a time, so the most recently ISSUED method is by
+     construction the outstanding one, and a reset would report "(idle)" for exactly
+     the failure it exists to describe. */
   const send = (method, params = {}) => new Promise((res, rej) => {
     const n = ++id;
-    pending.set(n, (x) => (x.error ? rej(new Error(JSON.stringify(x.error))) : res(x.result)));
+    lastMethod = method;
+    pending.set(n, (x) => x.error ? rej(new Error(JSON.stringify(x.error))) : res(x.result));
     ws.send(JSON.stringify({ id: n, method, params }));
   });
 
@@ -148,6 +176,38 @@ async function run() {
   const ev = async (expression) => {
     const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
     return r?.result?.value;
+  };
+
+  /* ---- waitFor: poll a page-side PREDICATE, never sleep a fixed time ----
+   *
+   * This file slept 500ms for the search and 600ms for the dossier, and it was the
+   * only reason this entry failed intermittently: 3 of 4 runs in `--only=model`, where
+   * the runner has three browser entries plus this one's four-case harness in flight
+   * and every one of them is a WebGL page. graph.js's search is a 150ms debounce
+   * (graph.js:638), so the 500ms was a 350ms margin over a `setTimeout` competing with
+   * a 1,346-node force-directed rAF loop on a saturated main thread. Under that load
+   * the timer lands late and the assertion read an empty list — and the two assertions
+   * after it failed for the same reason, not three separate defects.
+   *
+   * The poll is for a PREDICATE, never for the assertion itself (§3.B2's vacuity
+   * shape): what is waited for is "the search has rendered a result", and what is then
+   * asserted is WHICH result. A poll that waited for `hits.includes('皮卡丘')` would
+   * return true on a page that got it right and would time out on one that got it
+   * wrong — the same either way, which is to say it asserted nothing.
+   *
+   * Every ceiling here EXCEEDS the sleep it replaced, so the change can only add
+   * tolerance, and a timeout returns false so the assertion still runs and still
+   * prints its real number. That is §3.G5's rule, not a paraphrase of it.
+   */
+  const waitFor = async (label, expression, timeoutMs = 12000, stepMs = 100) => {
+    const deadline = Date.now() + timeoutMs;
+    let value;
+    while (Date.now() < deadline) {
+      value = await ev(expression);
+      if (value) return { ok: true, value, waited: 0 };
+      await new Promise(r => setTimeout(r, stepMs));
+    }
+    return { ok: false, value, waited: timeoutMs };
   };
 
   /* POLL FOR READINESS INSTEAD OF SLEEPING FOUR SECONDS.
@@ -210,25 +270,98 @@ async function run() {
      `the badge reports graph_data.json's ${META.total_links} relations (${badge})`);
 
   // ---- search ----------------------------------------------------------
+/* THE TWO POLL CEILINGS, NAMED, because both the wait and the message that reports a
+     timeout have to read the same number. The first version of this file passed 8000 to
+     the search poll and printed "nothing rendered within 12000ms" — a report quoting a
+     constant nobody set, which is a report that lies the day somebody changes it. The
+     harness reads that string, so a mismatch is not cosmetic either. */
+  const SEARCH_TIMEOUT_MS = 8000;
+  const DOSSIER_TIMEOUT_MS = 3000;
+
   await ev(`
     const input = document.getElementById("hud-search");
     input.value = "皮卡丘";
     input.dispatchEvent(new Event("input", { bubbles: true }));
   `);
-  await new Promise(r => setTimeout(r, 500));
+
+  /* "The search has rendered SOMETHING" — not "it rendered the right thing". See
+     waitFor's note: the predicate has to be weaker than the assertion, or the poll
+     becomes the assertion and a wrong page times out instead of failing. */
+  const searched = await waitFor('search results',
+    'document.querySelectorAll(".search-item").length > 0', SEARCH_TIMEOUT_MS);
 
   const hits = await ev('[...document.querySelectorAll(".search-item-name")].map((e) => e.textContent)');
-  ok(Array.isArray(hits) && hits.length > 0, `searching 皮卡丘 returns at least one result (got ${Array.isArray(hits) ? hits.length : typeof hits})`);
+  ok(searched.ok && Array.isArray(hits) && hits.length > 0,
+     `searching 皮卡丘 returns at least one result (got ${Array.isArray(hits) ? hits.length : typeof hits}${searched.ok ? '' : ` — nothing rendered within ${SEARCH_TIMEOUT_MS}ms`})`);
   ok(Array.isArray(hits) && hits.includes('皮卡丘'), `the result set contains 皮卡丘 itself (got ${JSON.stringify(hits)})`);
 
   // ---- dossier ---------------------------------------------------------
+  /* The clicked row's id, read BEFORE the click, because the predicate below has to
+     compare against it. `#dossier-id` is `formatPokemonId(...)` — "#0025" — so the
+     comparison strips the punctuation rather than string-matching a format this file
+     would otherwise have to restate. */
+  const wantId = await ev('document.querySelector(".search-item")?.dataset.id ?? null');
   await ev('document.querySelector(".search-item")?.click()');
-  await new Promise(r => setTimeout(r, 600));
+
+    /* "The dossier has been REPOPULATED with the row that was clicked" — a state, not
+     the assertion. `renderDossier()` is synchronous (graph.js:452), so this returns on
+     the first tick in every healthy run; it exists because the 600ms sleep it replaced
+     was waiting for nothing, and a poll degrades to a no-op rather than to a flake.
+     `wantId` being null (no search row) makes this false forever, which is correct:
+     the click was a no-op and the two assertions below have to say so.
+
+     THE COMPARISON IS NUMERIC, and it has to be. `data-id` is the raw node id (`25`)
+     while `#dossier-id` is `formatPokemonId(...)`, which zero-pads (`#0025`) — so
+     stripping the non-digits yields "0025" and a string comparison against "25" is
+     false forever. That is not hypothetical: it is what the first version of this
+     predicate did, and it failed on a page doing exactly the right thing. */
+  /* 8s for the search and 3s for the dossier, both down from this helper's 12s default,
+     and the asymmetry between them is the measurement rather than a preference.
+
+     The search is genuinely debounced (150ms, graph.js:638) behind a `setTimeout` that
+     competes with a 1,346-node rAF loop, so it is the one wait that was ever observed
+     to need headroom. 8s is 16x the 500ms it replaced.
+
+     The dossier needs none: `renderDossier()` is synchronous (graph.js:452), so a healthy
+     page has already repopulated it before the click's own task ends and the FIRST poll
+     tick reads true. 3s covers a click whose handler is slow to start and nothing else.
+
+     MEASURED, because these numbers are a cost and not a preference: at 12s/5s the
+     mutation harness went 32.8s -> 49.3s, and the whole +16.5s was ONE case — the
+     mutation that breaks the page — waiting out both ceilings before reporting what it
+     already knew. The healthy path is unaffected either way (6.30s vs 6.35s measured
+     against the old fixed sleeps), so this is time paid only on runs that are already
+     red. Both ceilings still exceed what they replaced, so the change can only add
+     tolerance (§3.G5). */
+  const repopulated = wantId === null
+    ? { ok: false, skipped: true }
+    : await waitFor('dossier repopulation',
+        `(() => { if (${JSON.stringify(wantId)} === null) return false;
+                  const el = document.getElementById('dossier-id');
+                  return !!el && Number(el.textContent.replace(/\\D/g, '')) === Number(${JSON.stringify(wantId)}); })()`,
+        DOSSIER_TIMEOUT_MS);
 
   const dossierActive = await ev('document.getElementById("graph-dossier")?.classList.contains("is-active")');
   ok(dossierActive === true, `clicking a search result opens the dossier (got ${dossierActive})`);
   const dossierName = await ev('document.getElementById("dossier-name-zh")?.textContent');
   eq(dossierName, '皮卡丘', 'the dossier names the species that was clicked');
+  /* Reported separately from the two above because it is a DIFFERENT question: they ask
+     whether the dossier is right, this asks whether the wait that produced that reading
+     was sound. A green pair with `repopulated.ok === false` would mean the assertions
+     passed against a dossier the poll never saw repopulate — which on a page whose click
+     handler does nothing is the difference between "correct" and "never happened".
+
+     The two failure messages are DISTINCT because they are different diagnoses, and
+     collapsing them is what made this a flake nobody could read: `skipped` means there
+     was no row to click, so the ceiling was never spent and the 3s was correctly not
+     paid; `waited` means the row existed and the dossier ignored it, which is a page
+     defect. The number is the ceiling actually configured, not the 12000 this line used
+     to print — a report that quotes a constant nobody set is a report that lies the day
+     somebody changes it. */
+  ok(repopulated.ok,
+     `the dossier was repopulated with #${wantId} before it was read (${repopulated.ok ? 'observed'
+        : repopulated.skipped ? 'no search row to click, so nothing was waited on'
+        : 'still showing its previous contents after ' + DOSSIER_TIMEOUT_MS + 'ms'})`);
 
   if (logs.length > 0) {
     console.log('Browser Logs:', logs);
@@ -259,7 +392,12 @@ async function run() {
 }
 
 run().catch(err => {
-  console.error('Test error:', err);
+  console.error(`Test error: ${err.message}`);
+  console.error(`  (last CDP call: ${lastMethod})`);
+  if (chromeErr.trim()) {
+    console.error('  Chrome stderr (tail):');
+    for (const line of chromeErr.trim().split('\n').slice(-12)) console.error(`    ${line}`);
+  }
   cleanup();
   process.exit(1);
 });

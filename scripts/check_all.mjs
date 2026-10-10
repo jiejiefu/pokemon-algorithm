@@ -699,6 +699,16 @@ const CHECKERS = [
    * assets/js/ at that moment would see the mutation. */
   {
     script: 'scripts/check_graph_browser.mjs', group: 'model', browser: true, needsServer: true, manual: true,
+    /* `serial: true` — the ONLY entry in the manifest with this flag, and the reason is
+     * measured rather than assumed: 3 of 3 failures pooled against 3 of 3 passes
+     * standalone, same tree, same server, same machine. Chrome's stderr under contention
+     * is a repeating `CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670` and the
+     * CDP side reports it as `Inspected target navigated or closed` — byte-identical to
+     * what a real navigation looks like, so the run cannot tell "the page moved" from
+     * "the compositor gave up". Full rationale and what it costs: the tier-B block at
+     * line 1467. The harness below stays pooled and passes there every run, because it
+     * serves a trimmed fixture; only the full 1,346-node page contends. */
+    serial: true,
     note: 'page inputs read off the HTML; graph_data.json is recorded',
     inputs: [
       'graph.html',
@@ -1464,22 +1474,68 @@ async function main() {
      TIER B — the browsers, one at a time, printed as they finish.
      --------------------------------------------------------------------------- */
 
-  if (tierB.length) {
-    /* SERIAL, and the reason is not "a browser is expensive". cdp-port.mjs derives
-     * each checker's port from base + (pid % 120), and once the 120-wide window is
-     * accounted for 20 of its 21 base PAIRS OVERLAP — two concurrent CDP checkers
-     * collide with roughly 1 chance in 120 per pair. The failure is not silent
-     * corruption: assertPortFree() refuses to drive a browser it did not start. It is
-     * a loud mid-run abort, which on a suite someone is trying to believe is a worse
-     * outcome than being slow. Six concurrent Chromes is also the exact condition
-     * §3.J's 28 GB of tmpdir came from. */
-    row('▶', '(tier B)'.padEnd(34), `${tierB.length} browser entries, ${TIER_B_CONCURRENCY} at a time`, '');
-    const browserResults = await pool(tierB.map((c) => () => attempt(c)), { limit: TIER_B_CONCURRENCY });
-    /* DECLARATION ORDER OUT, same contract as Tier A and for the same reason: an order
-     * that follows the scheduler cannot be diffed between two green runs. The difference
-     * is that a browser tier does not print per entry as it goes, because it used to be
-     * serial and now is not. */
-    for (const r of browserResults) emit(r);
+if (tierB.length) {
+    /* SERIAL BY DEFAULT WAS RETIRED, but not for every entry, and `serial: true` is how
+     * an entry opts back out. §3.G4's note at the top of this block is the history: the
+     * pid-derived debug ports overlapped, which retired tier B's serial run. Nothing
+     * about that argument is about CPU or GPU — it was about COLLIDING PORTS — so it does
+     * not carry an entry that fails for a different reason.
+     *
+     * `check_graph_browser.mjs` is that entry, and its measurement is unambiguous:
+     * 3 of 3 failures pooled, 3 of 3 passes standalone, with the same tree, the same
+     * server and the same machine as the only variable. Chrome's own stderr says why —
+     * `CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670`, repeated, from the
+     * compositor of a page running a 1,346-node force-directed graph at 60fps — and the
+     * CDP side reports it as the same "Inspected target navigated or closed" a real
+     * navigation produces, which is a message that cannot tell the two apart.
+     *
+     * WHY THAT IS NOT ACCEPTABLE AS A FLAKE. §4 already accepts contention as a cost:
+     * check_life_browser.mjs is 5.1s alone and 13s in a pool of three, and that is
+     * merely expensive. This one FAILS, and a red that appears only when the pool's
+     * draw happens to put a second WebGL graph beside it is worse than an honest slow
+     * entry — a reader learns that red can mean nothing, which is the one thing a
+     * checker row is for. A row that is reliably red in the pool and reliably green
+     * alone has stopped being a measurement of the page.
+     *
+     * WHAT IT COSTS. ~8s of wall clock, spent alone. The harness beside it
+     * (test_check_graph_browser.mjs, five sequential boots of the same heavy page)
+     * stays POOLED and passes there every run — it serves a trimmed fixture, so it is
+     * cheap enough not to contend. Only the full-corpus entry is excluded.
+     *
+     * WHAT WOULD UNDO THIS. If the page stops being a continuous-rAF WebGL scene, or
+     * Chrome stops failing the display link under load, delete the flag. Do not delete
+     * it because the suite got slow — that is the trade being made explicitly, and it is
+     * the smaller half of it. */
+    const serialB = tierB.filter(c => c.serial);
+    const pooledB = tierB.filter(c => !c.serial);
+    const serialResults = [];
+
+    if (serialB.length) {
+      row('▶', '(tier B, serial)'.padEnd(34), `${serialB.length} entr${serialB.length === 1 ? 'y' : 'ies'}, not pooled — see the note at scripts/check_all.mjs:1467`, '');
+      /* One at a time, and NOT through pool(): the point is that nothing else is in
+       * flight, so there is nothing to interleave with. */
+      for (const c of serialB) serialResults.push(await attempt(c));
+    }
+
+    if (pooledB.length) {
+      row('▶', '(tier B)'.padEnd(34), `${pooledB.length} browser entries, ${TIER_B_CONCURRENCY} at a time`, '');
+      const browserResults = await pool(pooledB.map((c) => () => attempt(c)), { limit: TIER_B_CONCURRENCY });
+      /* DECLARATION ORDER OUT ACROSS BOTH HALVES, and this is the whole reason the
+       * halves cannot simply be printed one after the other. §3.G7's contract is that
+       * output order does not follow the scheduler, so that two green runs diff. A
+       * serial half that printed before a pooled half would make the report depend on
+       * WHICH entries are flagged `serial` — the same contract, obeyed within each half
+       * and broken across them, which is the shape §3.G4's "guarded by a check count"
+       * warns about: a rule that holds where it was written and not next door. The
+       * serial half runs first so it is never idle-waiting on the pool, and both sets
+       * are then re-interleaved into `tierB` order below. */
+      const emitted = new Map();
+      serialResults.forEach((r, i) => emitted.set(serialB[i].script, r));
+      browserResults.forEach((r, i) => emitted.set(pooledB[i].script, r));
+      for (const c of tierB) emit(emitted.get(c.script));
+    } else {
+      for (const r of serialResults) emit(r);
+    }
   }
 
   if (!opts.noCache) {
