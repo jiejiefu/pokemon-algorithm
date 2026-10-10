@@ -50,8 +50,27 @@ export const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chr
 /**
  * One base per checker, so two of them cannot land on the same port by luck.
  *
- * The bases are spread far enough apart that a 120-wide PID window around one
- * cannot reach into another's.
+ * The bases are spread far enough apart that a 120-wide PID window around one cannot
+ * reach into another's.
+ *
+ * THE SECOND SENTENCE IS WRONG, and it was load-bearing until this was measured.
+ * `cdpPort()` returns `base + (pid % 120)`, so each checker occupies a 120-wide window
+ * rather than a point, and the bases only span 9330..9470 — 140. Checked pairwise, 20
+ * of the 21 combinations overlap; `gen1` [9330,9449] against `spectrum` [9470,9589] is
+ * the single pair that does not. `gen1` overlaps all six others, and `cries` [9370,9489]
+ * overlaps five of the remaining six.
+ *
+ * This does NOT mean two concurrent CDP checkers are likely to collide. Concurrent runs
+ * have different PIDs, so a given pair lands on the same number only about 1 time in
+ * 120, and `assertPortFree()` below turns even that into a loud refusal rather than a
+ * measurement of somebody else's window.
+ *
+ * It does mean the comment could not be used as an argument for running them in
+ * parallel, which is precisely how it read. `check_all.mjs`'s two-tier runner leaves
+ * the seven browser entries SERIAL, and the honest reason is this overlap plus §3.J:
+ * six concurrent Chromes is the condition the 28 GB of tmpdir came from. Spread the
+ * bases to 400 apart if you want the sentence to become true; do not rely on it until
+ * you have.
  */
 export const CDP_PORT_BASE = {
   gen1: 9330,
