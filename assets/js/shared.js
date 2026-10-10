@@ -964,6 +964,20 @@ export function initHeaderNav(currentPage) {
 /** Hover + focus-within open, Escape / click-outside close. */
 function initNavDropdowns() {
   for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {
+    /* DRAWER ITEMS ARE NOT OURS. `initMobileNav()` owns them, as an accordion.
+     *
+     * They used to be handled here too, which was two bugs at once on a touch device:
+     * a tap synthesises `mouseenter` BEFORE `click`, so `mouseenter` opened the panel
+     * and the `click` handler immediately read `panel.hidden` as true and closed it
+     * again — one tap, no visible result. And a touch device has no hover at all, so
+     * every mechanism here except `click` was dead weight on the one surface where the
+     * drawer is actually used.
+     *
+     * Scoped by `closest()` rather than by a `.site-nav .site-nav-item-has-panel`
+     * selector because a page that ever mounted the drawer WITHOUT the desktop row
+     * would then get no handler at all, and fail silently. */
+    if (item.closest('.site-nav-drawer')) continue;
+
     const trigger = item.querySelector('.site-nav-trigger');
     const panel = item.querySelector('.site-nav-panel');
     if (!trigger || !panel) continue;
@@ -1022,6 +1036,13 @@ function initNavDropdowns() {
   document.addEventListener('click', e => {
     if (e.target.closest('.site-nav-item-has-panel')) return;
     for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {
+      /* Same reason as above: a drawer panel's open state is the accordion's business,
+         and this "close everything on an outside click" sweep is a DESKTOP affordance.
+         Left in, every tap that opened a drawer group would immediately close it —
+         the tap is outside the panel but inside the trigger's own item, so the guard
+         above actually catches it, which is why the sweep has to be skipped explicitly
+         rather than left to that guard. */
+      if (item.closest('.site-nav-drawer')) continue;
       const panel = item.querySelector('.site-nav-panel');
       const trigger = item.querySelector('.site-nav-trigger');
       if (panel?.hidden) continue;
@@ -1043,9 +1064,27 @@ function closeMobileNav() {
 }
 
 /**
- * The drawer opens every panel statically — a hover panel inside a drawer is
- * unreachable by touch, so `hidden` is stripped and the panels become plain
- * blocks. `data-nav-open` then has no effect to override.
+ * The drawer's groups are an ACCORDION: collapsed by default, tap to open, tap again
+ * to close.
+ *
+ * It used to open every panel at once, and the justification recorded in shared.css was
+ * that "the nav is short enough (4 items, 8 rows) that showing everything beats a broken
+ * accordion". That was written when the nav was four items and eight rows. **It is six
+ * items and twenty-five rows now**, and the consequence was measured on graph.html at
+ * 900x800: a drawer **1130px tall** opening at y=55 in an 800px window. On the two pages
+ * whose body cannot scroll (`overflow` propagates to the viewport) its last rows were not
+ * merely below the fold — they were **unreachable by any means**, and on the others the
+ * reader had to scroll the whole page to finish reading a menu.
+ *
+ * So the accordion is not a preference here, it is what the old rule's own precondition
+ * turned into once NAV grew. Nothing new is initialised: `navItemHtml` already renders
+ * `<div class="site-nav-panel" hidden>` and `aria-expanded="false"`, so the collapsed
+ * state is correct before this runs, with JS off, and in the first paint. What this
+ * function adds is the click.
+ *
+ * Click only, and no hover or focus-within: `initNavDropdowns()` skips drawer items for
+ * exactly that reason, because a tap synthesises `mouseenter` before `click` and the two
+ * handlers would invert each other.
  */
 function initMobileNav() {
   const toggle = mobileToggle();
@@ -1066,6 +1105,28 @@ function initMobileNav() {
     toggle.innerHTML = open ? iconSvg('close') : iconSvg('menu');
     toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
   });
+
+  /* GROUPS TOGGLE INDEPENDENTLY, rather than one-at-a-time.
+   *
+   * A classic accordion closes its siblings, which is right for a settings panel and
+   * wrong for navigation: a reader comparing 「色彩生成器」 against 「探索色盤」 wants
+   * both open, and a menu that closes a section the reader is looking at reads as a
+   * mistake. The height stays bounded anyway because the drawer's own `max-height` +
+   * `overflow-y` is still there as the safety net for someone who opens all four. */
+  for (const item of drawer.querySelectorAll('.site-nav-item-has-panel')) {
+    const trigger = item.querySelector('.site-nav-trigger');
+    const panel = item.querySelector('.site-nav-panel');
+    if (!trigger || !panel) continue;
+
+    trigger.addEventListener('click', e => {
+      e.preventDefault();
+      const open = panel.hidden;
+      panel.hidden = !open;
+      // The caret rotates off `[aria-expanded="true"]` (shared.css), so this attribute
+      // is what the visual affordance and the announced state both read.
+      trigger.setAttribute('aria-expanded', String(open));
+    });
+  }
 
   drawer.addEventListener('click', e => {
     if (e.target.closest('a')) closeMobileNav();

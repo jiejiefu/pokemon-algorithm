@@ -1489,7 +1489,17 @@ a.site-nav-item:focus-visible,
   right: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  /* Two presentation numbers, both from measuring the real drawer rather than from
+     taste. `gap: 2px` stacked 26 rows into what read as one solid block; 8px separates
+     the six top-level items without loosening anything inside a group. `max-width` is
+     inert below 420px, so a phone is unchanged by it and a tablet stops stretching each
+     row to the full viewport — at 900px the rows were 868px wide, which is a lozenge the
+     width of the screen rather than a menu. Left-anchored on purpose: it hangs from the
+     left edge under the hamburger that opened it, and `right: 0` is still what positions
+     it. The existing `box-shadow` is what separates the capped block from the page, so
+     the `border-bottom` does not have to reach the viewport edge. */
+  gap: 8px;
+  max-width: 420px;
   padding: 12px 16px 20px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--hairline-strong);
@@ -1501,28 +1511,68 @@ a.site-nav-item:focus-visible,
   display: none;
 }
 
-/* sorting.html is the one page whose body cannot scroll: it is
-   `height: 100vh; overflow: hidden` because the canvas is a fixed 1200x800, not
-   a fluid one. `overflow` on the body propagates to the viewport, so the drawer
-   — 1035px tall, opening at y=67 — has no way to be scrolled into view and its
-   last rows (3D 模型 and, on a 640px phone, six more) are simply unreachable.
-   Every other page's drawer is reachable by scrolling the page, which is why
-   this is scoped to the one header that needs it rather than put on
-   `.site-nav-drawer` for all twelve. `dvh` rather than `vh` because on a phone
-   `100vh` is the tall viewport with the browser chrome hidden, which overshoots
-   exactly the case this rule exists for; colors.css already prefers dvh.
-   `-webkit-overflow-scrolling: touch` is legacy iOS momentum scrolling and is
-   inert everywhere else. */
+/* THE DRAWER'S CHILDREN HAVE TO BE STACKED EXPLICITLY, and this rule was missing on
+ * every page in the project.
+ *
+ * `.site-nav-drawer` is `flex-direction: column`, but that only reorients the DRAWER's
+ * own children. Each child is a `.site-nav-item`, which is `display: flex` with the
+ * default `row` direction — so every grouped item laid its trigger out SIDE BY SIDE with
+ * its panel. Measured at 900x800, identically on index.html and graph.html:
+ *
+ *   trigger  left 16  width 748  height 366      <- a 748x366 rounded pill
+ *   panel    left 764 width 120  height 366      <- a 120px column beside it
+ *
+ * The trigger took the whole group's height because it is a stretched flex item, and
+ * the panel was squeezed to 120px wide so its rows wrapped. That is the "ugly" — and it
+ * was never intended, because the rule right below this one indents the panel with
+ * `padding-left: 14px` and a `border-left`, which only means anything if the panel is
+ * BELOW its trigger. */
+.site-nav-drawer .site-nav-item-has-panel {
+  flex-direction: column;
+}
+
+/* The drawer's rows are square-ish rather than pills. `--radius-pill` (20px) is right
+ * for a chip in a horizontal nav bar and wrong for a full-width menu row, where a 20px
+ * radius on a 400px-wide element reads as a capsule. 12px is the site's own
+ * `--radius-sm`, the same value `.site-nav-row` already uses one level down, so the two
+ * levels match. */
+.site-nav-drawer a.site-nav-item,
+.site-nav-drawer .site-nav-trigger {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+/* This used to be scoped to `.header-sort` alone, on the grounds that sorting.html "is
+   the one page whose body cannot scroll". It was true when written and stopped being
+   true: graph.html is `height: 100vh; overflow: hidden` for a full-viewport WebGL stage
+   (graph.css), so it has the same unreachable last rows. Measured at 900x800 on
+   graph.html: the drawer is 1086px tall and opens at y=55, so its bottom 286px — which
+   includes the 3D 模型 link — cannot be reached by the page or by the drawer. Its own
+   rule lives in graph.css rather than here, because `.header-3d` is shared with
+   model3d.html and that page has not been measured for this.
+
+   `dvh` rather than `vh` because on a phone `100vh` is the tall viewport with the
+   browser chrome hidden, which overshoots exactly the case this rule exists for;
+   colors.css already prefers dvh. `-webkit-overflow-scrolling: touch` is legacy iOS
+   momentum scrolling and is inert everywhere else. */
 .header-sort .site-nav-drawer {
   max-height: calc(100dvh - 80px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Every panel is expanded in the drawer: a hover panel inside a drawer is
-   unreachable by touch, and the accordion a touch user would expect needs
-   state that `hidden` on a hover-driven panel cannot provide. The nav is short
-   enough (4 items, 8 rows) that showing everything beats a broken accordion. */
+/* A drawer panel is indented under its trigger and rails it with a left border, which
+   only means anything because `flex-direction: column` above stacks them. It RESPECTS
+   `hidden`, which is what makes the drawer an accordion: `navItemHtml` renders
+   `<div class="site-nav-panel" hidden>` and `initMobileNav()` toggles it on click.
+
+   This block used to carry `.site-nav-drawer .site-nav-panel[hidden] { display: block }`,
+   which forced every group open at once, and its comment justified that with "the nav is
+   short enough (4 items, 8 rows) that showing everything beats a broken accordion". That
+   was written when it was four items and eight rows; it is **six items and twenty-five
+   rows** now, and the cost was measured on graph.html at 900x800 — a **1130px** drawer
+   opening at y=55 in an 800px window, whose last rows were unreachable on the two pages
+   whose body cannot scroll. **The justification outlived the thing it justified.** */
 .site-nav-drawer .site-nav-panel {
   position: static;
   min-width: 0;
@@ -1532,10 +1582,6 @@ a.site-nav-item:focus-visible,
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.site-nav-drawer .site-nav-panel[hidden] {
-  display: block;
 }
 
 .site-nav-drawer .site-nav-trigger {

@@ -85,6 +85,17 @@ body.graph-body {
   --surface-hover: rgba(238, 241, 251, 0.06);
   --text-primary: #eef1fb;
 
+  /* ONE TOKEN, NOT TWO, and it is the only one this section was missing.
+     `--hairline` and `--hairline-strong` are both derived from `--hairline-rgb`
+     (`rgba(var(--hairline-rgb), 0.10)` and `… 0.20`), so overriding the RGB is enough
+     to fix every rule that reads either — and light theme's `15, 23, 48` drawn on this
+     drawer's `#161e38` is a DARK hairline on a dark surface, which is invisible. That is
+     not cosmetic: `.site-nav-drawer .site-nav-panel` uses `border-left` with
+     `--hairline` precisely to draw the indented rail under each trigger, so the one rule
+     whose whole job is that line was failing at the one moment it mattered — the
+     forced-dark drawer it belongs to. Dark's own value, restored. */
+  --hairline-rgb: 238, 241, 251;
+
   /* `--brand-grad-*` is NOT overridden: shared.css declares it identically in both
      themes precisely because it was measured against the dark header (5.96:1 at its
      worst interpolated stop), so the clipped title is already legal here. `--accent-gold`
@@ -232,6 +243,24 @@ body.graph-body {
    disagree — the hamburger reporting `aria-expanded="true"` over a drawer that this
    file has hidden. The bar's own hamburger is unreachable while collapsed, so the
    drawer cannot be opened then, and one owner is enough. */
+
+/* THE DRAWER MUST SCROLL ON THIS PAGE, because nothing else here can scroll.
+   `body.graph-body` is `height: 100vh; overflow: hidden` because the WebGL stage fills
+   the viewport — and `overflow` on the body propagates to the viewport, so the page
+   itself cannot scroll either. Measured at 900x800: the drawer is 1086px tall and opens
+   at y=55, which puts its last 286px — including the 3D 模型 link — below the fold with
+   no way to reach it, and `getComputedStyle` reads `max-height: none; overflow-y: visible`.
+
+   This is the same rule shared.css gives `.header-sort` and deliberately NOT more than
+   `.header-sort`: it is declared here under `.graph-header` rather than by widening that
+   selector, because `.header-3d` is shared with model3d.html and that page has not been
+   measured for this. Widening a shared selector on the strength of one unmeasured page is
+   how a fix for one bug becomes a bug on another. */
+.graph-header .site-nav-drawer {
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 /* 3D Canvas Stage */
 #graph-container {
