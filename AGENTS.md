@@ -356,6 +356,8 @@ done
 
 Two traps worth knowing: **zsh does not word-split an unquoted variable**, so `for p in $(…)` hands the loop all six PIDs as one argument and kills nothing while printing a confident `SKIP`; and the four-on-one-port case is why the raw count misleads. Deleting the residue means removing only directories containing `DevToolsActivePort` or `Default/` — **never the whole tmpdir, which other tools share.**
 
+**An orphan is a CORRECTNESS defect, not just disk clutter, and `check_gen1_page.mjs` is the proof.** On 2026-10-10 it was reported failing 4 of its 74 checks: the playhead did not move, the play button did not reflect state, clicking a species did not play it, and a prose column measured 474 px against a 571 px measure. **Those four are the ones `cdp-port.mjs` records from the incident that created `assertPortFree()`**, and the cause was a window **1246×87** — the checker drove a stranger's browser, so every number it took was a real measurement of a page rendered 87 px tall. Sweeping the six orphans above was followed by `PASS 74 checks` on four consecutive forced runs. What that does NOT prove is which orphan caused it: `browserOnPort()` returns null on a timeout as well as on an empty port, so an unresponsive orphan reads as free, and the PID window means a collision is a ~1-in-120 coincidence per run rather than a standing condition. **The claim worth keeping is the narrow one — an orphan turns a checker into a confident liar, and the only defence is the port guard plus a zero count.**
+
 **Background:** [`docs/incidents/checker-infrastructure.md#j`](docs/incidents/checker-infrastructure.md#j)
 
 ### K. life.html — Conway, Genetics, And The Evolution Gate
