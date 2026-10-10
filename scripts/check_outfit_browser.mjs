@@ -33,11 +33,12 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.OUTFIT_PORT || 5500;
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT_CDP = 9371;
+const PORT_CDP = cdpPort('outfit');
+await assertPortFree('check_outfit_browser.mjs', PORT_CDP);
 
 const profile = mkdtempSync(join(tmpdir(), 'of-'));
 const chrome = spawn(CHROME, [

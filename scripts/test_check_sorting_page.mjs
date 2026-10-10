@@ -100,6 +100,13 @@ function makeTree(mutate, { strip = false } = {}) {
   mkdirSync(join(dir, 'assets/css'), { recursive: true });
   mkdirSync(join(dir, 'scripts'), { recursive: true });
   cpSync(join(ROOT, 'assets/js'), join(dir, 'assets/js'), { recursive: true });
+  /* scripts/lib too, for the same reason and the same evidence: the checker
+   * imports `./lib/cdp-port.mjs`, and a tree without it dies at import with
+   * ERR_MODULE_NOT_FOUND — which every case in this file reads as "the mutation
+   * broke the checker", so all twenty-seven pass for the wrong reason. The
+   * harness already distinguishes that case mechanically ("produced NO assertion"),
+   * which is how it was caught rather than shipped. */
+  cpSync(join(ROOT, 'scripts/lib'), join(dir, 'scripts/lib'), { recursive: true });
   for (const f of FILES) {
     if (!f.startsWith('assets/js/')) cpSync(join(ROOT, f), join(dir, f));
   }
@@ -198,7 +205,12 @@ const cases = [
   },
   {
     name: 'the single-mode call to paint() drops its context too',
-    mutate: (f, s) => f === 'sorting.html' ? s.replace('paint(ctx, single.nodes, events, single.playing)', 'paint(single.nodes, events, single.playing)') : undefined,
+    /* The anchor carries the 5th argument. `50bbf84` gave paint() a
+     * `showGridIndices` parameter, and the shorter anchor this used to stop
+     * matching — so the mutation changed nothing and the case passed for the
+     * wrong reason. The harness's own "did not change the file" guard is what
+     * caught it, which is the guard earning its keep. */
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('paint(ctx, single.nodes, events, single.playing, state.gridIndices)', 'paint(single.nodes, events, single.playing, state.gridIndices)') : undefined,
     expect: 'every paint() call site passes its context explicitly',
   },
   {

@@ -42,9 +42,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CDP = cdpPort('spectrum');
+await assertPortFree('check_spectrum_browser.mjs', CDP);
 const PORT = Number(process.env.CRY_PORT || 5500);
 const BASE = `http://127.0.0.1:${PORT}`;
 const PAGE = `${BASE}/spectrum.html`;
@@ -67,7 +69,7 @@ process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true,
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--mute-audio',
   '--autoplay-policy=no-user-gesture-required',
-  '--remote-debugging-port=9374', `--user-data-dir=${profile}`, 'about:blank',
+  `--remote-debugging-port=${CDP}`, `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore' });
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
  * next run's --remote-debugging-port free and it is what makes the profile removal above
@@ -87,7 +89,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
 let targets;
 for (let i = 0; i < 80; i++) {
   try {
-    const r = await fetch('http://127.0.0.1:9374/json/list');
+    const r = await fetch(`http://127.0.0.1:${CDP}/json/list`);
     if (r.ok) { targets = await r.json(); break; }
   } catch { /* not up yet */ }
   await new Promise((r) => setTimeout(r, 250));

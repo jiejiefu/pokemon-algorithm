@@ -18,8 +18,10 @@ import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CDP = cdpPort('cries');
+await assertPortFree('check_cries_browser.mjs', CDP);
 const profile=mkdtempSync(join(tmpdir(),'cr-'));
 /* Remove the profile on the way out. It was not, and tmpdir held 135 `cr-*`
  * directories before this line existed — a Chrome profile is tens of MB, so that is
@@ -40,7 +42,7 @@ process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true,
    path is still exercised. The flag is the first line rather than the guarantee;
    the second is installed in the page, before any page script runs. See
    scripts/lib/mute-tap.mjs. */
-const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required','--remote-debugging-port=9370',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
+const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required',`--remote-debugging-port=${CDP}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
  * next run's --remote-debugging-port free and it is what makes the profile removal above
  * safe. A headless Chrome left running holds its debugging port, so an orphan is a port
@@ -55,7 +57,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
 }
 
-let targets; for(let i=0;i<80;i++){try{const r=await fetch('http://127.0.0.1:9370/json/list'); if(r.ok){targets=await r.json();break;}}catch{} await new Promise(r=>setTimeout(r,250));}
+let targets; for(let i=0;i<80;i++){try{const r=await fetch(`http://127.0.0.1:${CDP}/json/list`); if(r.ok){targets=await r.json();break;}}catch{} await new Promise(r=>setTimeout(r,250));}
 const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
 await new Promise(r=>ws.addEventListener('open',r,{once:true}));
 let id=0; const w=new Map(); const logs=[];

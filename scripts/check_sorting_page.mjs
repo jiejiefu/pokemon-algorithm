@@ -58,11 +58,11 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
 const ROOT = join(import.meta.dirname, '..');
 const PORT = Number(process.env.SORT_PORT || 5500);
 const BASE = `http://127.0.0.1:${PORT}`;
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 let failures = 0;
 let checks = 0;
@@ -437,7 +437,8 @@ if (!existsSync(CHROME)) {
    * function because the profile is, and `exit` rather than the `finally` below
    * because a throw between here and there skips it. */
   process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
-  const dbg = 9400 + (process.pid % 200);
+  const dbg = cdpPort('sorting');
+  await assertPortFree('check_sorting_page.mjs', dbg);
   const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${dbg}`, '--disable-gpu', '--mute-audio',
     `--user-data-dir=${profile}`, '--window-size=1440,900', 'about:blank'], { stdio: 'ignore' });
 
@@ -536,9 +537,29 @@ if (!existsSync(CHROME)) {
      * reads then race the new page's own boot. That is not hypothetical: it produced
      * a five-lane case reporting a lane of ZERO ink, which read as a rendering bug
      * and was the harness measuring the wrong document. */
-    const READY = `new Promise(r => { const t = setInterval(() => {
-        if (document.querySelectorAll('.al-lane').length === %LANES% && document.querySelector('.al-result')) { clearInterval(t); r(true); }
-      }, 100); setTimeout(() => { clearInterval(t); r(false); }, 45000); })`;
+    /* READY REPORTS WHAT IT SAW, not just whether it succeeded.
+     *
+     * It used to resolve `true` / `false`, so the two call sites that inspect the
+     * result could only say "it never got there" — and one of them then interpolated
+     * the SAME variable into both halves of its message:
+     *
+     *     unchecking to 3 lanes left the grid at 3 !== 3
+     *
+     * which is a failure report that reads as a typo and tells a reader nothing. The
+     * condition has two clauses, so both are reported: the lane count and whether the
+     * result row appeared. `LOAD`'s message had the same defect, just phrased well
+     * enough to hide it, and both are fixed by one change rather than by editing a
+     * string in one place.
+     *
+     * The 45s ceiling stays: it is a guess at "the page is broken", not a wait for a
+     * measurement, and every ceiling here exceeds what it replaced. */
+    const READY = `new Promise(r => { const t0 = Date.now(); const tick = () => {
+        const n = document.querySelectorAll('.al-lane').length;
+        const result = !!document.querySelector('.al-result');
+        if (n === %LANES% && result) { r({ n, result, ready: true }); return; }
+        if (Date.now() - t0 > 45000) { r({ n, result, ready: false }); return; }
+        setTimeout(tick, 100);
+      }; tick(); })`;
     const SETTLE = `new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 400))))`;
 
     /* WAIT FOR THE GRID TO STOP BEING REBUILT, because a fixed wait is a guess.
@@ -602,8 +623,9 @@ if (!existsSync(CHROME)) {
 
     const LOAD = async (lanes, n) => {
       await send('Page.navigate', { url: `${BASE}/sorting.html?mode=race&algos=${'bubble,selection,insertion,quick,merge,heap'.split(',').slice(0, lanes).join(',')}&n=${n}&speed=fast&seed=424242` });
-      const ok = await evalJs(READY.replace('%LANES%', String(lanes)));
-      if (!ok) throw new Error(`the race grid never reached ${lanes} lanes at n=${n}`);
+      const st = await evalJs(READY.replace('%LANES%', String(lanes)));
+      if (!st?.ready) throw new Error(`the race grid settled at ${st?.n ?? 0} lanes, not ${lanes}`
+        + `, and the result row was ${st?.result ? 'there' : 'absent'}, at n=${n}`);
       await evalJs(STABLE_LANES(lanes));
     };
 
@@ -636,8 +658,9 @@ if (!existsSync(CHROME)) {
       for (const lanes of [6, 5, 4, 3, 2]) {
         if (lanes !== 6) {
           await evalJs(SET_LANES(lanes));
-          const got = await evalJs(READY.replace('%LANES%', String(lanes)));
-          if (!got) throw new Error(`unchecking to ${lanes} lanes left the grid at ${lanes} !== ${lanes}`);
+          const st = await evalJs(READY.replace('%LANES%', String(lanes)));
+          if (!st?.ready) throw new Error(`unchecking to ${lanes} lanes left the grid at`
+            + ` ${st?.n ?? 0} lanes, and the result row was ${st?.result ? 'there' : 'absent'}`);
           await evalJs(STABLE_LANES(lanes));
         }
         const m = JSON.parse(await evalJs(`JSON.stringify({

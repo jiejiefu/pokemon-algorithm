@@ -3,12 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const PORT = 5500;
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT_CDP = 9388;
+const PORT_CDP = cdpPort('graph');
+await assertPortFree('test_graph_browser.mjs', PORT_CDP);
 
 const profile = mkdtempSync(join(tmpdir(), 'graph-cdp-'));
 const chrome = spawn(CHROME, [

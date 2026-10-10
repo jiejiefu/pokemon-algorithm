@@ -18,11 +18,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+
+const CDP = cdpPort('gen1');
+await assertPortFree('check_gen1_page.mjs', CDP);
 const profile = mkdtempSync(join(tmpdir(), 'cdp-'));
 const chrome = spawn(CHROME, [
-  '--headless=new', '--remote-debugging-port=9333', '--disable-gpu',
+  '--headless=new', `--remote-debugging-port=${CDP}`, '--disable-gpu',
   '--autoplay-policy=no-user-gesture-required',
   /* Silent at the BROWSER, not on the page. This checker presses play, and the
    * page's default is a fifth of full scale — comfortable at a desk, genuinely
@@ -57,7 +60,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
 async function cdpTargets() {
   for (let i = 0; i < 60; i++) {
     try {
-      const r = await fetch('http://127.0.0.1:9333/json/list');
+      const r = await fetch(`http://127.0.0.1:${CDP}/json/list`);
       if (r.ok) return await r.json();
     } catch {}
     await new Promise((r) => setTimeout(r, 250));
