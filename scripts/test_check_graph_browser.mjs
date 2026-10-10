@@ -81,8 +81,48 @@ function buildTree(mutate) {
   for (const f of ['logo.png', 'favicon-32.png', 'apple-touch-icon.png']) {
     copyFileSync(join(ROOT, 'assets/images', f), join(imgDst, f));
   }
+  trimGraph(dir);
   if (mutate) mutate(dir);
   return dir;
+}
+
+/**
+ * Replace the served graph_data.json with a small one.
+ *
+ * The full file is 1,346 nodes and 2,523 relations, and building that in a WebGL force
+ * layout is most of what each case costs — four cases of it was the single most expensive
+ * entry in the suite at 33 s, against a suite that runs in 99. A hundred and twenty
+ * nodes build in a fraction of the time and exercise every assertion identically: a node
+ * still needs a canvas, the badge still has to be rewritten from the loaded graph, and
+ * search and the dossier still have to open something.
+ *
+ * THE REAL 1,346-NODE DATASET IS NOT WHAT THIS FILE IS FOR. That is
+ * check_graph_browser.mjs's own manifest entry, which runs against the repo's data at
+ * 6.4 s. The split is: the checker answers "does graph.html work", this harness answers
+ * "can each assertion fail". A trimmed fixture cannot answer the first and does not need
+ * to; it answers the second, and it answers it four times for the price of less than one.
+ *
+ * 皮卡丘 (id 25) is kept regardless, because two of the assertions search for it by name.
+ * metadata.total_nodes and total_links are RECOMPUTED rather than copied, because the
+ * checker fetches them from the page and compares them against a badge the page also
+ * built — if the counts did not describe the file, the baseline would fail for a reason
+ * that has nothing to do with any mutation.
+ */
+const KEEP = 120;
+const MUST_KEEP = 25; // 皮卡丘
+
+function trimGraph(dir) {
+  const file = join(dir, 'assets/data/graph_data.json');
+  const g = JSON.parse(readFileSync(file, 'utf8'));
+  const keep = new Set(g.nodes.slice(0, KEEP).map((n) => n.id));
+  keep.add(MUST_KEEP);
+  g.nodes = g.nodes.filter((n) => keep.has(n.id));
+  g.links = g.links.filter((l) => keep.has(l.source) && keep.has(l.target));
+  g.metadata.total_nodes = g.nodes.length;
+  g.metadata.total_links = g.links.length;
+  g.metadata.link_types = {};
+  for (const l of g.links) g.metadata.link_types[l.type] = (g.metadata.link_types[l.type] ?? 0) + 1;
+  writeFileSync(file, JSON.stringify(g));
 }
 
 const MIME = {

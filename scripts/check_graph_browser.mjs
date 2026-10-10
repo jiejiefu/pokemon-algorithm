@@ -27,12 +27,20 @@ import { CHROME } from './lib/cdp-port.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/* The counts are asserted against the data file rather than hardcoded, so a
- * regeneration that legitimately changes them does not need this file edited — and,
- * more importantly, so this cannot pass by agreeing with a stale copy of a number.
- * The HTML ships a PLACEHOLDER badge ("1,346 實體 · 978 關係") that graph.js
- * overwrites; asserting the placeholder would assert nothing at all. */
-const META = JSON.parse(readFileSync(join(ROOT, 'assets/data/graph_data.json'), 'utf8')).metadata;
+/* The expected counts are FETCHED FROM THE PAGE, not read off disk, and the difference
+ * matters more than it looks. Reading the file compares the badge against a second copy
+ * of the data — one the browser never saw — so a page served a different graph_data.json
+ * than the one on disk would be judged against the wrong numbers. Fetching it in-page
+ * compares the badge against the data the page actually loaded, which is the only pair
+ * that can be wrong together.
+ *
+ * It also makes this checker work against a tree it did not come from. The mutation
+ * harness serves a trimmed graph on its own port (test_check_graph_browser.mjs), and a
+ * disk read would assert 1,346 against a badge showing 120.
+ *
+ * The HTML ships a PLACEHOLDER badge ("1,346 實體 · 978 關係") that graph.js overwrites;
+ * asserting the placeholder would assert nothing at all.
+ */
 
 /* GRAPH_PORT so the mutation harness can serve a mutated tree on its own port.
  * The other five CDP checkers already honour an env var and the runner's probe only
@@ -181,6 +189,11 @@ async function run() {
   const canvasSized = await ev('(() => { const c = document.querySelector("#graph-container canvas"); return c ? [c.width, c.height] : null; })()');
   ok(Array.isArray(canvasSized) && canvasSized[0] > 0 && canvasSized[1] > 0,
      `the canvas is sized (${JSON.stringify(canvasSized)})`);
+
+  /* What the page itself loaded. Fetched over HTTP from the page's own origin, so this
+   * is the same bytes graph.js built the graph from. */
+  const META = await ev('fetch("assets/data/graph_data.json").then((r) => r.json()).then((j) => j.metadata)');
+  ok(META && typeof META.total_nodes === 'number', `the page can re-read its own graph_data.json (${JSON.stringify(META && META.total_nodes)})`);
 
   // ---- the counts came from the data, not the placeholder ---------------
   /* graph.html ships "1,346 實體 · 978 關係" as static text and graph.js overwrites
