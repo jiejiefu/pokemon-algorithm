@@ -922,10 +922,16 @@ function keyOf(paths) {
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
-const flagValue = (name) => {
-  const hit = argv.find((a) => a.startsWith(`--${name}=`));
-  return hit ? hit.slice(name.length + 3).split(',').map((s) => s.trim()).filter(Boolean) : [];
-};
+/* `filter` and not `find`, because §4 documents these as repeatable and they were not:
+ * `find` returns the FIRST `--only=`, so `--only=algo --only=cry-page` selected 3
+ * entries where the comma form `--only=algo,cry-page` selected 11. The second flag was
+ * dropped with no warning, and the run looked like a legitimate filter — it reported
+ * "3 skipped, 0 failed" rather than anything that said a group had been ignored. */
+const flagValue = (name) =>
+  argv.filter((a) => a.startsWith(`--${name}=`))
+    .flatMap((a) => a.slice(name.length + 3).split(','))
+    .map((s) => s.trim())
+    .filter(Boolean);
 const opts = {
   prove: has('--prove-inputs'),
   force: has('--force'),
