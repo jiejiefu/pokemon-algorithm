@@ -71,6 +71,8 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+
+import { pool } from './lib/pool.mjs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -270,7 +272,7 @@ const CHECKERS = [
      * the list below is read off the HTML by hand. Same caveat as the two cry
      * page checkers, and `manual: true` is what makes check_all print that
      * rather than tick it. */
-    script: 'scripts/check_outfit_browser.mjs', group: 'color', needsServer: true, manual: true,
+    script: 'scripts/check_outfit_browser.mjs', group: 'color', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'outfit.html',
@@ -318,7 +320,7 @@ const CHECKERS = [
      * human reading, not a recording, and it is the one place in this manifest where
      * a missed entry would be silent — mitigated only by the fact that editing the
      * page itself invalidates the entry. */
-    script: 'scripts/check_gen1_page.mjs', group: 'cry-page', needsServer: true, manual: true,
+    script: 'scripts/check_gen1_page.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'cries-gen1.html',
@@ -333,7 +335,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/check_spectrum_browser.mjs', group: 'cry-page',
+    script: 'scripts/check_spectrum_browser.mjs', group: 'cry-page', browser: true,
     needsServer: true, manual: true,
     inputs: [
       'spectrum.html', 'assets/css/spectrum.css', 'assets/css/shared.css',
@@ -345,7 +347,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/check_cries_browser.mjs', group: 'cry-page', needsServer: true, manual: true,
+    script: 'scripts/check_cries_browser.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'cries.html',
@@ -597,7 +599,7 @@ const CHECKERS = [
      * `test_check_sorting_page.mjs --static`" while editing, and the group filter for
      * when the browser half is simply not the question. */
   {
-    script: 'scripts/check_sorting_page.mjs', group: 'sort', needsServer: true, manual: true,
+    script: 'scripts/check_sorting_page.mjs', group: 'sort', browser: true, needsServer: true, manual: true,
     note: 'static half reads the files below; the browser half reads its inputs off the HTML by hand',
     inputs: [
       'sorting.html',
@@ -615,7 +617,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/test_check_sorting_page.mjs', checker: 'scripts/check_sorting_page.mjs', group: 'sort',
+    script: 'scripts/test_check_sorting_page.mjs', checker: 'scripts/check_sorting_page.mjs', group: 'sort', browser: true,
     /* `manual: true` for a reason that is NOT the usual one. check_gen1_page.mjs and
      * check_cries_browser.mjs are manual because they open no repo file at all. This
      * one opens plenty — it copies sorting.html, algo.css, sort-run.js and the sorting
@@ -679,7 +681,7 @@ const CHECKERS = [
   // arrive over HTTP from Live Server, so `--prove-inputs` would record it
   // opening NO repo file at all.
   {
-    script: 'scripts/check_life_browser.mjs', group: 'algo', needsServer: true, manual: true,
+    script: 'scripts/check_life_browser.mjs', group: 'algo', browser: true, needsServer: true, manual: true,
     inputs: ['life.html', 'assets/css/life.css', 'assets/css/shared.css', 'assets/js/life.js',
              'assets/js/life-engine.js', 'assets/js/shared.js'],
   },
@@ -1022,6 +1024,30 @@ const selected = CHECKERS.filter((c) => {
    RUNNING
    --------------------------------------------------------------------------- */
 
+/**
+ * How many non-browser entries run at once.
+ *
+ * THREE, not `lib/pool.mjs`'s `defaultPool()` of four, and the difference is
+ * oversubscription. Eight of the Tier A harnesses are themselves pools: each already
+ * spawns up to four children internally. An outer width of four therefore admits up to
+ * sixteen Node interpreters, on the ten-core machine `pool.mjs` explicitly declines
+ * to saturate — its own docblock gives the reason, "other work shares this machine, and
+ * a run that saturates every core makes the editor and the server sluggish".
+ *
+ * What three costs: Tier A is 39.9 s of work over 42 entries, so the makespan is
+ * bounded by 39.9/3 = 13.3 s rather than the 10 s a width of four would give. The
+ * difference is 3.3 s on an 87 s suite; sixteen concurrent interpreters is not a
+ * trade worth 3.3 s.
+ *
+ * The Tier A entries that dominate the critical path — check_gen1_apu.mjs (5.4 s,
+ * single-threaded), test_check_cry_index.mjs (4.7 s) and test_check_sv_index.mjs
+ * (2.8 s) — none of them pools internally, because their cases share one working tree
+ * and §3.G7 forbids a pool there. So the width is being spent on work that genuinely
+ * runs one core at a time, which is what makes a width of three as close to free as
+ * it is.
+ */
+const TIER_A_CONCURRENCY = 3;
+
 const port = process.env.CRY_PORT || '5500';
 let serverUp = null;
 
@@ -1252,6 +1278,14 @@ async function main() {
   const next = { ...state };
   const lib = libFiles();
   let ran = 0; let skipped = 0; let failed = 0; let budget = 0;
+  /* TWO CLOCKS, AND THE DIFFERENCE IS THE POINT OF THE TIERS. `budget` sums the
+   * per-entry durations, which is what the time column above claims. It is not
+   * wall clock and never was: glob expansion, hashing and process spawn all sit
+   * outside it. Tier A widens the gap, because three entries are now in flight
+   * at once and their durations overlap. Printing only one number would leave a
+   * reader comparing 87 s of budget against 62 s of waiting and concluding one
+   * of them is lying. */
+  const wall0 = process.hrtime.bigint();
 
   /* One legend for the whole table, because the time column mixes three different
    * claims (this run / last run / never ran) and a bare `6.0s` next to a
@@ -1259,11 +1293,27 @@ async function main() {
    * does NOT add up: a cached skip's number is real but it was not paid for during
    * this run, and the total below only sums what actually ran. */
   console.log('  time: bare = measured this run   "last <n>s" = cached from the last green run   "-" = never ran');
-  console.log('        the final total adds up ran checks only');
+  console.log('        the final total adds up ran checks only, and is NOT wall clock: tier A runs');
+  console.log('        several at once, so the two differ. Both are printed at the end.');
 
-  for (const c of selected) {
+  /* ONE ENTRY, AS A FUNCTION. Returns what to print instead of printing it, because
+   * the two tiers below have to print in different places: Tier A can only be printed
+   * after its drain (§3.G7's contract — output order may not become a property of the
+   * scheduler), while Tier B is serial and keeps printing as it goes. Printing from
+   * inside this function would have forced Tier B to buffer too, and a reader would
+   * lose the live row that tells them a 9.5 s browser check has not hung. */
+  const attempt = async (c) => {
     const name = c.script.replace(/^scripts\//, '');
     const pad = name.padEnd(34);
+    /* `note` is a COLUMN appended to the row (the manifest's free-text bracket);
+     * `block` is an indented dump UNDER it (the tail of a failed check's output).
+     * They are different things and were both being passed as the fourth argument,
+     * which printed every note twice — once in the column and once underneath. */
+    const say = (status, detail, time, { note = '', block = '' } = {}) => () => {
+      row(status, pad, detail, time, note);
+      if (block) console.log(block.split('\n').map((l) => `        ${l}`).join('\n'));
+    };
+    const skipRow = (detail, time) => () => { row('skip', pad, detail, time); skipped++; };
 
     /* A manifest entry naming a script that is not there is a manifest bug — a
      * checker renamed, or an entry added ahead of the file. execFile would report it
@@ -1271,15 +1321,11 @@ async function main() {
      * `-` rather than a time because nothing ran: there is nothing to measure, and
      * a zero here would read as a measurement. */
     if (!existsSync(join(ROOT, c.script))) {
-      row('FAIL', pad, 'listed in the manifest but not on disk', '-');
-      failed++;
-      continue;
+      return { print: say('FAIL', 'listed in the manifest but not on disk', '-'), fail: true };
     }
 
     if (c.needsServer && !(await serverIsUp())) {
-      row('skip', pad, `no server on :${port} — see the Runtime Server rule in AGENTS.md`, '-');
-      skipped++;
-      continue;
+      return { print: skipRow(`no server on :${port} — see the Runtime Server rule in AGENTS.md`, '-') };
     }
 
     /* SELF, the checker, the checker it attacks, and all of scripts/lib/ are in every
@@ -1290,9 +1336,7 @@ async function main() {
     for (const extra of codeOf(c)) paths.add(extra);
     for (const l of lib) paths.add(l);
     if (paths.size === 0) {
-      row('FAIL', pad, 'no input file matched its globs — a renamed file would be a silent skip', '-');
-      failed++;
-      continue;
+      return { print: say('FAIL', 'no input file matched its globs — a renamed file would be a silent skip', '-'), fail: true };
     }
     const key = keyOf(paths);
 
@@ -1307,23 +1351,13 @@ async function main() {
        * durations were stored, which is a measurement that never happened. Every
        * cached entry from an older run therefore reads `-` once, honestly. */
       const cached = prior == null ? '-' : `last ${secs(Number(prior))}`;
-      row('skip', pad, `inputs unchanged since ${String(state[`${name}@`]).slice(0, 16)}`, cached);
-      skipped++;
-      continue;
+      return { print: skipRow(`inputs unchanged since ${String(state[`${name}@`]).slice(0, 16)}`, cached) };
     }
 
-    /* `execFile` buffers, so nothing appears until the child exits — which for the
-     * longest entry in the manifest is tens of seconds either way (11 s idle here,
-     * 42 s measured on a machine competing with Chrome at 97% CPU), i.e. a terminal
-     * that looks hung for either. The line names what is about to run and is replaced
-     * by the result line, so the run is never silent for longer than one check. */
-    row('▶', pad, 'running…', '');
-
     const r = await run(c.script);
-    ran++;
     budget += r.s;
     if (r.code === 0) {
-      row('ok', pad, lastLine(r.out).slice(0, 56), secs(r.s), c.note ? `  [${c.note}]` : '');
+      ran++;
       /* The duration lives beside the key and the timestamp, and is written ONLY
        * here — a FAIL never refreshes a cache entry, so the number a later skip
        * reports is always from a green run. A duration remembered from a failing one
@@ -1333,11 +1367,59 @@ async function main() {
         next[`${name}@`] = new Date().toISOString();
         next[`${name}~`] = r.s;
       }
-    } else {
-      failed++;
-      row('FAIL', pad, lastLine(r.out).slice(0, 56), secs(r.s));
-      const tail = r.out.trimEnd().split('\n').slice(-14).join('\n');
-      console.log(tail.split('\n').map((l) => `        ${l}`).join('\n'));
+      return { print: say('ok', lastLine(r.out).slice(0, 56), secs(r.s), { note: c.note ? `  [${c.note}]` : '' }) };
+    }
+    failed++;
+    return {
+      print: say('FAIL', lastLine(r.out).slice(0, 56), secs(r.s),
+                 { block: r.out.trimEnd().split('\n').slice(-14).join('\n') }),
+    };
+  };
+
+  const emit = (res) => { if (res.fail) failed++; res.print(); };
+
+  /* ---------------------------------------------------------------------------
+     TIER A — everything that is not a browser, three at a time.
+     --------------------------------------------------------------------------- */
+
+  const tierA = selected.filter((c) => !c.browser);
+  const tierB = selected.filter((c) => c.browser);
+
+  if (tierA.length > 1) {
+    /* `execFile` buffers, so a child prints nothing until it exits. One `▶` per
+     * entry would be 42 rows saying "running…" with nothing resolving under them,
+     * because three are in flight at any moment and the line a reader wants — "is it
+     * stuck?" — has no single entry to point at. One line naming the shape is the
+     * honest version. Tier A's longest single entry is check_gen1_apu.mjs at 5.4 s,
+     * so the silence here is bounded well under what Tier B costs. */
+    row('▶', '(tier A)'.padEnd(34), `${tierA.length} entries, ${TIER_A_CONCURRENCY} at a time`, '');
+    const results = await pool(tierA.map((c) => () => attempt(c)), { limit: TIER_A_CONCURRENCY });
+    /* DECLARATION ORDER, not completion order. `pool()` already guarantees it, and
+     * the reason it guarantees it is in its own docblock: logging from inside a
+     * worker makes the report order a property of the scheduler, so two green runs
+     * stop diffing and a red case cannot be found by reading. */
+    for (const r of results) emit(r);
+  } else {
+    for (const c of tierA) emit(await attempt(c));
+  }
+
+  /* ---------------------------------------------------------------------------
+     TIER B — the browsers, one at a time, printed as they finish.
+     --------------------------------------------------------------------------- */
+
+  if (tierB.length) {
+    /* SERIAL, and the reason is not "a browser is expensive". cdp-port.mjs derives
+     * each checker's port from base + (pid % 120), and once the 120-wide window is
+     * accounted for 20 of its 21 base PAIRS OVERLAP — two concurrent CDP checkers
+     * collide with roughly 1 chance in 120 per pair. The failure is not silent
+     * corruption: assertPortFree() refuses to drive a browser it did not start. It is
+     * a loud mid-run abort, which on a suite someone is trying to believe is a worse
+     * outcome than being slow. Six concurrent Chromes is also the exact condition
+     * §3.J's 28 GB of tmpdir came from. */
+    row('▶', '(tier B)'.padEnd(34), `${tierB.length} browser entries, one at a time`, '');
+    for (const c of tierB) {
+      row('▶', c.script.replace(/^scripts\//, '').padEnd(34), 'running…', '');
+      emit(await attempt(c));
     }
   }
 
@@ -1357,7 +1439,8 @@ async function main() {
   if (orphans.length) failed += orphans.length;
 
   console.log('');
-  console.log(`  ${ran} ran, ${skipped} skipped, ${failed} failed, ${secs(budget)} of checker time`);
+  const wall = Number(process.hrtime.bigint() - wall0) / 1e9;
+  console.log(`  ${ran} ran, ${skipped} skipped, ${failed} failed, ${secs(budget)} of checker time in ${secs(wall)} wall`);
   if (skipped && !opts.force) console.log('  (skips are content-keyed; --force runs everything)');
   if (failed) process.exit(1);
 }
