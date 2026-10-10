@@ -70,6 +70,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import http from 'node:http';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -1017,15 +1018,43 @@ const selected = CHECKERS.filter((c) => {
 
 const port = process.env.CRY_PORT || '5500';
 let serverUp = null;
+
+/**
+ * Is the Runtime Server answering? Probed once and remembered.
+ *
+ * `http.request` with `agent: false`, NOT `fetch`, and the reason is worth keeping
+ * because the symptom is invisible in the output. `fetch()` runs on undici, which
+ * keeps the connection in a pool and holds it open for keep-alive — and an open
+ * socket keeps Node's event loop alive, so the process cannot exit until undici
+ * lets go of it. Measured on this machine: the probe answers in 30 ms and every row
+ * is printed by +0.09 s, then the runner sits idle for exactly 6.0 s before exiting.
+ * A CPU profile of a fully-cached run reads 6.09 s total, 6.01 s of it `(idle)`.
+ *
+ * So the cheapest possible full run took 6.5 s of wall clock to do 0.09 s of work,
+ * which is the shape of "the cache is not working" and is not what it looks like.
+ * A 1.5-second liveness probe wants no connection pool at all: `agent: false` gives
+ * it a socket of its own that closes with the response. Same probe, same 1.5 s
+ * ceiling, 29 ms to exit instead of 6033.
+ */
 const serverIsUp = async () => {
   if (serverUp !== null) return serverUp;
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 1500);
-    const r = await fetch(`http://127.0.0.1:${port}/index.html`, { signal: ctl.signal });
-    clearTimeout(t);
-    serverUp = r.ok;
-  } catch { serverUp = false; }
+  serverUp = await new Promise((resolve) => {
+    const req = http.request(
+      { host: '127.0.0.1', port, path: '/index.html', agent: false, timeout: 1500 },
+      /* `res.ok`, not `res.statusCode`: `.ok` is a `fetch` Response property and is
+       * `undefined` on an IncomingMessage, so the first version of this returned
+       * false for a server that was plainly up and silently skipped all six browser
+       * entries — a green run that had verified 42 of 49 checks. A liveness probe
+       * whose failure mode is "quietly checks less" is worse than no probe. */
+      (res) => {
+        res.resume();
+        res.on('end', () => resolve(res.statusCode >= 200 && res.statusCode < 400));
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end();
+  });
   return serverUp;
 };
 
