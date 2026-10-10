@@ -28,7 +28,13 @@
   <link rel="stylesheet" href="assets/css/graph.css">
 </head>
 <body class="graph-body">
-  <header class="header header-3d">
+  <!-- `graph-header` is NOT a row-layout modifier: `check_nav_pages.mjs` reads the
+       six `.header-*` names out of shared.css and flags a header carrying more than
+       one. This class is graph.html's own collapsible shell, and `.header-3d` stays
+       because model3d.html shares it. The toggle owns the logo's 40px slot while
+       COLLAPSED — the brand link is hidden then, so the home link is never stolen. -->
+  <header class="header header-3d graph-header">
+    <button class="graph-header-toggle" data-graph-header-toggle type="button" aria-expanded="false" aria-label="開啟選單" title="開啟選單"></button>
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁">
       <span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
@@ -277,9 +283,11 @@
   <script src="assets/js/3d-force-graph.min.js"></script>
   <script type="module">
     import { initHeaderNav } from './assets/js/shared.js';
+    import { initGraphHeader } from './assets/js/graph-header.js';
     import { initKnowledgeGraph } from './assets/js/graph.js';
 
     initHeaderNav('graph.html');
+    initGraphHeader();
     initKnowledgeGraph();
   </script>
 </body>

@@ -39,18 +39,199 @@ body.graph-body {
   width: 100vw;
 }
 
-/* Header customization for full-screen 3D canvas */
-.header-graph {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: linear-gradient(180deg, rgba(3, 7, 18, 0.85) 0%, rgba(3, 7, 18, 0.4) 70%, transparent 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+/* ===== The collapsible header (graph.html) =====
+   RENAMED from `.header-graph`, which matched NOTHING — no page carried that class,
+   so the whole block was dead weight describing a header that does not exist. graph.html
+   wore `.header.header-3d`, so these rules never ran. The name below is the class the
+   page now actually carries, which is the only way a rule here can be wrong quietly
+   enough to go unnoticed for this long (§3.G2's shape: a valid class that styles
+   nothing).
+
+   IT IS SCOPED TO `.graph-header` AND NOT `.header-3d`, because model3d.html carries
+   `.header-3d` too. shared.css owns that class and this page must not change it.
+
+   `position` IS NOT DECLARED HERE, and that is load-bearing. shared.css's `.header` is
+   `position: relative`, and `.theme-toggle` is `position: absolute; right: 16px` with no
+   top/left of its own — so the header IS its containing block. The dead block above
+   said `position: absolute`, which would have resolved that toggle against the viewport
+   and dropped it to the vertical middle of the screen. Nothing here touches `position`.
+
+   COLLAPSED IS THE DEFAULT, not a class that has to be added and remembered: the page
+   opens on the 3D scene with one 40px control in the corner, and `.is-open` is the
+   exception. A "collapse" class on the markup would mean the first paint depends on a
+   script having run, and this file is deliberately zero-build. */
+.graph-header {
+  /* THE FORCED DARK PALETTE, IN ONE RULE.
+     Custom properties inherit, so a declaration on the element beats :root and
+     `[data-theme="light"]` for the whole header subtree — one rule covers both themes,
+     and there is deliberately no `[data-theme="light"] .graph-header` twin to keep in
+     step (the duplication §3.B1's scoping rule exists to prevent).
+
+     These are the DARK theme's own values, restated rather than referenced: there is no
+     `[data-theme]` block to borrow from when `data-theme` is `light`, which is the
+     situation being fixed. Only the tokens the header actually reads are listed. */
+
+  /* Without these three the nav chips are WHITE in light theme — `--btn-bg: #ffffff`,
+     `--btn-fg: #0f1730` — so a light-theme reader gets a row of white pills floating
+     over a #030712 starfield, which is the exact mismatch this page is fixing. */
+  --btn-bg: rgba(238, 241, 251, 0.08);
+  --btn-fg: #eef1fb;
+  --btn-border: rgba(238, 241, 251, 0.45);
+
+  /* The dropdown panel and the mobile drawer both read `--bg-card`, and both are
+     children of this header, so they are dark for the same reason and in the same
+     declaration. `#161e38` is dark theme's own card value. */
+  --bg-card: #161e38;
+  --surface-hover: rgba(238, 241, 251, 0.06);
+  --text-primary: #eef1fb;
+
+  /* `--brand-grad-*` is NOT overridden: shared.css declares it identically in both
+     themes precisely because it was measured against the dark header (5.96:1 at its
+     worst interpolated stop), so the clipped title is already legal here. `--accent-gold`
+     IS overridden in light theme to crimson, but `.header-title` is background-clipped,
+     so the gold only ever shows through engines without `background-clip: text` — and
+     dark's amber is the right fallback on a dark bar. */
+
+  /* The chrome itself. `transparent` + no border + no shadow is what makes the
+     collapsed state read as "there is no navbar", rather than as a translucent strip
+     over the scene. */
+  background: transparent;
+  border-top-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  /* FULL-WIDTH AND INVISIBLE IS A CLICK TRAP WITHOUT THIS. The header is a 100%-wide
+     block over a canvas that fills the viewport, so with the default `pointer-events:
+     auto` every orbit drag that starts in the top 55px is eaten by an element that
+     looks like empty space. The one child that must stay clickable opts back in below —
+     the same pairing `.graph-open-btn` uses in this file at line 414. */
+  pointer-events: none;
+
+  transition: background 0.28s ease, border-color 0.28s ease,
+              box-shadow 0.28s ease, backdrop-filter 0.28s ease;
 }
+
+.graph-header > * { pointer-events: auto; }
+
+/* The 40px control that occupies the logo's slot while collapsed. It is sized and
+   positioned to land exactly where `.site-logo` sits at rest (`.header` carries
+   `padding: 6px 20px` over a 3px `--page-accent` border, and the logo's box is 40px
+   tall), so opening the bar does not shift the row sideways. */
+.graph-header-toggle {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--graph-text-bright);
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.graph-header-toggle:hover {
+  color: var(--graph-accent);
+  border-color: var(--graph-glow);
+}
+
+.graph-header-toggle:active { transform: scale(0.94); }
+
+.graph-header-toggle .icon { width: 20px; height: 20px; margin: 0; }
+
+/* Everything that is not the toggle, hidden while collapsed.
+
+   `visibility` is load-bearing and not a second copy of `opacity`: a chip at
+   `opacity: 0` is still in the tab order, so a keyboard user would Tab into a nav
+   they cannot see and activate links into a bar that is visually absent — the
+   "focusable element that does nothing when activated" shape. `visibility: hidden`
+   removes it from sequential focus.
+
+   THE TWO GROUPS BELOW ARE NOT ONE RULE, and splitting them is the whole point of
+   this comment. `.theme-toggle` and `.site-nav-toggle` cannot be given a `transform`
+   here: `.theme-toggle` is `position: absolute; top: 50%` with `transform:
+   translateY(-50%)` from shared.css, so a transform on it drops the button by half
+   its 34px height — the precise reason shared.css's reduced-motion block
+   deliberately does NOT set `transform: none` on this site. They fade and nothing
+   else. Putting them in the sliding group would have looked fine in review and
+   shipped a half-dropped button.
+
+   `.site-nav-toggle` is the ≤1024px hamburger. Leaving it out would put TWO
+   hamburgers on screen at once — this page's bar toggle and shared.css's — the
+   second of them reachable while the bar is closed. */
+.graph-header .header-brand,
+.graph-header .site-nav {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-16px);
+  transition: opacity 0.24s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.28s;
+}
+
+.graph-header .theme-toggle,
+.graph-header .site-nav-toggle {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.28s;
+}
+
+/* OPEN. `.header-3d`'s own background is replaced by the glass the rest of this page
+   already uses (`--graph-panel-bg`, `--graph-panel-border`), so the bar belongs to the
+   HUD instead of arriving as the site's navy brand header pasted onto a starfield. */
+.graph-header.is-open {
+  background: var(--graph-panel-bg);
+  border-top-color: var(--graph-panel-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Opacity and transform lead; visibility follows 280ms LATER on the way in, so the
+   bar is visible for the whole fade instead of popping in one frame early. Coming out
+   the delay is 0 and the property flips immediately, which is the direction that
+   should feel instant. */
+.graph-header.is-open .header-brand,
+.graph-header.is-open .site-nav {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition: opacity 0.24s ease 0.06s, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s;
+}
+
+/* The two transform-less elements get the same fade and NO transform, for the reason
+   the collapsed rules above are split in two. Written as its own rule rather than
+   appended to the one above precisely because it must not carry `transform` — and
+   appending it to the list is the edit that would have reintroduced the dropped
+   button, while reading as the obvious "just add it to the list" move. */
+.graph-header.is-open .theme-toggle,
+.graph-header.is-open .site-nav-toggle {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease 0.06s, visibility 0s;
+}
+
+/* `pointer-events: none` on the header is unconditional, including while open, because
+   the row's own children opt back in above. The brand is restored by the same rule
+   that restores its opacity, so there is no state in which a visible element is dead. */
+.graph-header.is-open .header-brand,
+.graph-header.is-open .theme-toggle,
+.graph-header.is-open .site-nav,
+.graph-header.is-open .site-nav-toggle { pointer-events: auto; }
+
+/* `.site-nav-drawer` IS DELIBERATELY NOT IN EITHER LIST ABOVE. It is not part of the
+   bar's own reveal: `initMobileNav()` opens it by assigning `hidden`, and shared.css
+   already carries `.site-nav-drawer[hidden] { display: none }` because an author
+   `display: flex` outranks the UA's `[hidden]` rule at equal specificity (§3.M). Adding
+   a second, independent visibility gate on the same element would mean the two can
+   disagree — the hamburger reporting `aria-expanded="true"` over a drawer that this
+   file has hidden. The bar's own hamburger is unreachable while collapsed, so the
+   drawer cannot be opened then, and one owner is enough. */
 
 /* 3D Canvas Stage */
 #graph-container {
