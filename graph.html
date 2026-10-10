@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D 寶可夢知識圖譜 — 三維力導向網絡圖 | 寶可夢演算法</title>
+  <meta name="description" content="1,346 隻寶可夢 3D 三維力導向知識圖譜：沉浸式宇宙神經網絡空間、進化鏈、超級進化、超極巨化、地區形態與神獸神話系譜，支援節點光子流動與全息檔案。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#030712">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', '#030712');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/graph.css">
+</head>
+<body class="graph-body">
+  <header class="header header-3d">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁">
+      <span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <!-- 3D WebGL Canvas Stage -->
+  <div id="graph-container"></div>
+
+  <!-- Loading Screen -->
+  <div class="graph-loading" id="graph-loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在構建 3D 寶可夢神經網絡宇宙...</div>
+    <div class="loading-sub">計算 1,346 顆神經元與 978 條力導向突觸引力平衡</div>
+  </div>
+
+  <!-- Top Center HUD Badge -->
+  <div class="graph-title-hud">
+    <div class="pulse-dot"></div>
+    <h1>寶可夢三維力導向知識圖譜</h1>
+    <span class="graph-title-badge" id="graph-count-badge">1,346 實體 · 978 關係</span>
+  </div>
+
+  <!-- Left Control Panel -->
+  <div class="graph-control-panel" id="graph-ctrl-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span>🌌 神經網絡控制台</span>
+      </div>
+      <button class="panel-toggle-btn" id="btn-close-ctrl" type="button" aria-label="收合面板" title="收合面板">✕</button>
+    </div>
+
+    <div class="panel-body">
+      <!-- Search Box -->
+      <div class="hud-search-box">
+        <span class="hud-search-icon">🔍</span>
+        <input class="hud-search-input" id="hud-search" type="search" placeholder="搜尋寶可夢 (如: 皮卡丘, #0025)..." autocomplete="off">
+        <div class="hud-search-results" id="hud-search-results"></div>
+      </div>
+
+      <!-- Relationship Layer -->
+      <div>
+        <div class="hud-section-title">
+          <span>關係圖層 (RELATIONSHIP)</span>
+        </div>
+        <div class="chip-grid">
+          <button class="hud-chip is-active" type="button" data-filter-rel="all">全域融合網絡</button>
+          <button class="hud-chip" type="button" data-filter-rel="evolution">純進化鏈</button>
+          <button class="hud-chip" type="button" data-filter-rel="type_resonance">屬性星系環</button>
+          <button class="hud-chip" type="button" data-filter-rel="dual_type">雙屬性共生橋</button>
+          <button class="hud-chip" type="button" data-filter-rel="mega">超級進化</button>
+          <button class="hud-chip" type="button" data-filter-rel="gmax">超極巨化</button>
+          <button class="hud-chip" type="button" data-filter-rel="regional">地區形態</button>
+          <button class="hud-chip" type="button" data-filter-rel="pantheon">神獸神話</button>
+          <button class="hud-chip" type="button" data-filter-rel="starter_trio">御三家羈絆</button>
+        </div>
+      </div>
+
+      <!-- Generation Filter -->
+      <div>
+        <div class="hud-section-title">
+          <span>世代劃分 (GENERATION)</span>
+        </div>
+        <div class="chip-grid">
+          <button class="hud-chip is-active" type="button" data-filter-gen="all">全部</button>
+          <button class="hud-chip" type="button" data-filter-gen="1">第 1 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="2">第 2 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="3">第 3 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="4">第 4 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="5">第 5 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="6">第 6 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="7">第 7 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="8">第 8 世代</button>
+          <button class="hud-chip" type="button" data-filter-gen="9">第 9 世代</button>
+        </div>
+      </div>
+
+      <!-- Special Categories -->
+      <div>
+        <div class="hud-section-title">
+          <span>精選分類 (CATEGORY)</span>
+        </div>
+        <div class="chip-grid">
+          <button class="hud-chip is-active" type="button" data-filter-cat="all">全部</button>
+          <button class="hud-chip" type="button" data-filter-cat="legendary">傳說寶可夢</button>
+          <button class="hud-chip" type="button" data-filter-cat="mythical">幻之寶可夢</button>
+          <button class="hud-chip" type="button" data-filter-cat="ultra_beast">究極異獸</button>
+          <button class="hud-chip" type="button" data-filter-cat="starter">御三家</button>
+          <button class="hud-chip" type="button" data-filter-cat="pseudo_legendary">600 族</button>
+          <button class="hud-chip" type="button" data-filter-cat="paradox">悖謬寶可夢</button>
+          <button class="hud-chip" type="button" data-filter-cat="mega">超級進化</button>
+          <button class="hud-chip" type="button" data-filter-cat="gmax">超極巨化</button>
+        </div>
+      </div>
+
+      <!-- Types Grid Filter -->
+      <div>
+        <div class="hud-section-title">
+          <span>屬性共振 (TYPE FOCUS)</span>
+        </div>
+        <div class="type-grid">
+          <button class="hud-type-btn" type="button" data-filter-type="Grass" style="color:#78C850;">草</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fire" style="color:#F08030;">火</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Water" style="color:#6890F0;">水</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Electric" style="color:#F8D030;">電</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Normal" style="color:#A8A878;">一般</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ice" style="color:#98D8D8;">冰</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fighting" style="color:#C03028;">格鬥</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Poison" style="color:#A040A0;">毒</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ground" style="color:#E0C068;">地面</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Flying" style="color:#A890F0;">飛行</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Psychic" style="color:#F85888;">超能力</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Bug" style="color:#A8B820;">蟲</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Rock" style="color:#B8A038;">岩石</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ghost" style="color:#705898;">幽靈</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Dragon" style="color:#7038F8;">龍</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Steel" style="color:#B8B8D0;">鋼</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Dark" style="color:#705848;">惡</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fairy" style="color:#EE99AC;">妖精</button>
+        </div>
+      </div>
+
+      <!-- Physics Sliders -->
+      <div>
+        <div class="hud-section-title">
+          <span>物理引擎調參 (PHYSICS)</span>
+        </div>
+        <div class="slider-group">
+          <div class="slider-row">
+            <span class="slider-label">節點排斥力</span>
+            <input type="range" id="slider-charge" min="50" max="350" value="140">
+            <span class="slider-val" id="val-charge">140</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">彈簧連線長</span>
+            <input type="range" id="slider-dist" min="20" max="150" value="55">
+            <span class="slider-val" id="val-dist">55</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">光子粒子流速</span>
+            <input type="range" id="slider-speed" min="0.2" max="3.0" step="0.2" value="1.0">
+            <span class="slider-val" id="val-speed">1.0x</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button to Reopen Control Panel when collapsed -->
+  <button class="graph-open-btn" id="btn-open-ctrl" type="button" aria-label="展開控制面板" title="展開控制面板">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+
+  <!-- Right Holographic Dossier Panel -->
+  <div class="graph-dossier-panel" id="graph-dossier">
+    <div class="dossier-header">
+      <span style="font-size:12px; font-weight:700; color:var(--graph-accent); letter-spacing:0.06em;">⚡ 全息檔案檢索</span>
+      <button class="dossier-close-btn" id="btn-close-dossier" type="button" aria-label="關閉檔案" title="關閉檔案">✕</button>
+    </div>
+
+    <div class="dossier-body">
+      <!-- Artwork Spotlight -->
+      <div class="dossier-artwork-box">
+        <img class="dossier-artwork-img" id="dossier-artwork" src="assets/images/pokemon/1.png" alt="寶可夢立繪">
+        <button class="dossier-cry-btn" id="dossier-cry-btn" type="button" title="播放原版叫聲">
+          <span>🔊</span> 播放叫聲
+        </button>
+      </div>
+
+      <!-- Metadata -->
+      <div class="dossier-meta">
+        <div class="dossier-id-row">
+          <span class="dossier-id" id="dossier-id">#0001</span>
+          <span class="dossier-gen-badge" id="dossier-gen">第 1 世代</span>
+        </div>
+        <div class="dossier-name-zh" id="dossier-name-zh">妙蛙種子</div>
+        <div class="dossier-name-en-ja" id="dossier-name-en-ja">Bulbasaur · フシギダネ</div>
+        <div class="dossier-types" id="dossier-types"></div>
+      </div>
+
+      <!-- Base Stats Bars -->
+      <div>
+        <div class="hud-section-title">
+          <span>種族值六維分析 (BASE STATS)</span>
+        </div>
+        <div class="stats-container" id="dossier-stats"></div>
+      </div>
+
+      <!-- Connected Synaptic Neighbors -->
+      <div class="dossier-neighbors">
+        <div class="hud-section-title">
+          <span>直接關聯神經元 (NEIGHBORS)</span>
+        </div>
+        <div class="neighbor-list" id="dossier-neighbors-list"></div>
+      </div>
+
+      <!-- Links to Detail & Color Pages -->
+      <div class="dossier-actions">
+        <a class="dossier-action-btn btn-primary-link" id="dossier-link-detail" href="detail.html?slug=bulbasaur" target="_blank" rel="noopener">
+          <span>📖</span> 完整圖鑑詳情
+        </a>
+        <a class="dossier-action-btn btn-secondary-link" id="dossier-link-color" href="color.html?slug=bulbasaur" target="_blank" rel="noopener">
+          <span>🎨</span> 6 色色盤與色階
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Camera Floating Dock -->
+  <div class="graph-dock">
+    <button class="dock-btn dock-zoom-btn" id="btn-zoom-in" type="button" title="放大 (+)" aria-label="放大">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="dock-btn dock-zoom-btn" id="btn-zoom-out" type="button" title="縮小 (−)" aria-label="縮小">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <div class="dock-divider"></div>
+    <button class="dock-btn" id="btn-cam-reset" type="button" title="重置視角">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <span>重置視角</span>
+    </button>
+    <button class="dock-btn" id="btn-cam-top" type="button" title="俯視星盤視角">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+      <span>俯視圖</span>
+    </button>
+    <div class="dock-divider"></div>
+    <button class="dock-btn is-active" id="btn-auto-orbit" type="button" title="宇宙漫遊巡航">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <span>宇宙漫遊</span>
+    </button>
+    <button class="dock-btn" id="btn-fullscreen" type="button" title="切換全螢幕">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      <span>全螢幕</span>
+    </button>
+  </div>
+
+  <!-- Hover Tooltip -->
+  <div class="graph-tooltip" id="graph-tooltip"></div>
+
+  <!-- Scripts: Vendor libraries, then controller -->
+  <script src="assets/js/three.min.js"></script>
+  <script src="assets/js/3d-force-graph.min.js"></script>
+  <script type="module">
+    import { initHeaderNav } from './assets/js/shared.js';
+    import { initKnowledgeGraph } from './assets/js/graph.js';
+
+    initHeaderNav('graph.html');
+    initKnowledgeGraph();
+  </script>
+</body>
+</html>

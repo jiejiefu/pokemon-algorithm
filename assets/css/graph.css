@@ -1,0 +1,936 @@
+/**
+ * 3D Force-Directed Knowledge Graph Styles (graph.html)
+ * Dark cosmic brain neural network & cyber HUD dossier.
+ */
+
+:root {
+  --graph-bg: #030712;
+  --graph-panel-bg: rgba(11, 16, 35, 0.82);
+  --graph-panel-border: rgba(56, 189, 248, 0.18);
+  --graph-glow: rgba(56, 189, 248, 0.35);
+  --graph-accent: #38bdf8;
+  --graph-text-bright: #f8fafc;
+  --graph-text-sub: #94a3b8;
+  --graph-text-muted: #64748b;
+  --graph-hud-radius: 14px;
+}
+
+[data-theme="light"] {
+  --graph-bg: #090e1f;
+  --graph-panel-bg: rgba(15, 23, 42, 0.88);
+  --graph-panel-border: rgba(99, 102, 241, 0.25);
+  --graph-glow: rgba(99, 102, 241, 0.4);
+  --graph-accent: #60a5fa;
+  --graph-text-bright: #f8fafc;
+  --graph-text-sub: #cbd5e1;
+  --graph-text-muted: #94a3b8;
+}
+
+body.graph-body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--graph-bg);
+  color: var(--graph-text-bright);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Header customization for full-screen 3D canvas */
+.header-graph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.85) 0%, rgba(3, 7, 18, 0.4) 70%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* 3D Canvas Stage */
+#graph-container {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  cursor: grab;
+}
+
+#graph-container:active {
+  cursor: grabbing;
+}
+
+/* Cosmic Neural Title HUD in top-center */
+.graph-title-hud {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(56, 189, 248, 0.1);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.graph-title-hud h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graph-title-hud .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+.graph-title-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--graph-accent);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Floating HUD Side Panel (Controls) */
+.graph-control-panel {
+  position: absolute;
+  top: 76px;
+  left: 20px;
+  bottom: 24px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  z-index: 25;
+  background: var(--graph-panel-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--graph-hud-radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.graph-control-panel.is-collapsed {
+  transform: translateX(-340px);
+  pointer-events: none;
+}
+
+.panel-header {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f8fafc;
+}
+
+.panel-toggle-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--graph-text-sub);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panel-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--graph-accent);
+  border-color: var(--graph-accent);
+}
+
+.panel-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.panel-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Search Box */
+.hud-search-box {
+  position: relative;
+}
+
+.hud-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 36px;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.hud-search-input:focus {
+  border-color: var(--graph-accent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+  background: rgba(2, 6, 23, 0.85);
+}
+
+.hud-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--graph-text-muted);
+  pointer-events: none;
+  font-size: 14px;
+}
+
+.hud-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+.hud-search-results.is-open {
+  display: block;
+}
+
+.search-item {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:hover, .search-item.is-selected {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.search-item img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.search-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.search-item-meta {
+  font-size: 11px;
+  color: var(--graph-text-muted);
+}
+
+/* Sections */
+.hud-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--graph-text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Filter Chips */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hud-chip {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--graph-text-sub);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hud-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.hud-chip.is-active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--graph-accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+/* Type Grid */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.hud-type-btn {
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--graph-text-sub);
+  transition: all 0.2s ease;
+}
+
+.hud-type-btn:hover {
+  filter: brightness(1.2);
+  border-color: currentColor;
+}
+
+.hud-type-btn.is-active {
+  color: #fff !important;
+  box-shadow: 0 0 12px currentColor;
+  border-color: #fff;
+}
+
+/* Sliders */
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.slider-label {
+  color: var(--graph-text-sub);
+  min-width: 80px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--graph-accent);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.slider-val {
+  min-width: 32px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--graph-text-muted);
+}
+
+/* Floating Collapsed Open Button */
+.graph-open-btn {
+  position: absolute;
+  top: 76px;
+  left: 20px;
+  z-index: 24;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--graph-panel-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--graph-panel-border);
+  color: var(--graph-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.graph-control-panel.is-collapsed ~ .graph-open-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Floating Hologram Dossier HUD (Right Panel) */
+.graph-dossier-panel {
+  position: absolute;
+  top: 76px;
+  right: 20px;
+  bottom: 24px;
+  width: 350px;
+  max-width: calc(100vw - 40px);
+  z-index: 25;
+  background: var(--graph-panel-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--graph-hud-radius);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  transform: translateX(380px);
+}
+
+.graph-dossier-panel.is-active {
+  transform: translateX(0);
+}
+
+.dossier-header {
+  padding: 16px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dossier-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--graph-text-sub);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dossier-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.dossier-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.dossier-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dossier-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Dossier Artwork Spotlight */
+.dossier-artwork-box {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(2, 6, 23, 0.5) 75%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.dossier-artwork-img {
+  max-width: 140px;
+  max-height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.7));
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.dossier-cry-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--graph-accent);
+  border-radius: 9999px;
+  color: var(--graph-accent);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dossier-cry-btn:hover {
+  background: var(--graph-accent);
+  color: #020617;
+  box-shadow: 0 0 16px var(--graph-accent);
+}
+
+.dossier-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dossier-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dossier-id {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--graph-accent);
+}
+
+.dossier-gen-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--graph-text-sub);
+}
+
+.dossier-name-zh {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.dossier-name-en-ja {
+  font-size: 13px;
+  color: var(--graph-text-muted);
+}
+
+.dossier-types {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dossier-type-badge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Stats Radar Bars */
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(2, 6, 23, 0.5);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.stat-label {
+  width: 45px;
+  color: var(--graph-text-sub);
+  font-weight: 600;
+}
+
+.stat-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.stat-val {
+  width: 28px;
+  text-align: right;
+  font-family: monospace;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Dossier Neighbor Synapses (Related nodes) */
+.dossier-neighbors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.neighbor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.neighbor-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.neighbor-card:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateX(4px);
+}
+
+.neighbor-card img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.neighbor-card-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.neighbor-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.neighbor-card-rel {
+  font-size: 10px;
+  color: var(--graph-accent);
+}
+
+/* External Link Actions */
+.dossier-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dossier-action-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-link {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--graph-accent);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.btn-primary-link:hover {
+  background: var(--graph-accent);
+  color: #020617;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+.btn-secondary-link {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-secondary-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Bottom Floating Dock (Camera & Viewport controls) */
+.graph-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dock-btn {
+  background: transparent;
+  border: none;
+  color: var(--graph-text-sub);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dock-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.dock-btn.is-active {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--graph-accent);
+}
+
+.dock-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-zoom-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dock-zoom-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: var(--graph-accent);
+  color: var(--graph-accent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+/* Hover Tooltip in 3D */
+.graph-tooltip {
+  position: absolute;
+  z-index: 40;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--graph-panel-border);
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  color: #fff;
+  display: none;
+  transform: translate(-50%, -130%);
+}
+
+.graph-tooltip.is-visible {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Loading Overlay */
+.graph-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: #030712;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  transition: opacity 0.6s ease;
+}
+
+.graph-loading.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 56px;
+  height: 56px;
+  border: 3px solid rgba(56, 189, 248, 0.15);
+  border-top-color: var(--graph-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #f1f5f9;
+}
+
+.loading-sub {
+  font-size: 12px;
+  color: var(--graph-text-muted);
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .graph-control-panel {
+    top: 70px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 45vh;
+  }
+  .graph-dossier-panel {
+    top: auto;
+    bottom: 70px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: 50vh;
+  }
+  .graph-dock {
+    bottom: 12px;
+    padding: 4px 8px;
+  }
+  .dock-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .graph-title-hud {
+    display: none;
+  }
+}

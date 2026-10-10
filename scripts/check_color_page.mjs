@@ -145,8 +145,9 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // list on purpose — a list here would be a fourth copy of NAV that could be edited
 // to agree with a broken NAV, whereas a count can only be changed by someone
 // deciding the site's page set changed. It went 15 -> 16 when spectrum.html joined
-// the 叫聲 group and 16 -> 17 when life.html joined the 演算法 group.
-const EXPECTED_NAV_PAGES = 17;
+// the 叫聲 group, 16 -> 17 when life.html joined the 演算法 group, and 17 -> 18 when
+// graph.html joined the 演算法 group.
+const EXPECTED_NAV_PAGES = 18;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;
