@@ -77,6 +77,29 @@
      changed alongside them. Declared here because that is what it is. */
   --sp-code-radius: 4px;
 
+  /* THE PAGE'S TWO SECTION-LEVEL INTERVALS, and the reason there are two of them is
+     that the page has two KINDS of section. Measured before this existed, over the
+     five top-level blocks of `.sp-page`:
+     `.sp-intro` 20px, then `.sp-hero` / `.sp-live` / `.sp-numbers` 22px each, then
+     `.sp-about` 26px — five blocks, four values, and the one interval that mattered
+     most was the one that was not there.
+     *
+     * 時頻圖, 即時頻譜圖 and 量測數值 are three views of ONE measurement, and 22px said
+     * nothing about that: it was the same interval separating the primary artifact
+     * from the live curve that separated the two prose bands either side of them. So
+     * the kind change carried the same weight as the kind continuity, which is the
+     * definition of no rhythm at all.
+     *
+     * 14 and 40 rather than round-looking neighbours because the point is the RATIO,
+     * and both are stated against the 22px they replaced: 14 is 0.64×, 40 is 1.8×, so
+     * a band boundary cannot be mistaken for an internal gap at a glance. Anything
+     * inside 18–26 would have kept the page's rhythm exactly as flat as it was.
+     *
+     * Margins, so the numbers are viewport-independent — measured gaps between
+     * rendered section boxes came back 40 / 14 / 14 / 40 exactly. */
+  --sp-band-gap: 14px;
+  --sp-band-sep: 40px;
+
   --sp-plot-bg: #07050e;
   --sp-plot-grid: #ffffff26;
   --sp-plot-ink: #f2f4f8;
@@ -776,7 +799,10 @@
   grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
   gap: 8px 28px;
   align-items: start;
-  margin-bottom: 20px;
+  /* A BAND SEPARATION, not a band gap: prose above, the measurement below. It was
+   * 20px, i.e. LESS than the 22px between two sections of the same kind, which is
+   * the ratio backwards. */
+  margin-bottom: var(--sp-band-sep);
 }
 
 .sp-intro-body {
@@ -901,20 +927,14 @@
    11. The plot
    --------------------------------------------------------------------------- */
 
+/* FIRST OF THREE VIEWS OF ONE MEASUREMENT, so the two intervals below it are the
+ * band gap rather than the band's outer edge. */
 .sp-hero {
-  margin: 0 0 22px;
+  margin: 0 0 var(--sp-band-gap);
 }
 
-.sp-hero-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.sp-hero-head h2 {
-  margin: 0;
+.sp-hero h2 {
+  margin: 0 0 8px;
   font-size: 15px;
 }
 
@@ -971,8 +991,9 @@
    12. The live curve
    --------------------------------------------------------------------------- */
 
+/* SECOND OF THE THREE, so `gap` on both sides. */
 .sp-live {
-  margin: 0 0 22px;
+  margin: 0 0 var(--sp-band-gap);
 }
 
 .sp-live h2 {
@@ -1004,7 +1025,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
-  margin: 0 0 22px;
+  /* THE LAST OF THE MEASUREMENT BAND, so `sep`: what follows is the page's prose and
+   * the band has to end before it. */
+  margin: 0 0 var(--sp-band-sep);
   align-items: start;
 }
 
@@ -1214,6 +1237,28 @@
   color: var(--text-muted);
 }
 
+/* THE HEADER MUST NOT INHERIT THE ROWS' EMPHASIS, and until this rule existed it did.
+ *
+ * The header's spans carry the SAME classes as the data rows' spans on purpose — one
+ * set of tracks, one set of column identities, so a column cannot be renamed in the
+ * rows and forgotten in the header. The cost is that `.sp-x-got` and `.sp-x-rel` also
+ * carry `color: var(--text-primary)` and `font-weight: 600`, and at equal specificity
+ * the LATER declaration in this file is the row's. Measured in light theme before the
+ * fix: 這一頁算的 and 相對差 rendered `rgb(15, 23, 48)` at 600 while 離線表存的
+ * rendered `rgb(56, 66, 95)` at 400 and 絕對差 rendered muted — a header row where two
+ * of four labels are bold and one is dimmer, which reads as emphasis that is not
+ * there. `.sp-x-head`'s own `color` was doing nothing for three of its four children.
+ *
+ * This selector is `(0,1,3)` against the row classes' `(0,1,0)`, so it wins on
+ * specificity rather than on order — which matters, because a fix that relied on
+ * being written later would be undone by the next rule anybody adds to section 13.
+ * `check_spectrum_page.mjs` asserts the header's four labels share one colour and one
+ * weight, because a cascade defect is exactly the thing a source-shape check misses. */
+.sp-x-head > dd > span {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 .sp-x-head dt,
 .sp-x-rows dt {
   color: var(--text-secondary);
@@ -1378,7 +1423,12 @@
   grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
   gap: 4px 28px;
   align-items: start;
-  margin: 0 0 26px;
+  /* ZERO, and it is not a rounding. This is the last child of `.sp-page`, so the 26px
+   * it carried had nothing under it at all — the stray closing marker had pushed
+   * `.sp-about-live` out of the section entirely. `.sp-main` owns the bottom
+   * whitespace at 64px and every other page here uses exactly that, so this rule was
+   * the only reason this page's foot of the page was 90px of nothing. */
+  margin: 0;
   padding: 14px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--hairline);
@@ -1388,6 +1438,22 @@
 .sp-about h2 {
   margin: 0 0 8px;
   font-size: 15px;
+}
+
+/* THE PROSE COLUMN, and the element whose absence broke this section for as long as
+ * the section existed. `.sp-about` is a two-track grid, so without a wrapper every one
+ * of its seven children became its own grid item and auto-placed into four unrelated
+ * rows — the heading stranded in the wide track with a measured 130px of void beneath
+ * it, and its own first paragraph rendering in the narrow one at 24 CJK characters a
+ * line. Measured at a 1113px viewport, where `.sp-page` is 787px wide and the two
+ * tracks come out 435px and 290px. `spectrum.html`'s comment above the wrapper says what it cost.
+ *
+ * `min-width: 0` for `.sp-intro-body`'s reason, verbatim: a grid item's `min-width`
+ * defaults to `auto`, so it is floored by its own min-content, and a long unbroken
+ * `<code>` run refuses to shrink below its own length no matter what the track is. The
+ * tracks already say `minmax(0, 6fr)`; without this the item opts out of that. */
+.sp-about-body {
+  min-width: 0;
 }
 
 .sp-about p {

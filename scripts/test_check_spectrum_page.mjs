@@ -409,6 +409,160 @@ const CASES = [
         '      state.liveInk = null;\n      globalThis.__perFrame = () => speciesInk(meta?.rgb, state.plotGround, contrast);')),
     expect: 'the ink is resolved in select() and stored on state',
   },
+
+  // -------------------------------------------------------------------------
+  // The stray closing marker. This is the defect that shipped.
+  // -------------------------------------------------------------------------
+  {
+    /* THE SHIPPED DEFECT, reproduced exactly: delete the wrapper's opening tag and the
+     * `</div>` that was already there closes `.sp-page` instead. Two things break — the
+     * section's grid auto-places seven children as four rows, and `.sp-about-live`
+     * leaves the page flow entirely — and this case names the BALANCE assertion as its
+     * detector, which is the one whose absence let it ship.
+     *
+     * Three other assertions also go red, and naming this one is the point rather than
+     * a courtesy: the balance check is the only one of the four that is about the
+     * document rather than about one section's intended layout, so it is the one that
+     * would have caught a stray marker ANYWHERE — including the next one, which will
+     * not be in `.sp-about` and will not have a dedicated check waiting for it. The
+     * three section-specific ones would all have stayed green. */
+    name: "the about section's prose wrapper loses its opening tag (the shipped defect)",
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '            <div class="sp-about-body">\n', '')),
+    expect: 'EVERY non-void tag in the document balances',
+  },
+
+  {
+    /* The same defect one element further in, so the balance check is not the only
+     * thing standing between the two: a wrapper that OPENS where it should close is
+     * balanced and still wrong, and the section's own child count is what catches it.
+     * A balanced document can have the wrong number of grid children — eight balanced
+     * `<div>`s in a two-track grid auto-place as four rows, which is the defect in its
+     * purest form. */
+    name: 'the parameter column is moved ABOVE the prose, so the card takes the 6fr track',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) => {
+      const start = s.indexOf('            <div class="sp-about-body">');
+      const end = s.indexOf('            <div class="sp-about-live"');
+      if (start < 0 || end < 0) throw new Error('sp-about block not found');
+      const body = s.slice(start, end);
+      const liveEnd = s.indexOf('</div>', end) + '</div>'.length;
+      return s.slice(0, start)
+        + s.slice(end, liveEnd) + '\n'
+        + body
+        + s.slice(liveEnd);
+    }),
+    expect: "the live curve's parameter column SECOND",
+  },
+
+  {
+    name: 'the prose wrapper is given a second, nested copy',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '            <div class="sp-about-body">\n',
+        '            <div class="sp-about-body">\n              <div class="sp-about-body">\n')),
+    expect: 'and there is exactly one prose wrapper',
+  },
+
+  {
+    name: "the prose wrapper loses its `min-width: 0`, so a long <code> run floors the track",
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-about-body {\n  min-width: 0;\n}', '.sp-about-body {\n  min-width: auto;\n}')),
+    expect: 'and that wrapper is allowed to shrink',
+  },
+
+  {
+    /* The single-child wrapper comes BACK, emptied rather than removed. This is the
+     * version that looks like tidiness in review — the markup still renders — and the
+     * assertion is on its absence from BOTH files, because a rule left behind with no
+     * element is the other half of the same drift. */
+    name: 'the single-child `.sp-hero-head` wrapper is put back around the plot heading',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '          <section class="sp-hero" aria-labelledby="sp-hero-h">\n            <h2 id="sp-hero-h">時頻圖</h2>',
+        '          <section class="sp-hero" aria-labelledby="sp-hero-h">\n            <div class="sp-hero-head"><h2 id="sp-hero-h">時頻圖</h2></div>')),
+    expect: 'the plot heading is a bare <h2>',
+  },
+
+  // -------------------------------------------------------------------------
+  // 對表's header, and the cascade defect.
+  // -------------------------------------------------------------------------
+  {
+    /* The cascade defect, removed. The header's spans share the rows' classes on
+     * purpose, so without this rule `.sp-x-got` and `.sp-x-rel` lend the header their
+     * primary colour and weight 600 and `.sp-x-head`'s own `color` does nothing for
+     * three of its four children. `check_spectrum_browser.mjs` measures the rendered
+     * colours; this asserts the declaration exists at all, so the file is still worth
+     * something when the browser half cannot run. */
+    name: 'the header reset rule is deleted, so the header borrows the rows\' emphasis',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-x-head > dd > span {\n  color: var(--text-muted);\n  font-weight: 400;\n}\n\n', '')),
+    expect: 'the header reset is scoped to EXACTLY',
+  },
+
+  {
+    /* The same fix at the WRONG specificity, and this is the case that earns the
+     * assertion's insistence on the selector shape. `.sp-x-head` is (0,1,0) and ties
+     * with `.sp-x-got`, so the row's later declaration wins and the page looks exactly
+     * as it did before the fix — while the stylesheet plainly contains a rule setting
+     * the header's colour. A checker that asked "is there a rule setting
+     * .sp-x-head's colour" would pass this. */
+    name: 'the header reset is moved onto `.sp-x-head`, where it ties with the row classes and loses on order',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-x-head > dd > span {\n  color: var(--text-muted);\n  font-weight: 400;\n}', '').replace(
+        /(\.sp-x-head \{\n  gap: 0 12px;[\s\S]*?)font-size: 10px;/,
+        '$1font-size: 10px;\n  color: var(--text-muted);\n  font-weight: 400;')),
+    expect: 'the header reset is scoped to EXACTLY',
+  },
+
+  {
+    name: 'the header loses its 「絕對差」 label, so three labels sit over five columns',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '><span class="sp-where">絕對差</span></dd>', '></dd>')),
+    expect: 'and the header names all five of them',
+  },
+
+  {
+    /* The mistake this checker caught on the first attempt, kept as a case. A
+     * header-only class for a header-only label is a column identity that exists in
+     * one place and not the other — precisely the drift the shared classes prevent —
+     * and the class audit is what found it. It is also the cheapest possible proof
+     * that this file's "every class on the DOM resolves to a rule" check is a real
+     * guard and not bookkeeping. */
+    name: 'the 「絕對差」 label is given a header-only class, so it has no rule of its own',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '><span class="sp-where">絕對差</span></dd>', '><span class="sp-x-where">絕對差</span></dd>')),
+    expect: 'resolves to a rule in spectrum.css',
+  },
+
+  // -------------------------------------------------------------------------
+  // The rhythm, and the three ways it can be flat again.
+  // -------------------------------------------------------------------------
+  {
+    /* All four sections back to one literal. The tokens survive in `:root`, so every
+     * assertion about the tokens being DECLARED still passes and the page is flat
+     * again — which is why the per-rule assertion exists as well as the token one. */
+    name: 'all four sections go back to a single 22px literal, keeping the tokens declared',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) => s
+      .replace('.sp-intro {\n  display: grid;\n  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);\n  gap: 8px 28px;\n  align-items: start;',
+        '.sp-intro {\n  display: grid;\n  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);\n  gap: 8px 28px;\n  align-items: start;\n  margin-bottom: 22px;')
+      .replace('margin: 0 0 var(--sp-band-gap);', 'margin: 0 0 22px;')
+      .replace('margin: 0 0 var(--sp-band-sep);', 'margin: 0 0 22px;')),
+    expect: 'declares no bare px interval at all',
+  },
+
+  {
+    /* The ratio is the claim, not the two numbers. 18 and 20 are both perfectly good
+     * intervals; together they are the flat page this replaced, one value repeated. */
+    name: 'the band boundary is narrowed to within 1.5× the interior gap, so the page is flat again',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '--sp-band-sep: 40px;', '--sp-band-sep: 18px;')),
+    expect: 'the band boundary is unmistakably wider than the gap inside it',
+  },
+
+  {
+    name: 'the trailing 26px is put back on .sp-about, which is the last child of .sp-page',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '  margin: 0;\n  padding: 14px 16px;', '  margin: 0 0 26px;\n  padding: 14px 16px;')),
+    expect: '.sp-about carries none',
+  },
 ];
 
 console.log(`check_spectrum_page.mjs — ${CASES.length - 1} mutations + 1 baseline\n`);

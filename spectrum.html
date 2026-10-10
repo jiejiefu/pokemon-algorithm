@@ -155,7 +155,15 @@
                  an image, and it put the identity of the thing being plotted in a row
                  whose job was to name the CHART. `alt=""` on purpose — the caption
                  directly below carries the name and the number, so describing the
-                 image would read the same two facts twice. -->
+                 image would read the same two facts twice.
+
+                 That row was `.sp-hero-head`, and it is GONE rather than emptied.
+                 With the chip moved out it had exactly one child — this section's `<h2>`
+                 — inside a `display: flex` with a `gap`, which is a wrapper that
+                 renders identically to no wrapper and cannot be told apart from one in
+                 review. The h2 keeps its own `margin-bottom: 8px`, so this is
+                 byte-identical on screen; see `check_spectrum_page.mjs`'s tag-balance
+                 check for the general lesson about single-child containers here. -->
             <figure class="sp-intro-art">
               <img id="sp-art" src="assets/images/sprite/1.png" alt="" width="96" height="96" decoding="async">
               <figcaption>
@@ -166,9 +174,7 @@
           </div>
 
           <section class="sp-hero" aria-labelledby="sp-hero-h">
-            <div class="sp-hero-head">
-              <h2 id="sp-hero-h">時頻圖</h2>
-            </div>
+            <h2 id="sp-hero-h">時頻圖</h2>
 
             <canvas id="sp-plot" class="sp-plot" role="img" aria-describedby="sp-plot-alt"></canvas>
             <p id="sp-plot-alt" class="sp-caption"></p>
@@ -213,27 +219,42 @@
             </div>
           </section>
 
-          <!-- The live curve's own parameters, and this is the same sentence the
-               * canvas used to describe itself with. It stays reachable as the
-               * canvas's aria-describedby — that is not negotiable, and it is why the
-               * short caption under the curve keeps the one line it needs and the
-               * detail lives here. `check_spectrum_page.mjs` asserts both halves:
-               * that this column names the second measurement, and that the canvas
-               * still points at something that says it. -->
+<!-- The live curve's own parameters, and this is the same sentence the
+           * canvas used to describe itself with. It is a COLUMN of this section, not
+           * the canvas's own description — and the comment that used to stand here
+           * said the opposite, which is the §4 failure shape written as a claim:
+           * 「stays reachable as the canvas's aria-describedby」, checked by nothing.
+           * Measured: `#sp-about-live-h` is referenced by exactly one attribute in the
+           * whole repository, `aria-labelledby` on its own container. The canvas's
+           * `aria-describedby` is `#sp-live-alt`, the short caption UNDER the curve.
+           * That is not a defect — the canvas pointing at the caption is the right
+           * relationship, and §3.G1's note on `#sp-live-alt` is right to insist the
+           * caption is not allowed to shrink to nothing. It was the comment claiming
+           * the parameter column was load-bearing for the canvas that was wrong, and
+           * `check_spectrum_page.mjs` asserts the caption half, which is the half that
+           * is actually load-bearing.
+           *
+           * The reason this column is here rather than in the prose below is unchanged:
+           * beside the offline pipeline's parameters, its differences ARE the
+           * disclosure. Stacked in one column they collapse into a restatement. -->
           <!-- The peak/rms caveat gets its OWN disclosure rather than riding inside
-               * 「完整的計算細節」, and the split is the rule rather than a preference:
-               * peak and rms are two of the nine numbers the page SHOWS, so a reader who
-               * cannot compare them is being misled about something in front of them.
-               * `0.97` pre-emphasis and the 512-point FFT are engineering detail that
-               * changes no reading of the picture at all.
-               *
-               * NOTE FOR ANYONE EDITING THIS REGION: HTML comments do NOT nest, and a
-               * literal closing marker written inside one — even in prose about this very
-               * hazard — ends it immediately. An earlier version of this note was nested
-               * inside the block below and did exactly that: the comment-stripping every
-               * checker performs to read the markup then swallowed
-               * `<section class="sp-about">`, which surfaced five steps away as a dead
-               * CSS rule. Say 「closing marker」 instead of writing the characters. -->
+           * 「完整的計算細節」, and the split is the rule rather than a preference:
+           * peak and rms are two of the nine numbers the page SHOWS, so a reader who
+           * cannot compare them is being misled about something in front of them.
+           * `0.97` pre-emphasis and the 512-point FFT are engineering detail that
+           * changes no reading of the picture at all.
+           *
+           * NOTE FOR ANYONE EDITING THIS REGION: HTML comments do NOT nest, and a
+           * literal closing marker written inside one — even in prose about this very
+           * hazard — ends it immediately. An earlier version of this note was nested
+           * inside the block below and did exactly that: the comment-stripping every
+           * checker performs to read the markup then swallowed
+           * `<section class="sp-about">`, which surfaced five steps away as a dead
+           * CSS rule. Say 「closing marker」 instead of writing the characters. The same
+           * hazard runs the other way, and this region has now been bitten by both ends:
+           * a closing marker whose opening tag was missing closed `.sp-page` instead and
+           * broke this section's two-column layout for as long as it stood. The
+           * tag-balance assertion in `check_spectrum_page.mjs` is what now holds both. -->
           <!-- TWO COLUMNS, and the right one is the live curve's parameter table.
            *
            * `sp-about` used to be five paragraphs of prose at 78ch: how the picture is
@@ -254,6 +275,35 @@
            * somewhere else. The parameter column is reference material and does not want a
            * wide measure; the prose does. -->
           <section class="sp-about" aria-labelledby="sp-about-h">
+            <!-- THE WRAPPER, and its `</div>` was already here.
+             *
+             *  Every other line of this section was written for two grid children: a prose
+             *  column and the live curve's parameter column. The closing marker below was
+             *  in place and the opening one was not, so the stray `</div>` closed `.sp-page`
+             *  instead and TWO things broke at once:
+             *
+             *    1. `.sp-about` became a 2-track grid with SEVEN unwrapped children, so it
+             *       auto-placed them as four unrelated rows. The heading sat alone in the
+             *       left track with a measured 130px of void under it, while the paragraph
+             *       that belongs directly under it rendered in the 290px right track at 24
+             *       CJK characters a line. Only the row holding the two `<details>` paired up
+             *       correctly, and that was coincidence.
+             *    2. `</section>` no longer matched anything, so `.sp-about-live` fell out of
+             *       `.sp-page` entirely and became a direct child of `<main>`: measured at
+             *       y=2648 against `.sp-page`'s bottom edge at 2622. The one block whose
+             *       entire job is to be read BESIDE the offline spectrogram rendered as a
+             *       stranded full-width card below the whole page.
+             *
+             * Both measurements are from a 1113px viewport, where `.sp-page` is 787px wide
+             * and the two tracks come out 435px and 290px.
+             *
+             *  170 static and 43 CDP checks stayed green throughout, because every one of
+             *  them asked whether the prose and the CSS rules EXIST. None asked where the
+             *  closing marker pointed — see `check_spectrum_page.mjs`'s tag-balance check,
+             *  which is the assertion whose absence let this ship. Do not remove this line
+             *  on the grounds that the section "still looks fine": it does not, and neither
+             *  does any row of it. -->
+            <div class="sp-about-body">
               <h2 id="sp-about-h">這張圖是怎麼算出來的</h2>
               <p>
                 音檔解碼後統一重採樣到 <code>16 kHz</code>，讓不同來源、不同原始取樣率的叫聲
@@ -1213,6 +1263,30 @@ const RARITY = [
         + `<span class="sp-x-rel">${rel < 0.005 ? '0%' : `${rel.toFixed(1)}%`}</span>`
         + `<span class="sp-where">差 ${formatValue(diff)}${unit(name)}</span></dd>`).join('');
 
+      /* The header repeats the track list of the rows above it, and all FIVE of them.
+       *
+       *  `.sp-x-head > dd` and `.sp-x-rows > dd` share ONE `grid-template-columns`
+       *  (60px 14px 58px 46px 92px), and the header used to carry only four spans —
+       *  so the 92px track, the one printing 「差 296」 on every row, had a header cell
+       *  that was simply absent. Measured, not inferred: five declared tracks and four
+       *  header children. Three named columns and one anonymous one reads as an
+       *  overflow past the table rather than as a fourth quantity, which is the
+       *  opposite of what it is.
+       *
+       * 差 X is already self-describing in its text — that is why nobody noticed —
+       *  but a header row's job is to be scannable, and "the one with no label" is a
+       *  worse scan than "the one labelled 絕對差". It lands in the track that was
+       *  empty, so `.sp-x-rel`'s right edge — which `check_spectrum_browser.mjs`
+       *  measures to keep header and rows aligned — does not move. `aria-hidden`
+       *  covers the `<dl>`, so this is presentation only.
+       *
+       *  It carries `sp-where` and NOT a new `sp-x-where`, because the header's spans
+       *  exist to be the SAME columns as the rows' spans. `check_spectrum_page.mjs`'s
+       *  class audit is what caught the first attempt, on the rule that every class on
+       *  the DOM resolves to a stylesheet rule — and it was right: a fourth class for
+       *  one label is a column identity that exists in the header and nowhere else,
+       *  which is the exact drift the shared classes prevent. */
+
       const excluded = UNCOMPARABLE.map((i) => FEATURE_NAMES[i]);
       box.innerHTML = `
         <p class="sp-x-verdict"><b>${items.length} 項可比</b>，最大相對差
@@ -1222,7 +1296,8 @@ const RARITY = [
         <dl class="sp-x-head" aria-hidden="true">
           <dt></dt>
           <dd><span class="sp-x-got">這一頁算的</span><span class="sp-x-arrow"></span
-              ><span class="sp-x-want">離線表存的</span><span class="sp-x-rel">相對差</span></dd>
+              ><span class="sp-x-want">離線表存的</span><span class="sp-x-rel">相對差</span
+              ><span class="sp-where">絕對差</span></dd>
         </dl>
         <dl class="sp-x-rows">${rowsHtml}</dl>
 

@@ -296,6 +296,57 @@ try {
    * where that happened, and the ≤1210px stack is what prevents it. */
   ok(align.dtOverflow <= 1, `and no feature label overflows its own column at this width (${align.dtOverflow}px)`);
 
+  /* The header's four labels render at ONE level, which is a cascade claim no
+   * stylesheet read can settle.
+   *
+   * The header's spans carry the same classes as the rows' on purpose — one set of
+   * tracks, one set of column identities — and `.sp-x-got` and `.sp-x-rel` also carry
+   * `color: var(--text-primary)` and `font-weight: 600`. Before the reset, the header
+   * measured `rgb(15, 23, 48)` / 600 for 這一頁算的 and 相對差 against `rgb(56, 66, 95)`
+   * / 400 for 離線表存的: a header row where two of four labels are bold and one is
+   * dimmer, which reads as emphasis that is not there.
+   *
+   * Measured per label and compared to each other rather than to a declared hex,
+   * because the assertion is "they agree", not "they are this colour" — a rule that
+   * pinned one hex would keep passing after the theme's muted token changed. Distinct
+   * colours and weights are BOTH counted, so a mutation that fixed one and not the
+   * other is still red. */
+  const headLevels = await ev(`(() => {
+    const spans = [...document.querySelectorAll('.sp-x-head > dd > span')];
+    const info = spans.map((s) => {
+      const c = getComputedStyle(s);
+      return { t: s.textContent.trim(), color: c.color, weight: c.fontWeight };
+    });
+    return { n: info.length, info, colors: new Set(info.map(i => i.color)).size, weights: new Set(info.map(i => i.weight)).size };
+  })()`);
+  ok(headLevels.n === 5, `對表's header names all five columns (${headLevels.n})`);
+  ok(headLevels.colors === 1,
+    `and every header label is the SAME colour — two of four were rendering at the data rows' emphasis (${headLevels.colors} distinct across ${headLevels.info.map((i) => `${i.t || '→'}:${i.color}`).join(' ')})`);
+  ok(headLevels.weights === 1,
+    `at the same weight, so a header label is never bolder than the data under it (${headLevels.weights} distinct: ${[...new Set(headLevels.info.map((i) => i.weight))].join('/')})`);
+  /* The rows must still be EMPHASISED, or the reset has simply flattened the whole
+   * block. This is the half that catches "fixed it by deleting the emphasis" — and it
+   * is asserted as "the rows differ from the header", not as a hex or a weight, so it
+   * holds when the theme's tokens change. `.sp-x-got` and `.sp-x-rel` are BOTH
+   * primary/600 by design and are deliberately not distinguished from each other:
+   * which of the two figures is bold carries no meaning, only that the figure is
+   * bold and the label above it is not. */
+  const rowLevels = await ev(`(() => {
+    const dd = document.querySelector('.sp-x-rows > dd');
+    const want = [...dd.children].find((s) => s.className === 'sp-x-want');
+    const head = document.querySelector('.sp-x-head > dd > span');
+    return {
+      got: getComputedStyle(dd.children[0]).fontWeight,
+      rowWant: getComputedStyle(want).color,
+      headWant: getComputedStyle(head).color,
+      headWeight: getComputedStyle(head).fontWeight,
+    };
+  })()`);
+  ok(rowLevels.got === '600',
+    `while the DATA rows keep their own weight, so the reset did not flatten the block to satisfy the header (rows at ${rowLevels.got}, header at ${rowLevels.headWeight})`);
+  ok(rowLevels.rowWant !== rowLevels.headWant,
+    `and the data's own value colour is not the header label's (${rowLevels.rowWant} vs ${rowLevels.headWant}) — the header is muted while the figures it labels are not`);
+
 
   /* The panel must name all THREE excluded features and BOTH reasons. Asserting the
    * count of names and nothing about the reasons would pass a page that listed
@@ -334,6 +385,114 @@ try {
   const sixPrinted = ROBUST_NAMES.every((n) => printed.includes(n));
   ok(sixPrinted,
     `the panel prints a figure for all five well-conditioned features (${ROBUST_NAMES.join(', ')})`);
+
+  // -----------------------------------------------------------------------
+  // The about section is TWO COLUMNS — at a width where it is two columns.
+  // -----------------------------------------------------------------------
+
+  /* WIDENED FIRST, and the reason is that this checker's default headless viewport is
+   * NARROWER than `.sp-about`'s own 900px breakpoint, so at the default the section is
+   * legitimately one column and every geometry claim below is vacuously true of a
+   * stacked layout. A guard that can only pass on the collapsed layout is §3.G's shape:
+   * it certifies something the reader at a wide window never sees.
+   *
+   * `Emulation.setDeviceMetricsOverride` rather than a Chrome flag, because the flag is
+   * clamped to the host's screen here and the override is not — measured below and
+   * asserted, so a Chrome that ignores it fails the check instead of silently reporting
+   * the narrow layout's answer. It is restored afterwards, and the assertions that
+   * follow are the ones that depend on the default width. */
+  const NARROW = await ev('innerWidth');
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1280, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  const WIDE = await ev('innerWidth');
+  ok(WIDE >= 901,
+    `the viewport is widened past .sp-about's own 900px breakpoint, because at the default ${NARROW}px the section is ONE column and a two-column claim is vacuous (${WIDE}px)`);
+
+  /* The rendered form of the claim `check_spectrum_page.mjs` makes about the markup,
+   * and the reason it lives here is that the static half cannot see this at all.
+   *
+   * `.sp-about` shipped with a `</div>` whose opening tag was missing. The stray marker
+   * closed `.sp-page`, so `</section>` matched nothing, `.sp-about-live` fell out of the
+   * page flow into a direct child of `<main>`, and the section's 2-track grid
+   * auto-placed its SEVEN unwrapped children into four rows. Measured before the fix at
+   * a 1113px viewport: the heading alone in the 435px track with 130px of void beneath
+   * it, its own first paragraph in the 290px track at 24 CJK characters a line, and the
+   * parameter card at y=2648 against `.sp-page`'s bottom edge of 2622.
+   *
+   * Four assertions, and each catches a different single removal. "Two tracks" alone is
+   * satisfied by a 2-track grid with eight children; "the card is in the second track"
+   * alone is satisfied by a section whose prose is one child and whose card is on its
+   * own line; and the parentage is the claim that actually failed, so it is asserted
+   * directly rather than inferred from the geometry. The positions are compared
+   * (`liveX > bodyX`) instead of to a number, because a literal x would be a second
+   * thing to keep right and this page is fluid. */
+  const ABOUT = await ev(`(() => {
+    const sec = document.querySelector('.sp-about');
+    const body = document.querySelector('.sp-about-body');
+    const live = document.querySelector('.sp-about-live');
+    const page = document.querySelector('.sp-page');
+    const b = body.getBoundingClientRect(), l = live.getBoundingClientRect();
+    const c = getComputedStyle(sec);
+    return {
+      tracks: c.gridTemplateColumns.trim().split(/\\s+/).length,
+      children: [...sec.children].map((x) => x.className),
+      liveIsChild: sec.contains(live) && live.parentElement === sec,
+      liveInsidePage: page.contains(live),
+      sameRow: Math.abs(b.y - l.y) < 2,
+      liveRightOfBody: l.x > b.x,
+      bodyWidth: Math.round(b.width),
+      liveWidth: Math.round(l.width),
+      h2FirstInBody: body.firstElementChild.tagName === 'H2',
+    };
+  })()`);
+  ok(ABOUT.tracks === 2,
+    `the about section is a TWO-track grid (${ABOUT.tracks}) — with one, the parameter card is a stranded full-width card below the whole page`);
+  ok(ABOUT.children.length === 2
+    && ABOUT.children[0] === 'sp-about-body' && ABOUT.children[1] === 'sp-about-live',
+    `and it has exactly two grid children in that order, because auto-placement is what puts the card in the second track (got ${ABOUT.children.join(', ') || 'none'})`);
+  ok(ABOUT.liveIsChild && ABOUT.liveInsidePage,
+    "the live curve's parameter column is INSIDE the section and inside `.sp-page` — the stray closing marker put it in `<main>` directly, below everything else");
+  ok(ABOUT.sameRow && ABOUT.liveRightOfBody,
+    `and it renders BESIDE the prose rather than below it (prose ${ABOUT.bodyWidth}px, parameter card ${ABOUT.liveWidth}px to its right, same row: ${ABOUT.sameRow})`);
+  ok(ABOUT.h2FirstInBody,
+    'with the heading as the prose column\'s own first child, so it cannot be auto-placed into a track of its own and left with a void under it');
+
+  /* The section rhythm is a MEASURED gap between rendered boxes, not a margin read out
+   * of the stylesheet. Four values, two of them: the three measurement sections sit
+   * inside one band, and the two boundaries around that band are unmistakably wider.
+   *
+   * Before: 20 / 22 / 22 / 22 / 26 — the kind change and the kind continuity carried
+   * the same interval, which is the definition of no rhythm. Asserted as a RATIO so the
+   * claim survives a future retune of both numbers together, and separately asserted
+   * that each section took the interval it was supposed to — a page where all four
+   * measured the same would pass a bare "sep > gap" and that is the state being fixed. */
+  const RHYTHM = await ev(`(() => {
+    const sels = ['.sp-intro', '.sp-hero', '.sp-live', '.sp-numbers', '.sp-about'];
+    const els = sels.map((s) => document.querySelector(s));
+    const gaps = [];
+    for (let i = 0; i < els.length - 1; i++) {
+      const a = els[i].getBoundingClientRect(), b = els[i + 1].getBoundingClientRect();
+      gaps.push(Math.round(b.top - a.bottom));
+    }
+    return { sels, gaps, aboutLast: document.querySelector('.sp-about').nextElementSibling === null };
+  })()`);
+  ok(RHYTHM.gaps[0] > RHYTHM.gaps[1] && RHYTHM.gaps[3] > RHYTHM.gaps[2],
+    `both band BOUNDARIES are wider than both band interiors — ${RHYTHM.gaps.join(' / ')}px, so 時頻圖/即時/數值 read as one instrument and the prose around it does not`
+    + ' (they were 20/22/22/22/26, where the kind change carried the same interval as the kind continuity)');
+  ok(RHYTHM.gaps[1] === RHYTHM.gaps[2] && RHYTHM.gaps[0] === RHYTHM.gaps[3],
+    `and each band is internally uniform and the two boundaries match each other (${RHYTHM.gaps.join(' / ')}), which is what makes it a rhythm rather than four numbers`);
+  ok(RHYTHM.aboutLast,
+    'with .sp-about carrying no trailing margin at all, because it is the last child of .sp-page and its 26px had nothing under it');
+
+  /* Restore the width, and assert the restore rather than assuming it: every
+   * measurement below is a canvas pixel count or a feature figure, and a viewport left
+   * at 1280 would change the canvas backing store under them. The only value carried
+   * forward is `NARROW`, so nothing downstream silently inherits a different page. */
+  await send('Emulation.clearDeviceMetricsOverride');
+  const RESTORED = await ev('innerWidth');
+  ok(RESTORED === NARROW,
+    `the viewport is restored to the checker's default (${RESTORED}px vs ${NARROW}px), so the canvas measurements that follow are taken at the width they are about`);
 
   // -----------------------------------------------------------------------
   // The reveal moves, and it moves from the AudioContext's clock.

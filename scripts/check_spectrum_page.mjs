@@ -452,11 +452,20 @@ eq(redefinesShared.map((m) => m[1]), [],
 
    The difference is not tidiness. A previous edit to this page replaced
    spectrum.css's whole "Controls" section with a comment saying the rules were
-   "kept for reference", and did not keep them: fifteen selectors went with it —
+   "kept for reference", and did not keep it: fifteen selectors went with it —
    `.sp-label .sp-sources .sp-source .sp-search .sp-btn .sp-chips .sp-chip
    .sp-actions .sp-status .sp-autoplay{,-track,-text} .sp-hero .sp-hero-head
    .sp-hero-id` — so the source radios, the search box, the 24 chips, the play
    button and the autoplay switch all rendered on browser defaults.
+
+   Two of that list are gone again for a different reason, and the distinction is
+   why the class audit is not "every class ever written must have a rule": `.sp-hero-id`
+   went with the 28px identity strip, and `.sp-hero-head` went when its last child moved
+   out — it held exactly one element, this section's `<h2>`, inside a `display: flex`
+   with a `gap`, which renders identically to no wrapper and cannot be told apart from
+   one in review. A wrapper with a single child is a container nothing can be put into
+   yet, and leaving it is how the next person puts something in it.
+
 
    Nothing went red. Not this file's 87 checks, not the 43 in
    `check_spectrum_browser.mjs`, not a single assertion anywhere in the project.
@@ -916,9 +925,241 @@ ok(gen1.cries.every((c) => c.pitch !== undefined && c.length !== undefined),
 // ---------------------------------------------------------------------------
 // 9. The rail's SHAPE — the layout claims that are only in the markup
 // ---------------------------------------------------------------------------
-/* Four claims a screenshot cannot make and a `getElementById` probe cannot
- * either, because each is about the RELATIONSHIP between two elements rather than
- * about either one existing. All four are load-bearing in a specific way. */
+
+/* EVERY NON-VOID TAG BALANCES, and this is the assertion whose absence let a
+ * two-column section render as four unrelated rows for as long as the section existed.
+ *
+ * `.sp-about` shipped with a `</div>` whose opening tag was missing. The stray marker
+ * closed `.sp-page` instead, so `</section>` matched nothing, `.sp-about-live` fell out
+ * of the page flow and became a direct child of `<main>`, and the section's 2-track
+ * grid auto-placed its SEVEN unwrapped children into four rows: the heading stranded
+ * alone in the wide track with a measured 130px of void under it, and its own first
+ * paragraph rendering in the narrow track at 24 CJK characters a line.
+ *
+ * Nothing above caught it. 170 static checks and 43 CDP checks stayed green, because
+ * every one of them asked whether the prose and the CSS rules EXIST. The claim being
+ * protected here is different in kind: it is not that `.sp-about` is two columns, but
+ * that no closing marker in this document points at the wrong element. The first is a
+ * layout decision a future edit may legitimately change; the second is a parse
+ * property, and nothing in the page's behaviour depends on it being wrong.
+ *
+ * `markup` above is truncated at the module `<script>`, so it cannot be the base for
+ * this: a document sliced mid-`<body>` is imbalanced by construction and the check
+ * would report two phantom errors on a correct file. The whole comment-stripped
+ * document is, and there is no `<!--` after the module script opens (asserted, because
+ * a comment end inside a script body would make the stripper eat to the next `-->`
+ * and the balance check would then be reading a document that does not exist). */
+const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr']);
+const RAWTEXT = new Set(['script', 'style', 'textarea', 'title']);
+const doc = page.replace(/<!--[\s\S]*?-->/g, '');
+ok(!/<script type="module">[\s\S]*?<!--/.test(page),
+  'no comment marker opens inside the module script, so stripping comments cannot eat into it');
+function tagBalance(src) {
+  const stack = [];
+  const errors = [];
+  const lineOf = (at) => src.slice(0, at).split('\n').length;
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const [, closing, name, attrs] = m;
+    const tag = name.toLowerCase();
+    /* Raw-text bodies are SKIPPED, not tokenized: `<` inside a `<script>` is text, and
+     * this file's own theme bootstrap at the top is full of `&&`. A checker that
+     * mis-tokenized it would report a mismatch on a correct document, which is a check
+     * nobody can trust. */
+    if (RAWTEXT.has(tag) && !closing) {
+      const end = src.indexOf(`</${tag}>`, re.lastIndex);
+      if (end < 0) { errors.push(`<${tag}> at line ${lineOf(m.index)} never closes`); break; }
+      re.lastIndex = end + tag.length + 3;
+      continue;
+    }
+    if (VOID.has(tag) || /\/\s*$/.test(attrs)) continue;
+    if (closing) {
+      const open = stack.pop();
+      if (!open) {
+        errors.push(`the closing marker </${tag}> at line ${lineOf(m.index)} closes nothing`);
+      } else if (open.tag !== tag) {
+        errors.push(`the closing marker </${tag}> at line ${lineOf(m.index)} does not match the innermost open element, `
+          + `<${open.tag}> opened at line ${open.line}`);
+        break;
+      }
+    } else {
+      stack.push({ tag, line: lineOf(m.index) });
+    }
+  }
+  for (const open of stack) errors.push(`<${open.tag}> opened at line ${open.line} is never closed`);
+  return errors;
+}
+const balanceErrors = tagBalance(doc);
+ok(balanceErrors.length === 0,
+  'EVERY non-void tag in the document balances, so no closing marker can point at the wrong element'
+  + ` (${balanceErrors.length} imbalance(s)${balanceErrors.length ? ': ' + balanceErrors.join('; ') : ''})`);
+
+/* The imbalance check above and THIS one are the two halves of one claim, and neither
+ * substitutes for the other: a balanced document can still have the wrong number of
+ * grid children (eight balanced `<div>`s in a two-track grid auto-place as four rows,
+ * which is the defect in its purest form), and the right number can sit in the wrong
+ * place. Asserted as the section's DIRECT children by class name and in order, because
+ * `align-items: start` plus auto-placement means a `.sp-about-live` that came second in
+ * the DOM is what puts it in the right-hand track. */
+const aboutOpen = markup.indexOf('<section class="sp-about"');
+ok(aboutOpen > 0, 'the about section is present at all — the next three checks index into it');
+const aboutBody = aboutOpen > 0
+  ? (() => {
+    /* Slice to the section's own closing marker, found by depth rather than by the next
+     * `</section>` in the file, so a later section cannot end this one early. */
+    const after = markup.slice(aboutOpen);
+    const rel = after.search(/<section class="sp-about"[^>]*>/);
+    let depth = 0;
+    const scan = /<(\/?)section\b[^>]*>/g;
+    let s;
+    let end = -1;
+    while ((s = scan.exec(after))) {
+      depth += s[1] ? -1 : 1;
+      if (depth === 0) { end = s.index + aboutOpen; break; }
+    }
+    return end > 0 ? markup.slice(aboutOpen, end) : '';
+  })()
+  : '';
+ok(/<div class="sp-about-body">/.test(aboutBody),
+  'and its prose is wrapped in ONE element, because a 2-track grid with seven unwrapped children auto-places them as four rows rather than as two columns');
+ok(/<div class="sp-about-body">[\s\S]*<\/div>[\s\S]*<div class="sp-about-live"/.test(aboutBody),
+  'with the live curve\'s parameter column SECOND, since auto-placement is what puts it in the 4fr track');
+ok(!/<div class="sp-about-body">[\s\S]*<div class="sp-about-body"/.test(aboutBody),
+  'and there is exactly one prose wrapper — two of them is a three-child grid and the same failure with an extra step');
+ok(/min-width:\s*0/.test((() => {
+  const s = cssCode.indexOf('.sp-about-body');
+  return s > 0 ? cssCode.slice(s, cssCode.indexOf('}', s)) : '';
+})()),
+  'and that wrapper is allowed to shrink, because a grid item floors itself at its own min-content and one long <code> run would blow out the minmax(0, 6fr) track');
+/* The live curve's parameters belong to this section, which is the only claim that
+ * survives a reordering of the whole page. `</section>` no longer matching is precisely
+ * how they ended up outside it. */
+ok(/<\/section>\s*(?:<\/div>\s*)?<\/main>/.test(markup.slice(markup.indexOf('</div>', aboutBody + aboutBody.lastIndexOf('sp-about-live')))),
+  'and nothing at all sits between the about section and the end of `<main>`, which is how its parameter column ended up a direct child of `<main>`');
+
+// ---------------------------------------------------------------------------
+// 9b. 對表's header row, and the section rhythm.
+// ---------------------------------------------------------------------------
+
+/* THE HEADER MUST NOT INHERIT THE ROWS' EMPHASIS, and the stylesheet's own reason for
+ * existing is that it is (0,1,3) rather than merely later.
+ *
+ * The header's spans carry the SAME classes as the data rows' on purpose — one set of
+ * tracks, one set of column identities, so a column cannot be renamed in the rows and
+ * forgotten in the header. The cost was that `.sp-x-got` and `.sp-x-rel` also carry
+ * `color: var(--text-primary)` and `font-weight: 600`, and at equal specificity the
+ * later declaration won, so `.sp-x-head`'s own `color` did nothing for three of its
+ * four children. Measured in light theme before the fix: 這一頁算的 and 相對差 at
+ * `rgb(15, 23, 48)` / 600 while 離線表存的 sat at `rgb(56, 66, 95)` / 400 — a header
+ * where two of four labels are bold and one is dimmer, which reads as emphasis that is
+ * not there.
+ *
+ * Asserted on the SELECTOR SHAPE rather than on the declarations, because a fix that
+ * only worked by being written later would be silently undone by the next rule anybody
+ * adds to this file — and that is the whole difference between this and the cascade
+ * defect it repairs. The descendant combinator over `dd > span` is what buys the
+ * specificity; `.sp-x-head` alone, at (0,1,0), ties with the row classes and loses on
+ * order. `check_spectrum_browser.mjs` measures the rendered colours, which is the
+ * half a stylesheet read cannot answer.
+ *
+ * The block is found by SELECTOR rather than by first occurrence: `.sp-x-head > dd >
+ * span` also opens the shared alignment rule further up this file, and taking the
+ * first match reads that one — which carries no colour at all and would fail for a
+ * reason that has nothing to do with the defect. §4's "presence is not attribution"
+ * again, and the same trap twice in one file. */
+const cssRules = [...cssCode.matchAll(/([^{}]+)\{[^{}]*\}/g)]
+  .map((m) => ({ sel: m[1].trim().replace(/\s+/g, ' '), body: m[0] }))
+  .filter((r) => !/^@/.test(r.sel));
+const headResetSel = cssRules.filter((r) => r.sel === '.sp-x-head > dd > span');
+ok(headResetSel.length === 1,
+  'the header reset is scoped to EXACTLY `.sp-x-head > dd > span` — (0,1,3) beats the row classes\' (0,1,0), while a reset on `.sp-x-head` alone would tie at (0,1,0) and lose on source order');
+ok(headResetSel.length === 1 && /color:\s*var\(--text-muted\)/.test(headResetSel[0].body),
+  'and that one rule sets the muted colour the header already declared, so all four labels render at one level rather than three of them at the rows\' weight');
+ok(headResetSel.length === 1 && /font-weight:\s*400/.test(headResetSel[0].body),
+  'and weight 400, because the rows\' `.sp-x-got` and `.sp-x-rel` carry 600 and a header that borrows their class borrows their emphasis');
+ok(cssRules.filter((r) => r.sel === '.sp-x-head').length >= 1 && /color:\s*var\(--text-muted\)/.test(cssRules.find((r) => r.sel === '.sp-x-head').body),
+  "while `.sp-x-head` keeps its own declaration too, so removing the reset cannot silently change what the rule is for");
+
+/* ALL FIVE TRACKS ARE NAMED, and the count is a count of the header's OWN spans.
+ *
+ * `.sp-x-head > dd` and `.sp-x-rows > dd` share one `grid-template-columns` of five
+ * fixed tracks. The header carried four spans, so the 92px track — the one printing
+ * 「差 296」 on every row — had no header cell at all: three named columns and one
+ * anonymous one, which reads as an overflow past the table rather than as a fourth
+ * quantity. Measured, not inferred: five declared tracks, four header children.
+ *
+ * The count is taken from the header `<dd>` alone and NOT from the whole file: the
+ * rows put the same five class names on five `<dd>`s, so a file-wide count is 25 and
+ * the two numbers are not comparable. `<dt>` is empty and the `<dl>` is `aria-hidden`,
+ * so this is presentation only. */
+const headDd = (() => {
+  const s = page.indexOf('<dl class="sp-x-head"');
+  if (s < 0) return '';
+  const open = page.indexOf('<dd>', s);
+  const close = page.indexOf('</dd>', open);
+  return open > 0 && close > open ? page.slice(open, close) : '';
+})();
+const headTrackRule = cssRules.find((r) => r.sel.startsWith('.sp-x-head > dd,') && r.sel.endsWith('.sp-x-rows > dd'))?.body ?? '';
+const trackCount = (headTrackRule.match(/\d+px/g) || []).length;
+ok(trackCount === 5, `對表's header and rows share FIVE fixed tracks, so every column has a track to sit in (${trackCount})`);
+eq((headDd.match(/<span class="sp-[a-z-]+">/g) || []).length, trackCount,
+  'and the header names all five of them — the absolute difference had no header cell, which is why three labels sat over five columns');
+ok(/>絕對差</.test(headDd) && /class="sp-where"/.test(headDd),
+  'the fifth one being 「絕對差」, carried on the same class the rows use rather than a header-only one, so the column cannot be renamed in one place and not the other');
+
+/* THE RHYTHM IS TWO DECLARED INTERVALS, applied to the four blocks that carry one.
+ *
+ * Measured before this existed: `.sp-intro` 20px, `.sp-hero` / `.sp-live` /
+ * `.sp-numbers` 22px each, `.sp-about` 26px. Five blocks, four values, and the kind
+ * change carried the same interval as the kind continuity — the definition of no
+ * rhythm at all.
+ *
+ * Asserted as the DECLARED tokens rather than as the four resolved margins on purpose.
+ * A test that reads `margin-bottom` off four rules can be satisfied by four identical
+ * literals, and the claim being protected is that they are two *named* values with a
+ * ratio between them. `check_spectrum_browser.mjs` measures the rendered gaps, which
+ * is the half this cannot reach. */
+const rootBlock = (() => {
+  const s = cssCode.indexOf(':root');
+  if (s < 0) return '';
+  return cssCode.slice(s, cssCode.indexOf('}', s));
+})();
+const bandGap = Number(rootBlock.match(/--sp-band-gap:\s*(\d+)px/)?.[1]);
+const bandSep = Number(rootBlock.match(/--sp-band-sep:\s*(\d+)px/)?.[1]);
+ok(Number.isFinite(bandGap) && Number.isFinite(bandSep) && bandSep > bandGap * 1.5,
+  `the page declares two section intervals and the band boundary is unmistakably wider than the gap inside it (--sp-band-gap: ${bandGap}px, --sp-band-sep: ${bandSep}px)`);
+/* The four rules, by which interval each one takes. `sp-about` takes NEITHER: it is
+ * the last child of `.sp-page`, so its old 26px had nothing under it. */
+const marginRule = (sel) => {
+  const r = cssRules.find((x) => x.sel === sel);
+  return r ? r.body : '';
+};
+/* Either longhand or the `margin` shorthand, because the three measurement sections
+ * use the shorthand (they only ever declared a bottom margin) and the intro uses the
+ * longhand (it has none). What the claim forbids is a LITERAL px value here. */
+const rhythm = { '.sp-intro': 'sep', '.sp-hero': 'gap', '.sp-live': 'gap', '.sp-numbers': 'sep' };
+for (const [sel, which] of Object.entries(rhythm)) {
+  const rule = marginRule(sel);
+  ok(new RegExp(`margin(?:-bottom)?:[^;]*var\\(--sp-band-${which}\\)`).test(rule),
+    `${sel} carries the band ${which}, and not a literal — a literal here is a fourth interval to keep equal`);
+  ok(!/margin(?:-bottom)?:[^;]*\d+px/.test(rule),
+    `and ${sel} declares no bare px interval at all, so the ratio between the two bands is the stylesheet's single decision`);
+}
+ok(/margin:\s*0;/.test(marginRule('.sp-about')),
+  "and .sp-about carries none, because it is the last child of .sp-page and its 26px had nothing under it");
+
+/* The plot's heading is NOT WRAPPED, and this is a claim about an absence.
+ *
+ * `.sp-hero-head` held exactly one element — the `<h2>` — inside a `display: flex` with
+ * a `gap`, which renders identically to no wrapper. It is not in the stylesheet any
+ * more and it is not in the markup, and both halves are asserted because either alone
+ * leaves the other as dead weight: a rule with no element, or an element with no rule,
+ * and the class audit above already covers the second. */
+ok(!markup.includes('sp-hero-head') && !/\.sp-hero-head/.test(cssCode),
+  'the plot heading is a bare <h2> — the single-child wrapper is gone from the markup AND the stylesheet, not emptied and left behind');
+
 
 const asideAt = markup.indexOf('<aside class="sp-left-panel"');
 const mainAt = markup.indexOf('<main id="main" class="sp-main"');
