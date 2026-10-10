@@ -50,6 +50,22 @@ export function initGraphHeader() {
   const toggle = header?.querySelector('[data-graph-header-toggle]');
   if (!header || !toggle) return;
 
+  /* REGISTER ONCE, and this is not defensive boilerplate — a second registration makes
+     the button look DEAD while behaving perfectly.
+   *
+   * `setOpen` reads and writes the `open` variable captured by every registered handler,
+   * so two registrations of `() => setOpen(!open)` invert each other on a single click:
+   * the first handler flips false -> true and adds `is-open`, the second reads `open` as
+   * now-true and immediately flips it back. The net result is that one click changes
+   * nothing at all — no error, no console output, and every observable except the missing
+   * class reads correctly. It is the same shape as §3.L's "a focusable element that does
+   * nothing when activated", reached from a different direction.
+   *
+   * `initThemeToggle()` in shared.js already guards its per-button wiring with exactly
+   * this `dataset.wired` check, for the same reason on a page that calls it twice. */
+  if (toggle.dataset.wired === '1') return;
+  toggle.dataset.wired = '1';
+
   /* The button's contents are set HERE rather than in the HTML, which is the rule
      initMobileNav() already follows for `.site-nav-toggle`: an icon-less button is
      a blank 40px box until the first click, and a hardcoded pair would be a second
@@ -99,14 +115,26 @@ export function initGraphHeader() {
     setOpen(false);
   });
 
-  /* A resize past the breakpoint hands the nav to the mobile drawer, which opens
-     BELOW the header. Leaving the bar open across that change would show a drawer
-     whose parent just changed shape, so the bar collapses and the drawer closes —
-     the same guard initMobileNav() installs for the drawer on its own resize. */
+  /* ONLY ACT WHEN THE BREAKPOINT WAS ACTUALLY CROSSED, which is what the first version
+     did not do and why every resize closed the bar.
+     *
+     * `window.innerWidth > 1024` is true for the overwhelming majority of resizes on a
+     * desktop — a devtools panel opening, a window drag, a zoom level change, a Live
+     * Server style injection — and every one of them silently collapsed a nav the reader
+     * had just opened. On a phone the browser's own chrome hiding and showing fires a
+     * resize on every scroll, so the bar could not survive being opened at all. The rule
+     * this was written for is "crossing the breakpoint hands the nav to the mobile
+     * drawer"; the code said "being wider than the breakpoint", which is a different
+     * sentence and a much more common event.
+     *
+     * `lastNarrow` is initialised from the width at setup, so the FIRST resize is only
+     * acted on when it genuinely moves the page across 1024. */
+  let lastNarrow = window.innerWidth <= 1024;
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 1024) {
-      setOpen(false);
-      document.querySelector('[data-nav-drawer]')?.setAttribute('hidden', '');
-    }
+    const narrow = window.innerWidth <= 1024;
+    if (narrow === lastNarrow) return;
+    lastNarrow = narrow;
+    setOpen(false);
+    document.querySelector('[data-nav-drawer]')?.setAttribute('hidden', '');
   });
 }
