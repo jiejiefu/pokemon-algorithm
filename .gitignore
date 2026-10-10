@@ -46,17 +46,25 @@ build/
 .DS_Store
 Thumbs.db
 
-# AGENTS.md.bak holds the 348-line predecessor of AGENTS.md, including the 34
-# gotchas that were dropped when the file was condensed. Kept on disk as
-# read-only history, deliberately NOT tracked: it is superseded, and leaving it
-# untracked-but-unignored meant a `git add -A` would have swept it into some
-# unrelated commit. The *.json.bak rule above covers pokemon_data.json.bak; this
-# one is here because the two backups are not the same kind of file.
+# AGENTS.md.bak is a manually-made copy of AGENTS.md. It is not on disk right now
+# — one existed until 2026-10-10 and was byte-identical to the live file, so it was
+# never the "predecessor" this rule was written for, and it was deleted rather than
+# left to rot. The rule stays because anyone who takes a backup copy must not have
+# it swept into an unrelated commit by `git add -A`, which §6 forbids anyway. The
+# *.json.bak rule above covers pokemon_data.json.bak; this one is separate because a
+# markdown copy and a data backup are not the same kind of file.
 AGENTS.md.bak
 
 # Agent tooling state (.opencode/plans/*.md are session scratch, not project
 # artifacts; .opencode/.gitignore already covers node_modules and package.json)
 .opencode/
+
+# .impeccable/ holds one dated UI critique per page the impeccable skill reviewed
+# (.impeccable/critique/<timestamp>__<page>.md). Same category as .opencode/
+# above: a tool's notes to itself, not something the repo consumes or a teammate
+# would read. Not to be confused with docs/, which IS tracked — docs/incidents/
+# is §3's record and docs/missing-pages.md is a planning artifact.
+.impeccable/
 
 # IDE settings
 # The whole directory, not a whitelist of shared files. This repo is published, and
