@@ -207,6 +207,56 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 **FOUR CHECKERS FLUSHED IN ONE SESSION, all of them mine, and none of them was a real design problem.** `top / px < 0.9` on the live panel is **marginal, not wrong**: measured at rest the ground is **95.5%** of the panel (655,716 of 686,800 device px), so the test passes through a 5-point band and failed ~1 run in 6 while the curve was drawn perfectly — it now compares coverage against the idle frame. `aria-pressed` is the observable for whether playback was **asked for**, and it flips when `play()` is called, not when the analyser has a frame, so sampling straight after it is a race that fails **in the direction that hides the defect**. Expect this shape whenever a check's threshold was picked while the working tree happened to hold a mutant.
 
 
+<a id="g9"></a>
+## G9. The Graph Checker Failed 100% Pooled And 0% Alone, And Two Guesses Were Only One Of The Reasons
+
+`check_graph_browser.mjs` failed **3 of 3** runs of `node scripts/check_all.mjs --only=model` and passed **3 of 3** standalone, on the same tree, the same Live Server and the same machine. It failed with **three different symptoms across four runs** — `Inspected target navigated or closed` twice, and `clicking a search result opens the dossier (got false)` once — which is what "flaky" looks like when nobody has isolated the variable. §3.G5 already removed every fixed sleep from the other five CDP checkers. This one had two left, and they were real; but fixing them did **not** make the entry reliable, which is the part worth keeping.
+
+### The two fixed sleeps were real, and one number explains both
+
+The file slept **500ms** after dispatching the search input and **600ms** after clicking a search result. The page's search is a **150ms debounce** (`graph.js:638`), so the first was a 350ms margin over a `setTimeout` competing with a **1,346-node force-directed `requestAnimationFrame` loop**. Under tier B — three browser entries in flight, plus this entry's own four-case harness booting more Chromes — that timer lands late, and the assertion read an empty result list.
+
+**THE THREE FAILURES WERE NOT THREE DEFECTS.** `searching 皮卡丘 returns at least one result (got 0)` is the whole event; the two assertions after it failed for the same reason, because with no result row `document.querySelector(".search-item")?.click()` is a no-op and the dossier still shows its default 妙蛙種子. **A cascading failure prints as N independent reds, and the first one is the only one worth reading.**
+
+The 600ms was worse than merely useless: **`renderDossier()` is synchronous** (`graph.js:452` — it sets `is-active`, the artwork, the name, the types, the stats and the links in one call), so there was never anything to wait for. `awaitPromise` already covers the asynchronous part of the click.
+
+Both became polls on a **precondition**, never on the assertion (§3.B2's vacuity shape): the search waits for *a row to exist*, the dossier waits for *the id to equal the clicked row's id*. What is then asserted is still **which** row and **which** species. A poll that waited for `hits.includes('皮卡丘')` would return true on a correct page and time out on a wrong one — the same either way, which is to say it asserted nothing.
+
+### The transport error was a different failure, and it was not the page
+
+`{"code":-32000,"message":"Inspected target navigated or closed"}` says nothing about *where*: **every CDP call in the file goes through one `send`**, so an unannotated renderer loss printed a bare message and the reader had to bisect the file by hand. Two additions made it answer:
+
+- **`lastMethod`**, the CDP method a pending call was waiting on. Module scope, not local to `run()`, because the report is printed by the `.catch` *below* `run()`. **It is deliberately NOT reset on success** — every call here is awaited one at a time, so the most recently *issued* method is by construction the outstanding one, and the first version reset it to `(idle)` on resolve, which made it print `(idle)` for exactly the failure it exists to describe.
+- **Chrome's stderr, captured rather than inherited** (`stdio: ['ignore','ignore','pipe']`, last 4 KB). The renderer dying under WebGL contention says so *here* and nowhere else, and the CDP side reports it as the **byte-identical** message a real navigation produces. `stdio: 'ignore'` — what this used to be — threw the only evidence away, which is why this entry spent its life being "flaky" with no way to tell flaky from crashed.
+
+What it said: **`CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670`**, repeated, from the compositor of a page running 1,346 nodes at 60fps. **A -6670 and a navigation are the same string, and nothing downstream could have told them apart.**
+
+### The fix is a scheduling change, and the argument against it is on purpose
+
+`check_graph_browser.mjs` now carries **`serial: true`** and runs outside the tier-B pool. This is the only entry in the manifest with the flag.
+
+**WHAT THE §4 NOTE AT THAT BLOCK ALREADY ARGUED DOES NOT REACH THIS ENTRY.** Tier B went serial once and was un-retired because `cdpPort()`'s pid-derived windows **overlapped** — 20 of 21 base pairs, collisions aborting loudly mid-run. That argument is entirely about **colliding ports**, and it says nothing about CPU or GPU. A flag written to fix a port collision is not evidence that a different failure cannot happen there.
+
+**WHY THIS IS NOT ACCEPTED AS A FLAKE, when §4 accepts contention elsewhere.** The runner already prices contention in: `check_life_browser.mjs` is **5.1s alone and 13s in a pool of three**, and that is merely *expensive*. This entry **fails**. A red that appears only when the pool's draw happens to put a second full-corpus WebGL graph beside it is worse than an honest slow entry — **a reader learns that red can mean nothing, which is the one thing a checker row is for.** A row that is reliably red in the pool and reliably green alone has stopped measuring the page.
+
+**IT COSTS ~6s OF WALL CLOCK**, and the harness beside it stays pooled and passes there every run, because it serves a trimmed fixture. Only the full 1,346-node page contends.
+
+**THE ALTERNATIVE WAS MEASURED, NOT ASSUMED.** Before flagging anything, both readings were taken: `--only=model` three times with the flag and three times on a **stashed** clean tree, which reproduced the identical failure and proved the change was not the cause. **Expect this shape whenever the fix is "it passes now" — pass it before, pass it after, and be suspicious of a fix whose only evidence is that.**
+
+### What the polls cost, which is real and was worth paying down
+
+| | before | after |
+| :--- | ---: | ---: |
+| `check_graph_browser.mjs` alone | 6.35s | **6.13s** |
+| `test_check_graph_browser.mjs` | 32.8s | **39.6s** |
+
+The healthy path is **unchanged** — the polls return on their first tick, so 6.13s vs 6.35s is noise. **The entire +6.8s is one mutation case** — the one that breaks the page — waiting out the 8s search ceiling before reporting what it already knew. At the first-guess ceilings (12s/5s) the harness measured **49.3s**, so **+16.5s, all of it the same case**: a poll that cannot return early on a dead page is paid for on every dead page. The ceilings are asymmetric because the waits are: the search is genuinely debounced behind a contended timer, the dossier is synchronous and needs 3s only to cover a slow handler start.
+
+**THE MESSAGE QUOTES THE CONSTANT, OR IT QUOTES A LIE.** The first version passed 8000 to the search poll and printed `nothing rendered within 12000ms`. `test_check_graph_browser.mjs` **reads that string**, so a mismatch is not cosmetic — hence `SEARCH_TIMEOUT_MS` / `DOSSIER_TIMEOUT_MS` named once and read by both the wait and the message.
+
+**AND THE REPORT DISTINGUISHES "NO ROW" FROM "THE ROW WAS IGNORED."** They cost nothing to tell apart and mean opposite things: `skipped` means there was nothing to click and the ceiling was correctly never spent; `waited` means the row existed and the dossier ignored it, which is a page defect. **A single boolean for both is how a timing failure is reported as a correctness failure.**
+
+
 <a id="i"></a>
 ## I. The Page/Module Boundary Had A Shipped Defect, And Nothing Could See It
 
