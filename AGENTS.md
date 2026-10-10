@@ -22,27 +22,27 @@
 **寶可夢演算法** is a static, zero-build HTML/CSS/JavaScript web application (GitHub Pages compatible) visualizing computer science algorithms and design tools using 1,025 Pokémon.
 
 ### Core Pages
-| Page | Purpose & Key Features |
+| Page | What it is |
 | :--- | :--- |
-| [`index.html`](./index.html) | Landing page: daily featured Pokémon, quick links, category previews, full 1,025 Pokédex grid |
-| [`pokedex.html`](./pokedex.html) | Searchable Pokédex with fuzzy autocomplete, generation filters, and type/color filters |
-| [`detail.html`](./detail.html) | In-depth Pokémon dossier: 3-column glass hero, Base Stats + Canvas Radar chart, dual-type effectiveness matrix, evolution chain, 4 move tabs (Level, TM, Egg, Tutor). The footer is a 3-way nav — 上一隻 / 單一色盤 / 下一隻 — where each pager link carries the neighbour's `#0001`-style id over its zh name, and the middle link is the reciprocal of `color.html`'s 完整資料頁 |
-| [`sorting.html`](./sorting.html) | Sorting algorithm lab: 6 algorithms (Bubble, Selection, Insertion, Quick, Merge, Heap) on a 1,025-sprite Canvas grid, plus a 2–6 lane race mode — see §3.G3 |
-| [`maze.html`](./maze.html) | Pathfinding lab: BFS / DFS maze traversal on pixelated Pokémon sprites (40×40 grid) with seedable RNG and speed controls |
-| [`colors.html`](./colors.html) | Reverse palette generator: takes ANY hex, finds the closest Pokémon by OKLab distance over the 6,148 measured sprite colours, and generates a shade ramp + theme tokens from it. Shiny is not indexed. Also runs the four Component Showcases (Card, Chart, Dashboard, Component) on the GENERATED palette. See §3.B1 |
-| [`colors-explore.html`](./colors-explore.html) | 1,025 Pokémon color palette gallery with infinite scroll and URL filters |
-| [`color.html`](./color.html) | Single Pokémon color palette page (`?slug=`): hero card, palette grid, shade scales, base stats, and theme exporter. A **bare** `color.html` (no `?slug`/`?id`) shows the same seeded daily pick as the homepage's 今日推薦寶可夢, not the not-found error — one draw, one seed, two callers |
-| [`model3d.html`](./model3d.html) | GLB 3D model viewer driven by `model3d-viewer.js`; the file roster is generated into `glb-index.js` and the models live in `assets/glbs/` |
-| [`collections.html`](./collections.html) | Special collections hub: 11 cards in 4 groups (稀有與傳說 / 熱門分類 / 遊戲與活動 / 特殊形態), 2 of which are `upcoming` and render as non-links |
-| [`category.html`](./category.html) | Reusable template for collection lists (`category.html?cat=<slug>`). 11 categories, one per config in `categories.js`; the roster + a zh-Hant introduction. Does not link to `types.html` — see §3.H |
-| [`outfit.html`](./outfit.html) | Outfit companion lab: pick a garment disc on a photo, MMCQ → six colours, then bidirectional OKLab against all 1,025 palettes. Three ways in — file picker, two bundled presets in `assets/images/outfit-samples/`, and a pasted image URL. See §3.L |
-| [`generations.html`](./generations.html) | Chronological generation guide: 9 generations, 38 games, and 27 regional starters |
-| [`cries-gen1.html`](./cries-gen1.html) | Generation I cry lab: a Game Boy APU re-synthesises all 151 cries from their 38 base command lists, with pitch/length/volume controls, per-channel mute and a timeline that marks the end-of-cry crash |
-| [`spectrum.html`](./spectrum.html) | Cry spectrum lab: a mel spectrogram for all 1,025 recorded cries, 649 legacy recordings and the 151 re-synthesised Generation I ones, revealed left to right in time with the audio, with a live energy curve and the browser's own features differenced against `cry_features.json` on screen. See §3.G1 |
-| [`cries.html`](./cries.html) | Cry overview: 1,025 cards carrying their measured timbre features (brightness, hoarseness, duration), sortable along five axes, with a timbre-similarity panel, a waveform, and the two recorded sets kept apart behind a warning |
-| [`types.html`](./types.html) | Type chart and per-type browser: overview (18 types, full 18×18 chart, history, FAQ) plus `?type=<slug>` pages listing that type's Pokémon, moves, abilities, items, and trainers |
-| [`life.html`](./life.html) | 進化生命遊戲: Conway's Life over one generation's species, with dominant-family genetics, **real in-game evolution levels** (Lv.7–Lv.64, `evolution_levels.json`), wild encounters that land a viable pack, legendary medals, and a legacy-2×2 still-life colony. See §3.K |
-| [`404.html`](./404.html) | GitHub Pages fallback: cleanly redirects `/detail/<slug>` to `detail.html?slug=<slug>&from404=1` |
+| `index.html` | Landing: daily pick, category previews, full 1,025 Pokédex grid |
+| `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation / type / colour filters |
+| `detail.html` | Dossier: 3-col hero, Canvas radar, dual-type matrix, evolution chain, 4 move tabs. 3-way footer pager — §3.A |
+| `color.html` | One species' palette: `?slug=`, shade scales, theme exporter. Bare URL = the same seeded daily pick as the homepage, one draw two callers |
+| `colors.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
+| `colors-explore.html` | All 1,025 palettes, infinite scroll, URL filters |
+| `sorting.html` | 6 sorters on a 1,025-sprite Canvas, plus a 2–6 lane race — §3.G3 |
+| `maze.html` | BFS / DFS pathfinding, 40×40 grid, seedable RNG |
+| `life.html` | Conway's Life over one generation, with real in-game evolution levels — §3.K |
+| `cries.html` | All 1,025 cry cards with measured timbre, 5 sort axes, waveform |
+| `cries-gen1.html` | The 151 Gen-I cries re-synthesised by a Game Boy APU — §3.F |
+| `spectrum.html` | Mel spectrogram over every cry, revealed left to right — §3.G1 |
+| `types.html` | Type chart + per-type browser. The ONLY place the effectiveness matrix appears — §3.D, §3.H |
+| `category.html` | Collection-list template, `?cat=<slug>`. Never links to `types.html` — §3.H |
+| `collections.html` | Collections hub: 11 cards in 4 groups, 2 `upcoming` |
+| `outfit.html` | Garment colour → MMCQ → OKLab against all 1,025 palettes — §3.L |
+| `generations.html` | 9 generations, 38 games, 27 regional starters |
+| `model3d.html` | GLB viewer; roster generated into `glb-index.js` |
+| `404.html` | GitHub Pages fallback: `/detail/<slug>` → `detail.html?slug=…&from404=1` |
 
 ---
 
@@ -50,65 +50,30 @@
 
 ```
 pokemon-algorithm/
-├── assets/
-│   ├── css/
-│   │   ├── shared.css             # Base styles, variables, typography, buttons, cards, tabs, theme tokens
-│   │   ├── detail.css             # Styles specific to detail.html (3-col hero, move tables, radar)
-│   │   ├── life.css               # Styles for life.html. Its toolbar's z-index is deliberately BELOW .header's — §3.K
-│   │   ├── spectrum.css           # Styles specific to spectrum.html (mel ramp, canvases, picker). Every rule sp-, §3.G1
-│   │   └── colors.css             # Styles for color pages (hero wash, palette grids, shade scales, showcase)
-│   ├── js/
-│   │   ├── shared.js              # Core utilities, data loader, theme toggle, type badges, slug helpers
-│   │   ├── color-palette.js       # Palette extraction readers, shade scale generator, copy handlers
-│   │   ├── color-match.js         # OKLab ΔE + closest-Pokémon ranking for colors.html ONLY. Normal palettes only (no shiny). Adds nothing to color-palette.js's exports
-│   │   ├── daily-pick.js          # Seeded daily draw shared by index.html and color.html (one seed, two callers)
-│   │   ├── categories.js          # Category data definitions, hub configuration, tag tone mappings
-│   │   ├── form-names.js          # Official zh-TW names for the 325 evolution-chain form nodes
-│   │   ├── pokemon-lexicon.js     # Traditional Chinese lexicon (genus, habitat, shapes, egg groups)
-│   │   ├── type-chart.js          # Gen 6+ 18×18 type effectiveness matrix
-│   │   ├── shiny-index.js         # Lookup index of 1,327 official shiny artwork IDs
-│   │   ├── sorting-algorithms.js  # Generator-based sorting algorithms for Canvas rendering
-│   │   ├── genus-zh.js            # Generated by extract_genus_zh.py — 734 zh-Hant genus translations
-│   │   ├── form-names-zh.js       # Generated by fetch_form_names.py — portal scrape keyed by base species id
-│   │   ├── glb-index.js           # Generated by extract_glb_index.py — roster of assets/glbs/
-│   │   ├── sv-index.js            # Generated by extract_sv_index.py — 1,025-ID Scarlet/Violet roster
-│   │   ├── cry-index.js           # Generated by extract_cry_index.py — 1,025-ID + 649-ID cry rosters
-│   │   ├── cry-player.js          # Web Audio player for cry playback (decode, envelope, failure reasons, live spectrum tap)
-│   │   ├── life-engine.js         # Conway rules + genetics + real-level evolution + wild-encounter site policy (§3.K)
-│   │   ├── life.js                # life.html controller and canvas renderer (§3.K)
-│   │   ├── cry-spectrogram.js     # The cry feature pipeline re-derived from analyze_cries.py, so the browser can draw a mel spectrogram (§3.G1)
-│   │   ├── gb-apu.js              # Game Boy APU: 2 pulse + noise channels, syntheses gen1_cry_sfx.json to PCM
-│   │   └── model3d-viewer.js      # GLB scene, lighting and animation wiring for model3d.html
-│   ├── data/
-│   │   ├── pokemon_data.json      # Master data: 1,025 Pokémon (stats, names, types, rgb, breeding, dex)
-│   │   ├── color_palettes.json    # 2,050 palettes (normal + shiny) generated via MMCQ
-│   │   ├── evolution_chains.json  # 541 complete evolution chains including mega/gmax forms
-│   │   ├── moves_zh.json          # 782 referenced moves with traditional Chinese names & stats
-│   │   ├── learnsets.json         # Complete move learnsets unioned across generations
-│   │   ├── generations.json       # 9 generations: 38 games, 27 starters, mechanics, new types
-│   │   ├── type_profiles.json     # Per-type prose + zh-TW effects + trainers scraped from InfoPoke (see §3.D)
-│   │   ├── gen1_cries.json        # Generated by fetch_gen1_cries.py — 151 Gen-1 cries: base, pitch, length
-│   │   ├── gen1_cry_sfx.json      # Generated by fetch_gen1_cries.py — 38 base cries as GB channel commands
-│   │   ├── evolution_levels.json  # Generated by fetch_evolution_levels.py — real in-game evolution levels (§3.K)
-│   │   ├── gen1_conformance.json  # 151 x 48 sampled values of the REFERENCE synthesiser's own output
-│   │   ├── cry_features.json      # Generated by analyze_cries.py — 34 timbre features per cry, resampled to 16 kHz
-│   │   └── abilities_zh.json      # 284 official Traditional Chinese ability names
-│   ├── cries/                     # Local cry audio for cry-index.js: latest/ (1,351) + legacy/ (649)
-│   ├── glbs/                      # 3D model binaries for model3d.html (1.glb, 25.glb)
-│   └── images/
-│       ├── pokemon/               # 1,347 front sprites (1.png ... 1025.png + variants)
-│       ├── scarlet-violet/        # 1,225 SV artwork PNGs (1,025-ID roster + 200 unclaimed variants)
-│       ├── sprite/                # 1,025 96px fallback sprites (the guaranteed floor for every species)
-│       ├── shiny/                 # 1,327 official shiny artwork PNGs (475×475)
-│       ├── logo.png               # Header brand mark — byte-identical copy of apple-touch-icon.png, drawn at 40px
-│       ├── apple-touch-icon.png   # Pokéball icon (180×180) — the file logo.png was copied from
-│       └── favicon-32.png         # Pokéball icon (used strictly as tab favicon)
-├── scripts/                       # Python & Node.js build, scrape, and test utilities
-│   │   ├── check_all.mjs          # One entry point for the whole §4 suite, with a content-keyed skip cache (see §4)
-│   │   └── lib/                   # negative.mjs — what "caught by" means; record-inputs.cjs; mute-tap.mjs
-└── data-sources/                  # Raw CSV/XLSX data sources + per-id provenance (never fetched at runtime)
-    └── sv-sources.json            # Records which host each scarlet-violet/*.png actually came from
+├── assets/          css/ · js/ · data/ · cries/ · glbs/ · images/
+├── docs/            incidents/ — the receipts behind §3, one file per area
+├── scripts/         check_all.mjs · check_*.mjs · test_check_*.mjs · lib/ · *.py
+└── data-sources/    raw CSV/XLSX + per-id provenance (never fetched at runtime)
 ```
+
+**No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
+
+**9,063 of the 10,000+ tracked files are binary** (7,063 PNG, 2,000 OGG) and 84 are code (57 `.mjs`, 27 `.py`). `assets/data/` holds 13 JSON tables and is the single source of truth for every page.
+
+**Nine files under `assets/js/` and `assets/data/` are GENERATED and must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
+
+| generated by | produces |
+| :--- | :--- |
+| `extract_genus_zh.py` / `fetch_form_names.py` | `genus-zh.js`, `form-names-zh.js` |
+| `extract_glb_index.py` / `extract_sv_index.py` / `extract_cry_index.py` | `glb-index.js`, `sv-index.js`, `cry-index.js` (§3.E) |
+| `fetch_gen1_cries.py` | `gen1_cries.json`, `gen1_cry_sfx.json` |
+| `fetch_evolution_levels.py` | `evolution_levels.json` (§3.K) |
+| `analyze_cries.py` | `cry_features.json` (§3.G1) |
+| `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
+
+Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
+
+**`scripts/lib/` is shared and small on purpose** — `negative.mjs` is the one definition of what "caught by" means, `pool.mjs` the one worker pool (§3.G7), `cdp-port.mjs` the one place a Chrome path and debug port live, `png.mjs` builds its own test PNGs, `mute-tap.mjs` silences audio before any page script, and `record-inputs.cjs` proves §4's input lists. Editing any of them invalidates every cache entry, which is why they are hashed into every key unconditionally.
 
 ---
 
@@ -408,7 +373,7 @@ So it needed `.of-readout[hidden] { display: none; }` — the fix `shared.css` a
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`.cache/` IS THE SKIP CACHE, AND DELETING IT COSTS ONE SLOW RUN AND NOTHING ELSE.** `scripts/check_all.mjs` writes `.cache/check-state.json` — one content hash per checker over the files it declared in `inputs` (globs expanded first), plus the previous green run's duration and timestamp. Unchanged inputs mean the entry is skipped and reported with the cost it last cost. It is the whole reason a second full run is **0.0 s** rather than 70 s, and the gitignored 12 KB is the cheapest performance work in the project. Three things about it are named because each is a way the mechanism can be green and wrong:
+**`.cache/` IS THE SKIP CACHE, AND DELETING IT COSTS ONE SLOW RUN AND NOTHING ELSE.** `scripts/check_all.mjs` writes `.cache/check-state.json` — one content hash per checker over the files it declared in `inputs` (globs expanded first), plus the previous green run's duration and timestamp. Unchanged inputs mean the entry is skipped and reported with the cost it last cost. It is the whole reason a second full run is **0.0 s** rather than 87 s, and the gitignored ~10 KB is the cheapest performance work in the project. Three things about it are named because each is a way the mechanism can be green and wrong:
 
 - **A FAIL never refreshes an entry**, so a `last 6.0s` is always a green run's measurement. A duration remembered from a failing one would be the one number on the page that does not describe a passing check.
 - **`--force` exists for a checker that passed for a reason other than its inputs** — a missing Chrome, a stale server. The cache trusts the last green result on this machine and nothing else.
@@ -416,20 +381,24 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 `.cache/recorded-inputs.json` is written only by `--prove-inputs`, and `.cache/algo-neg/` is a harness scratch tree rather than state — a leftover there means some run was interrupted, and deleting it is harmless.
 
-**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is 47 scripts run by hand and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: 70 s of checker time cold, 0.0s when nothing relevant moved.** A quarter of that used to be `test_check_gen1_apu.mjs` alone (37 s, 17 of its 39 cases needing that same pass), which §3.G5 explains cannot be made cheaper and which is therefore no longer an entry. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
+**`node scripts/check_all.mjs` runs everything, and skips whatever cannot have changed.** The suite is **49 manifest entries run by hand — 35 checkers and 14 mutation harnesses** — and they are not equally expensive: `check_gen1_apu.mjs` is 5.6 s of which 4.5 s is one pass over the 151-species corpus at 1,048,576 Hz (146,311,704 samples). **Measured on this machine: ~87 s of checker time cold, 0.0 s when nothing relevant moved.** 54% of that cold run is headless Chrome — the 6 `needsServer` CDP checkers plus `test_check_sorting_page.mjs`, whose 25 cases each boot one — and 20% is four CPU-bound pure-Node entries. The other 41 entries total ~19 s, so a "slow suite" is really a handful of browsers. The four spectrum scripts add ~9 s cold, and two of them (`check_spectrogram_port.mjs` and its mutation suite) need the venv, so a machine without it skips those with the reason printed rather than passing.
 
 - **There is deliberately no `--quick` flag on any checker.** `check_gen1_apu.mjs` already says why: "a supported way to skip the conformance comparison is exactly how it would stop happening." A flag is a promise the reader has to remember to keep. The skip lives in the runner, is derived from file CONTENT, and a skipped checker says so on its own line with the reason.
-- **Every manifest entry gets ONE line with a time column, and the column makes three different claims.** `6.0s` is measured this run, `last 6.0s` is a cache hit reporting the previous green run's measured duration (stored as `${name}~` beside the key and the `@` timestamp), and `-` is a row that never ran — a missing script, or a CDP checker with no server on `:5500`. One `row()` helper emits all of them, because five call sites each padding their own column is five chances for the table to drift; it pads the detail but never truncates it, because an `ok` line must fit 56 columns while a skip naming the Runtime Server rule must keep that sentence whole. Two traps are named in the source: the durations live in a **non-cached region of the output's meaning, not in `budget`** — a cache hit's number is real but was not paid for this run, which is why the legend says so and the summary total still sums only what ran; and the cached value is read with `== null`, because `Number(null)` is `0` and would print `last 0.0s` for every entry written before durations were stored. A `▶` line precedes each run because `execFile` buffers — without it, the 13 s of `test_check_color_match.mjs` is a terminal that looks hung.
+- **Every manifest entry gets ONE line with a time column, and the column makes three different claims.** `6.0s` is measured this run, `last 6.0s` is a cache hit reporting the previous green run's measured duration (stored as `${name}~` beside the key and the `@` timestamp), and `-` is a row that never ran — a missing script, or a CDP checker with no server on `:5500`. One `row()` helper emits all of them, because five call sites each padding their own column is five chances for the table to drift; it pads the detail but never truncates it, because an `ok` line must fit 56 columns while a skip naming the Runtime Server rule must keep that sentence whole. Two traps are named in the source: the durations live in a **non-cached region of the output's meaning, not in `budget`** — a cache hit's number is real but was not paid for this run, which is why the legend says so and the summary total still sums only what ran; and the cached value is read with `== null`, because `Number(null)` is `0` and would print `last 0.0s` for every entry written before durations were stored. A `▶` line precedes each run because `execFile` buffers — without it, the 10 s of `test_check_sorting_page.mjs` is a terminal that looks hung.
 - **The input lists are PROVEN, not reviewed.** `--prove-inputs` runs each checker under `scripts/lib/record-inputs.cjs`, a CommonJS preload that records every repo file it opens, and fails if the recording disagrees with the manifest. Miss one file and the checker is skipped after that file changed, so the run is green having verified nothing — strictly worse than no cache, because it looks like coverage. A grep cannot answer it, for the reason `check_nav_pages.mjs` documents about `rg -l initHeaderNav *.html`. Two directions are both required: **read but not declared** (the dangerous one) and **declared but not read** (a typo or a checker that stopped reading something). Proven by breaking the manifest in a scratch copy — both fire.
 - **It is a `-r` preload and not `--import`, and the difference is silent.** Node snapshots a builtin's ESM named exports when the module is first linked, so `import { readFileSync } from 'node:fs'` binds the ORIGINAL function and a patch applied by an `--import` module afterwards is never seen. Measured: with `--import`, `check_color_palettes.mjs` recorded five files and missed both JSON tables it plainly reads. A CJS preload runs before the main module is linked, so the same patch is picked up by every named import.
 - **What is always in the key, whatever a checker declares:** the checker itself, the checker a negative harness exists to attack, every file in `scripts/lib/`, and `check_all.mjs` itself. Editing a checker therefore invalidates its own entry with nothing extra for a maintainer to remember, and changing the cache's own rules cannot reuse entries the old rules produced.
 - **Two checkers are honestly unverifiable and say so on every run.** `check_gen1_page.mjs` and `check_cries_browser.mjs` open NO repo file — their pages arrive over HTTP from Live Server — so their input lists are read off the HTML by hand. That is the weakest claim in the manifest and it is printed as such rather than hidden behind a green tick. The recording is what *establishes* that they touch nothing, rather than a comment claiming it.
+- **`check_spectrogram_port.mjs` prints `SKIP` and EXITS 0 when `../.venv` is absent**, so a machine without Python reports that entry as green. Read the line, not the exit code, when the venv matters — the same reason §3.G5's audit lives in the runner rather than in a fixture.
 - **Also named, because each is a way this can be green and wrong:** a file read only on a branch NOT taken during the recording is not seen (mitigated by the checker's own hash being in the key); existence probes are keyed on `path:size`, not content; files over 256 KB — the cry corpus, the GLBs — are keyed on `path:size:mtime` rather than content; and the cache trusts the last green result on this machine, so `--force` exists for a checker that passed for a reason other than its inputs.
-- Groups are `cry-apu`, `cry-data`, `cry-page`, `color`, `nav`, `data`, `type`, `model`. `--skip=cry` covers the first three without naming them; `--only=`, `--force` and `--no-cache` also work. `node scripts/check_all.mjs --help` prints them with each group's last measured cost, so the runner can be asked what it costs rather than read to find out.
+- **Groups are `algo`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `model`, `nav`, `sort`, `type`** — ten, not eight. `--skip=cry` covers `cry-apu`/`cry-data`/`cry-page` without naming them; `--only=`, `--force` and `--no-cache` also work. `node scripts/check_all.mjs --help` prints them with each group's last measured cost, so the runner can be asked what it costs rather than read to find out.
+- **The runner is SERIAL, and that is the largest untapped lever.** `check_all.mjs` walks the manifest in a `for…of` with one `await run(...)` per entry, and `Promise.all` appears **zero** times in the file. §3.G7 already solved this shape once for the harnesses with `lib/pool.mjs`; it was never lifted to the runner. `run()` itself needs no change to become concurrent — it is `execFile` plus a callback and already returns `{code, out, s}`.
+- **Six entries need the Runtime Server and six are `manual`.** `check_cries_browser`, `check_gen1_page`, `check_spectrum_browser`, `check_life_browser`, `check_outfit_browser`, `check_sorting_page`. **The runner probes with `CRY_PORT` only, while those six honour `CRY_PORT`, `LIFE_PORT`, `SORT_PORT` and `OUTFIT_PORT`** — so overriding one without the others leaves the probe disagreeing with the checkers it is gating.
+- **`.cache/check-state.json` can hold MORE KEYS THAN THE MANIFEST HAS ENTRIES.** A retired entry is left behind on write, because the write path copies the previous state and adds to it. `--help` reads the same `~` durations, so a ghost is a cost figure on the page for a check that no longer runs.
 
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
-**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is 70 s across 47 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
+**There is a mechanism for this and it is `--only=`, and the reason it exists is arithmetic.** A full cold run is ~87 s across 49 entries. A quarter of that was nine mutation harnesses running one child process at a time, all of which §3.G7 pooled or removed. The skip cache already handles the *second* run — 0.0 s when nothing relevant moved — so what is left unhandled is the first run after an unrelated edit, and the answer to that is not "run less often", it is "run the group that covers the file".
 
 **The mapping below is by WHAT YOU EDITED, not by group, because a group is an implementation detail and a file is what you have in your hand.** Each row is derived from the `inputs` lists in `check_all.mjs`, which is why `--prove-inputs` matters: a missing entry there is a file whose checker would be skipped after that file changed, so the first column is a claim and not a convenience.
 
@@ -445,7 +414,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | anything in `scripts/` | `--force --only=<its group>` | editing a checker does not invalidate a cache entry that was written before, and `--force` is the only way to be sure |
 | **a file that is in no row above** | `--help` first, then `--only` on what it names | `--help` prints every group with its last green cost, sorted cheapest first, so an unlisted file is a 3-second question rather than a guess. If it is still unclear, `--prove-inputs` names the checkers that read it (see below) |
 
-**AND IF YOU ALREADY KNOW YOU ONLY NEEDED ONE GROUP, RUNNING THE WHOLE SUITE IS STILL CHEAP.** The skip cache is content-keyed, so a second full run is 0.0 s and even the first one after an unrelated edit only pays for the checkers whose declared `inputs` actually moved. `--only` is for the case where you want the answer *now* rather than after 70 s of waiting; it is not a correctness measure, and `--force` on a group you did not touch buys nothing.
+**AND IF YOU ALREADY KNOW YOU ONLY NEEDED ONE GROUP, RUNNING THE WHOLE SUITE IS STILL CHEAP.** The skip cache is content-keyed, so a second full run is 0.0 s and even the first one after an unrelated edit only pays for the checkers whose declared `inputs` actually moved. `--only` is for the case where you want the answer *now* rather than after 87 s of waiting; it is not a correctness measure, and `--force` on a group you did not touch buys nothing.
 
 **`--only=cry` IS A PREFIX MATCH, NOT A LIST, and that is why it is the right default.** `inGroup()` tests `group === f || group.startsWith(f + '-')`, so `--only=cry` picks up three groups and `--skip=cry` drops three, without anyone maintaining a fourth list of what "cry" means.
 
@@ -453,7 +422,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 **AND WHEN YOU DO NOT KNOW WHICH GROUP OWNS A FILE, ASK.** `node scripts/check_all.mjs --prove-inputs` answers "which checkers read this file" from the recording rather than from a guess, and it is the same recording that keeps the cache honest. A grep cannot: `rg -l initHeaderNav *.html` lists `sorting.html` because its import names the symbol, and two other pages only because they mention it in a comment.
 
-**Know what a group costs before choosing a filter.** Measured from one full cold run, **69.9 s of checker time over 47 entries** — repeat runs of the same tree measured 70–103 s, so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
+**Know what a group costs before choosing a filter.** Measured from one full cold run, **77.7 s of checker time over 49 entries**, and the current run measured 86.8 s — so read the column as a band rather than a constant. The 340.9 s over 41 that preceded it was measured on a machine competing with Chrome at 97% CPU and is kept only as the reason the numbers are not comparable across revisions — **treat the current column as the floor and any figure measured under load as an upper bound**, which is the same caveat `scripts/lib/pool.mjs` carries. Every row below was re-measured after the work in §3.G7, because leaving old figures next to new code is how a table stops meaning anything:
 
 | group | secs | entries | where its time goes |
 | :--- | ---: | ---: | :--- |
@@ -463,7 +432,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `cry-data` | 8.2 | 8 | `test_check_cry_index.mjs` 4.6 s, then `test_check_spectrogram_port.mjs` 1.4 s (was 5.0 s before §3.G7) |
 | `cry-apu` | 5.5 | **1** | `check_gen1_apu.mjs` alone. Its 39-case harness is no longer an entry — §3.G5 explains why it cannot be made cheaper and what was traded for it |
 | `type` | 3.2 | 4 | `test_check_sv_index.mjs` 3.0 s, was 22 s when it copied 2,250 images into a tree per case |
-| `nav` | 3.5 | 5 | `test_check_nav_pages.mjs` 1.6 s, **`check_js_syntax.mjs` 1.7 s — almost all of it one `node` spawn per `<script>` block, 38 of them, because that is the only route to V8's own line numbers. A `vm.SourceTextModule` version would be 0.2 s and was declined: it throws SyntaxError with no `lineNumber`**, `check_page_module_api.mjs` 0.1 s over 295 bindings in 17 pages |
+| `nav` | 3.5 | 5 | `test_check_nav_pages.mjs` 1.6 s, **`check_js_syntax.mjs` 1.7 s — almost all of it one `node` spawn per `<script>` block, 38 of them, because that is the only route to V8's own line numbers. A `vm.SourceTextModule` version would be 0.2 s and was declined: it throws SyntaxError with no `lineNumber`**, `check_page_module_api.mjs` 0.1 s over 314 bindings in 19 pages |
 | `data` | 0.5 | 4 | `check_learnsets.mjs` 0.2 s |
 | `algo` | 3.0 | 3 | `check_life_browser.mjs` 2.2 s (CDP, needs :5500), `check_evolution_levels.mjs` 0.1 s, `check_life_page.mjs` 0.1 s |
 | `model` | 0.1 | 1 | — |
