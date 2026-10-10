@@ -9,6 +9,7 @@ because 19 in-code comments and one runtime message point at `§3.<letter>`.
 
 ---
 
+<a id="f"></a>
 ## F. Cry Audio & the Generation I Table
 Two independent sources, two independent sets of traps. Neither may be hand-edited; both are generated and both are checked.
 
@@ -66,6 +67,7 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 **Generating the conformance vectors has one trap worth writing down.** The reference's roster is a **0-indexed array**, so a dex id is `index + 1`. Reading it as `pokemon[id]` shifts every vector by one species and produces a plausible-looking file that matches nothing — including one species whose vector is not a species at all. The checker therefore asserts the two rosters agree on cry, pitch and length for all 150 before it trusts any of the audio, and the vectors carry those three fields for exactly that reason.
 
 
+<a id="g"></a>
 ## G. The Two Cry Pages
 
 `cries-gen1.html` and `cries.html` are driven over the Chrome DevTools Protocol by `scripts/check_gen1_page.mjs` (74 checks) and `scripts/check_cries_browser.mjs` (25 checks). Those exist because they are the claims no static checker can make — `check_gen1_apu.mjs` can prove the synthesis is right, but not that the page says true things about it or that pressing play does anything.
@@ -121,6 +123,7 @@ Two independent sources, two independent sets of traps. Neither may be hand-edit
 - `node scripts/check_cries_page.mjs` (64 checks) and `node scripts/test_check_cries_page.mjs` (35 mutation cases) guard the page's claims. Five of those cases failed when first written and each was a weak assertion rather than a bad expectation: a `key:` regex that matched the weight presets as well as the axes, a `cp-` scan that found the comment explaining why `cries.css` must not claim one, a roster-gate check that tested for the identifiers instead of the import, a hardcoded-row detector whose threshold also flagged the probe's legitimate `[0, 1, 2, 3]` MFCC readout, and a `state.gen` write-count that balanced because the `IntersectionObserver` it was supposed to exclude is defined *after* the handler — so a mutation moving the sentinel onto the filter passed. The last two are the §4 rule in its purest form: the count has to be a count of something that cannot be on both sides, and the forbidden region has to be bounded at the thing that actually commits the sin.
 
 
+<a id="g1"></a>
 ## G1. The Spectrum Page — a Port That Is Checked Against Its Own Extractor
 
 `spectrum.html` draws a mel spectrogram of any cry in the corpus, in all three sources at once: the 1,025 latest recordings, the 649 legacy ones, and the 151 Generation I syntheses re-rendered through `gb-apu.js`. It is a separate page because it answers a different question from `cries.html` — that one is a browsable index, this one is an instrument — for the same reason §3.B1 splits `colors.html` from `color.html`, and `cries.css` is already shared by two pages, so the new rules live in `spectrum.css` and every one is `sp-`.
@@ -181,6 +184,7 @@ What that costs was measured, over 23 species spanning every source rate and bot
 **`check_spectrum_page.mjs` is 196 checks, `test_check_spectrum_page.mjs` 41 cases, `check_spectrum_browser.mjs` 72.** The 11 new negative cases are the ones worth reading first, because the headline case reproduces the shipped defect exactly — delete the wrapper's opening tag, require the **balance** assertion to be the detector rather than one of the three section-specific ones that also go red. Of those three, the balance check is the only one about the document rather than about one section's intended layout, which is why it is the one that would have caught the next stray marker.
 
 
+<a id="g6"></a>
 ## G6. State Shared Through Storage Is Not State a Per-Page Test Can See
 
 **A page's own default was silently muting three other pages, and NO test could see it, because the bug needed a VISIT ORDER.** `sorting.html` starts with its cry switch off, which is correct — it is the only page that can fire a sound every few milliseconds. It expressed that as `cryPlayer.muted = true`, and that setter **persists** (`#save()` writes the site-wide `pokemon-algorithm:cry-volume` key), so merely *loading* the page wrote `{muted: true}` and `cries.html`, `detail.html` and `spectrum.html` then read it back and went permanently silent — with no control of their own to undo it, because `rg -l "cryPlayer.muted" *.html` named **one file, and it was not one of them**. `cries-gen1.html` was unaffected throughout, because it builds its own `AudioContext` and keeps its mute in per-lane memory that is never written anywhere — which is exactly why the report read as two unrelated bugs ("cries and spectrum are silent, but the Gen I lab is fine").

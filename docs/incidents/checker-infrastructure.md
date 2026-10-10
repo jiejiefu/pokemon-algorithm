@@ -9,6 +9,7 @@ because 19 in-code comments and one runtime message point at `§3.<letter>`.
 
 ---
 
+<a id="g2"></a>
 ## G2. The Header Is Not One Thing — Two Silent Failures, Both From Writing Markup the Runtime Owns
 
 Two defects in `spectrum.html`'s header produced a **visibly broken page with no console output, no failed request and no exception** — the two worst failure modes available, because nothing in §4's harness could see either one. Both are now guarded in `check_nav_pages.mjs` with negative cases, and both have the same root cause: **the header's contents are owned by `shared.js` at runtime, so hand-written markup in those containers is not a style question but a duplication question.**
@@ -20,6 +21,7 @@ Two defects in `spectrum.html`'s header produced a **visibly broken page with no
 **Both claims live in `check_nav_pages.mjs` rather than `check_color_page.mjs`** because that file already owns the mount-point claims — exactly one `<nav data-nav>`, exactly one `[data-nav-toggle]`, exactly one `[data-nav-drawer]`, and no page hand-writing `<a>` inside the nav container. The theme-toggle claim is the same disease in a different container, and it was found the same way: a rendered defect with a clean console. Its negative case must target a page that **actually has a toggle** (spectrum.html), and the row-modifier case must use the exact string `class="header header-colors"` — both anchors are load-bearing, and a stale one throws rather than passing silently, which is why this suite has a stale-anchor guard at all.
 
 
+<a id="g3"></a>
 ## G3. Race Mode — Six Lanes, and the One Shape That Renders Nothing
 
 `sorting.html`'s 競速 tab runs 2–6 algorithms side by side on the same seeded shuffle. It shipped with **every lane blank**, and the cause is the same family as §3.B1's bare `scale` and §3.G2's hand-written header icons: **a bare name that resolves to the module's variable instead of the caller's.**
@@ -35,6 +37,7 @@ Two defects in `spectrum.html`'s header produced a **visibly broken page with no
 - **A race lane's cost is DESTINATION AREA, not sprite count.** Measured in headless Chrome at 1,025 sprites/frame over equal painted area: one lane @22px 16.4 ms, six @6px 18.6 ms, six @12px 23.3 ms, six @24px 35.6 ms. Six 311×289 lanes total 539k px — **less than the 735k px single-mode canvas this page already runs at 60fps** — so lane count is not a pixels question and never needed to be capped for one.
 
 
+<a id="g4"></a>
 ## G4. The Sorting Page Finally Has a Checker — and Why It Took One to Write
 
 `sort` is the newest group, and it exists mostly because §3.G3's defect shipped through a 41-script suite: `rg -l "al-lanes"` returned only `sorting.html` and `algo.css`, and `rg -l "sort-run" scripts/` returned nothing. No checker read the page's DOM or its stylesheet, so six permanently blank canvases were invisible to everything the manifest covered.
@@ -100,6 +103,7 @@ node scripts/check_all.mjs --skip=sort
 **`--skip=sort` IS THE WRONG ADVICE NOW, and saying so is the point.** It was the fifth-largest group at 190 s; the sprite stub and the tab-click brought it to **~31 s** (14 s + 17 s), which is cheaper than every other CDP group in the suite. The filter to reach for is `--static` at 0.5 s, and `--skip=sort` is only worth knowing in case something else you are running needs the machine.
 
 
+<a id="g5"></a>
 ## G5. The Cry Suite Was Slow For Three Unrelated Reasons, And Only One Of Them Was A Payload
 
 §3.G4 cut the sorting checker from 93 s to 14 s with a **stub**: 130 MB of sprites over HTTP, answered with one 71-byte PNG. The obvious next move was to stub the cry suite the same way, and it is the wrong move for two of its three cost centres, so the measurement came before the edit.
@@ -141,6 +145,7 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 **THE CASE COUNT HAD DRIFTED, AND THE POLARITY WITH IT.** The harness header said "17 of the 34 cases below assert something that loop never touches. Those 17 are the reason `stripConformance` exists" — but `CONFORMANCE_EXPECTS` is what decides it, and the **17 are the cases that KEEP the loop**; the 22 are the ones that lose it. The count was also stale (34, then 36 in AGENTS.md and `check_all.mjs`) against an actual **39 = 17 + 22**. Read the old sentence as written and it points at removing the wrong half. **The sum is the tell and it went unread twice**: 21 + 17 = 38 was not 39, and the same paragraph then carried 89, 91 and 92 checks at once, each right about a different thing.
 
 
+<a id="g7"></a>
 ## G7. Nine Harnesses Were Running One Child at a Time, and the Fix Is One Module
 
 `scripts/lib/pool.mjs` exists because nine of the fourteen harnesses under `scripts/` were the same construct: a list of independent cases, each its own `node` process against its own temp tree, run one at a time by a `for` loop around an `execFileSync`. That was **~49 s of a 96 s suite spent with four cores idle**, and the shape was identical enough that fixing it per-file meant the fifth copy got the fix with a typo in it.
@@ -174,6 +179,7 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 **EACH CASE REMOVES ITS OWN TREE IN A `finally` NOW, WHICH MATTERS ONLY BECAUSE OF THE POOL.** The old shape collected every tree in an array and swept them after the loop; with four workers that is four live trees instead of 36, and a crash leaves four behind rather than all of them.
 
 
+<a id="g8"></a>
 ## G8. The Live Curve Is Drawn In The Species' Own Colour, And The Floor Is Not A Taste
 
 `spectrum.html`'s 即時頻譜圖 line and fill are `pokemon_data.json`'s own `rgb` for the current species, lifted only as far as the plot ground requires. `assets/js/species-ramp.js` holds the one function, and **it is a module and not a line in the page for the reason `cry-spectrogram.js` is**: `speciesInk(rgb, ground, contrast, min)` takes the contrast ratio **as a parameter**, so the checker can lift it out of its source and run it over all 1,025 records in bare Node. An import would have made that impossible, and reimplementing the ratio would have been worse than impossible.
@@ -201,6 +207,7 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 **FOUR CHECKERS FLUSHED IN ONE SESSION, all of them mine, and none of them was a real design problem.** `top / px < 0.9` on the live panel is **marginal, not wrong**: measured at rest the ground is **95.5%** of the panel (655,716 of 686,800 device px), so the test passes through a 5-point band and failed ~1 run in 6 while the curve was drawn perfectly — it now compares coverage against the idle frame. `aria-pressed` is the observable for whether playback was **asked for**, and it flips when `play()` is called, not when the analyser has a frame, so sampling straight after it is a race that fails **in the direction that hides the defect**. Expect this shape whenever a check's threshold was picked while the working tree happened to hold a mutant.
 
 
+<a id="i"></a>
 ## I. The Page/Module Boundary Had A Shipped Defect, And Nothing Could See It
 
 `sorting.html` called `cryPlayer.muteForView(true)` from commit `e1eb879`. `assets/js/cry-player.js` did not define that method until `8957cc0`. For the commits in between, every load of sorting.html threw `TypeError: cryPlayer.muteForView is not a function` — and because that call sits about six lines ABOVE the listeners for the mute checkbox, the volume slider, the legacy checkbox and every keyboard shortcut, the throw took all of them with it. The page rendered, the header rendered, the race ran, and the controls were dead.
@@ -222,6 +229,7 @@ So the one real payload — 682 MB of write traffic to re-derive 22 copies of by
 **Verified by mutation, in both directions, on two different modules:** renaming `muteForView` reports `sorting.html: cryPlayer.muteForView — cryPlayer (assets/js/cry-player.js) has no "muteForView"`, and renaming `astarSolve` reports the missing export from `maze.html` with the module's real export list attached. Neither is visible anywhere else in the suite.
 
 
+<a id="j"></a>
 ## J. Every CDP Checker Leaked A Chrome Profile, And 28 GB of tmpdir Proved It
 
 Three of the six browser checkers removed their `--user-data-dir`; three did not, and nothing reported it. `tmpdir` held **3,229 entries and 28 GB**, of which 291 were Chrome profiles — 135 `cr-`, 72 `cdp-`, 43 `spx-`, 36 `sortpage-`, 5 `of-` — and the prefixes belonging to the two checkers that DID clean up were the small ones. This is the same disease AGENTS.md records for five orphaned `http.server` processes, in a directory nobody had looked at.
