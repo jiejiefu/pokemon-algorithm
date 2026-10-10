@@ -982,41 +982,129 @@
 /* The copy affordance paletteGridHtml already renders; this only confirms it. */
 .cp-cell.is-copied { outline: 3px solid var(--accent-gold); }
 
-/* The controls that produce the code, and the code. Side by side from 1000px,
-   because the block is about 35 characters wide and it was rendering in a
-   1400 x 380 box — roughly four fifths empty, which read as "there is more
-   here" rather than "this is all of it". */
-.of-export-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: .8rem;
-  align-items: start;
-}
-.of-export-controls { display: grid; gap: .5rem; align-content: start; }
-.of-export-hint { margin: 0; }
-.of-code {
-  margin: 0;
-  max-height: 340px;
-  overflow: auto;
-  padding: .9rem 1rem;
-  border-radius: 12px;
-  background: var(--bg-controls);
-  border: 1px solid var(--border);
-  font-size: .78rem;
-  line-height: 1.6;
-  white-space: pre;
-  tab-size: 2;
-}
+/* ---------------------------------------------------------------------------
+   把它變成主題 — the exported-code block
+   ---------------------------------------------------------------------------
 
-/* AFTER the base rule on purpose: same specificity, so source order decides, and
-   this one has to win. Placed above it, the one-column base overrode it and the
-   code stayed full-width — which is exactly how a media query that reads
-   correctly in the stylesheet can have no effect in the browser. */
-@media (min-width: 1000px) {
-  /* 340px, measured: the three format buttons total ~330px with their gaps, so
-     this is the width at which the segmented control stops wrapping after its
-     second option — a split that reads as two controls rather than one. */
-  .of-export-row { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
+   This is `color.html`'s `.cp-theme-code-block`, rule for rule, under `of-`
+   names. It is NOT a fork of the shared component and NOT a new design: the
+   two blocks export the output of the same three generators and must look like
+   the same thing. What this file adds is the `of-` alias §3.B1 requires — the
+   shared rules keep their selectors and this page mounts colors.css, so what is
+   actually duplicated here is the *selector list*, and only because a `.cp-*`
+   rule may not be edited for a need one page has. The declarations and the
+   tokens are identical, so the two blocks cannot drift apart in pixels.
+
+   `max-width` is the one value with no counterpart upstream, and it exists
+   because of a measurement rather than a preference: the widest line these
+   generators emit is 73 characters (measured — tw4 110 lines / tw3 139 / json
+   80), which at this mono size is ~550px. Uncapped, the block would be ~55% empty
+   for the CSS formats and ~75% for JSON — the same "four fifths empty" problem
+   the old two-column layout was written to solve, only wider. 760px fits the
+   widest line plus its padding, so the shell reads as sized to its contents.
+   --------------------------------------------------------------------------- */
+.of-export-hint { margin: .6rem 0 0; }
+
+.of-theme-code-block {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  max-width: min(100%, 760px);
+}
+.of-theme-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-card);
+  flex-wrap: wrap;
+}
+.of-theme-tab {
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.of-theme-tab.is-active { background: var(--surface-raised); color: var(--text-primary); }
+.of-theme-tab:focus-visible { outline: 2px solid var(--focus-ring, var(--accent-gold)); outline-offset: 2px; }
+.of-theme-lines {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.of-theme-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-controls);
+}
+.of-theme-dots { display: flex; align-items: center; gap: 6px; }
+.of-theme-dots span { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--hairline-strong); }
+.of-theme-dots span:nth-child(1) { background: #ff5f57; }
+.of-theme-dots span:nth-child(2) { background: #febc2e; }
+.of-theme-dots span:nth-child(3) { background: #28c840; }
+.of-theme-filename {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.of-theme-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+/* 30x26, comfortably past WCAG 2.2 SC 2.5.8's 24x24 — the upstream rule inherits
+   whatever line-height the icon gives it, and a 4px/8px padding on a 14px glyph
+   lands at 22px, which does not. */
+.of-theme-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.of-theme-action:hover { background: var(--surface-hover); border-color: var(--hairline-strong); color: var(--text-primary); }
+.of-theme-action:focus-visible { outline: 2px solid var(--focus-ring, var(--accent-gold)); outline-offset: 2px; }
+.of-theme-action .icon { opacity: 0.9; }
+.of-theme-code-pre {
+  margin: 0;
+  padding: clamp(12px, 2vw, 16px);
+  overflow: auto;
+  max-height: clamp(360px, 60vh, 520px);
+  background: var(--bg-card);
+}
+.of-theme-code-pre:focus-visible { outline: 2px solid var(--focus-ring, var(--accent-gold)); outline-offset: -2px; }
+.of-theme-code-pre code {
+  display: block;
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.8vw, 12.5px);
+  line-height: 1.9;
+  color: var(--text-primary);
+  tab-size: 2;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1166,67 +1254,20 @@
 }
 
 /* ---------------------------------------------------------------------------
-   The export row's buttons.
-   `.cp-btn` is defined in colors.css ONLY as `.cp-panel-row .cp-btn`, so the
-   three format toggles and the copy/download pair rendered as the browser's
-   default grey chrome — measured at `background: rgb(107,107,107)`, `2px
-   outset`, `border-radius: 0`. The fix is scoped HERE rather than by widening
-   the colors.css selector: §3.B1's rule is that a `.cp-*` component three other
-   pages share does not get edited for a need one page has, and the answer is
-   an `of-` rule, not a broader one. */
-.of-export-controls .cp-actions { gap: .4rem; }
-.of-export-controls .cp-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;              /* WCAG 2.2 SC 2.5.8 */
-  /* Tight enough that the three format options stay on one line in a 340px
-     column. They are one segmented control, and a wrap after the second option
-     reads as two controls. */
-  padding: .38rem .68rem;
-  font: inherit;
-  font-size: .78rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-controls);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
-}
-.of-export-controls .cp-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-/* `aria-pressed` is the state, not a class: renderExport() rewrites this whole
-   row on every render, so a class-based active state would have to be reapplied
-   by hand every time. The attribute is already correct by construction. */
-.of-export-controls .cp-btn[aria-pressed="true"] {
-  color: var(--accent-gold);
-  background: var(--bg-card);
-  border-color: var(--accent-gold);
-}
-.of-export-controls .cp-btn:focus-visible {
-  outline: 2px solid var(--accent-gold);
-  outline-offset: 2px;
-}
-/* The last two are the actions rather than the format choice, so they read as
-   the end of the row instead of a fifth option in the same segmented control. */
-.of-export-controls #of-copy,
-.of-export-controls #of-download {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-.of-export-controls #of-download {
-  color: var(--on-accent);
-  background: var(--accent-gold);
-  border-color: var(--accent-gold);
-  font-weight: 600;
-}
-.of-export-controls #of-download:hover {
-  color: var(--on-accent);
-  filter: brightness(1.06);
-}
+   The export row's buttons — DELETED, and the class audit asserts their absence.
+
+   These 60 lines styled `.cp-btn` for a segmented control that no longer exists:
+   the three format choices are now a real `role="tablist"` wearing
+   `.of-theme-tab`, and the two actions are icon-only `.of-theme-action`s in the
+   block's chrome header. Every selector here had zero matching elements.
+
+   That is not merely untidy. `.of-export-controls .cp-btn[aria-pressed="true"]`
+   claimed to be the active-format state, and a rule with no element and an
+   element with no rule are the two halves of the same drift — §3.G1a. The
+   replacement state is `aria-selected` on a `role="tab"`, and nothing in
+   colors.css or this file styles that, which is correct: `.of-theme-tab.is-active`
+   is the visual, and `wireRoving()` writes both together.
+   --------------------------------------------------------------------------- */
 
 /* Studio Toolbar - Sticky Bottom Dock */
 .of-studio-bar {

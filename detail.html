@@ -270,7 +270,7 @@
     import {loadPokemonData, ASSETS, formatPokemonId, pokemonSlug, pokemonDetailPath,
       pokemonDetailUrl, loadEvolutionChain, renderEvolutionChain,
       loadLearnsets, loadMoveDefs, renderMoveSection, typeBadgeHtml, initThemeToggle, initHeaderNav, readThemeToken,
-      badgeStyle, hexToRgb, capitalize, symbolSiblings } from './assets/js/shared.js';
+      badgeStyle, hexToRgb, capitalize, symbolSiblings, wireRoving } from './assets/js/shared.js';
     // 5.7 KB of ids, so the toggle can be disabled before a click rather than
     // painting a 404 and swapping back. See the module for why a probe per id
     // is worse.
@@ -1076,44 +1076,27 @@
           ${DESC_POKE_BALL}
         </button>`).join('');
 
-      wireDescVersions(texts.length);
+      wireDescVersions();
 
       // Always back to version 1: renderDescriptions() also runs from the pager,
       // so without this a 上一隻/下一隻 inherits the previous Pokémon's selection.
     }
 
     /**
-     * WAI-ARIA tab keyboard support, mirroring wireMoveTabs() in shared.js:
-     * arrows wrap, Home/End jump to the ends, and only the selected tab is in the
-     * tab order (roving tabindex).
+     * WAI-ARIA tab keyboard support. The key map, the wrap-around and the roving
+     * tabindex all come from `wireRoving()` in shared.js — this only owns which
+     * description panel each tab shows, because a version bar's panels are its
+     * own `hidden` divs rather than anything shared.js knows about.
      */
-    function wireDescVersions(count) {
+    function wireDescVersions() {
       const bar = el('desc-versions');
       const tabs = [...bar.querySelectorAll('.desc-version')];
-      const select = tab => {
+      wireRoving(tabs, 'aria-selected', active => {
         for (const other of tabs) {
-          const selected = other === tab;
-          other.setAttribute('aria-selected', String(selected));
-          other.tabIndex = selected ? 0 : -1;
           const panel = el(`desc-panel-${other.id.split('-').pop()}`);
-          if (panel) panel.hidden = !selected;
+          if (panel) panel.hidden = other !== active;
         }
-        tab.focus();
-      };
-
-      tabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => select(tab));
-        tab.addEventListener('keydown', event => {
-          let next = null;
-          if (event.key === 'ArrowRight') next = tabs[(index + 1) % count];
-          else if (event.key === 'ArrowLeft') next = tabs[(index - 1 + count) % count];
-          else if (event.key === 'Home') next = tabs[0];
-          else if (event.key === 'End') next = tabs[count - 1];
-          if (!next) return;
-          event.preventDefault();
-          select(next);
-        });
-      });
+      }, { activeClass: null, focusOnClick: true });
     }
 
     // The canvas is sized from its rendered box, so redraw when that box changes.

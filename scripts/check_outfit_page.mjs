@@ -747,6 +747,98 @@ for (const s of samplePaths) {
     `every zh name is CJK with no latin character, which is WHAT MAKES the widths quantised (${withLatin.length} do: ${withLatin.slice(0, 3).join(', ')}) — one latin glyph inside a 5-character name would push it past 140px while a character count still said 5`);
 }
 
+/* ---------------------------------------------------------------------------
+   The 把它變成主題 block: three claims, none of which is about a colour.
+   ---------------------------------------------------------------------------
+
+   The block was rebuilt to wear `color.html`'s `.cp-theme-code-block` shell, and
+   that rebuild traded a set of un-guarded invariants for a tablist. Two of them
+   are shape claims nothing else in this repo reaches, and the third is the one
+   that goes wrong silently.
+
+   1. THE DEAD SELECTORS ARE GONE. `outfit.css` carried 60 lines of
+      `.of-export-controls .cp-btn*` for a segmented control the rebuild removed.
+      Left in place they would be a rule with no element, which §3.G1a calls half
+      of the same drift as an element with no rule — and the half that reads as
+      intentional. Asserted by selector, over a comment-stripped stylesheet, so
+      the explanatory note above them does not satisfy it.
+
+   2. THE TABS ARE A REAL TABLIST. `color.html` has carried `role="tablist"` and
+      roving tabindex since it shipped; this block used three `aria-pressed`
+      toggle buttons in a `.cp-actions` row. A tablist without arrow keys is a
+      WAI-ARIA authoring violation, so the roles and the `wireRoving` import are
+      both asserted rather than trusted.
+
+   3. `FORMATS` AND THE MARKUP AGREE. The format labels moved out of JS and into
+      the block, because a `label` field nothing reads is a label that can drift
+      from the one a reader sees. That is only safe while the two stay in step, so
+      this parses both sides and compares the key SETS in both directions. One
+      direction is the obvious mistake (a fourth format in `FORMATS` with no tab);
+      the other is the one that actually happens (a tab whose `data-of-fmt` no
+      longer matches a key, which renders a button that switches to `undefined`
+      and then throws on `FORMATS[exportFormat].build`).
+   --------------------------------------------------------------------------- */
+console.log('');
+console.log('把它變成主題: the code block is a real tablist, and its dead rules are gone');
+
+const OUTFIT_CSS_SRC = readFileSync(join(ROOT, 'assets/css/outfit.css'), 'utf8');
+// Comments are stripped because the file explains each deleted selector by name
+// — an assertion that grepped raw source would be satisfied by prose.
+const OUTFIT_CSS_RULES = OUTFIT_CSS_SRC.replace(/\/\*[\s\S]*?\*\//g, '');
+
+// A checker's own exclusion list is the thing §3.G1a's "an exclusion list is a
+// place a regression can hide" is about, so each selector is asserted on its own
+// line rather than collapsed into one `every()` whose message names them all.
+const DEAD_SELECTORS = ['.of-export-row', '.of-export-controls', '.of-code', '.cp-btn'];
+for (const sel of DEAD_SELECTORS) {
+  ok(!OUTFIT_CSS_RULES.includes(sel),
+    `outfit.css carries no rule for "${sel}", which the rebuild removed — a rule with no element is half of the same drift as an element with no rule, and the half that reads as deliberate`);
+}
+
+ok(OUTFIT_CSS_RULES.includes('.of-theme-code-block'),
+  'and it carries the shell the block now wears, under this page\'s own prefix');
+ok(/\.of-theme-code-block\s*\{[^}]*max-width/.test(OUTFIT_CSS_RULES),
+  'with the 760px cap the measurement asked for — without it the block is ~55% empty for the CSS formats and ~75% for JSON, which is the problem the old two-column layout existed to solve, only wider');
+
+const tabFmts = [...OUTFIT_HTML.matchAll(/data-of-fmt="([^"]+)"/g)].map((m) => m[1]);
+const formatsBlock = OUTFIT_HTML.match(/const FORMATS = \{([\s\S]*?)\n {4}\};/);
+ok(!!formatsBlock, 'the page still declares a FORMATS table for the three generators');
+const formatKeys = formatsBlock
+  ? [...formatsBlock[1].matchAll(/^\s{6}(\w+):\s*\{/gm)].map((m) => m[1])
+  : [];
+eq([...tabFmts].sort(), [...formatKeys].sort(),
+  'the block\'s three tabs and the FORMATS table name exactly the same three formats, in both directions — a key with no tab renders nothing, and a tab with no key throws on FORMATS[exportFormat].build');
+ok(new Set(tabFmts).size === tabFmts.length,
+  'no two tabs claim the same data-of-fmt, or the second is unreachable at any roving index');
+
+// Every tab, not the first: a nameless SECOND tab is the one a reader cannot
+// reach by tabbing (roving tabindex parks the rest at -1) and cannot name.
+const tabLabels = [...OUTFIT_HTML.matchAll(/<button[^>]*\sdata-of-fmt="([^"]+)"[^>]*>([^<]*)</g)]
+  .map((m) => ({ fmt: m[1], label: m[2].trim() }));
+eq(tabLabels.length, tabFmts.length,
+  'every data-of-fmt is on a <button> whose open tag the label parse can reach, so the namelessness check below cannot be satisfied by matching zero of them');
+for (const t of tabLabels) {
+  ok(t.label.length > 0, `the ${t.fmt} tab has text, not a glyph — an icon-only tab has nothing for a screen reader to fall back on`);
+}
+
+ok(/role="tablist"/.test(OUTFIT_HTML), 'the format row is a role="tablist"');
+ok((OUTFIT_HTML.match(/class="of-theme-tab[^"]*"[^>]*role="tab"/g) || []).length === 3, 'with three role="tab" buttons');
+ok(/role="tabpanel"/.test(OUTFIT_HTML), 'and the code is a role="tabpanel" it points at');
+ok((OUTFIT_HTML.match(/aria-controls="of-code"/g) || []).length === 3,
+  'every tab\'s aria-controls names the one panel, so each button owns something');
+
+ok(/import\s*\{[^}]*\bwireRoving\b[^}]*\}\s*from\s*'\.\/assets\/js\/shared\.js'/.test(OUTFIT_HTML),
+  'the tab key map is shared.js\'s wireRoving, not a fourth page-local copy');
+ok(!/function\s+wireRoving\b/.test(OUTFIT_HTML),
+  'and this page defines none — a tablist whose arrow keys are a local copy is how the three existing copies drifted apart in the first place');
+ok(/import\s*\{[^}]*\bhighlightCode\b[^}]*\}\s*from\s*'\.\/assets\/js\/code-highlight\.js'/.test(OUTFIT_HTML),
+  'the syntax highlighter is the module color.html imports too, so the two code blocks cannot colour the same token differently');
+ok(!/function\s+highlight\b/.test(OUTFIT_HTML),
+  'and this page defines none');
+
+ok(/highlightCode\(code\)/.test(OUTFIT_HTML),
+  'the panel is filled through highlightCode\'s HTML, whose textContent is byte-identical to the source — check_outfit_browser.mjs JSON.parse()s that text, so the two have to agree');
+
 console.log('');
 if (failures) {
   console.log(`${failures} of ${checks} checks failed`);

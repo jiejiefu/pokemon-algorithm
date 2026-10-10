@@ -84,9 +84,9 @@
 
   <main class="cp-page">
     <div class="cp-intro">
-      <h1>寶可夢穿搭夥伴</h1>
+      <h1>寶可夢穿搭</h1>
       <p class="of-intro-lead">
-        上傳今天的穿搭照片，點幾下身上的衣服，就能算出專屬的六色色盤——用的是<b>和 1,025 隻寶可夢完全相同的 MMCQ 演算法</b>，
+        上傳今天的穿搭照片，點幾下身上的衣服，就能算出專屬的 OOTD 色盤——用的是<b>和 1,025 隻寶可夢完全相同的 MMCQ 演算法</b>，
         再以 <b>OKLab 雙向感知色距</b>比對（兩個方向各算一次），找出配色最合的寶可夢夥伴。
         還能<b>把寶可夢直接放進照片裡</b>，縮放、翻轉、隨意擺位，最後下載成圖。
       </p>
@@ -361,16 +361,50 @@
         這一組顏色可以直接變成前端用的主題：<b>CSS 變數</b>、<b>Tailwind v3 設定檔</b>、<b>Tailwind v4 CSS</b> 或 <b>JSON</b>，一鍵複製或下載。
         跟<a href="colors.html">色彩生成器</a>用的是同一組函式，所以格式完全一致。
       </p>
-      <!-- The code block is ~35 characters wide and was rendering in a 1400px,
-           380px-tall box: roughly four fifths empty. It now sits in a column of
-           its own beside the controls that produce it. -->
-      <div class="of-export-row">
-        <div class="of-export-controls">
-          <div class="cp-actions" id="of-actions"></div>
-          <p class="of-note of-export-hint">點上方任一格式即時切換；「複製」與「下載」輸出目前選取的格式。</p>
+      <!-- The same shell `color.html`'s 匯出主題 block wears: a tab strip, a
+           window-chrome header carrying the filename and the two actions, and the
+           code itself. The rules are `of-theme-*` rather than a second copy of
+           `cp-theme-*`, because §3.B1 forbids widening a `.cp-*` component three
+           pages share for a need this page alone has — the component is REUSED
+           (colors.css is already mounted), never forked.
+           The tabs are static markup rather than `renderExport()`'s innerHTML:
+           that function runs on every result change, and rewriting a control's
+           markup there is how references end up pointing at detached nodes. It
+           now only writes state. -->
+      <div class="of-theme-code-block">
+        <div class="of-theme-tabs" id="of-actions" role="tablist" aria-label="匯出格式">
+          <button type="button" class="of-theme-tab is-active" role="tab" id="of-tab-tw4"
+                  aria-controls="of-code" aria-selected="true" tabindex="0" data-of-fmt="tw4">Tailwind v4 (CSS)</button>
+          <button type="button" class="of-theme-tab" role="tab" id="of-tab-tw3"
+                  aria-controls="of-code" aria-selected="false" tabindex="-1" data-of-fmt="tw3">Tailwind v3 (Config)</button>
+          <button type="button" class="of-theme-tab" role="tab" id="of-tab-json"
+                  aria-controls="of-code" aria-selected="false" tabindex="-1" data-of-fmt="json">JSON</button>
+          <span class="of-theme-lines" id="of-theme-lines"></span>
         </div>
-        <pre class="of-code" id="of-code" tabindex="0" aria-label="產生的主題碼"></pre>
+        <div class="of-theme-code-header">
+          <div class="of-theme-dots" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="of-theme-filename" id="of-theme-filename"></span>
+          <div class="of-theme-actions">
+            <!-- Icon-only, so each carries an `aria-label`: a glyph is not a name,
+                 and the download glyph in particular has no text to fall back on. -->
+            <button type="button" class="of-theme-action" id="of-copy" aria-label="複製主題碼">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            </button>
+            <button type="button" class="of-theme-action" id="of-download" aria-label="下載主題碼">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 15V3M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <pre class="of-theme-code-pre" id="of-code" role="tabpanel" tabindex="0" aria-labelledby="of-tab-tw4"><code id="of-code-content"></code></pre>
       </div>
+      <p class="of-note of-export-hint">點上方任一格式即時切換；右上角的「複製」與「下載」輸出目前選取的格式。</p>
     </section>
     </div><!-- /.of-readout -->
   </main>
@@ -389,13 +423,16 @@
     // error a reader would see. Check the import list, not the exports.
     import {
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
-      pokemonDetailUrl,
+      pokemonDetailUrl, wireRoving,
     } from './assets/js/shared.js';
     import {
       loadColorPalettes, artworkUrl, paletteGridHtml, paletteStripHtml, paletteUrl,
       paletteToThemeTokens, themeToTailwindV4Css, themeToTailwindV3Config, themeToJson,
       describeHex, formatShare, formatHex,
     } from './assets/js/color-palette.js';
+    // Same three generators, same three languages, same highlighter as
+    // `color.html` — see the module for why this is not a second copy.
+    import { highlightCode } from './assets/js/code-highlight.js';
     import { buildMatchIndex, matchPalette, paletteOf, pixelToOklab as toLab } from './assets/js/color-match.js';
     import { snapToReal } from './assets/js/mmcq.js';
     import {
@@ -454,8 +491,13 @@
       paletteNote: document.getElementById('of-palette-note'),
       exportSec: document.getElementById('of-export-sec'),
       readout: document.getElementById('of-readout'),
-      actions: document.getElementById('of-actions'),
-      code: document.getElementById('of-code'),
+      formatTabs: Array.from(document.querySelectorAll('#of-actions [data-of-fmt]')),
+      themeLines: document.getElementById('of-theme-lines'),
+      themeFilename: document.getElementById('of-theme-filename'),
+      codePanel: document.getElementById('of-code'),
+      code: document.getElementById('of-code-content'),
+      copyBtn: document.getElementById('of-copy'),
+      downloadBtn: document.getElementById('of-download'),
     };
 
     let pokemon = [];
@@ -972,7 +1014,7 @@
       renderWinner();
       renderCandidates(ranks);
       renderPalette(rows);
-      renderExport(rows);
+      renderExportFor(rows);
     }
 
     // ---------------------------------------------------------------------
@@ -1434,63 +1476,117 @@
 
     let themeBundle = null;
     let exportFormat = 'tw4';
+    // Module scope rather than a local of renderExportFor(), because the tab
+    // handler re-enters renderExport() without the rows and needs the same name.
+    let exportName = '穿搭';
 
+    // No `label` field: the three tab labels are static markup in the block, so
+    // keeping a second copy here would be a label that can drift from the one a
+    // reader sees. `check_outfit_page.mjs` asserts this table's keys and the
+    // markup's `data-of-fmt` attributes are the same set in both directions.
     const FORMATS = {
       tw4: {
-        label: 'Tailwind v4 · CSS',
         filename: () => 'outfit-theme.css',
         mime: 'text/css',
         build: (b, n) => themeToTailwindV4Css(b, { pokemonName: n }),
       },
       tw3: {
-        label: 'Tailwind v3 · config',
         filename: () => 'outfit-tailwind.config.js',
         mime: 'text/javascript',
         build: (b, n) => themeToTailwindV3Config(b, { pokemonName: n }),
       },
       json: {
-        label: 'JSON',
         filename: () => 'outfit-theme.json',
         mime: 'application/json',
         build: (b, n) => themeToJson(b, { pokemonName: n }),
       },
     };
 
-    function renderExport(rows) {
-      const hexes = rows.map((r) => r.hex);
-      themeBundle = paletteToThemeTokens(hexes);
-      const exportName = currentWinner ? speciesName(currentWinner.id) : '穿搭';
+    // The three formats' key map, the wrap-around and the roving tabindex all
+    // come from shared.js — the same call `color.html`'s exporter and
+    // detail.html's version bar make. A tablist without arrow keys is a WAI-ARIA
+    // authoring violation, and it is written ONCE here rather than three times.
+    wireRoving(els.formatTabs, 'aria-selected', btn => {
+      exportFormat = btn.dataset.ofFmt;
+      if (themeBundle) renderExport();
+    });
 
-      els.actions.innerHTML = `
-        ${Object.entries(FORMATS).map(([key, f]) => `
-          <button type="button" class="cp-btn cp-btn-sm" data-of-fmt="${key}"
-                  aria-pressed="${key === exportFormat}">${escapeHtml(f.label)}</button>`).join('')}
-        <button type="button" class="cp-btn cp-btn-sm" id="of-copy">複製</button>
-        <button type="button" class="cp-btn cp-btn-sm" id="of-download">下載</button>`;
+    /**
+     * One toast, reused by both actions.
+     *
+     * It is `position: fixed` rather than absolute so it survives the section
+     * scrolling out from under it, and it is a separate node rather than a swap
+     * of the button's own label because these two buttons are icon-only now: the
+     * old `flash()` did `btn.textContent = message`, which on an icon button
+     * erases the `<svg>` and leaves a bare word floating where a glyph was —
+     * which is also a 14px-tall WCAG 2.2 SC 2.5.8 target that just changed size.
+     */
+    let toastEl = null;
+    let toastTimer = 0;
+    function toast(message) {
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.className = 'cp-toast';
+        toastEl.setAttribute('role', 'status');
+        document.body.appendChild(toastEl);
+      }
+      toastEl.textContent = message;
+      toastEl.classList.add('is-visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('is-visible'), 1600);
+    }
 
-      els.code.textContent = FORMATS[exportFormat].build(themeBundle, exportName);
+    els.copyBtn.addEventListener('click', async () => {
+      const ok = await copyText(els.code.textContent);
+      toast(ok ? '已複製' : '複製失敗，請手動選取');
+    });
 
-      els.actions.querySelectorAll('[data-of-fmt]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          exportFormat = btn.dataset.ofFmt;
-          renderExport(rows);
-        });
-      });
+    els.downloadBtn.addEventListener('click', () => {
+      const f = FORMATS[exportFormat];
+      const blob = new Blob([els.code.textContent], { type: `${f.mime};charset=utf-8` });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = f.filename();
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('已下載');
+    });
 
-      els.actions.querySelector('#of-copy').addEventListener('click', async (e) => {
-        const ok = await copyText(els.code.textContent);
-        flash(e.currentTarget, ok ? '已複製' : '複製失敗');
-      });
-      els.actions.querySelector('#of-download').addEventListener('click', (e) => {
-        const f = FORMATS[exportFormat];
-        const blob = new Blob([els.code.textContent], { type: `${f.mime};charset=utf-8` });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = f.filename();
-        a.click();
-        URL.revokeObjectURL(a.href);
-        flash(e.currentTarget, '已下載');
-      });
+    /**
+     * Write state; do not rebuild the block.
+     *
+     * This used to own the whole row's `innerHTML` and re-attach all five
+     * listeners on every result change. The tabs are static markup now, so the
+     * nodes survive and only their state is written — see the comment on the
+     * block for why that matters.
+     *
+     * Takes no argument: the rows were only ever read to build the token bundle,
+     * and the format switch now arrives through the tablist rather than by
+     * re-entering here with them.
+     */
+    function renderExport() {
+      if (!themeBundle) return;
+
+      const code = FORMATS[exportFormat].build(themeBundle, exportName);
+
+      // `els.code` is the `<code>`, so its textContent is exactly the generated
+      // source — every span in `highlightCode` wraps source text and the hex chip
+      // contributes no text of its own. `check_outfit_browser.mjs` parses this
+      // text with JSON.parse(), and that equality is load-bearing.
+      els.code.innerHTML = highlightCode(code);
+      els.codePanel.setAttribute('aria-labelledby', `of-tab-${exportFormat}`);
+      els.themeLines.textContent = `${code.split('\n').length} 行`;
+      els.themeFilename.textContent = FORMATS[exportFormat].filename();
+    }
+
+    /**
+     * Fold a measured palette into the exported theme and repaint the block.
+     * Called once per result, before the section is revealed.
+     */
+    function renderExportFor(rows) {
+      themeBundle = paletteToThemeTokens(rows.map((r) => r.hex));
+      exportName = currentWinner ? speciesName(currentWinner.id) : '穿搭';
+      renderExport();
     }
 
     /**

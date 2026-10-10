@@ -2004,33 +2004,87 @@ export function renderMoveSection(container, learnset, moveDefs) {
 }
 
 /**
- * WAI-ARIA tab keyboard support: arrows move between tabs, Home/End jump to
- * the ends, and only the selected tab is in the tab order (roving tabindex).
+ * Roving tabindex + arrow keys over a group of buttons that behave as one
+ * control — a `tablist`, or a `radiogroup` of mutually exclusive modes.
+ *
+ * WHY THIS IS HERE AND NOT IN THREE PLACES
+ *
+ * This repo grew three hand-rolled copies of the same widget, and they had
+ * already drifted before they were ever compared: `color.html`'s version also
+ * accepted ArrowUp/ArrowDown, the two `hidden`-panel versions did not, and only
+ * one of the three toggled an `is-active` class. A tablist without arrow keys is
+ * a WAI-ARIA authoring violation, so each copy is a real accessibility surface —
+ * which is exactly why the fourth one should not be written either.
+ *
+ * The panel-hiding versions (`wireMoveTabs` below, `wireDescVersions` in
+ * detail.html) are now thin adapters over this, so all four callers share one
+ * key map and one wrap-around rule.
+ *
+ * @param {Element[]} btns - the buttons, in visual order
+ * @param {string} attr - the state attribute: `aria-selected` or `aria-checked`
+ * @param {(active: Element) => void} apply - run after the state is written
+ * @param {object} [opts]
+ * @param {'horizontal'|'vertical'} [opts.orientation='horizontal'] - which arrow
+ *   keys move selection. WAI-ARIA only binds Left/Right on a horizontal
+ *   tablist, so the default deliberately ignores ArrowUp/ArrowDown there: a
+ *   vertical arrow silently reordering a horizontal strip is a defect the reader
+ *   cannot report, only work around.
+ * @param {string|null} [opts.activeClass='is-active'] - class to put on the
+ *   active button; `null` for groups whose state is carried by the attribute
+ *   alone, so no inert class is introduced.
+ * @param {boolean} [opts.focusOnClick=false] - move focus on click. Browsers
+ *   differ (Firefox on macOS does not focus a `<button>` on click), so the
+ *   panel-hiding callers that relied on the old explicit `tab.focus()` keep it.
+ */
+export function wireRoving(btns, attr, apply, {
+  orientation = 'horizontal',
+  activeClass = 'is-active',
+  focusOnClick = false,
+} = {}) {
+  if (!btns.length) return;
+  const forwardKeys = orientation === 'vertical' ? ['ArrowDown'] : ['ArrowRight'];
+  const backKeys = orientation === 'vertical' ? ['ArrowUp'] : ['ArrowLeft'];
+
+  const select = index => {
+    const next = btns[(index + btns.length) % btns.length];
+    btns.forEach(b => {
+      const on = b === next;
+      if (activeClass) b.classList.toggle(activeClass, on);
+      b.setAttribute(attr, String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    apply(next);
+    return next;
+  };
+
+  btns.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      select(index);
+      if (focusOnClick) btn.focus();
+    });
+    btn.addEventListener('keydown', event => {
+      let next = index;
+      if (forwardKeys.includes(event.key)) next = index + 1;
+      else if (backKeys.includes(event.key)) next = index - 1;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = btns.length - 1;
+      else return;
+      event.preventDefault();
+      select(next).focus();
+    });
+  });
+}
+
+/**
+ * The move-table tabs, whose panels live beside them and are shown by `hidden`.
+ * Key map and wrap-around come from `wireRoving`; this only owns the panels.
  */
 function wireMoveTabs(container) {
   const tabs = [...container.querySelectorAll('[data-move-tab]')];
-  const select = tab => {
+  wireRoving(tabs, 'aria-selected', active => {
     for (const other of tabs) {
-      const selected = other === tab;
-      other.setAttribute('aria-selected', String(selected));
-      other.tabIndex = selected ? 0 : -1;
       const panel = container.querySelector(`#move-panel-${other.dataset.moveTab}`);
-      if (panel) panel.hidden = !selected;
+      if (panel) panel.hidden = other !== active;
     }
-    tab.focus();
-  };
-
-  tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => select(tab));
-    tab.addEventListener('keydown', event => {
-      let next = null;
-      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
-      else if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
-      else if (event.key === 'Home') next = tabs[0];
-      else if (event.key === 'End') next = tabs[tabs.length - 1];
-      if (!next) return;
-      event.preventDefault();
-      select(next);
-    });
-  });
+  }, { activeClass: null, focusOnClick: true });
 }

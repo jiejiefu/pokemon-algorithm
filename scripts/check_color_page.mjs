@@ -74,6 +74,14 @@ const shared = read('assets/js/shared.js');
 const css = read('assets/css/colors.css');
 const colorHtml = read('color.html');
 const paletteSrc = read('assets/js/color-palette.js');
+// Declared in check_all.mjs's inputs because the page imports it, and §3.G1's
+// rule is that a declared input nothing opens is an input whose edit will not
+// invalidate this checker. So it is opened here, and what is asserted about it
+// is the claim the extraction exists to protect: ONE highlighter for the two
+// pages that show the same three generators' output. A second copy would not
+// break a single assertion anywhere in the suite — it would just mean the two
+// code blocks colour the same token differently, forever.
+const highlighterSrc = read('assets/js/code-highlight.js');
 
 // NAV and PLANNED_PAGES are evaluated rather than regex-scraped, so this file
 // tests the table the page actually renders from. Importing shared.js in Node
@@ -137,8 +145,8 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // list on purpose — a list here would be a fourth copy of NAV that could be edited
 // to agree with a broken NAV, whereas a count can only be changed by someone
 // deciding the site's page set changed. It went 15 -> 16 when spectrum.html joined
-// the 叫聲 group.
-const EXPECTED_NAV_PAGES = 16;
+// the 叫聲 group and 16 -> 17 when life.html joined the 演算法 group.
+const EXPECTED_NAV_PAGES = 17;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;
@@ -374,6 +382,39 @@ check(
   !/class="site-nav"|initHeaderNav|class="theme-toggle"|initThemeToggle/.test(colorHtml),
   'the old header nav and theme toggle are gone from color.html',
   () => 'color.html still mounts the old header nav/theme toggle — the rail was added alongside the old chrome instead of replacing it'
+);
+
+console.log('\nthe exporter\'s shared halves');
+// These four exist because the highlighter and the roving-tabindex key map were
+// lifted OUT of this page into modules `outfit.html` imports too. The failure
+// they catch is a re-fork: a second definition, in a page or in a module, that
+// renders identically and drifts invisibly.
+check(
+  /export function highlightCode/.test(highlighterSrc),
+  'assets/js/code-highlight.js exports highlightCode',
+  () => 'color.html imports highlightCode from code-highlight.js, so that is where it has to be defined'
+);
+check(
+  /import\s*\{[^}]*\bhighlightCode\b[^}]*\}\s*from\s*['"]\.\/assets\/js\/code-highlight\.js['"]/.test(colorHtml),
+  'color.html imports highlightCode from assets/js/code-highlight.js',
+  () => 'color.html does not import the shared highlighter — it either still carries a local copy, or the code block is unhighlighted'
+);
+// `function highlight(` would also match `highlightCode`, so the word boundary is
+// the point: this asserts the LOCAL copy is gone without tripping on the import.
+check(
+  !/function\s+highlight\b/.test(colorHtml),
+  'and this page defines no local highlighter, so the two code blocks cannot diverge',
+  () => 'color.html defines its own highlighter AND imports the shared one — one of the two is dead, and which one is not obvious from reading it'
+);
+check(
+  /export function wireRoving/.test(shared) && /import\s*\{[^}]*\bwireRoving\b[^}]*\}\s*from\s*['"]\.\/assets\/js\/shared\.js['"]/.test(colorHtml),
+  'the roving tabindex key map is shared.js\'s wireRoving, imported here',
+  () => 'the tablist\'s arrow keys are not the shared implementation — a tablist without arrow keys is a WAI-ARIA authoring violation, so a local copy here would drift from the other three callers'
+);
+check(
+  !/function\s+wireRoving\b/.test(colorHtml),
+  'and this page defines none of its own',
+  () => 'color.html defines its own wireRoving as well as importing the shared one'
 );
 
 console.log('');

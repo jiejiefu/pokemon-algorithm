@@ -243,6 +243,11 @@ const CHECKERS = [
       'assets/js/mmcq.js',
       'assets/js/outfit-palette.js',
       'assets/js/color-match.js',
+      // The whole point of this entry: the checker re-derives all 2,050 palettes
+      // OUT OF THIS FILE and requires them byte-equal. Dropping this line (which
+      // an edit adding another input did exactly once) makes the checker skipped
+      // after a palette change — green having verified nothing, which §4 calls
+      // strictly worse than no cache. `--prove-inputs` is what caught it.
       'assets/data/color_palettes.json',
       // Read for the 140px name-track premise: it asserts no zh name in the
       // corpus is wider than the track, which is a claim about THIS file.
@@ -252,6 +257,10 @@ const CHECKERS = [
       // The page checker parses SAMPLES out of outfit.html and asserts each
       // path resolves, so the page and this list have to invalidate together.
       'outfit.html',
+      // Read for the export block's class audit: the dead `.of-export-*` and
+      // `.of-code` selectors are asserted ABSENT, which is a claim about this
+      // stylesheet's current contents and nothing else.
+      'assets/css/outfit.css',
       'assets/images/outfit-samples/*',
     ],
   },
@@ -269,6 +278,9 @@ const CHECKERS = [
       'assets/css/outfit.css',
       'assets/js/shared.js',
       'assets/js/color-palette.js',
+      // The page now imports the highlighter rather than carrying a local copy,
+      // so a change to it changes what the block renders.
+      'assets/js/code-highlight.js',
       'assets/js/color-match.js',
       'assets/js/mmcq.js',
       'assets/js/outfit-palette.js',
@@ -387,12 +399,12 @@ const CHECKERS = [
   },
   {
     script: 'scripts/check_color_page.mjs', group: 'color',
-    inputs: ['*.html', 'assets/css/colors.css', 'assets/css/shared.css', 'assets/js/color-palette.js', 'assets/js/shared.js'],
+    inputs: ['*.html', 'assets/css/colors.css', 'assets/css/shared.css', 'assets/js/color-palette.js', 'assets/js/code-highlight.js', 'assets/js/shared.js'],
   },
   {
     script: 'scripts/test_check_color_page.mjs', checker: 'scripts/check_color_page.mjs', group: 'color',
     note: 'runs the above in child trees',
-    inputs: ['color.html', 'assets/css/colors.css', 'assets/css/shared.css', 'assets/js/color-palette.js', 'assets/js/shared.js'],
+    inputs: ['color.html', 'assets/css/colors.css', 'assets/css/shared.css', 'assets/js/color-palette.js', 'assets/js/code-highlight.js', 'assets/js/shared.js'],
   },
   {
     script: 'scripts/check_color_daily.mjs', group: 'color',

@@ -35,7 +35,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // assets/css/shared.css is here because check_color_page.mjs resolves the
 // Theme Exporter's var() targets against it — a checker that reads a file the
 // harness does not copy fails its own baseline and takes all 36 cases with it.
-const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'assets/css/shared.css', 'color.html', 'assets/js/color-palette.js'];
+const SRC = ['assets/js/shared.js', 'assets/css/colors.css', 'assets/css/shared.css', 'color.html', 'assets/js/color-palette.js', 'assets/js/code-highlight.js'];
 const CHECKER = 'scripts/check_color_page.mjs';
 
 let failures = 0;
