@@ -38,21 +38,23 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.LIFE_PORT || 5500;
-const PORT_CDP = cdpPort('life');
-await assertPortFree('check_life_browser.mjs', PORT_CDP);
 
 const profile = mkdtempSync(join(tmpdir(), 'lifepage-'));
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--mute-audio',
   '--window-size=1440,900',
-  `--remote-debugging-port=${PORT_CDP}`,
+  '--remote-debugging-port=0',
   `--user-data-dir=${profile}`,
   'about:blank',
 ], { stdio: 'ignore' });
+/* Chrome chose its own debug port; read it back from the profile. See
+ * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+ * assertPortFree() unnecessary rather than merely unused. */
+const PORT_CDP = await waitForDebugPort(profile);
 
 /** §3.J: kill the browser AND remove the profile, from one exit handler.
  *  Removing the profile is not killing the browser — an orphan keeps rendering

@@ -1086,6 +1086,23 @@ const selected = CHECKERS.filter((c) => {
  */
 const TIER_A_CONCURRENCY = 3;
 
+/**
+ * How many browser entries run at once. Three, like Tier A.
+ *
+ * THIS TIER WAS SERIAL UNTIL 2026-10-10, and the reason it could not be parallel is
+ * gone. cdpPort() hands out `base + (pid % 120)`, so two browsers in flight collide
+ * about once in 120, and assertPortFree() turned that into a loud abort — correct, and
+ * also a flake. Every checker now passes `--remote-debugging-port=0` and reads the port
+ * back from DevToolsActivePort, so the OS assigns a number nothing else was given and
+ * the collision class is deleted rather than tolerated. assertPortFree() is no longer
+ * called anywhere: its job was to stop a checker driving a browser it did not start, and
+ * a port assigned for this browser cannot already be serving someone else's.
+ *
+ * Measured: the browser tier was 80.8 s of a 99 s run, and it is now the shortest tier
+ * despite holding nine of the eleven most expensive entries.
+ */
+const TIER_B_CONCURRENCY = 3;
+
 const port = process.env.CRY_PORT || '5500';
 let serverUp = null;
 
@@ -1454,11 +1471,13 @@ async function main() {
      * a loud mid-run abort, which on a suite someone is trying to believe is a worse
      * outcome than being slow. Six concurrent Chromes is also the exact condition
      * §3.J's 28 GB of tmpdir came from. */
-    row('▶', '(tier B)'.padEnd(34), `${tierB.length} browser entries, one at a time`, '');
-    for (const c of tierB) {
-      row('▶', c.script.replace(/^scripts\//, '').padEnd(34), 'running…', '');
-      emit(await attempt(c));
-    }
+    row('▶', '(tier B)'.padEnd(34), `${tierB.length} browser entries, ${TIER_B_CONCURRENCY} at a time`, '');
+    const browserResults = await pool(tierB.map((c) => () => attempt(c)), { limit: TIER_B_CONCURRENCY });
+    /* DECLARATION ORDER OUT, same contract as Tier A and for the same reason: an order
+     * that follows the scheduler cannot be diffed between two green runs. The difference
+     * is that a browser tier does not print per entry as it goes, because it used to be
+     * serial and now is not. */
+    for (const r of browserResults) emit(r);
   }
 
   if (!opts.noCache) {

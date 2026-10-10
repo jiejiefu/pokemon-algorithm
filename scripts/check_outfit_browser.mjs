@@ -33,20 +33,22 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.OUTFIT_PORT || 5500;
-const PORT_CDP = cdpPort('outfit');
-await assertPortFree('check_outfit_browser.mjs', PORT_CDP);
 
 const profile = mkdtempSync(join(tmpdir(), 'of-'));
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu',
-  `--remote-debugging-port=${PORT_CDP}`,
+  '--remote-debugging-port=0',
   `--user-data-dir=${profile}`,
   'about:blank',
 ], { stdio: 'ignore' });
+/* Chrome chose its own debug port; read it back from the profile. See
+ * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+ * assertPortFree() unnecessary rather than merely unused. */
+const PORT_CDP = await waitForDebugPort(profile);
 
 /**
  * Chrome's main process does not die with the signal from `child.kill()` when it

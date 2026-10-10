@@ -58,7 +58,7 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 const ROOT = join(import.meta.dirname, '..');
 const PORT = Number(process.env.SORT_PORT || 5500);
@@ -437,17 +437,19 @@ if (!existsSync(CHROME)) {
    * function because the profile is, and `exit` rather than the `finally` below
    * because a throw between here and there skips it. */
   process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
-  const dbg = cdpPort('sorting');
-  await assertPortFree('check_sorting_page.mjs', dbg);
-  const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${dbg}`, '--disable-gpu', '--mute-audio',
+  const chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', '--disable-gpu', '--mute-audio',
     `--user-data-dir=${profile}`, '--window-size=1440,900', 'about:blank'], { stdio: 'ignore' });
+  /* Chrome chose its own debug port; read it back from the profile. See
+   * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+   * assertPortFree() unnecessary rather than merely unused. */
+  const dbg = await waitForDebugPort(profile);
 
   /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it is what
    * makes the profile removal above safe, and what makes the next run's port free.
    *
    * Removing the profile is not killing the browser. A headless Chrome left running
-   * holds its `--remote-debugging-port`, and `dbg` here is derived from the PID
-   * (`9400 + pid % 200`), so an orphan is a port collision waiting for the next run:
+   * holds its `--remote-debugging-port` — under the old scheme `dbg` was derived from
+   * the PID, so an orphan was a port collision waiting for the next run:
    * the new Chrome cannot bind, `fetch(:dbg/json/list)` answers from the ORPHAN, and
    * the checker drives a browser whose profile directory this process deleted under
    * it. Measured: a `pkill` of this file during a run left the Chrome alive, and the

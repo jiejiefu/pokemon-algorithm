@@ -18,14 +18,12 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 
-const CDP = cdpPort('gen1');
-await assertPortFree('check_gen1_page.mjs', CDP);
 const profile = mkdtempSync(join(tmpdir(), 'cdp-'));
 const chrome = spawn(CHROME, [
-  '--headless=new', `--remote-debugging-port=${CDP}`, '--disable-gpu',
+  '--headless=new', '--remote-debugging-port=0', '--disable-gpu',
   '--autoplay-policy=no-user-gesture-required',
   /* Silent at the BROWSER, not on the page. This checker presses play, and the
    * page's default is a fifth of full scale — comfortable at a desk, genuinely
@@ -42,6 +40,10 @@ const chrome = spawn(CHROME, [
   `--user-data-dir=${profile}`,
   'about:blank',
 ], { stdio: 'ignore' });
+/* Chrome chose its own debug port; read it back from the profile. See
+ * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+ * assertPortFree() unnecessary rather than merely unused. */
+const CDP = await waitForDebugPort(profile);
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
  * next run's --remote-debugging-port free and it is what makes the profile removal above
  * safe. A headless Chrome left running holds its debugging port, so an orphan is a port

@@ -18,10 +18,8 @@ import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CDP = cdpPort('cries');
-await assertPortFree('check_cries_browser.mjs', CDP);
 const profile=mkdtempSync(join(tmpdir(),'cr-'));
 /* Remove the profile on the way out. It was not, and tmpdir held 135 `cr-*`
  * directories before this line existed — a Chrome profile is tens of MB, so that is
@@ -42,7 +40,11 @@ process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true,
    path is still exercised. The flag is the first line rather than the guarantee;
    the second is installed in the page, before any page script runs. See
    scripts/lib/mute-tap.mjs. */
-const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required',`--remote-debugging-port=${CDP}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
+const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--mute-audio','--autoplay-policy=no-user-gesture-required','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
+/* Chrome chose its own debug port; read it back from the profile. See
+ * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+ * assertPortFree() unnecessary rather than merely unused. */
+const CDP = await waitForDebugPort(profile);
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
  * next run's --remote-debugging-port free and it is what makes the profile removal above
  * safe. A headless Chrome left running holds its debugging port, so an orphan is a port

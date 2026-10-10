@@ -42,11 +42,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
-import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
+import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CDP = cdpPort('spectrum');
-await assertPortFree('check_spectrum_browser.mjs', CDP);
 const PORT = Number(process.env.CRY_PORT || 5500);
 const BASE = `http://127.0.0.1:${PORT}`;
 const PAGE = `${BASE}/spectrum.html`;
@@ -69,8 +67,12 @@ process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true,
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--mute-audio',
   '--autoplay-policy=no-user-gesture-required',
-  `--remote-debugging-port=${CDP}`, `--user-data-dir=${profile}`, 'about:blank',
+  '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: 'ignore' });
+/* Chrome chose its own debug port; read it back from the profile. See
+ * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
+ * assertPortFree() unnecessary rather than merely unused. */
+const CDP = await waitForDebugPort(profile);
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
  * next run's --remote-debugging-port free and it is what makes the profile removal above
  * safe. A headless Chrome left running holds its debugging port, so an orphan is a port

@@ -44,6 +44,9 @@
  * happened, and the one nothing in the suite could see.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 /** Chrome's path, in one place: seven checkers had seven copies of it. */
 export const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
@@ -128,5 +131,54 @@ export async function assertPortFree(name, port) {
     `  It is usually an orphan from an interrupted run — look for it with:\n` +
     `    ps -Ao pid,args | grep '[C]hrome --headless' | grep ${port}\n` +
     `  and kill only what you recognise.`
+  );
+}
+
+/**
+ * The debug port Chrome chose, for a browser launched with `--remote-debugging-port=0`.
+ *
+ * ## WHY THIS REPLACES cdpPort() FOR EVERY CHECKER
+ *
+ * `cdpPort()` hands out `base + (pid % 120)`. That works while browsers run one at a
+ * time, and it is why they used to: two checkers in flight can land on the same number
+ * about once in 120, and `assertPortFree()` turns that into a loud abort rather than a
+ * wrong measurement — which is correct, and is also a 5% flake across six concurrent
+ * browsers. So the browser tier stayed serial, and that was 80 of a 99-second run.
+ *
+ * `--remote-debugging-port=0` hands the choice to the OS, which writes the number it
+ * chose to `<profile>/DevToolsActivePort`. The port cannot collide, because the next
+ * browser is not offered it.
+ *
+ * `assertPortFree()` is therefore not called by any checker any more, and nothing is
+ * lost by that: its job was to stop a checker driving a browser it did not start, and a
+ * port the OS assigned for this browser cannot already be serving somebody else's. The
+ * two earlier alternatives were worse in ways worth recording — an explicit
+ * `9600 + index` is deterministic, so one interrupted run poisons that index for every
+ * later run, which is exactly what happened twice in a row while this was being written.
+ *
+ * `CDP_PORT_BASE` and `cdpPort()` stay exported for a browser launched outside a
+ * `--user-data-dir` of its own; nothing in scripts/ uses them now.
+ *
+ * @param {string} profile  the same path passed as `--user-data-dir`
+ * @param {number} timeoutMs  how long to wait for Chrome to publish the port
+ * @returns {Promise<number>}
+ */
+export async function waitForDebugPort(profile, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  let last;
+  while (Date.now() < deadline) {
+    try {
+      const first = readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0];
+      const n = Number(first);
+      if (n > 0) return n;
+      last = `read ${JSON.stringify(first)}`;
+    } catch (err) {
+      last = err.code ?? err.message;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(
+    `Chrome published no debug port to ${join(profile, 'DevToolsActivePort')} within ${timeoutMs}ms (${last}).\n` +
+    `  It either did not start, or it was started without --remote-debugging-port=0.`
   );
 }
