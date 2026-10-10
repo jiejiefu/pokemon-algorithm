@@ -563,9 +563,22 @@ const GAIN_SETTLED = `(() => {
   window.__cdpGainLast = v;
   return prev !== undefined && prev === v;
 })()`;
-await until(GAIN_SETTLED, 6000);
+/* THE POLL'S RESULT IS THE CLAIM. Discarding it made a timeout and a reading of
+ * zero the same report: `until()` returns false on expiry, this threw that away,
+ * and the assertion below then printed `output gain []` — which points at the
+ * gain, and says nothing about the thing that was actually being waited for. It
+ * flaked about 1 run in 6 with exactly that message.
+ *
+ * So the two are separate checks. The first is the PRECONDITION — the player has
+ * a gain node and its value has stopped changing — and the second is the claim
+ * about that value. A reader who sees the first fail now knows the measurement
+ * never happened, which is a different problem from the measurement being zero,
+ * and the two need different fixes. */
+const gainSettled = await until(GAIN_SETTLED, 6000);
+ok(gainSettled,
+  'the player\'s output gain settled, so the reading below is a measurement and not a timeout');
 const crossTap = await ev(TAP_PROBE);
-ok(crossTap.taps>0 && Array.isArray(crossTap.inGain) && crossTap.inGain.some(v => typeof v === 'number' && v > 0),
+ok(crossTap.taps > 0 && Array.isArray(crossTap.inGain) && crossTap.inGain.some(v => typeof v === 'number' && v > 0),
   `and cries.html still asks for sound after a visit to sorting.html`
   + ` (output gain ${JSON.stringify(crossTap.inGain)} — the destination is 0 because THIS checker mutes it, and the player's own level is the claim)`);
 
