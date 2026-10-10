@@ -11,7 +11,7 @@
  * fail is the finding.
  */
 
-import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, readdirSync, symlinkSync, existsSync, rmSync } from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -24,6 +24,21 @@ const CHECKER = join(ROOT, 'scripts/check_color_palettes.mjs');
 const SOURCE = join(ROOT, 'assets/data/color_palettes.json');
 const ORIGINAL = readFileSync(SOURCE, 'utf8');
 const DIR = mkdtempSync(join(tmpdir(), 'cp-negtest-'));
+
+/* DIR IS REMOVED FROM AN EXIT HANDLER, not by a line at the bottom of this file.
+ *
+ * Both of the places a cleanup line could live are the two that do not run: the file
+ * ends in `process.exit()`, and a throw is exactly when the run is already going wrong.
+ * That is §3.J's rule about the CDP checkers, applied to the one file in `scripts/` that
+ * was not following it.
+ *
+ * This was the only one of the 24 files that touch `tmpdir()` with no `rmSync` anywhere,
+ * and it is the only one that had been leaking: 139 directories totalling 883 MB on this
+ * machine, each holding 20 copies of a 6.5 MB `color_palettes.json`, one directory per
+ * run of this harness. The exit hook is idempotent and cheap when the directory is
+ * already gone, so it is safe on the success path, the failure path and the throw path.
+ */
+process.on('exit', () => { try { rmSync(DIR, { recursive: true, force: true }); } catch { /* already gone */ } });
 
 function runChecker(path) {
   try {
