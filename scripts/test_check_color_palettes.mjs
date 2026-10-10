@@ -25,20 +25,27 @@ const SOURCE = join(ROOT, 'assets/data/color_palettes.json');
 const ORIGINAL = readFileSync(SOURCE, 'utf8');
 const DIR = mkdtempSync(join(tmpdir(), 'cp-negtest-'));
 
-/* DIR IS REMOVED FROM AN EXIT HANDLER, not by a line at the bottom of this file.
+/* EVERY SCRATCH DIRECTORY THIS FILE MAKES IS REGISTERED HERE AND REMOVED ON EXIT.
  *
- * Both of the places a cleanup line could live are the two that do not run: the file
- * ends in `process.exit()`, and a throw is exactly when the run is already going wrong.
- * That is §3.J's rule about the CDP checkers, applied to the one file in `scripts/` that
- * was not following it.
+ * There are two kinds and both leak. `DIR` above is one mkdtemp directory per run.
+ * `makeTree()` below builds a SECOND one per case — and there are 20 cases, so a single
+ * run of this harness created 21 directories and removed none of them, each holding a
+ * copy of assets/js, color_palettes.json (6.5 MB) and pokemon_data.json. 1,872
+ * directories and 5.6 GB had accumulated before this was fixed.
  *
- * This was the only one of the 24 files that touch `tmpdir()` with no `rmSync` anywhere,
- * and it is the only one that had been leaking: 139 directories totalling 883 MB on this
- * machine, each holding 20 copies of a 6.5 MB `color_palettes.json`, one directory per
- * run of this harness. The exit hook is idempotent and cheap when the directory is
- * already gone, so it is safe on the success path, the failure path and the throw path.
+ * Cleanup is a `process.on('exit')` handler rather than a line at the bottom, which is
+ * §3.J's rule: this file ends in `process.exit()`, and a throw is exactly when the run
+ * is already going wrong, so both of the places a bottom line could live are the two
+ * that do not run. Registering is safer than cleaning per case, because a case that
+ * throws between `makeTree()` and its own cleanup would otherwise leak the one
+ * directory nobody was watching. `force: true` makes the second removal a no-op.
  */
-process.on('exit', () => { try { rmSync(DIR, { recursive: true, force: true }); } catch { /* already gone */ } });
+const SCRATCH = new Set([DIR]);
+process.on('exit', () => {
+  for (const dir of SCRATCH) {
+    try { rmSync(dir, { recursive: true, force: true }); } catch { /* already gone */ }
+  }
+});
 
 function runChecker(path) {
   try {
@@ -186,6 +193,7 @@ const cases = [
  * unmutated copy and requires the same all-pass it gets in the real repo. */
 function makeTree(mutate) {
   const dir = join(tmpdir(), `cpp-neg-${Math.random().toString(36).slice(2)}`);
+  SCRATCH.add(dir);
   mkdirSync(join(dir, 'assets/js'), { recursive: true });
   mkdirSync(join(dir, 'assets/data'), { recursive: true });
   mkdirSync(join(dir, 'assets/images'), { recursive: true });
