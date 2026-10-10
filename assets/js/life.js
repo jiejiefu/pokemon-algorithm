@@ -18,6 +18,12 @@ import {
   cellKey
 } from './life-engine.js';
 
+/* The encounter cry player. `play()` takes the SPECIES ID and builds the URL
+ * itself from `cryUrl()`, so this file never spells an `assets/cries/` path — the
+ * same reason detail.html imports only the player. `latest/` covers all 1,025
+ * species, so there is no roster gate to write here either. */
+import { cryPlayer } from './cry-player.js';
+
 // --- Global State -------------------------------------------------------------
 let allPokemon = [];
 let evolutionChains = {};
@@ -135,6 +141,7 @@ function cacheDOMElements() {
   els.toolSeg = document.getElementById('toolSeg');
   els.chkWild = document.getElementById('chkWild');
   els.chkGrid = document.getElementById('chkGrid');
+  els.chkEncounterCry = document.getElementById('chkEncounterCry');
   els.genBadge = document.getElementById('genBadge');
   els.brushPreview = document.getElementById('brushPreview');
   els.brushImg = document.getElementById('brushImg');
@@ -185,7 +192,11 @@ function cacheDOMElements() {
 
 // --- Setup & Generation Locking ----------------------------------------------
 function setupGeneration(gen, starterId, isRandomSeed = true, mode = '') {
-  currentMetadata = buildGenMetadata(gen, allPokemon, evolutionChains, generationsData);
+  // The starter is read here, not inside buildGenMetadata: whether the Pokédex
+  // carries the 伊布家族 section is the reader's choice, and the reader's choice
+  // is this value. Passing it in is also why the counter's denominator and the
+  // drawer's row count stay the same number under either answer.
+  currentMetadata = buildGenMetadata(gen, allPokemon, evolutionChains, generationsData, { starterId });
 
   if (!engine) {
     engine = new GameEngine(currentMetadata, evolutionLevels, mode);
@@ -747,13 +758,81 @@ function showWildEncounter(event) {
     tone: 'wild'
   });
 
+  playEncounterCry(sp.id);
+
   showToast({
-    icon: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.05 8.05c-2.73 2.73-2.73 7.15-.02 9.88 1.47-3.4 4.09-6.24 7.36-7.93-2.77 2.34-4.71 5.61-5.39 9.32 2.6 1.23 5.8.78 7.95-1.37C19.43 14.47 20 4 20 4S9.53 4.57 6.05 8.05z"/></svg>',
+    // The species' own sprite rather than a generic leaf. It was not decoration
+    // chosen over a leaf — the leaf was invisible: it inherited `currentColor`
+    // from a themed foreground onto a hardcoded navy card, and in light theme
+    // that measured 1.03:1. An `<img>` carries its own pixels and cannot inherit
+    // a theme at all, which is the fix and the reason.
+    //
+    // `assets/images/sprite/` is the 96px set, the guaranteed floor for all 1,025
+    // species, and it is the same path the Pokédex drawer already uses — one
+    // source for one job. `alt=""` because `name` is in the headline as text.
+    icon: `<img class="life-toast-sprite" src="assets/images/sprite/${sp.id}.png" alt="" width="44" height="44">`,
     eyebrow: '野生遭遇 · 生態事件',
     headline: `#${String(sp.id).padStart(4, '0')} ${name} ×${event.count}`,
     tone: 'wild',
     duration: 2200
   });
+}
+
+// --- Encounter cry -------------------------------------------------------------
+
+/**
+ * Speeds at which an encounter stays silent, whatever the checkbox says.
+ *
+ * Measured over 20 x 60 seconds per generation: a wild encounter fires every
+ * **2.0s at 10x**, every 3.8s at 5x, every 11s at 2x. Cries are 1.10s at the
+ * median and 3.26s at the worst, so the two fastest speeds are not "often" —
+ * they are a firehose, and at 10x a cry is sounding more than half the time.
+ *
+ * The speed control exists to watch population change, and at 5x/10x the board
+ * is a blur nobody is reading an arrival off. The TOAST still fires at every
+ * speed; only the sound is withheld, and the checkbox's own title says so, so a
+ * reader who ticks it and hears nothing at 10x has been told why.
+ */
+const CRY_SILENT_ABOVE_SPEED = 2;
+
+/**
+ * Floor between two encounter cries, on top of never overlapping.
+ *
+ * The player is one-cry-at-a-time by default (`overlap: false` stops the last
+ * one), which at 2x means a cry is followed 9.9 seconds of silence by the next
+ * attempt. This only guards the case the player cannot: two encounters landing
+ * inside the same tick's worth of time, where the second would cut the first off
+ * mid-cry and sound like a click.
+ */
+const CRY_MIN_GAP_MS = 1200;
+
+let lastEncounterCryAt = 0;
+
+/**
+ * Play the encountered species' cry, if the reader asked for one.
+ *
+ * Three guards, in the order that saves the most work: muted, too fast, too
+ * soon. The muted guard is first because a reader who turned sound off should
+ * not have a cry fetched and decoded — `sorting.html` learned that the hard way,
+ * where a silent run still fetched up to 1,025 files.
+ *
+ * NEVER awaited, and `.catch(() => {})` is load-bearing rather than tidy:
+ * `cryPlayer.unlock()` is `if (state === 'suspended') await ctx.resume()` with no
+ * timeout and no catch, so until the reader has clicked something the promise
+ * does not settle — measured, a headless probe past 120s. Awaiting it here would
+ * leave the encounter handler suspended forever; the call is fire-and-forget and
+ * a cry that cannot play is a supported state, not an error.
+ */
+function playEncounterCry(speciesId) {
+  if (cryPlayer.muted) return;
+  if (currentSpeed > CRY_SILENT_ABOVE_SPEED) return;
+  if (!cryPlayer.has(speciesId)) return;
+
+  const now = performance.now();
+  if (now - lastEncounterCryAt < CRY_MIN_GAP_MS) return;
+  lastEncounterCryAt = now;
+
+  cryPlayer.play(speciesId).catch(() => {});
 }
 
 // --- Pokédex Drawer -----------------------------------------------------------
@@ -1056,6 +1135,28 @@ function bindEvents() {
 
   els.chkGrid?.addEventListener('change', e => {
     showGrid = e.target.checked;
+  });
+
+  /* The encounter cry. The page's DEFAULT is a view mute, applied once here, and
+   * only the reader's own tick writes the shared preference — that split is the
+   * whole of §3.G6's bug: `cryPlayer.muted = true` persists to the site-wide key,
+   * so merely LOADING this page used to be enough to silence cries.html,
+   * detail.html and spectrum.html for everyone who visited it.
+   *
+   * The default is off rather than on because of the numbers above, and the two
+   * halves are separate decisions: `#viewMuted` is this page's opinion, and the
+   * checkbox is the reader's. `muteForView(false)` has to be called alongside the
+   * un-mute because `get muted()` is the OR of the two — clearing only
+   * `#storedMuted` would leave `#viewMuted` true and the page still silent. */
+  cryPlayer.muteForView(true);
+  els.chkEncounterCry?.addEventListener('change', e => {
+    cryPlayer.muted = !e.target.checked;
+    if (e.target.checked) {
+      // Restart the gap, or the first encounter after ticking the box is
+      // swallowed by a window opened while the reader was reaching for it.
+      lastEncounterCryAt = 0;
+      cryPlayer.muteForView(false);
+    }
   });
 
   // Generation Modal triggers

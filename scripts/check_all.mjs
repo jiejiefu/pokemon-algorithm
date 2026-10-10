@@ -652,9 +652,14 @@ const CHECKERS = [
     // extract_generations.py is declared for the same reason: the check asserts
     // the extractor OWNS letsGoStarters, and a regeneration that dropped the
     // constant has to invalidate this entry.
+    // life.css joined the list when the toast's colours became a claim: the check
+    // asserts the card names --surface-raised/--bg-controls rather than literals,
+    // and a stylesheet that went back to a hardcoded navy has to invalidate this
+    // entry for that assertion to mean anything.
     script: 'scripts/check_life_page.mjs', group: 'algo',
     inputs: [
       'life.html', 'assets/js/life.js', 'assets/js/life-engine.js',
+      'assets/css/life.css',
       'assets/data/pokemon_data.json', 'assets/data/evolution_chains.json',
       'assets/data/generations.json', 'assets/data/evolution_levels.json',
       'scripts/extract_generations.py',

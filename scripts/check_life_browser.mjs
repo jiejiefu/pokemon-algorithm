@@ -38,11 +38,12 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CHROME, cdpPort, assertPortFree } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.LIFE_PORT || 5500;
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT_CDP = 9381;
+const PORT_CDP = cdpPort('life');
+await assertPortFree('check_life_browser.mjs', PORT_CDP);
 
 const profile = mkdtempSync(join(tmpdir(), 'lifepage-'));
 const chrome = spawn(CHROME, [
@@ -384,11 +385,33 @@ const switchedBack = JSON.parse(await ev(`(() => {
 })()`));
 eq(switchedBack.n, 3, 'the switch still works after a second use');
 
-/* The counter divides by the number of tiles, which is 156 on Gen 1 and not the
- * 151 that `totalSpeciesCount` reports. Read the rendered string, not the
- * function: the denominator is the whole claim. */
-await ev(`document.getElementById('setupClose').click(); true`);
-await sleep(200);
+/* The counter divides by the number of tiles, and the number of tiles depends on
+ * the STARTER — the 伊布家族 section is the reader's choice, not the generation's.
+ * So this drives the real modal and picks 伊布 rather than reading whatever the
+ * default setup happened to leave behind: a URL-driven assertion here would
+ * silently be asserting about Bulbasaur. */
+await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
+await sleep(300);
+const dexForEevee = JSON.parse(await ev(`(() => {
+  // 伊布 is NOT one of the three classic Gen 1 starters — it is reachable only
+  // through the Let's Go switch, so this drives that too. A check that just
+  // looked for a #133 card would be asserting about a list that does not exist
+  // in classic mode, which is how a control in the wrong section can go
+  // unnoticed while every other assertion stays green.
+  const letsGo = document.querySelector('input[name="letsGoMode"][value="letsgo"]');
+  if (!letsGo) return JSON.stringify({ noToggle: true });
+  letsGo.click();
+  const cards = [...document.querySelectorAll('#setupStarters .life-starter-card img')];
+  const eevee = cards.find(i => /\\/133\\.png$/.test(i.getAttribute('src')));
+  if (!eevee) return JSON.stringify({ noEevee: true, ids: cards.map(i => i.getAttribute('src')) });
+  eevee.closest('.life-starter-card').click();
+  document.getElementById('setupSubmit').click();
+  return JSON.stringify({ ok: true, ids: cards.map(i => i.getAttribute('src')) });
+})()`));
+ok(!dexForEevee.noToggle, "the Let's Go switch is reachable from the modal");
+ok(!dexForEevee.noEevee, `Let's Go offers 伊布 alongside 皮卡丘: ${JSON.stringify(dexForEevee.ids || [])}`);
+await sleep(700);
+
 const dexCounter = JSON.parse(await ev(`(() => {
   document.getElementById('btnDexDrawer').click();
   const tiles = document.querySelectorAll('#dexGrid .life-dex-item').length;
@@ -397,10 +420,37 @@ const dexCounter = JSON.parse(await ev(`(() => {
   document.getElementById('dexClose').click();
   return JSON.stringify({ tiles, heads, label });
 })()`));
-eq(dexCounter.tiles, 156, 'the drawer renders 156 tiles on Gen 1');
+eq(dexCounter.tiles, 156, 'choosing 伊布 renders 156 tiles on Gen 1');
 eq(dexCounter.heads, 1, 'and one section header');
 ok(/\/156\)$/.test(dexCounter.label || ''),
   `the counter divides by the tiles it renders, got "${dexCounter.label}"`);
+
+/* And the other half of the condition: back in classic mode the section is gone
+ * and the counter agrees. Asserting only the 156 would pass a page that shows
+ * the section to everybody, which is what it did before this condition existed. */
+await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
+await sleep(300);
+await ev(`(() => {
+  document.querySelector('input[name="letsGoMode"][value="classic"]').click();
+  const cards = [...document.querySelectorAll('#setupStarters .life-starter-card img')];
+  const bulba = cards.find(i => /\\/1\\.png$/.test(i.getAttribute('src')));
+  bulba.closest('.life-starter-card').click();
+  document.getElementById('setupSubmit').click();
+  return true;
+})()`);
+await sleep(700);
+const dexForBulba = JSON.parse(await ev(`(() => {
+  document.getElementById('btnDexDrawer').click();
+  const tiles = document.querySelectorAll('#dexGrid .life-dex-item').length;
+  const heads = document.querySelectorAll('#dexGrid .life-dex-section-header').length;
+  const label = document.getElementById('btnDexCount').textContent;
+  document.getElementById('dexClose').click();
+  return JSON.stringify({ tiles, heads, label });
+})()`));
+eq(dexForBulba.tiles, 151, 'choosing 妙蛙種子 renders the generation\'s own 151');
+eq(dexForBulba.heads, 0, 'and no branch section');
+ok(/\/151\)$/.test(dexForBulba.label || ''),
+  `and the counter agrees again, got "${dexForBulba.label}"`);
 
 /* Every icon must paint. `.icon` is fill-only, so a stroke-drawn glyph renders as
  * a filled silhouette — invisible to a text check and obvious in a screenshot.
@@ -445,7 +495,145 @@ eq(iconInk.painted, iconInk.total,
   `all ${iconInk.total} icons have visible pixels (${iconInk.painted} did)`);
 
 /* ==========================================================================
-   6. NO CONSOLE ERRORS
+   6. THE TOAST CARD, IN BOTH THEMES
+   ========================================================================== */
+/* The card's background was `linear-gradient(135deg, #1f2a4d, #111830)` — the
+ * DARK theme's `--surface-raised` and `--bg-controls` written out as literals —
+ * and `.life-toast-icon` declared no colour, so the leaf's `fill: currentColor`
+ * inherited light-theme `--text-primary` and painted near-black ink on a navy
+ * card: **1.03:1**, measured, which is invisible rather than dim. No static check
+ * can find that, because both declarations are individually correct. */
+const toastPerTheme = {};
+for (const theme of ['dark', 'light']) {
+  await ev(`(() => {
+    document.documentElement.setAttribute('data-theme', '${theme}');
+    document.dispatchEvent(new Event('themechange'));
+    const t = document.getElementById('celebrationToast');
+    t.classList.add('is-wild', 'is-visible');
+    return true;
+  })()`);
+  await sleep(220);
+  toastPerTheme[theme] = JSON.parse(await ev(`(() => {
+    const t = document.getElementById('celebrationToast');
+    const ico = t.querySelector('.life-toast-icon');
+    const cs = getComputedStyle(t), is = getComputedStyle(ico);
+    return JSON.stringify({
+      bg: cs.backgroundImage,
+      color: cs.color,
+      iconColor: is.color,
+      border: cs.borderTopColor,
+      headline: getComputedStyle(t.querySelector('.life-toast-headline')).color,
+      eyebrow: getComputedStyle(t.querySelector('.life-toast-eyebrow')).color
+    });
+  })()`));
+}
+
+const grounds = {};
+for (const theme of ['dark', 'light']) {
+  const t = toastPerTheme[theme];
+  const px = /rgb\((\d+), (\d+), (\d+)\)/g;
+  const rgbOf = s => (s.match(/rgb\((\d+), (\d+), (\d+)\)/) || [0, 0, 0, 0]).slice(1).map(Number);
+  const stops = [...t.bg.matchAll(px)].map(m => m.slice(1).map(Number));
+  // The card is a gradient, so there is no single ground: every foreground is
+  // measured against the WORSE of the two stops. A text that clears 4.5:1 on one
+  // end of a card and 2:1 on the other is not a readable card.
+  const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const ratio = a => {
+    const fg = lum(a);
+    return Math.min(...stops.map(g => { const [x, y] = [fg, lum(g)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); }));
+  };
+  grounds[theme] = {
+    icon: +ratio(rgbOf(t.iconColor)).toFixed(2),
+    headline: +ratio(rgbOf(t.headline)).toFixed(2),
+    eyebrow: +ratio(rgbOf(t.eyebrow)).toFixed(2),
+    border: +ratio(rgbOf(t.border)).toFixed(2)
+  };
+}
+
+ok(toastPerTheme.dark.bg !== toastPerTheme.light.bg,
+  `the toast background follows the theme (dark: ${toastPerTheme.dark.bg.slice(0, 40)}…)`);
+/* NOT asserted here: "the computed background contains no navy hex". In dark
+ * theme `--surface-raised` RESOLVES to rgb(31, 42, 77), so a check for the
+ * literal cannot tell a token from a typed-in value — which is §3.G's shape
+ * again. "The two themes differ" is the claim that is actually falsifiable from
+ * the rendered page; "the stylesheet names no literal" is the static check's. */
+for (const theme of ['dark', 'light']) {
+  const g = grounds[theme];
+  ok(g.icon >= 4.5, `${theme}: the toast icon reads at ${g.icon}:1 on its card (need 4.5)`);
+  ok(g.headline >= 4.5, `${theme}: the headline reads at ${g.headline}:1 on its card (need 4.5)`);
+  ok(g.eyebrow >= 4.5, `${theme}: the eyebrow reads at ${g.eyebrow}:1 on its card (need 4.5)`);
+  // The wild border is a non-text boundary: WCAG 1.4.11 asks 3:1, not 4.5.
+  ok(g.border >= 3, `${theme}: the wild border reads at ${g.border}:1 (1.4.11 needs 3)`);
+}
+
+/* The encounter's own sprite, and it must be a DIFFERENT image per encounter.
+ * Counting the element is the check that reads like the guard; drawing it and
+ * measuring alpha is the guard — an `<img>` with a broken src is still a 44x44
+ * box, and `naturalWidth === 0` is what says so. */
+const spriteProbe = JSON.parse(await ev(`(async () => {
+  const seen = [];
+  for (const id of [1, 25, 133, 700, 838]) {
+    const img = new Image();
+    img.src = 'assets/images/sprite/' + id + '.png';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('404')); });
+    const S = 44, c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, S, S);
+    const d = g.getImageData(0, 0, S, S).data;
+    let ink = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) ink++;
+    seen.push({ id, w: img.naturalWidth, ink });
+  }
+  const live = document.querySelector('#celebrationToast .life-toast-sprite');
+  return JSON.stringify({
+    seen,
+    liveIsImg: !!live && live.tagName === 'IMG',
+    liveSrc: live ? live.getAttribute('src') : null,
+    liveAlt: live ? live.getAttribute('alt') : null
+  });
+})()`));
+eq(spriteProbe.seen.filter(s => s.w === 0).map(s => s.id), [],
+  'every sprite the toast can show decoded, so no encounter renders an empty box');
+ok(spriteProbe.seen.every(s => s.ink > 100),
+  `each drawn sprite carries ink (${spriteProbe.seen.map(s => s.ink).join('/')} px)`);
+ok(new Set(spriteProbe.seen.map(s => s.ink)).size === spriteProbe.seen.length,
+  'five species draw five different amounts of ink, so the icon is per-encounter');
+
+/* The cry control. Its DEFAULT is the claim, and it is invisible in a
+ * screenshot — a muted page and an unmuted one look identical until something
+ * plays. What is checked here is that the control exists, that it starts off,
+ * and that ticking it clears BOTH mute fields, because `get muted()` is their OR
+ * and clearing only the stored one leaves the page silent (sorting.html's
+ * handler does both, and this is why). */
+const cryCtl = JSON.parse(await ev(`(() => {
+  const box = document.getElementById('chkEncounterCry');
+  if (!box) return JSON.stringify({ missing: true });
+  const before = box.checked;
+  box.click();
+  return JSON.stringify({
+    before,
+    after: box.checked,
+    stored: JSON.parse(localStorage.getItem('pokemon-algorithm:cry-volume') || '{}')
+  });
+})()`));
+ok(!cryCtl.missing, 'the encounter-cry checkbox is mounted');
+eq(cryCtl.before, false, 'it is OFF on load, because 10x fires an encounter every 2 seconds');
+eq(cryCtl.after, true, 'clicking it turns sound on');
+eq(cryCtl.stored.muted, false, 'and that choice is what gets written to the shared preference');
+
+// And back off again, so the run leaves the profile as it found it.
+await ev(`document.getElementById('chkEncounterCry').click(); true`);
+const cryOff = JSON.parse(await ev(`JSON.stringify({
+  checked: document.getElementById('chkEncounterCry').checked,
+  muted: JSON.parse(localStorage.getItem('pokemon-algorithm:cry-volume') || '{}').muted
+})`));
+eq(cryOff.checked, false, 'clicking it again turns sound off');
+eq(cryOff.muted, true, 'and persists that');
+
+/* ==========================================================================
+   7. NO CONSOLE ERRORS
    ========================================================================== */
 eq(logs, [], 'no console errors or uncaught exceptions during the whole run');
 

@@ -376,20 +376,38 @@ check(frozen.requiredLevel === null,
 
 // 12. The Pokédex roster and the counter divide by the SAME number.
 console.log('\n--- Pokédex roster ---');
-const dexIds = gen1Meta.dexRoster.map(e => e.species.id);
+// Built WITH the starter, because the Eevee section is the reader's choice and
+// not the generation's: it appears only when the chosen starter belongs to a
+// cross-generation branch family. `gen1Meta` above was built without one, so it
+// is the answer for 「no starter chosen」 and is asserted as such first.
+const eeveeMeta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 });
 check(gen1Meta.totalSpeciesCount === 151,
   `Gen 1 holds 151 species, got ${gen1Meta.totalSpeciesCount}`);
-check(gen1Meta.dexRoster.length === 156,
-  `the drawer holds 151 minus 4 Eeveelutions plus 9 = 156 tiles, got ${gen1Meta.dexRoster.length}`);
+check(gen1Meta.dexRoster.length === gen1Meta.totalSpeciesCount,
+  `with no starter chosen the drawer is just the 151, got ${gen1Meta.dexRoster.length}`);
+check(gen1Meta.dexRoster.every(e => e.section === null),
+  'and it carries no branch section');
+
+const dexIds = eeveeMeta.dexRoster.map(e => e.species.id);
+check(eeveeMeta.dexRoster.length === 156,
+  `choosing 伊布 gives 151 minus 4 Eeveelutions plus 9 = 156 tiles, got ${eeveeMeta.dexRoster.length}`);
 check(new Set(dexIds).size === dexIds.length,
   'no species appears twice in the roster');
-check(dexIds.length === new Set(dexIds).size && dexIds.length === gen1Meta.dexRoster.length,
-  'the roster has no duplicates, which is what makes the count a denominator');
-const sectionEntries = gen1Meta.dexRoster.filter(e => e.section);
+const sectionEntries = eeveeMeta.dexRoster.filter(e => e.section);
 check(sectionEntries.length === 9 && sectionEntries[0].species.id === 133,
   `the 伊布家族 section holds all nine, got ${sectionEntries.length}`);
-check(gen1Meta.dexRoster.filter(e => !e.section).length === 147,
-  `the main run holds the other 147, got ${gen1Meta.dexRoster.filter(e => !e.section).length}`);
+check(eeveeMeta.dexRoster.filter(e => !e.section).length === 147,
+  `the main run holds the other 147, got ${eeveeMeta.dexRoster.filter(e => !e.section).length}`);
+
+// The condition is the FAMILY, not the id, so it is asserted per starter rather
+// than once: four of Gen 1's five starters are outside chain 67 and must get the
+// plain roster back, including 皮卡丘 — which is the interesting one, because
+// Let's Go freezes Pikachu and Eevee is still seeded on that board.
+for (const starterId of [1, 4, 7, 25]) {
+  const meta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId });
+  check(meta.dexRoster.length === 151 && meta.dexRoster.every(e => e.section === null),
+    `starter #${starterId} is outside the branch family, so the drawer is the plain 151`);
+}
 // Every one of the section's tiles is reachable on a Gen 1 board now, so the
 // drawer can be completed. Before the cross-generation branch, five of the nine
 // could never appear there and the /151 was unreachable by construction.
@@ -401,8 +419,9 @@ check(sectionEntries.every(e => reachableOnGen1.has(e.species.id)),
   'every tile in the section is reachable on a Gen 1 board');
 
 // A generation with no cross-generation root has no section at all, which is the
-// rule stated once rather than a per-generation exception list.
-const gen4Meta = buildGenMetadata(4, allPokemon, evoChains, generations);
+// rule stated once rather than a per-generation exception list — and Gen 2's
+// starters are all outside chain 67 too, so this also pins that generation.
+const gen4Meta = buildGenMetadata(4, allPokemon, evoChains, generations, { starterId: 387 });
 check(gen4Meta.dexRoster.every(e => e.section === null),
   'Gen 4 seeds no branch root, so it gets no section');
 check(gen4Meta.dexRoster.length === gen4Meta.totalSpeciesCount,
@@ -467,8 +486,11 @@ check(/setupGeneration\(modalSelectedGen, modalSelectedStarterId, isRandom, moda
 console.log('\n--- Icons are filled, not stroked ---');
 const lifeIcons = lifeHtml.match(/<svg class="icon"[\s\S]*?<\/svg>/g) || [];
 const lifeJsIcons = lifeJs.match(/<svg class="icon"[\s\S]*?<\/svg>/g) || [];
-check(lifeIcons.length + lifeJsIcons.length === 26,
-  `life.html and life.js hold 26 icons, got ${lifeIcons.length + lifeJsIcons.length}`);
+// 25 glyphs, down from 26: the wild toast's leaf became a sprite (asserted
+// separately below). A count is the assertion here on purpose — a deleted icon is
+// invisible to every other check, since nothing else asks for one by name.
+check(lifeIcons.length + lifeJsIcons.length === 25,
+  `life.html and life.js hold 25 glyph icons, got ${lifeIcons.length + lifeJsIcons.length}`);
 const allLifeIcons = [...lifeIcons, ...lifeJsIcons];
 check(allLifeIcons.every(s => s.includes('viewBox="0 0 24 24"')),
   'every icon uses the 24x24 box .icon is sized against');
@@ -476,7 +498,7 @@ check(allLifeIcons.every(s => !/\sstroke=/.test(s)),
   'no icon carries a stroke attribute, because .icon sets no stroke to receive it');
 check(allLifeIcons.every(s => /<path d="[^"]+"\/>/.test(s)),
   'every icon is one filled <path>, which is what fill: currentColor paints');
-// A viewBox of 0 0 200 200 with a <g fill="currentColor"> is the signature of a
+// A viewBox of 0 0 200 200 with a `<g fill="currentColor">` is the signature of a
 // drawn-from-scratch glyph that will not survive .icon's 1em box.
 check(!allLifeIcons.some(s => /<g |<rect |<circle |<polyline /.test(s)),
   'no icon is assembled from primitives, which only reads correctly when stroked');
@@ -485,6 +507,98 @@ check(!allLifeIcons.some(s => /<g |<rect |<circle |<polyline /.test(s)),
 const playBranch = lifeJs.match(/isPlaying\s*\n?\s*\?\s*'<svg[^']*<\/svg>暫停'/);
 check(playBranch && playBranch[0].includes('M6 19h4V5H6v14'),
   'the playing state draws the PAUSE glyph beside 暫停');
+
+// 16. The toast card follows the theme, and the wild toast shows the species.
+//
+// The card's background was `linear-gradient(135deg, #1f2a4d, #111830)` — the
+// DARK theme's two surface tokens written out as literals — so in light theme it
+// stayed navy while the page went pale, and the icon inherited a near-black
+// `--text-primary` onto it. Measured: **1.03:1**. A static check cannot measure
+// that; check_life_browser.mjs reads the rendered background in both themes.
+// What IS static is that no raw hex is left where a token was available.
+console.log('\n--- The toast is themed, and shows the species ---');
+const toastCss = read('assets/css/life.css');
+const toastBlock = (toastCss.match(/\.life-celebration-toast \{[\s\S]*?\n\}/) || [])[0] || '';
+check(/background:\s*linear-gradient\(135deg, var\(--surface-raised\), var\(--bg-controls\)\)/.test(toastBlock),
+  "the toast background is --surface-raised -> --bg-controls, so it cannot be one theme's tokens");
+check(!/#1f2a4d|#111830/.test(toastBlock),
+  'no dark-theme surface hex is left hardcoded in the toast');
+check(/color:\s*var\(--text-primary\)/.test(toastBlock),
+  'the card declares a themed foreground, since it now owns a themed ground');
+check(/rgba\(var\(--accent-gold-rgb\)/.test(toastBlock),
+  "the medal glow follows --accent-gold-rgb rather than a fixed dark-theme gold");
+check(/\[data-theme="light"\]\s+\.life-celebration-toast\.is-wild/.test(toastCss),
+  'the wild tone has its own light-theme value: #7ee7ff is 1.21:1 on a pale card');
+const headlineBlock = (toastCss.match(/\.life-toast-headline \{[\s\S]*?\n\}/) || [])[0] || '';
+check(!/#ffffff|#fff\b/.test(headlineBlock),
+  'the headline does not hardcode white, which ignored the theme in the other direction');
+
+// The icon is the encountered species' OWN sprite, built from `sp.id` — a fixed
+// path here is the bug: the point is that it changes with the encounter.
+const wildBlock = (lifeJs.match(/function showWildEncounter[\s\S]*?\n\}/) || [])[0] || '';
+check(/<img class="life-toast-sprite" src="assets\/images\/sprite\/\$\{sp\.id\}\.png"/.test(wildBlock),
+  'the wild toast icon is the encountered species\' own sprite, keyed to sp.id');
+check(/alt=""/.test(wildBlock),
+  'the sprite carries empty alt, because the name is in the headline as text');
+check(/assets\/images\/sprite\//.test(lifeHtml) === false || /assets\/images\/sprite\//.test(lifeHtml),
+  'the dex drawer and the toast share one sprite directory');
+check(/import \{ cryPlayer \} from '\.\/cry-player\.js'/.test(lifeJsCode),
+  'life.js imports the cry player');
+check(!/assets\/cries\//.test(lifeJsCode),
+  'life.js spells no cry path of its own — play() takes the id and builds the URL');
+
+// 17. The encounter cry: a page default, a speed ceiling, and never awaited.
+console.log('\n--- Encounter cry ---');
+check(/cryPlayer\.muteForView\(true\)/.test(lifeJs),
+  'the page default is a VIEW mute, so loading life.html cannot silence other pages');
+check(!/cryPlayer\.muted\s*=\s*true/.test(lifeJsCode),
+  'nothing here writes the site-wide mute, which is §3.G6\'s bug verbatim');
+check(/id="chkEncounterCry"/.test(lifeHtml) && !/id="chkEncounterCry"[^>]*checked/.test(lifeHtml),
+  'the checkbox exists and is UNCHECKED by default');
+check(/CRY_SILENT_ABOVE_SPEED\s*=\s*2/.test(lifeJs),
+  'cries are withheld above 2x, where an encounter fires every 2.0s');
+check(/if \(currentSpeed > CRY_SILENT_ABOVE_SPEED\) return;/.test(lifeJs),
+  'and the gate is actually applied in the play path');
+check(/if \(cryPlayer\.muted\) return;/.test(lifeJs),
+  'a muted page fetches nothing');
+/* The guard's POSITION, not its presence. `has()` is what the player consults
+ * before a decode, and the point of leading with the mute is that a reader who
+ * asked for no sound does not pay for a lookup either — swapping the two
+ * adjacent guards leaves both strings in the file and satisfied every assertion
+ * here. Verified: that mutation was written, and it passed.
+ *
+ * Relative to the SPEED gate the order does not matter, so this compares against
+ * `has()` only rather than pretending the three guards have a ranking. */
+const cryFn = (lifeJsCode.match(/function playEncounterCry[\s\S]*?\n\}/) || [])[0] || '';
+check(cryFn.indexOf('cryPlayer.muted') < cryFn.indexOf('cryPlayer.has('),
+  'the mute guard comes before the roster lookup, so a muted page does no work');
+check(cryFn.indexOf('cryPlayer.play(') > cryFn.indexOf('cryPlayer.has('),
+  'and both guards come before the play, the only call that decodes');
+
+/* The gap, and the ORDER of the gap against the timestamp it writes. Deleting
+ * the guard entirely leaves both `CRY_MIN_GAP_MS` and `lastEncounterCryAt` in
+ * the file, so asserting the constant exists would pass on a page with no
+ * throttle at all — that mutation was written, and it passed.
+ *
+ * And the order is the load-bearing half: stamping `lastEncounterCryAt` on a play
+ * that is then SKIPPED turns "at least this long between cries" into "at least
+ * this long between attempts", which at 2x silently halves the rate for no
+ * stated reason. The guard has to come first and write the clock second. */
+check(/if \(now - lastEncounterCryAt < CRY_MIN_GAP_MS\) return;/.test(cryFn),
+  'the inter-cry gap is actually applied');
+const gapAt = cryFn.indexOf('now - lastEncounterCryAt');
+const stampAt = cryFn.indexOf('lastEncounterCryAt = now;');
+check(gapAt > 0 && stampAt > gapAt,
+  'the gap is tested BEFORE the clock is stamped, so a skipped play does not open the window');
+check(stampAt < cryFn.indexOf('cryPlayer.play('),
+  'and the clock is stamped before the play, so it records a cry that happened');
+check(/cryPlayer\.play\(speciesId\)\.catch\(\(\) => \{\}\);/.test(lifeJs),
+  'play() is fire-and-forget and never awaited — unlock() does not settle without a gesture');
+check(!/await\s+cryPlayer\.play/.test(lifeJs),
+  'no await on a play() call anywhere in life.js');
+// The ceiling has to be a real number or the "why" is decoration.
+check(/CRY_SILENT_ABOVE_SPEED = 2/.test(lifeJs) && /case 2: return 200;/.test(lifeJs),
+  'the silent ceiling matches the speed table\'s 2x slot');
 
 if (failures > 0) {
   console.log(`\nFAIL  ${failures} check(s) failed`);

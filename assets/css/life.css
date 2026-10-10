@@ -1056,14 +1056,27 @@
 /* --------------------------------------------------------------------------
    Celebration Modal / Toast
    -------------------------------------------------------------------------- */
+/* The card's background was a hardcoded `linear-gradient(135deg, #1f2a4d,
+ * #111830)` — which is the DARK theme's `--surface-raised` and `--bg-controls`
+ * written out as literals. In light theme the card therefore stayed navy while
+ * everything around it went pale, and since `.life-toast-icon` declares no
+ * colour of its own, the icon's `fill: currentColor` inherited `--text-primary`
+ * and painted near-black ink on it: **1.03:1**, measured, which is invisible
+ * rather than dim. The eyebrow failed the same way at 2.57:1. Using the tokens
+ * is the whole fix, and it cannot drift from the theme the way a literal can.
+ *
+ * A card that owns a themed ground has to own a themed foreground too, which is
+ * what the `color` below is for — the headline's hardcoded `#fff` was the one
+ * part that survived, because it ignored the theme in the other direction. */
 .life-celebration-toast {
   position: fixed;
   top: 70px;
   left: 50%;
   transform: translateX(-50%) translateY(-20px);
-  background: linear-gradient(135deg, #1f2a4d, #111830);
+  background: linear-gradient(135deg, var(--surface-raised), var(--bg-controls));
+  color: var(--text-primary);
   border: 2px solid var(--accent-gold);
-  box-shadow: 0 10px 40px rgba(245, 197, 66, 0.35);
+  box-shadow: 0 10px 40px rgba(var(--accent-gold-rgb), 0.35);
   border-radius: 16px;
   padding: 16px 28px;
   display: flex;
@@ -1085,10 +1098,23 @@
    site's cyan rather than gold. One box, two tones: a second stacked toast would
    compete for the same z-index 120 and one of them would hide behind the other.
    The 2px border and its glow move together, since the border IS the accent
-   here — recolouring the glow alone left a gold frame round a cyan card. */
+   here — recolouring the glow alone left a gold frame round a cyan card.
+
+   The cyan is PER THEME and it has to be. #7ee7ff reads at 9.86:1 on the dark
+   card and at **1.16:1** on the light one — a border nobody can find is the same
+   failure as an icon nobody can see. Light gets #0c8599, which clears 3.54:1
+   against the WORSE of the card's two gradient stops (a card that reads 3.5:1 on
+   one end and 2.9:1 on the other is not a readable card, which is why the browser
+   checker measures the minimum and not the average). Both clear WCAG 1.4.11's 3:1
+   for the boundary the border actually draws. */
 .life-celebration-toast.is-wild {
   border-color: #7ee7ff;
   box-shadow: 0 10px 40px rgba(126, 231, 255, 0.28);
+}
+
+[data-theme="light"] .life-celebration-toast.is-wild {
+  border-color: #0c8599;
+  box-shadow: 0 10px 40px rgba(12, 133, 153, 0.22);
 }
 
 .life-celebration-toast.is-wild .life-toast-icon {
@@ -1098,6 +1124,27 @@
 .life-toast-icon {
   font-size: 36px;
   animation: bounce 0.6s infinite alternate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The encountered Pokémon's own sprite, at the size the former 36px glyph box
+ * occupied. It is drawn on the card rather than on a backing disc, and the
+ * numbers say that is the right call: over all 1,025 sprites the MEDIAN ink
+ * reads 3.98:1 on the light card and 3.59:1 on the dark one, with 11 and 17
+ * species below 1.5:1 respectively. A disc would move the failure rather than
+ * remove it — a light card's weak species are the PALE ones (612 of 1,025 have
+ * their palest fifth under 1.5:1), which is exactly where the navy was strong.
+ *
+ * `alt=""` because the name is in the headline as text, one element away: the
+ * sprite reinforces an identity the toast already states, and an alt repeating
+ * it makes a screen reader say the name twice. */
+.life-toast-sprite {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
 }
 
 @keyframes bounce {
@@ -1121,7 +1168,7 @@
 .life-toast-headline {
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 @media (max-width: 768px) {

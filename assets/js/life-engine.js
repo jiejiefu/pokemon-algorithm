@@ -122,8 +122,14 @@ export const PATTERNS = {
  * @param {Array} allPokemon - 1025 master records
  * @param {Object} evolutionChains - evolution_chains.json
  * @param {Array} generations - generations.json
+ * @param {object} [options]
+ * @param {number} [options.starterId] - the species the reader chose as their
+ *   starter, which decides whether the Pokédex carries a cross-generation
+ *   branch section. 0 (the default) means no starter chosen, and therefore no
+ *   section: a reader who did not pick 伊布 gets their generation's own roster in
+ *   its own order, and the counter agrees with it again.
  */
-export function buildGenMetadata(gen, allPokemon, evolutionChains, generations) {
+export function buildGenMetadata(gen, allPokemon, evolutionChains, generations, { starterId = 0 } = {}) {
   const genNum = Number(gen);
   const genSpecies = allPokemon.filter(p => p.generation === genNum);
   const speciesById = new Map(allPokemon.map(p => [p.id, p]));
@@ -198,7 +204,7 @@ export function buildGenMetadata(gen, allPokemon, evolutionChains, generations) 
     region: genDef ? genDef.region : '',
     totalSpeciesCount: genSpecies.length,
     allGenSpecies: genSpecies,
-    dexRoster: buildDexRoster(genNum, genSpecies, speciesById, evolutionChains),
+    dexRoster: buildDexRoster(genNum, genSpecies, speciesById, evolutionChains, starterId),
     speciesById,
     starters,
     legendaries,
@@ -216,19 +222,29 @@ export function buildGenMetadata(gen, allPokemon, evolutionChains, generations) 
  * the main list and appended all 9. A denominator that is not the number of rows
  * is a claim about progress the reader can check and find false.
  *
- * The section appears only where its ROOT is seeded — Gen 1 has Eevee, Gen 2 does
- * not — so this is one rule and not a per-generation exception. Its members come
- * from the family's own chain rather than a second hardcoded id list, which is why
- * 水/雷/火伊布 leave the 151 and rejoin the nine: they are not a duplicate roster,
- * they are the same nine species filed under the branch that reaches them.
+ * THE SECTION IS THE READER'S CHOICE, not the generation's. It appears only when
+ * `starterId` belongs to a cross-generation branch family — today that is
+ * exactly 「始祖物種選了伊布」, because Eevee is the only such root and #133 is the
+ * only one of the five Gen 1 starters inside it. The rule is written as the
+ * family rather than as the id so a second root needs no new branch here, and
+ * stated as one condition rather than a per-generation exception list.
+ *
+ * Its members come from the family's own chain rather than a second hardcoded id
+ * list, which is why 水/雷/火伊布 leave the 151 and rejoin the nine: they are not
+ * a duplicate roster, they are the same nine species filed under the branch that
+ * reaches them.
  */
-function buildDexRoster(genNum, genSpecies, speciesById, evolutionChains) {
+function buildDexRoster(genNum, genSpecies, speciesById, evolutionChains, starterId) {
   let main = genSpecies;
   const sections = [];
 
   for (const rootId of CROSS_GEN_BRANCH_ROOTS) {
     const root = speciesById.get(rootId);
     if (!root || root.generation !== genNum) continue;
+
+    // The reader picked the branch's family, not merely the generation it lives in.
+    const starter = speciesById.get(starterId);
+    if (!starter || starter.evolution_chain_id !== root.evolution_chain_id) continue;
 
     const chain = evolutionChains[String(root.evolution_chain_id)];
     const members = (chain ? chain.main_line : []).filter(n => n.id <= 1025);

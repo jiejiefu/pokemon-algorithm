@@ -95,6 +95,17 @@
     <div class="life-group">
       <label class="life-toggle-label" title="每輪有機率在網格上遭遇野生寶可夢群落"><input type="checkbox" id="chkWild" checked><span>野生遭遇</span></label>
       <label class="life-toggle-label"><input type="checkbox" id="chkGrid" checked><span>格線</span></label>
+      <!--
+        Unchecked by default, and the reason is in the title attribute rather than
+        only in a checker. Measured: this page fires a wild encounter every 2.0s at
+        10x and every 11s at 2x, and a cry is 1.10s median / 3.26s worst — so an
+        arrival sound is a firehose the reader did not ask for. Crys are also
+        silent at 5x and 10x for the same reason; see playEncounterCry().
+        The default is a VIEW mute (cryPlayer.muteForView), never
+        `cryPlayer.muted = true`, which writes the site-wide preference and
+        silences every other cry page — §3.G6's bug, verbatim.
+      -->
+      <label class="life-toggle-label" title="預設關閉：最密集時每 2 秒一次遭遇，所以由你決定要不要開。5x 與 10x 不會發聲。音量與靜音狀態和本站其它叫聲頁共用同一組設定。"><input type="checkbox" id="chkEncounterCry"><span>遭遇叫聲</span></label>
     </div>
 
     <div class="life-group" style="margin-left: auto;">
