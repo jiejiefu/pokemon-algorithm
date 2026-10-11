@@ -21,14 +21,18 @@
    0. The colour page shell — app frame, sticky editor panel, scroll column
    ---------------------------------------------------------------------------
    Transcribed from the reference's pokemon-page-client.tsx:110-151, with ONE
-   structural change the port forces. The reference root is
+   structural change the port forced, since reverted. The reference root is
    `flex h-screen overflow-hidden` and it has no site header at all: its logo
    lives inside the sidebar (collapsible-sidebar.tsx:205-218), so the viewport
-   is the whole frame. This site keeps `.header`, so the frame is a flex COLUMN
-   with the header as one item and the shell as the other — never a hardcoded
-   `100dvh - <n>px`. The header's height is not a constant: `.header` is
+   is the whole frame. This page SHIPPED with a 55px `.header` above the frame
+   and the frame was a flex COLUMN to accommodate it — never a hardcoded
+   `100dvh - <n>px`, because the header's height is not a constant (`.header` is
    `flex-direction: column` and its nav collapses into a drawer toggle below the
-   site breakpoint, so any magic number is correct at exactly one width.
+   site breakpoint, so any magic number is correct at exactly one width). The
+   header is now GONE and the frame is the viewport again: this page's chrome
+   lives in the left rail, which is where the reference's does too, and the
+   three columns start at y=0. `.cp-app` keeps its column direction because the
+   skip link is still a child of it, not because the shell needs an item above.
 
    Two declarations are load-bearing rather than habitual:
 
@@ -52,14 +56,19 @@
    its lower half can never be scrolled to, which is the reason the inner
    overflow is here rather than left off as the reference leaves it.
    ------------------------------------------------------------------------ */
+/* `color.html` has NO HEADER. The frame is three columns and the header was a
+   55px band above all three, so none of them could start at y=0 while it
+   existed; removing it moves `.cp-shell`, `.cp-rail`, `.cp-panel` and `.cp-main`
+   to 0 and hands its 55px to `.cp-scroll` (measured 758 -> 900 at a 900px
+   viewport). Nothing hardcodes that number anywhere, which is the point of
+   `flex: 1 1 auto` + `min-height: 0` on the shell below.
+
+   The brand that lived in the header is now in the rail's top row
+   (`railBodyHtml` in shared.js), which is where the reference keeps it too. */
 .cp-app {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-}
-
-.cp-app > .header {
-  flex: 0 0 auto;
 }
 
 .cp-shell {
@@ -168,10 +177,22 @@
     overflow-x: auto;
   }
 
-  .cp-panel {
+  /* `relative`, not `static`. This is the containing block for `.cp-rail-open`,
+     the mobile menu button, which is mounted here by initColorRail and pinned to
+     the panel's top-right. `static` gave the button the initial containing block
+     instead, so `top`/`right` would have resolved against the VIEWPORT rather
+     than the panel — the §3.B1 shape of a rule that looks correct and places the
+     element somewhere else. At >=768 the panel is `sticky`, which is already a
+     positioned ancestor, so the two halves agree about who contains what.
+
+     `z-index` stays `auto` on purpose. That keeps the panel OUT of a stacking
+     context, so the button paints in the root's positioned layer and the drawer
+     scrim (z-index 40) and the drawer (50) both land above it — the scrim has
+     to be what blocks a second tap, not the button's own z-index. */
+.cp-panel {
     flex: 0 0 auto;
     align-self: stretch;
-    position: static;
+    position: relative;
     max-height: none;
     overflow-y: visible;
     border-right: 0;
@@ -229,7 +250,51 @@
 .cp-rail.is-collapsed .cp-rail-caret,
 .cp-rail.is-collapsed .cp-rail-badge { display: none; }
 
-.cp-rail-top { padding: 8px 0 16px; }
+.cp-rail-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0 16px;
+}
+
+/* The brand, which used to be the 55px header above this whole frame. It is an
+   `<a>`, not a `.cp-rail-link`, so it takes the rail's 8px horizontal padding
+   and its own box rather than the nav row's — the header's brand had no row
+   treatment either, and giving it one would make the rail read as if the site
+   name were a destination alongside the eleven real ones. */
+.cp-rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+}
+
+.cp-rail-brand:hover .site-logo { opacity: .85; }
+.cp-rail-brand:active .site-logo { transform: scale(.96); }
+
+/* Collapsed, the label is `display: none` and therefore out of the flex layout
+   entirely — its 12px gap goes with it — so the box is 40px of logo plus 20px
+   of padding against a 48px content box, and it hangs 6px over each side. The
+   logo itself still fits (measured x=12..52 inside a 48px box at x=8..56), so
+   nothing is clipped, but "fits because the overflow happens to be padding" is
+   not a measurement. 8px of horizontal padding makes the box exactly 48. */
+.cp-rail.is-collapsed .cp-rail-brand { padding-left: 4px; padding-right: 4px; }
+
+/* NOT `.header-title`. That is `font-size: 28px` with a 90deg gradient text
+   clip, both sized for a full-width header row; at 28px the six characters
+   measure ~178px against this rail's 240px content box, which does not clear
+   the 40px logo and its 12px gap. Gold rather than the gradient, so the brand
+   keeps the site's identity colour without importing a rule that was tuned for
+   a different box. */
+.cp-rail-brand-name {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--accent-gold);
+}
 
 .cp-rail-toggle,
 .cp-rail-link,
@@ -252,7 +317,17 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.cp-rail.is-collapsed .cp-rail-top,
+/* `.cp-rail-top` is SEPARATED from the other three, and that separation is the
+   fix rather than a grouping: `justify-content` acts on a flex container's MAIN
+   axis, and `.cp-rail-top` is a COLUMN (brand over toggle), so centring there
+   vertically did nothing at all — for as long as the selector listed it, the
+   toggle looked centred only because it is `width: 100%`. It is a
+   `flex-direction: column` box now, so what centres the brand inside the 64px
+   rail is `align-items`, which is the CROSS axis here. The other three are ROW
+   containers, so their `justify-content` was always doing the right thing and
+   stays exactly where it was. */
+.cp-rail.is-collapsed .cp-rail-top { align-items: center; }
+
 .cp-rail.is-collapsed .cp-rail-link,
 .cp-rail.is-collapsed .cp-rail-trigger,
 .cp-rail.is-collapsed .cp-rail-appearance { justify-content: center; }
@@ -358,13 +433,32 @@
 
 .cp-skip:focus { top: 8px; }
 
-/* The mobile menu button lives in `.header` (see initColorRail, departure 4),
-   so it needs no `position: fixed`; `margin-left: auto` is what right-aligns it
-   in the header's COLUMN flex, and is the same trick the old
-   `.site-nav-toggle` used. */
+/* The mobile menu button, mounted on `.cp-panel` by initColorRail and pinned to
+   the panel's top-right. It used to be appended to `.header`, which no longer
+   exists, and `margin-left: auto` was what right-aligned it in that header's
+   column flex — a trick that only means anything while the button is IN a flex
+   parent, so it went with the header.
+
+   Absolute on the panel, not `fixed` on the viewport: the panel is the frame's
+   own content at every width, and a fixed button is an overlay on top of it
+   that has to be given a z-index over `.cp-scroll` and then be z-indexed under
+   the drawer scrim as well. Inside the panel it inherits the correct answer for
+   free — `.cp-panel` keeps `z-index: auto`, so this paints in the root's
+   positioned layer and the scrim (40) and drawer (50) land above it, which is
+   what makes the scrim rather than the button the thing that blocks a second
+   tap.
+
+   Measured empty before choosing absolute over a dedicated 34px flow row: the
+   panel is 320px wide at 320 / 390 / 560 / 767px viewports (the base `width`
+   survives the stacked layout), and a 34x34 box at its top-right, 8px in,
+   intersects ZERO leaf elements — no img, button, a, input, h1-h3, label, span
+   or strong — at all four. A flow row would have cost 34px of vertical space on
+   a 320px-wide panel to hold the same control. */
 .cp-rail-open {
   display: none;
-  margin-left: auto;
+  position: absolute;
+  top: 8px;
+  right: 8px;
   width: 34px;
   height: 34px;
   align-items: center;
@@ -429,16 +523,15 @@
   .cp-rail-open { display: flex; }
 }
 
-/* shared.css:1392 gives `.header-colors` 62px of right padding at <=1024px to
-   clear the hamburger and the absolutely positioned theme toggle. Both of those
-   are gone from this page's header, so the reservation is 62px of dead width
-   that pushes the title off-centre for no reason. `.cp-rail-open` is in the
-   header's own flow and needs no clearance. Restored to the base `.header`
-   padding so the header is symmetric again; colors.css loads after shared.css
-   and both selectors are (0,1,0), so source order decides. */
-@media (max-width: 1024px) {
-  .header-colors { padding-right: 20px; }
-}
+/* The rule this one cancelled is gone with it. shared.css:1392 gives
+   `.header-colors` 62px of right padding at <=1024px to clear a hamburger and an
+   absolutely positioned theme toggle, and colors.css used to restore the base
+   padding because neither existed on this page's header. `color.html` now has NO
+   header at all, so both halves of that workaround are dead code rather than a
+   workaround: `.header-colors` still styles seven other pages and none of them
+   loads this file's frame. Deleted rather than left harmless — a rule that
+   matches no element on the page that carries it is a rule nobody maintains
+   (the `.header-graph` shape, gotcha §3.N). */
 
 /* ---------------------------------------------------------------------------
    1. The identity card — gradient body, top-right masked watermark

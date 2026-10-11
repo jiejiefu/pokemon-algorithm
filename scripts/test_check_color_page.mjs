@@ -267,6 +267,85 @@ const cases = [
     mutate: (f, s) => f.endsWith('color.html') ? s.replace('<div class="cp-app"', '<nav class="site-nav"></nav>\n    <div class="cp-app"') : undefined,
     expect: 'old header nav',
   },
+  // --- no header: the three columns start at y=0 --------------------------------
+  // Each of these is a regression that produces a page that still renders, still
+  // links and still looks deliberate, which is why the file's header says this
+  // has to be a static contract rather than a screenshot.
+  {
+    name: 'a header above the shell puts a band back over all three columns',
+    mutate: (f, s) => f.endsWith('color.html')
+      ? s.replace('<div class="cp-shell">', '<header class="header header-colors"><div class="header-brand"></div></header>\n    <div class="cp-shell">')
+      : undefined,
+    expect: 'mounts no <header>',
+  },
+  {
+    name: 'a leftover .cp-app > .header rule is a rule for an element the page never mounts',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-shell {', '.cp-app > .header {\n  flex: 0 0 auto;\n}\n\n.cp-shell {')
+      : undefined,
+    expect: 'no rule that would style one',
+  },
+  {
+    name: 'the page renames the mount id and the constant does not follow it',
+    // The realistic drift is ONE file: the aside's id is renamed and the mount
+    // constant is not, so initColorRail throws and every listener registered
+    // after that line dies with it.
+    //
+    // The version where BOTH files move together is the interesting one and it
+    // is deliberately NOT tested here: the constant and the markup would agree
+    // with each other and disagree with each other, and no static check can see
+    // that — which is the whole reason the mount id is a constant the checker
+    // reads rather than a literal restated in the assertion. What the case below
+    // proves is that the two answers are compared at all.
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace('id="cp-panel"', 'id="cp-panel-x"') : undefined,
+    expect: 'the page really carries id=',
+  },
+  {
+    name: 'the guard goes back to an optional chain, so a missing mount is a silent no-op',
+    // §3.I's shape verbatim. Every phone loses navigation; nothing throws, nothing
+    // logs, and every other check in the file stays green.
+    mutate: (f, s) => f.endsWith('shared.js')
+      ? s.replace(/  const panel = document\.getElementById\(OPEN_BUTTON_MOUNT\);\n  if \(!panel\) \{[\s\S]*?\n  \}\n  panel\.prepend\(openBtn\);/,
+          "  document.querySelector('.header')?.appendChild(openBtn);")
+      : undefined,
+    expect: 'not an optional chain',
+  },
+  {
+    name: 'the button appears in a different query than the one that hides the rail',
+    // Split, there is a width where the 64px rail is on screen beside the button
+    // meant to replace it, and a width with neither — the rail unreachable and
+    // nothing drawn in its place.
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('  .cp-rail { display: none; }\n  .cp-rail-open { display: flex; }', '  .cp-rail { display: none; }')
+      : undefined,
+    expect: 'SAME query that hides the rail',
+  },
+  {
+    name: 'the mount stops being a positioned box, so top/right resolve against the viewport',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace(/(\.cp-panel \{\n    flex: 0 0 auto;\n    align-self: stretch;\n    )position: relative;/, '$1position: static;')
+      : undefined,
+    expect: 'is a positioned element below 1024px',
+  },
+  {
+    name: 'hiding the mount paints the button into a box that does not exist',
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-panel {\n  flex: 0 0 320px;', '.cp-panel {\n  display: none;\n  flex: 0 0 320px;')
+      : undefined,
+    expect: "display:none on the button's mount",
+  },
+  {
+    name: 'the collapsed top row is centred on the main axis again, which does nothing in a column',
+    // `justify-content` on `.cp-rail-top` was the shipped state and was dead: the
+    // brand made it a flex box, and the declaration still named the vertical
+    // axis, so the logo sits off-centre in the 64px rail while every other item
+    // centres.
+    mutate: (f, s) => f.endsWith('colors.css')
+      ? s.replace('.cp-rail.is-collapsed .cp-rail-top { align-items: center; }\n\n.cp-rail.is-collapsed .cp-rail-link,\n.cp-rail.is-collapsed .cp-rail-trigger,\n.cp-rail.is-collapsed .cp-rail-appearance { justify-content: center; }',
+          '.cp-rail.is-collapsed .cp-rail-top,\n.cp-rail.is-collapsed .cp-rail-link,\n.cp-rail.is-collapsed .cp-rail-trigger,\n.cp-rail.is-collapsed .cp-rail-appearance { justify-content: center; }')
+      : undefined,
+    expect: 'centres its top row on align-items',
+  },
   {
     name: 'a drawer mount that ships unhidden paints over the desktop rail',
     mutate: (f, s) => f.endsWith('color.html') ? s.replace('<div class="cp-nav-drawer" data-rail-drawer hidden></div>', '<div class="cp-nav-drawer" data-rail-drawer></div>') : undefined,

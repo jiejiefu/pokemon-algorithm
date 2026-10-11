@@ -1392,9 +1392,25 @@ function railNavHtml(currentPage, uid) {
   }).join('');
 }
 
-/** The rail's whole inner markup: top row, nav, 外觀. Shared by rail + drawer. */
+/** The rail's whole inner markup: brand + top row, nav, 外觀. Shared by rail + drawer.
+ *
+ *  The BRAND IS HERE AND NOT IN A HEADER because `color.html` has no header:
+ *  its frame is three columns and the header was a 55px band above all three,
+ *  so the left column could not start at y=0 while it existed. This is also
+ *  where the reference puts it — `collapsible-sidebar.tsx:205-218` owns the
+ *  logo inside the sidebar, which is the whole reason its frame has no header.
+ *
+ *  The name reuses `.cp-rail-label` rather than `.header-title`, and that is
+ *  load-bearing rather than a reuse of convenience: the collapsed rule
+ *  (colors.css `.cp-rail.is-collapsed .cp-rail-label`) is what hides it, so the
+ *  64px rail needs NO new CSS to drop the six characters — the same mechanism
+ *  that hides every other label there. `.header-title` would also have brought
+ *  `font-size: 28px` + the gradient text clip, which is sized for a full-width
+ *  header; at 28px the six characters measure ~178px against the expanded rail's
+ *  240px content box and 40px of logo plus a 12px gap does not fit beside them. */
 function railBodyHtml(currentPage, uid) {
   return `<div class="cp-rail-top">
+        <a class="cp-rail-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span><span class="cp-rail-label cp-rail-brand-name">寶可夢演算法</span></a>
         <button class="cp-rail-toggle" type="button" data-rail-toggle aria-expanded="true" aria-label="收合側邊欄">${iconSvg('chevron')}</button>
       </div>
       <nav class="cp-rail-nav" aria-label="主選單">${railNavHtml(currentPage, uid)}</nav>
@@ -1477,7 +1493,28 @@ export function initColorRail(currentPage) {
   openBtn.setAttribute('aria-label', '開啟選單');
   openBtn.setAttribute('aria-controls', 'cp-rail-drawer');
   openBtn.innerHTML = iconSvg('menu');
-  document.querySelector('.header')?.appendChild(openBtn);
+  /* Mounted on the PANEL, at its top-right — and NOT on a site header, which
+     this page no longer has. It used to be appended to whatever `.header` the
+     document offered, through an optional chain, and that is precisely the shape
+     that has no error message: below 768px the rail is `display: none`, so this
+     button is the only route to the site nav on a phone, and deleting the header
+     would have made the mount a silent no-op — every phone loses navigation with
+     no exception, no console line, and nothing in the suite red. Hence the
+     throw, hence the panel: it is the one element in this frame that exists at
+     EVERY width, and the button is `display: none` from 768px up, so the
+     desktop frame is untouched.
+
+     The mount id is a NAMED CONSTANT because `check_color_page.mjs` reads it from
+     here rather than restating it. A hardcoded copy would be a second source of
+     truth for the exact answer this check exists to police, and it would go
+     stale in the direction that matters — the id in the page changing without
+     this one changing with it. */
+  const OPEN_BUTTON_MOUNT = 'cp-panel';
+  const panel = document.getElementById(OPEN_BUTTON_MOUNT);
+  if (!panel) {
+    throw new Error(`initColorRail: #${OPEN_BUTTON_MOUNT} is the mobile menu button's mount point and it is not on the page — below 768px there would be no way to open the nav at all`);
+  }
+  panel.prepend(openBtn);
 
   const scrim = document.createElement('div');
   scrim.className = 'cp-rail-scrim';

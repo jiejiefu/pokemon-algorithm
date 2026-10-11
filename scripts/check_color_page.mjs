@@ -83,6 +83,18 @@ const paletteSrc = read('assets/js/color-palette.js');
 // code blocks colour the same token differently, forever.
 const highlighterSrc = read('assets/js/code-highlight.js');
 
+/* Comments are stripped before any RULE-shaped assertion below.
+   `colors.css` documents its own decisions in prose that names selectors and
+   properties — the `.cp-rail-open` comment literally begins with "mounted on
+   `.cp-panel`" — and a `[^{}]*` between a selector and its `{` walks straight
+   out of a comment and into the next rule. The first version of the
+   `display: none` assertion below did exactly that and reported a 60-word
+   paragraph plus `.cp-rail-open` as a `.cp-panel` rule that does not exist.
+   Same reason `check_page_module_api.mjs` masks comments before it reads member
+   names out of sentences about members; the difference is only that here the
+   false positive was in the checker written to catch the real thing. */
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
 // NAV and PLANNED_PAGES are evaluated rather than regex-scraped, so this file
 // tests the table the page actually renders from. Importing shared.js in Node
 // would drag in `document`; the two tables are pure data, so they are lifted
@@ -383,6 +395,126 @@ check(
   !/class="site-nav"|initHeaderNav|class="theme-toggle"|initThemeToggle/.test(colorHtml),
   'the old header nav and theme toggle are gone from color.html',
   () => 'color.html still mounts the old header nav/theme toggle — the rail was added alongside the old chrome instead of replacing it'
+);
+
+// ---------------------------------------------------------------------------
+// NO HEADER AT ALL — the frame is the viewport, so the three columns start at y=0
+// ---------------------------------------------------------------------------
+// The header was 55px (padding `6px 62px 6px 20px` plus a 3px `.header`
+// border-top) sitting above `.cp-shell`, so `.cp-rail`, `.cp-panel` and
+// `.cp-main` all measured y=55 and `.cp-scroll` was 900-55-... = 758 rather
+// than the full 900. It carried nothing but the brand link — no nav, no theme
+// toggle — and the brand now lives in the rail's top row, which is where the
+// reference keeps it too (`collapsible-sidebar.tsx:205-218`).
+//
+// Why the ABSENCE needs asserting rather than the layout. There is no browser
+// checker for this page, and a static check that only said "the three columns
+// are at y=0" could not be written — there is no layout in a file. Asserting the
+// header is gone is the version of the same claim that CAN be checked, and it is
+// the direction that matters: a header re-added above the shell is the only way
+// the 55px comes back, because nothing else here measures a height.
+console.log('\nno header — the frame starts at y=0');
+
+check(
+  !/<header\b/.test(colorHtml),
+  'color.html mounts no <header> at all',
+  () => {
+    const tag = (colorHtml.match(/<header\b[^>]*>/) || ['<header>'])[0];
+    return `found ${tag} — it puts a band above all three columns again, so none of them can start at y=0 (measured 55px at 1440x900)`;
+  }
+);
+
+check(
+  !/\.cp-app\s*>\s*\.header/.test(cssCode),
+  'and colors.css keeps no rule that would style one if it came back',
+  () => 'colors.css still has a `.cp-app > .header` rule — a rule for an element the page does not mount is a rule nobody maintains (the `.header-graph` shape, gotcha §3.N)'
+);
+
+// ---------------------------------------------------------------------------
+// THE MOBILE MENU BUTTON — the one thing that silently died with the header
+// ---------------------------------------------------------------------------
+// `initColorRail` appends `.cp-rail-open` to a mount point in the page's own
+// markup. Below 768px `.cp-rail` is `display: none`, so that one button is the
+// ONLY route to the site nav on a phone — and it was mounted through
+// `document.querySelector('.header')?.append(...)`. Deleting the header turns an
+// optional chain with nothing behind it into a silent no-op: every phone loses
+// navigation, nothing throws, nothing logs, and every other check in this file
+// stays green. That is gotcha §3.I exactly, and it is why these four exist.
+//
+// The mount id is READ from shared.js rather than written here. Restating it
+// would be a second copy of the answer this section exists to police, and it
+// would go stale in the dangerous direction — the page's id changing without
+// this file noticing, which is the exact failure `check_outfit_page.mjs` parses
+// `SAMPLES` out of the HTML to avoid.
+console.log('\nthe mobile menu button, which only exists below 768px');
+
+const OPEN_MOUNT = shared.match(/const OPEN_BUTTON_MOUNT = '([\w-]+)';/);
+
+check(
+  OPEN_MOUNT !== null,
+  'shared.js names the open button\'s mount point as a constant this file can read',
+  () => 'shared.js has no `const OPEN_BUTTON_MOUNT = \'...\'` — the mount point cannot be checked against the page without restating it here'
+);
+
+check(
+  OPEN_MOUNT !== null && colorHtml.includes(`id="${OPEN_MOUNT[1]}"`),
+  OPEN_MOUNT ? `and the page really carries id="${OPEN_MOUNT[1]}"` : 'and the page carries the mount id',
+  () => {
+    if (!OPEN_MOUNT) return 'the mount point could not be read, so its presence on the page is unknown';
+    return `shared.js mounts the button on #${OPEN_MOUNT[1]} but color.html has no element with that id — initColorRail throws and the page's module script dies with it, taking every listener registered after that line`;
+  }
+);
+
+check(
+  /getElementById\(OPEN_BUTTON_MOUNT\)/.test(shared) && /if \(!panel\)/.test(shared),
+  'and it is mounted with getElementById behind an explicit guard, not an optional chain',
+  () => 'the mount went back to a `?.` or lost its guard — a missing mount is then a silent no-op, and below 768px that is the whole site nav'
+);
+
+// The button and the rail are the SAME decision in two places, so they belong in
+// the same query. Split them and there is a width where the 64px rail is on
+// screen beside the button that exists only to replace it, or a width with
+// neither: the rail is unreachable and nothing is drawn in its place.
+const railHiddenAt = cssCode.match(/@media \(max-width: 767\.98px\) \{([\s\S]*?)\n\}/);
+check(
+  railHiddenAt !== null
+    && /\.cp-rail\s*\{\s*display:\s*none/.test(railHiddenAt[1])
+    && /\.cp-rail-open\s*\{\s*display:\s*flex/.test(railHiddenAt[1]),
+  'the button appears in the SAME query that hides the rail, so no width has both or neither',
+  () => {
+    if (railHiddenAt === null) return 'colors.css has no `@media (max-width: 767.98px)` block, so nothing decides between the rail and the button';
+    return `block contents: ${railHiddenAt[1].trim().replace(/\s+/g, ' ')} — .cp-rail and .cp-rail-open must both appear in it`;
+  }
+);
+
+// The button is absolutely positioned into its mount, so the mount has to be a
+// positioned element or `top`/`right` resolve against the viewport instead.
+const panelBlock = cssCode.match(/@media \(max-width: 1023px\) \{[\s\S]*?\n\}/);
+const panelRule = panelBlock && panelBlock[0].match(/\.cp-panel\s*\{([^}]*)\}/);
+check(
+  panelRule !== null && /position:\s*relative/.test(panelRule[1]),
+  'and .cp-panel is a positioned element below 1024px, so the button anchors to the panel rather than the viewport',
+  () => `below 1024px .cp-panel reads ${panelRule ? panelRule[1].trim().replace(/\s+/g, ' ') : '(no .cp-panel rule in that block)'} — an absolutely positioned child of an unpositioned parent resolves its top/right against the viewport`
+);
+
+// The mount itself must never be display:none, or the button is mounted into a
+// box that does not paint at the one width it exists for.
+const panelHidden = cssCode.match(/\.cp-panel[^{}]*\{[^}]*display:\s*none[^}]*\}/);
+check(
+  panelHidden === null,
+  'no rule ever sets display:none on the button\'s mount',
+  () => `found ${panelHidden[0].replace(/\s+/g, ' ')} — the button would be mounted into a box that does not paint`
+);
+
+// `.cp-rail-top` is a COLUMN (brand over collapse toggle), so centring it in the
+// 64px rail is `align-items`. It shipped in the same rule as three row
+// containers, where `justify-content` was correct and there did nothing — a dead
+// declaration that only started mattering when the brand made it a flex box.
+check(
+  /\.cp-rail\.is-collapsed \.cp-rail-top\s*\{\s*align-items:\s*center/.test(cssCode)
+    && !/\.cp-rail\.is-collapsed \.cp-rail-top\s*,\s*\n\s*\.cp-rail\.is-collapsed \.cp-rail-link/.test(cssCode),
+  'the collapsed rail centres its top row on align-items, the CROSS axis of a column box',
+  () => '`.cp-rail-top` is in the justify-content rule again — that centres the MAIN axis of a column box, which is vertical, so the 40px logo sits off-centre in the 64px rail while every other item centres'
 );
 
 console.log('\nthe exporter\'s shared halves');
