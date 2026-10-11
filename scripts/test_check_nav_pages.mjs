@@ -19,6 +19,10 @@
  * treated as an error rather than a no-op, for the same reason: a stale anchor
  * makes the case pass without ever exercising the check.
  *
+ * The tree is the checker, shared.css, the two footer mark SVGs and every root
+ * .html — which is every file the checker opens, because a file left out of the
+ * fixture does not degrade the check that reads it, it ENOENTs the whole run.
+ *
  * The two `passes` cases at the end police the OPPOSITE direction — a genuinely
  * new page that does the right thing must not be reported as a defect, and
  * neither must an InfoPoke capture. Without them a checker that simply demanded
@@ -48,8 +52,21 @@ const CHECKER = 'scripts/check_nav_pages.mjs';
  * in about a millisecond, which is a fair price for the third case below. */
 const SHARED_CSS = 'assets/css/shared.css';
 
+/* The two mark files are in the tree because the checker READS each one's own
+ * `<path fill="…">` to decide which colour a theme actually paints the mark in.
+ * They are 1.5 KB of text each, and their absence is not a degraded check — it is
+ * an ENOENT that kills the checker before its first assertion, which this harness
+ * then reports as five cases that ran nothing. That is exactly the failure shape
+ * §4 warns about, and it arrived the moment the footer section started reading a
+ * file outside the root: the comment at the top of this file said the checker
+ * "reads root html and nothing else", which was true until it was not. */
+const MARK_FILES = [
+  'assets/images/github-invertocat-black.svg',
+  'assets/images/github-invertocat-white.svg',
+];
+
 const htmlFiles = readdirSync(ROOT).filter((f) => f.endsWith('.html'));
-const SRC = [CHECKER, SHARED_CSS, ...htmlFiles];
+const SRC = [CHECKER, SHARED_CSS, ...MARK_FILES, ...htmlFiles];
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -267,6 +284,76 @@ const cases = [
     name: '404.html stops being a stub, so the exclusion is hiding a page with no nav',
     mutate: (f, s) => f === '404.html' ? s.replace(/location\.replace/g, 'window.next =') : undefined,
     expect: '404.html no longer contains location.replace',
+  },
+
+  /* --- the footer's GitHub mark -------------------------------------------------
+   * These SHIPPED inverted, so each one is a case that demonstrably went green
+   * once. M1 is the defect itself; M2 and M4 are the two guards that were written
+   * to catch it and did NOT, which is why they are here too — a harness that only
+   * holds the cases the author expected to pass is the same vacuity one layer up.
+   */
+  {
+    /* The bug as shipped: the classes named the THEME, so "dark hides the dark
+     * one" was false and each theme displayed the mark that vanishes into it —
+     * white on #f3f5fa and black on #0b1020, both under 1.2:1. */
+    name: "the mark's two swap rules are wired to each other, so both themes show the invisible mark",
+    mutate: (f, s) => f === 'index.html'
+      ? s.replace(".home-footer-github .gh-black { display: none; }", ".home-footer-github .gh-white { display: none; }")
+        .replace(".home-footer-github .gh-white { display: none; }\n", ".home-footer-github .gh-white { display: none; }\n    [data-theme='light'] .home-footer-github .gh-black { display: none; }\n")
+      : undefined,
+    expect: 'the mark shown on each theme is visible against that theme',
+  },
+  {
+    /* Found by hand-running M2: this stayed GREEN at first, because the check
+     * used the class only as a lookup key and never read the NAME. */
+    name: "the mark's classes go back to naming the theme, which is what made the rules readable as their own inverse",
+    mutate: (f, s) => f === 'index.html'
+      ? s.replace('class="gh-black"', 'class="gh-dark"')
+        .replace('class="gh-white"', 'class="gh-light"')
+        .replace('.gh-black {', '.gh-dark {')
+        .replace('.gh-white {', '.gh-light {')
+      : undefined,
+    expect: 'each mark class is named for the colour its file actually paints',
+  },
+  {
+    /* Found by hand-running M4: the ground check read index.html, which no longer
+     * defines `.home-footer` at all, so it matched nothing and passed. */
+    name: 'the footer is given a background of its own, so --bg-primary is no longer what the mark sits on',
+    mutate: (f, s) => f === SHARED_CSS ? s.replace('.home-footer { border-top:', '.home-footer { background: #ffffff; border-top:') : undefined,
+    expect: 'the footer paints no background of its own',
+  },
+  {
+    name: "one theme's swap rule is deleted, so both marks render side by side",
+    mutate: (f, s) => f === 'index.html'
+      ? s.replace("    [data-theme='light'] .home-footer-github .gh-white { display: none; }\n", '')
+      : undefined,
+    expect: 'BOTH marks render',
+  },
+  {
+    name: 'both marks point at the same file, so one theme shows a mark that is not there',
+    mutate: (f, s) => f === 'index.html'
+      ? s.replace('src="assets/images/github-invertocat-black.svg"', 'src="assets/images/github-invertocat-white.svg"')
+      : undefined,
+    expect: 'each mark class is named for the colour its file actually paints',
+  },
+  {
+    /* M5b, which was green until it was added to the checker. A second copy of a
+     * shared rule wins on stylesheet order alone until the day it does not. */
+    name: 'index.html re-declares .home-footer-line, so two definitions exist and only the cascade decides',
+    mutate: (f, s) => f === 'index.html'
+      ? s.replace('    .home-footer-title {', '    .home-footer-line { text-align: left; }\n    .home-footer-title {')
+      : undefined,
+    expect: 'index.html does not re-declare .home-footer-line either',
+  },
+  {
+    /* The path's fill, not the clipPath's `<rect fill="white">`: a naive first-
+     * fill match reads the BLACK file as white, which is what let the inverted
+     * state look correct. */
+    name: 'the white mark is swapped for one whose path fill no longer names a colour',
+    mutate: (f, s) => f === 'assets/images/github-invertocat-white.svg'
+      ? s.replace('<path d=', '<path fill="none" d=').replace(/(<path fill="none" d="[^"]*")\sfill="white"/, '$1')
+      : undefined,
+    expect: 'each mark class is named for the colour its file actually paints',
   },
 ];
 

@@ -303,6 +303,171 @@ for (const [file, html] of sources) {
 check(badArgs.length === 0, 'every filename passed to initHeaderNav() names a real page',
   () => `arguments that are not an existing .html filename: ${badArgs.join(', ')} — a miss here is silent: the nav renders with nothing marked current`);
 
+// --- the GitHub mark is visible on the theme it is shown on ----------------
+
+/* IT SHIPPED INVERTED, AND EVERY CHECK IN THE SUITE WAS GREEN WHILE IT DID.
+ *
+ * The footer's two marks were classed by THEME (`.gh-dark`, `.gh-light`) while
+ * the FILES are named by COLOUR (github-invertocat-black.svg). The two rules
+ * then read "dark hides the dark one" — false — and were wired to their
+ * opposites, so each theme displayed the mark that disappears into it: white on
+ * `#f7f9fc` measured 1.05:1, black on `#0b1220` measured 1.12:1. The class names
+ * are now the colour, so a rule cannot be read as saying the opposite of what
+ * it does.
+ *
+ * WHY NOTHING CAUGHT IT. Every check that touched this at the time asked whether
+ * the SWAP HAPPENED — `naturalWidth > 0`, a non-zero box, exactly one of the two
+ * visible — and a white logo on a white background satisfies all three
+ * perfectly. That is §3.G8's "the check that reads like the guard is not the
+ * guard", and it is why what is asserted here is CONTRAST and not "the two
+ * themes show different files": a differs-check passes on the bug this section
+ * was written for.
+ *
+ * WHY STATIC AND NOT RENDERED. The arithmetic below is the same one the browser
+ * would do, on the same two numbers — the SVG's own `fill` and the theme's own
+ * `--bg` — so the only thing a screenshot adds is the browser's colour
+ * management, for a 0-or-255 fill on an opaque ground. 0.1s and no server beats
+ * ~6s and a running :5500 for that trade, and unlike a rendered check this one
+ * cannot be satisfied by a mark that decoded and sat in a box.
+ *
+ * The threshold is 3:1 because this is a GRAPHICAL OBJECT, not text — SC
+ * 1.4.11's figure, the same call §3.G8 made for the spectrum live curve, and for
+ * the same reason: the mark's MEANING (this is a link to the repository) is
+ * carried by its SHAPE. The measured values on the two themes are 19.9:1 and
+ * 18.7:1, so the floor is 6x below what ships and is here to catch a wrong
+ * pairing (1.05:1, 1.12:1) rather than to police a fine tune.
+ */
+console.log('\ngitHub mark');
+
+const REL_LUM = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => {
+  const [x, y] = [REL_LUM(a), REL_LUM(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+
+/* The PATH's fill, never the clipPath's `<rect fill="white">`. Both files carry
+ * a `fill="white"` — the white mark's is the artwork, the black file's is the
+ * clipping rectangle — so a naive `svg.match(/fill="([^"]+)"/)` reads the black
+ * file as white and every assertion below passes on the inverted state. Taking
+ * the FIRST fill inside a `<path …>` is what makes the measurement real. */
+const markFill = (svg) => (svg.match(/<path\b[^>]*\bfill="([^"]+)"/) || [null, null])[1];
+
+const indexHtml = read('index.html');
+const markTags = [...indexHtml.matchAll(/<img\b[^>]*class="(gh-[a-z]+)"[^>]*src="([^"]+)"[^>]*>/g)]
+  .map((m) => ({ cls: m[1], src: m[2], tag: m[0] }));
+
+check(markTags.length === 2, 'the footer carries exactly two marks, one per colour',
+  () => `found ${markTags.length} <img class="gh-*"> tags — the swap rules below assume one black and one white`);
+
+/* The class IS the colour — asserted on the NAME, because the first version of
+ * this check used the class only as a lookup key and so never looked at it: it
+ * passed a tree where the classes were `.gh-dark`/`.gh-light` again, which is
+ * the naming that produced the inverted wiring in the first place. A guard that
+ * cannot see the thing it names is worse than no guard, because its `ok` line
+ * claims a property nobody verified (found by mutation M2, not by reading). */
+const classByFileColour = new Map(markTags.map((t) => [t.src, t.cls]));
+const FILES = ['assets/images/github-invertocat-black.svg', 'assets/images/github-invertocat-white.svg'];
+const colourOf = {};
+for (const file of FILES) {
+  const fill = markFill(read(file));
+  if (fill) colourOf[classByFileColour.get(file)] = fill === 'black' ? 'black' : fill;
+}
+check(Object.keys(colourOf).length === 2
+  && Object.values(colourOf).includes('black') && Object.values(colourOf).includes('white')
+  && Object.entries(colourOf).every(([cls, colour]) => cls === `gh-${colour}`),
+  'each mark class is named for the colour its file actually paints',
+  () => `class -> file colour resolved as ${JSON.stringify(colourOf)} — every class must be exactly "gh-" + the colour its own <path> fills with, which is the whole fix: named for the theme, the two swap rules read as their own inverse`);
+
+/* The theme backgrounds come from shared.css's own tokens rather than from a
+ * literal here, so a palette change cannot leave this check measuring a colour
+ * the site no longer uses (§3.N: overriding the derived value's INPUT fixes
+ * every consumer at once — and a copy is what rots).
+ *
+ * The token is `--bg-primary` and not `--bg`, because `body` is the only thing
+ * painting it: shared.css:416 `background-color: var(--bg-primary)` and
+ * index.html's own `body` block overrides display/min-height but not the
+ * background. `.home-footer` declares none at all, which is what makes
+ * `--bg-primary` the correct ground — asserted below rather than assumed, since
+ * a `background:` added to the footer later would silently move the surface this
+ * measures against while every check here still passed. */
+const sharedCss = read('assets/css/shared.css');
+const themeBg = {};
+for (const theme of ['light', 'dark']) {
+  const block = theme === 'light'
+    ? (sharedCss.match(/\[data-theme=["']light["']\]\s*\{([\s\S]*?)\n\}/) || [null, ''])[1]
+    : (sharedCss.match(/^\s*:root\s*\{([\s\S]*?)\n\}/m) || [null, ''])[1];
+  themeBg[theme] = (block.match(/(?:^|[\s;])\s*--bg-primary:\s*(#[0-9a-f]{3,8})\s*;/i) || [null, null])[1];
+}
+check(themeBg.light && themeBg.dark, 'both theme backgrounds are readable from shared.css',
+  () => `could not read --bg-primary for light/dark (got ${JSON.stringify(themeBg)}) — the contrast assertion below cannot run without a real ground to measure against`);
+
+const footerRule = (sharedCss.match(/\.home-footer\s*\{([^}]*)\}/) || [null, ''])[1];
+check(!/\bbackground\b/.test(footerRule), 'the footer paints no background of its own, so --bg-primary really is the ground the mark sits on',
+  () => `.home-footer now declares a background, so this section measures contrast against a colour that is no longer behind the mark: ${footerRule.trim()}`);
+
+/* Read from shared.css because that is where the rule is — the first version of
+ * this check read index.html, which no longer defines `.home-footer` at all (the
+ * duplicate was removed when the mark arrived), so the regex matched nothing,
+ * `''` contains no `background`, and the check passed on a tree where the footer
+ * had been given a background. Found by mutation M4, which is the only way a
+ * check that inspects an absent thing gets noticed. */
+check(!/\.home-footer\s*\{/.test(indexHtml), 'index.html does not re-declare .home-footer, so there is one definition of it',
+  () => 'index.html carries its own .home-footer rule again — a second copy can drift from shared.css\'s, and the contrast this section measures would be reading whichever won the cascade');
+
+/* Found by mutation M5b, which stayed green: `.home-footer-line` was copied into
+ * index.html's <style> until the GitHub mark arrived and needed it to be a flex
+ * row. Two rules of one name with different values is only safe while nobody
+ * edits the loser, and index.html's block is linked AFTER shared.css so it wins
+ * the cascade — which is invisible until the day the ordering stops being true.
+ * `.home-footer-grid/-title/-list` are still legitimately page-only (initFooterNav
+ * is the only consumer of them), so they are not asserted here. */
+check(!/\.home-footer-line\s*\{/.test(indexHtml), 'index.html does not re-declare .home-footer-line either — one definition of it',
+  () => 'index.html carries its own .home-footer-line rule, which currently wins on stylesheet order alone; shared.css owns that rule');
+
+/* Which mark survives on a theme: the one the theme's rule does NOT hide. Both
+ * rules must exist, or a theme renders both marks side by side — which is the
+ * loud failure the page's own comment says is deliberate, so it is a fact worth
+ * reading off the file rather than discovering in a browser. */
+const hiddenBy = (theme) => {
+  const re = new RegExp(`\\[data-theme=["']${theme}["']\\][^{]*\\.home-footer-github\\s+\\.(gh-[a-z]+)\\s*\\{\\s*display:\\s*none`, 'm');
+  return (indexHtml.match(re) || [null, null])[1];
+};
+
+/* A LOCAL counter, never the file's `failures`. The summary below used to be
+ * `check(!failures, …)`, which makes this section's verdict a property of every
+ * SECTION BEFORE IT: a red above turns this check green, so a genuinely inverted
+ * mark reads as passing on a run where some unrelated page forgot its nav. That
+ * is §3.B2's vacuous guard — the assertion cannot fail on its own terms. */
+let markFailures = 0;
+const visibleMarks = [];
+for (const theme of ['light', 'dark']) {
+  const hidden = hiddenBy(theme);
+  const shown = markTags.map((t) => t.cls).filter((c) => c !== hidden);
+  if (shown.length !== 1) {
+    markFailures++;
+    visibleMarks.push(`${theme}: ${shown.length} marks visible${hidden ? ` (the rule hides .${hidden})` : ' — NO display:none rule for this theme, so BOTH marks render'}`);
+    continue;
+  }
+  const ink = '#' + (colourOf[shown[0]] === 'white' ? 'ffffff' : '000000');
+  const bg = themeBg[theme];
+  if (!bg) { markFailures++; visibleMarks.push(`${theme}: no ground colour to measure against`); continue; }
+  const ratio = contrast(ink, bg);
+  /* ONE line per theme. The first version pushed the measurement AND then
+   * pushed the same measurement again inside the failure branch, so every red
+   * line read as two facts — one of them a pass. A reader scanning for the
+   * offending number finds it twice and cannot tell which is the verdict. */
+  if (ratio < 3) {
+    markFailures++;
+    visibleMarks.push(`${theme}: .${shown[0]} paints ${colourOf[shown[0]]} on ${bg} = ${ratio.toFixed(2)}:1, under 3:1 — this is the mark that vanishes into the theme it is shown on`);
+  }
+}
+check(markFailures === 0, 'the mark shown on each theme is visible against that theme',
+  () => visibleMarks.join(' | '));
+
 // --- the exclusions still hold ---------------------------------------------
 
 console.log('\nexclusions');
