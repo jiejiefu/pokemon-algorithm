@@ -7,16 +7,23 @@ but unbuilt renders as a non-focusable `<span>` carrying a
 control that does nothing when activated is worse than a non-focusable one
 (AGENTS.md gotcha 37).
 
-**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 17 entries
-are registered there and **all 17 are missing as files**; the `data` field
+**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 16 entries
+are registered there and **all 16 are missing as files**; the `data` field
 records whether the site's own data would already support the page, and the
 `why` field carries the specific gap. This file is the human-readable
 companion — do not treat it as authoritative, and if the two disagree, the
 array wins.
 
+Two rows had drifted in OPPOSITE directions: `color-game.html` was registered in
+the array but had no row here at all, while `types.html` still had one here long
+after it shipped — it is a live `href` in NAV's 圖鑑 group and a 55 KB file, and
+its gap read 「缺瀏覽頁」, which is the page that now exists. Both were corrected,
+and the count stayed where it was. A companion table whose whole job is to mirror
+an array has to be checked against it rather than
+read; nothing in the suite reads this file.
+
 | Slug | 標題 | Data | Gap |
 |---|---|---|---|
-| `types.html` | 按屬性 | present | 18 種屬性；相剋表在 `type-chart.js`，缺瀏覽頁 |
 | `abilities.html` | 特性 | present | `abilities_zh.json` 已有 284 筆中文名，缺彙整頁 |
 | `moves.html` | 招式 | present | `moves_zh.json` 已有 783 筆，缺可搜尋的瀏覽頁 |
 | `natures.html` | 性格 | **absent** | 連資料都沒有 — PokeAPI `/pokemon-species` 不帶 nature |
@@ -26,13 +33,13 @@ array wins.
 | `games.html` | 全部遊戲 | present | `generations.json` 已有 38 種遊戲，缺獨立頁 |
 | `eevee-evolutions.html` | 伊布進化 | present | 8 條進化鏈都在資料裡，缺對照頁 |
 | `strongest.html` | 最強寶可夢 | present | 可由 `stats.total` 排序產生，缺排名頁 |
-| `base-stat-600.html` | 600 族寶可夢 | present | 同上，`stats.total >= 600` 的篩選頁 |
 | `search.html` | 進階搜尋 | present | `pokedex.html` 目前只支援 `?gen=` 深連結 |
 | `guides.html` | 攻略 | **absent** | InfoPoke 導覽列的入口，本站無對應內容 |
 | `blogs.html` | Blogs | **absent** | 同上 |
 | `about.html` | 關於我們 | present | 頁尾連結 |
 | `privacy.html` | 隱私權政策 | present | 頁尾連結 |
 | `sitemap.html` | Sitemap | present | 頁尾連結 |
+| `color-game.html` | 猜謎遊戲 | present | 色帶已足夠作答，缺出題、計分與難度 |
 
 Three of these — `about.html`, `privacy.html`, `sitemap.html` — exist in
 InfoPoke's footer and **are not transcribed into our footer**: a static site

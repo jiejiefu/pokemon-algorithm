@@ -783,28 +783,43 @@ export const NAV = [
       },
     ],
   },
-  // 色彩 is the drill-down group: 色彩生成器 → 探索 → 單一寶可夢頁 is a linear
-  // sequence rather than siblings, so the first group lists them as one row each
-  // and the second keeps the site's 計劃中 convention visible instead of hiding
-  // three built pages behind a 4th. `pages` is required for the same reason 圖鑑's
-  // own list is — the three files cannot be told apart by `href` alone, and the
-  // dropdown trigger has no href of its own, so without it none of the three
-  // would mark the trigger current.
+  // 色彩 is ordered BROAD TO NARROW, which is the user's ordering and the reason
+  // for it is a narrowing one rather than a difficulty one: 探索色盤 answers "what
+  // is there" over all 1,025, 色彩生成器 narrows to one input colour matched
+  // against that corpus, 單一寶可夢色盤 to one species in full, and 寶可夢穿搭 to
+  // one real garment in a photograph. The reader is walked from the widest
+  // question to the most specific, and the first row is not "easier" — it is the
+  // one that has to come first because nothing below it can answer "what is
+  // there" at all.
   //
-  // It sits SECOND of the two trailing singletons (色彩 then 3D 模型) on the
-  // user's reordering: the two colour surfaces are where a reader spends the most
-  // time, and grouping them next to 演算法 — the other "watch it happen" area —
-  // keeps the three visualisers adjacent instead of splitting them.
+  // It REPLACES a drill-down reading — 色彩生成器 → 探索 → 單一寶可夢頁, "a linear
+  // sequence rather than siblings" — which was a claim about an order that no
+  // longer exists. A justification is a claim about the present, not a decision
+  // recorded once (§3.O: the nav accordion rule whose stated condition expired
+  // while the rule stayed), and the cost of leaving one is that it has to be
+  // re-litigated by the next reader who reorders something.
+  //
+  // `pages` is required for the same reason 圖鑑's own list is — the four files
+  // cannot be told apart by `href` alone, and the dropdown trigger has no href of
+  // its own, so without it none of them would mark the trigger current. It is a
+  // MEMBERSHIP set, not a display order: `aria-current` goes through `.includes()`,
+  // so it is written in the order the pages appear above purely to read as one
+  // list, and changing the order above does not require changing it.
+  //
+  // It sits SECOND of the two trailing singletons (色彩 then 3D 模型): the two
+  // colour surfaces are where a reader spends the most time, and grouping them
+  // next to 演算法 — the other "watch it happen" area — keeps the three
+  // visualisers adjacent instead of splitting them.
   {
     id: 'colors',
     label: '色彩',
     icon: 'palette',
-    pages: ['colors.html', 'colors-explore.html', 'color.html', 'outfit.html'],
+    pages: ['colors-explore.html', 'colors.html', 'color.html', 'outfit.html'],
     groups: [
       {
         items: [
-          { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
           { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 一般/異色的色帶' },
+          { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
           { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
           { href: 'outfit.html', label: '寶可夢穿搭', desc: '上傳穿搭照片，算出 6 色並比對是哪一隻' },
         ],
@@ -812,7 +827,10 @@ export const NAV = [
       {
         title: '計劃中',
         items: [
-          { label: '配色遊戲', desc: '看色帶猜是哪一隻', planned: 'color-game.html' },
+          // Was 配色遊戲, which named the MECHANISM (matching a colour) rather than
+          // the thing a reader is asked to do. 猜謎遊戲 names the latter, and the
+          // `desc` already described it that way — 看色帶猜是哪一隻.
+          { label: '猜謎遊戲', desc: '看色帶猜是哪一隻', planned: 'color-game.html' },
         ],
       },
     ],
@@ -873,22 +891,26 @@ export const PLANNED_PAGES = [
   { slug: 'games.html', title: '全部遊戲', why: 'generations.json 已有 38 種遊戲，缺的是獨立頁', data: 'present' },
   { slug: 'eevee-evolutions.html', title: '伊布進化', why: '熱門搜尋標籤，8 條進化鏈都在資料裡，缺的是對照頁', data: 'present' },
   { slug: 'strongest.html', title: '最強寶可夢', why: '可由 stats.total 排序產生，缺的是排名頁', data: 'present' },
-  // Deliberately NOT the same page as category.html?cat=pseudo-legendary, despite
-  // the identical title. That one is `stats.total === 600` filtered to
-  // non-legendary/non-mythical AND two evolutions, which is the community's 600族
-  // definition; this entry is the broader `>= 600` screening view — 60 species
-  // reach >= 600, 36 sit at exactly 600, and 11 of those 36 are neither
-  // legendary nor mythical (the other 25 are legendaries, and some reach 600 only
-  // in a form). Left in place because the broader question ("who is at or above
-  // 600?") is not answered by the category page, and its own `why` says `>= 600`.
-  { slug: 'base-stat-600.html', title: '600 族寶可夢（能力總和篩選）', why: 'stats.total >= 600 的篩選頁（60 隻）— 與 600族分類頁（=== 600、非傳說、需兩次進化，10 隻）不同', data: 'present' },
+  // `base-stat-600.html` WAS here, and was removed on the user's instruction. It
+  // was the broader `>= 600` screening view — 60 species, against the 36 sitting
+  // at exactly 600 — sitting one filter away from a page that already answers the
+  // question next to it: `category.html?cat=pseudo-legendary` is LIVE, titled
+  // 「600族寶可夢」, with a 10-member roster built from `=== 600` plus
+  // non-legendary/non-mythical plus two evolutions. The two titles differed by six
+  // characters and one operator, which is exactly what made the entry look like
+  // an outstanding gap rather than a second page for the same interest.
+  //
+  // Kept as a note rather than deleted silently, for one reason: the name
+  // 「600族寶可夢」 now refers unambiguously to the category page, and anything
+  // written here later that means `>= 600` has to say so in the sentence rather
+  // than assume an entry that used to make it obvious.
   { slug: 'search.html', title: '進階搜尋', why: 'pokedex.html 目前只支援 ?gen= 深連結', data: 'present' },
   { slug: 'guides.html', title: '攻略', why: 'InfoPoke 導覽列的攻略入口，本站無對應內容', data: 'absent' },
   { slug: 'blogs.html', title: 'Blogs', why: '同上', data: 'absent' },
   { slug: 'about.html', title: '關於我們', why: '頁尾連結', data: 'present' },
   { slug: 'privacy.html', title: '隱私權政策', why: '頁尾連結', data: 'present' },
   { slug: 'sitemap.html', title: 'Sitemap', why: '頁尾連結', data: 'present' },
-  { slug: 'color-game.html', title: '配色遊戲', why: '色帶已足夠作答，缺的是出題、計分與難度', data: 'present' },
+  { slug: 'color-game.html', title: '猜謎遊戲', why: '色帶已足夠作答，缺的是出題、計分與難度', data: 'present' },
 ];
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
