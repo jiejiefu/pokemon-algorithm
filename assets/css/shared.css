@@ -656,15 +656,32 @@ summary:focus-visible,
    These three rules were, until now, inline in index.html only — so the three
    colour pages, which use the same markup, rendered their footer as a bare
    unstyled <p>. Same failure mode as gotcha 15 (CSS that lives in one page and
-   is silently unstyled everywhere else). index.html keeps its own inline copy:
-   identical values, and because its block is linked after shared.css it still
-   wins on that page. The .home-footer-grid/list/title rules are homepage-only
-   (its 3-column link block) and deliberately stay there. */
+   is silently unstyled everywhere else).
+
+   index.html no longer keeps its own copy. It carried one because its <style>
+   block is linked after this stylesheet and so won the cascade — which meant
+   the two could drift while both still said the same thing, and the homepage
+   has now given it a reason to: the line carries the GitHub mark, so it stopped
+   being a centred <p> and became a flex row. Two rules of the same name with
+   different values, where which one applies depends on stylesheet order, is a
+   rule waiting to be edited on the page that wins. There is now one.
+
+   The other four users of `.home-footer-line` have no GitHub link, so a single
+   centred span inside this flex row lands in exactly the same place the
+   `text-align: center` it replaced put it — `justify-content: center` is the
+   same intent by a different mechanism, not a redesign they have to opt into.
+
+   `.home-footer-grid/-title/-list` are still homepage-only (its link-column
+   block, which `initFooterNav()` fills from NAV) and deliberately stay there. */
 .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
 .home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
 .home-footer-line {
   margin: 28px 0 0;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
   font-size: 13px;
   color: var(--text-muted);
   line-height: 1.7;

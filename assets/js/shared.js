@@ -961,6 +961,90 @@ export function initHeaderNav(currentPage) {
   initMobileNav();
 }
 
+/**
+ * The homepage footer's link columns, derived from NAV instead of transcribed.
+ *
+ * It WAS transcribed, and it went stale exactly the way a hand-written list does:
+ * the grid listed three 演算法 pages and none of 色彩, 叫聲 or 3D 模型, because
+ * those pages did not exist when it was written and nothing re-derived it. The
+ * nav above is the reason this can simply read from NAV — the two cannot disagree,
+ * so a new page appears in the footer by being added to the nav at all.
+ *
+ * THREE ROWS THE OLD GRID HAD ARE GONE, each for a reason rather than by omission:
+ *
+ *   - The 對戰資源 column (招式資料庫 / 特性資料庫 / 屬性相剋表 / 性格指南 / 進化指南 /
+ *     生蛋指南) was SIX `<span>`s and not one link. It is deleted rather than
+ *     converted, because every one of them is either in NAV's own 計劃中 group —
+ *     which already renders a 敬請期待 badge where a reader looks for it — or, in
+ *     the case of 屬性相剋表, a page that SHIPPED (types.html) and is now a real
+ *     row in the 圖鑑 column above. A sitemap column of dead placeholders is not
+ *     information, it is a promise the site has not kept in six rows.
+ *   - 傳說寶可夢 / 幻之寶可夢 / 最初的夥伴 (category.html?cat=…) are reachable in one
+ *     click through 特殊分類, which is a row in this same column and lists all
+ *     nine with their names. Transcribing three of the nine here is a second copy
+ *     of a list that already exists, which is the failure this function exists to
+ *     remove.
+ *   - 首頁 is filtered because this footer IS the homepage, so the link is a no-op
+ *     there. `currentPage` is a parameter rather than a hardcoded 'index.html' for
+ *     that reason: the rule is "never list the page you are on", not "never list
+ *     首頁".
+ *
+ * No 描述 is rendered even though every NAV row carries one — the columns are
+ * ~210px wide at the 6-column breakpoint, and a second line of small grey text
+ * under each link is what turns a sitemap into a wall.
+ *
+ * @param {string} [currentPage] - defaults to the current location's filename
+ * @returns {Array<{title: string, rows: Array<{href: string, label: string}>}>}
+ */
+export function footerColumns(currentPage) {
+  const page = currentPage || (location.pathname.split('/').pop() || 'index.html');
+  const columns = [];
+
+  for (const item of NAV) {
+    if (item.href === page) continue;
+
+    /* A planned row is one WITHOUT an href — `planned: 'moves.html'` — which is
+     * the same invariant `navRowHtml` relies on when it checks `.planned` first.
+     * Filtering on the missing href rather than on a group title means a group
+     * called anything else than 計劃中 still contributes its real links, so the
+     * derivation does not depend on a literal string NAV happens to use today. */
+    const rows = item.groups
+      ? item.groups.flatMap(g => g.items).filter(i => i.href)
+      : item.href ? [{ href: item.href, label: item.label }] : [];
+
+    if (rows.length) columns.push({ title: item.label, rows });
+  }
+
+  return columns;
+}
+
+/**
+ * Build the homepage footer's link columns into their mount point.
+ *
+ * The mount point is `<div class="home-footer-grid" data-footer-nav>`, the same
+ * "leave the container empty and let the runtime own its contents" contract as
+ * `<nav data-nav>` above — and for the same reason. Hand-written markup in that
+ * container was valid, rendering, and wrong within one release (§3.G2's shape, one
+ * layer down), which is invisible to every checker in the suite because they all
+ * read the file rather than the DOM.
+ *
+ * @param {string} [currentPage] - defaults to the current location's filename
+ */
+export function initFooterNav(currentPage) {
+  const page = currentPage || (location.pathname.split('/').pop() || 'index.html');
+  const columns = footerColumns(page).map(col => `
+      <div>
+        <h2 class="home-footer-title">${esc(col.title)}</h2>
+        <ul class="home-footer-list">
+          ${col.rows.map(r => `<li><a href="${esc(r.href)}">${esc(r.label)}</a></li>`).join('\n          ')}
+        </ul>
+      </div>`).join('');
+
+  for (const el of document.querySelectorAll('[data-footer-nav]')) {
+    el.innerHTML = columns;
+  }
+}
+
 /** Hover + focus-within open, Escape / click-outside close. */
 function initNavDropdowns() {
   for (const item of document.querySelectorAll('.site-nav-item-has-panel')) {

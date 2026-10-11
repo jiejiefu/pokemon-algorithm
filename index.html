@@ -586,41 +586,83 @@
     .home-faq-answer a { color: var(--accent-gold); }
 
     /* ------------------------------------------------------------------
-       Footer: a 3-column link block, then the copyright / trademark / data
-       source / version line. Both are wanted — the columns are the navigation
-       and the line is the provenance, and one does not substitute for the
-       other. 關於我們 / 隱私權政策 / Sitemap from InfoPoke's own sitemap footer
-       are still not transcribed: a static site with no backend has nothing
-       true to put in a privacy policy.
+       Footer: a link-column block, then the copyright / trademark / data
+       source / version line plus the GitHub mark. Both are wanted — the
+       columns are the navigation and the line is the provenance, and one
+       does not substitute for the other.
 
-       `PokéAPI` is a real outbound link, so it gets `target="_blank"` and
-       `rel="noopener noreferrer"` in the markup. Its colour is
-       `--accent-gold` rather than `--text-secondary` so the one link in the
-       line reads as a link; the rest of the line is `--text-muted` at 13px.
-       The width cap is not repeated here — this paragraph is already inside
-       `.home-footer-inner`, which is the 1180px column.
+       THE COLUMNS ARE NOT HERE. `.home-footer-grid` is an empty mount point
+       and `initFooterNav()` fills it from `NAV`, for the reason the nav is
+       rendered rather than transcribed: the previous hand-written grid listed
+       three 演算法 pages and none of 色彩, 叫聲 or 3D 模型, because nothing
+       re-derived it once those pages shipped. What it listed that this drops
+       is written down in `footerColumns()`'s own docblock — the 對戰資源
+       column of six dead `<span>`s, three 特殊分類 children that
+       collections.html already lists, and 首頁 itself.
+
+       `.home-footer` / `.home-footer-inner` / `.home-footer-line` are NOT
+       repeated here either, and that is a change rather than a tidy-up. This
+       page used to carry all three, byte-identical to shared.css, purely
+       because its <style> block is linked after shared.css and so won the
+       cascade. The GitHub mark then gave `.home-footer-line` a reason to stop
+       being a centred <p> and become a flex row, and at that point two rules of
+       the same name with different values existed, with which one applied
+       decided by stylesheet order. The rule moved to shared.css instead; the
+       four other pages that use it have no mark and a single centred span lands
+       where the old `text-align: center` put it.
+
+       The grid ladder is 1 → 3 → 5, because `footerColumns()` returns one
+       column per NAV group and there are five (圖鑑 / 演算法 / 色彩 / 叫聲 /
+       3D 模型). Five at the 1180px inner column is ~209px each, measured, and
+       holds the longest label (排序演算法視覺化, 8 chars at 14px) on one line.
+
+       The GitHub mark is TWO <img>s swapped by `[data-theme]`, not a
+       `<picture>` with `prefers-color-scheme`: this site's theme is the
+       reader's own choice persisted to localStorage, so the two disagree
+       whenever someone has overridden the OS. `display: none` rather than
+       `opacity: 0`, because a transparent element is still in the tab order.
        ------------------------------------------------------------------ */
-    .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
-    .home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
     .home-footer-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 24px;
     }
     @media (min-width: 640px) { .home-footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (min-width: 1000px) { .home-footer-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
     .home-footer-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px; }
+    /* `<a>` only, where this used to say `a, span`. `initFooterNav()` is the
+       sole producer of this list and filters on `i.href`, and a planned NAV row
+       has no href — so no span can reach here today. The rule is dropped
+       rather than left as insurance: a selector with no producer is a claim
+       about a component that does not exist. */
     .home-footer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-    .home-footer-list a, .home-footer-list span { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
+    .home-footer-list a { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
     .home-footer-list a:hover { color: var(--accent-gold); }
-    .home-footer-line {
-      margin: 28px 0 0;
-      text-align: center;
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.7;
+
+    /* Secondary placement, per GitHub's brand terms: the mark must sit LESS
+       prominently than our own name, which is why it is 24px beside a 13px
+       copyright line rather than beside the 14px link columns. It is an
+       `<img>`, and it cannot be an ICON_PATHS entry — `.icon` is
+       `fill: currentColor`, which would tint the mark on every theme, and the
+       Invertocat's terms forbid changing its colour.
+       `width`/`height` are the HTML attributes, so this only sets the box the
+       already-reserved space uses. */
+    .home-footer-github {
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
     }
-    .home-footer-line a { color: var(--accent-gold); text-decoration: none; }
-    .home-footer-line a:hover { text-decoration: underline; }
+    .home-footer-github img { width: 24px; height: 24px; display: block; }
+    [data-theme='dark'] .home-footer-github .gh-light { display: none; }
+    [data-theme='light'] .home-footer-github .gh-dark { display: none; }
+
+    /* A focus ring the keyboard can actually see, since the mark is pure black
+       or white and carries no colour of its own to outline against. */
+    .home-footer-github:focus-visible {
+      outline: 2px solid var(--accent-gold);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -945,44 +987,30 @@
 
   <footer class="home-footer">
     <div class="home-footer-inner">
-      <div class="home-footer-grid">
-        <div>
-          <h2 class="home-footer-title">圖鑑</h2>
-          <ul class="home-footer-list">
-            <li><a href="pokedex.html">全部寶可夢</a></li>
-            <li><a href="generations.html">按世代</a></li>
-            <li><a href="category.html?cat=legendary">傳說寶可夢</a></li>
-            <li><a href="category.html?cat=mythical">幻之寶可夢</a></li>
-            <li><a href="category.html?cat=starter">最初的夥伴</a></li>
-            <li><a href="collections.html">特殊分類</a></li>
-          </ul>
-        </div>
-        <div>
-          <h2 class="home-footer-title">寶可夢演算法</h2>
-          <ul class="home-footer-list">
-            <li><a href="sorting.html">排序演算法視覺化</a></li>
-            <li><a href="maze.html">迷宮路徑尋找</a></li>
-            <li><a href="life.html">進化生命遊戲</a></li>
-          </ul>
-        </div>
-        <div>
-          <h2 class="home-footer-title">對戰資源</h2>
-          <ul class="home-footer-list">
-            <li><span>招式資料庫</span></li>
-            <li><span>特性資料庫</span></li>
-            <li><span>屬性相剋表</span></li>
-            <li><span>性格指南</span></li>
-            <li><span>進化指南</span></li>
-            <li><span>生蛋指南</span></li>
-          </ul>
-        </div>
-      </div>
-      <p class="home-footer-line">© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • v0.0.1</p>
+      <!-- Empty on purpose: initFooterNav() renders these from NAV in shared.js.
+           See the footer block comment in this page's <head> for why. -->
+      <div class="home-footer-grid" data-footer-nav></div>
+
+      <p class="home-footer-line">
+        <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • v0.0.1</span>
+        <!-- The repository, not the Pages site — a GitHub mark that links to the site
+             it is already on is a link to the current document. GitHub's terms
+             read "Use the Invertocat logo as a social button to link to your
+             GitHub profile or project", so the repo is what it points at.
+             Two <img>s, not one recoloured: GitHub's terms for the Invertocat
+             forbid changing its colour, and this page's theme is the reader's
+             choice rather than the OS preference, so [data-theme] is the switch.
+             Both files are the official artwork from brand.github.com, unedited. -->
+        <a class="home-footer-github" href="https://github.com/jiejiefu/pokemon-algorithm" rel="noopener noreferrer" target="_blank" aria-label="在 GitHub 上查看原始碼">
+          <img class="gh-dark" src="assets/images/github-invertocat-black.svg" alt="" width="24" height="24">
+          <img class="gh-light" src="assets/images/github-invertocat-white.svg" alt="" width="24" height="24">
+        </a>
+      </p>
     </div>
   </footer>
 
   <script type="module">
-    import {loadPokemonData, pokemonDetailUrl, initThemeToggle, initHeaderNav, typeBadgeSmHtml, loadMoves, loadAbilities, ASSETS} from './assets/js/shared.js';
+    import {loadPokemonData, pokemonDetailUrl, initThemeToggle, initHeaderNav, initFooterNav, typeBadgeSmHtml, loadMoves, loadAbilities, ASSETS} from './assets/js/shared.js';
     // For getCategory() only, so the daily pick reads the real member selectors
     // rather than a fourth transcription of 傳說 / 幻之 / 600族. The 18.7 KB gz
     // is ~3% on top of the 614 KB of pokemon_data.json this page already loads.
@@ -1000,6 +1028,7 @@
     // the DOM is already parsed here and the button in the header is present.
     initThemeToggle();
     initHeaderNav();
+    initFooterNav();
 
     // ---- 精選系列: one tint per card, from COLLECTION_TINTS ------------------
     // The nine cards are static markup, but their fills are not written inline:
