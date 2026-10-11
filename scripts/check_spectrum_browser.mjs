@@ -909,6 +909,133 @@ try {
     + ` (${probe.taps} context(s), live gain ${probe.gain}${probe.error ? `, ${probe.error}` : ''})`);
 
   // -----------------------------------------------------------------------
+  // The sprite pulses with the cry. Measured, not inferred from the source.
+  // -----------------------------------------------------------------------
+
+  /* `check_spectrum_page.mjs` can prove `paintSprite()` is CALLED from four places
+   * and writes a transform on both its paths. It cannot prove the effect exists: a
+   * typo'd id, a `loud` that is always 0, a transform the compositor ignores — every
+   * one of those is a green static check over a sprite that does not move. This block
+   * is the half that can fail.
+   *
+   * The mute tap is installed, and that is not a problem: the AnalyserNode hangs off
+   * the GAIN node, so the tap's zero is DOWNSTREAM of the measurement. This is §3.G6's
+   * rule applied — a test that silences the thing under test has to measure upstream of
+   * the silence — and it is why a muted page can still be asked whether it reacts. */
+  const SPRITE_BOX = `(() => {
+    const e = document.getElementById('sp-art');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { w: r.width, h: r.height, transform: e.style.transform || '' };
+  })()`;
+
+  /* SAMPLED OVER 90 FRAMES, NOT READ ONCE. The pulse is a function of the audio, so
+   * a single read taken in a silent gap reports the resting size on a perfectly
+   * working page — a flake that would have been "fixed" by widening the tolerance,
+   * which is how §3.G's press-did-not-land bug looked too. 90 frames is ~1.5 s, which
+   * covers the length of the shortest cry in the roster.
+   *
+   * `widest` is seeded at 0, NOT at `Infinity`, and the assertion is a comparison
+   * against a measured rest width rather than `widest > FLOOR`. §3.G4 records the
+   * known unfixed version of this check on the sorting page: its minimum was seeded at
+   * `Infinity`, so `Infinity > floor` is true, the assertion certified a measurement
+   * that was never taken, and the crash one line later was what got noticed. A seeded
+   * sentinel is a value only if the seed is a value. */
+  const SAMPLE_SPRITE = (ms) => `(async () => {
+    const e = document.getElementById('sp-art');
+    if (!e) return null;
+    /* offsetWidth, NOT getBoundingClientRect().width — the rect is the TRANSFORMED
+     * box, so sampling a "resting" width after play has already begun measures the
+     * pulse and calls it the baseline. The first version did exactly that, and the
+     * number it printed was 78.3px where the sprite's real width is 72. */
+    const rest = e.offsetWidth;
+    let widest = 0, moved = 0, frames = 0, sawScale = false, lastT = '';
+    const untilMs = ${ms};
+    await new Promise((done) => {
+      const t0 = Date.now();
+      const step = () => {
+        const w = e.getBoundingClientRect().width;
+        if (w > widest) widest = w;
+        if (Math.abs(w - rest) > 0.01) moved++;
+        const t = e.style.transform || '';
+        if (t) lastT = t;
+        if (/scale\\(/.test(t)) sawScale = true;
+        frames++;
+        if (Date.now() - t0 >= untilMs) return done();
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    return { rest, widest, moved, frames, sawScale, lastT, transform: e.style.transform || '' };
+  })()`;
+
+  /* STOPPING IS NOT A BLIND CLICK, and the first version cost two red checks.
+   *
+   * The original read `sp-play.click(); until(aria-pressed === 'false')`. By the time
+   * it ran, the 1,500 ms sampler had usually outlasted the cry, so the page had already
+   * ended playback on its own and the button was sitting at `false`. The click then
+   * started a SECOND playback, the poll timed out on a condition that could not come
+   * true in 15 s, its `false` return was discarded, and the assertion below read a
+   * live transform on a sprite that was behaving perfectly. The next block then
+   * clicked again and inherited the same state — §3.G9 exactly: a cascading failure
+   * prints as N independent reds and only the first is worth reading.
+   *
+   * So the press is CONFIRMED to have been needed (§3.G: a control whose state was not
+   * read first is a press that may not be a press) and the poll's return is asserted
+   * rather than dropped, because a timeout that is ignored is a guess that happened to
+   * leave the page in the state the next line wanted. */
+  const stopPlayback = async () => {
+    const pressed = await ev(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`);
+    if (pressed) await ev('document.getElementById("sp-play").click()');
+    return until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
+  };
+
+  const spriteRest = await ev(SPRITE_BOX);
+  ok(spriteRest && spriteRest.w > 0 && spriteRest.transform === '',
+    `the intro sprite is measurable and at identity before anything plays`
+    + ` (${spriteRest ? spriteRest.w.toFixed(1) : '?'} CSS px wide, transform ${JSON.stringify(spriteRest?.transform ?? 'null')})`);
+
+  await ev('document.getElementById("sp-play").click()');
+  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+
+  const pulse = await ev(SAMPLE_SPRITE(1500));
+  ok(pulse && pulse.widest > pulse.rest + 1,
+    `the sprite GROWS while the cry plays — ${pulse ? pulse.rest.toFixed(1) : '?'}px at rest,`
+    + ` up to ${pulse ? pulse.widest.toFixed(1) : '?'}px`
+    + ` (+${pulse ? (100 * (pulse.widest / pulse.rest - 1)).toFixed(1) : '?'}%),`
+    + ` and it differed from rest on ${pulse ? pulse.moved : '?'}/${pulse ? pulse.frames : '?'} frames`);
+  ok(pulse && pulse.sawScale,
+    `and the growth is a TRANSFORM rather than a layout change, so the 6:4 intro grid does not reflow`
+    + ` — sampled INSIDE the window, not after it: the cry ends inside 1.5 s and a read taken`
+    + ` at the end sees the reset, which is the transform the page is supposed to leave behind`
+    + ` (last live value ${pulse ? pulse.lastT : 'null'})`);
+
+  await stopPlayback();
+
+  const spriteAfter = await ev(SPRITE_BOX);
+  ok(spriteAfter && spriteAfter.transform === '',
+    `stopping returns it to IDENTITY rather than freezing it mid-pulse`
+    + ` (transform ${JSON.stringify(spriteAfter?.transform ?? 'null')}, ${spriteAfter ? spriteAfter.w.toFixed(1) : '?'}px)`);
+
+  /* REDUCED MOTION, and asserted by measurement rather than by the presence of the
+   * guard in the source. §3.C requires it and `check_spectrum_page.mjs` can see the
+   * `reduced()` call; only the emulated media query proves the call is on the path
+   * this box actually takes. Restored to `features: []` afterwards so the rest of the
+   * file runs under the browser's real setting. */
+  await send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+  });
+  await ev('document.getElementById("sp-play").click()');
+  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  const calm = await ev(SAMPLE_SPRITE(1500));
+  ok(calm && calm.moved === 0 && calm.widest <= calm.rest + 0.01,
+    `under prefers-reduced-motion the sprite does not move AT ALL`
+    + ` (widest ${calm ? calm.widest.toFixed(2) : '?'}px against a rest of ${calm ? calm.rest.toFixed(2) : '?'}px,`
+    + ` ${calm ? calm.moved : '?'} of ${calm ? calm.frames : '?'} frames differed)`);
+  await stopPlayback();
+  await send('Emulation.setEmulatedMedia', { features: [] });
+
+  // -----------------------------------------------------------------------
   // The claim the whole page rests on.
   // -----------------------------------------------------------------------
 

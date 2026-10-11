@@ -411,6 +411,27 @@
      *  disappears. Stated on the page next to the legend, in the same sentence. */
     const FLOOR_DB = 60;
 
+    /** The live plot's dB window, absolute — and NOT `FLOOR_DB`.
+     *
+     *  `FLOOR_DB` above is RELATIVE: 60 dB below this cry's own loudest mel band,
+     *  which is the only sense that makes a floor for the offline grid. The live
+     *  panel has no such reference — it draws absolute analyser dB — so it needed
+     *  its own pair, and for two commits it declared them as a local
+     *  `const FLOOR_DB = -100` that SHADOWED the module-level 60. The value was
+     *  correct where it was used and the name was a lie everywhere else, which is
+     *  §3.B1's shape: a bare name that resolves to the module's binding rather
+     *  than the caller's. Two names for two different quantities, as §3.G's rule
+     *  requires.
+     *
+     *  These mirror `minDecibels` / `maxDecibels` on the AnalyserNode in
+     *  `assets/js/cry-player.js`, and they are asserted equal to it by
+     *  `check_spectrum_page.mjs` — a hand-copied constant that nobody checks is a
+     *  second source of truth, and this one would fail SILENTLY: a different
+     *  window here compresses or clips every value `drawLive()` reads without
+     *  changing a single drawn pixel into an obviously wrong one. */
+    const LIVE_MIN_DB = -100;
+    const LIVE_MAX_DB = -10;
+
     /** The 26 centres, once. The filterbank is memoised, so this is one build. */
     const BANK = melFilterbank();
     const CENTRES = melBandCentres(BANK);
@@ -846,6 +867,15 @@ const RARITY = [
      * Flat when nothing is playing, and flat when the player is muted: the tap
      * sits after the gain node, so a mute silences the measurement too. That is a
      * true reading rather than a defect, and the caption says so.
+     *
+     * RETURNS the frame's peak in absolute dB, or `-Infinity` when the analyser is
+     * not there yet. `paintSprite()` needs the loudest level in the same units this
+     * panel drew, and it is this loop that already has it — the alternative is a
+     * second `getFloatFrequencyData()` per frame, which reads the analyser twice and
+     * can disagree with itself between the two reads.
+     *
+     * The four callers that are NOT `tick()` ignore it: a selection redraw, a theme
+     * swap, a resize. Their peak describes a frame they are not animating.
      */
     function drawLive() {
       const { ctx, w, h, dpr } = sizeCanvas(el('sp-live'), 170);
@@ -881,8 +911,6 @@ const RARITY = [
        * motion that is not the audio is worse than no motion. So the axis is fixed
        * and the reader can see the level fall.
        */
-      const CEIL_DB = -10;
-      const FLOOR_DB = -100;
       /* Padding and label gutters, in CSS px. Raised from 10 / 22 / 16 because the
        * 12px type needs room: the dB labels are drawn at x=4 inside a gutter that
        * was sized for a 5-CSS-px glyph, so the curve started 16px in and the mel
@@ -890,7 +918,8 @@ const RARITY = [
       const PAD_T = 14;
       const PAD_B = 26;
       const plotH = ch - PAD_T - PAD_B;
-      const dbToY = (db) => PAD_T + (1 - Math.max(0, Math.min(1, (db - FLOOR_DB) / (CEIL_DB - FLOOR_DB)))) * plotH;
+      const dbToY = (db) => PAD_T + (1 - Math.max(0, Math.min(1,
+        (db - LIVE_MIN_DB) / (LIVE_MAX_DB - LIVE_MIN_DB)))) * plotH;
 
       /* Gridlines every 20 dB, each labelled, so the scale is readable rather than
        * implied. `LEVEL_H` is the strip reserved for them and `PAD_B` the one for
@@ -913,7 +942,7 @@ const RARITY = [
       }
 
       const spec = cryPlayer.spectrum();
-      if (!spec) return;
+      if (!spec) return -Infinity;
 
       const levels = new Float64Array(N_MEL);
       let hi = -Infinity;
@@ -930,14 +959,14 @@ const RARITY = [
         /* An AnalyserNode with nothing connected reports `minDecibels`, and one that
          * has never seen a signal can report -Infinity. Both become the floor, so the
          * curve draws on the baseline rather than off the top of the canvas. */
-        levels[m] = Number.isFinite(best) ? Math.max(best, FLOOR_DB) : FLOOR_DB;
+        levels[m] = Number.isFinite(best) ? Math.max(best, LIVE_MIN_DB) : LIVE_MIN_DB;
         if (levels[m] > hi) hi = levels[m];
       }
 
       const x0 = LEVEL_H + 1;
       const plotW = cw - x0 - 4;
       const yOf = (m) => [x0 + (m / (N_MEL - 1)) * plotW, dbToY(levels[m])];
-      const flat = hi <= FLOOR_DB + 0.5;
+      const flat = hi <= LIVE_MIN_DB + 0.5;
 
       ctx.beginPath();
       ctx.moveTo(x0, ch - PAD_B);
@@ -996,6 +1025,55 @@ const RARITY = [
         ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, x, ch - 6);
       }
       ctx.textAlign = 'left';
+      return hi;
+    }
+
+    /**
+     * THE SPRITE BREATHES WITH THE CRY IT IS PICTURING.
+     *
+     * `peakDb` is the same absolute dB `drawLive()` just drew its curve against, so
+     * the sprite and the live curve are visibly ONE measurement: the curve goes up,
+     * the sprite grows. Mapping it in LINEAR dB rather than linear amplitude is the
+     * whole reason — the panel's y-axis is already linear in dB, so amplitude would
+     * make the two disagree, and the reader would be looking at two things described
+     * as the same thing.
+     *
+     * TOTAL, NOT AN EXIT-PATH DUTY. Every call writes a transform, including the
+     * `null` ones, so "stopped but still enlarged" is not a state this function can
+     * be left in — which is `outfit.html`'s `.of-readout` shape (§3.M) turned
+     * around: there the attribute lied and the fix was a rule, here the rule is
+     * that there is nothing to remember.
+     *
+     * The jitter is two sines at 7.5 and 9.8 Hz, NOT one, and the frequencies are
+     * deliberately not harmonics of the frame interval: a single sine at 60/8 Hz
+     * lands on the same phase every eight frames and reads as a metronome, which is
+     * §3.G's "motion that is not the audio" in a different costume. Two
+     * incommensurate terms do not repeat inside a cry.
+     *
+     * `reduced()` is read on EVERY call, the same way `paintReveal()` reads it, rather
+     * than cached at play time: a reader who turns the OS setting on mid-playback
+     * should not be left with a jittering sprite until the next cry.
+     */
+    function paintSprite(peakDb) {
+      const img = el('sp-art');
+      if (!img) return;
+      /* `null` is what the stop paths pass; anything non-finite (including the
+       * `-Infinity` a not-yet-created analyser returns) means "no measurement",
+       * and silent is the honest resting state rather than a frozen loud frame. */
+      const loud = Number.isFinite(peakDb)
+        ? Math.max(0, Math.min(1,
+            (peakDb - LIVE_MIN_DB) / (LIVE_MAX_DB - LIVE_MIN_DB)))
+        : 0;
+      if (loud <= 0 || reduced()) {
+        img.style.transform = '';
+        return;
+      }
+      const t = performance.now() / 1000;
+      const dx = Math.sin(t * 47.1) * 1.6 * loud;
+      const dy = Math.cos(t * 61.6) * 1.6 * loud;
+      const rot = Math.sin(t * 53.7) * 1.4 * loud;
+      img.style.transform =
+        `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${rot.toFixed(2)}deg) scale(${(1 + 0.16 * loud).toFixed(4)})`;
     }
 
     // ---------------------------------------------------------------------
@@ -1092,7 +1170,12 @@ const RARITY = [
        * shape check passing while `drawLive()` went on using `topInk()`. */
       el('sp-live').dataset.ink = state.liveInk ? `rgb(${state.liveInk.join(',')})` : '';
       drawPlot();
-      drawLive();
+      /* `paintSprite(drawLive())` rather than a bare `drawLive()`: a selection redraw
+       * is also where a species change has to put the sprite BACK. Autoplay aside,
+       * nothing stops playback here, so without this the sprite keeps pulsing the
+       * PREVIOUS cry's measurement while its name, art and numbers have all already
+       * changed — the same staleness bug as `is-loading` above, one column over. */
+      paintSprite(drawLive());
       renderStats(rows, got.note);
       renderCross(rows);
       el('sp-status').textContent =
@@ -1343,6 +1426,9 @@ const RARITY = [
         await cryPlayer.stop();
         setPlayButton(false);
         paintReveal(1);
+        /* The rAF was cancelled above, so nothing will call this again — the reset
+         * has to happen here or the sprite stays enlarged until the next selection. */
+        paintSprite(null);
         return;
       }
       setPlayButton(true);
@@ -1366,6 +1452,7 @@ const RARITY = [
         state.playing = false;
         setPlayButton(false);
         paintReveal(1);
+        paintSprite(null);
       }
     }
 
@@ -1399,14 +1486,34 @@ const RARITY = [
      * reports "not started" for the entire first playback.
      */
     function tick() {
+      /* THE GUARD IS THE WHOLE OF THIS FUNCTION, and it was not here until the
+       * sprite did.
+       *
+       * `toggle()` is `async` and can be re-entered while an earlier invocation is
+       * still awaiting `cryPlayer.play()` — which resolves when the cry ENDS. So a
+       * reader who clicks ▶, ■ and ▶ quickly leaves two playback lifecycles running
+       * over ONE `state.playing` field, and each of them has its own `finally`
+       * calling `paintSprite(null)`.
+       *
+       * Measured over `window.__pw`: at t=5301 ms the reset wrote `null` and a tick
+       * from the older lifecycle wrote `-67.8 dB` in the SAME millisecond. Whichever
+       * landed last won, and there is nothing to order them — so the sprite was left
+       * enlarged at rest, by a page whose every exit path called the reset.
+       *
+       * This reads as a missing reset and is not one: every exit DID reset. The
+       * defect is a last-writer-wins race between two owners of one field, which is
+       * §3.G's "two different quantities must not share a field" with the quantity
+       * being TIME. A tick that is not the active playback must therefore write
+       * nothing at all, including nothing on its last frame. */
+      if (!state.playing) return;
       const p = state.progress;
       p.now = cryPlayer.now();
       const ratio = p.startedAt !== null && p.duration > 0
         ? Math.max(0, Math.min(1, (p.now - p.startedAt) / p.duration))
         : 0;
       paintReveal(ratio);
-      drawLive();
-      if (state.playing) state.raf = requestAnimationFrame(tick);
+      paintSprite(drawLive());
+      state.raf = requestAnimationFrame(tick);
     }
 
     // ---------------------------------------------------------------------

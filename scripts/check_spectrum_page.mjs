@@ -789,9 +789,32 @@ ok(!/new AudioContext\(/.test(page) && !/createBufferSource\(/.test(page),
  * the spectrum is perfectly static, and motion that is not the audio is worse than
  * no motion. `check_spectrum_browser.mjs` covers the other half: that the canvas
  * actually changes while audio plays.
+ *
+ * THE TWO NUMBERS ARE READ OUT OF cry-player.js, NOT RESTATED. The original version
+ * of this check was two literals — `/const CEIL_DB = -10;/` and
+ * `/const FLOOR_DB = -100;/` — so it asserted that the page's SOURCE SPELLED a
+ * number the page does not have to spell. Renaming the constants (they were a local
+ * `FLOOR_DB` shadowing the offline grid's unrelated `FLOOR_DB = 60`, §3.B1) turned it
+ * red without anything about the measurement changing: a shape check reading like the
+ * guard and not being it, the exact thing this file's own §3.G1a section is about.
+ *
+ * And the comparison cannot be allowed to go vacuous in the other direction. If
+ * `signedProp()` returns null on both sides, `[null, null] === [null, null]` and the
+ * check passes having measured nothing — so the non-null assertion below is not
+ * belt-and-braces, it is the half that makes the first half mean anything.
  */
-ok(/const CEIL_DB = -10;/.test(page) && /const FLOOR_DB = -100;/.test(page),
-  "the live curve's dB axis is a FIXED -100..-10 range, the analyser's own declared bounds");
+const signedProp = (src, name) => {
+  const m = src.match(new RegExp(`${name}\\s*=\\s*(-?\\d+)`));
+  return m ? Number(m[1]) : null;
+};
+const analyserRange = [signedProp(player, 'minDecibels'), signedProp(player, 'maxDecibels')];
+const liveRange = [signedProp(page, 'LIVE_MIN_DB'), signedProp(page, 'LIVE_MAX_DB')];
+
+ok(analyserRange.every(Number.isFinite) && liveRange.every(Number.isFinite),
+  `both the analyser's declared dB window and the page's copy of it are readable — a rename on either side must fail LOUDLY, because two unparsed nulls compare equal and this check would pass having measured nothing (analyser ${JSON.stringify(analyserRange)}, page ${JSON.stringify(liveRange)})`);
+
+eq(liveRange, analyserRange,
+  "the live curve's dB axis is the analyser's OWN declared bounds, compared rather than restated — a different window here compresses or clips every value `drawLive()` reads without making any drawn pixel obviously wrong");
 
 /* Scoped to `drawLive`, and the scoping is the point. `drawPlot` computes a `span`
  * from the data and MUST: the spectrogram's floor is deliberately per-cry relative
@@ -811,6 +834,68 @@ ok(drawLive.length > 1000 && /for \(let db = 0/.test(drawLive),
 
 ok(!/const span =/.test(drawLive) && !/Math\.max\(hi,\s*FLOOR\)\s*-\s*FLOOR/.test(drawLive),
   'and drawLive never rescales the axis to the data — an auto-ranging axis would move when the audio is static');
+
+/* THE SPRITE'S PULSE, and this is where the shadowing gets its regression check.
+ *
+ * `drawLive()` used to declare `const CEIL_DB = -10; const FLOOR_DB = -100;` LOCALLY,
+ * shadowing the module-level `FLOOR_DB = 60` that the offline grid needs — two
+ * quantities under one name, in one file, 470 lines apart. Nothing broke, because the
+ * shadowed uses were all inside the function that declared them; §3.B1's shape is that
+ * the next reader greps the name and gets the wrong one. The pair is now
+ * `LIVE_MIN_DB` / `LIVE_MAX_DB` at module level, which is also what lets `paintSprite`
+ * use the SAME window the curve was drawn against rather than a fourth copy of it.
+ *
+ * The slice is `drawLive`'s own body (sliced at the next `function`, per the note
+ * above), so this assertion cannot be satisfied by a decoy declaration somewhere else
+ * in the file — which is the failure mode the two-literal version of this check had.
+ */
+ok(!/\bconst (FLOOR_DB|CEIL_DB)\s*=/.test(drawLive),
+  'drawLive() declares NO local FLOOR_DB or CEIL_DB — the offline grid\'s FLOOR_DB = 60 is a different quantity, and one name for both is §3.B1');
+
+const paintStart = page.indexOf('function paintSprite(');
+/* Bounded by the SECTION comment that follows it, not by the next function.
+ *
+ * The function-next boundary was tried first and is wrong here: `paintSprite` is the
+ * last function before the `// Loading a cry` banner and there is no other
+ * `function ` between them, so `indexOf` ran on to a function further down the file
+ * and produced an 8,124-char slice that happens to pass every assertion in it. A
+ * slice that wide is not a slice — it is the rest of the file, and an assertion
+ * against it reads like it is scoped when it is not (§3.G). */
+const paintEnd = page.indexOf('    // Loading a cry', paintStart);
+const paintSprite = paintStart > 0
+  ? page.slice(paintStart, paintEnd === -1 ? page.length : paintEnd)
+  : '';
+ok(paintStart > 0 && paintSprite.length > 400 && /img\.style\.transform/.test(paintSprite),
+  `the sprite-pulse slice is paintSprite's own body, not an empty string (${paintSprite.length} chars)`);
+
+ok(/reduced\(\)/.test(paintSprite) && /LIVE_MIN_DB/.test(paintSprite) && /LIVE_MAX_DB/.test(paintSprite),
+  'the pulse is gated on prefers-reduced-motion and normalised by the SAME dB window the live curve is drawn against, so the sprite and the curve are one measurement');
+
+/* TOTAL, NOT AN EXIT-PATH DUTY — `.of-readout`'s shape turned around.
+ *
+ * `paintSprite()` writes a transform on EVERY path including the silent one, so
+ * "stopped but still enlarged" is a state the function cannot be left in. A checker
+ * that only counted `paintSprite(null)` calls would be counting, not pairing — the
+ * failure is a path that RESETS and one that SHOULD, so the two halves have to be
+ * asserted against each other rather than separately.
+ */
+const resetWrites = (paintSprite.match(/img\.style\.transform/g) || []).length;
+ok(resetWrites >= 2 && /loud <= 0 \|\| reduced\(\)[\s\S]*?transform = ''/.test(paintSprite),
+  `paintSprite writes the transform on BOTH paths (${resetWrites} writes) — an early return above the write is how a stopped sprite stays enlarged`);
+
+/* All four call sites, and each one is a DIFFERENT reason rather than four copies of
+ * the same guard. `tick()` is the per-frame one; the two `paintSprite(null)` in
+ * `toggle()` are the two exits out of playback (the reader's stop, and the
+ * `finally` that also covers a failed play); `select()` is a species change, which
+ * does NOT stop playback and so cannot rely on either of them. */
+const tickBody = page.slice(page.indexOf('function tick('), page.indexOf('// Picker'));
+const toggleBody = page.slice(page.indexOf('async function toggle()'), page.indexOf('function setPlayButton'));
+ok(/paintSprite\(drawLive\(\)\)/.test(tickBody),
+  'tick() feeds the frame\'s own peak to the sprite, so the pulse is driven by the same analyser read the curve is');
+eq((toggleBody.match(/paintSprite\(null\)/g) || []).length, 2,
+  'and BOTH exits out of playback reset it — the reader\'s stop AND the `finally` that covers a failed play');
+ok(/drawPlot\(\);[\s\S]{0,600}?paintSprite\(drawLive\(\)\)/.test(page),
+  'and a species change resets it too, because select() does not stop playback and therefore cannot rely on either exit above');
 
 ok(/for \(let db = 0; db >= -100; db -= 20\)/.test(drawLive) && /fillText\(`\$\{db\}`/.test(drawLive),
   'and it is drawn with a labelled gridline every 20 dB, so the level is read rather than guessed');
