@@ -686,6 +686,27 @@ const CHECKERS = [
              'assets/js/life-engine.js', 'assets/js/shared.js'],
   },
 
+  /* ---- maze ---- */
+  /* maze.html had NO checker at all until this entry: nothing in the manifest
+   * mentioned the string "maze", so a page with four solvers and a four-leg
+   * patrol shipped through a 51-entry suite unread. Its first defect was not
+   * cosmetic — starRun returned no `cost`, the page called `.toFixed()` on it,
+   * and the TypeError fired inside a requestAnimationFrame callback, so every
+   * successful patrol died after the search without ever drawing a path.
+   *
+   * maze-pathfinding.js is an input rather than a detail of the checker because
+   * the checker IMPORTS it: the patrol is executed over a fake 5×5 and 7×7 grid,
+   * which is the only reason the engine could be moved out of the page at all.
+   * algo.css and shared.css are here for the marker-token assertions — the discs
+   * read --algo-start / --algo-goal, and a patrol draws five of them. */
+  {
+    script: 'scripts/check_maze_page.mjs', group: 'algo',
+    inputs: [
+      'maze.html', 'assets/js/maze-pathfinding.js',
+      'assets/css/algo.css', 'assets/css/shared.css',
+    ],
+  },
+
   /* ---- models ---- */
   /* graph.html's browser check and the harness that attacks it. `manual: true` is
    * correct and only partly because of HTTP: the checker reads graph_data.json directly

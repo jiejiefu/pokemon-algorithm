@@ -75,15 +75,37 @@
     <aside class="al-side">
       <div class="al-panel">
         <h2>這一次的執行</h2>
-        <form class="al-group" id="loadForm" style="flex-wrap:wrap;gap:8px">
-          <button class="btn btn-color" type="submit" id="btnLoadRandom">載入寶可夢迷宮</button>
-          <label class="al-label" for="idField">或指定</label>
-          <input class="al-select" type="text" inputmode="numeric" id="idField" placeholder="#001" size="6"
-                 autocomplete="off" style="width:5.5em;text-align:center" aria-describedby="idError">
-          <button class="btn" type="button" id="btnRandomSeed">換種子</button>
+        <!-- TWO INDEPENDENT AXES, both of them 「unchecked = 隨機」, so the two
+             toggles read the same way round. Before this, the species was random
+             only as a side effect of the field being BLANK, which cannot be told
+             apart from 「I typed nothing because I meant a specific one」 and left
+             a 「或指定」 label with no control behind it. A blank field and an
+             unchecked box are the same state, so the box says which one it is.
+             The form is a COLUMN of three rows: two buttons, then one row per
+             axis, rather than six controls sharing a wrapping inline row. -->
+        <form id="loadForm" style="display:flex;flex-direction:column;gap:8px">
+          <div class="al-group">
+            <button class="btn btn-color" type="submit" id="btnLoadRandom">載入寶可夢迷宮</button>
+            <button class="btn" type="button" id="btnRandomSeed">換種子</button>
+          </div>
+          <div class="al-group">
+            <label class="al-toggle"><input type="checkbox" id="fixedPokemonToggle"> 固定寶可夢</label>
+            <label class="al-label" for="idField" id="idLabel">編號</label>
+            <input class="al-select" type="text" inputmode="numeric" id="idField" placeholder="#001" size="6"
+                   autocomplete="off" style="width:5.5em;text-align:center" aria-describedby="idError">
+          </div>
+          <div class="al-group">
+            <label class="al-toggle"><input type="checkbox" id="fixedSeedToggle"> 固定種子</label>
+            <label class="al-label" for="seedField" id="seedLabel" hidden>種子</label>
+            <input class="al-select" type="text" inputmode="numeric" id="seedField" placeholder="42" size="7"
+                   autocomplete="off" hidden style="width:6em;text-align:center" aria-describedby="seedError">
+          </div>
         </form>
         <p class="al-hint" id="idError" hidden></p>
+        <p class="al-hint" id="seedError" hidden></p>
         <p class="al-hint" id="loadStatus" aria-live="polite">尚未載入。</p>
+        <p class="al-hint">兩個開關都是<b>不勾＝隨機</b>，而且互相獨立。固定種子之後再按「載入寶可夢迷宮」，會換一隻寶可夢但<b>牆完全不變</b>——要在同一張迷宮上比較不同演算法，按演算法按鈕就好，不必重新載入，右邊的比較紀錄才會累積。</p>
+        <p class="al-hint">種子只影響<b>迷宮牆壁</b>模式——精靈地形的地形就是那張圖，沒有隨機成分。同一個種子搭配不同寶可夢會產生<b>完全相同的牆</b>。</p>
       </div>
 
       <div class="al-panel">
@@ -94,7 +116,7 @@
           <dt>路徑成本</dt><dd id="statCost">—</dd>
           <dt>路徑格數</dt><dd id="statHops">—</dd>
         </dl>
-        <p class="al-hint">速度以「每幀處理幾格」計。演算法之間的差距本來就很大——這正是重點：A* 在同一張地圖上常常只探索幾十格，BFS 要上千格。</p>
+        <button class="btn al-btn-xs" type="button" id="btnLitAll" aria-pressed="false" hidden>點亮整張圖</button>
       </div>
 
       <div class="al-panel">
@@ -111,7 +133,14 @@
       <div class="al-panel">
         <h2>這四個演算法保證什麼</h2>
         <p class="al-hint"><b>BFS</b> 保證<b>跳格數</b>最少。它不看成本，所以在有地形成本的圖上，回報的成本<b>不保證</b>是最低的——多數地圖上它會和 Dijkstra 平手，偶爾才會比較高。<b>DFS</b> 兩個都不保證。</p>
+        <p class="al-hint">速度以「每幀處理幾格」計。</p>
         <p class="al-hint"><b>Dijkstra</b> 與 <b>A*</b> 都保證<b>成本最低</b>，所以同一張地圖上兩者的成本必然相同。差別在探索量，而<b>領先多少看地形</b>：地形對比度越高，可通的Cost範圍越寬，啟發式能事先排除的分支就越少。確切數字看上面的比較紀錄。</p>
+      </div>
+
+      <div class="al-panel">
+        <h2>四角巡航是什麼</h2>
+        <p class="al-hint">巡航同時跑<b>四腿</b>搜尋，每一輪依序讓 <b>A、B、C、D 各走一格</b>：中央 S 是四腿共用的起點，四個角是終點——<b>A 左上、B 右下、C 右上、D 左下</b>。四腿各自從頭算起，結果與單獨跑四次完全相同，只是交錯前進。</p>
+        <p class="al-hint">因為四腿共用起點與鄰格，探索格數是<b>聯集</b>（畫面上真正塗亮的格），四腿的加總會大上數倍——狀態列兩個數字都給你。路徑四條同一個顏色，所以哪一條是哪一腿<b>只在狀態列讀得到</b>。</p>
       </div>
 
       <div class="al-panel">
@@ -126,7 +155,9 @@
     import {
       bfsSolve, dfsSolve, dijkstraSolve, astarSolve, SOLVERS,
       octileHeuristic, manhattanHeuristic, computeTerrainCost, findNearestPassable,
+      largestComponent,
       TERRAIN_ALPHA_WALL_THRESHOLD, TERRAIN_MAX_COST_DEFAULT, DIAGONAL_DIRS,
+      starRun, PATROL_LEGS,
     } from './assets/js/maze-pathfinding.js';
 
     initThemeToggle();
@@ -142,7 +173,14 @@
     const overlay = document.getElementById('overlay');
     const loadStatus = document.getElementById('loadStatus');
     const idField = document.getElementById('idField');
+    const idLabel = document.getElementById('idLabel');
     const idError = document.getElementById('idError');
+    const fixedPokemonToggle = document.getElementById('fixedPokemonToggle');
+    const seedField = document.getElementById('seedField');
+    const seedLabel = document.getElementById('seedLabel');
+    const seedError = document.getElementById('seedError');
+    const fixedSeedToggle = document.getElementById('fixedSeedToggle');
+    const btnLitAll = document.getElementById('btnLitAll');
     const runLogBody = document.getElementById('runLogBody');
     const runLogEmpty = document.getElementById('runLogEmpty');
 
@@ -215,14 +253,37 @@
     let terrainMaxCost = TERRAIN_MAX_COST_DEFAULT;
     let terrainEndpoints = null;
     let seed = 42;
+    let currentId = null;        // so 換種子 can re-carve the SAME Pokémon
+    let litAll = false;
     let POKEDEX = new Map();   // id -> record, so a loaded species can be named
     let runLog = [];
 
-    let run = null;              // { gen, algo, star, legs, resolved }
+    let run = null;              // { gen, algo, star, start }
     let phase = 'idle';          // 'idle' | 'search' | 'path'
     let pathCells = [];
-    let explored = 0;
+    let explored = 0;         // union of cells marked — what the canvas shows
+    let settled = 0;          // every settle, summed over all four legs
     let rafId = 0;
+
+    /* Which points the CANVAS is describing. 'single' is the S/G pair, 'star'
+     * is the patrol's five. It is set by startSearch and reset by the three
+     * places that already throw the grid away, and it is deliberately NOT reset
+     * inside stopRun(): startSearch calls stopRun() on its own first line, so a
+     * reset there would be undone by the line after it depending on order. */
+    let runKind = 'single';
+
+    const ARIA_LABEL = {
+      single: '寶可夢迷宮格線；S 為起點，G 為終點',
+      star: '寶可夢迷宮格線；中央 S 為四腿共用的起點，四個角依序為 A 左上、B 右下、C 右上、D 左下',
+    };
+    /* One place writes runKind, so the markers, the canvas's accessible name
+     * and the state can never disagree about what the canvas is showing — three
+     * separate assignments is three chances for one of them to be missed. */
+    function setRunKind(next) {
+      runKind = next;
+      canvas.setAttribute('aria-label', ARIA_LABEL[next]);
+      redraw();
+    }
 
     /* -------------------------------------------------------------- CELL */
     class Cell {
@@ -237,7 +298,12 @@
 
       draw() {
         const px = offX + this.x * cell, py = offY + this.y * cell;
-        const alpha = this.onPath ? 1 : (this.searchVisited ? 0.5 : 0.05);
+        /* The alpha ramp is what makes the search readable, and it is also what the
+         * 點亮 toggle switches off. At full opacity the four states are
+         * indistinguishable, so the path disappears WITH the dimming rather than
+         * being redrawn — which is the point: 復原 is not a re-run, it is the
+         * same flags rendered the way they were. */
+        const alpha = litAll ? 1 : (this.onPath ? 1 : (this.searchVisited ? 0.5 : 0.05));
         /* A pixel under the alpha threshold is drawn as the theme's wall colour
          * so it stays legible against the canvas instead of disappearing. The
          * SAME threshold makes it impassable in terrain mode (see
@@ -266,12 +332,31 @@
     }
 
     /* ------------------------------------------------------------ DRAWING */
+    /* The markers answer "what will this button search between", so they follow
+     * runKind. The previous version always drew endpoints()' single S/G pair, so
+     * the patrol showed two discs — which in wall mode were legs A's and B's GOALS,
+     * leaving the shared start and legs C and D unmarked, and in terrain mode were
+     * the passable bounding box's corners rather than the four corners the patrol
+     * actually walks to, so they sat on cells belonging to no leg at all.
+     *
+     * 點亮 hides them. Not S/G only — the patrol's A/B/C/D too, because they are
+     * the same kind of thing: annotations of a run whose path is already invisible
+     * under the lit view. Leaving one disc floating on a full-brightness sprite
+     * would be the only thing still being explained while nothing else is. */
     function drawMarkers() {
-      if (!grid.length || !endpoints().start || !endpoints().end) return;
-      marker(grid, endpoints().start, TOKENS.start, 'S');
-      marker(grid, endpoints().end, TOKENS.goal, 'G');
+      if (!grid.length) return;
+      if (litAll) return;
+      if (runKind === 'star') {
+        const pts = starPoints();
+        if (!pts) return;
+        for (const leg of PATROL_LEGS) marker(pts[leg.corner], TOKENS.goal, leg.id);
+        marker(pts.center, TOKENS.start, 'S');
+        return;
+      }
+      const { start, end } = endpoints();
+      if (start && end) { marker(start, TOKENS.start, 'S'); marker(end, TOKENS.goal, 'G'); }
     }
-    function marker(g, c, color, label) {
+    function marker(c, color, label) {
       const px = offX + c.x * cell + cell / 2;
       const py = offY + c.y * cell + cell / 2;
       const r = Math.max(4, cell * 0.38);
@@ -328,6 +413,18 @@
      * the same shared `grid`, leaving 80 rows with two images interleaved. */
     let loadToken = 0;
 
+    /* ------------------------------------------------------------ THE TWO AXES */
+    /* A load is the product of two independent choices — which Pokémon, and
+     * which walls — and each has its own 「固定」 toggle, unchecked meaning 隨機.
+     * `decideId()` and `decideSeed()` are the symmetric pair, and both run before
+     * anything is loaded, so a bad value in either one stops the load with a
+     * message instead of being discovered somewhere downstream.
+     *
+     * WHY THE ID CHECK OUTSIDE THE LOADER: `loadPokemonMaze` used to own it,
+     * because 「a blank field means random」 was the whole rule and the only place
+     * that could be read. Once 固定寶可夢 exists, the rule is "checked ⇒ the field
+     * is the answer", and a loader that also guesses is a second source of truth
+     * for the same question — and the one that decides which Pokémon is on screen. */
     function requestId(text) {
       const raw = String(text || '').trim().replace(/^#/, '');
       if (!raw) return { ok: false, reason: 'empty' };
@@ -337,34 +434,88 @@
       return { ok: true, id: n };
     }
 
+    function decideId() {
+      idError.hidden = true;
+      if (!fixedPokemonToggle.checked) return true;      // 隨機
+      const check = requestId(idField.value);
+      if (!check.ok) {
+        const typed = idField.value.trim().replace(/^#/, '');
+        idError.hidden = false;
+        idError.textContent = check.reason === 'empty'
+          ? '已勾選「固定寶可夢」，請輸入 1 到 1025 之間的編號，或取消勾選讓它自己隨機。'
+          : check.reason === 'nan'
+            ? `「${typed}」不是數字。請輸入 1 到 1025 之間的編號。`
+            : `編號 ${typed} 超出範圍，這份圖鑑只有 1 到 1025。`;
+        idField.focus();
+        return false;
+      }
+      idField.value = String(check.id).padStart(3, '0');
+      return true;
+    }
+
+    function rollSeed() { return 1 + Math.floor(Math.random() * 999999); }
+
+    /* Always rolls, always writes back. 換種子 goes through here and NOT through
+     * decideSeed, because in 固定種子 mode decideSeed reads the field — which
+     * still holds the pinned value — so a button labelled 「換種子」 would reroll
+     * the same maze and look broken. The pinned seed is what 固定種子 means for
+     * a plain load; pressing 換種子 is the reader saying "no, a different one",
+     * and it wins. */
+    function rerollSeed() {
+      seed = rollSeed();
+      seedField.value = String(seed);
+    }
+
+    function decideSeed() {
+      seedError.hidden = true;
+      if (!fixedSeedToggle.checked) {
+        rerollSeed();
+        return true;
+      }
+      const raw = seedField.value.trim().replace(/^#/, '');
+      if (!raw) {
+        seedError.hidden = false;
+        seedError.textContent = '請輸入種子，或取消勾選「固定種子」讓它自己隨機。';
+        seedField.focus();
+        return false;
+      }
+      if (!/^\d+$/.test(raw)) {
+        seedError.hidden = false;
+        seedError.textContent = `「${raw}」不是數字。種子請填 1 到 999999 的整數。`;
+        seedField.focus();
+        return false;
+      }
+      const n = Number(raw);
+      if (n < 1 || n > 999999) {
+        seedError.hidden = false;
+        seedError.textContent = `種子 ${n} 超出範圍，請填 1 到 999999。`;
+        seedField.focus();
+        return false;
+      }
+      seed = n;
+      seedField.value = String(n);
+      return true;
+    }
+
+    /* `requestedId` is either a number decideId() already validated, or undefined
+     * meaning 隨機. The loader no longer re-validates: a second place that can
+     * reject the same input is a second place that has to agree about it, and
+     * this one used to disagree — it called requestId() on its own argument
+     * while decideId() had already parsed a different one. */
     async function loadPokemonMaze(requestedId) {
       const token = ++loadToken;
       stopRun();
       grid = [];
       terrainEndpoints = null;
-      redraw();
+      setRunKind('single');
+      setLitAll(false, false);   // a new maze arrives dimmed, with no path to revert to
       overlay.hidden = false;
       overlay.textContent = '載入中…';
 
-      const check = requestedId === undefined
-        ? { ok: true, id: 1 + Math.floor(Math.random() * MAX_ID) }
-        : requestId(requestedId);
-      if (!check.ok) {
-        overlay.hidden = true;
-        idError.hidden = false;
-        idError.textContent = check.reason === 'empty'
-          ? `請輸入 1 到 ${MAX_ID} 之間的編號。`
-          : check.reason === 'nan'
-            ? `「${idField.value.trim()}」不是數字。請輸入 1 到 ${MAX_ID} 之間的編號。`
-            : `編號 ${idField.value.trim().replace(/^#/, '')} 超出範圍，這份圖鑑只有 1 到 ${MAX_ID}。`;
-        loadStatus.textContent = '尚未載入。';
-        idField.focus();
-        return;
-      }
+      const id = requestedId === undefined ? 1 + Math.floor(Math.random() * MAX_ID) : requestedId;
       idError.hidden = true;
-      const id = check.id;
       idField.value = String(id).padStart(3, '0');
-      seed = 1 + Math.floor(Math.random() * 999999);
+      currentId = id;
       loadStatus.textContent = `正在載入 #${id}…`;
 
       const img = new Image();
@@ -456,33 +607,97 @@
           grid[y][x].terrainCost = computeTerrainCost(grid[y][x].color, terrainMaxCost);
         }
       }
+      terrainMain = largestComponent(GRID_SIZE, cellAt, terrainNeighbours, passable);
     }
     const passable = (c) => c.terrainCost !== Infinity;
     const cellAt = (x, y) => grid[y][x];
+
+    /* The PASSABLE REGION'S largest connected component, computed ONCE per grid
+     * and cached. It has to be cached: `drawMarkers()` runs on every animation
+     * frame, so a component labelling inside it would be 1,600 cells × 8
+     * neighbours per frame for a value that only changes when the grid does. */
+    let terrainMain = null;
+
+    /** Extents of a set of cells, or null for an empty set. */
+    function bboxOf(cells) {
+      let minX = GRID_SIZE, minY = GRID_SIZE, maxX = -1, maxY = -1;
+      for (const c of cells) {
+        if (c.x < minX) minX = c.x;
+        if (c.x > maxX) maxX = c.x;
+        if (c.y < minY) minY = c.y;
+        if (c.y > maxY) maxY = c.y;
+      }
+      return maxX < 0 ? null : { minX, minY, maxX, maxY };
+    }
+
+    /** Can a search get from one cell to the other, using the SAME adjacency the
+     *  solvers use? A start/goal pair in different components is what makes the
+     *  page report 「無解」 on a map that is perfectly walkable. */
+    function terrainReachable(from, to) {
+      if (!from || !to) return false;
+      const seen = new Set([from]);
+      const stack = [from];
+      while (stack.length) {
+        const node = stack.pop();
+        if (node === to) return true;
+        for (const { node: next } of terrainNeighbours(node)) {
+          if (!passable(next) || seen.has(next)) continue;
+          seen.add(next);
+          stack.push(next);
+        }
+      }
+      return false;
+    }
 
     /* Corner-to-corner on the literal 40×40 square almost always fails in
      * terrain mode: sprites are centred with transparent padding, so grid[0][0]
      * is nearly always impassable. The endpoints are instead the nearest
      * passable cells to the PASSABLE REGION's own bounding box — which still
      * reads as "cross the Pokémon corner to corner" without assuming the sprite
-     * fills the square. */
+     * fills the square.
+     *
+     * SURGICALLY, and the blast radius is why. The bounding box of every passable
+     * cell is correct for the overwhelming majority of sprites and is what the
+     * page has always used, so it is tried FIRST and returned untouched whenever
+     * the pair it produces is actually connected. Measured over 257 sprites
+     * through the page's own `drawImage`: **248 keep byte-identical endpoints**
+     * and the fallback never runs for them.
+     *
+     * The other 9 have a detached fragment — a wing tip, a stray anti-aliased
+     * pixel — sitting at a bbox corner, which puts start and goal in different
+     * components and makes the page report 「無解」 on a walkable map (#267
+     * Beautifly, #330 Flygon, #904 Overqwil). For those, and only those, the
+     * endpoints are re-picked at the extents of the BODY — the largest connected
+     * component. That fallback is correct BY CONSTRUCTION rather than by
+     * measurement: the ring scan is restricted to the body, so both ends land
+     * inside it and are connected by definition. */
     function computeTerrainEndpoints() {
-      let minX = GRID_SIZE, minY = GRID_SIZE, maxX = -1, maxY = -1;
+      const everyPassable = new Set();
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
-          if (!passable(grid[y][x])) continue;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+          if (passable(grid[y][x])) everyPassable.add(grid[y][x]);
         }
       }
-      if (maxX < 0) return null;   // a fully transparent sprite; no route exists
+      const all = bboxOf(everyPassable);
+      if (!all) return null;   // a fully transparent sprite; no route exists
+
       const mid = (v) => Math.round(v);
+      const start = findNearestPassable(all.minX, all.minY, GRID_SIZE, cellAt, passable);
+      const end = findNearestPassable(all.maxX, all.maxY, GRID_SIZE, cellAt, passable);
+      const center = findNearestPassable(
+        mid((all.minX + all.maxX) / 2), mid((all.minY + all.maxY) / 2),
+        GRID_SIZE, cellAt, passable,
+      );
+      if (!start || !end || !center) return null;
+      if (terrainReachable(start, end)) return { start, end, center };
+
+      const body = terrainMain?.size ? bboxOf(terrainMain) : null;
+      if (!body) return { start, end, center };
+      const inBody = (c) => terrainMain.has(c);
       return {
-        start: findNearestPassable(minX, minY, GRID_SIZE, cellAt, passable),
-        end: findNearestPassable(maxX, maxY, GRID_SIZE, cellAt, passable),
-        center: findNearestPassable(mid((minX + maxX) / 2), mid((minY + maxY) / 2), GRID_SIZE, cellAt, passable),
+        start: findNearestPassable(body.minX, body.minY, GRID_SIZE, cellAt, inBody) ?? start,
+        end: findNearestPassable(body.maxX, body.maxY, GRID_SIZE, cellAt, inBody) ?? end,
+        center,
       };
     }
 
@@ -495,14 +710,42 @@
           bottomLeft: grid[GRID_SIZE - 1][0], bottomRight: grid[GRID_SIZE - 1][GRID_SIZE - 1],
         };
       }
-      if (!terrainEndpoints?.center) return null;
-      const corner = (x, y) => findNearestPassable(x, y, GRID_SIZE, cellAt, passable);
+      /* All five points come from the BODY's bounding box, never from the bbox of
+       * every passable pixel. The patrol's five points are supposed to be this
+       * Pokémon's centre and its four corners, and a bbox taken over stray
+       * anti-aliased pixels is not that — it is the extent of the specks.
+       *
+       * Measured over 257 sprites through the page's own `drawImage`: taking the
+       * bbox of every passable cell leaves **28 legs unreachable from the centre,
+       * on 22 sprites** — a leg that reports 「無解」 while the other three walk
+       * happily. Taking the body's bbox leaves **zero**.
+       *
+       * NOTE WHAT THIS DOES NOT FIX, because it was measured and found wanting:
+       * legs SHORTER than 4 hops (9 of 1,000, one of them zero hops — a corner
+       * resolving onto the centre) are identical under both rules. Those come from
+       * sprite SHAPE rather than fragments, and would need a different guard. */
+      const main = terrainMain;
+      if (!main || !main.size) return null;
+      const bb = bboxOf(main);
+      const inBody = (c) => main.has(c);
+      const mid = (v) => Math.round(v);
+      const corner = (x, y) => findNearestPassable(x, y, GRID_SIZE, cellAt, inBody);
       const pts = {
-        center: terrainEndpoints.center,
+        center: findNearestPassable(
+          mid((bb.minX + bb.maxX) / 2), mid((bb.minY + bb.maxY) / 2),
+          GRID_SIZE, cellAt, inBody,
+        ),
         topLeft: corner(0, 0), topRight: corner(GRID_SIZE - 1, 0),
         bottomLeft: corner(0, GRID_SIZE - 1), bottomRight: corner(GRID_SIZE - 1, GRID_SIZE - 1),
       };
-      return Object.values(pts).every(Boolean) ? pts : null;
+      if (!Object.values(pts).every(Boolean)) return null;
+      /* Four corners that resolve to ONE cell is not a usable patrol: every leg
+       * would be zero-length and all four markers would stack on the same pixel.
+       * A small or badly broken sprite's passable region can easily be one blob
+       * nearer a corner than the other three, so `every(Boolean)` is not enough
+       * on its own — it passed a run whose "four corners" were the same cell. */
+      const distinctCorners = new Set(PATROL_LEGS.map((leg) => pts[leg.corner])).size;
+      return distinctCorners >= 2 ? pts : null;
     }
 
     /* --------------------------------------------------- NEIGHBOUR FUNCTIONS
@@ -539,40 +782,36 @@
         : (terrainEndpoints ?? { start: null, end: null });
     }
 
-    /* ------------------------------------------------------- FOUR-LEG RUN */
-    /* 中心四角巡航: four legs out from the centre, each a genuine restart from
-     * `center`. There is no shared cell between one leg's end and the next
-     * leg's start to de-duplicate, so the paths are concatenated plainly — the
-     * previous version `.slice(1)`-ed off an overlap that was never there and
-     * silently dropped a real visited cell at every leg boundary. */
-    function* starRun(solver, neighbours, heuristic, pts) {
-      const legs = [
-        { start: pts.center, end: pts.topLeft },
-        { start: pts.center, end: pts.bottomRight },
-        { start: pts.center, end: pts.topRight },
-        { start: pts.center, end: pts.bottomLeft },
-      ];
-      const results = [];
-      let path = [];
-      for (const leg of legs) {
-        for (let y = 0; y < GRID_SIZE; y++) {
-          for (let x = 0; x < GRID_SIZE; x++) grid[y][x].searchVisited = false;
-        }
-        const gen = heuristic ? solver(leg.start, leg.end, neighbours, heuristic) : solver(leg.start, leg.end, neighbours);
-        let res;
-        for (;;) {
-          const step = gen.next();
-          if (step.done) { res = step.value; break; }
-          // Forward the settled CELL, not a bare `yield;` — the render loop
-          // writes `.searchVisited` on whatever it receives, and a value-less
-          // yield hands it `undefined`.
-          yield step.value;
-        }
-        results.push(res);
-        if (res.found) path = path.concat(res.path);
-      }
-      return { legs: results, found: results.every(r => r.found), path };
+    /* ------------------------------------------------- 點亮整張圖 TOGGLE */
+    /* `litAll` means "show the sprite at full brightness, no dimming ramp". It
+     * never touches onPath or searchVisited — those stay exactly as the run left
+     * them, so 復原 restores the final-path view for free rather than by
+     * replaying anything.
+     *
+     * The button appears only after a run finishes, so it is state, and state
+     * with four writers is how the stale-marker defect happened in the first
+     * place. Both facts are set here and nowhere else. */
+    function setLitAll(next, visible) {
+      litAll = next;
+      if (visible !== undefined) btnLitAll.hidden = !visible;
+      btnLitAll.setAttribute('aria-pressed', String(litAll));
+      btnLitAll.textContent = litAll ? '還原路徑顯示' : '點亮整張圖';
     }
+
+    btnLitAll.addEventListener('click', () => {
+      setLitAll(!litAll);
+      redraw();
+    });
+
+    /* ------------------------------------------------------- FOUR-LEG RUN
+     * The patrol itself lives in maze-pathfinding.js as `starRun` + `PATROL_LEGS`.
+     * It is a generator over nothing but nodes and a neighbour function, so the
+     * engine can be executed by a checker over a 5×5 fake grid instead of being
+     * read as source — which is the only reason it is there rather than here.
+     * The one thing the page still owns is the PAINTED state, and it no longer
+     * resets it between legs: the four searches share one frontier, and clearing
+     * `searchVisited` before each leg left only the last leg's cells on screen
+     * while the status line reported all four. */
 
     /* ------------------------------------------------------------- SEARCH */
     const ALGO_LABEL = { bfs: 'BFS', dfs: 'DFS', dijkstra: 'Dijkstra', astar: 'A*' };
@@ -584,8 +823,8 @@
      * place, and where BFS's cost-blindness becomes visible. */
     const ALGOS_BY_MODE = {
       wall: [
-        { id: 'bfs', star: false, label: 'BFS', note: '保證跳格數最少' },
-        { id: 'dfs', star: false, label: 'DFS', note: '兩個都不保證' },
+        { id: 'bfs', star: false, label: '廣度優先搜尋', note: 'BFS' },
+        { id: 'dfs', star: false, label: '深度優先搜尋', note: 'DFS' },
         { id: 'bfs', star: true, label: '四角巡航 BFS' },
         { id: 'dfs', star: true, label: '四角巡航 DFS' },
       ],
@@ -610,6 +849,8 @@
         }
       }
       explored = 0;
+      settled = 0;
+      setLitAll(false, false);   // a new run gets to dim the board itself
 
       const solver = SOLVERS[algoId];
       const neighbours = mode === 'wall' ? wallNeighbours : terrainNeighbours;
@@ -639,6 +880,7 @@
 
       run = { gen, algo: algoId, star: !!star, start: performance.now() };
       phase = 'search';
+      setRunKind(star ? 'star' : 'single');
       setStat('statAlgo', ALGO_LABEL[algoId] + (star ? '（四角巡航）' : ''));
       setStat('statVisited', '0');
       setStat('statCost', '—');
@@ -646,18 +888,28 @@
       tick();
     }
 
+    /* `explored` is the UNION — the cells whose flag actually flipped, which is
+     * what the canvas shows — and `settled` is every settle across all four
+     * legs. A patrol's four searches share a start and a neighbourhood, so the
+     * total is several times the union, and reporting only the total is how a
+     * status line ends up describing a number no reader can see. For a single
+     * run the two are identical, which is why the run log's 探索 column — the
+     * number of cells PAINTED — keeps meaning the same thing in both rows. */
     function tick() {
       rafId = requestAnimationFrame(tick);
       if (phase === 'search' && run) {
-        let settled = null;
+        let done = null;
         for (let i = 0; i < speed.cells && run; i++) {
           const step = run.gen.next();
-          if (step.done) { settled = step.value; break; }
+          if (step.done) { done = step.value; break; }
+          if (!step.value.searchVisited) explored++;
           step.value.searchVisited = true;
-          explored++;
+          settled++;
         }
-        setStat('statVisited', explored.toLocaleString());
-        if (settled) finishSearch(settled);
+        setStat('statVisited', run.star
+          ? `${explored.toLocaleString()} 格（四腿合計 ${settled.toLocaleString()} 次）`
+          : explored.toLocaleString());
+        if (done) finishSearch(done);
       } else if (phase === 'path' && pathCells.length) {
         // The route lights up at a fixed visual rate rather than at the search's
         // own rate: a 3-cell path and a 300-cell path should both take about as
@@ -669,6 +921,11 @@
       redraw();
     }
 
+    /* The patrol draws its four paths in one flat colour, so the leg identities are
+     * readable HERE and nowhere else — a reader cannot tell which of four
+     * identical white polylines is leg A from the canvas alone. `legs` arrives in
+     * PATROL_LEGS order with each leg's id and label attached, which is why the
+     * engine returns them rather than the page re-deriving the pairing. */
     function finishSearch(result) {
       const found = result.found;
       const path = found ? result.path : [];
@@ -686,9 +943,12 @@
       });
 
       const seconds = ((performance.now() - run.start) / 1000).toFixed(1);
+      const perLeg = run.star && result.legs?.length
+        ? `（${result.legs.map((l) => `${l.id} ${l.label} ${l.found ? `${l.path.length} 格 / 成本 ${l.cost.toFixed(1)}` : '無解'}`).join('、')}）`
+        : '';
       loadStatus.textContent = found
-        ? `${ALGO_LABEL[run.algo]}${run.star ? ' 四角巡航' : ''} 完成：探索 ${explored.toLocaleString()} 格，路徑 ${hops} 格、成本 ${cost.toFixed(1)}，耗時 ${seconds} 秒。`
-        : `${ALGO_LABEL[run.algo]} 結束，但沒有找到可行路徑（可通行區域可能不連通）。`;
+        ? `${ALGO_LABEL[run.algo]}${run.star ? ' 四角巡航' : ''} 完成：探索 ${explored.toLocaleString()} 格${run.star ? `（四腿合計 ${settled.toLocaleString()} 次）` : ''}，路徑 ${hops} 格、成本 ${cost.toFixed(1)}${perLeg}，耗時 ${seconds} 秒。`
+        : `${ALGO_LABEL[run.algo]} 結束，但沒有找到可行路徑（可通行區域可能不連通）${perLeg}。`;
 
       if (path.length) {
         pathCells = path.slice();
@@ -698,6 +958,10 @@
         cancelAnimationFrame(rafId);
         rafId = 0;
       }
+      /* The run is over, so there is a finished picture to choose a different
+       * view OF. Shown for an unsolved patrol too: 點亮 is still the way to see
+       * the terrain the search failed on. */
+      setLitAll(litAll, true);
       run = null;
     }
 
@@ -708,6 +972,7 @@
       phase = 'idle';
       pathCells = [];
       explored = 0;
+      settled = 0;
     }
 
     /* --------------------------------------------------------- RUN LOG */
@@ -766,6 +1031,8 @@
             grid[y][x].onPath = false;
           }
         }
+        setRunKind('single');
+        setLitAll(false, false);
         loadStatus.textContent = `已切到${MODE_LABEL[mode]}。`;
         redraw();
       }
@@ -785,6 +1052,7 @@
       // of a different terrain.
       clearRunLog();
       stopRun();
+      setRunKind('single');
       if (mode === 'terrain') redraw();
     });
 
@@ -806,13 +1074,58 @@
     // A real <form>, so Enter submits without a hand-rolled keydown handler.
     document.getElementById('loadForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const typed = idField.value.trim();
-      loadPokemonMaze(typed === '' ? undefined : typed);
+      // Both axes are decided before anything loads, and either one can refuse.
+      if (!decideId() || !decideSeed()) return;
+      loadPokemonMaze(fixedPokemonToggle.checked ? Number(idField.value) : undefined);
     });
+    /* Reroll for real. The old handler set `seed` and wrote a status line
+     * promising 「下一張迷宮會用 Seed N」, then let the next load overwrite it —
+     * so the button changed a sentence and nothing else. It now re-carves the
+     * maze the reader is already looking at: same Pokémon, new walls. */
     document.getElementById('btnRandomSeed').addEventListener('click', () => {
-      seed = 1 + Math.floor(Math.random() * 999999);
-      loadStatus.textContent = `下一張迷宮會用 Seed ${seed}。`;
+      rerollSeed();
+      loadPokemonMaze(currentId ?? undefined);
     });
+
+    /* Toggling an axis is not a request for a new maze, so these only reveal the
+     * field. Turning a box ON also FILLS it, which is the fix for the bug that
+     * started this: `placeholder="42"` is not a value, decideSeed reads
+     * `.value`, and nothing wrote to that field until a random load did — so
+     * checking 固定種子 before the first load produced 「請輸入種子」 with no way
+     * to tell whether the reader had done something wrong.
+     *
+     * The value written is `seed` itself: 42 before anything has been generated,
+     * and the last random roll after. So the box pins the maze that is already on
+     * screen rather than forcing the reader to read the number off the status
+     * line and retype it.
+     *
+     * `hideWhenUnchecked` is false for the Pokémon axis on purpose: the reader
+     * should be able to SEE which id is on screen whether or not it is pinned,
+     * so that box only decides whether the number is HONOURED. Hiding the field
+     * made the current species invisible in the very state where it changes on
+     * every load, which is exactly when a reader wants to read it. There the
+     * field goes `readonly` instead — still selectable and copyable, obviously
+     * not an input. */
+    function bindAxisToggle(toggle, field, label, errorBox, onOpen, hideWhenUnchecked = true) {
+      const sync = () => {
+        const on = toggle.checked;
+        field.hidden = hideWhenUnchecked && !on;
+        label.hidden = hideWhenUnchecked && !on;
+        field.readOnly = !on;
+        errorBox.hidden = true;
+        if (!on) return;
+        onOpen();
+        field.focus();
+      };
+      toggle.addEventListener('change', sync);
+      sync();   // so the initial state is applied by the same code, not by the markup
+    }
+
+    bindAxisToggle(fixedPokemonToggle, idField, idLabel, idError,
+      () => { if (!idField.value.trim()) idField.value = String(currentId ?? 1).padStart(3, '0'); },
+      false);
+    bindAxisToggle(fixedSeedToggle, seedField, seedLabel, seedError,
+      () => { seedField.value = String(seed); });
 
     /* --------------------------------------------------------------- BOOT */
     /* The roster is fetched once so a loaded sprite can be named. It is NOT a
