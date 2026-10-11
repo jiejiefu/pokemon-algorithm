@@ -168,3 +168,213 @@ The mobile drawer rendered each group as a **748 × 366 px rounded pill** with i
 **EXPECT THIS SHAPE ANYWHERE A COMMENT CITES A NUMBER AS ITS REASON.** 「8 rows」 was true when written and nobody revisited it, because the rule it justified worked — visibly, correctly, and a third too tall.
 
 ---
+
+## P. maze.html Had No Checker, And Its Patrol Had Never Once Drawn A Path
+
+**THE PAGE HAD ZERO COVERAGE.** Nothing in the manifest mentioned the string `maze` — 51 entries, four pathfinding algorithms, two terrain modes and a four-leg patrol, and `rg maze scripts/` returned only files that happened to list `maze.html` among twenty other pages. This is §3.G4's shape with a longer tail: the sorting page got its checker when six blank canvases shipped, and maze.html waited because nobody was looking at it.
+
+**THREE DEFECTS, AND ONLY ONE OF THEM WAS VISIBLE.** The user reported the patrol's start and goal markers as looking wrong. Reading `maze.html` turned up two more behind it:
+
+1. **THE MARKERS DESCRIBED A RUN THE PAGE WAS NOT DOING.** `drawMarkers()` called `endpoints()` unconditionally and never `starPoints()`. In wall mode that is a single S/G pair, which happens to sit on legs **A's and B's goals** — so the shared start and legs C and D were unmarked. In terrain mode it was worse: `endpoints()` targets the corners of the **passable bounding box**, while `starPoints()` targets the **literal** corners. Different targets, so S/G routinely sat on cells belonging to no leg at all.
+2. **EVERY SUCCESSFUL PATROL THREW.** `starRun` returned `{ legs, found, path }` with **no `cost`**, and `finishSearch` did `result.cost.toFixed(1)`. `undefined.toFixed` is a TypeError, and it fired inside a `requestAnimationFrame` callback — so everything after it was skipped: no hops stat, no run-log row, no status line, `run` never nulled, no path animation. The frame loop then spun on an exhausted generator forever. **The patrol had never drawn a path.**
+3. **ONLY THE LAST LEG WAS EVER PAINTED.** Each leg cleared `searchVisited` on all 1,600 cells before it ran, so A, B and C were wiped before D started. The canvas showed one leg while `explored` — never reset — reported four.
+
+**§3.F, EXACTLY, IN A PLACE WHERE §3.F WAS WRITTEN ABOUT.** Six Game Boy APU bugs shipped because every assertion compared the module to a *description* of the reference. This is the same disease with the roles swapped: `starRun` lived in a `<script type="module">` block inside `maze.html`, so it could not be imported, so every assertion anyone could have written would have compared its **source**. **Moving it to `maze-pathfinding.js` is what made the defect checkable**, and the module's existing docblock already claimed graph-genericity — `findNearestPassable` brags about being testable on a 3×3 fake grid — so the patrol fitted the contract and simply had never been moved.
+
+**A RETURN SHAPE IS A CLAIM, AND `results.every(r => r.found)` DOES NOT IMPLY `cost` EXISTS.** Both keys look like they come as a pair; nothing in the language says so.
+
+### The four legs now interleave
+
+Each leg is an independent generator with its own `visited`/`heap`/`prev`, and **nothing in the module touches a node's `searchVisited`** — that is the caller's, and it is how the caller learns what to paint. So rotating four `.next()` calls **cannot** change what any leg computes: A still returns A's path. `PATROL_LEGS` is the single table both the engine and the markers read, so the four disc labels cannot drift from the four legs the way the hand-written S/G pair did.
+
+Two details that are contracts rather than implementation:
+
+- **Legs that finish leave the rotation**, so the remaining ones speed up instead of polling four generators to get one answer.
+- **`legs` is rebuilt in `PATROL_LEGS` order, not completion order.** On a grid whose four corners are all equidistant, completion order already *is* `PATROL_LEGS` order and a completion-ordered result is indistinguishable from a sorted one. The checker therefore uses a 7×7 grid with the centre at `(1,1)`, where the corners are 2, 10, 6 and 6 hops away and the orderings differ.
+
+### 探索格數 is the union, and both numbers are printed
+
+`explored` now counts a cell **only when its flag actually flips**, so it equals what the canvas shows; a new `settled` counter totals every settle across all four legs. For a single run the two are identical, which is why the run log's 探索 column keeps meaning the same thing in both rows. **Reporting only the total is how a status line ends up describing a number no reader can see.**
+
+### 點亮整張圖, and why 復原 is not a re-run
+
+`litAll` forces `alpha` to 1 in `Cell.draw` and makes `drawMarkers` return before drawing anything. It **never touches `onPath` or `searchVisited`** — those stay exactly as the run left them, so 復原 restores the final-path view for free instead of replaying anything. The markers go too, and not S/G only: the patrol's A/B/C/D are the same kind of annotation, and the `litAll` bail-out sits **before** the `runKind` branch precisely so the corner discs cannot survive it.
+
+The button appears only after a run finishes and is set in one function, `setLitAll`, because **both facts about it are state and state with four writers is how the stale-marker defect happened in the first place.** Measured on the live canvas by counting pixels of exactly `--algo-start` / `--algo-goal`: single run 41 and 40 px → **0 and 0** lit → 39 and 38 restored; patrol run 39 and **178** px → **0 and 0** lit → 39 and **178** restored.
+
+### The two axes, and a bug that only fired before the first load
+
+A load is the product of two independent choices — which Pokémon, and which walls — and each now has its own 「固定」 toggle, **unchecked meaning 隨機 for both**, so the two read the same way round. Previously the species was random only as a *side effect of the field being blank*, which is indistinguishable from 「I left it empty on purpose」 and left a 「或指定」 label with no control behind it.
+
+`decideId()` and `decideSeed()` are the symmetric pair and both run before anything loads. The id check moved **out of** `loadPokemonMaze`, which used to own it: with 固定寶可夢 existing, the rule is 「checked ⇒ the field is the answer」, and a loader that also guesses is a second source of truth for the question that decides what is on screen.
+
+**THE REPORTED BUG WAS ONE MISSING LINE, AND IT ONLY FIRED BEFORE THE FIRST LOAD.** `bindAxisToggle` reveals the field but did not FILL it, and `placeholder="42"` is not a value — so checking 固定種子 before anything had been generated produced 「請輸入種子」 from `decideSeed`, with no way for the reader to tell they had done anything wrong. After a load the field already held the last random roll, which is why it worked in every other position in the sequence. The value written is `seed` itself: **42 before anything is generated, the last random roll after**, so the box pins the maze already on screen rather than making the reader read the number off the status line and retype it.
+
+**換種子 MUST NOT ROUTE THROUGH `decideSeed`, and the live probe is what found it.** In 固定種子 mode `decideSeed` reads the field, which still holds the pinned value — so a button labelled 「換種子」 rerolled the *same* maze. Measured: seed 4242 → 4242, wall fingerprint `e3d55e3a` → `e3d55e3a`. It goes through `rerollSeed()` instead. **A button whose label says 「換種子」 that does not change the seed is worse than no button.**
+
+### The seed was always deterministic; the control was missing
+
+`initSeed(seed)` sits immediately before `carveMaze()` and the carve reads nothing but the seeded generator — **so the same seed gave the same walls on every load, for every Pokémon, the whole time.** What did not exist was a way to reach it: `loadPokemonMaze` rolled `seed = 1 + Math.floor(Math.random() * 999999)` **unconditionally** on the way to the carve, and 換種子 set the variable and announced 「下一張迷宮會用 Seed N」 before the next load overwrote it. **The announced seed was never the used seed, and the button changed a sentence and nothing else.** The guarantee from `4098b7d` survived the `b5fb6ce` rewrite; only the UI died.
+
+`decideSeed()` is now the one place a seed is chosen and `loadPokemonMaze` reads what it picked.
+
+**換種子 MUST NOT GO THROUGH `decideSeed`, and the live probe is what found it.** In 固定種子 mode `decideSeed` reads the field, which still holds the pinned value — so a button labelled 「換種子」 rerolled the *same* maze. Measured: seed 4242 → 4242, wall fingerprint `e3d55e3a` → `e3d55e3a`. It goes through `rerollSeed()` instead. **A button whose label says 「換種子」 that does not change the seed is worse than no button.**
+
+**THE PAGE NOW MAKES A CLAIM ABOUT CROSS-POKÉMON DETERMINISM, SO THE CHECKER GUARDS WHAT IT READS.** The hint says two seeds apart give identical walls, and that is only true if the carve reads no sprite colour at all — asserted against `carveMaze`'s own body, not against the prose. Verified live through run results rather than pixels, because run results depend only on walls: **#025 + seed 42 → BFS 703 hops / 702.0, #150 + seed 42 → BFS 703 hops / 702.0 — identical.**
+
+### What the checker found about itself
+
+`check_maze_page.mjs` has 139 checks and **23 mutations were run against it, four of which stayed green.** All four were vacuous in the same two ways, and both are §3.B2's shape with the checker as the detector:
+
+- **`/function setMode[\s\S]*?setRunKind\('single'\)/` RUNS TO END OF FILE**, so it was satisfied by a `setRunKind` sitting in the contrast handler a hundred lines later. Deleting the real one from `setMode` left it green. Every assertion is now **brace-matched to its own block**.
+- **A LAZY `[\s\S]*?return false;` IS NOT A BRANCH.** It runs past the closing brace into the *next* branch, so deleting any one of `decideSeed`'s three refusals was satisfied by a sibling it was never about. Each refusal is now bounded to its own braces — and its own message, and its own `focus()` call.
+- **AN ERROR-MESSAGE STRING IS NOT A RANGE CHECK.** `decideSeed` asserted `/1 到 999999/ && /return false/`, which deleting the entire range check left green: the string is still in the error text and `return false` still appears in the two branches above it.
+
+**A VACUOUS ASSERTION IN A BRAND-NEW CHECKER IS THE SAME DEFECT THE CHECKER WAS WRITTEN TO CATCH.** None of the four could have been found by reading the assertion.
+
+**Guarded by:** `check_maze_page.mjs` (188), behavioural half executes `starRun` over 5×5 and 7×7 fake grids; shape half is block-scoped to the function it names.
+
+## Q. Terrain Cost Is Rec.709 Luma — And That Is A Decision, Not An Omission
+
+`computeTerrainCost()` is two steps and **no colour space at all**: `alpha < 50 → Infinity`, `luminance = 0.2126R + 0.7152G + 0.0722B`, `cost = 1 + (255 − luminance)/255 · (maxCost − 1)`. Hue and saturation are discarded, so pure colours have a **fixed global order on every sprite**. Measured at `maxCost = 6`:
+
+    白 1.000 · 黃 1.361 · 青 2.063 · 綠 2.424 · 洋紅 4.576 · 紅 4.937 · 藍 5.639 · 黑 6.000
+
+**Blue is the dearest and yellow the cheapest purely because Rec.709 gives green 71.5%, red 21.3% and blue 7.2%.** That is a fact about the *formula*, not about what a reader sees on any particular Pokémon — what the search actually prefers is the brightest region of *that* sprite, which is usually a pale belly or wing rather than anything yellow.
+
+**THE REASON IS AN INVARIANT, NOT COLOUR SCIENCE.** Cost is a strictly monotonic function of the brightness the renderer draws, so a reader can look at the grid and predict where A\* will go. A model that diverges from the visible image breaks that promise **silently** — the page still shows the sprite, the numbers still print, and nothing anywhere says the two have come apart. And luminance-based brightness is itself a perceptual model (Rec.709 is video's Y′), so the invariant and perceptual accuracy do not actually fight here.
+
+**Measured over 33,143,750 pixels from 147 sprites**, passable cells only, cost at `maxCost = 6`:
+
+| model | min | p25 | median | p75 | max |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| **Rec.709 luma (shipped)** | 1.000 | 2.219 | **3.148** | 4.144 | 6.000 |
+| CIELAB L\* | 1.000 | 2.074 | 2.915 | 3.919 | 6.000 |
+| OKLab L | 1.000 | 1.936 | **2.643** | 3.504 | 6.000 |
+
+The three disagree **most in the darks**, which is weakness 1 below.
+
+**THE THREE WEAKNESSES, NAMED SO THEY ARE NOT REDISCOVERED AS BUGS.**
+
+1. **Y′ is luma, not luminance.** It is gamma-encoded and this uses it as though it were linear brightness, which over-weights the dark end. That is the whole of the median gap in the table.
+2. **Cost steps are not perceptually uniform.** A 0.1 step between two near-black cells is as big a *number* as a 0.1 step between two near-white cells, but only the second is visible. The landscape over-penalises shade.
+3. **Blue is nearly invisible to the weights** — 7.2% against green's 71.5%. A vivid blue and a near-black navy cost almost the same.
+
+**The alternatives, and why each was not taken.**
+
+- **B. OKLab L.** Perceptually uniform, and `rgbToOklab()` **already exists** in `assets/js/color-match.js`, whose docblock names this exact class of decision as the reason one conversion must have one implementation. Best evidence-to-effort ratio of the three. Costs 1,600 conversions per 地形對比度 change, and turns 「what you see is what you pay」 from literal into approximate.
+- **C. Slope / elevation.** `cost = 1 + k·max(0, h(next) − h(current))`, descending free. What game AI actually does, and the most interesting pedagogically — 「climbing costs, flat is free」 is a real idea, and A\* would route *around* dark regions rather than through them. **Not a fix but a redesign**: cost becomes a property of a *move* rather than a *place*, 「路徑成本」 changes meaning, and `octileHeuristic`'s admissibility has to be re-proved rather than inherited.
+- **D. Local contrast.** Charge only for *change*, so a flat pale wing is free and the map's **structure** is what costs. The largest change of the three.
+
+**What would justify moving off the shipped model** is evidence that a reader cannot predict the route from the image — not 「which model looks nicer」. Rec.709 fails that test in the **darks**, not the light, which is where the interesting paths are.
+
+**NOTHING GUARDS THIS**, and that is correct rather than an oversight: the model is a constant, not a claim with a threshold. What `check_maze_page.mjs` asserts is that `computeTerrainCost` is still the single cost function and that the page reads its alpha threshold from the module.
+
+## R. A Measurement Taken With A Different Resampler Produced The Opposite Answer
+
+**The claim that started this section was wrong, and the way it was wrong is the point.** An offline decoder (area-average downsample of the 475×475 sprite, RGB averaged including fully-transparent pixels) said #001 Bulbasaur's terrain endpoints were an isolated pixel: 914 passable cells, but only **1** reachable from the start, so the search would report 無解 on a solvable map.
+
+**Re-measured through the page's OWN pipeline** — the same `drawImage(img, 0, 0, 40, 40)` call `loadPokemonMaze` makes, the same `alpha >= 50` rule, the same 8-directional no-corner-cut neighbour rule, the same outward ring scan in `findNearestPassable` — over **257 sprites**:
+
+| | |
+| :--- | ---: |
+| solvable as configured | **248 / 257** |
+| unsolvable | **9 (3.5%)** — including #267, #330, #904 |
+| start cell is an isolated single pixel | **0** |
+
+**A SECOND PROBE OF THE SAME QUESTION GOT IT WRONG AGAIN, DIFFERENTLY.** The first one had let diagonal moves enter *impassable* cells — it checked the two orthogonal neighbours but not the target — which merged components and inflated every count it printed while leaving the conclusion intact (#267 read 729 passable where the truth is 644). **A scratch harness is a checker with no assertions, and it fails the same way: a number that looks like evidence.**
+
+**The isolated pixel is real, but it is on the GOAL side, and the failure is different from the one claimed.** Those sprites have a passable region split into several components by semi-transparent edge speckle, and the bounding-box-corner rule puts start and goal in *different* ones — #904's start is in a 324-cell component and its goal in a **1**-cell component. A reader gets 「沒有找到可行路徑（可通行區域可能不連通）」 on a map that is perfectly solvable if the endpoints were chosen inside one component. **Fixed in [`#t`](#t).**
+
+**EXPECT THIS SHAPE WHENEVER A MEASUREMENT IS TAKEN WITH A DIFFERENT IMPLEMENTATION THAN THE ONE UNDER TEST.** The two differed in exactly one place — alpha handling — and that was enough to invert the answer. An area-average box filter treats a transparent pixel as a black pixel; Chrome's `drawImage` premultiplies. Same sprite, same 40×40, opposite conclusion, and **the offline version was the one that looked more thorough.**
+
+## S. `color.html`'s Header Was 55px Above A Frame That Is The Viewport
+
+**The page is three columns and the header was a band above all three, so no column could start at y=0.** Measured at 1440×900 before the change: `.cp-shell`, `.cp-rail`, `.cp-panel` and `.cp-main` all at **y=55**, `.cp-scroll` **758px** against a 900px viewport. The header was `padding: 6px 62px 6px 20px` plus `.header`'s 3px `border-top` — 55px exactly, and `position: sticky; top: 0; z-index: 100` doing nothing, because `.cp-app` is `height: 100dvh` and the document does not scroll.
+
+**IT CARRIED NOTHING BUT THE BRAND LINK** — no nav, no theme toggle; `initColorRail` had already replaced both. So removing it cost one link, and that link moved into the rail's top row, which is where the reference keeps it too (`collapsible-sidebar.tsx:205-218` owns the logo inside the sidebar, which is the whole reason the reference's root is `flex h-screen overflow-hidden` and not a column with a header). Measured after: all four at **y=0**, `.cp-scroll` **900px**, and `.cp-panel`'s 813px of content stops needing its own scrollbar at any viewport ≥813px.
+
+**THE BRAND NAME REUSES `.cp-rail-label`, AND THAT IS THE LOAD-BEARING PART.** The collapsed rule `.cp-rail.is-collapsed .cp-rail-label { display: none }` is what hides the six characters, so the 64px rail needs **zero** new CSS to drop them — the same mechanism that hides every other label there. Measured collapsed: brand 48px wide in a 48px content box, logo at x=12..52, not clipped. Expanded: 239px against a 240px box.
+
+**It is NOT `.header-title`, and reusing that would have been wrong twice.** `font-size: 28px` with a 90° gradient text clip, both sized for a full-width header row; at 28px 「寶可夢演算法」 measures **~178px**, which does not clear a 40px logo plus a 12px gap inside 240px. Gold, 15px, no clip.
+
+### The casualty was one line of `shared.js`, and it is §3.I's exact shape
+
+`initColorRail` appended the mobile menu button with `document.querySelector('.header')?.appendChild(openBtn)`. **Below 768px `.cp-rail` is `display: none`, so that one 34×34 button is the ONLY route to the site nav on a phone** (measured at 390×844: x=336, y=12, `display: flex`). Deleting the header turns an optional chain with nothing behind it into a silent no-op — every phone loses navigation, no exception, no console line, and every other check in the file stays green, because no checker read that line.
+
+It now mounts on `#cp-panel` behind an explicit `throw`, and the mount id is a **named constant** (`OPEN_BUTTON_MOUNT`) because `check_color_page.mjs` reads it from `shared.js` rather than restating it. A hardcoded copy in the assertion would be a second source of truth for the exact answer the assertion exists to police, and it would go stale in the dangerous direction.
+
+**ABSOLUTE ON THE PANEL, NOT FIXED ON THE VIEWPORT.** The panel is present at **every** width (only the rail hides), the button is `display: none` from 768px up so the desktop frame is untouched, and the panel keeps `z-index: auto` — so the button paints in the root's positioned layer and the drawer scrim (40) and drawer (50) land above it, which makes the *scrim* the thing that blocks a second tap rather than the button's own z-index. Absolute over a dedicated 34px flow row was a measurement, not a preference: the panel is 320px wide at 320 / 390 / 560 / 767px viewports, and a 34×34 box at its top-right 8px in intersects **zero** leaf elements (img, button, a, input, h1–h3, label, span, strong) at all four.
+
+**`.cp-panel` NEEDED `position: relative` IN ITS ≤1023 BLOCK, because that block says `static`.** `static` gives the absolutely-positioned button the initial containing block, so `top`/`right` resolve against the viewport — the button lands in the wrong place with no error. Above 1024px the panel is `sticky`, which is already positioned, so the two halves agree about who contains what.
+
+### A dead declaration that only started mattering when the brand arrived
+
+`.cp-rail.is-collapsed .cp-rail-top` shipped in the same rule as three **row** flex containers under `justify-content: center`. `.cp-rail-top` was a block, so `justify-content` did nothing — the toggle only *looked* centred because it is `width: 100%`. Putting the brand in it made it a `flex-direction: column` box, which turned the dead declaration into a wrong one: `justify-content` on a column container is the **vertical** axis. It is now separated out as `align-items: center`, the cross axis. The other three are row containers and their `justify-content` was always right.
+
+### The checker found its own false positive first
+
+The `display:none`-on-the-mount assertion was written as `/\.cp-panel[^{}]*\{[^}]*display:\s*none[^}]*\}/` and immediately failed on a rule that does not exist. `colors.css` documents its decisions in prose that **names selectors** — the `.cp-rail-open` comment literally begins with "mounted on `.cp-panel`" — and `[^{}]*` between a selector and its `{` walks straight out of a comment into the next rule. **Expect this shape on any assertion made of a stylesheet's raw text.** The fix is `css.replace(/\/\*[\s\S]*?\*\//g, '')` and every rule-shaped assertion in the new section reads the stripped copy; `check_page_module_api.mjs` masks JS comments for the same reason, and the difference is only that here the false positive was in the checker written to catch the real thing.
+
+### Two rules deleted, and one decision NOT to make
+
+`.cp-app > .header { flex: 0 0 auto }` and `@media (max-width:1024px) { .header-colors { padding-right: 20px } }` both matched nothing once the header was gone. Deleted rather than left harmless: **a rule for an element the page never mounts is a rule nobody maintains** (§3.N's `.header-graph`). `.header-colors` itself still styles seven other pages, and removing its override here touches none of them.
+
+**The 3px `--page-accent` rule did NOT move to the rail, and that is a decision.** The header's `border-top: 3px solid var(--page-accent)` went with it, so this page now has no top accent — asked for explicitly rather than assumed, because the alternative (hanging the identity line off the left column) would put a rule across the top of a frame the request was to start at y=0.
+
+**Guarded by:** `check_color_page.mjs` — no `<header>` in the page, no `.cp-app > .header` rule left behind, the mount id read from `shared.js` and found in the markup, the mount behind a guard rather than a `?.`, the button and the rail's `display: none` in the **same** media query, the mount positioned at ≤1023px, nothing hiding the mount, and the collapsed top row centred on `align-items`. Plus 8 mutation cases; `test_check_color_page.mjs` is at **61**.
+
+## T. The Terrain Endpoints Were The Extent Of The Specks, Not Of The Pokémon
+
+**THE RULE.** `computeTerrainEndpoints()` took the bounding box of **every passable cell**, then `findNearestPassable` at each corner. On a sprite whose silhouette has a detached fragment — a wing tip, a stray anti-aliased pixel — that corner is the FRAGMENT, not the Pokémon, and start and goal land in different components.
+
+Measured through the page's own `drawImage` over 257 sprites, with the three named by the reader:
+
+```
+#267 Beautifly  644 passable, 9 blobs: 600 11 10 9 4 4 4 1 1
+   start (2,2)  -> the 600-cell body                    ✓ correct
+   goal  (37,37) -> a 10-cell blob at (29,35)-(33,37)    ✗ a wing tip
+#330 Flygon     441 passable, 3 blobs: 420 19 2
+   start (2,6)  -> the 420-cell body                    ✓ correct
+   goal  (37,33) -> a 19-cell blob at (26,24)-(30,29)    ✗ a wing
+#904 Overqwil   326 passable, 3 blobs: 324 1 1
+   start (6,4)  -> the 324-cell body                    ✓ correct
+   goal  (34,36) -> a single cell at (29,29)            ✗ a stray pixel
+```
+
+**THE START IS ALWAYS RIGHT AND THE GOAL IS ALWAYS WRONG**, and that is not chance: the rule is symmetric in the two corners, but a sprite is not. Beautifly's top-left extreme is body and its bottom-right extreme is a wing tip. **3 of the three sprites had it on the goal side and two more had it on the start side** — #149, #781, #905 and #789 move the START instead — so the failure lands on whichever extreme happens to be a fragment.
+
+Fragments are tiny: the largest non-main blob is a median of **0.59%** of the grid (p90 3.64%), and 37 of 257 sprites have one at all.
+
+### The fix is SURGICAL, and the blast radius is the reason
+
+The old rule is correct for the overwhelming majority and is what the page has always used, so it is tried **first** and returned untouched whenever the pair it produces is actually connected — gated on `terrainReachable()`, a real connectivity check, not a guess. Measured over 257 sprites:
+
+| | |
+| :--- | ---: |
+| solvable today | 248 |
+| **unsolvable today** | **9 (3.5%)** |
+| **unsolvable after** | **0** |
+| sprites whose endpoints change at all | **9 — the same 9** |
+| movement on those 9 | start p50 **1** cell, max 5 · goal p50 **2**, max 16 |
+
+**248 of 257 keep BYTE-IDENTICAL endpoints and the fallback never runs for them.** The unconditional version was measured too and rejected: it moves endpoints on **19 of 257 (7.4%)**, of which **10 are currently working fine** — p50 2 cells, max 16.
+
+**The fallback is correct BY CONSTRUCTION, not by measurement**: the ring scan is restricted to the body, so both ends land inside it and are connected by definition.
+
+### The patrol takes all five points from the body, unconditionally
+
+Same root cause, and here it is NOT surgical, because the semantic is unambiguous: the patrol's five points are *this Pokémon's centre and its four corners*, and a bbox over stray anti-aliased pixels is not that.
+
+Measured over 1,028 legs: **28 legs were unreachable from the centre, on 22 sprites (8.6%)** — a leg that reports 「無解」 while the other three walk happily. Taking the body's bbox leaves **zero**. Live on #267 Beautifly, leg B went from 「B 右下 無解」 to 「B 右下 7 格 / 成本 27.6」.
+
+**WHAT THIS DOES NOT FIX, BECAUSE IT WAS MEASURED AND FOUND WANTING.** Legs **shorter than 4 hops** are identical under both rules: 9 of 1,000, one of them **zero hops** (#865 Sirfetch'd, where a corner resolves onto the centre). Those come from sprite SHAPE rather than fragments. **The first measurement of this fix looked at leg LENGTH, found no difference, and nearly argued against the change — the defect it was looking for was leg REACHABILITY, which it never computed.** Measuring the wrong quantity is worse than not measuring: the number said "this fixes nothing".
+
+### `largestComponent` is in the module so that all of the above could be RUN
+
+Two things the checker found by writing the fixture wrong:
+
+- **`at(x, y)` must return the SAME OBJECT for the same cell.** `seen` is a `Set`, so membership is by identity — the module's standing rule. A caller that builds a fresh object per call does not get a wrong answer, it gets **an unbounded loop**. The first fixture did exactly that and the checker died with `RangeError: Set maximum size exceeded`.
+- **The `isPassable` guard inside the traversal is untestable through maze.html's own neighbourFn**, because `terrainNeighbours` already filters impassable cells out of its own output. The fixture has to supply an UNFILTERED neighbourFn or the guard is never exercised — deleting it left the suite green until that fixture existed.
+
+**EXPECT THIS SHAPE WHENEVER A FIX IS DEFENDED BY A SINGLE NUMBER.** The right question was never "does this change the legs" but "can the leg's target be reached at all", and those two have nothing to do with each other.
