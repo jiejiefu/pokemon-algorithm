@@ -83,28 +83,10 @@ AGENTS.md.bak
 .Spotlight-V100
 .Trashes
 
-# InfoPoke reference snapshots (inputs to the generators, not vendored)
-# ---------------------------------------------------------------------------
 # *.json.bak is add_collection_tags.py's own pre-write backup, not an input.
 *.json.bak
-#
-# infopoke_net_*.html are the page captures that scripts/extract_generations.py
-# and scripts/add_collection_tags.py parse. They are 3.1 MB of third-party
-# markup that changes whenever infopoke.net ships a redesign, so they are not
-# tracked; what IS tracked is the JSON each script produces from them. Re-fetch
-# a missing one from its source URL — both scripts now exit with that URL
-# rather than raising FileNotFoundError. See the "InfoPoke reference snapshots"
-# entry in AGENTS.md.
-infopoke_net_*.html
 
-# pokered's 114 Generation I cry .asm files. Build-time inputs to
-# fetch_gen1_cries.py, which parses them into assets/data/gen1_cries.json and
-# gen1_cry_sfx.json. Not tracked for the same reason as the InfoPoke captures:
-# they are third-party source that changes whenever pret/pokered is rebased, and
-# what is tracked is the JSON each script produces from them.
-# test_check_gen1_cries.mjs mirrors them under data-sources/ on first run and
-# reuses the copy; delete the directory to force a re-fetch.
-data-sources/pokered-cry/
+
 
 # pokeapi_evolution_chains.json is the 541-chain cache behind
 # assets/data/evolution_levels.json. 473 KB of a third-party API's JSON that
