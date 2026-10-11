@@ -798,6 +798,28 @@ if (!existsSync(CHROME)) {
     const STABLE_LANES = (lanes) => STABLE('.al-lane canvas', lanes);
 
     /* ink = non-transparent pixels, counted by ALPHA. */
+    /* ONE named read of the result panel, used by the poll AND by the check that
+     * proves the poll survives the panel being absent.
+     *
+     * `.al-result` is created at module scope and appended to the lane grid by
+     * buildRace() as its LAST act (sorting.html:685), so "not in the DOM yet" is a
+     * legitimate state and the read has to treat it as an answer rather than as an
+     * error. The first version inlined `!document.querySelector('.al-result').hidden`
+     * and threw a TypeError on exactly that state; `evalJs` rethrows, so the
+     * assertion below never ran and the checker died with a stack trace 70 lines
+     * from the cause.
+     *
+     * It is a NAMED constant rather than an inline expression because the guard is
+     * otherwise untestable. A mutation that restores the hard dereference stays
+     * green whenever the page happens to behave, because the bad branch is only
+     * reached when the element is MISSING — which is the flake, so a harness cannot
+     * produce it on demand. Sharing the expression lets a check rename the element
+     * out of the way, run this exact code, and get the absence it needs. */
+    const RESULT_PANEL_STATE = `(() => {
+        const el = document.querySelector('.al-result');
+        return JSON.stringify({ shown: !!el && !el.hidden, present: !!el });
+      })()`;
+
     const INK = `(() => { const out = []; for (const cv of document.querySelectorAll('.al-lane canvas')) {
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
         let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
@@ -892,7 +914,24 @@ if (!existsSync(CHROME)) {
        * URL-driven check and is exactly the kind of control that is inert. Back to six
        * lanes first, by chip — the loop above left the grid at two. */
       await evalJs(SET_LANES(6));
-      await evalJs(READY.replace('%LANES%', '6'));
+      /* READY's result was DISCARDED here, and at the finish path below. READY is
+       * the one poll that waits for `.al-result` to EXIST — it exists precisely
+       * because that element is appended at the very end of buildRace() — so
+       * dropping its return value means the one precondition the next statements
+       * depend on is the one nobody checked. It has a 45 s ceiling and resolves
+       * `{ ready: false }` when it expires, which is a fact about the page worth
+       * hearing.
+       *
+       * `LOAD` and the lane loop above already capture it and throw a NAMED error.
+       * This is the same contract; the difference is that a failure here used to
+       * surface 70 lines later as an unrelated TypeError. */
+      const sixReady = await evalJs(READY.replace('%LANES%', '6'));
+      check(sixReady?.ready === true,
+        'going back to six lanes settles, with the result row present',
+        () => `the grid stayed at ${sixReady?.n ?? 0} lanes after 45 s, and the result row was`
+          + ` ${sixReady?.result ? 'present' : 'ABSENT'}. \`raceResult\` is appended by buildRace() as its`
+          + ' last act (sorting.html:685), so an absent one means buildRace() did not run to the end —'
+          + ' and the lane count here says whether it stopped before or after building the cards.');
       await evalJs(STABLE_LANES(6));
       for (const n of ['100', '500', '1025']) {
         const m = JSON.parse(await evalJs(`(() => {
@@ -949,8 +988,47 @@ if (!existsSync(CHROME)) {
       if (speeds.present > 0 && speeds.fastest) {
         await evalJs(`[...document.querySelectorAll('#speedPicker button')].find(b => b.textContent === '極快').click()`);
       }
-      await evalJs(READY.replace('%LANES%', '6'));
+      /* The second discarded READY, and the one that mattered: the very next thing
+       * the loop below does is read `.al-result`, so this is the precondition for
+       * that read and it was being thrown away. */
+      const finishReady = await evalJs(READY.replace('%LANES%', '6'));
+      check(finishReady?.ready === true,
+        'the grid is settled and the result row present before the finish path starts',
+        () => `the grid was still settling when the finish path started: ${finishReady?.n ?? 0} lanes,`
+          + ` result row ${finishReady?.result ? 'present' : 'ABSENT'} after READY's 45 s ceiling.`
+          + ' \`raceResult\` is appended by buildRace() as its last act (sorting.html:685), so an absent'
+          + ' one means buildRace() did not run to the end — and the lane count here says whether it'
+          + ' stopped before or after building the cards.');
       await evalJs(STABLE_LANES(6));
+      /* Produce the condition the poll below has to survive, and check it does.
+       *
+       * Placed HERE, after READY has confirmed the panel exists — which is the only
+       * place it is guaranteed to. The class is renamed and restored inside ONE
+       * evaluate, so there is no window in which the real poll could observe the
+       * probe's state, and the race never restarts.
+       *
+       * This is the assertion the earlier version had no way to make: without it,
+       * restoring the hard dereference stays green whenever the page happens to
+       * behave, because the bad branch is only reached when the element is MISSING. */
+      const probe = JSON.parse(await evalJs(`(() => {
+        const el = document.querySelector('.al-result');
+        if (!el) return JSON.stringify({ skipped: true });
+        const was = el.className;
+        el.className = 'al-result-probe-renamed';
+        let out;
+        try { out = ${RESULT_PANEL_STATE}; }
+        catch (e) { out = JSON.stringify({ threw: String(e) }); }
+        finally { el.className = was; }
+        return out;
+      })()`));
+      check(probe.skipped !== true,
+        '.al-result exists before the finish path reads it',
+        () => 'READY reported the result row present a moment ago, so this is the probe failing rather than the page — and the poll it guards has nothing to read.');
+      check(probe.skipped === true || (probe.threw === undefined && probe.present === false && probe.shown === false),
+        'the result-panel read returns an ANSWER when the panel is absent, rather than throwing',
+        () => probe.threw !== undefined
+          ? `with .al-result renamed out of the way the read THREW ${probe.threw}. That is the original bug: the poll below would die on the same expression, ${probe.threw.length > 0 ? 'so the failure surfaces as a stack trace 70 lines from its cause' : ''} instead of its own assertion reporting it.`
+          : `with .al-result renamed out of the way the read returned ${JSON.stringify(probe)}. It must report present:false and shown:false; anything else means the poll below cannot answer the question it is asking.`);
       await evalJs("document.getElementById('btnRacePlay').click()");
       let done = null;
       /* The step is 250 ms, not 700, and the ceiling is UNCHANGED at 28 s — which is the
@@ -966,11 +1044,21 @@ if (!existsSync(CHROME)) {
        * unchanged. */
       for (let i = 0; i < 112; i++) {
         await new Promise(r => setTimeout(r, 250));
-        done = JSON.parse(await evalJs(`JSON.stringify({ shown: !document.querySelector('.al-result').hidden, ranks: [...document.querySelectorAll('.al-lane-rank')].map(e => e.textContent).filter(Boolean) })`));
+        /* `.al-result` only enters the DOM at the end of buildRace(), so "not there yet" is
+         * a state this loop has to carry to its ceiling, and RESULT_PANEL_STATE —
+         * the same expression the check above probes — is what reports it. A missing
+         * panel and a hidden one are the same answer to the question being asked. */
+        done = Object.assign(
+          JSON.parse(await evalJs(RESULT_PANEL_STATE)),
+          { ranks: JSON.parse(await evalJs(`JSON.stringify([...document.querySelectorAll('.al-lane-rank')].map(e => e.textContent).filter(Boolean))`)) },
+        );
         if (done.shown) break;
       }
       check(done && done.shown, 'a six-lane race finishes and shows its ranking',
-        () => `after ~28s at turbo the result panel was still hidden (${JSON.stringify(done)}).`);
+        () => `after ~28s at turbo the result panel was ${done && done.present ? 'present but still hidden' : 'never added to the lane grid at all'} (${JSON.stringify(done)}).`
+          + (done && !done.present
+            ? ' It is appended by buildRace() as that function\'s LAST act, after the lane cards — so an absent element means buildRace() did not run to the end, and the lane count in the panel above says whether it stopped before or after building them.'
+            : ''));
       check(done && done.ranks.length === 6 && new Set(done.ranks).size === 6,
         'every lane gets a distinct rank',
         () => `ranks are [${done && done.ranks.join(', ')}] — six lanes need six distinct 第 N 名 labels, since finishRace() writes them by position.`);

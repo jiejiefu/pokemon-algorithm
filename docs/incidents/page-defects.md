@@ -378,3 +378,29 @@ Two things the checker found by writing the fixture wrong:
 - **The `isPassable` guard inside the traversal is untestable through maze.html's own neighbourFn**, because `terrainNeighbours` already filters impassable cells out of its own output. The fixture has to supply an UNFILTERED neighbourFn or the guard is never exercised — deleting it left the suite green until that fixture existed.
 
 **EXPECT THIS SHAPE WHENEVER A FIX IS DEFENDED BY A SINGLE NUMBER.** The right question was never "does this change the legs" but "can the leg's target be reached at all", and those two have nothing to do with each other.
+
+## U. A Poll That Cannot Survive The State It Is Polling For
+
+**THE FAILURE WAS A STACK TRACE 70 LINES FROM ITS CAUSE.** `check_sorting_page.mjs`'s finish poll read `!document.querySelector('.al-result').hidden` directly. `.al-result` is created at module scope and appended to the lane grid by `buildRace()` as its **last act** (`sorting.html:685`, after the lane cards at 672), so "the result row is not in the DOM yet" is a legitimate state. The poll threw a TypeError on it, `evalJs` rethrows, and the whole checker died — instead of its own assertion at line 972 reporting that the panel never appeared.
+
+**THIS VIOLATED THE RULE THE SAME FILE STATES ABOUT ITSELF**, 200 lines earlier:
+
+> A timeout returns `false` rather than throwing, so the assertion below still runs and still reports a real number — **the diagnosis belongs in the message, not in a stack trace.**
+
+### The cause was invisible because the precondition's result was thrown away
+
+`READY` exists for exactly this: it polls until the lane count AND the result row are both present, with a 45 s ceiling that resolves `{ ready: false }`. **The file already used it correctly twice** — `LOAD` and the lane loop each capture `st` and fail with a NAMED error that reports the lane count and whether the row was there. Two call sites discarded it, and those two are exactly the ones whose next statement needed it.
+
+### The fix, and the part that could not be mutation-tested
+
+The read became a named `RESULT_PANEL_STATE` helper reporting `{ shown, present }`, and both `READY` results are now `check()`s rather than discarded. A missing panel and a hidden one are the same answer to the question being asked.
+
+**IT IS A NAMED CONSTANT RATHER THAN AN INLINE EXPRESSION BECAUSE THE GUARD WAS OTHERWISE UNTESTABLE.** Restoring the hard dereference stays green whenever the page behaves, because the bad branch is only reached when the element is MISSING — and that only happens on the flake. So a check renames the element's class inside ONE evaluate, runs the very expression the poll uses, and restores it. Mutating `RESULT_PANEL_STATE` back to `!el.hidden` turns that check red **with a message naming the original bug**, rather than crashing.
+
+**AND THE HARNESS CANNOT CARRY THIS, FOR THE SAME REASON.** Three cases aimed at these guards reported 「the anchor string is stale」 on every run: `makeTree(c.mutate, { strip: true })` **strips the rendered half before mutating**, and all three guards live there. It is not a gap a better case could close — the guard's subject is a condition a harness cannot produce either. The proof is the direct mutation above, and the note in the harness says so rather than leaving three cases that look like coverage.
+
+### What was found on the way, and not fixed here
+
+`buildRace()` has a **detachment window**: `raceGrid.innerHTML = ''` at `sorting.html:663` removes the module-scope `raceResult`, and it is only re-attached at 685. Single-threaded, so nothing *should* observe the gap — but if anything between throws, `raceResult` stays detached **permanently** and every later `buildRace()` retries the same path. That is a candidate for the flake this section is about, and the two new `READY` checks are what will name it: they report the lane count alongside the row's absence, so 「5 lanes, row absent」 and 「6 lanes, row absent」 are distinguishable on the next occurrence.
+
+**Not reproduced:** 3 standalone runs and 1 forced pooled run all passed. The condition is contention-dependent and was not produced on demand.

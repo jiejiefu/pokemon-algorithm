@@ -259,7 +259,7 @@ It shipped with **every lane blank** and no console output, the same family as �
 
 **Background:** [`docs/incidents/checker-infrastructure.md#g4`](docs/incidents/checker-infrastructure.md#g4)
 
-**Guarded by:** `check_sorting_page.mjs` + 34 mutation cases. **Known and unfixed:** the browser half is flaky at `n=1025`, roughly 1 run in 3 — `min ∞ px` prints, which **passes**, because the minimum is seeded at `Infinity` and `Infinity > floor` is true. The assertion therefore certified a measurement that was never taken, and the crash one line later is what gets noticed.
+**Guarded by:** `check_sorting_page.mjs` + 34 mutation cases. **Known:** the browser half is still flaky under tier-B contention — but the recorded symptom is FIXED, so this note describes the one that is left. `min ∞ px` no longer prints: `laneMin` is seeded to `0` when nothing was read, and a `check(Number.isFinite(minInk), …)` asserts that at least one configuration was measured at all. What remains is a **second, quieter** failure: `.al-result` is appended by `buildRace()` as its **last act**, so "the result row is not in the DOM yet" is a legitimate state, and the finish poll used to dereference it unguarded — a TypeError that `evalJs` rethrows, killing the checker ~70 lines from the cause. The poll now reads through a named `RESULT_PANEL_STATE` helper that reports `present`/`shown`, and the two `READY` results it depends on are checked rather than discarded. **Not reproducible on demand:** the condition only occurs under pool contention, so it could not be pinned with 3 standalone runs plus a forced pooled run; see [`#u`](docs/incidents/page-defects.md#u).
 
 ### G5. The Cry Suite Was Slow For Three Unrelated Reasons, And Only One Of Them Was A Payload
 The obvious move was to stub the cry suite the way §3.G4 stubbed the sorting sprites. **The measurement came first, and the stub fits exactly one cell.** Sorted by where the time actually went: `test_check_gen1_apu` 54.4 s is **CPU**; `test_check_cry_index` 22.6 s → 6.1 s is **a payload** (31 MB copied 22 times); the three CDP checkers' 42.6 s → 12 s is **fixed `setTimeout`** — 35.5 of it sleeping, and they were never waiting on the network.
@@ -526,6 +526,7 @@ The mobile drawer rendered each group as a **748 × 366 px rounded pill** with i
 **Guarded by:** `check_maze_page.mjs` (211) — a fake 7×7 with a 3×3 body and a detached single cell, plus an **unfiltered** neighbourFn because `terrainNeighbours` filters impassable cells itself, which would otherwise leave `largestComponent`'s own guard untested.
 
 ---
+
 ### S. `color.html` Has No Header — And The One Line That Would Have Failed Silently Is The Mobile Menu Button
 The frame is three columns and the viewport is the frame. Measured before the change at 1440×900: `.cp-shell`, `.cp-rail`, `.cp-panel` and `.cp-main` all at **y=55** and `.cp-scroll` **758px** against a 900px viewport, because a 55px `.header` sat above all three. After: all four at **y=0**, `.cp-scroll` **900px**. **The header carried nothing but the brand link** — `initColorRail` had already replaced the nav and the theme toggle — so the brand moved into the rail's top row, which is where the reference keeps it too (`collapsible-sidebar.tsx:205-218`; its root is `flex h-screen overflow-hidden` precisely because the logo lives in the sidebar).
 

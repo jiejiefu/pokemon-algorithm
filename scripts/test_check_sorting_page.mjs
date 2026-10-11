@@ -73,7 +73,10 @@ const FILES = [
  * rendered half, which is the point of the guard: `the speed picker is built before
  * anything clicks it` and `every configuration the browser half visited was actually
  * measured` have no static counterpart to move the total by instead. */
-const EXPECTED_STRIP_DROP = 37;
+/* 37 before the four rendered-half guards on the result panel (the probe's two
+ * checks plus the two READY checks). Deliberate, not incidental — see §3.G4 on
+ * why this number is hardcoded rather than derived. */
+const EXPECTED_STRIP_DROP = 41;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -238,6 +241,26 @@ const cases = [
     mutate: (f, s) => f === 'sorting.html' ? s.replace('if (!sweep(lane.ctx, lane.cfg, lane.sweepAt)) lane.sweepAt = 0;', 'sweep(lane.ctx, lane.cfg, lane.sweepAt);') : undefined,
     expect: 'both sweep() callers clear their own timestamp when it finishes',
   },
+
+  /* NOTE ON WHAT IS *NOT* HERE, because it is the more useful half of this section.
+ *
+ * The checker's own guards on the result panel — RESULT_PANEL_STATE surviving a
+ * missing `.al-result`, and the two READY results that used to be discarded — live
+ * in the RENDERED half, and this harness strips that half before it mutates
+ * (`makeTree(c.mutate, { strip: true })`). A case aimed at either would report
+ * 「the anchor string is stale」 for every run, which is what three of them did
+ * before this note existed.
+ *
+ * It is not a gap that a slightly better case could close: the guard's whole
+ * subject is a CONDITION — `.al-result` being absent — which only occurs on the
+ * flake, so no harness can produce it on demand either. The proof that the guard
+ * works is a direct mutation instead: restoring the hard dereference in
+ * RESULT_PANEL_STATE turns `the result-panel read returns an ANSWER when the panel
+ * is absent, rather than throwing` red, by renaming the element out of the way and
+ * running the very expression the poll uses. That is why the read is a named
+ * constant rather than an inline expression — so the check and the poll cannot
+ * diverge, and so the condition can be produced deliberately.
+ */
 
   /* ---- the layout contract ---- */
   {
