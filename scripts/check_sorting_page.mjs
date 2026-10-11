@@ -418,6 +418,187 @@ check(steps[0].n > 400000 && steps[2].n < 400000,
   'the asymmetry the docblock draws its design constraint from still holds',
   () => `選擇 on already-sorted is ${steps[0].n} and 快速 is ${steps[2].n}; the documented split (one algorithm loses the timeline at n=1,025, the others keep it) no longer holds at the DEFAULT_MAX_LOGGED_EVENTS of 400000.`);
 
+/* ================================================== PSEUDOCODE, TWO LANGUAGES
+ *
+ * `pseudoPy` is the same statement list written in Python, and the property that
+ * makes the switcher honest is that **index i means the same statement in both
+ * arrays** — which is why one `lineFor` drives both and no second mapping
+ * exists to drift. Three of the four checks below exist only because that
+ * property is easy to state and easy to break.
+ *
+ * The index check is BEHAVIOURAL, not a regex over `lineFor`'s body: it drives
+ * each real generator over a small array and collects the indices the events
+ * actually produce. A source-shape version would list the indices by hand, which
+ * is the same second copy of the truth the design is trying to avoid — and it
+ * would keep passing after someone added a new event type whose index was out of
+ * range for one of the two arrays, which is the exact defect under test. */
+
+const { ALGO_META, ALGO_IDS } = await import(join(ROOT, 'assets/js/sorting-algorithms.js'));
+const cmp = (a, b) => a.id - b.id;
+/* Reverse-sorted, 9 elements. n=9 exercises every branch that swaps or yields a
+ * mark — including quick's median-of-three, which is SKIPPED below 3 elements
+ * and would leave two of its indices unvisited on a shorter input. */
+const sample = Array.from({ length: 9 }, (_, i) => ({ id: 9 - i }));
+
+/* Which statement each live index is CLAIMED to be, per algorithm. This is a
+ * pinned table rather than a similarity heuristic because "is this the
+ * corresponding line" is not decidable by string distance — `swap(arr[j-1],
+ * arr[j])` and `swap(arr[j-1, j])` are 3 edits apart and mean different things.
+ * What is asserted is that each of the two arrays says the operation the event
+ * actually is, so deleting or reordering a Python line is caught. */
+const PINNED = {
+  bubble:     { 3: ['if arr[j] > arr[j+1]', 'if arr[j] > arr[j + 1]:'],
+                4: ['swap(arr[j], arr[j+1])', 'swap(arr[j], arr[j + 1])'] },
+  selection:  { 3: ['if arr[j] < arr[minIdx]', 'if arr[j] < arr[min_idx]:'],
+                4: ['minIdx ← j', 'min_idx = j'],
+                6: ['swap(arr[i], arr[minIdx])', 'swap(arr[i], arr[min_idx])'] },
+  insertion:  { 2: ['while j > 0 and arr[j-1] > arr[j]', 'while j > 0 and arr[j - 1] > arr[j]:'],
+                3: ['swap(arr[j-1], arr[j])', 'swap(arr[j - 1], arr[j])'] },
+  quick:      { 0: ['quicksort(low, high):', 'def quicksort(low, high):'],
+                2: ['medianOfThree', 'median_of_three'],
+                3: ['把 pivot 換到 arr[high]', 'swap(arr[mid], arr[high])'],
+                6: ['if arr[j] < pivot', 'if arr[j] < pivot:'],
+                7: ['i++; swap(arr[i], arr[j])', 'i += 1; swap(arr[i], arr[j])'],
+                8: ['pivot 歸位', 'pivot 歸位'] },
+  merge:      { 0: ['mergesort(l, r):', 'def mergesort(l, r):'],
+                4: ['比較 left[i], right[j]', 'if left[i] <= right[j]'] },
+  heap:       { 2: ['swap(arr[0], arr[i])', 'swap(arr[0], arr[i])'],
+                5: ['比較左右子節點', 'largest = max('],
+                6: ['if largest ≠ i', 'if largest != i'] },
+};
+
+for (const id of ALGO_IDS) {
+  const meta = ALGO_META[id];
+  check(Array.isArray(meta.pseudoPy) && meta.pseudoPy.length > 0,
+    `${id} has a pseudoPy array`,
+    () => `${id} has no pseudoPy, so switching to Python would render an empty panel — the button is present and the default is the generic view, so nothing would fail until a reader clicked it.`);
+
+  /* Run the generator rather than trusting a hand-written list of indices. */
+  const live = [...new Set([...meta.run(sample.map(o => ({ ...o })), cmp)]
+    .map(meta.lineFor).filter(n => n != null))].sort((a, b) => a - b);
+
+  const outOfRange = live.filter(n => n >= meta.pseudo.length || n >= meta.pseudoPy.length);
+  check(outOfRange.length === 0,
+    `${id}: all ${live.length} live lineFor indices are in range for BOTH pseudo and pseudoPy`,
+    () => `indices [${outOfRange.join(', ')}] are selected by a real step event but exceed one of the two arrays (pseudo ${meta.pseudo.length} lines, pseudoPy ${meta.pseudoPy.length}). The panel builds one array and highlights an index into it, so an out-of-range index either highlights the wrong statement or nothing — and switching language is the only way to see the second array at all.`);
+
+  /* The pinned table is checked against the INDICES THE RUN ACTUALLY VISITED, so
+   * a table entry that is never reached is itself reported rather than sitting
+   * there satisfied. */
+  const pinned = PINNED[id] || {};
+  const unpinned = live.filter(n => !pinned[n]);
+  const mismatched = Object.entries(pinned)
+    .filter(([n]) => live.includes(Number(n)))
+    .filter(([n, [g, p]]) => !meta.pseudo[n]?.includes(g) || !meta.pseudoPy[n]?.includes(p))
+    .map(([n, [g, p]]) => `#${n}: generic has ${meta.pseudo[n]?.includes(g) ? '"' + g + '"' : 'no "' + g + '"'}; python has ${meta.pseudoPy[n]?.includes(p) ? '"' + p + '"' : 'no "' + p + '"'}`);
+
+  check(unpinned.length === 0 && mismatched.length === 0,
+    `${id}: every live index is pinned, and both arrays say the same operation there`,
+    () => [
+      unpinned.length ? `${unpinned.length} live index/indices have no pinned expectation (${unpinned.join(', ')}) — either the mapping changed or PINNED needs the new index, and an unpinned index is an unverified one.` : '',
+      mismatched.length ? `line(s) no longer pair up: ${mismatched.join('; ')}` : '',
+    ].filter(Boolean).join(' | '));
+
+  const fake = meta.pseudoPy.filter(l => /[←≠]/.test(l));
+  check(fake.length === 0,
+    `${id}: pseudoPy carries no generic-pseudocode glyphs (← ≠)`,
+    () => `${fake.length} line(s) in pseudoPy still use the generic view's arrows/inequality: ${fake.map(l => JSON.stringify(l)).join(', ')}. A line left unconverted is either the generic text that slipped through or an edit that reverted; either way the Python view is not the Python view.`);
+}
+
+/* -----------------------------------------------------------------------
+ * PINNED CONSTRAINS ONLY THE LINES THE PANEL HIGHLIGHTS, and the mutation
+ * suite proved that is not the same thing as constraining the array.
+ *
+ * PINNED is keyed on the indices `lineFor` actually returns — which is the right
+ * key, since an unpinned LIVE index is the failure that misleads. But it left
+ * every other line free, and swapping two of THOSE (selection's `min_idx = i`
+ * with its `for j in ...`) kept the length legal, kept every pinned line intact,
+ * and produced Python where line 1 is a loop and line 2 assigns min_idx. A
+ * reader would see that immediately and no assertion in the file saw it at all.
+ *
+ * So the rest of the array is pinned STRUCTURALLY instead: index i must carry
+ * the same KIND of statement in both arrays. That is the invariant the prose
+ * header actually promises — `pseudoPy` is the same statement LIST — and it is
+ * expressible without restating either array, which a content table for all 41
+ * lines would be.
+ *
+ * `other` IS EXEMPT, and it is exempt for a real reason rather than to make a
+ * rule pass: three of the generic lines are PROSE (「把 pivot 換到 arr[high]」,
+ * 「比較 left[i], right[j]…」, 「比較左右子節點…」) and the Python at those same
+ * indices is real code that replaced them. Demanding a role match there would
+ * demand the Python stay as vague as the prose, which is the opposite of the
+ * point. Both sides classify as `other`→anything, and nothing else is excused. */
+const roleOf = (line) => {
+  const s = line.trimStart();
+  if (/^(for|while)\b/.test(s)) return 'loop';
+  if (/^if\b/.test(s)) return 'if';
+  if (/^(?:def\s+)?[a-zA-Z_][a-zA-Z_0-9]*\(.*\):/.test(s)) return 'def';
+  if (/\bswap\(/.test(s)) return 'swap';
+  /* `←` is the generic view's assignment and `=`/`+=`/`-=` are Python's, so all
+   * three forms have to classify as the same role or the arrays look
+   * structurally different at every line that merely assigns. The `[^=]` after
+   * the bare `=` is what keeps `==` from counting as an assignment. */
+  if (/^[a-zA-Z_][a-zA-Z_0-9]*(\[[^\]]*\])*\s*(=[^=]|<-|←|\+=|-=|\+\+)/.test(s)) return 'assign';
+  return 'other';
+};
+for (const id of ALGO_IDS) {
+  const meta = ALGO_META[id];
+  const shared = Math.min(meta.pseudo.length, meta.pseudoPy.length);
+  const mismatched = [];
+  for (let i = 0; i < shared; i++) {
+    const g = roleOf(meta.pseudo[i]), p = roleOf(meta.pseudoPy[i]);
+    if (g !== p && g !== 'other') mismatched.push(`#${i} ${g} vs ${p}`);
+  }
+  check(mismatched.length === 0,
+    `${id}: both arrays carry the same KIND of statement at every shared index`,
+    () => `${mismatched.join('; ')}. Same-length arrays are not the same statement list: index i has to mean the same THING in both, because one lineFor highlights index i in whichever array is on screen. Every index whose generic line is real code is compared; only the three generic PROSE lines are exempt.`);
+}
+
+/* A language that is not in PSEUDO_LANGS would fall back to `pseudo` through
+ * `find(...) || PSEUDO_LANGS[0]` — silently, so the button would do nothing. The
+ * array is read OUT of the page rather than restated, which is the reason this
+ * is checkable at all: a second copy of the list would keep passing after one
+ * side moved. */
+const langIds = [...htmlCode.matchAll(/\{ id: '(\w+)', label: '([^']+)', field: '(\w+)' \}/g)]
+  .map(m => ({ id: m[1], label: m[2], field: m[3] }));
+check(langIds.length === 2
+      && langIds[0].id === 'pseudo' && langIds[0].field === 'pseudo'
+      && langIds[1].id === 'py' && langIds[1].field === 'pseudoPy'
+      && new Set(langIds.map(l => l.field)).size === 2,
+  'the page offers exactly two pseudocode languages, generic first, each reading its own array',
+  () => `found ${JSON.stringify(langIds)}. The DEFAULT has to be the generic view and the two fields have to be different arrays — a picker whose entries both name \`pseudo\` renders Python correctly by accident and would pass every other check here.`);
+
+const everyLangFieldExists = langIds.filter(l => !ALGO_IDS.every(id => Array.isArray(ALGO_META[id][l.field])));
+check(everyLangFieldExists.length === 0,
+  'every algorithm defines every array the page\'s picker offers',
+  () => `these picker entries name a field some algorithm lacks: ${everyLangFieldExists.map(l => `${l.label} → ${l.field}`).join(', ')}.`);
+
+/* ONE VOCABULARY FOR THE URL. The first version of this check asked two
+ * separate questions — "does it read `?lang`?" and "does it write `lang`?" —
+ * and both were true while the feature was broken: `syncUrl` wrote the literal
+ * `'py'` and `state.lang` validated against `['pseudo','python']`, so a share
+ * link silently reopened in the other language and nothing anywhere reported it.
+ * Two assertions about two lines are not an assertion about their AGREEMENT.
+ *
+ * So the check is the agreement itself: the value written must BE `state.lang`,
+ * and the accepted set must BE the picker's own ids. A hardcoded literal on
+ * either side now fails by construction instead of by coincidence. */
+check(/lang:\s*pick\(params\.get\('lang'\),\s*PSEUDO_LANGS\.map\(l => l\.id\),\s*PSEUDO_LANGS\[0\]\.id\)/.test(htmlCode)
+      && /if \(state\.lang !== PSEUDO_LANGS\[0\]\.id\) p\.set\('lang', state\.lang\); else p\.delete\('lang'\);/.test(htmlCode),
+  'the language is read from and written back to the URL using ONE vocabulary',
+  () => "sorting.html does not round-trip the language through the picker's own ids. Either `state.lang` is not picked from PSEUDO_LANGS (so a shared link silently reopens in the default) or `syncUrl` writes a literal rather than `state.lang` (so the reader's choice is lost the next time they touch any other control — the §3.G6 shape, state that only lives in one place). A literal on one side and the list on the other is the version that shipped broken and passed this check.");
+
+/* The highlight must survive a mid-run switch, or the panel goes blank exactly
+ * when a reader is following a run. Asserted as SHAPE because that is what it is:
+ * one `renderPseudocode` plus one `highlightPseudo` reading the same expression
+ * the seek/step handlers use. */
+const langSwitchBody = htmlCode.match(/btn\.addEventListener\('click', \(\) => \{[\s\S]*?state\.lang = lang\.id[\s\S]*?\n {8}\}\);/);
+check(!!langSwitchBody
+      && /renderPseudocode\(state\.algo\)/.test(langSwitchBody[0])
+      && /highlightPseudo\(state\.algo, single\.run\?\.events\[single\.run\.cursor - 1\]\)/.test(langSwitchBody[0]),
+  'switching language re-renders AND re-applies the current highlight',
+  () => 'the language handler repaints the list without re-running highlightPseudo, so the active line is dropped for the rest of the run — the panel still tracks steps numerically but stops showing WHICH line is executing. That is the one thing the panel is for.');
+
 /* ================================================================ RENDERED */
 
 console.log('\nrendered: driving the real controls over CDP');

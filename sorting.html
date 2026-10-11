@@ -105,9 +105,13 @@
     </div>
 
     <aside class="al-side">
-      <div class="al-panel">
-        <h2 id="pseudoTitle">選一個演算法</h2>
+      <div class="al-panel al-pseudo-panel">
+        <div class="al-panel-head">
+          <h2 id="pseudoTitle">選一個演算法</h2>
+          <span class="al-seg" id="langPicker" role="group" aria-label="偽代碼語言"></span>
+        </div>
         <div class="al-badges" id="complexityBadges"></div>
+        <p class="al-hint" id="pseudoCaption" hidden></p>
         <ol class="al-pseudo" id="pseudoList"></ol>
         <p class="al-hint" id="pseudoNote" hidden></p>
       </div>
@@ -176,6 +180,8 @@
     const pseudoList = document.getElementById('pseudoList');
     const complexityBadges = document.getElementById('complexityBadges');
     const pseudoNote = document.getElementById('pseudoNote');
+    const pseudoCaption = document.getElementById('pseudoCaption');
+    const langPicker = document.getElementById('langPicker');
     const stepHint = document.getElementById('stepHint');
     const timelineWrap = document.getElementById('timelineWrap');
     const timelineRange = document.getElementById('timelineRange');
@@ -271,6 +277,25 @@
     const RACE_SIZES = ['100', '250', '500', '1025'];
     const RACE_N_MAX = 6;
 
+    /* ------------------------------------------------------------ PSEUDOCODE
+     * Two renderings of the SAME statement list, and `pseudoPy` is written so
+     * that index i means the same statement in both — which is what lets one
+     * `lineFor` drive both languages and this switcher be a repaint rather than
+     * a second mapping that could drift (see sorting-algorithms.js's METADATA
+     * header). `pseudo` is the DEFAULT because it is the one that names the
+     * operation rather than the syntax; Python is the one you switch to when
+     * you want to run it in your head. */
+    const PSEUDO_LANGS = [
+      { id: 'pseudo', label: '通用偽代碼', field: 'pseudo' },
+      { id: 'py', label: 'Python', field: 'pseudoPy' },
+    ];
+    /* Says what the Python view leaves out, because a reader switching to Python
+     * meets two identifiers the generic version never mentions. Without this the
+     * panel claims to be Python while silently depending on a builtin that does
+     * not exist, which is the same kind of claim-with-no-check the page's other
+     * notes are here to prevent. */
+    const PYTHON_CAPTION = 'Python 版：n 是 len(arr)；swap() 是換位用的工具函式，不是 Python 內建。';
+
     /* --------------------------------------------------------------- STATE */
     const params = new URLSearchParams(location.search);
     const pick = (value, allowed, dflt) => (allowed.includes(value) ? value : dflt);
@@ -286,6 +311,11 @@
       legacy: params.get('legacy') === '1',
       rainbow: params.get('rainbow') === '1',
       gridIndices: params.get('gridIndices') === '1',
+      /* Reading preference, NOT run state: it survives choosing an algorithm,
+       * switching to race mode and reloading, and it is carried in the share
+       * link for the same reason `key` and `speed` are — a link to this page is
+       * a claim about what the sender was looking at. */
+      lang: pick(params.get('lang'), PSEUDO_LANGS.map(l => l.id), PSEUDO_LANGS[0].id),
     };
     if (state.algos.length < 2) state.algos = ['bubble', 'quick'];
     let speed = SPEED_TIERS.find(s => s.id === state.speed);
@@ -302,6 +332,13 @@
       if (state.legacy) p.set('legacy', '1'); else p.delete('legacy');
       if (state.rainbow) p.set('rainbow', '1'); else p.delete('rainbow');
       if (state.gridIndices) p.set('gridIndices', '1'); else p.delete('gridIndices');
+      /* Written from `state.lang` itself rather than a literal. The first version
+     * hardcoded `p.set('lang', 'py')` against a picker whose ids read
+     * `['pseudo','python']` — two vocabularies for one value, and a share link
+     * that reopened in the other language with no error anywhere. Deriving the
+     * write from the same list the read validates against deletes the class
+     * rather than pinning one instance of it. */
+    if (state.lang !== PSEUDO_LANGS[0].id) p.set('lang', state.lang); else p.delete('lang');
       history.replaceState(null, '', u);
     }
 
@@ -389,10 +426,12 @@
       pseudoTitle.textContent = '選一個演算法';
       complexityBadges.innerHTML = '';
       pseudoList.innerHTML = '';
+      pseudoCaption.hidden = true;
       pseudoNote.hidden = true;
     }
     function renderPseudocode(algoId) {
       const meta = ALGO_META[algoId];
+      const lang = PSEUDO_LANGS.find(l => l.id === state.lang) || PSEUDO_LANGS[0];
       pseudoTitle.textContent = meta.label;
       complexityBadges.innerHTML =
         `<span class="al-badge">最佳 ${meta.complexity.best}</span>` +
@@ -400,7 +439,9 @@
         `<span class="al-badge">最差 ${meta.complexity.worst}</span>` +
         `<span class="al-badge ${meta.stable ? 'al-badge--stable' : 'al-badge--unstable'}">${meta.stable ? '穩定' : '不穩定'}</span>` +
         `<span class="al-badge">${meta.inPlace ? '原地' : '需要額外空間'}</span>`;
-      pseudoList.innerHTML = meta.pseudo.map(line => `<li>${esc(line)}</li>`).join('');
+      pseudoList.innerHTML = meta[lang.field].map(line => `<li>${esc(line)}</li>`).join('');
+      pseudoCaption.hidden = lang.id !== PSEUDO_LANGS[1].id;
+      if (!pseudoCaption.hidden) pseudoCaption.textContent = PYTHON_CAPTION;
     }
     function highlightPseudo(algoId, ev) {
       if (!ev || !algoId) return;
@@ -865,6 +906,42 @@
       algoPicker.appendChild(btn);
     }
     document.getElementById('singleControls').prepend(algoPicker);
+
+    /* The language switcher is built in JS like the other two pickers rather than
+     * written into the HTML, so its pressed state is derived from `state.lang` in
+     * one place instead of being a second hand-maintained truth about what is
+     * currently selected. It also stays visible and enabled BEFORE an algorithm is
+     * chosen: it is a reading preference, not part of starting a run, and hiding
+     * it until a run exists would be a second state machine for no reader benefit.
+     *
+     * Switching MID-RUN re-applies the highlight rather than leaving the panel
+     * blank. The reason it is one expression and not a new mechanism is that both
+     * arrays share their indices, so "the event the run is currently on" is
+     * already computed at three other call sites (§ seekTo / step) and copying a
+     * fourth formulation would be a fourth thing to keep true. At cursor 0 the
+     * event is undefined and `highlightPseudo` returns early, which is correct:
+     * nothing has happened yet, so nothing is lit. */
+    for (const lang of PSEUDO_LANGS) {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.type = 'button';
+      btn.dataset.lang = lang.id;
+      btn.textContent = lang.label;
+      btn.setAttribute('aria-pressed', String(state.lang === lang.id));
+      btn.addEventListener('click', () => {
+        if (state.lang === lang.id) return;
+        state.lang = lang.id;
+        for (const b of langPicker.children) b.setAttribute('aria-pressed', String(b === btn));
+        if (state.algo) {
+          renderPseudocode(state.algo);
+          highlightPseudo(state.algo, single.run?.events[single.run.cursor - 1]);
+        } else {
+          pseudoCaption.hidden = true;
+        }
+        syncUrl();
+      });
+      langPicker.appendChild(btn);
+    }
 
     const raceAlgoPicker = document.getElementById('raceAlgoPicker');
     for (const id of ALGO_IDS) {

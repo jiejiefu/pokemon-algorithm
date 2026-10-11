@@ -380,6 +380,103 @@ const cases = [
     mutate: (f, s) => f === 'assets/js/sort-run.js' ? s.replace('`scripts/check_sorting_page.mjs`, which drives these generators', 'A generator loop, which drives them') : undefined,
     expect: 'sort-run.js names the checker that actually measures its numbers',
   },
+
+  /* ---- pseudoPy, the Python view of the pseudocode panel ----
+   * Each of these attacks a way the two arrays can stop meaning the same
+   * statement at the same index — which is the property the WHOLE switcher rests
+   * on, since one `lineFor` drives both and there is deliberately no second
+   * mapping to catch the drift. */
+  {
+    /* The classic drift: a line is dropped from the Python view, so every index
+     * below it now lights a different statement. Length happens to stay legal
+     * for merge, which is why the out-of-range check alone is not enough. */
+    name: 'a line is deleted from pseudoPy, shifting every index below it',
+    mutate: (f, s) => f === 'assets/js/sorting-algorithms.js'
+      ? s.replace("      '  swapped = False',\n      '  for j in range(n - i - 1):',", "      '  for j in range(n - i - 1):',")
+      : undefined,
+    expect: 'every live index is pinned, and both arrays say the same operation there',
+  },
+  {
+    /* Subtler than the deletion, and the case that found the gap PINNED left.
+     * Both lines swapped here are ones the panel NEVER highlights, so length
+     * stays legal and every pinned line stays intact — the first version of this
+     * case passed green. It is aimed at the structural check, not the pinned one,
+     * because that is the assertion that can actually see it. */
+    name: 'two never-highlighted pseudoPy lines are swapped, keeping the length identical',
+    mutate: (f, s) => f === 'assets/js/sorting-algorithms.js'
+      ? s.replace("      '  min_idx = i',\n      '  for j in range(i + 1, n):',", "      '  for j in range(i + 1, n):',\n      '  min_idx = i',")
+      : undefined,
+    expect: 'both arrays carry the same KIND of statement at every shared index',
+  },
+  {
+    /* And the counterpart on the lines the panel DOES highlight, so the pinned
+     * table is still proven able to fail on its own. Swapping 3 and 4 in bubble
+     * also satisfies the structural rule — `if` and `swap` move together — so
+     * only the pinned content check can catch this one. */
+    name: 'two highlighted pseudoPy lines are swapped, keeping the roles intact too',
+    mutate: (f, s) => f === 'assets/js/sorting-algorithms.js'
+      ? s.replace("      '    if arr[j] > arr[j + 1]:',\n      '      swap(arr[j], arr[j + 1])',", "      '      swap(arr[j], arr[j + 1])',\n      '    if arr[j] > arr[j + 1]:',")
+      : undefined,
+    expect: 'every live index is pinned, and both arrays say the same operation there',
+  },
+  {
+    /* LineFor points past the end of ONE array only. Nothing about this is
+     * visible in the default view, which is why it needs a checker rather than
+     * an eye. */
+    name: 'lineFor is widened by one and overflows pseudoPy on the longest algorithm',
+    mutate: (f, s) => f === 'assets/js/sorting-algorithms.js'
+      ? s.replace("      if (ev.t === 'compare' || ev.t === 'write') return 4;", "      if (ev.t === 'compare' || ev.t === 'write') return 6;")
+      : undefined,
+    expect: 'live lineFor indices are in range for BOTH pseudo and pseudoPy',
+  },
+  {
+    /* A line left unconverted — the failure mode of anyone editing this file by
+     * hand, and the one a reader would hit as 「this is not Python」. */
+    name: 'a generic-pseudocode arrow survives in pseudoPy',
+    mutate: (f, s) => f === 'assets/js/sorting-algorithms.js'
+      ? s.replace("      '    j -= 1',", "      '    j ← j-1',")
+      : undefined,
+    expect: 'pseudoPy carries no generic-pseudocode glyphs',
+  },
+  {
+    /* Both picker entries pointing at one array: every other check still passes,
+     * because there is only ever one array to be right about. The Python button
+     * renders the generic pseudocode, correctly, forever. */
+    name: 'both languages read the same array, so Python renders the generic view',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace("{ id: 'py', label: 'Python', field: 'pseudoPy' },", "{ id: 'py', label: 'Python', field: 'pseudo' },")
+      : undefined,
+    expect: "the page offers exactly two pseudocode languages",
+  },
+  {
+    /* The mid-run switch that repaints without re-highlighting: the panel keeps
+     * tracking the run numerically and stops naming the executing line, which is
+     * the only reason it exists. */
+    name: 'switching language drops the current highlight mid-run',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('          highlightPseudo(state.algo, single.run?.events[single.run.cursor - 1]);\n', '')
+      : undefined,
+    expect: 'switching language re-renders AND re-applies the current highlight',
+  },
+  {
+    /* The bug the CDP probe found and the shape test above missed: `syncUrl`
+     * wrote the literal `'py'` while the reader validated against
+     * `['pseudo','python']`. Two true assertions, one broken feature. */
+    name: 'syncUrl writes a hardcoded lang literal that the reader does not accept',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace("if (state.lang !== PSEUDO_LANGS[0].id) p.set('lang', state.lang); else p.delete('lang');", "if (state.lang === 'python') p.set('lang', 'py'); else p.delete('lang');")
+      : undefined,
+    expect: 'the language is read from and written back to the URL using ONE vocabulary',
+  },
+  {
+    /* `?lang=py` is how a reader's choice survives a share link. Reading it is
+     * what fails when only the READ is removed. */
+    name: 'the page stops reading ?lang=py back out of the URL',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace("lang: pick(params.get('lang'), PSEUDO_LANGS.map(l => l.id), PSEUDO_LANGS[0].id),", "lang: PSEUDO_LANGS[0].id,")
+      : undefined,
+    expect: 'the language is read from and written back to the URL using ONE vocabulary',
+  },
 ];
 
 const t0 = Date.now();

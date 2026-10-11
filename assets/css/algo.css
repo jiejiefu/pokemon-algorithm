@@ -251,7 +251,8 @@ body.al-body .header { flex: none; }
   padding: 12px 14px;
   box-shadow: var(--shadow-card);
 }
-.al-panel > h2 {
+.al-panel > h2,
+.al-panel-head > h2 {
   margin: 0 0 8px;
   font-size: 13px;
   color: var(--text-primary);
@@ -260,6 +261,33 @@ body.al-body .header { flex: none; }
   justify-content: space-between;
   gap: 8px;
 }
+
+/* Panel header row — title on the left, controls on the right.
+ *
+ * The rule above ALREADY declared `display:flex; justify-content:space-between`
+ * with an empty right slot, which is why the selector is EXTENDED rather than a
+ * second title style written underneath it: a copy of these five declarations
+ * under a new selector is a second thing to drift, and this file is mounted by
+ * maze.html as well as sorting.html (§3.B1's shape, one layer down).
+ *
+ * The wrapper is necessary rather than stylistic because `#pseudoTitle` is
+ * written with `textContent` on every render, which destroys any child element —
+ * a picker nested inside the heading would survive exactly until the first
+ * algorithm was chosen. */
+.al-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.al-panel-head > h2 {
+  /* The row's own gap supplies the space below the header, so the h2 must not
+     add a second one. Also `min-width: 0` so a long algorithm name ellipsises
+     instead of pushing the picker out of the panel. */
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .al-panel > h3 {
   margin: 10px 0 6px;
   font-size: 12px;

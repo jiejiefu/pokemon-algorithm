@@ -218,12 +218,48 @@ export function* heapSortSteps(arr, compare) {
 //
 // `pseudo` and `lineFor` are ONE contract, not two: `lineFor` returns an index
 // INTO `pseudo`, and the panel would silently highlight nothing (or the wrong
-// line) if the two ever drifted. check_algo_modules asserts every index
-// lineFor can return is a valid index of that algorithm's own array.
+// line) if the two ever drifted. check_sorting_page.mjs asserts every index
+// lineFor can return is a valid index of that algorithm's own array — AND of
+// `pseudoPy`, which is the reason the next paragraph exists.
 //
 // The pseudocode is the SAME algorithm the generator runs, in the same order.
 // It is not a summary and it is not a simplification: `while j > 0` really is
 // the loop condition, `if not swapped: break` really is the early exit.
+//
+// --------------------------------------------------------------------------
+// `pseudoPy` — THE SAME ALGORITHM IN PYTHON, AND WHY IT IS INDEX-PARALLEL
+//
+// `pseudoPy` is not a second rendering of `pseudo` and it is not a translation
+// of the prose; it is the same statement list written in Python syntax, because
+// a reader who knows Python cannot read `←` and `≠` and this panel exists to
+// be read. Its defining property is that **index i means the same statement in
+// both arrays**, which is what lets ONE `lineFor` drive both and what makes a
+// second mapping unnecessary. A second `pythonLineFor` per algorithm would put
+// the drift the contract above warns about back, in the one place it would be
+// least visible: a highlight that lands one line off, on a correct-looking
+// panel, for one algorithm out of six.
+//
+// THREE THINGS THIS DELIBERATELY DOES NOT DO
+//
+// 1. `n = len(arr)` IS NOT LINE 0. Adding it shifts every index below it by one
+//    and the whole `lineFor` table with it, so the panel says where `n` comes
+//    from in a caption instead (sorting.html). Same reason `def quicksort(...)`
+//    takes no `arr`: the signature is kept as short as the generic one so the
+//    line COUNT matches. Python-shaped, not runnable — and it is not meant to
+//    be run, because `swap()` is not a Python builtin.
+//
+// 2. THE TWO ARRAYS ARE NOT REQUIRED TO BE THE SAME LENGTH. merge is the case
+//    that proves why: its generic line is one prose sentence, and its Python
+//    equivalent is an if/else that cannot honestly be one line. So the rule the
+//    checker enforces is "every index `lineFor` can return is in range for BOTH
+//    arrays" — which merge satisfies at index 4 with one line left over that no
+//    event ever selects. An equal-length rule would need merge listed as an
+//    exception, and an exception list is where the next drift goes.
+//
+// 3. `//` MEANS TWO THINGS ACROSS THE TWO ARRAYS. In `pseudo` it opens a
+//    comment; in `pseudoPy` `(low + high) // 2` is floor division and `#` opens
+//    the comment. Each array is internally unambiguous — which is all a reader
+//    switching between them actually needs.
 // ==========================================================================
 
 export const ALGO_META = {
@@ -240,6 +276,15 @@ export const ALGO_META = {
       '      swap(arr[j], arr[j+1])',
       '      swapped ← true',
       '  if not swapped: break   // 已排序，O(n)',
+    ],
+    pseudoPy: [
+      'for i in range(n - 1):',
+      '  swapped = False',
+      '  for j in range(n - i - 1):',
+      '    if arr[j] > arr[j + 1]:',
+      '      swap(arr[j], arr[j + 1])',
+      '      swapped = True',
+      '  if not swapped: break   # 已排序，O(n)',
     ],
     lineFor(ev) {
       if (ev.t === 'compare') return 3;
@@ -262,6 +307,15 @@ export const ALGO_META = {
       '  if minIdx ≠ i',
       '    swap(arr[i], arr[minIdx])',
     ],
+    pseudoPy: [
+      'for i in range(n - 1):',
+      '  min_idx = i',
+      '  for j in range(i + 1, n):',
+      '    if arr[j] < arr[min_idx]:',
+      '      min_idx = j',
+      '  if min_idx != i:',
+      '    swap(arr[i], arr[min_idx])',
+    ],
     lineFor(ev) {
       if (ev.t === 'compare') return 3;
       if (ev.t === 'mark') return 4;
@@ -281,6 +335,13 @@ export const ALGO_META = {
       '  while j > 0 and arr[j-1] > arr[j]',
       '    swap(arr[j-1], arr[j])',
       '    j ← j-1',
+    ],
+    pseudoPy: [
+      'for i in range(1, n):',
+      '  j = i',
+      '  while j > 0 and arr[j - 1] > arr[j]:',
+      '    swap(arr[j - 1], arr[j])',
+      '    j -= 1',
     ],
     lineFor(ev) {
       if (ev.t === 'compare') return 2;
@@ -306,6 +367,30 @@ export const ALGO_META = {
       '  swap(arr[i+1], arr[high])   // pivot 歸位',
       '  quicksort(low, i); quicksort(i+2, high)',
     ],
+    /* Line 3 is not a restatement of the generic prose — it is what the
+     * generator actually does (`sorting-algorithms.js`: median-of-three leaves
+     * the median at `mid`, then `swap(arr, mid, high)`). A comment saying 「把
+     * pivot 換到 arr[high]」 would have kept the index and lost the one place a
+     * reader could check the Python against the JavaScript.
+     *
+     * The re-read the generator does next (`const pivot = arr[pivotIdx]`) is NOT
+     * written here, and that is a correctness point rather than brevity: the swap
+     * RELOCATES the median, so the value `pivot` already holds is unchanged by
+     * it. The line is also the panel's only ~330px-wide row, and appending the
+     * rebinding pushed the closing `)` past the edge — clipping a reader out of
+     * the one line they had a reason to check. */
+    pseudoPy: [
+      'def quicksort(low, high):',
+      '  if low >= high: return',
+      '  pivot = median_of_three(low, mid, high)   # mid=(low+high)//2；不是固定取最後一個',
+      '  swap(arr[mid], arr[high])',
+      '  i = low - 1',
+      '  for j in range(low, high):',
+      '    if arr[j] < pivot:',
+      '      i += 1; swap(arr[i], arr[j])',
+      '  swap(arr[i + 1], high)   # pivot 歸位',
+      '  quicksort(low, i); quicksort(i + 2, high)',
+    ],
     lineFor(ev) {
       if (ev.t === 'range') return 0;
       if (ev.t === 'swap' && ev.phase === 'median') return 2;
@@ -328,6 +413,20 @@ export const ALGO_META = {
       '  mergesort(l, m); mergesort(m+1, r)',
       '  比較 left[i], right[j]，較小者寫回 arr[k]',
     ],
+    /* SIX lines against a FIVE-line `pseudo`, and that is the honest count: the
+     * generic line is one prose sentence and this is an if/else. The extra line
+     * is index 5, which no event selects — `lineFor` sends compare and write to
+     * index 4, the `if`. Forcing it to five lines would mean either dropping the
+     * `else` (Python that sorts nothing) or gluing both branches onto one line
+     * (Python nobody can read at 280px). See the METADATA header. */
+    pseudoPy: [
+      'def mergesort(l, r):',
+      '  if l >= r: return',
+      '  m = (l + r) // 2',
+      '  mergesort(l, m); mergesort(m + 1, r)',
+      '  if left[i] <= right[j]: arr[k] = left[i]; i += 1',
+      '  else: arr[k] = right[j]; j += 1',
+    ],
     lineFor(ev) {
       if (ev.t === 'range') return 0;
       if (ev.t === 'compare' || ev.t === 'write') return 4;
@@ -348,6 +447,20 @@ export const ALGO_META = {
       'heapify(i, size):',
       '  比較左右子節點，找出最大值 largest',
       '  if largest ≠ i: swap(arr[i],arr[largest]); heapify(largest)',
+    ],
+    /* Index 5 is prose in `pseudo` and Python here. A real `heapify` body needs
+     * ~10 lines (two child lookups, a `if left > right` compare, a `if left > i`
+     * compare) and would put index 6, the line that actually swaps, eight lines
+     * below the generic one — so `lineFor`'s two swap indices would stop meaning
+     * the same thing. One line, saying what it says, keeps both indices. */
+    pseudoPy: [
+      'build_max_heap(): for i in range(n // 2 - 1, -1, -1): heapify(i, n)',
+      'for i in range(n - 1, 0, -1):',
+      '  swap(arr[0], arr[i])',
+      '  heapify(0, i)',
+      'def heapify(i, size):',
+      '  largest = max(arr[i], arr[l], arr[r])   # l、r 是左右子節點',
+      '  if largest != i: swap(arr[i], largest); heapify(largest)',
     ],
     lineFor(ev) {
       if (ev.t === 'compare') return 5;
