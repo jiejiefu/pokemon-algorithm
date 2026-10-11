@@ -86,7 +86,8 @@ AGENTS.md.bak
 # *.json.bak is add_collection_tags.py's own pre-write backup, not an input.
 *.json.bak
 
-
+# Cloudflare Workers docs · Configuration and Bindings
+# .assetsignore
 
 # pokeapi_evolution_chains.json is the 541-chain cache behind
 # assets/data/evolution_levels.json. 473 KB of a third-party API's JSON that
