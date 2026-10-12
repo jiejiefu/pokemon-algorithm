@@ -404,3 +404,73 @@ The read became a named `RESULT_PANEL_STATE` helper reporting `{ shown, present 
 `buildRace()` has a **detachment window**: `raceGrid.innerHTML = ''` at `sorting.html:663` removes the module-scope `raceResult`, and it is only re-attached at 685. Single-threaded, so nothing *should* observe the gap — but if anything between throws, `raceResult` stays detached **permanently** and every later `buildRace()` retries the same path. That is a candidate for the flake this section is about, and the two new `READY` checks are what will name it: they report the lane count alongside the row's absence, so 「5 lanes, row absent」 and 「6 lanes, row absent」 are distinguishable on the next occurrence.
 
 **Not reproduced:** 3 standalone runs and 1 forced pooled run all passed. The condition is contention-dependent and was not produced on demand.
+
+---
+
+## V. 精選分類 Filtered A Pile, And The Reason Was Three Lines That Are Correct In Isolation
+
+`graph.html`'s 精選分類 row has nine chips. Pressing 傳說寶可夢 draws a web; pressing 超級進化 draws **93 sprites with no edges between them**, scattered by the repulsion force. Measured over `graph_data.json` with the filter's own predicate:
+
+| chip | nodes | links | components | largest |
+| --- | ---: | ---: | ---: | ---: |
+| 600 族 | 30 | 48 | **1** | 30 |
+| 御三家 | 81 | 140 | **1** | 81 |
+| 悖謬 | 20 | 8 | 12 | 5 |
+| **超級進化** | 93 | **0** | **93** | 1 |
+| **超極巨化** | 34 | **0** | **34** | 1 |
+
+### The three lines are right. The relation model is what was wrong
+
+`assets/js/graph.js:399-403` keeps a link only when both endpoints survive:
+
+```js
+return nodeIds.has(srcId) && nodeIds.has(tgtId);
+```
+
+That is correct — a line to a node that is no longer drawn would point at nothing. **Every `mega` and `gmax` link in the corpus is `base → form`, i.e. cross-category by construction**, so filtering to `category === 'mega'` drops all 93 parents and with them all 93 edges. What survives is `d3Force('charge').strength(-140)` and nothing else.
+
+600 族 worked because its ring is **intra**-category. 悖謬 was half-built: its Ancient/Future pairing existed only for alternate pairs, so 20 nodes and 8 links resolved into 12 fragments.
+
+**The fix is not the filter.** Changing it to keep 1-hop neighbours would make the 超級進化 chip report ~180 entities for a category of 93, and the badge `93 實體 · 136 關係` would become a claim about a set the reader never chose. The three families added are internal to ONE category each, on purpose.
+
+### A copied value is a plausible value
+
+`build_graph_data.py` gave every form node its base's `types`, `generation` and `stats`. `Charizard-Mega-X` was drawn as **Fire/Flying**, when being Dragon is the entire point of the form.
+
+**17 of the 93 mega forms actually change type and 76 do not** — so 82% of the defect was invisible and the visible 18% was the interesting part. A wrong type still colours the node and still passes the type filter; it is just the wrong colour. Nothing anywhere failed.
+
+`scripts/fetch_form_stats.py` fetches `/pokemon/{id}` for all 127 mega + gmax forms and caches to `data-sources/pokeapi_form_stats.json`. **`/pokemon-form/{id}` was the wrong endpoint**: it returns `types` but has no `stats` key at all, so the dossier's six bars would have gone on showing the base's numbers even after the fetch.
+
+### A 200 is not evidence that the form exists
+
+Id **10314** answers 200 as `meowstic-male-mega` — a different form, with Meowstic's physical stats bolted onto a different special spread. **Meowstic has never had a Mega Evolution.** Accepting it would have imported a fabricated stat spread into a page whose claim is measured values.
+
+So the test is the form **name**, not the status code. The rejected check is the more interesting half: **`order == -1` looked like it should disqualify an entry, and it does not** — measured across all 127 forms it rejects **79 legitimate ones**, because PokeAPI's `order` is a position within the species' own form list and every Gen 7/8 form sits at -1. It was written, measured, and deleted. A heuristic that rejects two thirds of the truth teaches a reader to ignore it.
+
+### What a static checker can answer here, and why this one is static
+
+"What does pressing this chip draw" is three lines of arithmetic over `graph_data.json`. `scripts/check_graph_chip_network.mjs` computes the induced subgraph and its connected components per chip — **0.1 s, no Chrome**, against a CDP checker that is `manual: true`, `serial: true` and the most expensive entry in the suite.
+
+15 mutations were run against it. **Four passed for the wrong reason at first** — the harness left `metadata.total_links` stale after editing, so every case tripped the same arithmetic sum check instead of the assertion it was written to attack. A checker whose every mutation fails the same way looks thorough and tests one thing.
+
+**Two more mutations were wrong rather than the checker.** 600 族 keeps 24/30 connected even with its **entire 10-edge ring deleted** (20 evolution links + 15 type_resonance carry it), so "drop the ring" is not a defect and guarding it would guard nothing — the real attack is 幻之寶可夢, whose largest component is 12/23 = 52%, 0.02 above the 0.50 floor. And an early M9 case linked two `gmax` edges' `source` values, which are base SPECIES and therefore outside the induced subgraph: it changed nothing and passed a checker that was behaving correctly.
+
+### The exception is asserted to still be an exception
+
+超極巨化 is still 0 links. The honest relation is `gmax ↔ dynamax` and **there are no Dynamax nodes or Dynamax artwork anywhere under `assets/`** (measured: `find assets -iname '*dynamax*'` → 0), so it needs 32 sprites and two more generators.
+
+`DECLARED_ISOLATED` holds `gmax` with that reason, and the checker **fails if it ever gains links** — so the exception cannot outlive its reason. §3.F's seven silently-truncated species were recorded as a "known set" and the bound stayed; this is the opposite shape.
+
+### The 0.02 gap, and the assertion that had become unsatisfiable
+
+幻之寶可夢 sits at 52% against a 50% floor. **That tightness is the finding, not a rounding detail**: the floor is a line, and the nearest chip is one edge from crossing it. Dropping #808 → #809 — the only bridge between the two halves — takes it to 48% and the checker fires.
+
+The same change made `check_graph_browser.mjs:265` **unsatisfiable rather than false**. It asserted `!badge.includes('978')` — a negative check on one magic number — to prove graph.js had overwritten graph.html's placeholder badge. Correcting the copy from `978` to `2,687` meant the badge could no longer *possibly* contain `978`, so the check began passing on a page whose JavaScript never ran. It is §3.B2's shape exactly. The check now reads the placeholder **out of the served HTML** and asserts the badge differs from it.
+
+`978` was real, though: it is the sum of `metadata.link_types`, which enumerated **eight of ten** types and omitted `type_resonance` (1,025) and `dual_type` (520) — 2,523 − 978 = 1,545. So the object claimed to describe the links and did not, and `1,545 of 2,523` links (61%) were rendering in a `|| '#38bdf8'` fallback that **is `starter_trio`'s colour**.
+
+### Not fixed
+
+- **`generation` on form nodes stays the base species'.** PokeAPI's `/pokemon/{id}` has no `generation` field and `game_indices` is an empty array for every battle-only form (measured on all 127). There is no source, so none was invented.
+- **超極巨化 still has no network** — see above.
+- **幻之 (11 components) and 傳說 (5) are still fragmented.** Now *measured* rather than invisible, which is what the checker was for.
