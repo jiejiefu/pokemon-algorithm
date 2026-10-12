@@ -1079,12 +1079,27 @@
     document.addEventListener('click', async (event) => {
       const seed = event.target.closest('[data-cg-seed]');
       if (seed) {
-        // `data-cg-legend` means this cell named a species, not just a colour,
-        // so the species is pinned as well. See matchOf() for why loading the
-        // colour alone is not enough: #FFFFFF is 29 species' primary, and the
-        // reader who clicked Reshiram does not want Wingull.
+        // TWO KINDS OF CELL CARRY `data-cg-seed`, and the generating call is
+        // deliberately OUTSIDE the legend branch:
+        //
+        //   - 換一個生成起點 (`renderAlts`, no data-cg-legend): one of the matched
+        //     species' own measured colours. Regenerate from it and re-match.
+        //   - the 24 legendary cells (data-cg-legend): regenerate from it AND pin
+        //     the species. See matchOf() for why the colour alone is not enough:
+        //     #FFFFFF is 29 species' primary, and the reader who clicked Reshiram
+        //     does not want Wingull.
+        //
+        // It was `if (legendId && applyHex(...))`, so `&&` short-circuited on the
+        // alt cells' missing `data-cg-legend` — `Number(undefined)` is NaN, falsy,
+        // and `applyHex` is the RIGHT operand, so the colour was never applied,
+        // `render()` never ran, and the unconditional `return` below swallowed the
+        // click. 換一個生成起點 has never regenerated anything. `applyHex` is the
+        // only writer of inputHex and the only path to render(), so putting it
+        // behind the optional half made the whole section dead exactly for the
+        // cells that did not ask to be special.
+        if (!applyHex(seed.dataset.cgSeed)) return;
         const legendId = Number(seed.dataset.cgLegend);
-        if (legendId && applyHex(seed.dataset.cgSeed)) {
+        if (legendId) {
           const pinned = matchOf(legendId, seed.dataset.cgSeed);
           if (pinned) {
             // `pinned: true` is what distinguishes "the reader named this" from

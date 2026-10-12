@@ -962,6 +962,136 @@ console.log('\nthe page wire');
     'the pin rule is a named function, so it can be run rather than pattern-matched');
 }
 
+/* -------------------------------------------------------------------------
+   THE SEED HANDLER, RUN AGAINST BOTH KINDS OF CELL
+   -------------------------------------------------------------------------
+   換一個生成起點 shipped dead. The delegated handler read
+
+       const legendId = Number(seed.dataset.cgLegend);
+       if (legendId && applyHex(seed.dataset.cgSeed)) { ...pin... }
+       return;
+
+   `applyHex` is the RIGHT operand, so `&&` short-circuits on every cell that
+   carries only `data-cg-seed` -- which is every cell in that section, since
+   `data-cg-legend` belongs to the 24 legendary presets. `Number(undefined)` is
+   NaN, falsy, the colour was never applied, render() never ran, and the
+   unconditional `return` below swallowed the click. No exception, no console
+   output, and every other assertion in this file stayed green, because the
+   section's cells, attributes and copy were all correct; only the one call
+   between them was missing.
+
+   This is §3.I's shape one level down. There, ESM verified the imported
+   BINDING and said nothing about the member, so the defect was a runtime
+   TypeError on a line no checker read. Here the member exists, the attribute
+   exists, the handler exists -- and the two are joined by an operator whose
+   short-circuit nobody reads.
+
+   So the branch is EXECUTED, not pattern-matched: sliced out of the listener
+   between two anchors, wrapped in a Function whose parameters shadow every
+   closure it touches, and run against a legend-less cell and a legendary cell.
+   The claim is behavioural -- "a cell with no legend still reaches applyHex" --
+   and it is the one that was false. A regex for `applyHex(seed.dataset.cgSeed)`
+   would have passed the whole time this was broken.
+   ------------------------------------------------------------------------- */
+{
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
+  const START = "const seed = event.target.closest('[data-cg-seed]');";
+  const END = "const pick = event.target.closest('[data-cg-pick]');";
+  const from = src.indexOf(START);
+  const to = src.indexOf(END);
+  check(from >= 0 && to > from,
+    'the seed branch and the pick branch are both findable, so it can be executed',
+    () => `seed branch at ${from}, pick branch at ${to}`);
+
+  if (from >= 0 && to > from) {
+    const branch = src.slice(from, to);
+    /* Strip BOTH comment styles before anything reads the branch, preserving
+     * newlines so offsets survive. The docblock written to explain this bug quotes
+     * it verbatim -- `if (legendId && applyHex(...))` -- so the shape assertion
+     * matched the COMMENT and reported the FIXED code as broken. Stripping only
+     * `/* *\/` was itself a bug: the page's explanation is written as `//` line
+     * comments, so the block-comment pass removed nothing at all (1795 -> 1795
+     * chars). §3.S's false positive one level up, and the prose explaining a
+     * defect is the one place a naive grep for that defect always hits. String
+     * literals are KEPT -- the branch's own selectors live in them. */
+    const code = branch
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+      .replace(/\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+    /* The branch goes in an IIFE, and that is load-bearing.
+     *
+     * It ends in `return;`, and `finally` cannot change a return VALUE -- the
+     * inner return wins and the function answers `undefined` however much the
+     * finally block assigned. Reading `currentMatch` that way made the pin
+     * assertion fail on a branch that had in fact pinned. An IIFE gives those
+     * returns something of their own to exit, so the outer body runs on to the
+     * real `return currentMatch`, and `let currentMatch` stays in the scope the
+     * branch assigns. */
+    const run = new Function('event', 'applyHex', 'matchOf', 'render', 'log',
+      'let currentMatch = null;\n(function () {\n'
+      + `${code}\n})();\nreturn currentMatch;`);
+
+    const drive = (dataset) => {
+      const node = { dataset };
+      const calls = [];
+      const captured = run(
+        { target: { closest: (sel) => (sel === '[data-cg-seed]' ? node : null) } },
+        (hex) => { calls.push(['applyHex', hex]); return true; },
+        (id, hex) => { calls.push(['matchOf', id, hex]); return { id: Number(id), distance: 0.01, primaryHex: hex }; },
+        () => calls.push(['render']),
+        calls
+      );
+      return { calls, currentMatch: captured };
+    };
+
+    // PATH A -- 換一個生成起點. No data-cg-legend, exactly as renderAlts() emits.
+    const alt = drive({ cgSeed: '#62d5b4' });
+    check(alt.calls.some(c => c[0] === 'applyHex' && c[1] === '#62d5b4'),
+      'a 換一個生成起點 cell applies its colour even though it names no species',
+      () => `the branch ran but never called applyHex — calls: ${JSON.stringify(alt.calls)}. `
+        + '`legendId && applyHex(...)` short-circuits on Number(undefined) === NaN, so the '
+        + 'colour is dropped and the return below swallows the click');
+    check(!alt.calls.some(c => c[0] === 'matchOf'),
+      'and it pins nothing, because it named no species to pin',
+      () => `matchOf ran for a cell with no legend: ${JSON.stringify(alt.calls)}`);
+
+    /* The alt path does NOT call render() itself, and asserting that it did was
+     * the first draft's third failure -- a wrong assertion, not a wrong page.
+     * Regeneration for this path happens INSIDE applyHex, the only writer of
+     * inputHex and the only caller of render(). So the claim worth pinning is
+     * that half of the chain, read from applyHex's REAL body rather than from the
+     * stub: a stub that called render() would have made this branch look like it
+     * regenerated on its own. */
+    const applyBody = src.slice(src.indexOf('function applyHex('), src.indexOf('function setFormat('));
+    check(applyBody.length > 0 && /\brender\(\)/.test(applyBody.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'applyHex is what regenerates, so reaching it is enough for 換一個生成起點',
+      () => 'applyHex no longer calls render() — the alt path would apply the colour and stop');
+    check(!alt.calls.some(c => c[0] === 'render'),
+      'and the alt branch does not re-render on its own, which would double-draw',
+      () => `the branch called render() itself as well as applyHex: ${JSON.stringify(alt.calls)}`);
+
+    // PATH B -- the 24 legendary cells. Still pins, still regenerates.
+    const legend = drive({ cgSeed: '#ded5e6', cgLegend: '150' });
+    check(legend.calls.some(c => c[0] === 'applyHex' && c[1] === '#ded5e6'),
+      'a legendary cell applies its colour too',
+      () => `calls: ${JSON.stringify(legend.calls)}`);
+    check(legend.calls.some(c => c[0] === 'matchOf' && Number(c[1]) === 150),
+      'and still pins the species, so #FFFFFF does not hand the reader a Wingull',
+      () => `calls: ${JSON.stringify(legend.calls)}`);
+    check(legend.currentMatch && legend.currentMatch.pinned === true,
+      'and the pin is marked, which is what drives the 你選的 eyebrow',
+      () => `currentMatch = ${JSON.stringify(legend.currentMatch)}`);
+
+    // vacuity guard, over comment-stripped code. `&&` between the legend test and
+    // the apply call is the defect in written form; asserting its ABSENCE is a
+    // shape check, so it is paired with the behavioural assertions above rather
+    // than standing alone.
+    check(!/legendId\s*&&\s*applyHex/.test(code),
+      'the colour is not gated behind the legend test it does not depend on',
+      () => '`legendId && applyHex(...)` is the exact shape that shipped dead');
+  }
+}
+
 console.log('\nthe colour input parser');
 
 {
