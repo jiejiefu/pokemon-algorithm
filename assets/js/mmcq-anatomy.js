@@ -1,7 +1,7 @@
 /**
  * MMCQ 演算法解剖模組 (MMCQ Algorithm Anatomy)
  *
- * 專為 colors.html 的演算法視覺化解剖設計。
+ * 專為 colors-generator.html 的演算法視覺化解剖設計。
  * 純函式、零 DOM 依賴，可在 Node.js 與瀏覽器環境無縫執行。
  *
  * 核心功能：

@@ -1,11 +1,11 @@
 /**
- * Regression test for the reverse palette matcher behind colors.html.
+ * Regression test for the reverse palette matcher behind colors-generator.html.
  *
  *   node scripts/check_color_match.mjs
  *
  * WHAT THIS IS FOR
  *
- * colors.html is now an instrument rather than a report: you turn a colour in
+ * colors-generator.html is now an instrument rather than a report: you turn a colour in
  * and it answers "which Pokémon is closest?". `color-match.js` answers that with
  * an OKLab distance over 6,148 measured sprite colours. Three things about that
  * answer are claims, not consequences, and each is pinned here:
@@ -551,7 +551,7 @@ console.log('\nprimary-first ranking');
 
   check(paletteOf(99) === null,
     'a species outside the index returns null, not an empty palette');
-  // paletteOf keys on the NUMBER. colors.html reads ids out of `data-cg-pick`
+  // paletteOf keys on the NUMBER. colors-generator.html reads ids out of `data-cg-pick`
   // datasets and coerces with Number() before calling; this asserts that
   // contract holds rather than leaving it to be discovered as a silent null.
   check(paletteOf(1) !== null && paletteOf('1') === null,
@@ -880,7 +880,7 @@ console.log('\npinning a named species');
 console.log('\nthe page wire');
 
 {
-  const src = readFileSync(new URL('../colors.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
 
   // A markdown emphasis that never got converted. `**真的含有**` renders as
   // literal asterisks in a <p>, and it is invisible to every other check because
@@ -970,10 +970,10 @@ console.log('\nthe colour input parser');
   // evaluated here against the real `hslToHex`. That is better than asserting the
   // regexes are present: a regex can be there and the function can still reject
   // every input a user actually pastes.
-  const src = readFileSync(new URL('../colors.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
   const grab = (name) => {
     const start = src.indexOf(`function ${name}(`);
-    check(start >= 0, `${name} is present in colors.html`);
+    check(start >= 0, `${name} is present in colors-generator.html`);
     if (start < 0) return null;
     let depth = 0;
     let i = src.indexOf('{', start);
@@ -1230,7 +1230,7 @@ console.log('\nthe error state, in both themes');
 console.log('\nthe pin rule, run rather than pattern-matched');
 
 {
-  const src = readFileSync(new URL('../colors.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
   const start = src.indexOf('function pinSurvivesRequery(');
   check(start >= 0, 'pinSurvivesRequery is present');
   let depth = 0;
@@ -1302,7 +1302,7 @@ console.log('\nthe pin rule, run rather than pattern-matched');
 console.log('\nthe format hint');
 
 {
-  const src = readFileSync(new URL('../colors.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
 
   // 「六位十六進位」 says how many digits and nothing about what a digit may be,
   // so a reader who has never met base 16 does not learn from it that `g` is
@@ -1352,7 +1352,7 @@ console.log('\nthe sections this page does NOT own');
   // because `color.html` already owns them. Asserting the absence is the whole
   // point: a section restored "just to be helpful" is a duplication, and a
   // duplicate is invisible to every other check on this page.
-  const src = readFileSync(new URL('../colors.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../assets/css/colors-generator.css', import.meta.url), 'utf8');
 
   for (const [id, what] of [
@@ -1362,7 +1362,7 @@ console.log('\nthe sections this page does NOT own');
     ['sec-gen-tiles', 'the tiles composition'],
     ['sec-export', 'the theme export'],
   ]) {
-    check(!src.includes(id), `${what} section is not on colors.html`,
+    check(!src.includes(id), `${what} section is not on colors-generator.html`,
       () => `${id} is back; color.html already owns it or it was removed`);
   }
   for (const gone of ['#scale', '#showcase', '#cg-measured-palette', '#cg-collapse', '#tiles', '#theme-code']) {
@@ -1380,12 +1380,12 @@ console.log('\nthe sections this page does NOT own');
 
   check(!src.includes('themeCss'),
     'themeCss helper does not survive the removal',
-    () => 'themeCss is still defined in colors.html');
+    () => 'themeCss is still defined in colors-generator.html');
   check(!src.includes('copy-theme'),
-    'copy-theme button is not on colors.html',
+    'copy-theme button is not on colors-generator.html',
     () => 'copy-theme button is back');
   check(!src.includes('copy-json'),
-    'copy-json button is not on colors.html',
+    'copy-json button is not on colors-generator.html',
     () => 'copy-json button is back');
 
   // THE PAGE'S OWN COPY MUST NOT DESCRIBE WHAT WAS REMOVED. The meta description

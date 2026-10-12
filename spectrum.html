@@ -546,7 +546,7 @@ const RARITY = [
     /**
      * The three rosters, and the 24 chips.
      *
-     * The chips are IDS and nothing else. `colors.html` keeps its legendary grid
+     * The chips are IDS and nothing else. `colors-generator.html` keeps its legendary grid
      * as `[id, edition]` pairs for the same reason — a second copy of an official
      * name is a second thing to keep right, and `pokemon_data.json` already has
      * it. Two of them (Alolan Exeggutor, Hisuian Samurott) would also need form
@@ -560,7 +560,7 @@ const RARITY = [
     /**
      * The 24 cover Pokémon, and the reason for that particular 24.
      *
-     * The names come from `colors.html`'s LEGENDS grid — the same list, because the
+     * The names come from `colors-generator.html`'s LEGENDS grid — the same list, because the
      * two pages were asked for the same thing and one list of the cover roster is a
      * better answer than two that can disagree. The edition label is kept and shown,
      * since 383 and 382 are different species AND different games and a grid of 24
@@ -568,11 +568,11 @@ const RARITY = [
      *
      * IDS AND EDITIONS ONLY, never names. `pokemon_data.json` has the official zh
      * name, and a second copy of one is a second thing to keep right — the same
-     * reasoning `colors.html` records for the same list.
+     * reasoning `colors-generator.html` records for the same list.
      *
      * The source filter still applies, and it bites: on 最新錄音 all 24 are offered,
      * on 舊錄音 (ids 1–649) thirteen survive, and on 第一世代合成 only 150 and 151 do.
-     * That is the same behaviour `colors.html` has when a species has no palette, and
+     * That is the same behaviour `colors-generator.html` has when a species has no palette, and
      * it is honest — a grid of two is a real answer for "what can I see here", not a
      * layout failure.
      */
@@ -1523,7 +1523,7 @@ const RARITY = [
     /**
      * Built ONCE per source, not per keystroke.
      *
-     * `colors.html` rebuilt its 24-button grid from `render()` and threw away 24
+     * `colors-generator.html` rebuilt its 24-button grid from `render()` and threw away 24
      * buttons and 24 sprite requests on every keystroke to move one highlight —
      * and, worse, left every reference pointing at a detached node, which does not
      * bubble to a delegated document handler, so the control went dead after its
@@ -1711,7 +1711,7 @@ const RARITY = [
     /** Only the highlight moves.
      *
      *  Re-rendering on selection would replace the very row the reader pressed,
-     *  mid-click — the detached-node failure `colors.html` had, where rebuilding a
+     *  mid-click — the detached-node failure `colors-generator.html` had, where rebuilding a
      *  grid per keystroke left references pointing at nodes that no longer bubble
      *  to the delegated handler and the control went dead after first use. */
     function highlightRow() {
@@ -1964,7 +1964,7 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
       /* Delegated, and attached ONCE to the container rather than per row. Both
        * halves matter: `renderRoster()` replaces the list's innerHTML, so a
        * listener on a row would die with it, and re-binding 60 listeners per
-       * keystroke is the other half of the same cost. `colors.html`'s grid died
+       * keystroke is the other half of the same cost. `colors-generator.html`'s grid died
        * this way and this is the shape that prevents it. */
       el('sp-roster-list').addEventListener('click', (e) => {
         const row = e.target.closest('.sp-row');

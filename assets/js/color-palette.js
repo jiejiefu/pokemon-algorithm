@@ -282,7 +282,8 @@ export function paletteGridHtml(rows, options = {}) {
   // already on the button.
   //
   // Defaults to 'hex' so the callers this change is not touching
-  // (colors.html:252,254 and colors-explore.html:231) render byte-identically.
+  // (colors-generator.html:684 and colors-explore.html:257) render
+  // byte-identically.
   const format = options.format || 'hex';
   const cols = paletteColumns(rows.length);
   const cells = rows

@@ -254,7 +254,7 @@ const cases = [
   },
   {
     name: 'passing the wrong page name to initColorRail marks nothing current',
-    mutate: (f, s) => f.endsWith('color.html') ? s.replace("initColorRail('color.html')", "initColorRail('colors.html')") : undefined,
+    mutate: (f, s) => f.endsWith('color.html') ? s.replace("initColorRail('color.html')", "initColorRail('colors-generator.html')") : undefined,
     expect: 'passes the wrong page',
   },
   {

@@ -68,7 +68,7 @@ const SRC = [
   'assets/data/pokemon_data.json',
   'assets/css/shared.css',
   'assets/css/colors-generator.css',
-  'colors.html',
+  'colors-generator.html',
   CHECKER,
 ];
 
@@ -105,9 +105,9 @@ const editModule = (dir, fn) => {
   writeFileSync(p, fn(readFileSync(p, 'utf8')));
 };
 
-/** Rewrite colors.html in the scratch tree. */
+/** Rewrite colors-generator.html in the scratch tree. */
 const editPage = (dir, fn) => {
-  const p = join(dir, 'colors.html');
+  const p = join(dir, 'colors-generator.html');
   writeFileSync(p, fn(readFileSync(p, 'utf8')));
 };
 
@@ -480,7 +480,7 @@ const CASES = [
     expect: 'all 20 probes return the brute-force order, up to float noise',
   },
   {
-    // The page-level guards. These read colors.html and the stylesheet, so three
+    // The page-level guards. These read colors-generator.html and the stylesheet, so three
     // of the four are things a mutation in the module cannot reach at all — they
     // are here to prove the PAGE assertions are not vacuous, not to attack the
     // matcher. Each asserts the mutation actually applied: an earlier draft of
@@ -531,7 +531,7 @@ const CASES = [
       '  </main>',
       '    <section class="cp-section" aria-labelledby="sec-measured"><h2 id="sec-measured">x</h2></section>\n  </main>',
     )),
-    expect: 'the measured palette section is not on colors.html',
+    expect: 'the measured palette section is not on colors-generator.html',
   },
   {
     name: 'the showcase import is left behind after the removal',
@@ -547,7 +547,7 @@ const CASES = [
       '  </main>',
       '    <section class="cp-section" aria-labelledby="sec-export"><h2 id="sec-export">匯出主題</h2></section>\n  </main>',
     )),
-    expect: 'the theme export section is not on colors.html',
+    expect: 'the theme export section is not on colors-generator.html',
   },
   {
     // The page's own copy. The meta description kept promising 「生成明暗階、套用展示」

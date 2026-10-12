@@ -31,7 +31,7 @@
  *    change of units that cannot reorder anything".
  *
  * 3. THE PAGE'S THREE DISCLOSURES ARE IN THE DOM.
- *    §3.B1 records the shape this exists for: `colors.html` kept promising 「生成明暗階」
+ *    §3.B1 records the shape this exists for: `colors-generator.html` kept promising 「生成明暗階」
  *    in its meta description after the section was deleted, because no shape check
  *    reads a description. Three sentences on this page can go stale the same way:
  *    that the spectrogram is computed BEFORE playback, that the two canvases are

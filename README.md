@@ -28,7 +28,7 @@
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation, type, and color filters. |
 | `detail.html` | Species Dossier: 3-column hero section, Canvas radar chart, dual-type matrix, evolution chain, and 4 move tabs (3-way footer pager — §3.A). |
 | `color.html` | Single species color palette: supports `?slug=`, shade scales, and theme exporter. Bare URL loads the seeded daily pick. |
-| `colors.html` | Reverse palette generator: any hex → closest Pokémon via OKLab, followed by a generated theme palette — §3.B1. |
+| `colors-generator.html` | Reverse palette generator: any hex → closest Pokémon via OKLab, followed by a generated theme palette — §3.B1. |
 | `colors-explore.html` | Full collection of all 1,025 Pokémon palettes with infinite scroll and URL filters. |
 | `sorting.html` | 6 sorting algorithms running on a 1,025-sprite Canvas, plus a 2–6 lane race mode — §3.G3. |
 | `maze.html` | BFS / DFS pathfinding visualizer on a 40×40 grid with seedable RNG. |

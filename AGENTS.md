@@ -28,7 +28,7 @@
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation / type / colour filters |
 | `detail.html` | Dossier: 3-col hero, Canvas radar, dual-type matrix, evolution chain, 4 move tabs. 3-way footer pager — §3.A |
 | `color.html` | One species' palette: `?slug=`, shade scales, theme exporter. Bare URL = the same seeded daily pick as the homepage, one draw two callers |
-| `colors.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
+| `colors-generator.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
 | `colors-explore.html` | All 1,025 palettes, infinite scroll, URL filters |
 | `sorting.html` | 6 sorters on a 1,025-sprite Canvas, plus a 2–6 lane race — §3.G3 |
 | `maze.html` | BFS / DFS pathfinding, 40×40 grid, seedable RNG |
@@ -103,7 +103,7 @@ Each subsection below is a **rule**, the **shape of the defect** it came from, a
 
 **Background:** [`docs/incidents/color.md#b`](docs/incidents/color.md#b)
 
-### B1. `colors.html` Is Not A Smaller `color.html`
+### B1. `colors-generator.html` Is Not A Smaller `color.html`
 The two colour pages share a component library (`paletteGridHtml`, `paletteStripHtml`, `.cp-cell`, `.cp-strip`) but **not a layout**: one *reports* a species' measured palette, the other *generates* a theme from a colour you supply.
 
 - **Five sections were DELETED, not merged** (對照·實測色盤 / 生成明暗階 / 套用展示 / 生成組成 / 匯出主題). Two copies of one species' palette is duplication, not comparison. **This page's job ends at the generated palette** — the ramps, the showcase and theme tokens are `color.html`'s.
@@ -615,7 +615,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data` | the spectrum page's claims are split across a CDP checker, a page checker and the port checker |
 | `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | `cry` is the prefix for `cry-apu`, `cry-data` and `cry-page` |
 | `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `node scripts/test_check_sorting_page.mjs --static` first, then `--only=sort` | the static half is 65 checks at ~0.5 s and catches the stylesheet contract; the browser half is a real page and costs 7.6 s |
-| `colors*.css`, `color-palette.js`, `color-match.js`, `colors.html`, `mmcq.js` | `--only=color` | 13 entries, and **nothing above 2.3 s** — this group used to be one 42 s harness and is now thirteen small ones |
+| `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 13 entries, and **nothing above 2.3 s** — this group used to be one 42 s harness and is now thirteen small ones |
 | `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo` | four entries, and only `check_life_browser.mjs` costs anything — **§3.P.** This row is new because the page had **no checker at all** until then, so the mapping itself was missing rather than the entry |
 | `sv-index.js`, `sv-sources.json`, `types.html`, any `assets/images/**` | `--only=type` | |
 | `graph_data.json`, `graph.js`, `graph.html`, `data-sources/pokeapi_form_stats.json` | `--only=model` | **§3.V.** the static chip checker is 0.1 s; the CDP checker and its 40 s harness are `manual`/`serial` and only needed for a layout question |

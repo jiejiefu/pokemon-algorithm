@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Colour palette pages — colors.html / colors-explore.html / color.html
+   Colour palette pages — colors-generator.html / colors-explore.html / color.html
    ---------------------------------------------------------------------------
    Dark is the BASE here and `[data-theme="light"]` is the override, because
    shared.css makes `:root` dark. The same inversion applies to every token
@@ -784,7 +784,7 @@
 /* The hex belongs to ITS OWN segment, so it appears on the segment under the
    cursor rather than on all five at once when the card is hovered — five
    simultaneous hexes answer "what colour is this" five times for one question.
-   Still scoped under `.cp-card`: paletteStripHtml() is also used by colors.html,
+   Still scoped under `.cp-card`: paletteStripHtml() is also used by colors-generator.html,
    whose strip has no `.cp-card` ancestor, and that page's hexes stay hidden
    exactly as before.
    The label does NOT rely on the ink paletteStripHtml() puts on each `.cp-seg`:
@@ -966,7 +966,7 @@
    WCAG 2.2 SC 2.5.8 asks 24×24 CSS px of target, and a narrower bar clears it
    on height alone.
 
-   `.cp-scale` itself is untouched, which is what keeps colors.html — one ramp,
+   `.cp-scale` itself is untouched, which is what keeps colors-generator.html — one ramp,
    no gutter — rendering from the same rule it always did.
 
    Width arithmetic, because the seed is a new fixed-content track in a section

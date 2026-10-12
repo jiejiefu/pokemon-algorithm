@@ -562,7 +562,7 @@
   align-self: center;
 }
 
-/* 24 suggestions. A named entry point, the same device `colors.html` uses for its
+/* 24 suggestions. A named entry point, the same device `colors-generator.html` uses for its
    legendary grid, and built ONCE in init() — rebuilding it per keystroke threw
    away 24 buttons AND left every reference pointing at a detached node, which
    does not bubble to a delegated document handler, so the control went dead

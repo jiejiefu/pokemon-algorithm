@@ -173,10 +173,10 @@ const cases = [
   },
   {
     name: 'the drawer loses `hidden`, so it paints over the page on desktop',
-    mutate: (f, s) => f === 'colors.html'
+    mutate: (f, s) => f === 'colors-generator.html'
       ? s.replace('data-nav data-nav-drawer hidden>', 'data-nav data-nav-drawer>')
       : undefined,
-    expect: 'unusable drawer: colors.html',
+    expect: 'unusable drawer: colors-generator.html',
   },
   {
     /* aria-hidden contains "hidden" after a hyphen, and /\bhidden\b/ matches it,

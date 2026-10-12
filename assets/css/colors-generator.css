@@ -1,8 +1,8 @@
-/* colors.html —— 色彩生成器專屬樣式
+/* colors-generator.html —— 色彩生成器專屬樣式
  *
  * 為什麼獨立一個檔案：AGENTS.md §3.B2 記錄了「一個 page shell 內嵌、其餘元件
  * 在 colors.css」的分工，但那是因為三個色頁共用元件。這個檔案是反向的 ——
- * `cg-` 前綴的每一條規則**只有 colors.html 掛載**，放進 colors.css 會讓那個
+ * `cg-` 前綴的每一條規則**只有 colors-generator.html 掛載**，放進 colors.css 會讓那個
  * 檔案承擔一份它不該有的耦合，而 colors.css 已經 3,500 行了。
  *
  * 不動既有的 `.cp-section` / `.cp-prose` / `.cp-page` / `.cp-cell` / `.sc-*`：
@@ -648,7 +648,7 @@
    一次，而中間狀態是沒有意義的顏色。三格同步的代價是每次輸入都要判斷「這是
    還在打，還是打完」，而那個判斷沒有乾淨的答案。
 
-   切換只改顯示（見 colors.html inputFormat 的說明）：HEX → HSL 不會讓顏色
+   切換只改顯示（見 colors-generator.html inputFormat 的說明）：HEX → HSL 不會讓顏色
    動一下，因為 formatHex 的 HSL 是四捨五入的，來回轉一趟 #399494 會變成
    #399393。
    -------------------------------------------------------------------------- */
@@ -690,7 +690,7 @@
 }
 
 /* The live format note. Hidden until the field is unreadable — see
- * `otherFormatsNote()` in colors.html for why it is not always on screen. */
+ * `otherFormatsNote()` in colors-generator.html for why it is not always on screen. */
 .cg-format-note {
   margin: 6px 0 0;
   font-size: 11.5px;

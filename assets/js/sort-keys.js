@@ -44,7 +44,7 @@ function typeRankOf(data) {
  *  build without that collation data silently falls back to the platform's
  *  default zh collator rather than throwing, so there is no feature test worth
  *  writing.  The UI label says 視瀏覽器而定 instead of claiming a guarantee the
- *  page cannot make — the same reason colors.html's contrast guard measures
+ *  page cannot make — the same reason colors-generator.html's contrast guard measures
  *  both themes rather than reading one declaration. */
 let strokeCollator = null;
 try { strokeCollator = new Intl.Collator('zh-Hant-u-co-stroke'); } catch { /* no Intl.Collator at all */ }

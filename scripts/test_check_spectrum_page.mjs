@@ -24,7 +24,7 @@
  *     is why the checker compares by VALUE: `SR = 16000` and `SR = 160000` are both
  *     present, both look right, and only the comparison catches it.
  *
- * And two mutate prose, which is what §3.B1 is actually about: `colors.html` kept
+ * And two mutate prose, which is what §3.B1 is actually about: `colors-generator.html` kept
  * promising a section it had deleted, because no shape check reads a meta
  * description. Here the intro's claim about the reveal, the live curve's claim about
  * being a separate measurement, and the cross-check panel's three causes are all

@@ -452,7 +452,7 @@ const CHECKERS = [
       'assets/js/shiny-index.js',
       'assets/css/shared.css',
       'assets/css/colors-generator.css',
-      'colors.html',
+      'colors-generator.html',
     ],
   },
   {
@@ -469,7 +469,7 @@ const CHECKERS = [
       'assets/js/*',
       'assets/css/shared.css',
       'assets/css/colors-generator.css',
-      'colors.html',
+      'colors-generator.html',
     ],
   },
   {

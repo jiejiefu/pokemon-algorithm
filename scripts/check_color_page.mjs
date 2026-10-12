@@ -567,7 +567,7 @@ for (const [label, src, fn] of [
 ]) {
   check(
     /const format = options\.format \|\| 'hex'/.test(src),
-    `${label} accepts a format, defaulting to hex so colors.html and colors-explore.html render byte-identically`,
+    `${label} accepts a format, defaulting to hex so colors-generator.html and colors-explore.html render byte-identically`,
     () => `${fn} has no 'format' option defaulting to hex — the default is not pinned, so a caller that omits it gets undefined`
   );
   check(

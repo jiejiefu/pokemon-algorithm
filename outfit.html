@@ -37,16 +37,16 @@
        need this page alone has. See AGENTS.md §3.B1. -->
   <link rel="stylesheet" href="assets/css/outfit.css">
   <style>
-    /* Page shell only, for the same reason colors.html keeps its shell inline:
+    /* Page shell only, for the same reason colors-generator.html keeps its shell inline:
        these are the two sizes this one page uses and they belong with the markup
        they apply to. Components stay in outfit.css.
 
        `.cp-page` is the load-bearing one and it used to be MISSING from this file:
-       colors.html and colors-explore.html each define it in their own shell, so
+       colors-generator.html and colors-explore.html each define it in their own shell, so
        the name looked like it came from a stylesheet and nothing caught its
        absence here. The page rendered edge to edge at the full viewport width —
        the lead paragraph at ~90 CJK characters a line and a 460px palette cell
-       wide. These four declarations are deliberately identical to colors.html's,
+       wide. These four declarations are deliberately identical to colors-generator.html's,
        because the three colour pages sharing a name should share a measure. */
     .cp-page {
       max-width: 1180px;
@@ -359,7 +359,7 @@
       <h2 id="sec-export">五、把它變成主題</h2>
       <p class="of-note">
         這一組顏色可以直接變成前端用的主題：<b>CSS 變數</b>、<b>Tailwind v3 設定檔</b>、<b>Tailwind v4 CSS</b> 或 <b>JSON</b>，一鍵複製或下載。
-        跟<a href="colors.html">色彩生成器</a>用的是同一組函式，所以格式完全一致。
+        跟<a href="colors-generator.html">色彩生成器</a>用的是同一組函式，所以格式完全一致。
       </p>
       <!-- The same shell `color.html`'s 匯出主題 block wears: a tab strip, a
            window-chrome header carrying the filename and the two actions, and the
@@ -1239,7 +1239,7 @@
         : [];
 
       // The matched species' OWN measured palette, as the same five-colour strip
-      // colors.html's winner card wears. `paletteOf()` returns { hex, share }
+      // colors-generator.html's winner card wears. `paletteOf()` returns { hex, share }
       // records and `paletteStripHtml()` takes [hex, share] pairs — the map IS the
       // conversion, and skipping it renders five segments of `undefined`.
       //

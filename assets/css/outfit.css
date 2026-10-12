@@ -8,7 +8,7 @@
  * with color.html and colors-explore.html, so a rule that only this page needs
  * cannot live among them: it would make three pages depend on a page that does
  * not exist yet. This is the same arrangement colors-generator.css documents for
- * colors.html, with `cg-` replaced by `of-`. **Never edit an existing `.cp-*`
+ * colors-generator.html, with `cg-` replaced by `of-`. **Never edit an existing `.cp-*`
  * rule for a need this page alone has — add an `of-` rule here.** See
  * AGENTS.md §3.B1.
  *
@@ -577,7 +577,7 @@
 /* The identity block and the portrait sit on one line, portrait to the RIGHT.
  *
  * The `of-` prefixes are not a naming preference. `cg-winner-fig` /
- * `cg-winner-sprite` / `cg-winner-strip` are colors.html's, in a card whose
+ * `cg-winner-sprite` / `cg-winner-strip` are colors-generator.html's, in a card whose
  * column is 380px wide, and this card is 1108px — copying those declarations
  * would bring 64px strips and an identity-card layout along with them. The
  * shared thing here is `.cp-strip`, which is why exactly one rule below scopes
@@ -653,7 +653,7 @@
   object-fit: contain;
 }
 /* **No `image-rendering: pixelated` here, and that is the fix for the resize.**
- * colors.html carries it because it displays the 96px sprite at 84px — an
+ * colors-generator.html carries it because it displays the 96px sprite at 84px — an
  * UPSCALE, where nearest-neighbour keeps the pixel grid. This is 475px artwork
  * at 200px, a DOWNSCALE, where nearest-neighbour throws away exactly the
  * averaging that makes a reduction look clean. The rule was inherited from the
@@ -694,7 +694,7 @@
 @media (max-width: 640px) {
   /* Below this a 274px portrait leaves the reading column ~120px, and a species
    * name wraps mid-word — which is worse than a taller card. So the grid becomes
-   * ONE column and the portrait goes FIRST, the order colors.html uses.
+   * ONE column and the portrait goes FIRST, the order colors-generator.html uses.
    *
    * **`order`, not DOM order.** The figure is last in the markup so that
    * auto-placement finds it in column 2, which leaves the reading content first

@@ -814,12 +814,12 @@ export const NAV = [
     id: 'colors',
     label: '色彩',
     icon: 'palette',
-    pages: ['colors-explore.html', 'colors.html', 'color.html', 'outfit.html'],
+    pages: ['colors-explore.html', 'colors-generator.html', 'color.html', 'outfit.html'],
     groups: [
       {
         items: [
           { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 一般/異色的色帶' },
-          { href: 'colors.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
+          { href: 'colors-generator.html', label: '色彩生成器', desc: '輸入編號看一隻寶可夢的色盤' },
           { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
           { href: 'outfit.html', label: '寶可夢穿搭', desc: '上傳穿搭照片，算出 6 色並比對是哪一隻' },
         ],
