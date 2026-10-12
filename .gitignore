@@ -96,3 +96,17 @@ AGENTS.md.bak
 # InfoPoke captures above: the JSON the script PRODUCES is tracked, the raw
 # response is not.
 data-sources/pokeapi_evolution_chains.json
+
+# pokeapi_form_stats.json is the 127-form cache behind the mega/gmax nodes in
+# assets/data/graph_data.json, and the same rule applies: the JSON the script
+# PRODUCES (graph_data.json, tracked) is in, the raw PokeAPI response is out, and
+# fetch_form_stats.py rebuilds it with --refresh.
+#
+# The one difference from the file above is that build_graph_data.py reads this
+# cache DIRECTLY rather than reading an assets/data/ table derived from it, so
+# without it the form nodes fall back to the base species' types and stats --
+# Charizard-Mega-X back to Fire/Flying -- rather than failing. That is why
+# build_graph_data.py prints a WARNING naming the file and why
+# check_graph_chip_network.mjs refuses to run without it, rather than ENOENTing.
+# A fresh clone still has the correct graph, because graph_data.json is tracked.
+data-sources/pokeapi_form_stats.json

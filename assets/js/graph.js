@@ -187,7 +187,18 @@ export function initKnowledgeGraph() {
   let activeType = 'all';
   let activeCat = 'all';
 
-  // Link styling helper
+  /* Link styling helper.
+   *
+   * This map used to carry EIGHT keys for a graph_data.json with TEN link types, and
+   * the two it was missing -- type_resonance (1,025) and dual_type (520) -- both fell
+   * through to the `|| '#38bdf8'` below, which is `starter_trio`'s colour. So 1,545 of
+   * 2,523 links, 61% of everything drawn, was indistinguishable from the starter trio
+   * edge it was painted the same as. The fallback is what made it invisible: it is a
+   * valid colour, so nothing failed and nothing logged.
+   *
+   * Every type in the data now has its own entry. check_graph_chip_network.mjs asserts
+   * the map covers the data exactly (no missing key, no orphan key), because a map that
+   * is a strict subset of the data is a state that looks finished. */
   const linkColors = {
     evolution: '#10b981',
     mega: '#d946ef',
@@ -197,6 +208,14 @@ export function initKnowledgeGraph() {
     starter_trio: '#38bdf8',
     pseudo_legendary: '#6366f1',
     form: '#06b6d4',
+    paradox_pair: '#e879f9',
+    paradox_clade: '#a78bfa',
+    mega_type: '#c084fc',
+    // Deliberately dim. These two are the background weave -- 1,545 of the links --
+    // and painting them at the strength of the 136 pantheon edges would bury the
+    // edges that mean something. They are structure, not content.
+    type_resonance: '#1e3a5f',
+    dual_type: '#16404d',
   };
 
   const linkColorFn = (link) => {
@@ -302,6 +321,19 @@ export function initKnowledgeGraph() {
     if (link.type === 'regional') return 40;
     if (link.type === 'starter_trio') return 55;
     if (link.type === 'pantheon') return 70;
+    /* The three intra-category families exist to give a category filter something
+     * to draw, so their distance is chosen for what the reader sees when a chip is
+     * pressed and NOTHING ELSE is on screen -- not for how the links look against
+     * the full 1,346-node graph.
+     *
+     * 30 for mega_type is shorter than evolution's 45 on purpose: when 超級進化 is
+     * the only filter active, those 136 edges ARE the layout, and at 45 the 93
+     * sprites spread into overlapping clumps that read as one dark mass instead of
+     * 18 attribute constellations. A shorter link also outranks the -140 charge,
+     * which is what a 93-component pile needs. */
+    if (link.type === 'mega_type') return 30;
+    if (link.type === 'paradox_pair') return 38;
+    if (link.type === 'paradox_clade') return 30;
     return 60;
   });
 

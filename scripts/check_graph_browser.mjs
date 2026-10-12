@@ -38,8 +38,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * harness serves a trimmed graph on its own port (test_check_graph_browser.mjs), and a
  * disk read would assert 1,346 against a badge showing 120.
  *
- * The HTML ships a PLACEHOLDER badge ("1,346 實體 · 978 關係") that graph.js overwrites;
- * asserting the placeholder would assert nothing at all.
+ * The HTML ships a PLACEHOLDER badge as static text that graph.js overwrites;
+ * asserting the placeholder would assert nothing at all. The check reads the
+ * placeholder OUT of the served HTML rather than naming it, because a literal here
+ * went stale the moment graph.html's copy was corrected -- see the note at the
+ * assertion itself for what that turned the check into.
  */
 
 /* GRAPH_PORT so the mutation harness can serve a mutated tree on its own port.
@@ -256,14 +259,30 @@ async function run() {
   ok(META && typeof META.total_nodes === 'number', `the page can re-read its own graph_data.json (${JSON.stringify(META && META.total_nodes)})`);
 
   // ---- the counts came from the data, not the placeholder ---------------
-  /* graph.html ships "1,346 實體 · 978 關係" as static text and graph.js overwrites
-   * it from the loaded graph. Asserting the HTML value would pass on a page whose
+  /* graph.html ships a PLACEHOLDER badge as static text and graph.js overwrites it
+   * from the loaded graph. Asserting the HTML value would pass on a page whose
    * JavaScript never ran at all, which is the failure this file spent its life
-   * reporting as success. The relation count is the sharper of the two: 978 is in
-   * neither graph_data.json nor anything derivable from it. */
+   * reporting as success.
+   *
+   * THE PLACEHOLDER IS READ FROM THE SERVED HTML, NOT TYPED IN HERE. This assertion
+   * used to be `!badge.includes('978')`, a negative check on one magic number, and
+   * that is §3.B2's exact shape: the day graph.html's copy was corrected from 978 to
+   * 2,687 the badge could no longer possibly contain 978, so the check became
+   * UNSATISFIABLE-BY-CONSTRUCTION rather than false -- it passes on a page whose
+   * JavaScript never ran. The mutation harness caught the consequence (the check it
+   * attacks started failing on a different assertion) a day later than it should
+   * have; the number was the fragile part and the comparison was the claim.
+   *
+   * Reading the placeholder also keeps this working against the harness's trimmed
+   * tree, whose real count is 120 and whose HTML still says 1,346. */
+  const placeholder = await ev(
+    'fetch(location.pathname).then((r) => r.text()).then((t) => '
+    + '(t.match(/id="graph-count-badge"[^>]*>([^<]*)</) || [])[1] ?? null)');
   const badge = await ev('document.getElementById("graph-count-badge")?.textContent ?? null');
-  ok(typeof badge === 'string' && !badge.includes('978'),
-     `the entity/relation badge was rewritten at runtime (${badge})`);
+  ok(typeof placeholder === 'string' && placeholder.length > 0,
+     `graph.html still ships a static placeholder badge (${JSON.stringify(placeholder)})`);
+  ok(typeof badge === 'string' && badge !== placeholder,
+     `the entity/relation badge was rewritten at runtime (badge ${JSON.stringify(badge)}, placeholder ${JSON.stringify(placeholder)})`);
   ok(typeof badge === 'string' && badge.includes(String(META.total_nodes)),
      `the badge reports graph_data.json's ${META.total_nodes} entities (${badge})`);
   ok(typeof badge === 'string' && badge.includes(String(META.total_links)),

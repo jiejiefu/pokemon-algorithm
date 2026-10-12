@@ -182,11 +182,13 @@ const CASES = [
     expect: 'the 3D canvas exists',
   },
   {
-    /* graph.html ships "1,346 實體 · 978 關係" as static text that graph.js
-     * overwrites. Sending the computed counts to a data attribute instead of the text
-     * leaves the placeholder on screen — which is precisely what a page whose
-     * JavaScript silently stopped running would look like, and what this check
-     * existed to catch when it printed the value and asserted nothing. */
+    /* graph.html ships a static placeholder badge that graph.js overwrites. Sending the
+     * computed counts to a data attribute instead of the text leaves the placeholder
+     * on screen — which is precisely what a page whose JavaScript silently stopped
+     * running would look like, and what this check existed to catch when it printed
+     * the value and asserted nothing. The check reads the placeholder out of the
+     * served HTML rather than naming its text, so correcting the copy in graph.html
+     * cannot quietly turn "was it rewritten" into a check nothing can fail. */
     name: 'the computed counts go to a data attribute, leaving the HTML placeholder visible',
     mutate: (dir) => patch(join(dir, 'assets/js/graph.js'),
       "      countBadge.textContent = `${activeNodes.length} 實體 · ${activeLinks.length} 關係`;",

@@ -708,6 +708,26 @@ const CHECKERS = [
   },
 
   /* ---- models ---- */
+  /* The chip-network check is the static half of graph.html's coverage, and it is
+   * Tier A on purpose. 精選分類 had no reader anywhere in the suite until this entry:
+   * check_graph_browser.mjs below is a CDP smoke test, `manual: true` and
+   * `serial: true`, so it is both the most expensive entry in the manifest and the
+   * one least likely to run. The question this file answers -- "what does pressing
+   * this chip draw" -- is three lines of arithmetic over graph_data.json
+   * (graph.js:399-403 keeps a link only if BOTH endpoints survive), so it belongs
+   * off disk and costs ~0.2s. §3.G4's lesson applied in the direction that matters:
+   * the slow half of a page check is not where these answers live. */
+  {
+    script: 'scripts/check_graph_chip_network.mjs', group: 'model',
+    note: 'reads the form cache, which is gitignored; SKIPs that one section without it',
+    inputs: [
+      'graph.html',
+      'assets/js/graph.js',
+      'assets/data/graph_data.json',
+      'data-sources/pokeapi_form_stats.json',
+    ],
+  },
+
   /* graph.html's browser check and the harness that attacks it. `manual: true` is
    * correct and only partly because of HTTP: the checker reads graph_data.json directly
    * (so --prove-inputs RECORDS it and the "read but not declared" direction still

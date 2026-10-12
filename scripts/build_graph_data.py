@@ -7,8 +7,57 @@ mega forms, gmax forms, regional variants, and lore pantheons.
 
 import os
 import json
+from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Written by scripts/fetch_form_stats.py, which is run BY HAND and never by the
+# suite. Read-only here: this script rebuilds the graph from it and never refetches,
+# so `build_graph_data.py` on a machine with no network is not a different program
+# from the same script on one with.
+FORM_STATS_PATH = os.path.join(ROOT, 'data-sources/pokeapi_form_stats.json')
+
+# PokeAPI spells the two special stats differently from this project's `stats`
+# block. The mapping lives HERE rather than in the fetcher so the cache stays a
+# verbatim trim of the API payload, which is what makes it recognisable as one.
+STAT_KEY_MAP = {
+    'hp': 'hp',
+    'attack': 'attack',
+    'defense': 'defense',
+    'special-attack': 'sp_attack',
+    'special-defense': 'sp_defense',
+    'speed': 'speed',
+}
+
+
+def load_form_stats():
+    """form id -> {types, stats, found} from the fetched cache, or {} if absent.
+
+    An ABSENT cache is a silent no-op on purpose for `types`/`stats` but NOT for
+    the missing set: a caller can tell the difference between "no cache" and "cache
+    present, one form has no upstream", and check_graph_chip_network.mjs pins the
+    second. Building the graph without the cache is still legal -- it is what
+    produces the old base-copied values -- but the checker fails, so it cannot ship
+    that way by accident."""
+    if not os.path.exists(FORM_STATS_PATH):
+        return {}, None
+    with open(FORM_STATS_PATH, 'r', encoding='utf-8') as f:
+        forms = json.load(f).get('forms', {})
+    out = {}
+    missing = []
+    for fid, rec in forms.items():
+        if not rec.get('found'):
+            missing.append((int(fid), rec.get('name_en'), rec.get('reason')))
+            continue
+        stats = {}
+        for api_key, val in (rec.get('stats') or {}).items():
+            key = STAT_KEY_MAP.get(api_key)
+            if key:
+                stats[key] = val
+        stats['total'] = sum(stats[k] for k in STAT_KEY_MAP.values() if k in stats)
+        out[int(fid)] = {'types': rec['types'], 'stats': stats}
+    return out, missing
+
 
 def main():
     pokemon_data_path = os.path.join(ROOT, 'assets/data/pokemon_data.json')
@@ -29,6 +78,29 @@ def main():
 
     with open(generations_path, 'r', encoding='utf-8') as f:
         gens = json.load(f)
+
+    form_stats, missing_forms = load_form_stats()
+    if missing_forms is None:
+        print('WARNING: data-sources/pokeapi_form_stats.json is absent -- every form\n'
+              '         node falls back to its base species\' types and stats. Run\n'
+              '         `python scripts/fetch_form_stats.py` then re-run this script.')
+    elif missing_forms:
+        print(f'note: {len(missing_forms)} form(s) have no upstream PokeAPI form and '
+              'fall back to the base species:')
+        for fid, name_en, reason in missing_forms:
+            print(f'  #{fid} {name_en}: {reason}')
+
+    # English type -> Chinese type, BUILT FROM pokemon_data.json rather than typed
+    # out. A form's own types can be a combination no base species in the corpus
+    # carries (Charizard-Mega-X is Fire/Dragon and so is Charizard, but
+    # Feraligatr-Mega is Water/Dark and Feraligatr is only Water), so the lookup has
+    # to be per-TYPE rather than per-species -- and a literal 18-entry table beside
+    # the 18-entry `type_colors` table below would be a second copy of the truth that
+    # the first one already gets wrong when a type is renamed.
+    TYPE_ZH = {}
+    for p in pdata:
+        for en, zh in zip(p.get('types', []), p.get('types_zh', [])):
+            TYPE_ZH.setdefault(en, zh)
 
     img_dir = os.path.join(ROOT, 'assets/images/pokemon')
     img_files = set(os.listdir(img_dir))
@@ -54,6 +126,17 @@ def main():
         'Dark': '#705848',
         'Fairy': '#EE99AC',
     }
+
+    # The two tables must agree on the SET of types, not merely on individual
+    # entries. A type present in `type_colors` but absent from `pokemon_data.json`
+    # would colour nodes and never appear as a Chinese label, and the reverse would
+    # label a type no node is ever tinted with -- both invisible in review because
+    # each table looks complete on its own.
+    only_colors = sorted(set(type_colors) - set(TYPE_ZH))
+    only_zh = sorted(set(TYPE_ZH) - set(type_colors))
+    if only_colors or only_zh:
+        print(f'WARNING: type table mismatch -- in type_colors only: {only_colors}; '
+              f'in pokemon_data.json only: {only_zh}')
 
     # Collect starter IDs
     starter_ids = set()
@@ -117,6 +200,14 @@ def main():
             'is_mythical': p.get('is_mythical', False),
             'is_ultra_beast': p.get('is_ultra_beast', False),
             'is_baby': p.get('is_baby', False),
+            # `paradox_side` and `abilities` are the ground for every paradox link
+            # below, and both were dropped here until now -- so the two relation
+            # families had no column to read and the 悖謬 chip rendered 20 nodes
+            # with 8 links. They are copied, never derived: pokemon_data.json is the
+            # only place either value comes from, and the categories.js page filters
+            # `paradox_side` directly.
+            'paradox_side': p.get('paradox_side'),
+            'abilities': p.get('abilities', []),
             'form': None,
             'stats': p.get('stats', {}),
             'height_m': p.get('height_m'),
@@ -147,8 +238,29 @@ def main():
             elif ftype == 'gmax': cat = 'gmax'
             elif ftype in ('alola', 'galar', 'hisui', 'paldea', 'regional', 'variant'): cat = 'regional'
 
-            types = base_p.get('types', ['Normal'])
-            types_zh = base_p.get('types_zh', ['一般'])
+            # A FORM'S OWN TYPES, from the fetched cache. This used to be
+            # `base_p['types']` for every form, which is a copy the Mega family
+            # actively contradicts: Charizard-Mega-X is Fire/DRAGON and was drawn
+            # as Fire/Flying. 76 of the 93 mega forms share their base's types and
+            # so looked correct anyway -- which is the worst ratio for a defect of
+            # this class, because the 17 that were wrong were the interesting ones.
+            #
+            # `color` is derived from the FORM's primary type for the same reason:
+            # a node painted with its base's colour is a node whose identity is the
+            # base's, which is the mistake this whole change is about.
+            #
+            # The fallback is the base's values, and it is reached two ways -- no
+            # cache at all, or one form with no upstream entry (see
+            # fetch_form_stats.py). Both are printed above rather than silently
+            # producing a plausible-looking node.
+            own = form_stats.get(nid)
+            if own:
+                types = own['types']
+                stats = own['stats']
+            else:
+                types = base_p.get('types', ['Normal'])
+                stats = base_p.get('stats', {})
+            types_zh = [TYPE_ZH.get(t, t) for t in types]
             main_type = types[0] if types else 'Normal'
             color = type_colors.get(main_type, '#777777')
 
@@ -162,14 +274,25 @@ def main():
                 'types': types,
                 'types_zh': types_zh,
                 'color': color,
+                # NOT the form's debut generation. PokeAPI's /pokemon/{id} has no
+                # `generation` field and `game_indices` is empty for every
+                # battle-only form, so there is no source for it here and none was
+                # invented: a form node inherits its base species' generation, which
+                # is the right answer under the reading graph.js applies (the
+                # generation FILTER, "show me everything from Gen 8"). It is the
+                # wrong answer under the reading the dossier shows (Gmax Venusaur
+                # is labelled 第 1 世代), and that is a separate decision from this
+                # one because it would change what the generation filter returns.
                 'generation': base_p.get('generation', 1),
                 'category': cat,
                 'is_legendary': base_p.get('is_legendary', False),
                 'is_mythical': base_p.get('is_mythical', False),
                 'is_ultra_beast': base_p.get('is_ultra_beast', False),
                 'is_baby': False,
+                'paradox_side': None,
+                'abilities': [],
                 'form': ftype,
-                'stats': base_p.get('stats', {}),
+                'stats': stats,
                 'height_m': base_p.get('height_m'),
                 'weight_kg': base_p.get('weight_kg'),
                 'artwork': f"assets/images/pokemon/{nid}.png",
@@ -253,6 +376,80 @@ def main():
         if nid > 1025 and node.get('base_id') and node.get('category') not in ('mega', 'gmax', 'regional'):
             add_link(node['base_id'], nid, 'form', '形態變更', 1.3)
 
+    # 3F2. Intra-category networks.
+    #
+    # Every link above joins a BASE SPECIES to a FORM, so it is a cross-category
+    # edge by construction. graph.js keeps only links whose BOTH endpoints survive
+    # the active filter, so pressing 精選分類 → 超級進化 drops the parents and
+    # leaves 93 sprites with 0 links and nothing but charge -140 pushing them
+    # apart: measured 93 nodes / 0 links / 93 components. 600 族 works because its
+    # ring is intra-category; 悖謬 was 20 nodes / 8 links / 12 components because
+    # only the odd-numbered pairs existed.
+    #
+    # So each of these three families is internal to ONE category on purpose. They
+    # are the difference between a chip that filters a web and a chip that filters
+    # a pile.
+
+    # ---- paradox_pair: the Ancient / Future counterpart pairs ------------------
+    #
+    # 10 pairs, and the pairing is the games' own claim: each of these is the same
+    # ancient creature reconstructed from the other end of the timeline (the
+    # Scarlet/Violet Pokédex entries for both members name a shared book creature).
+    # Written out as a literal for the same reason the `pantheons` list below is --
+    # there is no local table that contains it, and deriving one would be a guess
+    # dressed as a computation. The guard is that `paradox_side` is copied from
+    # pokemon_data.json, so a wrong orientation here contradicts the data and
+    # check_graph_chip_network.mjs fails.
+    PARADOX_PAIRS = [
+        (984, 990), (985, 991), (986, 992), (987, 993), (988, 994), (989, 995),
+        (1005, 1006), (1009, 1010), (1020, 1022), (1021, 1023),
+    ]
+    for ancient_id, future_id in PARADOX_PAIRS:
+        add_link(ancient_id, future_id, 'paradox_pair', '古代 ↔ 未來 同源對', 1.6)
+
+    # ---- paradox_clade: each side's shared signature ability ------------------
+    #
+    # Every Ancient paradox has Protosynthesis and every Future one Quark Drive
+    # (Koraidon and Miraidon are the two exceptions and are `legendary`, not
+    # `paradox`, so they are not in this category at all). Read from `abilities`
+    # on the node rather than asserted, so a roster change cannot leave two cliques
+    # describing a split that no longer exists.
+    #
+    # STAR, not clique: 10 Ancient nodes as a clique is 45 edges that all say the
+    # same thing, and a force layout renders them as a hairball. One hub per side
+    # gives the same connectivity in 9 edges and reads as a spoke diagram.
+    for side, label in (('ancient', '古代悖謬 · 始源DNA'), ('future', '未來悖謬 · 夸克驅動')):
+        side_ids = sorted(n['id'] for n in nodes.values()
+                          if n['category'] == 'paradox' and n.get('paradox_side') == side)
+        if len(side_ids) < 2:
+            continue
+        hub = side_ids[0]
+        for other in side_ids[1:]:
+            add_link(hub, other, 'paradox_clade', label, 1.2)
+
+    # ---- mega_type: a mega form grouped by the FORM's own types ---------------
+    #
+    # A Mega Evolution's identity IS its typing -- 17 of the 93 change it, and the
+    # grouping is only meaningful because of the form's own `types`, which is what
+    # the fetch exists to provide. A star per type position, hub = lowest id, so the
+    # result is deterministic and does not depend on dict order.
+    #
+    # Value 0.7: the weakest of the three. The 600 族 ring and the pantheon clusters
+    # are lore; this is a shared property, and it is drawn thin for that reason.
+    mega_ids = sorted(n['id'] for n in nodes.values() if n['category'] == 'mega')
+    for pos in (0, 1):
+        by_type = defaultdict(list)
+        for mid in mega_ids:
+            tlist = nodes[mid].get('types') or []
+            if len(tlist) > pos:
+                by_type[tlist[pos]].append(mid)
+        for tname, group in by_type.items():
+            if len(group) < 2:
+                continue
+            hub = group[0]
+            for other in group[1:]:
+                add_link(hub, other, 'mega_type', f'超級形態 {tname} 屬性群', 0.7)
+
     # 3G. Lore Groups / Pantheon Clusters
     pantheons = [
         # 關都三聖鳥 & 洛奇亞
@@ -315,7 +512,6 @@ def main():
     add_link(pseudos[-1], pseudos[0], 'pseudo_legendary', '準傳說 600 族譜系', 1.0)
 
     # 3J. Type Resonance (Within each type, link base species into constellation rings)
-    from collections import defaultdict
     by_type = defaultdict(list)
     for p in pdata:
         pid = p['id']
@@ -372,7 +568,20 @@ def main():
                 'pantheon': sum(1 for l in links if l['type'] == 'pantheon'),
                 'starter_trio': sum(1 for l in links if l['type'] == 'starter_trio'),
                 'pseudo_legendary': sum(1 for l in links if l['type'] == 'pseudo_legendary'),
-            }
+                'paradox_pair': sum(1 for l in links if l['type'] == 'paradox_pair'),
+                'paradox_clade': sum(1 for l in links if l['type'] == 'paradox_clade'),
+                'mega_type': sum(1 for l in links if l['type'] == 'mega_type'),
+                # These two were MISSING, and the omission is where the stale
+                # "978 條" on graph.html came from: this block enumerated eight
+                # relation types whose counts sum to 978, while `total_links` is
+                # 2,523, because type_resonance (1,025) and dual_type (520) are
+                # generated here but were never counted. So the object claimed to
+                # describe the links and did not, and a reader summing it got a
+                # number that is in neither `total_links` nor anything derivable
+                # from it. Every type in `links` is now counted.
+                'type_resonance': sum(1 for l in links if l['type'] == 'type_resonance'),
+                'dual_type': sum(1 for l in links if l['type'] == 'dual_type'),
+            },
         },
         'nodes': sorted_nodes,
         'links': links

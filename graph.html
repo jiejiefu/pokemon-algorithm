@@ -52,14 +52,14 @@
   <div class="graph-loading" id="graph-loading">
     <div class="loading-spinner"></div>
     <div class="loading-text">正在構建 3D 寶可夢神經網絡宇宙...</div>
-    <div class="loading-sub">計算 1,346 顆神經元與 978 條力導向突觸引力平衡</div>
+    <div class="loading-sub">計算 1,346 顆神經元與 2,687 條力導向突觸引力平衡</div>
   </div>
 
   <!-- Top Center HUD Badge -->
   <div class="graph-title-hud">
     <div class="pulse-dot"></div>
     <h1>寶可夢三維力導向知識圖譜</h1>
-    <span class="graph-title-badge" id="graph-count-badge">1,346 實體 · 978 關係</span>
+    <span class="graph-title-badge" id="graph-count-badge">1,346 實體 · 2,687 關係</span>
   </div>
 
   <!-- Left Control Panel -->
@@ -94,6 +94,18 @@
           <button class="hud-chip" type="button" data-filter-rel="regional">地區形態</button>
           <button class="hud-chip" type="button" data-filter-rel="pantheon">神獸神話</button>
           <button class="hud-chip" type="button" data-filter-rel="starter_trio">御三家羈絆</button>
+          <!--
+            The three below are INTRA-category edges, which is the whole point of
+            them and the reason they have no chip above. `mega` is base -> mega, so
+            pressing it with no category filter active already draws a web of 93
+            edges across 1,346 nodes. `mega_type` is mega -> mega, so on its own it
+            is invisible unless the 超級進化 category chip has removed the other 1,253
+            nodes first. Two rows that look interchangeable are answering different
+            questions, and this is where that difference becomes pressable.
+          -->
+          <button class="hud-chip" type="button" data-filter-rel="paradox_pair">悖謬同源對</button>
+          <button class="hud-chip" type="button" data-filter-rel="paradox_clade">悖謬特徵群</button>
+          <button class="hud-chip" type="button" data-filter-rel="mega_type">超級形態屬性群</button>
         </div>
       </div>
 
