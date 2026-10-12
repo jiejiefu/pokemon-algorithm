@@ -92,6 +92,17 @@ const SELF = 'scripts/check_all.mjs';
  * sprite shrinks the expansion and changes the key.
  *
  * A path that no glob covers is a manifest bug, and `--prove-inputs` names it. */
+
+/* The two footer GitHub marks, as ONE constant because two `inputs` arrays
+ * declare them and a spelled-out second copy is exactly the thing that goes
+ * stale: `test_check_nav_pages.mjs` already lists them as MARK_FILES for its
+ * scratch trees, and this file declared neither, so --prove-inputs reported both
+ * entries as "read but not declared". See the check_nav_pages.mjs entry. */
+const MARK_FILES = [
+  'assets/images/github-invertocat-black.svg',
+  'assets/images/github-invertocat-white.svg',
+];
+
 const CHECKERS = [
   /* ---- cry: the synthesiser. The two most expensive things in the suite, and the
      reason this file exists: 6.0 s and 37.8 s, both re-deriving a fact about
@@ -533,14 +544,24 @@ const CHECKERS = [
   /* ---- nav and structure ---- */
   {
     /* Reads every page in the root, which is the claim: the nav is on all of them
-     * or on none. */
+     * or on none.
+     *
+     * The two GitHub marks are declared because the checker OPENS them, not
+     * because it names them: `markFill()` parses each file's own <path> and
+     * asserts every `.gh-*` class equals the colour its file actually paints.
+     * That is the assertion guarding the inverted logo that shipped once
+     * (check_nav_pages.mjs:308), so leaving the files undeclared meant an edit
+     * to either one left this entry's cache key unchanged — the checker skipped
+     * and reported green having never re-read the colour it exists to check.
+     * Found by --prove-inputs, and present on origin/main before the
+     * colors-generator rename. */
     script: 'scripts/check_nav_pages.mjs', group: 'nav',
-    inputs: ['*.html', 'assets/css/shared.css'],
+    inputs: ['*.html', 'assets/css/shared.css', ...MARK_FILES],
   },
   {
     script: 'scripts/test_check_nav_pages.mjs', checker: 'scripts/check_nav_pages.mjs', group: 'nav',
     note: 'runs the above in child trees',
-    inputs: ['*.html', 'assets/css/shared.css'],
+    inputs: ['*.html', 'assets/css/shared.css', ...MARK_FILES],
   },
   {
     script: 'scripts/check_categories.mjs', group: 'nav',
