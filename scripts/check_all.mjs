@@ -723,6 +723,12 @@ const CHECKERS = [
     inputs: [
       'graph.html',
       'assets/js/graph.js',
+      // Read for TYPE_CHART_ORDER, which the 屬性共振 button order is asserted
+      // against. Found by --prove-inputs rather than remembered: without this
+      // entry the checker is SKIPPED after type-chart.js changes, which is exactly
+      // when the assertion it exists for would need to re-run — a green run that
+      // verified nothing, which §4 calls out as strictly worse than no cache.
+      'assets/js/type-chart.js',
       'assets/data/graph_data.json',
       'data-sources/pokeapi_form_stats.json',
     ],

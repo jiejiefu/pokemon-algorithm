@@ -6,7 +6,7 @@
   <title>3D 寶可夢知識圖譜 — 三維力導向網絡圖 | 寶可夢演算法</title>
   <meta name="description" content="1,346 隻寶可夢 3D 三維力導向知識圖譜：沉浸式宇宙神經網絡空間、進化鏈、超級進化、超極巨化、地區形態與神獸神話系譜，支援節點光子流動與全息檔案。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
   <meta name="theme-color" content="#030712">
   <script>
     (function () {
@@ -84,29 +84,32 @@
         <div class="hud-section-title">
           <span>關係圖層 (RELATIONSHIP)</span>
         </div>
-        <div class="chip-grid">
+<div class="chip-grid">
           <button class="hud-chip is-active" type="button" data-filter-rel="all">全域融合網絡</button>
-          <button class="hud-chip" type="button" data-filter-rel="evolution">純進化鏈</button>
           <button class="hud-chip" type="button" data-filter-rel="type_resonance">屬性星系環</button>
           <button class="hud-chip" type="button" data-filter-rel="dual_type">雙屬性共生橋</button>
-          <button class="hud-chip" type="button" data-filter-rel="mega">超級進化</button>
-          <button class="hud-chip" type="button" data-filter-rel="gmax">超極巨化</button>
-          <button class="hud-chip" type="button" data-filter-rel="regional">地區形態</button>
+          <button class="hud-chip" type="button" data-filter-rel="regional_clade">地區型態群</button>
+          <button class="hud-chip" type="button" data-filter-rel="mega_type">超級形態屬型群</button>
+          <button class="hud-chip" type="button" data-filter-rel="evolution">純進化鏈</button>
           <button class="hud-chip" type="button" data-filter-rel="pantheon">神獸神話</button>
-          <button class="hud-chip" type="button" data-filter-rel="starter_trio">御三家羈絆</button>
           <!--
-            The three below are INTRA-category edges, which is the whole point of
-            them and the reason they have no chip above. `mega` is base -> mega, so
-            pressing it with no category filter active already draws a web of 93
-            edges across 1,346 nodes. `mega_type` is mega -> mega, so on its own it
-            is invisible unless the 超級進化 category chip has removed the other 1,253
-            nodes first. Two rows that look interchangeable are answering different
-            questions, and this is where that difference becomes pressable.
+            SEVEN, down from twelve, and the links are all still in the file.
+
+            What was cut is the chip list, not the data: 1,006 links across `mega`,
+            `gmax`, `regional`, `form`, `starter_trio`, `paradox_pair`,
+            `paradox_clade` and `pseudo_legendary` have no button of their own and
+            are drawn inside 全域融合網絡, where they were before this list existed.
+            They also remain in the dossier's 直接關聯神經元 list, which reads
+            `activeLinks` and so is unaffected by this row.
+
+            LINK COUNT IS NOT THE CRITERION, and 純進化鏈 is why: it has 484 of them
+            against 屬性星系環's 1,025, and both are buttons, while 超級進化 has 93
+            and is not. The decision behind the seven is recorded with its
+            reasoning in check_graph_chip_network.mjs's KEPT_RELATION_CHIPS, which
+            also fails if this list is edited without updating it there.
           -->
-          <button class="hud-chip" type="button" data-filter-rel="paradox_pair">悖謬同源對</button>
-          <button class="hud-chip" type="button" data-filter-rel="paradox_clade">悖謬特徵群</button>
-          <button class="hud-chip" type="button" data-filter-rel="mega_type">超級形態屬性群</button>
         </div>
+      </div>
       </div>
 
       <!-- Generation Filter -->
@@ -151,25 +154,40 @@
         <div class="hud-section-title">
           <span>屬性共振 (TYPE FOCUS)</span>
         </div>
-        <div class="type-grid">
-          <button class="hud-type-btn" type="button" data-filter-type="Grass" style="color:#78C850;">草</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Fire" style="color:#F08030;">火</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Water" style="color:#6890F0;">水</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Electric" style="color:#F8D030;">電</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Normal" style="color:#A8A878;">一般</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Ice" style="color:#98D8D8;">冰</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Fighting" style="color:#C03028;">格鬥</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Poison" style="color:#A040A0;">毒</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Ground" style="color:#E0C068;">地面</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Flying" style="color:#A890F0;">飛行</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Psychic" style="color:#F85888;">超能力</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Bug" style="color:#A8B820;">蟲</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Rock" style="color:#B8A038;">岩石</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Ghost" style="color:#705898;">幽靈</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Dragon" style="color:#7038F8;">龍</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Steel" style="color:#B8B8D0;">鋼</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Dark" style="color:#705848;">惡</button>
-          <button class="hud-type-btn" type="button" data-filter-type="Fairy" style="color:#EE99AC;">妖精</button>
+                <div class="type-grid">
+          <!--
+            The order is TYPE_CHART_ORDER from assets/js/type-chart.js -- the
+            effectiveness chart's own arrangement, 一般/格鬥/飛行/毒/地面/岩石 then
+            蟲/幽靈/鋼/火/水/草 then 電/超能力/冰/龍/惡/妖精 -- so this panel reads in
+            the same sequence as 屬性相剋表 on types.html. 18 divides by 3 exactly,
+            which is why this stays a 3-across grid; 4-across would leave a row of 2.
+
+            NO INLINE COLOUR. These 18 hex values were the THIRD copy of the same
+            table: assets/js/shared.js exports TYPE_COLORS, and scripts/
+            build_graph_data.py has its own `type_colors` for the node colours. Three
+            copies is two more than a table can have without one of them going stale
+            silently -- and a stale one here would tint a button the wrong colour with
+            nothing anywhere reporting it. graph.js sets these from TYPE_COLORS when
+            it binds the handlers, which is the one it already imports.
+          -->
+          <button class="hud-type-btn" type="button" data-filter-type="Normal">一般</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fighting">格鬥</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Flying">飛行</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Poison">毒</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ground">地面</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Rock">岩石</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Bug">蟲</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ghost">幽靈</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Steel">鋼</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fire">火</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Water">水</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Grass">草</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Electric">電</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Psychic">超能力</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Ice">冰</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Dragon">龍</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Dark">惡</button>
+          <button class="hud-type-btn" type="button" data-filter-type="Fairy">妖精</button>
         </div>
       </div>
 

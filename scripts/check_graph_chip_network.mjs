@@ -92,7 +92,7 @@ const LARGEST_FLOOR = 0.5;
 /** The two form families whose nodes cross-check against the fetch cache.
  *  Declared here rather than next to its one use so the SKIP branch above, which
  *  runs BEFORE the cross-check, can still report how many nodes went unchecked. */
-const FORM_FAMILIES = new Set(['mega', 'gmax']);
+const FORM_FAMILIES = new Set(['mega', 'gmax', 'regional']);
 
 /** Strip comments before scanning source or markup for structure.
  *
@@ -272,12 +272,125 @@ const metaSum = Object.values(data.metadata.link_types).reduce((a, b) => a + b, 
 eq(metaSum, data.metadata.total_links,
   'metadata.link_types does not sum to metadata.total_links -- the object claims to describe the links and does not');
 
+console.log('\nrelation chips (every 關係圖層 chip must be able to draw something)');
+
+/* THE KEPT LIST IS A LIST, NOT A THRESHOLD, and the first draft of this section was
+ * wrong about that in a way its own output proved.
+ *
+ * It asserted a floor on the largest connected component and picked 10, reasoning
+ * that 純進化鏈 (largest 9) was kept and 超級進化 (largest 4) was dropped. Measured
+ * against the decision that was actually made, the floor is not satisfied by the
+ * decision: `form` has a 15-node mass and NO chip, while 純進化鏈 has 9 and one, so
+ * a threshold cannot separate them without being tuned until it happens to.
+ *
+ * A threshold tuned until it passes the answer is §3.F's failure in a new costume --
+ * a bound that hides whatever it is pointed at. So this pins the DECISION and
+ * records why each chip earned it, which is the thing a later edit actually needs to
+ * re-argue.
+ *
+ * THE TWO REASONS ARE GENUINELY DIFFERENT, which is why no single number covers
+ * them:
+ *
+ *   A. The chip draws a share of the whole scene. 屬性星系環 touches 1,025 of 1,346
+ *      nodes; 雙屬性共生橋 637; 純進化鏈 824. Whatever the component shape, pressing
+ *      it redraws most of the graph.
+ *   B. The chip names a category the reader can also reach through a 精選分類 chip
+ *      that is ITSELF a single connected network. 超級形態屬型群 and 地區型態群 are
+ *      mega -> mega and regional -> regional; 悖謬特徵群 is one of the two families
+ *      behind the 悖謬寶可夢 chip, which measures 20 nodes / 36 edges / 1 component.
+ *      So a reader who wants that structure has a button that shows it cleanly.
+ *
+ * 御三家羈絆, 超級進化, 超極巨化 and the bare `regional` edge are reason C: 2-4 node
+ * groups with neither property. Their links are all still in graph_data.json and
+ * still drawn by 全域融合網絡 -- what was removed is the button, not the data. */
+const KEPT_RELATION_CHIPS = {
+  all: 'the default: every link type at once',
+  type_resonance: 'A — 1,025 of 1,346 nodes touched, 17 rings of >= 10',
+  dual_type: 'A — 637 nodes touched, 12 trees of >= 10',
+  mega_type: 'B — mega -> mega; the 超級進化 category chip is 93n / 136e / 1 component',
+  regional_clade: 'B — regional -> regional; the 地區形態 chip is 54n / 107e / 1 component',
+  evolution: 'A — 824 nodes touched, 484 edges; kept on the reader\'s call despite a largest component of 9',
+  pantheon: 'A — 136 edges over 72 nodes in 19 lore clusters, largest 11',
+};
+/* Link types with no chip, and what a reader gets instead. Asserted so that ADDING a
+ * chip is a deliberate edit here rather than something that appears in graph.html
+ * with no argument attached. */
+const UNCHIPPED_RELATIONS = {
+  mega: 'groups of 2 — reachable through the 超級進化 category chip',
+  gmax: 'groups of 2 — no category chip reaches it; the one known gap, §3.V',
+  regional: 'groups of 3 — reachable through the 地區形態 category chip',
+  form: 'groups of <= 4, and the group is a catch-all (Oricorio, Minior, Greninja-Ash, Zygarde-Complete, Pikachu-Cap share one type)',
+  starter_trio: 'nine triangles of 3',
+  paradox_pair: 'ten pairs — reachable through the 悖謬寶可夢 category chip',
+  paradox_clade: 'B, but it is already drawn by the 悖謬寶可夢 category chip, so a second button would be a second way to say it',
+  pseudo_legendary: 'B, but it is already drawn by the 600 族 category chip',
+};
+
+eq([...relChips].sort(), Object.keys(KEPT_RELATION_CHIPS).sort(),
+  'graph.html\'s relation chip list has drifted from KEPT_RELATION_CHIPS — adding or removing a button is a decision, so it belongs in this file');
+
+for (const [ltype, reason] of Object.entries(UNCHIPPED_RELATIONS)) {
+  ok(!relChips.includes(ltype),
+    `"${ltype}" has a chip again (${reason}) — update KEPT_RELATION_CHIPS with the argument for it`);
+  ok(data.links.some((l) => l.type === ltype),
+    `link type "${ltype}" has no chip AND no links — it was dropped rather than deferred, which is not what UNCHIPPED_RELATIONS says`);
+}
+for (const [ltype, reason] of Object.entries(KEPT_RELATION_CHIPS)) {
+  ok(typeof reason === 'string' && reason.length > 12,
+    `KEPT_RELATION_CHIPS["${ltype}"] has no written reason — a chip kept without one is a chip nobody re-argues`);
+}
+
+/* And every chip, kept or not, must do something on the FIRST press. */
+for (const ltype of relChips) {
+  if (ltype === 'all') continue;
+  const n = data.links.filter((l) => l.type === ltype).length;
+  ok(n > 0, `relation chip "${ltype}" has 0 links of its type in the graph — the button highlights and changes nothing`);
+}
+
+console.log('\ntoggle (pressing a row\'s active chip again returns it to 全部)');
+
+/* Every filter row toggles, and the three rows that did not are the defect this
+ * pins. 屬性共振 had it from the start; 世代劃分 / 關係圖層 / 精選分類 each had their
+ * own copy of "strip is-active, add is-active, assign, apply" and no way back. */
+const jsClean = maskJsComments(js);
+const FILTER_ATTRS = ['data-filter-gen', 'data-filter-rel', 'data-filter-cat', 'data-filter-type'];
+for (const attr of FILTER_ATTRS) {
+  ok(jsClean.includes(`bindFilterRow('${attr}'`),
+    `graph.js no longer binds ${attr} through bindFilterRow() -- the toggle is the shared helper's whole job, so a bespoke handler means the row stopped toggling`);
+}
+ok(jsClean.includes('const bindFilterRow = (attr, noFilter, get, set)'),
+  'graph.js no longer declares the shared bindFilterRow helper');
+ok(!/style="color:#/i.test(html),
+  'graph.html has an inline type colour again -- those 18 hex values are a third copy of shared.js TYPE_COLORS');
+
+/* The type buttons must appear in the effectiveness chart's order. Read OUT of
+ * type-chart.js, which is the generated single source of truth (§3.D), so a
+ * re-extraction that reorders the table reorders the panel with no edit here.
+ *
+ * Parsed as an array of quoted strings rather than JSON.parse'd: the export is
+ * JavaScript with single quotes and a trailing comment, so JSON.parse answers
+ * "Unexpected token '''" -- which is a parse error here and, had it been inside a
+ * try, a silently skipped assertion. */
+const chartSrc = readFileSync(join(BASE, 'assets/js/type-chart.js'), 'utf8');
+const orderBlock = chartSrc.match(/export const TYPE_CHART_ORDER\s*=\s*\[([\s\S]*?)\]/);
+ok(Boolean(orderBlock), 'assets/js/type-chart.js no longer exports TYPE_CHART_ORDER as an array literal');
+const chartOrder = orderBlock
+  ? [...orderBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
+  : [];
+const typeBtnOrder = [...html.matchAll(/data-filter-type="([^"]*)"[^>]*>([^<]*)</g)].map((m) => [m[1], m[2].trim()]);
+eq(typeBtnOrder.map(([t]) => t), chartOrder,
+  'graph.html\'s 屬性共振 buttons are not in TYPE_CHART_ORDER (assets/js/type-chart.js) order');
+eq(typeBtnOrder.length, 18, `graph.html should declare exactly 18 type buttons, found ${typeBtnOrder.length}`);
+for (const [t, label] of typeBtnOrder) {
+  ok(label.length > 0, `the 屬性共振 button for "${t}" has no visible label`);
+}
+
 console.log('\nintra-category families (the fix itself: these edges must stay internal)');
 
 /* The three families that make the chips work. If one of them ever links across
  * categories, the chip it serves goes back to a pile -- and that is invisible in
  * review, because the link itself looks perfectly reasonable. */
-for (const ltype of ['paradox_pair', 'paradox_clade', 'mega_type']) {
+for (const ltype of ['paradox_pair', 'paradox_clade', 'mega_type', 'regional_clade']) {
   const ofType = data.links.filter((l) => l.type === ltype);
   ok(ofType.length > 0, `no "${ltype}" links in the graph at all`);
   const crossing = ofType.filter((l) => nodesById.get(l.source).category !== nodesById.get(l.target).category);
@@ -317,6 +430,55 @@ const megaTyped = new Set(data.links.filter((l) => l.type === 'mega_type').flatM
 const orphanedMegas = megaNodes.filter((n) => !megaTyped.has(n.id));
 ok(orphanedMegas.length === 0,
   `${orphanedMegas.length} mega form(s) are in no mega_type edge and stay isolated when the chip is pressed: ${orphanedMegas.slice(0, 5).map((n) => n.name).join(', ')}`);
+
+/* 地區形態: the same two questions, and the first one is about a FIELD.
+ *
+ * `region` is alola / galar / hisui / paldea, and it was not a field at all until
+ * this change: build_graph_data.py's walk over `variants` passed the literal
+ * 'regional' where the key was in hand, so all 54 nodes reported the same thing
+ * and the four regions were invisible in the graph even though evolution_chains.
+ * json names them. The four stars above are built from this column, so a node that
+ * lost it is a node that dropped out of a chip with no error anywhere. */
+const REGIONS = ['alola', 'galar', 'hisui', 'paldea'];
+const regionalNodes = data.nodes.filter((n) => n.category === 'regional');
+const regionless = regionalNodes.filter((n) => !REGIONS.includes(n.region));
+ok(regionless.length === 0,
+  `${regionless.length} regional form(s) carry no region field (${regionless.slice(0, 5).map((n) => n.name).join(', ')}), so they are in no 地區系群 edge`);
+
+const byRegion = new Map();
+for (const n of regionalNodes) {
+  if (!byRegion.has(n.region)) byRegion.set(n.region, []);
+  byRegion.get(n.region).push(n.id);
+}
+ok(byRegion.size === 4, `expected 4 regions among the ${regionalNodes.length} regional forms, found ${[...byRegion.keys()].join(', ')}`);
+
+const regionalTouched = new Set(
+  data.links.filter((l) => l.type === 'regional_clade').flatMap((l) => [l.source, l.target])
+);
+const strandedRegional = regionalNodes.filter((n) => !regionalTouched.has(n.id));
+ok(strandedRegional.length === 0,
+  `${strandedRegional.length} regional form(s) are in no regional_clade edge: ${strandedRegional.slice(0, 5).map((n) => n.name).join(', ')}`);
+
+/* Every region of two or more must be a STAR whose hub is its LOWEST id -- the
+ * choice is the reader's (deterministic over prettiest), so the checker pins the
+ * choice rather than re-deciding it. Paldea has one member and therefore must emit
+ * no hub edge at all: a 1-node group is not a group, and inventing a self-loop is
+ * the shape `add_link` refuses for exactly this reason. */
+for (const [region, ids] of byRegion) {
+  const sorted = [...ids].sort((a, b) => a - b);
+  if (sorted.length < 2) {
+    ok(!data.links.some((l) => l.type === 'regional_clade' && l.source === sorted[0]),
+      `region "${region}" has a single member (#${sorted[0]}) but emits a hub edge`);
+    continue;
+  }
+  const hub = sorted[0];
+  for (const other of sorted.slice(1)) {
+    const linked = data.links.some(
+      (l) => l.type === 'regional_clade'
+        && ((l.source === hub && l.target === other) || (l.source === other && l.target === hub)));
+    ok(linked, `#${other} (${region}) is not linked to its region hub #${hub} — the hub must be the region's lowest id`);
+  }
+}
 
 console.log('\nform nodes carry their own types and stats');
 
@@ -363,7 +525,11 @@ if (!formCache) {
     }
   }
   ok(statsMismatch === 0, `${statsMismatch} form node(s) do not carry the base stat total fetch_form_stats.py fetched`);
-  ok(checked > 120, `only ${checked} form nodes were compared against the fetch cache; expected 126`);
+  /* 180 of 181. The threshold is a floor, not the answer: it is here so that a
+   * partially-failing fetch (PokeAPI under load, a region key renamed) reports
+   * how few it got rather than passing on whatever arrived. `notFound` below
+   * pins the exact one that is legitimately absent. */
+  ok(checked > 175, `only ${checked} form nodes were compared against the fetch cache; expected 180`);
 
   /* The one form PokeAPI does not have. Pinned as a literal because the alternative
    * is a set that grows silently: fetch_form_stats.py already reports it, but a

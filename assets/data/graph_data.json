@@ -1,7 +1,7 @@
 {
   "metadata": {
     "total_nodes": 1346,
-    "total_links": 2687,
+    "total_links": 2794,
     "generations": 9,
     "categories": {
       "standard": 770,
@@ -28,6 +28,7 @@
       "paradox_pair": 10,
       "paradox_clade": 18,
       "mega_type": 136,
+      "regional_clade": 107,
       "type_resonance": 1025,
       "dual_type": 520
     }
@@ -43493,6 +43494,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43531,6 +43533,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43569,6 +43572,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43609,6 +43613,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -43649,6 +43654,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -43687,6 +43693,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -43727,6 +43734,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 150,
@@ -43767,6 +43775,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43807,6 +43816,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43847,6 +43857,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43887,6 +43898,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43927,6 +43939,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 50,
@@ -43965,6 +43978,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -44003,6 +44017,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -44041,6 +44056,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -44079,6 +44095,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -44117,6 +44134,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 105,
@@ -44157,6 +44175,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -44195,6 +44214,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 79,
@@ -44235,6 +44255,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 79,
@@ -44275,6 +44296,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 89,
@@ -44315,6 +44337,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 125,
@@ -44355,6 +44378,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 125,
@@ -44395,6 +44419,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 91,
@@ -44433,6 +44458,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 74,
@@ -44473,6 +44499,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -44513,6 +44540,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 49,
@@ -44553,6 +44581,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 49,
@@ -44593,6 +44622,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 49,
@@ -44633,6 +44663,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 65,
@@ -44673,6 +44704,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 65,
@@ -44713,6 +44745,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 65,
@@ -44753,6 +44786,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -44793,6 +44827,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 78,
@@ -44833,6 +44868,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 78,
@@ -44871,6 +44907,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 79,
@@ -44909,6 +44946,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 55,
@@ -44949,6 +44987,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -44987,6 +45026,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 105,
@@ -45027,6 +45067,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -45067,6 +45108,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 95,
@@ -45107,6 +45149,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -45147,6 +45190,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 106,
@@ -45185,6 +45229,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 106,
@@ -45225,6 +45270,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 90,
@@ -45265,6 +45311,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -45305,6 +45352,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -45345,6 +45393,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -45385,6 +45434,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 100,
@@ -45425,6 +45475,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -45465,6 +45516,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 68,
@@ -45505,6 +45557,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 50,
@@ -45543,6 +45596,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -45583,6 +45637,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -45621,6 +45676,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -45659,6 +45715,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 64,
@@ -45697,6 +45754,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -45737,6 +45795,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 108,
@@ -45777,6 +45836,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -45817,6 +45877,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 90,
@@ -45855,6 +45916,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 54,
@@ -45895,6 +45957,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -45935,6 +45998,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -45975,6 +46039,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 100,
@@ -46015,6 +46080,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -46055,6 +46121,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 50,
@@ -46095,6 +46162,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -46135,6 +46203,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 68,
@@ -46175,6 +46244,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 103,
@@ -46215,6 +46285,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -46255,6 +46326,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 95,
@@ -46295,6 +46367,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -46335,6 +46408,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 83,
@@ -46373,6 +46447,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -46413,6 +46488,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 50,
@@ -46453,6 +46529,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -46491,6 +46568,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "primal",
       "stats": {
         "hp": 100,
@@ -46529,6 +46607,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "primal",
       "stats": {
         "hp": 100,
@@ -46569,6 +46648,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 105,
@@ -46607,6 +46687,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46645,6 +46726,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46683,6 +46765,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46721,6 +46804,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46759,6 +46843,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46797,6 +46882,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 35,
@@ -46837,6 +46923,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 80,
@@ -46877,6 +46964,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -46917,6 +47005,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -46957,6 +47046,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 95,
@@ -46997,6 +47087,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -47021,12 +47112,14 @@
       "name_ja": "コラッタ",
       "slug": "rattata",
       "types": [
+        "Dark",
         "Normal"
       ],
       "types_zh": [
+        "惡",
         "一般"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47035,6 +47128,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 30,
@@ -47059,12 +47153,14 @@
       "name_ja": "ラッタ",
       "slug": "raticate",
       "types": [
+        "Dark",
         "Normal"
       ],
       "types_zh": [
+        "惡",
         "一般"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47073,14 +47169,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
-        "hp": 55,
-        "attack": 81,
-        "defense": 60,
-        "sp_attack": 50,
-        "sp_defense": 70,
-        "speed": 97,
+        "hp": 75,
+        "attack": 71,
+        "defense": 70,
+        "sp_attack": 40,
+        "sp_defense": 80,
+        "speed": 77,
         "total": 413
       },
       "height_m": 0.7,
@@ -47111,6 +47208,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 55,
@@ -47149,6 +47247,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -47187,6 +47286,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -47225,6 +47325,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -47263,6 +47364,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -47301,6 +47403,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -47339,6 +47442,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 35,
@@ -47363,10 +47467,12 @@
       "name_ja": "ライチュウ",
       "slug": "raichu",
       "types": [
-        "Electric"
+        "Electric",
+        "Psychic"
       ],
       "types_zh": [
-        "電"
+        "電",
+        "超能力"
       ],
       "color": "#F8D030",
       "generation": 1,
@@ -47377,13 +47483,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 60,
-        "attack": 90,
-        "defense": 55,
-        "sp_attack": 90,
-        "sp_defense": 80,
+        "attack": 85,
+        "defense": 50,
+        "sp_attack": 95,
+        "sp_defense": 85,
         "speed": 110,
         "total": 485
       },
@@ -47401,12 +47508,14 @@
       "name_ja": "サンド",
       "slug": "sandshrew",
       "types": [
-        "Ground"
+        "Ice",
+        "Steel"
       ],
       "types_zh": [
-        "地面"
+        "冰",
+        "鋼"
       ],
-      "color": "#E0C068",
+      "color": "#98D8D8",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47415,13 +47524,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 50,
         "attack": 75,
-        "defense": 85,
-        "sp_attack": 20,
-        "sp_defense": 30,
+        "defense": 90,
+        "sp_attack": 10,
+        "sp_defense": 35,
         "speed": 40,
         "total": 300
       },
@@ -47439,12 +47549,14 @@
       "name_ja": "サンドパン",
       "slug": "sandslash",
       "types": [
-        "Ground"
+        "Ice",
+        "Steel"
       ],
       "types_zh": [
-        "地面"
+        "冰",
+        "鋼"
       ],
-      "color": "#E0C068",
+      "color": "#98D8D8",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47453,13 +47565,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 75,
         "attack": 100,
-        "defense": 110,
-        "sp_attack": 45,
-        "sp_defense": 55,
+        "defense": 120,
+        "sp_attack": 25,
+        "sp_defense": 65,
         "speed": 65,
         "total": 450
       },
@@ -47477,12 +47590,12 @@
       "name_ja": "ロコン",
       "slug": "vulpix",
       "types": [
-        "Fire"
+        "Ice"
       ],
       "types_zh": [
-        "火"
+        "冰"
       ],
-      "color": "#F08030",
+      "color": "#98D8D8",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47491,6 +47604,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 38,
@@ -47515,12 +47629,14 @@
       "name_ja": "キュウコン",
       "slug": "ninetales",
       "types": [
-        "Fire"
+        "Ice",
+        "Fairy"
       ],
       "types_zh": [
-        "火"
+        "冰",
+        "妖精"
       ],
-      "color": "#F08030",
+      "color": "#98D8D8",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47529,14 +47645,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 73,
-        "attack": 76,
+        "attack": 67,
         "defense": 75,
         "sp_attack": 81,
         "sp_defense": 100,
-        "speed": 100,
+        "speed": 109,
         "total": 505
       },
       "height_m": 1.1,
@@ -47553,10 +47670,12 @@
       "name_ja": "ヂィグダ",
       "slug": "diglett",
       "types": [
-        "Ground"
+        "Ground",
+        "Steel"
       ],
       "types_zh": [
-        "地面"
+        "地面",
+        "鋼"
       ],
       "color": "#E0C068",
       "generation": 1,
@@ -47567,14 +47686,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 10,
         "attack": 55,
-        "defense": 25,
+        "defense": 30,
         "sp_attack": 35,
         "sp_defense": 45,
-        "speed": 95,
+        "speed": 90,
         "total": 265
       },
       "height_m": 0.2,
@@ -47591,10 +47711,12 @@
       "name_ja": "ダグトリオ",
       "slug": "dugtrio",
       "types": [
-        "Ground"
+        "Ground",
+        "Steel"
       ],
       "types_zh": [
-        "地面"
+        "地面",
+        "鋼"
       ],
       "color": "#E0C068",
       "generation": 1,
@@ -47605,14 +47727,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 35,
         "attack": 100,
-        "defense": 50,
+        "defense": 60,
         "sp_attack": 50,
         "sp_defense": 70,
-        "speed": 120,
+        "speed": 110,
         "total": 425
       },
       "height_m": 0.7,
@@ -47629,12 +47752,12 @@
       "name_ja": "ニャース",
       "slug": "meowth",
       "types": [
-        "Normal"
+        "Dark"
       ],
       "types_zh": [
-        "一般"
+        "惡"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47643,12 +47766,13 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 40,
-        "attack": 45,
+        "attack": 35,
         "defense": 35,
-        "sp_attack": 40,
+        "sp_attack": 50,
         "sp_defense": 40,
         "speed": 90,
         "total": 290
@@ -47667,12 +47791,12 @@
       "name_ja": "ペルシアン",
       "slug": "persian",
       "types": [
-        "Normal"
+        "Dark"
       ],
       "types_zh": [
-        "一般"
+        "惡"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47681,12 +47805,13 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 65,
-        "attack": 70,
+        "attack": 60,
         "defense": 60,
-        "sp_attack": 65,
+        "sp_attack": 75,
         "sp_defense": 65,
         "speed": 115,
         "total": 440
@@ -47706,11 +47831,11 @@
       "slug": "geodude",
       "types": [
         "Rock",
-        "Ground"
+        "Electric"
       ],
       "types_zh": [
         "岩石",
-        "地面"
+        "電"
       ],
       "color": "#B8A038",
       "generation": 1,
@@ -47721,6 +47846,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 40,
@@ -47746,11 +47872,11 @@
       "slug": "graveler",
       "types": [
         "Rock",
-        "Ground"
+        "Electric"
       ],
       "types_zh": [
         "岩石",
-        "地面"
+        "電"
       ],
       "color": "#B8A038",
       "generation": 1,
@@ -47761,6 +47887,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 55,
@@ -47786,11 +47913,11 @@
       "slug": "golem",
       "types": [
         "Rock",
-        "Ground"
+        "Electric"
       ],
       "types_zh": [
         "岩石",
-        "地面"
+        "電"
       ],
       "color": "#B8A038",
       "generation": 1,
@@ -47801,6 +47928,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 80,
@@ -47825,10 +47953,12 @@
       "name_ja": "ベトベター",
       "slug": "grimer",
       "types": [
-        "Poison"
+        "Poison",
+        "Dark"
       ],
       "types_zh": [
-        "毒"
+        "毒",
+        "惡"
       ],
       "color": "#A040A0",
       "generation": 1,
@@ -47839,6 +47969,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 80,
@@ -47863,10 +47994,12 @@
       "name_ja": "ベトベトン",
       "slug": "muk",
       "types": [
-        "Poison"
+        "Poison",
+        "Dark"
       ],
       "types_zh": [
-        "毒"
+        "毒",
+        "惡"
       ],
       "color": "#A040A0",
       "generation": 1,
@@ -47877,6 +48010,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 105,
@@ -47902,11 +48036,11 @@
       "slug": "exeggutor",
       "types": [
         "Grass",
-        "Psychic"
+        "Dragon"
       ],
       "types_zh": [
         "草",
-        "超能力"
+        "龍"
       ],
       "color": "#78C850",
       "generation": 1,
@@ -47917,14 +48051,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 95,
-        "attack": 95,
+        "attack": 105,
         "defense": 85,
         "sp_attack": 125,
         "sp_defense": 75,
-        "speed": 55,
+        "speed": 45,
         "total": 530
       },
       "height_m": 2.0,
@@ -47941,12 +48076,14 @@
       "name_ja": "ガラガラ",
       "slug": "marowak",
       "types": [
-        "Ground"
+        "Fire",
+        "Ghost"
       ],
       "types_zh": [
-        "地面"
+        "火",
+        "幽靈"
       ],
-      "color": "#E0C068",
+      "color": "#F08030",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -47955,6 +48092,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "alola",
       "form": "regional",
       "stats": {
         "hp": 60,
@@ -47995,6 +48133,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 72,
@@ -48035,6 +48174,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 72,
@@ -48075,6 +48215,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 108,
@@ -48115,6 +48256,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 108,
@@ -48155,6 +48297,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 108,
@@ -48193,6 +48336,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 88,
@@ -48233,6 +48377,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 77,
@@ -48273,6 +48418,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -48313,6 +48459,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -48353,6 +48500,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -48391,6 +48539,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -48429,6 +48578,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 45,
@@ -48467,6 +48617,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 70,
@@ -48507,6 +48658,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 68,
@@ -48547,6 +48699,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48587,6 +48740,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48627,6 +48781,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48667,6 +48822,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48707,6 +48863,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48747,6 +48904,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48787,6 +48945,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48827,6 +48986,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48867,6 +49027,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48907,6 +49068,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48947,6 +49109,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -48987,6 +49150,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -49027,6 +49191,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -49067,6 +49232,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 55,
@@ -49107,6 +49273,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 55,
@@ -49147,6 +49314,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 55,
@@ -49187,6 +49355,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 75,
@@ -49227,6 +49396,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 80,
@@ -49265,6 +49435,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -49303,6 +49474,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 60,
@@ -49343,6 +49515,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 60,
@@ -49381,6 +49554,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 45,
@@ -49419,6 +49593,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -49459,6 +49634,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 68,
@@ -49499,6 +49675,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "totem",
       "stats": {
         "hp": 65,
@@ -49537,6 +49714,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 97,
@@ -49575,6 +49753,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 97,
@@ -49613,6 +49792,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 97,
@@ -49651,6 +49831,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -49689,6 +49870,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 55,
@@ -49727,6 +49909,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "cap",
       "stats": {
         "hp": 35,
@@ -49751,12 +49934,12 @@
       "name_ja": "ニャース",
       "slug": "meowth",
       "types": [
-        "Normal"
+        "Steel"
       ],
       "types_zh": [
-        "一般"
+        "鋼"
       ],
-      "color": "#A8A878",
+      "color": "#B8B8D0",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49765,14 +49948,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
-        "hp": 40,
-        "attack": 45,
-        "defense": 35,
+        "hp": 50,
+        "attack": 65,
+        "defense": 55,
         "sp_attack": 40,
         "sp_defense": 40,
-        "speed": 90,
+        "speed": 40,
         "total": 290
       },
       "height_m": 0.4,
@@ -49789,12 +49973,12 @@
       "name_ja": "ポニータ",
       "slug": "ponyta",
       "types": [
-        "Fire"
+        "Psychic"
       ],
       "types_zh": [
-        "火"
+        "超能力"
       ],
-      "color": "#F08030",
+      "color": "#F85888",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49803,6 +49987,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 50,
@@ -49827,12 +50012,14 @@
       "name_ja": "ギャロップ",
       "slug": "rapidash",
       "types": [
-        "Fire"
+        "Psychic",
+        "Fairy"
       ],
       "types_zh": [
-        "火"
+        "超能力",
+        "妖精"
       ],
-      "color": "#F08030",
+      "color": "#F85888",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49841,6 +50028,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 65,
@@ -49865,14 +50053,12 @@
       "name_ja": "ヤドン",
       "slug": "slowpoke",
       "types": [
-        "Water",
         "Psychic"
       ],
       "types_zh": [
-        "水",
         "超能力"
       ],
-      "color": "#6890F0",
+      "color": "#F85888",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49881,6 +50067,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 90,
@@ -49905,14 +50092,14 @@
       "name_ja": "ヤドラン",
       "slug": "slowbro",
       "types": [
-        "Water",
+        "Poison",
         "Psychic"
       ],
       "types_zh": [
-        "水",
+        "毒",
         "超能力"
       ],
-      "color": "#6890F0",
+      "color": "#A040A0",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49921,13 +50108,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 95,
-        "attack": 75,
-        "defense": 110,
+        "attack": 100,
+        "defense": 95,
         "sp_attack": 100,
-        "sp_defense": 80,
+        "sp_defense": 70,
         "speed": 30,
         "total": 490
       },
@@ -49945,14 +50133,12 @@
       "name_ja": "カモネギ",
       "slug": "farfetchd",
       "types": [
-        "Normal",
-        "Flying"
+        "Fighting"
       ],
       "types_zh": [
-        "一般",
-        "飛行"
+        "格鬥"
       ],
-      "color": "#A8A878",
+      "color": "#C03028",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -49961,14 +50147,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 52,
-        "attack": 90,
+        "attack": 95,
         "defense": 55,
         "sp_attack": 58,
         "sp_defense": 62,
-        "speed": 60,
+        "speed": 55,
         "total": 377
       },
       "height_m": 0.8,
@@ -49985,10 +50172,12 @@
       "name_ja": "マタドカース",
       "slug": "weezing",
       "types": [
-        "Poison"
+        "Poison",
+        "Fairy"
       ],
       "types_zh": [
-        "毒"
+        "毒",
+        "妖精"
       ],
       "color": "#A040A0",
       "generation": 1,
@@ -49999,6 +50188,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 65,
@@ -50023,14 +50213,14 @@
       "name_ja": "バリヤード",
       "slug": "mr-mime",
       "types": [
-        "Psychic",
-        "Fairy"
+        "Ice",
+        "Psychic"
       ],
       "types_zh": [
-        "超能力",
-        "妖精"
+        "冰",
+        "超能力"
       ],
-      "color": "#F85888",
+      "color": "#98D8D8",
       "generation": 1,
       "category": "regional",
       "is_legendary": false,
@@ -50039,14 +50229,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
-        "hp": 40,
-        "attack": 45,
+        "hp": 50,
+        "attack": 65,
         "defense": 65,
-        "sp_attack": 100,
-        "sp_defense": 120,
-        "speed": 90,
+        "sp_attack": 90,
+        "sp_defense": 90,
+        "speed": 100,
         "total": 460
       },
       "height_m": 1.3,
@@ -50063,14 +50254,14 @@
       "name_ja": "フリーザー",
       "slug": "articuno",
       "types": [
-        "Ice",
+        "Psychic",
         "Flying"
       ],
       "types_zh": [
-        "冰",
+        "超能力",
         "飛行"
       ],
-      "color": "#98D8D8",
+      "color": "#F85888",
       "generation": 1,
       "category": "regional",
       "is_legendary": true,
@@ -50079,14 +50270,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 90,
         "attack": 85,
-        "defense": 100,
-        "sp_attack": 95,
-        "sp_defense": 125,
-        "speed": 85,
+        "defense": 85,
+        "sp_attack": 125,
+        "sp_defense": 100,
+        "speed": 95,
         "total": 580
       },
       "height_m": 1.7,
@@ -50103,14 +50295,14 @@
       "name_ja": "サンダー",
       "slug": "zapdos",
       "types": [
-        "Electric",
+        "Fighting",
         "Flying"
       ],
       "types_zh": [
-        "電",
+        "格鬥",
         "飛行"
       ],
-      "color": "#F8D030",
+      "color": "#C03028",
       "generation": 1,
       "category": "regional",
       "is_legendary": true,
@@ -50119,12 +50311,13 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 90,
-        "attack": 90,
-        "defense": 85,
-        "sp_attack": 125,
+        "attack": 125,
+        "defense": 90,
+        "sp_attack": 85,
         "sp_defense": 90,
         "speed": 100,
         "total": 580
@@ -50143,14 +50336,14 @@
       "name_ja": "ファイヤー",
       "slug": "moltres",
       "types": [
-        "Fire",
+        "Dark",
         "Flying"
       ],
       "types_zh": [
-        "火",
+        "惡",
         "飛行"
       ],
-      "color": "#F08030",
+      "color": "#705848",
       "generation": 1,
       "category": "regional",
       "is_legendary": true,
@@ -50159,13 +50352,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 90,
-        "attack": 100,
+        "attack": 85,
         "defense": 90,
-        "sp_attack": 125,
-        "sp_defense": 85,
+        "sp_attack": 100,
+        "sp_defense": 125,
         "speed": 90,
         "total": 580
       },
@@ -50183,14 +50377,14 @@
       "name_ja": "ヤドキング",
       "slug": "slowking",
       "types": [
-        "Water",
+        "Poison",
         "Psychic"
       ],
       "types_zh": [
-        "水",
+        "毒",
         "超能力"
       ],
-      "color": "#6890F0",
+      "color": "#A040A0",
       "generation": 2,
       "category": "regional",
       "is_legendary": false,
@@ -50199,12 +50393,13 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 95,
-        "attack": 75,
+        "attack": 65,
         "defense": 80,
-        "sp_attack": 100,
+        "sp_attack": 110,
         "sp_defense": 110,
         "speed": 30,
         "total": 490
@@ -50223,14 +50418,12 @@
       "name_ja": "サニーゴ",
       "slug": "corsola",
       "types": [
-        "Water",
-        "Rock"
+        "Ghost"
       ],
       "types_zh": [
-        "水",
-        "岩石"
+        "幽靈"
       ],
-      "color": "#6890F0",
+      "color": "#705898",
       "generation": 2,
       "category": "regional",
       "is_legendary": false,
@@ -50239,14 +50432,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
-        "hp": 65,
+        "hp": 60,
         "attack": 55,
-        "defense": 95,
+        "defense": 100,
         "sp_attack": 65,
-        "sp_defense": 95,
-        "speed": 35,
+        "sp_defense": 100,
+        "speed": 30,
         "total": 410
       },
       "height_m": 0.6,
@@ -50263,12 +50457,14 @@
       "name_ja": "ジグザグマ",
       "slug": "zigzagoon",
       "types": [
+        "Dark",
         "Normal"
       ],
       "types_zh": [
+        "惡",
         "一般"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 3,
       "category": "regional",
       "is_legendary": false,
@@ -50277,6 +50473,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 38,
@@ -50301,12 +50498,14 @@
       "name_ja": "マッスグマ",
       "slug": "linoone",
       "types": [
+        "Dark",
         "Normal"
       ],
       "types_zh": [
+        "惡",
         "一般"
       ],
-      "color": "#A8A878",
+      "color": "#705848",
       "generation": 3,
       "category": "regional",
       "is_legendary": false,
@@ -50315,6 +50514,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 78,
@@ -50339,12 +50539,12 @@
       "name_ja": "ダルマッカ",
       "slug": "darumaka",
       "types": [
-        "Fire"
+        "Ice"
       ],
       "types_zh": [
-        "火"
+        "冰"
       ],
-      "color": "#F08030",
+      "color": "#98D8D8",
       "generation": 5,
       "category": "regional",
       "is_legendary": false,
@@ -50353,6 +50553,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 70,
@@ -50391,6 +50592,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 105,
@@ -50429,6 +50631,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 105,
@@ -50453,12 +50656,14 @@
       "name_ja": "デスマス",
       "slug": "yamask",
       "types": [
+        "Ground",
         "Ghost"
       ],
       "types_zh": [
+        "地面",
         "幽靈"
       ],
-      "color": "#705898",
+      "color": "#E0C068",
       "generation": 5,
       "category": "regional",
       "is_legendary": false,
@@ -50467,12 +50672,13 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 38,
-        "attack": 30,
+        "attack": 55,
         "defense": 85,
-        "sp_attack": 55,
+        "sp_attack": 30,
         "sp_defense": 65,
         "speed": 30,
         "total": 303
@@ -50492,11 +50698,11 @@
       "slug": "stunfisk",
       "types": [
         "Ground",
-        "Electric"
+        "Steel"
       ],
       "types_zh": [
         "地面",
-        "電"
+        "鋼"
       ],
       "color": "#E0C068",
       "generation": 5,
@@ -50507,13 +50713,14 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "galar",
       "form": "regional",
       "stats": {
         "hp": 109,
-        "attack": 66,
-        "defense": 84,
-        "sp_attack": 81,
-        "sp_defense": 99,
+        "attack": 81,
+        "defense": 99,
+        "sp_attack": 66,
+        "sp_defense": 84,
         "speed": 32,
         "total": 471
       },
@@ -50547,6 +50754,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 108,
@@ -50587,6 +50795,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -50627,6 +50836,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -50667,6 +50877,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -50705,6 +50916,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -50745,6 +50957,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 60,
@@ -50785,6 +50998,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 58,
@@ -50823,6 +51037,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 92,
@@ -50861,6 +51076,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 92,
@@ -50901,6 +51117,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 140,
@@ -50941,6 +51158,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -50981,6 +51199,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 105,
@@ -51021,6 +51240,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -51061,6 +51281,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -51101,6 +51322,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 80,
@@ -51141,6 +51363,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 78,
@@ -51179,6 +51402,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 79,
@@ -51219,6 +51443,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 60,
@@ -51257,6 +51482,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 35,
@@ -51295,6 +51521,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 40,
@@ -51333,6 +51560,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 90,
@@ -51373,6 +51601,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 60,
@@ -51411,6 +51640,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 55,
@@ -51451,6 +51681,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 130,
@@ -51489,6 +51720,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 55,
@@ -51527,6 +51759,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 160,
@@ -51565,6 +51798,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 80,
@@ -51603,6 +51837,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 135,
@@ -51641,6 +51876,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 100,
@@ -51679,6 +51915,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 80,
@@ -51717,6 +51954,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 70,
@@ -51757,6 +51995,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 98,
@@ -51797,6 +52036,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 60,
@@ -51837,6 +52077,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 90,
@@ -51877,6 +52118,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 110,
@@ -51917,6 +52159,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 70,
@@ -51957,6 +52200,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 110,
@@ -51995,6 +52239,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 72,
@@ -52035,6 +52280,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 75,
@@ -52075,6 +52321,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 100,
@@ -52115,6 +52362,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 57,
@@ -52155,6 +52403,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 95,
@@ -52193,6 +52442,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 65,
@@ -52231,6 +52481,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 122,
@@ -52271,6 +52522,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 70,
@@ -52311,6 +52563,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 100,
@@ -52351,6 +52604,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 100,
@@ -52391,6 +52645,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "gmax",
       "stats": {
         "hp": 75,
@@ -52415,10 +52670,12 @@
       "name_ja": "ガーヂィ",
       "slug": "growlithe",
       "types": [
-        "Fire"
+        "Fire",
+        "Rock"
       ],
       "types_zh": [
-        "火"
+        "火",
+        "岩石"
       ],
       "color": "#F08030",
       "generation": 1,
@@ -52429,14 +52686,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 55,
-        "attack": 70,
+        "hp": 60,
+        "attack": 75,
         "defense": 45,
-        "sp_attack": 70,
+        "sp_attack": 65,
         "sp_defense": 50,
-        "speed": 60,
+        "speed": 55,
         "total": 350
       },
       "height_m": 0.7,
@@ -52453,10 +52711,12 @@
       "name_ja": "ウインヂィ",
       "slug": "arcanine",
       "types": [
-        "Fire"
+        "Fire",
+        "Rock"
       ],
       "types_zh": [
-        "火"
+        "火",
+        "岩石"
       ],
       "color": "#F08030",
       "generation": 1,
@@ -52467,14 +52727,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 90,
-        "attack": 110,
+        "hp": 95,
+        "attack": 115,
         "defense": 80,
-        "sp_attack": 100,
+        "sp_attack": 95,
         "sp_defense": 80,
-        "speed": 95,
+        "speed": 90,
         "total": 555
       },
       "height_m": 1.9,
@@ -52491,10 +52752,12 @@
       "name_ja": "ビリリダマ",
       "slug": "voltorb",
       "types": [
-        "Electric"
+        "Electric",
+        "Grass"
       ],
       "types_zh": [
-        "電"
+        "電",
+        "草"
       ],
       "color": "#F8D030",
       "generation": 1,
@@ -52505,6 +52768,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 40,
@@ -52529,10 +52793,12 @@
       "name_ja": "マルマリン",
       "slug": "electrode",
       "types": [
-        "Electric"
+        "Electric",
+        "Grass"
       ],
       "types_zh": [
-        "電"
+        "電",
+        "草"
       ],
       "color": "#F8D030",
       "generation": 1,
@@ -52543,6 +52809,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 60,
@@ -52567,10 +52834,12 @@
       "name_ja": "バクフーン",
       "slug": "typhlosion",
       "types": [
-        "Fire"
+        "Fire",
+        "Ghost"
       ],
       "types_zh": [
-        "火"
+        "火",
+        "幽靈"
       ],
       "color": "#F08030",
       "generation": 2,
@@ -52581,14 +52850,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 78,
+        "hp": 73,
         "attack": 84,
         "defense": 78,
-        "sp_attack": 109,
+        "sp_attack": 119,
         "sp_defense": 85,
-        "speed": 100,
+        "speed": 95,
         "total": 534
       },
       "height_m": 1.7,
@@ -52605,14 +52875,14 @@
       "name_ja": "ハリーセン",
       "slug": "qwilfish",
       "types": [
-        "Water",
+        "Dark",
         "Poison"
       ],
       "types_zh": [
-        "水",
+        "惡",
         "毒"
       ],
-      "color": "#6890F0",
+      "color": "#705848",
       "generation": 2,
       "category": "regional",
       "is_legendary": false,
@@ -52621,6 +52891,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 65,
@@ -52645,14 +52916,14 @@
       "name_ja": "ニューラ",
       "slug": "sneasel",
       "types": [
-        "Dark",
-        "Ice"
+        "Fighting",
+        "Poison"
       ],
       "types_zh": [
-        "惡",
-        "冰"
+        "格鬥",
+        "毒"
       ],
-      "color": "#705848",
+      "color": "#C03028",
       "generation": 2,
       "category": "regional",
       "is_legendary": false,
@@ -52661,6 +52932,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 55,
@@ -52685,10 +52957,12 @@
       "name_ja": "ダイケンキ",
       "slug": "samurott",
       "types": [
-        "Water"
+        "Water",
+        "Dark"
       ],
       "types_zh": [
-        "水"
+        "水",
+        "惡"
       ],
       "color": "#6890F0",
       "generation": 5,
@@ -52699,14 +52973,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 95,
-        "attack": 100,
-        "defense": 85,
-        "sp_attack": 108,
-        "sp_defense": 70,
-        "speed": 70,
+        "hp": 90,
+        "attack": 108,
+        "defense": 80,
+        "sp_attack": 100,
+        "sp_defense": 65,
+        "speed": 85,
         "total": 528
       },
       "height_m": 1.5,
@@ -52723,10 +52998,12 @@
       "name_ja": "ドレヂィア",
       "slug": "lilligant",
       "types": [
-        "Grass"
+        "Grass",
+        "Fighting"
       ],
       "types_zh": [
-        "草"
+        "草",
+        "格鬥"
       ],
       "color": "#78C850",
       "generation": 5,
@@ -52737,14 +53014,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 70,
-        "attack": 60,
+        "attack": 105,
         "defense": 75,
-        "sp_attack": 110,
+        "sp_attack": 50,
         "sp_defense": 75,
-        "speed": 90,
+        "speed": 105,
         "total": 480
       },
       "height_m": 1.1,
@@ -52761,12 +53039,14 @@
       "name_ja": "ゾロア",
       "slug": "zorua",
       "types": [
-        "Dark"
+        "Normal",
+        "Ghost"
       ],
       "types_zh": [
-        "惡"
+        "一般",
+        "幽靈"
       ],
-      "color": "#705848",
+      "color": "#A8A878",
       "generation": 5,
       "category": "regional",
       "is_legendary": false,
@@ -52775,14 +53055,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 40,
-        "attack": 65,
+        "hp": 35,
+        "attack": 60,
         "defense": 40,
-        "sp_attack": 80,
+        "sp_attack": 85,
         "sp_defense": 40,
-        "speed": 65,
+        "speed": 70,
         "total": 330
       },
       "height_m": 0.7,
@@ -52799,12 +53080,14 @@
       "name_ja": "ゾロアーク",
       "slug": "zoroark",
       "types": [
-        "Dark"
+        "Normal",
+        "Ghost"
       ],
       "types_zh": [
-        "惡"
+        "一般",
+        "幽靈"
       ],
-      "color": "#705848",
+      "color": "#A8A878",
       "generation": 5,
       "category": "regional",
       "is_legendary": false,
@@ -52813,14 +53096,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 60,
-        "attack": 105,
+        "hp": 55,
+        "attack": 100,
         "defense": 60,
-        "sp_attack": 120,
+        "sp_attack": 125,
         "sp_defense": 60,
-        "speed": 105,
+        "speed": 110,
         "total": 510
       },
       "height_m": 1.6,
@@ -52837,14 +53121,14 @@
       "name_ja": "ウォーグル",
       "slug": "braviary",
       "types": [
-        "Normal",
+        "Psychic",
         "Flying"
       ],
       "types_zh": [
-        "一般",
+        "超能力",
         "飛行"
       ],
-      "color": "#A8A878",
+      "color": "#F85888",
       "generation": 5,
       "category": "regional",
       "is_legendary": false,
@@ -52853,14 +53137,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 100,
-        "attack": 123,
-        "defense": 75,
-        "sp_attack": 57,
-        "sp_defense": 75,
-        "speed": 80,
+        "hp": 110,
+        "attack": 83,
+        "defense": 70,
+        "sp_attack": 112,
+        "sp_defense": 70,
+        "speed": 65,
         "total": 510
       },
       "height_m": 1.5,
@@ -52877,12 +53162,14 @@
       "name_ja": "ヌメイル",
       "slug": "sliggoo",
       "types": [
+        "Steel",
         "Dragon"
       ],
       "types_zh": [
+        "鋼",
         "龍"
       ],
-      "color": "#7038F8",
+      "color": "#B8B8D0",
       "generation": 6,
       "category": "regional",
       "is_legendary": false,
@@ -52891,14 +53178,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 68,
+        "hp": 58,
         "attack": 75,
-        "defense": 53,
+        "defense": 83,
         "sp_attack": 83,
         "sp_defense": 113,
-        "speed": 60,
+        "speed": 40,
         "total": 452
       },
       "height_m": 0.8,
@@ -52915,12 +53203,14 @@
       "name_ja": "ヌメルゴン",
       "slug": "goodra",
       "types": [
+        "Steel",
         "Dragon"
       ],
       "types_zh": [
+        "鋼",
         "龍"
       ],
-      "color": "#7038F8",
+      "color": "#B8B8D0",
       "generation": 6,
       "category": "regional",
       "is_legendary": false,
@@ -52929,14 +53219,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 90,
+        "hp": 80,
         "attack": 100,
-        "defense": 70,
+        "defense": 100,
         "sp_attack": 110,
         "sp_defense": 150,
-        "speed": 80,
+        "speed": 60,
         "total": 600
       },
       "height_m": 2.0,
@@ -52953,10 +53244,12 @@
       "name_ja": "クレベース",
       "slug": "avalugg",
       "types": [
-        "Ice"
+        "Ice",
+        "Rock"
       ],
       "types_zh": [
-        "冰"
+        "冰",
+        "岩石"
       ],
       "color": "#98D8D8",
       "generation": 6,
@@ -52967,14 +53260,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
         "hp": 95,
-        "attack": 117,
+        "attack": 127,
         "defense": 184,
-        "sp_attack": 44,
-        "sp_defense": 46,
-        "speed": 28,
+        "sp_attack": 34,
+        "sp_defense": 36,
+        "speed": 38,
         "total": 514
       },
       "height_m": 2.0,
@@ -52992,11 +53286,11 @@
       "slug": "decidueye",
       "types": [
         "Grass",
-        "Ghost"
+        "Fighting"
       ],
       "types_zh": [
         "草",
-        "幽靈"
+        "格鬥"
       ],
       "color": "#78C850",
       "generation": 7,
@@ -53007,14 +53301,15 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "hisui",
       "form": "regional",
       "stats": {
-        "hp": 78,
-        "attack": 107,
-        "defense": 75,
-        "sp_attack": 100,
-        "sp_defense": 100,
-        "speed": 70,
+        "hp": 88,
+        "attack": 112,
+        "defense": 80,
+        "sp_attack": 95,
+        "sp_defense": 95,
+        "speed": 60,
         "total": 530
       },
       "height_m": 1.6,
@@ -53047,6 +53342,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53087,6 +53383,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 90,
@@ -53125,6 +53422,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -53165,6 +53463,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 120,
@@ -53205,6 +53504,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 74,
@@ -53243,6 +53543,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -53281,6 +53582,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -53319,6 +53621,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 75,
@@ -53343,14 +53646,14 @@
       "name_ja": "ウパー",
       "slug": "wooper",
       "types": [
-        "Water",
+        "Poison",
         "Ground"
       ],
       "types_zh": [
-        "水",
+        "毒",
         "地面"
       ],
-      "color": "#6890F0",
+      "color": "#A040A0",
       "generation": 2,
       "category": "regional",
       "is_legendary": false,
@@ -53359,6 +53662,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": "paldea",
       "form": "regional",
       "stats": {
         "hp": 55,
@@ -53397,6 +53701,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 110,
@@ -53435,6 +53740,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 125,
@@ -53473,6 +53779,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53511,6 +53818,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 74,
@@ -53551,6 +53859,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 68,
@@ -53591,6 +53900,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 68,
@@ -53631,6 +53941,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 82,
@@ -53671,6 +53982,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 82,
@@ -53711,6 +54023,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 82,
@@ -53749,6 +54062,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 45,
@@ -53789,6 +54103,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53829,6 +54144,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53869,6 +54185,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53909,6 +54226,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 100,
@@ -53949,6 +54267,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 130,
@@ -53987,6 +54306,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 80,
@@ -54025,6 +54345,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 80,
@@ -54063,6 +54384,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 80,
@@ -54101,6 +54423,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 90,
@@ -54139,6 +54462,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 90,
@@ -54179,6 +54503,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 95,
@@ -54219,6 +54544,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -54259,6 +54585,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -54299,6 +54626,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 91,
@@ -54339,6 +54667,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -54379,6 +54708,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 85,
@@ -54419,6 +54749,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -54459,6 +54790,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -54499,6 +54831,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 110,
@@ -54539,6 +54872,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 110,
@@ -54579,6 +54913,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -54619,6 +54954,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -54657,6 +54993,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 85,
@@ -54697,6 +55034,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -54737,6 +55075,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 88,
@@ -54777,6 +55116,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -54817,6 +55157,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 72,
@@ -54857,6 +55198,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 86,
@@ -54895,6 +55237,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 74,
@@ -54935,6 +55278,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 86,
@@ -54975,6 +55319,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 72,
@@ -55015,6 +55360,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -55055,6 +55401,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 78,
@@ -55095,6 +55442,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 216,
@@ -55135,6 +55483,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 78,
@@ -55173,6 +55522,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -55211,6 +55561,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -55249,6 +55600,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 60,
@@ -55289,6 +55641,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -55327,6 +55680,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 65,
@@ -55367,6 +55721,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 85,
@@ -55407,6 +55762,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 108,
@@ -55447,6 +55803,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "other",
       "stats": {
         "hp": 70,
@@ -55487,6 +55844,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 91,
@@ -55525,6 +55883,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 70,
@@ -55565,6 +55924,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 89,
@@ -55603,6 +55963,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 74,
@@ -55643,6 +56004,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 97,
@@ -55683,6 +56045,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 75,
@@ -55723,6 +56086,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -55763,6 +56127,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 80,
@@ -55801,6 +56166,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 88,
@@ -55841,6 +56207,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 65,
@@ -55881,6 +56248,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 83,
@@ -55921,6 +56289,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 68,
@@ -55961,6 +56330,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 68,
@@ -56001,6 +56371,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 68,
@@ -56041,6 +56412,7 @@
       "is_baby": false,
       "paradox_side": null,
       "abilities": [],
+      "region": null,
       "form": "mega",
       "stats": {
         "hp": 115,
@@ -62840,6 +63212,755 @@
       "target": 10324,
       "type": "mega_type",
       "label": "超級形態 Water 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10091,
+      "target": 10092,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10099,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10100,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10101,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10102,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10103,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10104,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10105,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10106,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10107,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10108,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10109,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10110,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10111,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10112,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10113,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10114,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10115,
+      "type": "regional_clade",
+      "label": "阿羅拉系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10162,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10163,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10164,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10165,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10166,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10167,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10168,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10169,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10170,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10171,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10172,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10173,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10174,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10175,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10176,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10179,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10161,
+      "target": 10180,
+      "type": "regional_clade",
+      "label": "伽勒爾系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10230,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10231,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10232,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10233,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10234,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10235,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10236,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10237,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10238,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10239,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10240,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10241,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10242,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10243,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10229,
+      "target": 10244,
+      "type": "regional_clade",
+      "label": "洗翠系群",
+      "value": 1.2
+    },
+    {
+      "source": 10091,
+      "target": 10171,
+      "type": "regional_clade",
+      "label": "地區型態 Dark 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10091,
+      "target": 10174,
+      "type": "regional_clade",
+      "label": "地區型態 Dark 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10091,
+      "target": 10175,
+      "type": "regional_clade",
+      "label": "地區型態 Dark 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10091,
+      "target": 10234,
+      "type": "regional_clade",
+      "label": "地區型態 Dark 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10099,
+      "target": 10100,
+      "type": "regional_clade",
+      "label": "地區型態 Electric 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10099,
+      "target": 10231,
+      "type": "regional_clade",
+      "label": "地區型態 Electric 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10099,
+      "target": 10232,
+      "type": "regional_clade",
+      "label": "地區型態 Electric 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10102,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10103,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10104,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10168,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10176,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10243,
+      "type": "regional_clade",
+      "label": "地區型態 Ice 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10105,
+      "target": 10106,
+      "type": "regional_clade",
+      "label": "地區型態 Ground 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10105,
+      "target": 10179,
+      "type": "regional_clade",
+      "label": "地區型態 Ground 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10105,
+      "target": 10180,
+      "type": "regional_clade",
+      "label": "地區型態 Ground 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10109,
+      "target": 10110,
+      "type": "regional_clade",
+      "label": "地區型態 Rock 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10109,
+      "target": 10111,
+      "type": "regional_clade",
+      "label": "地區型態 Rock 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10113,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10165,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10167,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10172,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10253,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10114,
+      "target": 10237,
+      "type": "regional_clade",
+      "label": "地區型態 Grass 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10114,
+      "target": 10244,
+      "type": "regional_clade",
+      "label": "地區型態 Grass 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10229,
+      "type": "regional_clade",
+      "label": "地區型態 Fire 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10230,
+      "type": "regional_clade",
+      "label": "地區型態 Fire 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10233,
+      "type": "regional_clade",
+      "label": "地區型態 Fire 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10161,
+      "target": 10241,
+      "type": "regional_clade",
+      "label": "地區型態 Steel 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10161,
+      "target": 10242,
+      "type": "regional_clade",
+      "label": "地區型態 Steel 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10162,
+      "target": 10163,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10162,
+      "target": 10164,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10162,
+      "target": 10169,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10162,
+      "target": 10240,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10166,
+      "target": 10170,
+      "type": "regional_clade",
+      "label": "地區型態 Fighting 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10166,
+      "target": 10235,
+      "type": "regional_clade",
+      "label": "地區型態 Fighting 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10238,
+      "target": 10239,
+      "type": "regional_clade",
+      "label": "地區型態 Normal 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10100,
+      "target": 10165,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10100,
+      "target": 10168,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10100,
+      "target": 10172,
+      "type": "regional_clade",
+      "label": "地區型態 Psychic 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10105,
+      "type": "regional_clade",
+      "label": "地區型態 Steel 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10106,
+      "type": "regional_clade",
+      "label": "地區型態 Steel 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10101,
+      "target": 10180,
+      "type": "regional_clade",
+      "label": "地區型態 Steel 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10104,
+      "target": 10163,
+      "type": "regional_clade",
+      "label": "地區型態 Fairy 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10104,
+      "target": 10167,
+      "type": "regional_clade",
+      "label": "地區型態 Fairy 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10112,
+      "target": 10236,
+      "type": "regional_clade",
+      "label": "地區型態 Dark 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10114,
+      "target": 10241,
+      "type": "regional_clade",
+      "label": "地區型態 Dragon 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10114,
+      "target": 10242,
+      "type": "regional_clade",
+      "label": "地區型態 Dragon 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10179,
+      "type": "regional_clade",
+      "label": "地區型態 Ghost 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10238,
+      "type": "regional_clade",
+      "label": "地區型態 Ghost 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10115,
+      "target": 10239,
+      "type": "regional_clade",
+      "label": "地區型態 Ghost 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10169,
+      "target": 10170,
+      "type": "regional_clade",
+      "label": "地區型態 Flying 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10169,
+      "target": 10171,
+      "type": "regional_clade",
+      "label": "地區型態 Flying 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10169,
+      "target": 10240,
+      "type": "regional_clade",
+      "label": "地區型態 Flying 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10231,
+      "target": 10232,
+      "type": "regional_clade",
+      "label": "地區型態 Grass 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10234,
+      "target": 10235,
+      "type": "regional_clade",
+      "label": "地區型態 Poison 屬性群",
+      "value": 0.7
+    },
+    {
+      "source": 10237,
+      "target": 10244,
+      "type": "regional_clade",
+      "label": "地區型態 Fighting 屬性群",
       "value": 0.7
     },
     {

@@ -211,6 +211,7 @@ export function initKnowledgeGraph() {
     paradox_pair: '#e879f9',
     paradox_clade: '#a78bfa',
     mega_type: '#c084fc',
+    regional_clade: '#fbbf24',
     // Deliberately dim. These two are the background weave -- 1,545 of the links --
     // and painting them at the strength of the 136 pantheon edges would bury the
     // edges that mean something. They are structure, not content.
@@ -334,6 +335,7 @@ export function initKnowledgeGraph() {
     if (link.type === 'mega_type') return 30;
     if (link.type === 'paradox_pair') return 38;
     if (link.type === 'paradox_clade') return 30;
+    if (link.type === 'regional_clade') return 32;
     return 60;
   });
 
@@ -772,46 +774,68 @@ export function initKnowledgeGraph() {
   }
 
   // Filter Buttons Binding
-  document.querySelectorAll('[data-filter-gen]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-filter-gen]').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeGen = btn.dataset.filterGen;
-      applyFilters();
-    });
-  });
+  //
+  // EVERY ROW TOGGLES: pressing the row's active chip again returns it to its
+  // "all" value, which is what a reader expects from a control that looks
+  // pressed. 屬性共振 had this from the start and the other three did not, so the
+  // same idea was in the file four times in two shapes until now.
+  //
+  // THE THREE NEW ONES SHARE ONE HELPER, and the shared shape is the point rather
+  // than tidiness: they differ only in the ATTRIBUTE and the "no filter" VALUE
+  // (`data-filter-gen` / 'all', `data-filter-rel` / 'all', `data-filter-cat` /
+  // 'all'), and a fourth copy is a fourth place for the toggle to be missing. The
+  // GENERATION row is the one that shows why it matters -- its "no filter" value is
+  // 'all' like the others, but the row it resets is the generation, not the
+  // relation, and a copy-paste that forgot which `active*` it was writing would
+  // leave a chip lit that no longer drives anything.
+  //
+  // Clicking the row's own "all" chip is NOT a toggle back to itself: it sets the
+  // same value, the chip is re-marked active, and nothing appears to happen --
+  // which is correct, and the reason it is worth saying rather than leaving to be
+  // discovered.
+  const bindFilterRow = (attr, noFilter, get, set) => {
+    const buttons = [...document.querySelectorAll(`[${attr}]`)];
+    const allChip = buttons.find((b) => b.getAttribute(attr) === noFilter);
 
-  document.querySelectorAll('[data-filter-rel]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-filter-rel]').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeRel = btn.dataset.filterRel;
-      applyFilters();
-    });
-  });
+    for (const btn of buttons) {
+      btn.addEventListener('click', () => {
+        const value = btn.getAttribute(attr);
+        const isSameActive = get() === value;
 
-  document.querySelectorAll('[data-filter-cat]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-filter-cat]').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeCat = btn.dataset.filterCat;
-      applyFilters();
-    });
-  });
+        for (const b of buttons) b.classList.remove('is-active');
 
+        if (isSameActive && value !== noFilter) {
+          set(noFilter);
+          if (allChip) allChip.classList.add('is-active');
+        } else {
+          btn.classList.add('is-active');
+          set(value);
+        }
+        applyFilters();
+      });
+    }
+  };
+
+bindFilterRow('data-filter-gen', 'all', () => activeGen, (v) => { activeGen = v; });
+  bindFilterRow('data-filter-rel', 'all', () => activeRel, (v) => { activeRel = v; });
+  bindFilterRow('data-filter-cat', 'all', () => activeCat, (v) => { activeCat = v; });
+
+  /* 屬性共振 now goes through the same helper. It was the ONE row that already
+   * toggled -- pressing 火 twice cleared it -- so converting it loses nothing, and
+   * what it gains is that the toggle is now in one place instead of two. A row
+   * with its own copy of the guard is a row whose guard can be forgotten when the
+   * next row is added. */
+  bindFilterRow('data-filter-type', 'all', () => activeType, (v) => { activeType = v; });
+
+  /* The button colour comes from shared.js's TYPE_COLORS rather than from an
+   * inline style in graph.html. Those 18 hex values were the THIRD copy of that
+   * table (build_graph_data.py has its own `type_colors` for the node colours), and
+   * a copy that goes stale tints a button the wrong colour with nothing reporting
+   * it -- the nodes it filters would still be drawn in the right one, so the two
+   * would simply disagree with no error anywhere. */
   document.querySelectorAll('[data-filter-type]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const type = btn.dataset.filterType;
-      if (activeType === type) {
-        btn.classList.remove('is-active');
-        activeType = 'all';
-      } else {
-        document.querySelectorAll('[data-filter-type]').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        activeType = type;
-      }
-      applyFilters();
-    });
+    const colour = TYPE_COLORS[btn.dataset.filterType];
+    if (colour) btn.style.color = colour;
   });
 
   // Sliders Binding

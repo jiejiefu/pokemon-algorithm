@@ -33,10 +33,33 @@ form covers the two fields that matter.
 Why there is no generation
 --------------------------
 `/pokemon/{id}` has no `generation` field, and `game_indices` comes back as an
-empty array for every battle-only form (measured on all 127). So the generation of
+empty array for every battle-only form (measured on all 181). So the generation of
 a form node is left as the base species' generation rather than invented. That is
 wrong for Gmax (a Galarian-origin form's base may be Gen 1) and it is documented
 in build_graph_data.py rather than patched over.
+
+The REGIONAL family is included for a different reason than the other two
+--------------------------------------------------------------------
+Mega and Gmax forms were added because their base's types are wrong. Regional
+forms needed it too, and by a wider margin: 53 of the 54 differ from the base,
+because a regional form is a DIFFERENT creature wearing the same slot. Alolan
+Rattata is Dark/Normal and Rattata is Normal; Galarian Meowth is Steel and Meowth
+is Psychic. The one that does not differ is Paldean Wooper, which is Ground — and
+Wooper already is.
+
+Its ids happen to line up with this project's, which was worth checking rather
+than assuming: `/pokemon/rattata-alola/` answers id 10091, which is our
+Rattata-Alola node. That is NOT true of the other endpoint -- `/pokemon-form/
+10091/` answers `vivillon-elegant` -- so the two endpoints keep separate id
+sequences upstream and only `/pokemon/` matches ours.
+
+What this does NOT carry
+------------------------
+The REGION. `regional_clade` groups by alola/galar/hisui/paldea, and that comes
+from the `variants` key in evolution_chains.json rather than from here, because
+PokeAPI spells it inside the form NAME (`rattata-alola`) and a name is not a field.
+Parsing a region back out of a slug would be a guess dressed as a lookup; the
+key is already sitting there and was being thrown away.
 
 Meowstic-Mega does not exist
 ----------------------------
@@ -55,11 +78,11 @@ asked for -- and a 200 that is the wrong answer is worse than a 404, because a 4
 is visible.
 
   * `order == -1` looks like it should also disqualify an entry, and **it does not**:
-    measured across all 127 forms it rejects 79 legitimate ones, because PokeAPI's
-    `order` is a position within the species' own form list and Gen 7/8 forms
-    genuinely sit at -1. Every one of the 34 Gmax forms and all 45 Gen 7/8 megas
-    have it. It was tried, it was measured, and it was deleted -- a heuristic that
-    rejects two thirds of the truth teaches a reader to ignore it.
+    measured across the mega/gmax families it rejected 79 legitimate ones, because
+    PokeAPI's `order` is a position within the species' own form list and Gen 7/8
+    forms genuinely sit at -1. Every one of the 34 Gmax forms and all 45 Gen 7/8
+    megas have it. It was tried, it was measured, and it was deleted -- a heuristic
+    that rejects two thirds of the truth teaches a reader to ignore it.
 
 Usage:
     python scripts/fetch_form_stats.py [--dry-run] [--refresh]
@@ -86,12 +109,13 @@ CACHE_JSON = BASE / "data-sources" / "pokeapi_form_stats.json"
 API = "https://pokeapi.co/api/v2"
 UA = {"User-Agent": "pokemon-algorithm/1.0 (static site build script)"}
 
-# Only these two form families are fetched. `other` (117 nodes: Oricorio, Minior,
-# Greninja-Ash, Zygarde-Complete, Palafin-Hero...) and `totem` / `cap` / `primal`
+# Only these form families are fetched. `other` (117 nodes: Oricorio, Minior,
+# Greninja-Ash, Zygarde-Complete, Palafin-Hero...), `totem`, `cap` and `primal`
 # carry the base's own types in every case PokeAPI publishes, so fetching them
-# would be 138 GETs that cannot change an answer. The Mega and Gmax families are
-# exactly the ones where the base's types are known to be the wrong answer.
-FETCHED_FORMS = ("mega", "gmax")
+# would be 150 GETs that cannot change an answer. The Mega, Gmax and Regional
+# families are exactly the ones where the base's types are known to be the wrong
+# answer -- 17 of 93 mega forms change type, and 53 of 54 regional forms do.
+FETCHED_FORMS = ("mega", "gmax", "regional")
 
 
 def collect_form_ids() -> List[Dict[str, Any]]:
@@ -102,16 +126,24 @@ def collect_form_ids() -> List[Dict[str, Any]]:
     found: Dict[int, Dict[str, Any]] = {}
 
     def record(item: Any, family: Optional[str]) -> None:
+        """`family` is the CONTAINER's name and is authoritative.
+
+        This took one wrong turn. An earlier version preferred the item's own `form`
+        over the container, which collected 127 of the 181 forms and reported no
+        error: for `special_forms` the two agree (`{'mega': [...]}` items all say
+        `form: 'mega'`), so the preference looked harmless. It is not for
+        `variants`, which is keyed by REGION -- `{alola: [{..., 'form': 'alola'}]}`
+        -- so 'alola' is not in FETCHED_FORMS and all 54 regional forms were
+        silently skipped. A collection step that reports a plausible count rather
+        than the count you asked for is the worst kind of quiet."""
         if not isinstance(item, dict):
             return
         fid = item.get("id")
         if not isinstance(fid, int) or fid <= 1025 or fid not in art_ids:
             return
-        fam = (item.get("form") or family or "").lower()
+        fam = (family or "").lower()
         if fam not in FETCHED_FORMS:
             return
-        # First writer wins, and main_line is walked before special_forms, so a form
-        # that appears in both takes the main_line spelling of its name.
         found.setdefault(fid, {
             "id": fid,
             "base_id": item.get("base_id"),
@@ -120,8 +152,19 @@ def collect_form_ids() -> List[Dict[str, Any]]:
         })
 
     for chain in chains.values():
+        # main_line carries no container name, so the item's own `form` is the only
+        # thing there is -- and it IS the family there (mega / gmax / primal).
         for item in chain.get("main_line", []):
-            record(item, None)
+            record(item, item.get("form"))
+        # `variants` is keyed by region. The family is always `regional`; the key is
+        # the REGION and build_graph_data.py reads it from here, because the cache
+        # has no business deriving a region out of a slug.
+        for _region, group in chain.get("variants", {}).items():
+            if isinstance(group, list):
+                for item in group:
+                    record(item, "regional")
+            elif isinstance(group, dict):
+                record(group, "regional")
         for family, group in chain.get("special_forms", {}).items():
             if isinstance(group, list):
                 for item in group:

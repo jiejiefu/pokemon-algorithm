@@ -219,7 +219,7 @@ def main():
 
     # 2. Forms from evolution_chains
     for cid, chain in evodata.items():
-        def register_form(item, form_type):
+        def register_form(item, form_type, region=None):
             nid = item.get('id')
             if not nid or nid == 10326 or nid in nodes:
                 return
@@ -291,6 +291,17 @@ def main():
                 'is_baby': False,
                 'paradox_side': None,
                 'abilities': [],
+                # `region` is one of alola / galar / hisui / paldea, and only for
+                # regional forms. It was being thrown away for the entire life of
+                # this file: the walk below passed the literal string 'regional'
+                # where the `variants` KEY was in hand, so all 54 nodes reported
+                # form='regional' and the four regions were invisible in the graph
+                # even though `evolution_chains.json` names them explicitly.
+                #
+                # A regional form is a different creature in the same slot, so this
+                # is the one field that distinguishes two nodes that otherwise share
+                # a base id and a category.
+                'region': region,
                 'form': ftype,
                 'stats': stats,
                 'height_m': base_p.get('height_m'),
@@ -303,11 +314,14 @@ def main():
         for m in chain.get('main_line', []):
             if m.get('id', 0) > 1025:
                 register_form(m, m.get('form'))
-        for k, v in chain.get('variants', {}).items():
-            if isinstance(v, list):
-                for it in v: register_form(it, 'regional')
-            elif isinstance(v, dict):
-                register_form(v, 'regional')
+        # `variants` is keyed by REGION, and the key is the value. It used to be
+        # passed over in favour of a literal 'regional', which is how all 54 nodes
+        # ended up reporting the same region.
+        for region, group in chain.get('variants', {}).items():
+            if isinstance(group, list):
+                for it in group: register_form(it, 'regional', region)
+            elif isinstance(group, dict):
+                register_form(group, 'regional', region)
         for k, v in chain.get('special_forms', {}).items():
             if isinstance(v, list):
                 for it in v: register_form(it, k)
@@ -450,6 +464,52 @@ def main():
             for other in group[1:]:
                 add_link(hub, other, 'mega_type', f'超級形態 {tname} 屬性群', 0.7)
 
+    # ---- regional_clade: the region a form comes from, and its own types ------
+    #
+    # ONE link type carrying both groupings rather than two. Both answer 「這隻地區
+    # 型態是什麼」 and neither is a different question from the other, and one button
+    # that draws a single connected mass beats two buttons that draw two fragments --
+    # the region stars alone give 4 components with a largest of 19, and the type
+    # stars alone give 4 with a largest of 44. Together: 1 component over all 54.
+    #
+    # The per-edge label still distinguishes them, so the dossier's 直接關聯神經元
+    # list reads 「阿羅拉系群」 or 「型態 Steel 屬性群」 rather than one vague string.
+    REGION_ZH = {'alola': '阿羅拉', 'galar': '伽勒爾', 'hisui': '洗翠', 'paldea': '帕底亞'}
+
+    regional_ids = sorted(n['id'] for n in nodes.values()
+                          if n['category'] == 'regional' and n.get('region'))
+
+    # (a) one star per region. Hub = lowest id, so the result does not depend on
+    #     dict order -- the same reason every other star in this file does it.
+    #     Paldea has exactly one member and therefore emits no edge at all, which is
+    #     the correct answer rather than a missing one: a 1-node group is not a group.
+    by_region = defaultdict(list)
+    for rid in regional_ids:
+        by_region[nodes[rid]['region']].append(rid)
+    for region, group in by_region.items():
+        if len(group) < 2:
+            continue
+        hub = group[0]
+        zh = REGION_ZH.get(region, region)
+        for other in group[1:]:
+            add_link(hub, other, 'regional_clade', f'{zh}系群', 1.2)
+
+    # (b) one star per type position, using the FORM's own types -- the same
+    #     construction as mega_type above, and for the same reason: a regional
+    #     form's identity is its typing (53 of the 54 differ from the base's).
+    for pos in (0, 1):
+        by_t = defaultdict(list)
+        for rid in regional_ids:
+            tlist = nodes[rid].get('types') or []
+            if len(tlist) > pos:
+                by_t[tlist[pos]].append(rid)
+        for tname, group in by_t.items():
+            if len(group) < 2:
+                continue
+            hub = group[0]
+            for other in group[1:]:
+                add_link(hub, other, 'regional_clade', f'地區型態 {tname} 屬性群', 0.7)
+
     # 3G. Lore Groups / Pantheon Clusters
     pantheons = [
         # 關都三聖鳥 & 洛奇亞
@@ -571,6 +631,7 @@ def main():
                 'paradox_pair': sum(1 for l in links if l['type'] == 'paradox_pair'),
                 'paradox_clade': sum(1 for l in links if l['type'] == 'paradox_clade'),
                 'mega_type': sum(1 for l in links if l['type'] == 'mega_type'),
+                'regional_clade': sum(1 for l in links if l['type'] == 'regional_clade'),
                 # These two were MISSING, and the omission is where the stale
                 # "978 條" on graph.html came from: this block enumerated eight
                 # relation types whose counts sum to 978, while `total_links` is
