@@ -78,7 +78,7 @@ function buildTree(mutate) {
   const imgDst = join(dir, 'assets', 'images');
   mkdirSync(imgDst, { recursive: true });
   symlinkSync(join(ROOT, 'assets/images/pokemon'), join(imgDst, 'pokemon'), 'dir');
-  for (const f of ['logo.png', 'favicon-32.png', 'apple-touch-icon.png']) {
+  for (const f of ['logo.png', 'favicon-32.png']) {
     copyFileSync(join(ROOT, 'assets/images', f), join(imgDst, f));
   }
   trimGraph(dir);
