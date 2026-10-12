@@ -814,23 +814,21 @@ export const NAV = [
     id: 'colors',
     label: '色彩',
     icon: 'palette',
-    pages: ['colors-explore.html', 'colors-generator.html', 'color.html', 'outfit.html'],
+    pages: ['colors-explore.html', 'colors-generator.html', 'color.html', 'color-game.html', 'outfit.html'],
     groups: [
       {
         items: [
           { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 一般/異色的色帶' },
           { href: 'colors-generator.html', label: '色彩生成器', desc: '輸入一個顏色，找出最接近的寶可夢' },
           { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
-          { href: 'outfit.html', label: '寶可夢穿搭', desc: '上傳穿搭照片，算出 6 色並比對是哪一隻' },
-        ],
-      },
-      {
-        title: '計劃中',
-        items: [
           // Was 配色遊戲, which named the MECHANISM (matching a colour) rather than
           // the thing a reader is asked to do. 猜謎遊戲 names the latter, and the
-          // `desc` already described it that way — 看色帶猜是哪一隻.
-          { label: '猜謎遊戲', desc: '看色帶猜是哪一隻', planned: 'color-game.html' },
+          // `desc` already described it that way — 看色帶猜是哪一隻. It sat under
+          // 計劃中 with `planned: 'color-game.html'` until the page existed, and
+          // `planned` renders as a <span> with 敬請期待, never an <a> (see NAV).
+          // Moving it up here is what makes it reachable at all.
+          { href: 'color-game.html', label: '猜謎遊戲', desc: '看色帶猜是哪一隻' },
+          { href: 'outfit.html', label: '寶可夢穿搭', desc: '上傳穿搭照片，算出 6 色並比對是哪一隻' },
         ],
       },
     ],

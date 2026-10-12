@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>猜謎遊戲 · 寶可夢演算法</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="看色帶猜是哪一隻寶可夢。每日一題，1,025 隻的實測色盤，四次機會，三則提示。">
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/colors.css">
+  <link rel="stylesheet" href="assets/css/color-game.css">
+  <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
+       after the first paint is a visible flash, and a module cannot run early
+       because module scripts are deferred. Identical on all five themed pages
+       and kept in sync with THEME_COLORS in shared.js. See AGENTS.md gotcha 31. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+</head>
+<body>
+  <header class="header header-colors">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="gm-page">
+    <div class="gm-intro">
+      <h1>猜謎遊戲</h1>
+      <p>
+        上面那條色帶是一隻寶可夢的<strong>實測色盤</strong>——從它的 96×96 正面圖集量出來的真實像素占比，
+        不是任何人的挑選。四次機會，三則提示，看色帶猜是哪一隻。
+      </p>
+    </div>
+
+    <!-- 難度與模式。在色帶之上，因為「今天玩哪一題」是讀者最先要決定的事，
+         而它在每一局重來之前就決定好了。 -->
+    <div class="gm-controls">
+      <div class="gm-tabs" role="radiogroup" aria-label="題目來源">
+        <button type="button" class="gm-tab is-on" id="gm-mode-daily" role="radio" aria-checked="true" data-mode="daily">每日</button>
+        <button type="button" class="gm-tab" id="gm-mode-unlimited" role="radio" aria-checked="false" data-mode="unlimited">無限</button>
+      </div>
+      <div class="gm-tabs" role="radiogroup" aria-label="難度">
+        <button type="button" class="gm-tab is-on" id="gm-diff-easy" role="radio" aria-checked="true" data-difficulty="easy">簡單</button>
+        <button type="button" class="gm-tab" id="gm-diff-hard" role="radio" aria-checked="false" data-difficulty="hard">困難</button>
+        <button type="button" class="gm-tab" id="gm-diff-hell" role="radio" aria-checked="false" data-difficulty="hell">地獄</button>
+      </div>
+    </div>
+
+    <!-- 世代選擇。只在 easy 出現：hard 與地獄都是全 1,025，沒有東西可選。
+         由 color-game.js 切換，不是由 CSS —— 因為 easy/hard/hell 共用一個容器，
+         而「哪些按鈕看得見」與「哪些按鈕存在」是兩個問題。 -->
+    <div class="gm-gen" id="gm-gen" hidden>
+      <span class="gm-gen-label" id="gm-gen-label">只從第一世代出題</span>
+      <div class="gm-gen-row" role="radiogroup" aria-labelledby="gm-gen-label" id="gm-gen-row"></div>
+    </div>
+
+    <p class="gm-difficulty-note" id="gm-difficulty-note"></p>
+
+    <!-- 目標色帶。3 個色塊，第三則提示之後變成全部 —— 寬度是占比，所以它一直
+         在那裡；改變的是「看得到幾個」，不是「排在哪裡」。 -->
+    <section class="gm-target" aria-labelledby="gm-target-title">
+      <h2 id="gm-target-title" class="sr-only">目標色帶</h2>
+      <div class="gm-palette" id="gm-palette" role="img" aria-label="目標寶可夢的色帶">
+        <div class="gm-palette-empty" id="gm-palette-empty">正在抽出色盤…</div>
+      </div>
+      <div class="gm-hints" id="gm-hints"></div>
+      <div class="gm-target-foot">
+        <span class="gm-shiny-badge" id="gm-shiny-badge" hidden>異色</span>
+        <span class="gm-attempts" id="gm-attempts"></span>
+        <button type="button" class="gm-btn gm-btn-ghost" id="gm-giveup" hidden>放棄</button>
+      </div>
+    </section>
+
+    <!-- 猜測欄。四個槽位一開始就在畫面上，所以這一段的高度不會在猜的時候跳動。 -->
+    <section class="gm-board" aria-label="你的猜測">
+      <div class="gm-search-wrap">
+        <label class="sr-only" for="gm-search">輸入寶可夢名稱或全國編號</label>
+        <input id="gm-search" class="gm-search" type="search" autocomplete="off"
+               placeholder="輸入名稱或全國編號，例如 皮卡丘 或 25"
+               role="combobox" aria-autocomplete="list" aria-expanded="false"
+               aria-controls="gm-search-list" disabled>
+        <ul id="gm-search-list" class="gm-search-list" role="listbox" hidden></ul>
+        <p class="gm-search-status" id="gm-search-status" role="status" aria-live="polite"></p>
+      </div>
+      <ol class="gm-slots" id="gm-slots"></ol>
+    </section>
+
+    <!-- 勝負面板。隱藏屬性與 display:none 都在 JS 裡，而且兩者必須成對 ——
+         see color-game.js 的 setRevealed()，那是 §3.M 的形狀。 -->
+    <section class="gm-result" id="gm-result" hidden aria-labelledby="gm-result-title">
+      <div class="gm-result-card">
+        <h2 id="gm-result-title" class="gm-result-title"></h2>
+        <img class="gm-result-sprite" id="gm-result-sprite" alt="" width="144" height="144" decoding="async">
+        <p class="gm-result-answer" id="gm-result-answer"></p>
+        <p class="gm-result-detail" id="gm-result-detail"></p>
+        <dl class="gm-result-stats" id="gm-result-stats"></dl>
+        <div class="gm-share">
+          <h3 class="gm-share-title">成績</h3>
+          <pre class="gm-share-text" id="gm-share-text" tabindex="0"></pre>
+          <button type="button" class="gm-btn" id="gm-share-copy">複製成績</button>
+        </div>
+        <div class="gm-result-actions">
+          <a class="gm-btn gm-btn-ghost" id="gm-explore" href="color.html">看牠的完整色盤</a>
+          <button type="button" class="gm-btn" id="gm-again" hidden>再玩一次</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="gm-rules">
+      <h2>怎麼玩</h2>
+      <ol>
+        <li>色帶是目標寶可夢的實測色盤，前三色依像素占比排序。</li>
+        <li>輸入名稱或全國編號猜一次，共四次機會。</li>
+        <li>每次猜錯都會顯示一個 <strong>OKLab 色盤距離</strong>，越小越接近；同時可能出現同屬性或同進化家族的徽章。</li>
+        <li>三則提示依序揭露，而<strong>已經出現在徽章上的事實不會再被講一次</strong>。</li>
+        <li>第三則提示會把色帶從三色擴成全部的顏色。</li>
+      </ol>
+      <p class="gm-rules-note">
+        <b>為什麼是距離而不是百分比？</b>這個網站的其他頁面用 OKLab 知覺距離比對顏色
+        （見 <a href="colors-generator.html">色彩生成器</a>），這裡是同一個度量。把距離換算成
+        百分比需要一個正規化常數，而那個常數只會改變數字看起來像什麼，不會改變誰比較近。
+        所以頁面直接印距離。
+      </p>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        寶可夢演算法 · 色盤由 MMCQ 量化自 96×96 正面圖集 · 比對度量 <a href="https://bottosson.github.io/posts/oklab/" rel="noopener noreferrer" target="_blank">OKLab</a> · Powered by <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Required scripts -->
+  <!-- The header mount lives here and NOT in color-game.js, the same split
+       life.html uses. Two reasons, and the second is the one that matters:
+       `check_nav_pages.mjs` reads `initHeaderNav(` off the HTML by design — its
+       own header explains that a grep over `assets/js` cannot answer "which
+       pages mount the nav", because the tree can move the call without the page
+       changing. An external module would pass the import and fail the mount, and
+       the failure is a header with an empty nav container, not an exception. -->
+  <script type="module">
+    import { initHeaderNav } from './assets/js/shared.js';
+    initHeaderNav('color-game.html');
+  </script>
+  <script type="module" src="assets/js/color-game.js"></script>
+</body>
+</html>

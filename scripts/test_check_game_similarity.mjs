@@ -1,22 +1,25 @@
 /**
- * 每一條斷言都會不會紅？—— check_game_similarity.mjs 的變異測試。
+ * Will every assertion go red? — the mutation suite for check_game_similarity.mjs.
  *
  *   node scripts/test_check_game_similarity.mjs
  *
- * 為什麼需要：這個檢查器裡有一半的斷言是量出來的（分佈、對稱性、涵蓋率），
- * 而量出來的斷言有兩種死法——一個是真的過不了，或是**怎麼改都會過**。第二種
- * 比較危險：它報 PASS，而 PASS 這個字本身沒有說明它量到了什麼。
+ * Why it is needed: half the assertions in that checker are MEASURED (a
+ * distribution, symmetry, coverage), and a measured assertion has two ways to die
+ * — it genuinely cannot pass, or it passes no matter what. The second is more
+ * dangerous: it reports PASS, and the word PASS says nothing about what it
+ * measured.
  *
- * 所以每一個 case 都在一個 scratch tree 裡改壞 `game-similarity.js` 的一處，
- * 然後要求檢查器**用具名的那一句**變紅（`caughtBy`）。用具名而不是用
- * 「exit != 0」是 §3.V 的規則：一個只是壞掉的檢查器也會非零離開。
+ * So each case breaks one place in `game-similarity.js` inside a scratch tree and
+ * requires the checker to go red on a NAMED line (`caughtBy`). Naming the line
+ * rather than testing `exit != 0` is §3.V's rule: a merely-broken checker also
+ * exits non-zero.
  *
- * scratch tree 複製整個 `assets/js`（§3.B2 的理由）：這個模組 import
- * `color-match.js` 與 `daily-pick.js`，而後者的 import 鏈會再拉進
- * `shared.js` → `form-names.js` / `shiny-index.js`。少複製一個檔案會讓
- * 每個 case 都死在 `ERR_MODULE_NOT_FOUND`——那是**解析期**的錯，檢查器一條
- * 斷言都沒跑，於是二十幾個 case 全部「紅」著卻什麼都沒證明。baseline case
- * 就是用來證明這棵樹是好的。
+ * The scratch tree copies all of `assets/js` (§3.B2's reason): the module imports
+ * `color-match.js` and `daily-pick.js`, and the latter's import chain pulls in
+ * `shared.js` -> `form-names.js` / `shiny-index.js`. Copying one file short makes
+ * every case die on `ERR_MODULE_NOT_FOUND` — a PARSE-time error, so the checker
+ * runs zero assertions and two dozen cases go "red" while proving nothing. The
+ * baseline case is what establishes that the tree is sound.
  */
 
 import { mkdtempSync, mkdirSync, cpSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -41,7 +44,7 @@ const SRC = [
   CHECKER,
 ];
 
-/** 改壞模組，並且在目標字串不見時丟出——否則 case 會靜靜地什麼都沒改就「通過」。 */
+/** Break the module, and THROW when the target string is absent — otherwise a case silently changes nothing and passes. */
 const editModule = (dir, from, to) => {
   const p = join(dir, MODULE);
   const s = readFileSync(p, 'utf8');
@@ -50,7 +53,7 @@ const editModule = (dir, from, to) => {
 };
 
 const CASES = [
-  /* ---- 出題：最容易壞掉而且最難發現的那幾處 ---- */
+  /* ---- Target draw: the easiest to break and the hardest to notice ---- */
   {
     name: 'easy stops filtering by generation and becomes the full dex',
     mutate: (dir) => editModule(dir,
@@ -99,9 +102,9 @@ const CASES = [
     expect: 'the same day draws the same Pokémon twice',
   },
   {
-    /* `mulberry32` 回傳產生器。不呼叫它不會丟出任何東西——`函式 % n` 是 NaN，
-       `NaN < 0` 是 false，於是回傳一個 `{id: undefined}` 的目標。這是這個
-       模組在第一版就真的犯過的錯，所以它必須有一個 case。 */
+    /* `mulberry32` returns a generator. Not calling it throws nothing at all —
+       `function % n` is NaN, `NaN < 0` is false, so the function hands back a
+       target of `{id: undefined}`. It has to be called. */
     name: 'the PRNG is used as a number instead of called, which silently yields undefined',
     mutate: (dir) => editModule(dir,
       'return Math.floor(mulberry32(fnv1a(seed))() * pool.length);',
@@ -127,15 +130,16 @@ const CASES = [
     expect: 'an out-of-range generation falls back to 第一世代',
   },
 
-  /* ---- 色盤：占比不重排、6 色只是上限而不是硬數字 ---- */
+  /* ---- Palettes: shares stay unsorted, and 6 is a ceiling rather than a literal ---- */
   {
     name: 'rows are re-sorted by share, so "primary" stops meaning row 0',
     mutate: (dir) => editModule(dir,
       '  return rows\n    .filter((r) => Array.isArray(r) && typeof r[0] === \'string\')\n    .map((r) => ({ hex: r[0], share: Number(r[1]) || 0 }));',
       '  return rows\n    .filter((r) => Array.isArray(r) && typeof r[0] === \'string\')\n    .map((r) => ({ hex: r[0], share: Number(r[1]) || 0 }))\n    .sort((a, b) => b.share - a.share);'),
-    // 重新排序在資料已經排序時是 no-op，所以這一條**不會**變紅。它留下來是
-    // 為了說明那個 no-op 的形狀，並且它在資料順序變亂時才有意義。見下面的
-    // DATA 案例，那才是能抓到它的東西。
+    // Re-sorting is a no-op while the data is already sorted, so this one does
+    // NOT go red. It stays because it documents the shape of that no-op, and it
+    // becomes meaningful the moment the data order changes. The DATA case below is
+    // the thing that can actually catch it.
     expect: null,
   },
   {
@@ -167,7 +171,7 @@ const CASES = [
     expect: 'scoring in 異色 gives different answers from 原始色',
   },
 
-  /* ---- 計分：這裡是本專案自己的規則，不是參考專案的 ---- */
+  /* ---- Scoring: this is this project's rule, not the reference's ---- */
   {
     name: 'the distance drops its reverse term, so a brown outfit matches any brown for free',
     mutate: (dir) => editModule(dir,
@@ -213,7 +217,7 @@ const CASES = [
     expect: 'a palette against itself is 0',
   },
 
-  /* ---- 色階：方向反了也會是一張看起來合理的圖 ---- */
+  /* ---- Tiers: an inverted ladder is still a plausible-looking grid ---- */
   {
     name: 'the tier ladder is inverted, so the share grid reads backwards',
     mutate: (dir) => editModule(dir,
@@ -243,7 +247,7 @@ const CASES = [
     expect: 'an unmeasurable guess scores as a miss, not as close',
   },
 
-  /* ---- 常數：把參考專案的 250 搬過來是這個專案明確拒絕的 ---- */
+  /* ---- Constants: pasting in the reference's 250 is what this project rejects ---- */
   {
     name: "the reference's sRGB ceiling is pasted in, which puts every OKLab distance past zero",
     mutate: (dir) => editModule(dir,

@@ -1,31 +1,40 @@
 /**
- * 猜謎遊戲的提示（assets/js/game-hints.js）。
+ * The colour game's hints (assets/js/game-hints.js).
  *
  *   node scripts/check_game_hints.mjs
  *
- * 這個模組的失敗模式全部是「看起來對」：三個字串、沒有名稱、沒有一個會丟出
- * 錯誤。所以這裡沒有形狀斷言，除了兩個明確標成 shape 的例外。
+ * Every failure mode in this module looks correct: three strings, no names, and
+ * nothing that throws. So there are no shape assertions here except the two
+ * explicitly marked as such.
  *
- * 四件事：
+ * Four things:
  *
- * 1. **七個類別都必須真的到得了玩家手上。** 不是「有產生候選」——七個全過——
- *    而是「這個類別的文字出現在任何一隻的 `generateHints()` 結果裡」。第一版
- *    沒有洗牌，固定取 `vague[0]` 與 `medium[0]`，而 `evolution` 排在 `type`
- *    前面，所以每一局的前兩則都是同兩句：七個類別裡有五個是死碼，它們有函式、
- *    有 docblock，而沒有一個字會被讀到。第二版補了洗牌，但 `description` 仍然
- *    是 0，因為它是 `specific` 桶裡唯一的一員，而那個桶排在 medium 用完之後。
+ * 1. **All seven categories must actually reach the player.** Not "produces a
+ *    candidate" — all seven pass that — but "this category's text appears in some
+ *    species' `generateHints()` result". The first version had no shuffle and took
+ *    `vague[0]` and `medium[0]` unconditionally, and `evolution` sorts before
+ *    `type`, so every game opened with the same sentence and closed its second
+ *    slot with the types: five of the seven were dead code, with functions and
+ *    docblocks and not one word a player would read. The second version added the
+ *    shuffle but `description` stayed at 0, because it is the only member of the
+ *    `specific` bucket and that bucket sorts after medium is exhausted.
  *
- * 2. **進化那一句不能讀 `stage`。** `evolution_chains.json` 的 `stage` 是圖鑑
- *    順序不是深度（§3.K），而伊布家族把它變成一個可以指名的證據：Vaporeon
- *    #134 在 chain 67 的 `stage` 是 **2（共 10）**，讀起來像「還會再進化」，
- *    但牠是終極進化型。所以這條斷言直接問那一句，而不是問「有沒有某個函式」。
+ * 2. **The evolution line must not read `stage`.** `evolution_chains.json`'s
+ *    `stage` is dex order and not depth (§3.K), and Eevee's family turns that
+ *    into a witness you can name: Vaporeon #134 carries `stage` **2 (of 10)** in
+ *    chain 67, which reads as 「還會再進化」, while it is a final evolution. So
+ *    this assertion asks for that sentence directly rather than asking whether
+ *    some function exists.
  *
- * 3. **說明不能洩漏答案。** 93 條 `descriptions.zh` 把寶可夢自己的名字寫在裡面，
- *    所以那 93 隻的說明類提示必須是 `null`，而它們必須改由別的類別補位。
+ * 3. **The Pokédex line must not leak the answer.** 93 `descriptions.zh` contain
+ *    the species' own name, so those 93 must return `null` from the description
+ *    hint and be covered by a different category instead.
  *
- * 4. **已知事實真的會移除類別。** 猜測卡片已經掛著屬性與進化家族的徽章，所以
- *    提示再講一次是零新資訊。用「輸出字串不含某個字」來驗是不行的——洗牌之後
- *    那一類本來就可能沒被抽到。斷言的是**類別集合**，不是文字。
+ * 4. **Known facts really do remove a category.** The guess card already carries
+ *    type and evolution-family badges, so a hint repeating them is worth nothing.
+ *    Asserting "the output contains no such word" does not work — after the
+ *    shuffle, that category may simply not have been drawn. What is asserted is
+ *    the CATEGORY SET, not the text.
  */
 
 import { readFileSync } from 'node:fs';
@@ -56,11 +65,11 @@ const chains = JSON.parse(readFileSync(join(ROOT, 'assets/data/evolution_chains.
 const levels = JSON.parse(readFileSync(join(ROOT, 'assets/data/evolution_levels.json'), 'utf8'));
 const byId = new Map(data.map((p) => [p.id, p]));
 
-/** 會進化 ⇔ 這個 id 是邊清單的 key。`levels` 是等級進化，`unlevelled` 是石頭／交換。 */
+/** Evolves IFF this id is a key of the edge list. `levels` = level-ups, `unlevelled` = stones/trades. */
 const evolves = (id) => id in levels.levels || id in levels.unlevelled;
 
 // ---------------------------------------------------------------------------
-console.log('\n每一局都剛好三則，而且第三則永遠是收尾');
+console.log('\nevery game is exactly three hints, and the third is always the closer');
 // ---------------------------------------------------------------------------
 {
   let wrongLength = 0, badFinal = 0, duplicate = 0;
@@ -82,11 +91,11 @@ console.log('\n每一局都剛好三則，而且第三則永遠是收尾');
     'the palette reveal is the third hint and not an earlier one');
 }
 
-/** 頁面用它決定要不要把色帶從 3 色擴成全部；這裡直接對照 FINAL_HINT 的位置。 */
+/** What the page uses to decide whether to widen the bar; checked against FINAL_HINT's position. */
 function hintRevealsPaletteIndex(i) { return i >= 2; }
 
 // ---------------------------------------------------------------------------
-console.log('\n七個類別都真的到得了玩家手上');
+console.log('\nall seven categories really do reach the player');
 // ---------------------------------------------------------------------------
 {
   const reached = new Map();
@@ -127,7 +136,7 @@ console.log('\n七個類別都真的到得了玩家手上');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n進化那一句讀的是邊清單，不是 stage');
+console.log('\nthe evolution line reads the edge list, not stage');
 // ---------------------------------------------------------------------------
 {
   /* THE §3.K WITNESS. Eevee's chain stores all eight Eeveelutions as a LINEAR
@@ -160,7 +169,7 @@ console.log('\n進化那一句讀的是邊清單，不是 stage');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n說明不能洩漏答案');
+console.log('\nthe Pokédex line must not leak the answer');
 // ---------------------------------------------------------------------------
 {
   const leakers = data.filter((p) => descriptionHint(p) === null
@@ -178,7 +187,7 @@ console.log('\n說明不能洩漏答案');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n各類提示的內容');
+console.log('\nwhat each category actually says');
 // ---------------------------------------------------------------------------
 {
   const pika = byId.get(25);
@@ -219,7 +228,7 @@ console.log('\n各類提示的內容');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n已知事實真的會移除類別');
+console.log('\nknown facts really do remove a category');
 // ---------------------------------------------------------------------------
 {
   /* Asserting the CATEGORY, not the text. "the output does not contain 火" cannot
@@ -241,9 +250,9 @@ console.log('\n已知事實真的會移除類別');
 
   /* The badge does NOT show sameGeneration — the reference computes it and never
      renders it — so learning the generation must NOT count as a spent fact.
-     Asserted on the CATEGORY set, not on output text: "the output does not contain
-     第II世代" cannot tell "suppressed" from "the shuffle did not pick it", and
-     `remainingCategories` exists precisely so that distinction is observable. */
+     Asserted on the CATEGORY set, not on output text: "the output does not
+     contain 第II世代" cannot tell "suppressed" from "the shuffle did not pick it",
+     and `remainingCategories` exists precisely so that distinction is observable. */
   const nothingKnown = { types: [], sameFamily: false, generations: [] };
   const all = remainingCategories(fire, evolves(fire.id), nothingKnown);
   check(all.includes('generation'), 'an unknown generation is still available',
@@ -280,7 +289,7 @@ console.log('\n已知事實真的會移除類別');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nshape（標成 shape 的兩個例外）');
+console.log('\nthe two shape assertions, marked as such');
 // ---------------------------------------------------------------------------
 {
   const src = readFileSync(join(ROOT, 'assets/js/game-hints.js'), 'utf8');

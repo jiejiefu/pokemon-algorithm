@@ -1,0 +1,645 @@
+/* color-game.html — styles owned by the colour game
+ *
+ * Why its own file (§3.B1's rule): every rule outside the shared `.cp-*` layer is
+ * mounted by THIS page alone, so it does not belong in colors.css, which is the
+ * three-page shared base. colors.css is already 3,500 lines and has rules pinned
+ * by check_color_page.mjs; putting a one-page concern in there couples the other
+ * two pages to something they do not need.
+ *
+ * Nothing existing is touched — not `.cp-section`, not `.cp-prose`, not
+ * `.cp-page`, not `.cp-cell`, not `.sc-*`: those are color.html's and
+ * colors-explore.html's foundation. Everything new grows under `gm-`, and no
+ * `.cp-*` visual rule is borrowed — this is not a palette page, it is an
+ * instrument, and §3.B1 records what separates the two.
+ */
+
+.gm-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.gm-intro h1 {
+  font-size: 34px;
+  margin: 0 0 8px;
+  letter-spacing: 0.02em;
+}
+
+.gm-intro p {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+/* --------------------------------------------------------------------------
+   Mode and difficulty
+   -------------------------------------------------------------------------- */
+
+.gm-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+}
+
+.gm-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+}
+
+.gm-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 18px;
+  min-height: 34px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gm-tab:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+/* `is-on` AND `aria-checked` are both required. The aria attribute is for screen
+   readers, and these are radiogroups: only one may be the real option, and having
+   neither turns 「which round am I playing」 into a state nothing announces. */
+.gm-tab.is-on,
+.gm-tab[aria-checked="true"] {
+  background: var(--page-accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.gm-tab:focus-visible {
+  outline: 2px solid var(--page-accent);
+  outline-offset: 2px;
+}
+
+/* 地獄 is red so the three tiers are distinguishable at a glance. Not decoration:
+   the only difference between 地獄 and 困難 is 全異色, and a row of tabs that look
+   alike does not say that out loud. */
+.gm-tab[data-difficulty="hell"].is-on {
+  background: var(--rule-red);
+  color: #fff;
+}
+
+.gm-difficulty-note {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* --------------------------------------------------------------------------
+   Generation picker
+   -------------------------------------------------------------------------- */
+
+.gm-gen {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+/* This and the `display: flex` below are §3.M's shape: an author display beats
+   the UA sheet's `[hidden] { display: none }`, so the element keeps an empty box
+   on screen. This display:none is load-bearing, not redundant. */
+.gm-gen[hidden] { display: none; }
+
+.gm-gen-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gm-gen-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gm-gen-btn {
+  appearance: none;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.gm-gen-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+.gm-gen-btn[aria-checked="true"] {
+  background: var(--page-accent);
+  border-color: var(--page-accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   The target palette
+   -------------------------------------------------------------------------- */
+
+.gm-target {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* One strip, width proportional to share. So 「顯示全部顏色」 is the same bar
+   growing more segments rather than a different image — the reader still sees the
+   same widths, just no longer truncated. */
+.gm-palette {
+  display: flex;
+  width: 100%;
+  min-height: 132px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+  transition: min-height 0.25s ease;
+}
+
+.gm-palette[hidden] { display: none; }
+
+.gm-palette.is-revealed { min-height: 132px; }
+
+.gm-palette-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.gm-palette-empty[hidden] { display: none; }
+
+.gm-swatch {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  min-width: 0;
+  transition: flex-grow 0.3s ease;
+}
+
+/* The hex is printed ON its own swatch, so the ink must be whichever side clears
+   4.5:1 against that fill. The same function (shared.js's badgeStyle) computes it
+   in JS and sends it in, rather than this guessing. */
+.gm-swatch-hex {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  opacity: 0.92;
+}
+
+.gm-swatch-share {
+  position: absolute;
+  top: 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.gm-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+}
+
+.gm-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.gm-hint-index {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-btn-hint {
+  appearance: none;
+  border: 1px solid var(--page-accent);
+  background: var(--surface);
+  color: var(--page-accent);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  min-height: 32px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.gm-btn-hint:hover:not(:disabled) { background: var(--surface-hover); }
+
+.gm-btn-hint:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Cooldown: a progress bar behind the button, rather than a ticking number. */
+.gm-btn-hint { position: relative; overflow: hidden; }
+
+.gm-hint-cooldown {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: var(--page-accent);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.gm-target-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gm-shiny-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--rule-gold);
+  color: #1a1400;
+}
+
+.gm-shiny-badge[hidden] { display: none; }
+
+.gm-attempts {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-right: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Guessing
+   -------------------------------------------------------------------------- */
+
+.gm-board {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gm-search-wrap { position: relative; }
+
+.gm-search {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 16px;
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.gm-search:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.gm-search:focus {
+  outline: none;
+  border-color: var(--page-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--page-accent) 25%, transparent);
+}
+
+.gm-search-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.gm-search-list[hidden] { display: none; }
+
+.gm-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.gm-search-item[aria-selected="true"] { background: var(--surface-hover); }
+
+.gm-search-item img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.gm-search-item-name { flex: 1; font-size: 14px; }
+
+.gm-search-item-id {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-search-item.is-used { opacity: 0.45; }
+
+.gm-search-status {
+  margin: 6px 2px 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  min-height: 18px;
+}
+
+/* The four slots exist from the start, so this block does not change height mid-guess. */
+.gm-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gm-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  background: var(--bg-card);
+}
+
+.gm-slot.is-empty { opacity: 0.4; }
+
+.gm-slot.is-won {
+  border-color: var(--rule-green);
+  box-shadow: 0 0 0 1px var(--rule-green);
+}
+
+.gm-slot-sprite {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.gm-slot-empty-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.gm-slot-body { flex: 1; min-width: 0; }
+
+.gm-slot-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gm-slot-name a { color: inherit; text-decoration: none; }
+.gm-slot-name a:hover { text-decoration: underline; }
+
+.gm-slot-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.gm-slot-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.gm-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid currentColor;
+}
+
+.gm-badge-family { color: var(--rule-green); }
+.gm-badge-type { color: var(--rule-gold); }
+
+/* The guess's own 3-colour strip. */
+.gm-slot-strip {
+  display: flex;
+  flex-direction: column;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.gm-slot-strip span { flex: 1; }
+
+/* --------------------------------------------------------------------------
+   Result
+   -------------------------------------------------------------------------- */
+
+.gm-result[hidden] { display: none; }
+
+.gm-result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.gm-result-title {
+  font-size: 26px;
+  margin: 0;
+}
+
+.gm-result-title.is-won { color: var(--rule-green); }
+
+.gm-result-sprite {
+  width: 144px;
+  height: 144px;
+  image-rendering: pixelated;
+}
+
+.gm-result-answer { font-size: 18px; margin: 0; }
+
+.gm-result-detail { font-size: 14px; color: var(--text-secondary); margin: 0; }
+
+.gm-result-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.gm-result-stats div { display: flex; flex-direction: column; gap: 2px; }
+.gm-result-stats dt { color: var(--text-tertiary); }
+.gm-result-stats dd { margin: 0; font-size: 17px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.gm-share { width: 100%; margin-top: 12px; }
+
+.gm-share-title { font-size: 14px; color: var(--text-secondary); margin: 0 0 8px; }
+
+.gm-share-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  text-align: left;
+  white-space: pre;
+  color: var(--text-primary);
+}
+
+.gm-result-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.gm-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--page-accent);
+  background: var(--page-accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.gm-btn:hover { filter: brightness(1.08); }
+
+.gm-btn-ghost {
+  background: transparent;
+  color: var(--page-accent);
+}
+
+.gm-btn[hidden] { display: none; }
+
+/* --------------------------------------------------------------------------
+   Rules
+   -------------------------------------------------------------------------- */
+
+.gm-rules {
+  border-top: 1px solid var(--hairline);
+  padding-top: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.gm-rules h2 { font-size: 17px; color: var(--text-primary); margin: 0 0 10px; }
+.gm-rules ol { margin: 0; padding-left: 22px; }
+.gm-rules li { margin-bottom: 4px; }
+.gm-rules-note { font-size: 13px; color: var(--text-tertiary); margin: 14px 0 0; }
+.gm-rules-note a { color: var(--page-accent); }
+
+/* --------------------------------------------------------------------------
+   Colour-vision simulation
+   --------------------------------------------------------------------------
+   An SVG filter on <html>, so it affects the whole page: the palette bar, the
+   sprites and the result panel together. The preference lives in localStorage and
+   affects DISPLAY ONLY — scoring, extraction, hints and the share score never read
+   it, so switching it does not change a single number. The reference behaves the
+   same way, and the page says so, because otherwise the reader assumes they are
+   cheating.
+   -------------------------------------------------------------------------- */
+
+.gm-cb { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.gm-cb select {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Narrow screens
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .gm-page { padding: 20px 14px 56px; }
+  .gm-intro h1 { font-size: 27px; }
+  .gm-palette { min-height: 96px; }
+  .gm-swatch-hex { font-size: 10px; }
+  .gm-swatch-share { display: none; }
+  .gm-slot { gap: 10px; padding: 9px 10px; }
+  .gm-slot-sprite, .gm-slot-strip { width: 44px; height: 44px; }
+  .gm-result-card { padding: 18px 14px; }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-palette, .gm-swatch, .gm-tab { transition: none; }
+  .gm-slot.is-won { box-shadow: none; }
+}

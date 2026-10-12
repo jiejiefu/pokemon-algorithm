@@ -1,39 +1,44 @@
 /**
- * 猜謎遊戲的出題與計分（assets/js/game-similarity.js）。
+ * The colour game's target draw and scoring (assets/js/game-similarity.js).
  *
  *   node scripts/check_game_similarity.mjs
  *
- * 為什麼是獨立的一支：這個模組沒有 DOM，所以它可以在純 Node 裡跑完，
- * 而每一個失敗模式都是算出來能顯示、錯了要問才會發現的算術。靜態字串比對
- * 對 `check_color_page.mjs` 那種外殼契約才有用。
+ * Why this is its own file: the module has no DOM, so it runs to completion in
+ * bare Node, and every failure mode is arithmetic that renders fine and is wrong
+ * until asked. Static string matching is the right tool for the shell contract in
+ * check_color_page.mjs, not for this.
  *
- * 四件事是這個專案自己的規則，不是參考專案的：
+ * Four things here are this project's rules rather than the reference's:
  *
- * 1. **池的推導，不是寫死的區間。** `poolFor('easy', gen, data)` 從
- *    `pokemon_data.json` 的 `generation` 欄位算出那一代的 id。參考專案在
- *    `daily-pool.ts` 寫死 `GEN_RANGES`；這裡不寫死，寫死就是第二個真相。
- *    這一條會實際跑 9 個世代 × 365 天，確認每一隻都抽得到、而且沒有任何
- *    一隻抽到池外。
+ * 1. **Pools are derived, not written down.** `poolFor('easy', gen, data)`
+ *    computes one generation's ids from `pokemon_data.json`'s `generation` field.
+ *    The reference hardcodes `GEN_RANGES` in `daily-pool.ts`; writing them down
+ *    here would be a second source of truth. This actually runs 9 generations x
+ *    365 days and confirms every member is drawable and nothing lands outside.
  *
- * 2. **地獄難度是異色，而索引必須真的分兩套。** `color-match.js` 的
- *    `buildMatchIndex()` 只讀 `palettes[key].n`，所以它對異色一無所知。
- *    本模組自己建索引，所以 `paletteRows(pal, id, 's')` 必須回傳異色盤，
- *    而且 `scoreGuess` 在 'n' 與 's' 下的分數必須不同——如果兩者相同，
- *    地獄就是一個沒換外觀的按鈕。
+ * 2. **地獄 is shiny, and the index really does have to be two indexes.**
+ *    `color-match.js`'s `buildMatchIndex()` reads only `palettes[key].n`, so it
+ *    knows nothing about shinies. This module builds its own, so
+ *    `paletteRows(pal, id, 's')` must return the shiny palette and `scoreGuess`
+ *    must score differently under 'n' and 's' — if the two matched, 地獄 would
+ *    be a button that changes nothing.
  *
- * 3. **難度決定外觀，而那個決定只有一個方向。** `variantOf()` 是
- *    difficulty → variant 的單射：簡單與困難都是 'n'、地獄是 's'。參考專案
- *    讓使用者自己選 Any / Normal / Shiny，所以它需要處理三種；這裡只有一種
- *    答案，多一個選擇器就是多一個可以設成不一致的狀態欄位。
+ * 3. **The tier decides the appearance, and that decision has one direction.**
+ *    `variantOf()` is difficulty -> variant: easy and hard are 'n', hell is 's'.
+ *    The reference lets the reader pick Any / Normal / Shiny so it has to handle
+ *    three; here there is one answer, and one more picker is one more state field
+ *    that can be set inconsistently.
  *
- * 4. **計分是距離，不是百分比。** 見模組的 docblock：把 OKLab 距離映射回
- *    0..100 需要一個正規化常數，而那個常數的選擇會改變那個數字看起來像什麼，
- *    卻不改變任何排序。所以頁面印距離本身，四個色階門檻則由語料庫量出來
- *    並在下面重新量一次。
+ * 4. **The score is a distance, not a percentage.** See the module's docblock:
+ *    mapping an OKLab distance back to 0..100 needs a normalisation constant, and
+ *    the choice changes what the number looks like while changing no ordering at
+ *    all. So the page prints the distance, and the four tier thresholds are
+ *    measured from the corpus and re-measured below.
  *
- * 另外三個是抄過的坑，不是這個專案的規則，但照抄把它們一起帶過來了：
- * `mulberry32(seed)` 回傳產生器而不是數字（不呼叫它會得到 `undefined` 而不是
- * 丟出例外）、空池要回傳 null 而不是 fallback、跨日要穩定。
+ * Three more arrived with the port rather than from this project's rules:
+ * `mulberry32(seed)` returns a generator rather than a number (not calling it
+ * yields `undefined` instead of throwing), an empty pool returns null rather than
+ * a fallback, and a given day is stable.
  */
 
 import { readFileSync } from 'node:fs';
@@ -75,7 +80,7 @@ const palettes = JSON.parse(readFileSync(join(ROOT, 'assets/data/color_palettes.
 // an Invalid Date past the 30th, and `taipeiDateKey` then throws inside
 // `toISOString()`. The first draft did exactly that and the checker died with a
 // RangeError instead of a FAIL line, which is the worst place for a date bug to
-// show up: it looks like the module crashed, not like the test was wrong.
+// surface: it looks like the module crashed, not like the test was wrong.
 const BASE = Date.UTC(2026, 9, 1);
 const at = (n) => new Date(BASE + (n - 1) * 86400000);
 
@@ -112,15 +117,15 @@ console.log('\nthe pools are derived, not written down');
   check(poolFor('easy', undefined, data).length === 0, 'and so is a missing one');
 
   // FAIRNESS, NOT COVERAGE. The first draft asserted "all 1,025 reachable in a
-  // year", and it is false for arithmetic reasons rather than code reasons:
-  // the coupon-collector expectation for 365 draws from 1,025 ids is
+  // year", and it is false for arithmetic reasons rather than code reasons: the
+  // coupon-collector expectation for 365 draws from 1,025 ids is
   // 1025·(1−e^−365/1025) = **307**, and the draw returned 303. Requiring 1,025
   // in 365 days would take ~7,250 draws — twenty years of gameplay. So the
   // property worth pinning is that the draw is UNIFORM, which is what "every
   // species is equally likely" means, and that is testable in a decade.
   //
   // `check_color_daily.mjs` gets away with a reachability claim because its
-  // pools are 10–71 members; the same claim at 1,025 is a category error.
+  // pools hold 10–71 members; the same claim at 1,025 is a category error.
   const DAYS = 3650;
   const EPOCH = Date.UTC(2020, 0, 1);
   const sweep = (difficulty, gen) => {
@@ -220,13 +225,13 @@ console.log('\nthe daily draw is stable, and stays inside its pool');
      it if the two pools ever become the same size. */
   const modSrc = readFileSync(join(ROOT, 'assets/js/game-similarity.js'), 'utf8');
   /* `= pickIndex(` and `[^\n]` are both load-bearing, and the first version got
-     this wrong in the §3.P way: `pickIndex\(\s*pool,` matches the function
+     this wrong the §3.P way: `pickIndex\(\s*pool,` matches the function
      DEFINITION `function pickIndex(pool, seed) {`, and a lazy `[\s\S]*?` then
-     ran all the way past the end of that function to the `);` of the CALL SITE
-     three functions later. The captured text was the body of `pickIndex` plus
-     the whole seed template, so the assertion was measuring something nobody
-     wrote. Anchored to the assignment and to one line, because the call is on
-     one line and the definition is not preceded by `=`. */
+     ran past the end of that function to the `);` of the CALL SITE three
+     functions later. The captured text was the body of `pickIndex` plus the
+     whole seed template, so the assertion was measuring something nobody wrote.
+     Anchored to the assignment and to one line, because the call is on one line
+     and the definition is not preceded by `=`. */
   const seedExpr = (modSrc.match(/=\s*pickIndex\(\s*pool,\s*([^\n]*?)\);/) || [])[1] || '';
   check(!!seedExpr && seedExpr.includes('gen') && seedExpr.includes('difficulty') && seedExpr.includes('taipeiDateKey'),
     'the daily seed carries the generation, the difficulty and the Taipei day',
@@ -299,13 +304,13 @@ console.log('\nshiny palettes are a real second index, not a copy');
     () => wrongOrder.slice(0, 8).join(' '));
 
   /* AGENTS.md §3.B says "Exactly 3 palettes have 5 colours instead of 6
-   (#201 Unown, #643 Kartana, Bulbasaur shiny)". That is **stale**: measured
-   over the file as it stands, only TWO species are short in either variant,
-   and Bulbasaur's shiny palette now has 6. Asserting the doc's sentence would
-   have made this checker red on correct data — which is §3.G1a's shape pointed
-   the other way, a description of the past used as a claim about the present.
-   What is asserted here is the measured truth, named per variant, so a
-   regeneration that really does change it says which one. */
+   (#201 Unown, #643 Kartana, Bulbasaur shiny)". That is **stale**: measured over
+   the file as it stands only TWO species are short in either variant, and
+   Bulbasaur's shiny palette now has 6. Asserting the doc's sentence would make
+   this checker red on correct data — §3.G1a's shape pointed the other way, a
+   description of the past used as a claim about the present. What is asserted
+   here is the measured truth, named per variant, so a regeneration that really
+   does change it says which one. */
   const shortPairs = [];
   for (const p of data) {
     for (const v of ['n', 's']) {

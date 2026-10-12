@@ -1,50 +1,57 @@
 /**
- * 猜謎遊戲的三則提示。
+ * The colour game's three hints.
  *
- *   color-game.html  唯一的頁面呼叫者
- *   check_game_hints.mjs  在純 Node 裡跑它
- *
- * ---------------------------------------------------------------------------
- * 移植來源與它必須改掉的地方
- * ---------------------------------------------------------------------------
- *
- * 來源是 pokemonpalette 的 `src/lib/game/hints.ts`。它的骨架照抄了：七類候選、
- * 模糊 → 中等 → 收尾三段、每一步都避開讀者已經知道的事實。第三段的固定字串
- * 也照抄了（那邊是 `"Full palette shown"`，這邊是繁中），因為「最後一則永遠是
- * 同一句」本身就是規則：它讓兩則資訊提示可以被預期，而不是每次都抽到不同的。
- *
- * 三處**不能**照抄：
- *
- * 1. **進化階段不能用 `stage`。** 參考專案讀自己那份資料的 `evolution` 陣列，
- *    而這個專案的 `evolution_chains.json` 有 §3.K 記錄的陷阱：`stage` 是
- *    **圖鑑順序不是深度**，所以一個分支家族會變成八個「接續的階段」。用它判斷
- *    「這是不是最終型」會把兄弟節點當成祖先。
- *
- *    正確的來源是 `evolution_levels.json` 的**邊清單**：`levels` 加上
- *    `unlevelled` 就是全部 789 條邊（457 隻會進化，568 隻是最終型）。這一隻會
- *    進化 ⇔ 它的 id 是兩張表其中一張的 key。這是 §3.K 的結論直接可用。
- *
- * 2. **分類用 `genusZh()`，不要自己寫。** `pokemon-lexicon.js` 已經有一份
- *    完整的中文分類對照（`GENUS_ZH_BY_ID`），在這裡重寫一份就是第二個真相。
- *
- * 3. **說明文字不能洩漏答案。** 這個專案的 `descriptions.zh` 是短句（median
- *    32 字），其中 **93 條把寶可夢自己的名字寫在裡面**——那等於直接把答案印在
- *    提示上。所以任何含有該物種中文名的說明一律不可用。
+ *   color-game.html          the only page caller
+ *   check_game_hints.mjs     runs it in bare Node
  *
  * ---------------------------------------------------------------------------
- * 提示與已知事實的去重，是這個模組存在的理由
+ * The port, and the three things in it that must NOT be copied
  * ---------------------------------------------------------------------------
  *
- * 猜錯之後，猜測卡片上已經掛著「同屬性」「同一進化家族」的徽章。所以如果提示再
- * 說一次「這是一隻火屬性」，讀者得到的是零新資訊，而那是他按了 5 秒冷卻才拿到
- * 的東西。`knownFacts` 把所有前幾次猜測已經揭露的事實收集起來，被講過的類別直接
- * 退回下一類。
+ * Source is pokemonpalette's `src/lib/game/hints.ts`. Its skeleton is copied:
+ * seven categories, vague -> medium -> a fixed closer, and every step avoiding
+ * facts the reader already has. The third slot's fixed string is copied too
+ * ("Full palette shown" there, translated here), because "the last one is always
+ * this sentence" is itself the rule — it makes the two informative hints
+ * predictable instead of a fresh surprise each round.
+ *
+ * Three things must differ:
+ *
+ * 1. **Evolution stage cannot come from `stage`.** The reference reads `evolution`
+ *    out of its own data; this project's `evolution_chains.json` carries the §3.K
+ *    trap, where `stage` is DEX ORDER and not DEPTH, so a branching family reads
+ *    as eight successive stages. Using it to answer "is this a final evolution?"
+ *    treats siblings as ancestors.
+ *
+ *    The correct source is the EDGE LIST in `evolution_levels.json`: `levels` plus
+ *    `unlevelled` is all 789 edges (457 species evolve, 568 are final). A species
+ *    evolves IFF its id is a key of one of those two tables. That is §3.K's
+ *    conclusion, directly usable.
+ *
+ * 2. **Classification goes through `genusZh()`.** `pokemon-lexicon.js` already
+ *    holds the full zh table (`GENUS_ZH_BY_ID`); a second one here is a second
+ *    source of truth.
+ *
+ * 3. **The Pokédex line must not leak the answer.** This project's
+ *    `descriptions.zh` are short (median 32 characters) and **93 of them contain
+ *    the species' own name** — which prints the answer directly on the hint. So
+ *    any description naming the species is refused outright.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY DEDUPLICATION AGAINST KNOWN FACTS IS THE POINT OF THE MODULE
+ * ---------------------------------------------------------------------------
+ *
+ * After a wrong guess the card already carries 同屬性 / 同一進化家族 badges. A hint
+ * that then says 「這是一隻火屬性」 gives the reader nothing they did not have,
+ * and they spent a 5-second cooldown on it. `knownFacts` collects everything the
+ * previous guesses already revealed, and a spent category falls through to the
+ * next one.
  */
 
 import { genusZh } from './pokemon-lexicon.js';
 import { fnv1a, mulberry32 } from './daily-pick.js';
 
-/** 七類候選。順序是「資訊量由高到低」之外的一個實務順序：便宜的先算。 */
+/** The seven categories. Cheap ones first, for no stronger reason than that. */
 export const HINT_CATEGORIES = [
   'type',
   'evolution',
@@ -65,7 +72,7 @@ export const HINT_CATEGORY_LABELS = {
   weight_class: '體重',
 };
 
-/** 每類落在哪一段。vague 是第一則、medium 是第二則、specific 是候補。 */
+/** Which slot each category competes for. */
 export const HINT_CATEGORY_BUCKETS = {
   type: 'medium',
   evolution: 'vague',
@@ -76,25 +83,25 @@ export const HINT_CATEGORY_BUCKETS = {
   weight_class: 'vague',
 };
 
-/** 最多幾則提示。參考專案是 3。 */
+/** At most 3 hints. The reference says 3. */
 export const MAX_HINTS = 3;
 
 /**
- * 第三則，永遠是這一句。
+ * The third hint, always this sentence.
  *
- * 它不是「一個」提示，是三則之中的**收尾**：前兩則是線索，第三則是揭示。
- * 固定成一句話（而不是抽一個類別）有兩個好處：讀者按到底會預期看到什麼，
- * 而「顯示完整色盤」是一個不消耗任何推理的獎勵，所以它放在最後不會讓人覺得
- * 被卡住。
+ * It is not "a" hint, it is the CLOSER: the first two are clues, the third is
+ * the reveal. Fixing the wording (rather than drawing another category) means the
+ * reader knows what pressing to the end gives them, and because 「顯示完整色盤」
+ * costs no reasoning, putting it last never reads as a dead end.
  */
 export const FINAL_HINT = '顯示完整色盤 — 目標的所有顏色都在下面了';
 
-/** 讀者已經知道的事實。猜測卡片的徽章會填進來。 */
+/** What the reader already knows. The guess cards' badges fill this in. */
 export function emptyKnownFacts() {
   return { types: [], sameFamily: false, generations: [] };
 }
 
-/** 把一次猜測的關聯結果併進已知事實。 */
+/** Merge one guess's relatedness into the known set. */
 export function learnFromGuess(known, related) {
   const next = known || emptyKnownFacts();
   const types = new Set((next.types || []).map((t) => String(t).toLowerCase()));
@@ -109,10 +116,10 @@ export function learnFromGuess(known, related) {
 }
 
 // ---------------------------------------------------------------------------
-// 各類提示的文字
+// Per-category text
 // ---------------------------------------------------------------------------
 
-/** 一隻寶可夢的屬性，繁中。單屬性與雙屬性用不同的句型，因為讀起來不一樣。 */
+/** A species' types, in zh. Single and dual get different sentences. */
 export function typeHint(p) {
   const t = Array.isArray(p.types_zh) && p.types_zh.length ? p.types_zh : p.types;
   if (!Array.isArray(t) || !t.length) return null;
@@ -121,9 +128,10 @@ export function typeHint(p) {
 }
 
 /**
- * 會不會進化。資料來自邊清單，不是 `stage` —— 見檔頭第三點。
+ * Whether it evolves at all. From the edge list, NOT `stage` — see the filehead.
  *
- * 兩句都是負面或正面的單一事實，中間沒有灰階，所以它只能出現一次。
+ * Both sentences are a single binary fact with nothing in between, so this can
+ * only be spent once.
  */
 export function evolutionHint(p, evolves) {
   return evolves ? '這一隻還會再進化。' : '這一隻已經是進化的最終型。';
@@ -136,7 +144,7 @@ export function generationHint(p) {
   return `這一隻出現在第${numeral[n]}世代。`;
 }
 
-/** 分類。走 `genusZh()`，因為那份對照表已經在專案裡了。 */
+/** Classification. Via `genusZh()`, because that table is already in the project. */
 export function speciesHint(p) {
   const genus = genusZh(p);
   if (!genus || genus === '—') return null;
@@ -144,11 +152,13 @@ export function speciesHint(p) {
 }
 
 /**
- * 圖鑑說明，**但不能包含自己的名字**。
+ * The Pokédex line — but never one that contains the species' own name.
  *
- * 93 條 zh 說明裡有這個問題，所以這是硬條件不是過濾器。字數上限沿用參考專案的
- * 200 —— 這個專案的說明本來就都只有 50 字以內，所以那個上限在這裡從不生效，
- * 保留它是為了有人換資料來源時不會變成一篇百科全書。
+ * 93 zh descriptions have that problem, so this is a hard condition rather than
+ * a filter with a threshold. The 200-character cap is inherited from the
+ * reference; this project's lines are all under 50 characters, so it never fires
+ * here, and keeping it means a future data source cannot turn a hint into an
+ * encyclopedia entry.
  */
 export function descriptionHint(p) {
   const zh = p.descriptions && (p.descriptions.zh || p.descriptions.zh_text2);
@@ -166,13 +176,15 @@ export function firstLetterHint(p) {
 }
 
 /**
- * 體重級距。分界沿用參考專案那一組，因為它讀起來是「大概的量級」而不是假精確。
+ * Weight bands. The reference's boundaries are kept because they read as "order
+ * of magnitude" rather than as false precision.
  *
- * **`Number(null)` 是 `0`** —— 所以 `if (!Number.isFinite(kg))` 擋不住一個缺值的
- * 物種，它會安靜地通過 `Number(null) < 10` 並回答「不到 10 公斤」。這與
- * `check_all.mjs` 的快取讀 `== null` 而誤判成 `last 0.0s` 是同一個坑：把
- * 「沒有值」轉成數字再拿它做比較，得到的是一個**看起來合理**的答案。所以先擋
- * 型別，再轉換。
+ * **`Number(null)` is `0`** — so `if (!Number.isFinite(kg))` does not stop a
+ * species with no weight; it sails through `Number(null) < 10` and answers
+ * 「體重不到 10 公斤」. That is the same trap as `check_all.mjs`'s cache reading
+ * `== null` and reporting `last 0.0s`: converting "no value" into a number and
+ * then comparing it produces a perfectly plausible answer. So the type is
+ * checked before the conversion.
  */
 export function weightHint(p) {
   if (!p || typeof p.weight_kg !== 'number' || !Number.isFinite(p.weight_kg)) return null;
@@ -185,15 +197,15 @@ export function weightHint(p) {
 }
 
 // ---------------------------------------------------------------------------
-// 候選與挑選
+// Candidates and selection
 // ---------------------------------------------------------------------------
 
 /**
- * 這一隻能產生的所有候選，依類別。
+ * Every hint this species can produce, by category.
  *
- * 回傳物件而不是字串，是為了讓「已知事實」能在**產生之後**過濾掉某一類，而
- * 不用把 `knownFacts` 塞進每一個文字函式的簽章裡——七個函式、七個參數，而其中
- * 六個根本不需要它。
+ * Returns objects rather than strings so that "already spent" can be filtered
+ * AFTER generation, without threading `knownFacts` through seven signatures —
+ * six of which do not need it.
  */
 export function buildCandidates(p, evolves) {
   const out = [];
@@ -211,11 +223,11 @@ export function buildCandidates(p, evolves) {
 }
 
 /**
- * 已被講過的類別。**只**看讀者真的看過的東西。
+ * Which categories have been spent, counting ONLY what the reader actually saw.
  *
- * 注意「同世代」不在這裡：參考專案的徽章從不顯示 sameGeneration（它算出來了卻
- * 沒渲染），所以把它當成已知事實會讓世代提示被錯誤地跳過——而那正是有 bug 的
- * 那一邊的錯，不是保守那一邊的。
+ * Note that sameGeneration is deliberately absent: the reference computes it and
+ * never renders it, so treating it as known would wrongly suppress the
+ * generation hint — which is the buggy side of that choice, not the cautious one.
  */
 function spentCategories(p, known) {
   const spent = new Set();
@@ -228,20 +240,44 @@ function spentCategories(p, known) {
 }
 
 /**
- * 決定性的洗牌，種子是目標的 id。
+ * Which categories remain, after removing the spent ones.
  *
- * **沒有洗牌，七個類別裡有五個永遠不會出現。** 這一版的 bug 就是這樣：固定取
- * `vague[0]` 與 `medium[0]`，而 `evolution` 排在 `type` 前面，所以每一局的第一
- * 則都是「這一隻還會再進化」、第二則都是屬性。世代、分類、說明、首字母、體重
- * 全部是死碼——它們有函式、有單元、有 docblock，而沒有一個字會被玩家讀到。
+ * This exists because the dedup is only observable as a CATEGORY SET, never as
+ * output text: once a category is removed the shuffle may not have picked it
+ * anyway, so "the output does not mention 火屬性" cannot tell "suppressed" from
+ * "not drawn this time". The page also needs to know how many are left in order
+ * to decide the hint button's state — a lit button that pays out a different
+ * sentence each press after three badges already covered the ground is worse
+ * than a dark one.
  *
- * 量測方式是「這個類別的文字有沒有出現在任何一隻的 `generateHints()` 結果裡」，
- * 不是「它有沒有產生過候選」：後者七個全過，前者只有兩個。
+ * @returns {string[]} category names, in `HINT_CATEGORIES` order
+ */
+export function remainingCategories(p, evolves, knownFacts = null) {
+  const spent = spentCategories(p, knownFacts);
+  return buildCandidates(p, evolves)
+    .filter((c) => !spent.has(c.category))
+    .map((c) => c.category);
+}
+
+/**
+ * A seeded shuffle, seeded on the target's id.
  *
- * **種子必須是 id 而不是 `Math.random()`。** 頁面每次重繪都會重新呼叫這個函式
- * （§3.B1 記錄過重建節點的教訓），用隨機種子會讓已經顯示在畫面上的提示換一句
- * 話，而已經按過的提示是不能收回的資訊。用 id 當種子則是「這隻寶可夢的三則
- * 提示永遠是這三句」，同一局裡���數次呼叫得到同一個答案。
+ * **Without a shuffle, five of the seven categories never appear.** That was this
+ * version's bug: it took `vague[0]` and `medium[0]` unconditionally, and
+ * `evolution` sorts before `type`, so every single game opened with 「這一隻還會
+ * 再進化」 and closed its second slot with the types. Generation, classification,
+ * Pokédex line, first letter and weight were all dead code — they had functions,
+ * they had docblocks, and not one word of them would ever be read.
+ *
+ * The measurement is "does this category's text appear in any species'
+ * `generateHints()` result", not "did it produce a candidate": the latter passes
+ * for all seven, the latter is what exposed two of them.
+ *
+ * **The seed must be the id, not `Math.random()`.** The page re-runs this on
+ * every render (§3.B1's detached-node incident), so a random seed would swap the
+ * sentence under a hint that is already on screen — and a revealed hint cannot be
+ * taken back. Seeding on the id means "these three hints, for this species",
+ * identically, however many times it is called.
  */
 function shuffle(list, seed) {
   const rand = mulberry32(fnv1a(`game-hints:${seed}`));
@@ -254,36 +290,21 @@ function shuffle(list, seed) {
 }
 
 /**
- * 去掉「已經講過的」之後，還剩哪些類別可用。
+ * Produce the three hints.
  *
- * 這不是為了測試而存在的。**去重機制只能從類別集合觀察，不能從輸出文字觀察**：
- * 某一類被移除之後，洗牌本來就有可能不選它，所以「輸出裡沒有某一類的字」無法
- * 區分「被去重了」與「這次沒抽到」。而頁面需要知道還剩幾則可拿，才能決定提示
- * 按鈕的狀態——猜測卡片徽章已經講過三件事之後，按鈕還亮著卻每按一次都給一句
- * 換過的東西，那比不亮更糟。
+ * Guaranteed: the length is ALWAYS 3. A shorter result would drop the third
+ * hint's 「顯示完整色盤」, which is the entire endpoint of the hint system, so
+ * any shortfall is topped up from the remaining categories and finally from a
+ * sentence carrying no information — rather than returning a short array, since
+ * a hint list whose length varies turns the page's "3 則" into a claim that is
+ * sometimes false.
  *
- * @returns {string[]} 類別名，順序是 `HINT_CATEGORIES` 的順序
- */
-export function remainingCategories(p, evolves, knownFacts = null) {
-  const spent = spentCategories(p, knownFacts);
-  return buildCandidates(p, evolves)
-    .filter((c) => !spent.has(c.category))
-    .map((c) => c.category);
-}
-
-/**
- * 產生三則提示。
+ * Order: the first is drawn from vague, the second from medium, each shuffled
+ * within its own pool. The third is fixed.
  *
- * 保證：長度**永遠**是 3。少於 3 會讓第三則的「顯示完整色盤」被抽掉，而那是
- * 整個提示系統的終點；所以任何不足都從剩下的類別裡補，補到底用一句不帶任何
- * 資訊的話，而不是回傳一個短陣列——一個長度會變的提示陣列，頁面上的「3 則」
- * 就變成了一句可能不成立的話。
- *
- * 順序：第一則從 vague 裡挑、第二則從 medium 挑，兩者都先洗牌。第三則固定。
- *
- * @param {object} p pokemon_data.json 的一筆
- * @param {boolean} evolves 是否還會進化（來自邊清單，不是 `stage`）
- * @param {object} knownFacts `learnFromGuess()` 的結果
+ * @param {object} p one record of pokemon_data.json
+ * @param {boolean} evolves from the edge list, NOT `stage`
+ * @param {object} knownFacts the result of `learnFromGuess()`
  * @returns {string[]}
  */
 export function generateHints(p, evolves, knownFacts = null) {
@@ -295,28 +316,34 @@ export function generateHints(p, evolves, knownFacts = null) {
   const specific = shuffle(candidates.filter((c) => c.bucket === 'specific'), p.id);
 
   const hints = [];
-  /* 第一則從 vague、第二則從 medium，各自在自己的池裡洗牌。不做參考專案那個
-     「至少有一則屬性提示」的保證：使用者已經可以從猜測卡片看到屬性，硬塞一則
-     屬性提示是把已知資訊再說一次，而那是花了他 5 秒冷卻才拿到的東西。 */
+  /* The first is drawn from vague, the second from medium, each shuffled in its
+     own pool. The reference's "at least one hint is always about types" guarantee
+     is deliberately NOT reproduced: the reader can already see the types on the
+     guess card, so forcing one repeats information they already have and costs
+     them a 5-second cooldown to do it. */
   const first = vague[0] || medium[0];
   if (first) hints.push(first.text);
 
-  // 第二則：`medium` 與 `specific` 一起洗牌競爭。
-  //
-  // 原本是把 `specific` 當成 medium 用完之後的最後手段，而那讓它永遠輪不到：
-  // 七個類別裡有四個 vague、三個 medium，所以 medium 用完之前 specific 永遠在
-  // 候補席上。量測是「這個類別的文字有沒有出現在任何一隻的結果裡」——候選階段
-  // 七個全過，能到玩家手上的只有六個。`description` 不是被刪掉的，是被排在
-  // 一個永遠輪不到的位置。
-  //
-  // 所以 medium 與 specific 合併競爭，而「先 vague 再 medium」的那一段仍然成立
-  // （第一則一定是最不具體的那一類）。參考專案的 specific 有兩個成員而且同樣
-  // 排在最後，它只是沒有兩邊的候選都這麼多，所以那個排序在那邊看不出問題。
+  /* The second: `medium` and `specific` shuffled together, competing.
+   *
+   * `specific` used to be a last resort consulted only after `medium` ran out,
+   * and that meant it never came up: four of the seven categories are vague and
+   * three are medium, so `specific` sat on the bench until medium was empty. The
+   * measurement is "does this category's text appear in any species' result" —
+   * all seven pass at the candidate stage, only six reach the player.
+   * `description` was not removed; it was parked in a position that never came
+   * up.
+   *
+   * So medium and specific compete together, and "vague first, then medium"
+   * still holds (the first slot is always the least informative category
+   * available). The reference's specific bucket has two members and sits last
+   * too; it simply never had this many candidates on the other side, so the
+   * ordering looked harmless there. */
   const second = shuffle([...medium, ...specific], p.id).find((c) => !hints.includes(c.text))
     || vague.find((c) => !hints.includes(c.text));
   if (second) hints.push(second.text);
 
-  // 補到兩則為止（第三則是固定的收尾，所以前面需要湊滿 2）。
+  // Top up to two — the third is the fixed closer, so the first two must be filled.
   for (const pool of [shuffle([...medium, ...specific], p.id), vague, shuffle(candidates, p.id)]) {
     for (const c of pool) {
       if (hints.length >= 2) break;
@@ -329,7 +356,7 @@ export function generateHints(p, evolves, knownFacts = null) {
   return [hints[0], hints[1], FINAL_HINT];
 }
 
-/** 已揭露了幾則，其中第三則會把色帶擴成全部。 */
+/** Whether revealing hint `index` also expands the palette bar. */
 export function hintRevealsPalette(index) {
   return index >= 2;
 }

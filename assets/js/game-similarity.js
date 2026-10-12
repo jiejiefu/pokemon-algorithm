@@ -1,62 +1,67 @@
 /**
- * 猜謎遊戲的出題與計分。純函式，沒有 DOM、沒有 fetch、沒有 localStorage。
+ * The colour game's target draw and its scoring. Pure functions: no DOM, no
+ * fetch, no localStorage.
  *
- *   color-game.html  唯一的頁面呼叫者
- *   check_game_similarity.mjs  在純 Node 裡跑它，這是它沒有副作用的原因
- *
- * ---------------------------------------------------------------------------
- * 為什麼計分不用參考專案那套 sRGB 歐氏距離
- * ---------------------------------------------------------------------------
- *
- * 移植來源是 pokemonpalette 的 `src/lib/game/similarity.ts`，那裡用純 sRGB
- * 距離、`effectiveMaxDistance = 250`。這裡不用它，理由是本專案自己的 §3.B2：
- *
- *   `findClosestChineseColorName()` 用 nearest-in-RGB 把 `#414141` 判成**墨綠**
- *   —— 表格裡一個通道只差 8 的項目，贏過所有三通道都差 20 的淺灰。
- *
- * 那次的表格是 100 個中文色名，這裡的語料是 6,148 個 sprite 色票，61 倍。
- *
- * 兩種度量差多少，是量出來的而不是推論的（實測見下），因為「差很多」這種
- * 形容詞在兩個頁面之間沒有任何意義：
- *
- *   - 「最接近的那一隻」相同的目標：47 / 80
- *   - **前 10 名名單完全相同：0 / 80**
- *   - 兩個前 10 名的平均重疊：**0.65 / 10**
- *
- * 所以照抄 RGB 不是「換一個演算法」，是讓兩個頁面對同一組顏色講不同的話：
- * colors-generator.html 說最接近的是 A，color-game.html 會說是 B。
+ *   color-game.html          the only page caller
+ *   check_game_similarity.mjs  runs it in bare Node, which is the reason it has no side effects
  *
  * ---------------------------------------------------------------------------
- * 這個模組自己建索引，而不是呼叫 `color-match.js` 的 `matchPalette()`
+ * WHY THE SCORE IS NOT THE REFERENCE's sRGB EUCLIDEAN DISTANCE
  * ---------------------------------------------------------------------------
  *
- * 因為 `buildMatchIndex()` 只讀 `palettes[key].n` —— 它的索引裡**只有原始色**，
- * 而地獄難度全是異色。這個模組因此需要兩套索引，而 `color-match.js` 的
- * `groups` 是 module 級單例，沒有辦法同時持有兩種外觀。
+ * Ported from pokemonpalette's `src/lib/game/similarity.ts`, which uses plain
+ * sRGB distance with `effectiveMaxDistance = 250`. This project does not, and
+ * §3.B2 is the reason: `findClosestChineseColorName()` read `#414141` as **墨綠**
+ * because an entry 8 away in one channel beat every grey 20 away in all three.
  *
- * §3.B1 的規則是「不要擴大 color-match.js 的 export 介面」：color.html 與
- * colors-explore.html 共用那個檔案，加東西進去等於把風險攤到兩個頁面上。
- * 所以這裡 import 它的 `hexToOklab` / `deltaEOk`，索引自己建。
+ * That table held 100 Chinese colour names. This corpus is 6,148 sprite swatches
+ * — 61x — so the choice of metric decides the page.
  *
- * **計分算式與 `matchPalette()` 逐行相同**（forward / reverse 雙向、依占比
- * 加權）。這不是重寫一個更好的演算法，是讓遊戲的分數與
- * colors-generator.html 顯示的是同一個量。若這裡改了權重，那一頁就開始
- * 講另一套話，而沒有任何檢查會發現。
+ * How far apart the two metrics are is MEASURED, not argued, because "quite
+ * different" means nothing across two pages:
+ *
+ *   - same single closest species:            47 / 80 targets
+ *   - **identical top-10 list:                 0 / 80**
+ *   - mean overlap of the two top-10 lists:    0.65 / 10
+ *
+ * So copying the RGB version is not "swapping an algorithm". It is making two
+ * pages give different answers about the same colours: colors-generator.html
+ * would say species A is closest and color-game.html would say B.
+ *
+ * ---------------------------------------------------------------------------
+ * THIS MODULE BUILDS ITS OWN INDEX RATHER THAN CALLING `matchPalette()`
+ * ---------------------------------------------------------------------------
+ *
+ * Because `buildMatchIndex()` reads only `palettes[key].n` — its index holds
+ * NORMAL appearances exclusively, and the 地獄 tier is entirely shiny. So this
+ * module needs two indexes, and `color-match.js`'s `groups` is a module-level
+ * singleton that cannot hold both appearances at once.
+ *
+ * §3.B1 forbids widening `color-match.js`'s export surface: color.html and
+ * colors-explore.html share that file, so adding to it spreads the risk to both.
+ * This module therefore imports its `hexToOklab` / `deltaEOk` and builds its own.
+ *
+ * **The scoring expression is line-for-line `matchPalette()`'s** — bidirectional
+ * forward/reverse, weighted by share. That is not a better algorithm invented
+ * here; it is what makes the game's number and colors-generator.html's number the
+ * SAME quantity. Change the weighting here and that page starts telling a
+ * different story with nothing in the suite noticing.
  */
 
 import { hexToOklab, deltaEOk } from './color-match.js';
 import { taipeiDateKey, fnv1a, mulberry32 } from './daily-pick.js';
 
 // ---------------------------------------------------------------------------
-// 常數
+// Constants
 // ---------------------------------------------------------------------------
 
-/** 參考專案是 4 次，這裡照抄。 */
+/** Four attempts, copied from the reference. */
 export const MAX_ATTEMPTS = 4;
 
 /**
- * 三個難度。`easy` 單一世代、`hard` 全圖鑑、`hell` 全圖鑑異色。
- * 參考專案是 easy / hard 兩軌；地獄是本專案新增的第三軌。
+ * Three tiers. `easy` is one generation, `hard` the full dex, `hell` the full
+ * dex entirely shiny. The reference has two (easy / hard); 地獄 is this
+ * project's third.
  */
 export const DIFFICULTIES = ['easy', 'hard', 'hell'];
 
@@ -66,7 +71,7 @@ export const DIFFICULTY_LABELS = {
   hell: '地獄',
 };
 
-/** 難度的中文說明，給世代選擇器與說明文字用。 */
+/** One line of prose per tier, for the generation picker and the note under it. */
 export const DIFFICULTY_NOTES = {
   easy: '單一世代，全部原始色',
   hard: '全 1,025 隻，全部原始色',
@@ -74,48 +79,53 @@ export const DIFFICULTY_NOTES = {
 };
 
 /**
- * 一局最多顯示幾色。
+ * How many colours are shown during play.
  *
- * 參考專案 `PALETTE_COLORS_COUNT = 3`，從 6 色裡切前 3。照抄這個數字，
- * 但來源不同：它切的是執行期抽出來的 6 色，這裡切的是
- * `color_palettes.json` 裡**已經按占比排好序**的 6 色，所以「前 3 色」在兩邊
- * 是同一個意義（占比最高的三色），不需要重新排序。
+ * The reference's `PALETTE_COLORS_COUNT = 3`, the top 3 of 6 extracted. The
+ * number is copied; the source is not. The reference slices an extraction it ran
+ * at play time, while this slices `color_palettes.json`, which is ALREADY sorted
+ * by share — so "the top 3" means the same thing on both sides (the three
+ * highest-share colours) with no re-sorting here.
  */
 export const PALETTE_COLORS_SHOWN = 3;
 
-/** 第三則提示揭露全部 6 色。Unown 一般與異色都只有 5 色，所以是「全部」不是「6 色」。 */
+/**
+ * The third hint reveals every colour. It is "all of them", not "6", because
+ * Unown has 5 in both appearances.
+ */
 export const PALETTE_COLORS_REVEALED = 6;
 
-/** 兩局挑戰（無限模式）各自的最大重試次數，沒有限次。 */
+/** Unlimited mode has no cap. */
 export const MAX_ATTEMPTS_UNLIMITED = Infinity;
 
 /**
- * 分享字串的四個色階門檻。
+ * The four tiers used by the share string.
  *
- * 參考專案用的是相似度的 0.75 / 0.5 / 0.25 分界，而那個相似度是
- * `(1 - d/250)^1.5`。那個算式裡的 250 是 **sRGB 空間的上界**，不是 OKLab 的
- * —— 用在 OKLab 距離上會讓幾乎每一格都變成 0%，因為 OKLab 的距離最大只有
- * 0.33（見下）。
+ * The reference cuts at 0.75 / 0.5 / 0.25 of a SIMILARITY, and that similarity is
+ * `(1 - d/250)^1.5`. The 250 there is the ceiling of the **sRGB space**, not of
+ * OKLab — applied to OKLab distances it makes almost every cell 0%, because OKLab
+ * distances top out at 0.33 (measured below).
  *
- * 所以門檻是從語料庫量出來的，不是從參考專案換算的。實測 25 個目標 ×
- * 全部 1,025 隻 = 25,600 對的色盤距離分佈：
+ * So the thresholds are measured from the corpus rather than converted from the
+ * reference. Distribution over 25 targets x all 1,025 = 25,600 palette distances:
  *
  *   p0.1 0.0380 · p1 0.0525 · p5 0.0662 · p10 0.0749 · p25 0.0925
  *   p50 0.1158 · p75 0.1413 · p90 0.1642 · p99 0.2044 · p99.9 0.2366
  *   max 0.3326
  *
- * 四個分界對應約 p10 / p55 / p90，讓四個格子都被用到而不是全部擠在第一格。
- * 這四個數字由 `check_game_similarity.mjs` 重新量一次，所以語料庫變了它會
- * 紅——不是變成一個還能通過的門檻。
+ * The four cuts land near p10 / p55 / p90, so all four cells get used instead of
+ * everything crowding into the first. `check_game_similarity.mjs` re-measures
+ * them, so a corpus change goes red rather than quietly becoming a threshold that
+ * still passes.
  */
 export const TIER_CLOSE = 0.075;
 export const TIER_MID = 0.120;
 export const TIER_FAR = 0.165;
 
 /**
- * 距離 → 色階。**小的是近的**，與參考專家的方向相反，因為那邊是相似度
- * （大的是近的）。混淆這兩個方向會讓分享字串整個反過來，而它看起來仍然
- * 是一張合理的圖。
+ * Distance -> tier. **Smaller is closer**, the opposite direction to the
+ * reference, whose input is a similarity. Confusing the two inverts the entire
+ * share string while still producing a grid that looks plausible.
  *
  * @returns {'close'|'mid'|'far'|'miss'}
  */
@@ -128,25 +138,28 @@ export function tierOf(distance) {
 }
 
 /**
- * 出題的種子前綴。與 `daily-pick.js` 的 `DAILY_BUCKETS` 共用同一顆命名空間，
- * 前綴不同所以兩個抽取永不互相影響——而它們本來就該互相獨立：今日推薦是
- * 「看看今天主打誰」，猜謎的目標是「一道每天固定的題」。
+ * Seed prefix for the daily draw. It shares a namespace with `daily-pick.js`'s
+ * `DAILY_BUCKETS` but uses a different prefix, so the two draws can never
+ * collide — and they should not: 今日推薦 is "see who is featured today" while
+ * the game's target is "one fixed puzzle per day".
  */
 export const GAME_SEED = 'pokemon-colorgame:';
 
 // ---------------------------------------------------------------------------
-// 難度 → 外觀
+// Tier -> appearance
 // ---------------------------------------------------------------------------
 
 /**
- * 難度決定外觀，這是本專案相對於參考專案的一個收斂。
+ * The tier decides the appearance, and that is a convergence against the
+ * reference.
  *
- * 參考專案有 `Any / Normal / Shiny` 三個讓使用者自己選的變體 tile。
- * 這裡不需要，因為使用者的規格把變體綁在難度上了：簡單與困難是原始色，
- * 地獄固定是異色。讓一個選擇器去挑一個只有一種答案的東西，是多一個可以
- * 設成不一致的狀態欄位。
+ * The reference gives the player an `Any / Normal / Shiny` variant picker. This
+ * project does not need one, because the spec ties appearance to tier: 簡單 and
+ * 困難 are 原始色, 地獄 is fixed to 異色. Offering a control over a question
+ * that has one answer is one more state field that can be set inconsistently.
  *
- * 參考專案的 `Variant` filter 因此整個消失，而不是被移到某處。
+ * The reference's `Variant` filter therefore disappears entirely rather than
+ * being relocated.
  *
  * @param {string} difficulty
  * @returns {'n'|'s'}
@@ -155,25 +168,26 @@ export function variantOf(difficulty) {
   return difficulty === 'hell' ? 's' : 'n';
 }
 
-/** 地獄以外都是原始色。 */
 export function isShinyMode(difficulty) {
   return variantOf(difficulty) === 's';
 }
 
 // ---------------------------------------------------------------------------
-// 出爐池
+// Pools
 // ---------------------------------------------------------------------------
 
 /**
- * `pokemon_data.json` 的 `generation` 欄位衍生出的世代 → id 清單。
+ * Generation -> ids, derived from `pokemon_data.json`'s `generation` field.
  *
- * **不寫死世代區間。** 參考專案在 `daily-pool.ts` 寫死 `GEN_RANGES`，因為它
- * 讀的是自己的資料表而那張表沒有世代欄位；這邊有，所以區間是推導出來的。
- * 寫死一份區間就是第二個真相，而它會在資料更新時過期——§3.K 記錄過一次
- * 類似的東西。
+ * **Generation ranges are not written down.** The reference hardcodes
+ * `GEN_RANGES` in `daily-pool.ts` because its own data table has no generation
+ * column; this project's does, so the ranges are derived. Writing them down
+ * would be a second source of truth that goes stale when the data is
+ * regenerated — §3.K records a version of exactly that.
  *
- * 回傳 `Map<number, number[]>`（id 由小到大）。空清單代表該世代不存在，
- * 呼叫者必須處理，不能當成「沒有這個世代以外的情況」。
+ * Returns `Map<number, number[]>` (ids ascending). An empty list means the
+ * generation does not exist; callers must handle it rather than treating it as
+ * impossible.
  *
  * @param {Array<{id:number, generation:number}>} data
  * @returns {Map<number, number[]>}
@@ -190,20 +204,19 @@ export function genIdMap(data) {
   return map;
 }
 
-/** 全 1,025 隻，由小到大。 */
 export function allIds(data) {
   return (data || []).map((p) => p.id).sort((a, b) => a - b);
 }
 
 /**
- * 某一難度的出爐池。
+ * The pool a difficulty draws from.
  *
- * - `easy`：單一世代。使用者選哪一代就只抽那一代，所以池大小是 72 到 156。
- * - `hard`：全 1,025。
- * - `hell`：全 1,025。池與 hard 相同，但 `variantOf()` 回傳 `'s'`。
+ * - `easy`: a single generation, the one the reader picked, so the pool is 72 to 156.
+ * - `hard`: all 1,025.
+ * - `hell`: all 1,025. Same pool as hard; `variantOf()` returns `'s'`.
  *
  * @param {string} difficulty
- * @param {number} gen  只有 easy 用到
+ * @param {number} gen  only consulted for easy
  * @param {Array} data
  * @returns {number[]}
  */
@@ -217,20 +230,23 @@ export function poolFor(difficulty, gen, data) {
 }
 
 // ---------------------------------------------------------------------------
-// 出題
+// Target draw
 // ---------------------------------------------------------------------------
 
 /**
- * 從池裡抽一隻，回傳它在池中的位置。
+ * Pick one from the pool and return its POSITION in it.
  *
- * `mulberry32(seed)` 回傳的是一個**產生器函式**而不是數字——那是
- * `daily-pick.js` 的簽章，它的整個設計就是「一個 PRNG 的狀態只有一個數字」。
- * 第一次寫成 `mulberry32(fnv1a(seed)) % pool.length` 時，`函式 % 151` 是
- * `NaN`，`NaN < 0` 為 false，於是 `pool[NaN]` 是 `undefined`，而整個函式回傳
- * 一個 `{id: undefined}` 的目標——**沒有丟出任何東西**。它必須呼叫一次。
+ * Returning a position rather than an id is what makes "the pool is empty"
+ * observable to the caller (`< 0`) instead of returning a fallback that everyone
+ * downstream then forgets was a fallback.
  *
- * 回傳**位置**而不是 id，是為了讓「位置 < 0」成為一個可以被 caller 看見的
- * 狀態（池是空的），而不是回傳一個 fallback 之後所有人都忘記池是空的。
+ * `mulberry32(seed)` returns a GENERATOR FUNCTION, not a number — that is
+ * `daily-pick.js`'s signature, and the whole point of that design is "a PRNG's
+ * state is one number". The first draft wrote
+ * `mulberry32(fnv1a(seed)) % pool.length`, where `function % 151` is `NaN`,
+ * `NaN < 0` is false, and `pool[NaN]` is `undefined` — so the function returned
+ * a target of `{id: undefined}` and **threw nothing at all**. It has to be
+ * called.
  */
 function pickIndex(pool, seed) {
   if (!pool.length) return -1;
@@ -238,17 +254,18 @@ function pickIndex(pool, seed) {
 }
 
 /**
- * 每日題目。同一天、同一難度、同一世代 → 同一隻。
+ * The daily puzzle. Same day + same tier + same generation -> same Pokémon.
  *
- * **種子裡有世代**，所以 easy 難度下兩個使用者選不同世代會看到不同的題目。
- * 這是規格要的（easy 讓使用者自己選世代），而它與參考專案「同一個日期全世界
- * 看到同一隻」的性質並不衝突：那只在難度與世代都相同時成立，而那正是
- * 「同一道題」的定義。
+ * **The seed contains the generation**, so under easy two readers who picked
+ * different generations see different puzzles. The spec asks for that (easy lets
+ * the reader choose a generation), and it does not conflict with the reference's
+ * "everyone worldwide sees the same one today": that only holds when tier AND
+ * generation match, which is precisely what "the same puzzle" means.
  *
- * 用台北日曆日（`taipeiDateKey`）而不是 UTC 日：這個專案對「每日」的既有
- * 定義是台北的，`daily-pick.js` 的第四條決策專門記錄了為什麼。遊戲若用 UTC，
- * 台北讀者會在早上 8 點換題、首頁的今日推薦卻不換，而那兩件事在同一個網站上
- * 都叫「今日」。
+ * The day is Taipei's (`taipeiDateKey`), not UTC's. `daily-pick.js`'s fourth
+ * decision records why: with a UTC day, a Taipei reader's puzzle would roll over
+ * at 08:00 while the homepage's 今日推薦 would not, and both are called 「今日」
+ * on the same site.
  *
  * @returns {{id:number, variant:'n'|'s', index:number}|null}
  */
@@ -260,11 +277,11 @@ export function pickDailyTarget(difficulty, gen, data, { now = new Date() } = {}
 }
 
 /**
- * 無限模式的目標。沒有日期，也就不需要種子。
+ * The unlimited-mode target. No date, so no seed.
  *
- * `rand` 接受注入是為了讓檢查可以對同一組資料重現同一局；不注入時才用
- * `Math.random()`。這是本專案的慣例（`pokemon-search` 的 debounce、圖鑑的
- * 篩選都是同一個理由）。
+ * `rand` is injectable so the checker can reproduce one round against fixed
+ * data; `Math.random()` is only the default. Same convention as the rest of the
+ * project (the pokedex debounce, the dex filters).
  */
 export function pickUnlimitedTarget(difficulty, gen, data, rand = Math.random) {
   const pool = poolFor(difficulty, gen, data);
@@ -274,20 +291,21 @@ export function pickUnlimitedTarget(difficulty, gen, data, rand = Math.random) {
 }
 
 // ---------------------------------------------------------------------------
-// 色盤
+// Palettes
 // ---------------------------------------------------------------------------
 
 /**
- * 一隻寶可夢在某個外觀下的 6 色（Unown 是 5 色）。
+ * One species' colours in one appearance (Unown has 5).
  *
- * **占比不重算、不重排序。** `color_palettes.json` 的 rows 已經是
- * `extract_color_palettes_mmcq.py` 按占比降冪排好的，所以第 0 列就是主色。
- * 重排一次就是多一次可以排錯的機會，而且會讓「主色」這個詞有兩個定義。
+ * **Shares are neither recomputed nor re-sorted.** `color_palettes.json`'s rows
+ * are already sorted descending by `extract_color_palettes_mmcq.py`, so row 0 is
+ * the primary. Sorting again is one more thing that can be got wrong, and it
+ * would give the word "primary" a second definition.
  *
- * @param {object} palettes `color_palettes.json` 的形狀 `{ [id]: { n, s } }`
+ * @param {object} palettes shape of `color_palettes.json`: `{ [id]: { n, s } }`
  * @param {number} id
  * @param {'n'|'s'} variant
- * @returns {Array<{hex:string, share:number}>} 該物種不存在時是 `[]`
+ * @returns {Array<{hex:string, share:number}>} `[]` when the species is absent
  */
 export function paletteRows(palettes, id, variant = 'n') {
   const entry = palettes && palettes[String(id)];
@@ -298,7 +316,7 @@ export function paletteRows(palettes, id, variant = 'n') {
     .map((r) => ({ hex: r[0], share: Number(r[1]) || 0 }));
 }
 
-/** 對局中實際顯示的色數：預設 3 色，第三則提示之後是全部。 */
+/** How many colours play shows: 3 by default, every one of them once revealed. */
 export function visiblePalette(palettes, id, variant, revealed = false) {
   const rows = paletteRows(palettes, id, variant);
   const n = revealed ? rows.length : PALETTE_COLORS_SHOWN;
@@ -306,22 +324,26 @@ export function visiblePalette(palettes, id, variant, revealed = false) {
 }
 
 // ---------------------------------------------------------------------------
-// 計分
+// Scoring
 // ---------------------------------------------------------------------------
 
 /**
- * 兩組色之間的對稱距離。與 `color-match.js` 的 `matchPalette()` 算式逐行相同。
+ * The symmetric distance between two palettes. Line-for-line the same expression
+ * as `color-match.js`'s `matchPalette()`.
  *
- * 兩組色不一樣多時，這個數字不能當百分比讀——它是一個距離，越小越近，而
- * 距離沒有上界。頁面因此不印百分比，而是印距離本身，理由見 §3.B2 的結論：
+ * Two palettes of different sizes cannot be read as a percentage — this is a
+ * distance, smaller is closer, and distance has no upper bound. So the page does
+ * not print a percentage; it prints the distance itself, which is what §3.B2
+ * concludes:
  *
- *   誠實的做法是把 ΔE 數字本身顯示出來。距離大就是大，那是一個事實而不是
- *   一個失敗。
+ *   The honest thing is to show the ΔE number itself. A large distance is large,
+ *   and that is a fact rather than a failure.
  *
- * 對稱是必要的而且不是細節：`forward` 單獨用的時候，一組連續調的褐色可以零
- * 懲罰地蓋住任何褐色穿搭。`matchPalette()` 加 `reverse` 就是為此，所以這個
- * 函式不能為了「照抄參考專案」而退回單向——參考專案用的算式本身是單向平均，
- * 那是它比較弱的一環，不是它值得保留的特徵。
+ * The symmetry is load-bearing, not a detail: with `forward` alone a set of
+ * continuous-tone browns can match any brown outfit for free. `reverse` exists in
+ * `matchPalette()` for exactly that, so this function must not fall back to a
+ * one-way average "for fidelity to the reference" — the reference's expression
+ * is the weaker half of its design, not a feature worth preserving.
  */
 export function paletteDistance(rowsA, rowsB) {
   const a = (rowsA || []).filter((r) => r && r.hex).map((r) => ({
@@ -332,7 +354,8 @@ export function paletteDistance(rowsA, rowsB) {
   })).filter((r) => r.lab);
   if (!a.length || !b.length) return null;
 
-  // 查詢側的占比總和為 0（全 0 或缺資料）時退回等權，而不是回傳 NaN。
+  // The query side falls back to equal weight when every share is 0 or absent,
+  // rather than returning NaN.
   let aSum = a.reduce((s, r) => s + r.share, 0);
   if (!(aSum > 0)) for (const r of a) r.share = 1;
   aSum = a.reduce((s, r) => s + r.share, 0);
@@ -360,19 +383,20 @@ export function paletteDistance(rowsA, rowsB) {
 }
 
 /**
- * 猜測的分數：一個距離，**不是** 0 到 1 的相似度。
+ * A guess's score: a DISTANCE, not a similarity in 0..1.
  *
- * 頁面直接印這個數字（4 位小數，與 colors-generator.html 同一個格式），
- * 而不是印百分比。參考專案印 `NN% match`，那需要一個把距離映射到 0..1 的
- * 正規化常數，而任何常數都是選擇：
+ * The page prints this number directly (4 dp, the same format as
+ * colors-generator.html) rather than a percentage. The reference prints
+ * `NN% match`, which needs a normalisation constant mapping distance back to
+ * 0..1, and every such constant is a choice:
  *
- *   - 用語料庫實測的 0.8925 當上界，`% = (1 - d/0.8925) * 100`
- *   - 用參考專案的 250（那是 sRGB 空間的上界，不是 OKLab 的）
+ *   - the corpus-measured 0.8925 as the ceiling: `% = (1 - d/0.8925) * 100`
+ *   - the reference's 250, which is the sRGB ceiling, NOT OKLab's
  *
- * 兩者都不影響「誰比較近」的排序，只影響那個數字看起來像什麼。第二個會
- * 讓幾乎每一格都變成 0%，因為 OKLab 的距離最大只有 0.8925 而門檻是 250。
+ * Neither changes WHICH palette is closer. The second would make almost every
+ * cell read 0%, because OKLab distances max out at 0.8925 against a 250 gate.
  *
- * 所以這裡回傳距離，並且把它命名為距離。
+ * So this returns a distance and calls it one.
  *
  * @returns {{score:number, forward:number, reverse:number}|null}
  */
@@ -383,24 +407,25 @@ export function scoreGuess(palettes, targetId, guessId, variant) {
 }
 
 // ---------------------------------------------------------------------------
-// 難度與世代的正規化
+// Normalising tier and generation
 // ---------------------------------------------------------------------------
 
 export function isDifficulty(value) {
   return DIFFICULTIES.indexOf(value) >= 0;
 }
 
-/** 不認得的難度落到 `easy`，因為那是首次進入的預設值。 */
+/** An unrecognised tier falls back to `easy`, which is the first-visit default. */
 export function normalizeDifficulty(value) {
   return isDifficulty(value) ? value : 'easy';
 }
 
 /**
- * 不認得的世代落到 1。
+ * An unrecognised generation falls back to 1.
  *
- * 規格是「第一次進來都是 Easy + 第一世代」，而 localStorage 可以被手改、
- * 可以是舊版本寫的、可以在另一個世代數目的站上留下來。所以正規化是必要的，
- * 而它的 fallback 必須是規格指定的那一個值，不是「最小的那個」。
+ * The spec says a first visit is always Easy + 第一世代, and localStorage can be
+ * hand-edited, can hold an older version's value, and can carry over from a site
+ * with a different generation count. So normalisation is necessary, and its
+ * fallback must be the value the spec names — not "the smallest one".
  */
 export function normalizeGeneration(value, availableGenerations) {
   const g = Number(value);

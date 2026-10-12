@@ -151,15 +151,17 @@ console.log('NAV integrity');
 // Every href a NAV row can send the user to must resolve, or be registered as
 // planned. A typo'd href is a dead link that renders identically to a good one.
 const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
-// 13 site pages reach the nav: the 6 top-level hrefs, pokedex / generations /
-// collections / category / types under 圖鑑, sorting / maze under 演算法,
-// cries / spectrum / cries-gen1 under 叫聲, and the 色彩 quartet. A NUMBER, not a
-// list on purpose — a list here would be a fourth copy of NAV that could be edited
-// to agree with a broken NAV, whereas a count can only be changed by someone
-// deciding the site's page set changed. It went 15 -> 16 when spectrum.html joined
-// the 叫聲 group, 16 -> 17 when life.html joined the 演算法 group, and 17 -> 18 when
-// graph.html joined the 演算法 group.
-const EXPECTED_NAV_PAGES = 18;
+// 14 site pages reach the nav: the 6 top-level hrefs, pokedex / generations /
+// collections / category / types under 圖鑑, sorting / maze / life / graph under
+// 演算法, cries / spectrum / cries-gen1 under 叫聲, and the 色彩 quintet. A
+// NUMBER, not a list on purpose — a list here would be a fourth copy of NAV that
+// could be edited to agree with a broken NAV, whereas a count can only be changed
+// by someone deciding the site's page set changed. It went 15 -> 16 when
+// spectrum.html joined the 叫聲 group, 16 -> 17 when life.html joined the 演算法
+// group, 17 -> 18 when graph.html joined 演算法, and 18 -> 19 when color-game.html
+// replaced its `planned: 'color-game.html'` placeholder in the 色彩 group with a
+// real row — which is what the `planned` branch of `navRowHtml` exists for.
+const EXPECTED_NAV_PAGES = 19;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;
