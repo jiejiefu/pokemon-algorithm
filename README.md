@@ -7,6 +7,10 @@
   <!-- <a href="./docs/README.ja.md">日本語</a> -->
 </p>
 
+<p align="center">
+  <img src="assets/images/logo.png" alt="Pokémon Algorithm logo" width="120">
+</p>
+
 ## 📦 Project Overview
 
 **Pokémon Algorithm** is a static, zero-build HTML/CSS/JavaScript web application (fully compatible with **GitHub Pages**) that visualizes computer science algorithms, color quantization, and data science concepts using **1,025 Pokémon**.
@@ -29,7 +33,7 @@
 | `sorting.html` | 6 sorting algorithms running on a 1,025-sprite Canvas, plus a 2–6 lane race mode — §3.G3. |
 | `maze.html` | BFS / DFS pathfinding visualizer on a 40×40 grid with seedable RNG. |
 | `life.html` | Conway's Game of Life simulation mapped across generations using real in-game evolution levels — §3.K. |
-| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,523 relations across 8 types, featuring search, filters, and a dossier panel linked to `detail.html` / `color.html`. |
+| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,687 relations across 13 types, featuring search, filters, and a dossier panel linked to `detail.html` / `color.html`. |
 | `cries.html` | All 1,025 cry cards with measured timbre, 5 sorting axes, and real-time waveforms. |
 | `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU — §3.F. |
 | `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right — §3.G1. |
@@ -112,3 +116,17 @@ node scripts/check_all.mjs
 * `--force`: Force re-execution ignoring the cache.
 
 ---
+
+## 🙏 Special Thanks
+
+This project stands on the shoulders of the following open data sources and community projects. Their names are reproduced exactly as their authors publish them.
+
+* [PokéAPI](https://pokeapi.co/)
+* [Pokédex | 台灣寶可夢官方網站](https://tw.portal-pokemon.com/play/pokedex/)
+* [全國寶可夢圖鑑 2025 - 所有 1,025 隻寶可夢種族值、進化 & 招式 | InfoPoke](https://infopoke.net/zh-tw)
+* [PokémonPalette - Extract Color Palettes from Pokémon Sprites | Color Generator Tool](https://www.pokemonpalette.com/)
+* [Pokemon Palettes](https://pokepalettes.com/)
+* [Pokémon Database -- the fastest way to get your Pokémon information](https://pokemondb.net/)
+* [PMD Sprite Repository](https://sprites.pmdcollab.org/)
+* [Pokémon 3D Optimized Model Viewer by Pokemon-3D-api](https://pokemon-3d-api.oneapp.dev/)
+* [PokéMaps – Interactive Pokémon Maps & Catch Locations](https://pokemaps.net/)

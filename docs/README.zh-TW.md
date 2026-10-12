@@ -1,5 +1,9 @@
 # 📦 專案概覽
 
+<p align="center">
+  <img src="../assets/images/logo.png" alt="寶可夢演算法 logo" width="120">
+</p>
+
 **寶可夢演算法 (Pokemon Algorithm)** 是一個基於純前端技術、零編譯建構步驟（Zero-build）、完美相容於 **GitHub Pages** 的靜態網頁應用程式。本專案利用 **1,025 隻寶可夢** 作為資料視覺化的核心，深入探索並展示電腦科學演算法、色彩量化與前端互動介面。
 
 * **技術特點**：無需複雜的 npm 依賴或前端框架建構，純粹透過 HTML5、CSS3 與原生 JavaScript（搭配現代 ES Modules）實現高效能渲染。
@@ -22,7 +26,7 @@
 | `sorting.html` | 在 1,025 個 Sprite 畫布上展示 6 種排序演算法，並提供 2 至 6 車道競速模式。 |
 | `maze.html` | BFS / DFS 路徑尋找視覺化，具備 40×40 網格與種子可控（Seedable RNG）隨機地圖。 |
 | `life.html` | 結合康威生命遊戲（Conway's Game of Life）與真實遊戲內進化等級的生態模擬器。 |
-| `graph.html` | 3D 力導向知識圖譜：包含 1,346 個實體與 2,523 條關聯，支援搜尋、過濾及與詳情頁聯動的面板。 |
+| `graph.html` | 3D 力導向知識圖譜：包含 1,346 個實體與 2,687 條關聯、13 種關聯類型，支援搜尋、過濾及與詳情頁聯動的面板。 |
 | `cries.html` | 收錄全 1,025 種叫聲卡片，具備響應式音色測量、5 個排序軸與即時波形渲染。 |
 | `cries-gen1.html` | 第一世代 151 種叫聲透過 Game Boy APU 進行晶片音樂（Chiptune）重合成。 |
 | `spectrum.html` | 每種叫聲的 Mel 頻譜分析視覺化，支援由左至右動態揭示。 |
@@ -104,3 +108,19 @@ node scripts/check_all.mjs
 * `--only=<group>`：僅執行特定群組的檢查器（支援的群組包含 `algo`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `model`, `nav`, `sort`, `type`）。
 * `--skip=<group>`：跳過指定群組。
 * `--force`：強制重新執行所有檢查而不理會快取狀態。
+
+---
+
+## 🙏 特別感謝
+
+本專案的資料與素材皆來自以下開放資料來源與社群專案，網站名稱一律沿用其原發布名稱。
+
+* [PokéAPI](https://pokeapi.co/)
+* [Pokédex | 台灣寶可夢官方網站](https://tw.portal-pokemon.com/play/pokedex/)
+* [全國寶可夢圖鑑 2025 - 所有 1,025 隻寶可夢種族值、進化 & 招式 | InfoPoke](https://infopoke.net/zh-tw)
+* [PokémonPalette - Extract Color Palettes from Pokémon Sprites | Color Generator Tool](https://www.pokemonpalette.com/)
+* [Pokemon Palettes](https://pokepalettes.com/)
+* [Pokémon Database -- the fastest way to get your Pokémon information](https://pokemondb.net/)
+* [PMD Sprite Repository](https://sprites.pmdcollab.org/)
+* [Pokémon 3D Optimized Model Viewer by Pokemon-3D-api](https://pokemon-3d-api.oneapp.dev/)
+* [PokéMaps – Interactive Pokémon Maps & Catch Locations](https://pokemaps.net/)
