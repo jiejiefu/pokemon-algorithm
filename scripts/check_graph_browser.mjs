@@ -288,6 +288,88 @@ async function run() {
   ok(typeof badge === 'string' && badge.includes(String(META.total_links)),
      `the badge reports graph_data.json's ${META.total_links} relations (${badge})`);
 
+  // ---- the collapsed header, driven by REAL mouse events -----------------
+/* EVERY OTHER ASSERTION IN THIS FILE CALLS `element.click()`, AND THAT IS WHY THE
+ * HAMBURGER BROKE WITHOUT ANYBODY NOTICING.
+ *
+ * graph-header.js answers a click on the toggle by rewriting the button's
+ * `innerHTML` (`toggle.innerHTML = iconSvg(open ? 'close' : 'menu')`). That destroys
+ * the `<svg><path>` the reader pressed. The click keeps bubbling to the document with
+ * an `e.target` that is no longer in the tree — measured, `isConnected === false` —
+ * and the module's click-outside guard read `header.contains(e.target)`, which is
+ * `false` for a detached node by definition. An INSIDE click therefore read as an
+ * OUTSIDE one and the bar closed itself in the same task it opened: opened at 158 ms,
+ * closed at 158 ms.
+ *
+ * `element.click()` passes where this fails, so a checker built on it reports the
+ * page working. Measured before the fix: 0 of 5 dispatched mouse clicks opened the
+ * bar, 5 of 5 `element.click()` calls did. The two disagree about whether the same
+ * click worked, which is the shape §3.G4 warns about for a stubbed fixture — except
+ * here the stub is the test harness itself, and it is the faithful one.
+ *
+ * So this section dispatches REAL Input events at the button's own measured centre.
+ * It also asserts the three close paths that had to SURVIVE the fix, because "the
+ * button opens" and "the button opens and nothing else changed" are different claims
+ * and the guard is worth exactly as much as the weaker one. */
+  const headerOpen = () => ev("document.querySelector('.graph-header')?.classList.contains('is-open') === true");
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const realClickAt = async (x, y) => {
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, button: 'none', clickCount: 0 });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1, buttons: 1 });
+    await sleep(50);
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1, buttons: 0 });
+    await sleep(450);
+  };
+
+  const toggleBox = await ev(`(() => {
+    const t = document.querySelector('[data-graph-header-toggle]');
+    if (!t) return null;
+    const r = t.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+  })()`);
+  ok(toggleBox && Number.isFinite(toggleBox.x) && toggleBox.y > 0 && toggleBox.y < 60,
+     `graph.html mounts a visible [data-graph-header-toggle] in the header row (${JSON.stringify(toggleBox)})`);
+
+  if (toggleBox) {
+    ok(await headerOpen() === false, 'the header starts collapsed');
+    for (let round = 1; round <= 3; round++) {
+      await realClickAt(toggleBox.x, toggleBox.y);
+      ok(await headerOpen() === true, `a real mouse press on the toggle OPENS the header (round ${round})`);
+      ok(await ev("getComputedStyle(document.querySelector('.graph-header .site-nav')).visibility") === 'visible',
+         `the nav is actually visible once open (round ${round})`);
+      await realClickAt(toggleBox.x, toggleBox.y);
+      ok(await headerOpen() === false, `the same button CLOSES it again (round ${round})`);
+    }
+
+    /* The three close paths the fix had to leave alone. A guard that only proves the
+     * button opens is half a guard: closing the bar by clicking a drag is exactly the
+     * defect §3.N's 6px threshold exists to prevent, and a regression there would be
+     * invisible to the round above. */
+    await realClickAt(toggleBox.x, toggleBox.y);
+    ok(await headerOpen() === true, 'reopened for the close-path checks');
+
+    /* A real click on the canvas — no drag, so the 6px threshold does not apply. */
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 900, y: 520, button: 'none', clickCount: 0 });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 900, y: 520, button: 'left', clickCount: 1, buttons: 1 });
+    await sleep(50);
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 900, y: 520, button: 'left', clickCount: 1, buttons: 0 });
+    await sleep(450);
+    ok(await headerOpen() === false, 'a click on empty canvas still closes the bar');
+
+    await realClickAt(toggleBox.x, toggleBox.y);
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 900, y: 520, button: 'none', clickCount: 0 });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 900, y: 520, button: 'left', clickCount: 1, buttons: 1 });
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 980, y: 580, button: 'left', clickCount: 1, buttons: 1 });
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 980, y: 580, button: 'left', clickCount: 1, buttons: 0 });
+    await sleep(500);
+    ok(await headerOpen() === true, 'an 80px orbit DRAG on the canvas does NOT close the bar');
+
+    await ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))");
+    await sleep(400);
+    ok(await headerOpen() === false, 'Escape closes the bar');
+  }
+
   // ---- search ----------------------------------------------------------
 /* THE TWO POLL CEILINGS, NAMED, because both the wait and the message that reports a
      timeout have to read the same number. The first version of this file passed 8000 to

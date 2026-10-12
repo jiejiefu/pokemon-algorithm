@@ -100,16 +100,48 @@ export function initGraphHeader() {
     if (e.key === 'Escape' && open) setOpen(false);
   });
 
-  /* Where the press STARTED, not where it ended. Only `pointerdown` on the document
-     is recorded, so a pointer that went down inside the nav and up on the canvas
-     still reads as an inside press — and the distance check then rejects the drag. */
+  /* Where the press STARTED, not where it ended, AND WHETHER IT STARTED INSIDE.
+   *
+   * `pointerdown` is recorded because it fires before anything can move the
+   * pointer, and the membership question has to be asked THERE rather than at
+   * `click` time. An earlier version read `header.contains(e.target)` in the click
+   * handler, and the toggle's own handler answers a click by rewriting its
+   * `innerHTML`:
+   *
+   *     toggle.innerHTML = iconSvg(open ? 'close' : 'menu');   // line 93
+   *
+   * That DESTROYS the `<svg><path>` the reader clicked. The event keeps bubbling
+   * to the document with an `e.target` that is no longer in the tree -- measured,
+   * `isConnected === false` -- and `header.contains()` on a detached node is
+   * `false` by definition. So an inside click read as an outside one and the bar
+   * closed itself in the same task it opened: opened at 158ms, closed at 158ms.
+   *
+   * Reproduced 5 of 5 with dispatched mouse events at the button's own centre and
+   * 0 of 5 with `element.click()`, which is why it reads as intermittent -- it
+   * depends on whether the browser happens to re-anchor the target before the
+   * document handler runs. Two snapshots of the same click disagree about whether
+   * the target is still connected.
+   *
+   * THIS IS §3.I INVERTED. There, a detached node does not bubble and the click is
+   * a silent no-op. Here the click bubbles perfectly well and the membership test
+   * silently inverts, which is the same class of failure -- a question about
+   * WHICH element was hit, asked about an element that no longer answers -- reached
+   * from the other direction. Asking at `pointerdown` is the same reasoning the
+   * drag threshold above already uses: the press is the fact, the click is a
+   * report about a press that has since been acted on. */
   let downAt = null;
   document.addEventListener('pointerdown', e => {
-    downAt = { x: e.clientX, y: e.clientY };
+    downAt = { x: e.clientX, y: e.clientY, inside: header.contains(e.target) };
   }, { passive: true });
 
   document.addEventListener('click', e => {
     if (!open) return;
+    /* A press that started inside the bar is never "a click outside it", whatever
+     * the click's target has become since. Kept alongside the live check below
+     * rather than instead of it: the live one is still right when a click arrives
+     * with no pointerdown recorded at all (keyboard-activated elements, synthetic
+     * events), and dropping it would close the bar on those. */
+    if (downAt && downAt.inside) return;
     if (header.contains(e.target)) return;
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > CLICK_SLOP_PX) return;
     setOpen(false);

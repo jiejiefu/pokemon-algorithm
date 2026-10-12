@@ -474,3 +474,52 @@ The same change made `check_graph_browser.mjs:265` **unsatisfiable rather than f
 - **`generation` on form nodes stays the base species'.** PokeAPI's `/pokemon/{id}` has no `generation` field and `game_indices` is an empty array for every battle-only form (measured on all 127). There is no source, so none was invented.
 - **超極巨化 still has no network** — see above.
 - **幻之 (11 components) and 傳說 (5) are still fragmented.** Now *measured* rather than invisible, which is what the checker was for.
+
+---
+
+## W. The Hamburger Closed Itself In The Same Task It Opened — And `element.click()` Agreed With It
+
+`graph.html`'s collapsed header is the one control on the page whose entire affordance is a button, so "clicking it does not open the bar" is the whole report. It reproduced **5 of 5** with dispatched mouse events at the button's own measured centre and **0 of 5** with `element.click()`.
+
+### A handler destroyed the click's own target
+
+`assets/js/graph-header.js` answers a click on the toggle by rewriting the button's contents:
+
+```js
+toggle.innerHTML = iconSvg(open ? 'close' : 'menu');   // line 93
+```
+
+That destroys the `<svg><path>` the reader pressed. The event **keeps bubbling** to the document with an `e.target` that is no longer in the tree — measured, `isConnected === false`, `document.contains(e.target) === false` — and the click-outside guard read `header.contains(e.target)`:
+
+```js
+if (header.contains(e.target)) return;   // false for a detached node, by definition
+```
+
+So an **inside** click read as an **outside** one and the bar closed itself. Measured with a MutationObserver: `158ms [header … is-open] | 158ms [header …]`. Both in one microtask batch — same task.
+
+**THIS IS §3.I INVERTED.** There, a handler rewrites a node and the click hits a **detached** node, which does not bubble, so the click is a silent no-op. Here the click bubbles perfectly and the **membership test silently inverts**. Same class — a question about *which element was hit*, asked of an element that no longer answers — reached from the other direction.
+
+### The harness was the stub, and it was the faithful one
+
+`check_graph_browser.mjs` drives every control with `element.click()`. That **passes** where the real press fails, which is §3.G4's failure mode with the roles reversed: there the fixture was faster than the page, here the fixture is *more faithful* than the page thinks it is. The two paths disagree about whether the same click worked — measured `0 of 5` vs `5 of 5` — and nothing in the suite held both.
+
+`element.click()` dispatches synchronously and the browser re-anchors `e.target` before the document handler runs; a real press goes through the compositor with `mousePressed`/`mouseReleased` and does not. Neither is "wrong"; only one of them is what a reader does.
+
+### The fix asks the question at `pointerdown`
+
+`downAt` already recorded **where** the press started, for the 6px drag threshold. It now also records **whether** it started inside:
+
+```js
+downAt = { x, y, inside: header.contains(e.target) };
+...
+if (downAt && downAt.inside) return;
+if (header.contains(e.target)) return;   // still right for a click with no pointerdown
+```
+
+Both guards, not one: the live check still matters for keyboard-activated and synthetic clicks, which carry no `pointerdown`. Asking at `pointerdown` is the same reasoning the drag threshold already used — **the press is the fact, the click is a report about a press that has since been acted on.**
+
+`rg "contains\(e\.target\)"` across `assets/js/` returns this one site, so the shape is not elsewhere on the site.
+
+### The guard proves the three close paths survived
+
+A fix that only makes the button open is half a fix — closing the bar by dragging to orbit the camera is the defect §3.N's threshold exists to prevent, and a regression there is invisible to "the button opens". `check_graph_browser.mjs` now dispatches real presses for all of it: 3 open/close rounds plus the nav's computed `visibility`, a canvas click that must close, an 80px orbit drag that must **not**, and Escape. **Reverting the one-line guard fails 8 of those assertions** — verified by reverting and re-running, because a guard nobody has seen fail is a claim rather than a check.

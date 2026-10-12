@@ -335,9 +335,16 @@ body.graph-body {
 /* Floating HUD Side Panel (Controls) */
 .graph-control-panel {
   position: absolute;
-  top: 76px;
+  /* 63px, not the 76px this used to be. The header is 55px tall COLLAPSED and
+   * `position: sticky`, so the panel was starting 21px into empty sky — 21px of
+   * the viewport spent on nothing, on the one screen real estate that decides
+   * whether the panel has to scroll. The collapsed height is measured, not
+   * assumed: `.graph-header` at rest is 55px and this leaves 8px of gap. */
+  top: 63px;
   left: 20px;
-  bottom: 24px;
+  /* 12px, down from 20px. The dock sits at the bottom of the viewport and is
+   * centred, so the panel's left column has nothing under it to clear. */
+  bottom: 12px;
   width: 320px;
   max-width: calc(100vw - 40px);
   z-index: 25;
@@ -396,11 +403,15 @@ body.graph-body {
 }
 
 .panel-body {
-  padding: 14px 16px;
+  padding: 12px 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* 10px, down from 16px. Five gaps x 6px = 30px of the panel's height, which is
+   * 30px the reader does not have to scroll past. The sections are already
+   * separated by their own titles, so the gap is a rhythm, not a divider -- and
+   * 10px still reads as a break at this density. */
+  gap: 10px;
   flex: 1;
 }
 
@@ -421,7 +432,10 @@ body.graph-body {
 .hud-search-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 14px 10px 36px;
+  /* 8px, down from 10px. The search box is 37px for one input, and it is the only
+   * control in the panel that is not a chip -- a 12px icon inset at 36px of
+   * left padding still clears the glyph at 8px of vertical padding. */
+  padding: 8px 14px 8px 36px;
   background: rgba(2, 6, 23, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
@@ -515,7 +529,10 @@ body.graph-body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--graph-text-muted);
-  margin-bottom: 8px;
+  /* 6px, down from 8px. Five titles = 10px, and the title is a label on its own
+   * row rather than a divider, so 6px still separates the block from the row under
+   * it while `.panel-body`'s 10px gap separates the blocks from each other. */
+  margin-bottom: 6px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -529,7 +546,11 @@ body.graph-body {
 }
 
 .hud-chip {
-  padding: 4px 10px;
+  /* 3px, down from 4px. Nine rows of chips across the three chip rows, so 2px per
+   * row is 18px — and a chip is a target, so this is the last thing to give up
+   * height rather than the first. It stops at 3px because 2px starts eating the
+   * 1px border's breathing room. */
+  padding: 3px 9px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -562,7 +583,10 @@ body.graph-body {
 }
 
 .hud-type-btn {
-  padding: 5px 6px;
+  /* 4px 6px, down from 5px 6px. This is the tallest block in the panel: 18
+   * buttons over six rows, so 2px per row is 12px, and the horizontal padding is
+   * left alone because 超能力 is four characters and starts to clip at 5px. */
+  padding: 4px 6px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
@@ -589,7 +613,13 @@ body.graph-body {
 .slider-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /* 5px, down from 8px. The three rows sit inside a section that already has a
+   * title above it, so this gap is the only thing telling one slider from the
+   * next — an earlier attempt put `margin-bottom: 2px` on `.slider-row` instead,
+   * which ADDED 6px rather than removing any: the rows had no margin to reduce,
+   * the gap was already doing that job. The mistake was invisible in the diff
+   * because both declarations read as "tighter". */
+  gap: 5px;
 }
 
 .slider-row {
