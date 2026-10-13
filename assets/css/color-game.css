@@ -731,13 +731,18 @@
  * faithful port and it does not survive this page's full-width row: at 56px across it
  * reads as a chip rather than as the species' palette, and it showed 3 of 6 colours.
  *
- * 140px is MEASURED HERE, not borrowed. At 140px this strip's five segments came out
- * 28 / 28 / 28 / 28 / 27px in the live page — the last is 27 because the first four
- * carry a separator border — and five bands that wide are individually tellable.
- * `.cp-strip` on the colour pages is the PRECEDENT for the two properties that decide
- * whether that works, not for the size: its segments carry the same `flex: 1 1 0` and
- * the same `border-width: 0 1px 0 0`, but its own box is different (`.cp-idcard
- * .cp-strip` is `flex: 1 1 240px; min-width: 180px; height: 40px`).
+ * 140px is the project's EXISTING five-segment width, not invented here and not a
+ * guess. `outfit.html`'s `.of-winner-strip` is the same strip at the same width, and
+ * `outfit.css:661-671` records why: 「At 140px the five segments are 28px each, so the
+ * strip is a legible colour readout」. This page measures the same thing independently —
+ * at 140px its segments came out 28 / 28 / 28 / 28 / 27px, the last being 27 because the
+ * first four carry a separator border.
+ *
+ * What it did NOT come from is `.cp-strip`, which is easy to reach for and is the wrong
+ * citation: that is a different class on a different page, and `.cp-idcard .cp-strip`
+ * is `flex: 1 1 240px; min-width: 180px; height: 40px`. What `.cp-seg` does contribute is
+ * the mechanism — `flex: 1 1 0` and `border-width: 0 1px 0 0` (`colors.css:764-775`) —
+ * which is what makes equal cells and a 1px separator survive at any width.
  *
  * 56px tall, matching the sprite and the empty-slot placeholder beside it, so all three
  * columns of the row share one height.

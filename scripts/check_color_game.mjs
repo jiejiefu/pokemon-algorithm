@@ -650,16 +650,23 @@ console.log('\nthe bar is the card\'s header, and the at-rest card is three thin
    * faithful port; at this page's full-width row it reads as a chip rather than as the
    * species' palette, and it showed 3 of 6 colours.
    *
-   * 140px is the project's own measurement, not a guess: `colors.css` records 「At 140px
-   * the five segments are 28px each, so the strip is a legible colour」 for
-   * `.cp-idcard .cp-strip`, which is this strip. */
+   * 140px is the project's EXISTING five-segment width, not invented here: `outfit.html`'s
+   * `.of-winner-strip` is the same strip at the same width, and `outfit.css:661-671`
+   * records 「At 140px the five segments are 28px each, so the strip is a legible colour
+   * readout」. This page measures the same result independently — 28 / 28 / 28 / 28 / 27px,
+   * the last being 27 because the first four carry a separator border.
+   *
+   * The citation that is EASY to reach for and is wrong is `.cp-strip`: a different
+   * class on a different page, whose `.cp-idcard` instance is
+   * `flex: 1 1 240px; min-width: 180px; height: 40px`. What `.cp-seg` does contribute is
+   * the mechanism (`flex: 1 1 0` plus `border-width: 0 1px 0 0`, `colors.css:764-775`). */
   const strip = /\.gm-slot-strip\s*\{([^}]*)\}/.exec(cssCode);
   const seg = /\.gm-slot-strip span\s*\{([^}]*)\}/.exec(cssCode);
   check(!!strip && !/flex-direction:\s*column/.test(strip[1]),
     'the strip no longer stacks vertically',
     () => 'it is still a column; the row is full-width so 56px across reads as a chip');
   check(!!strip && /width:\s*140px/.test(strip[1]) && /height:\s*56px/.test(strip[1]),
-    'and it is 140x56 — the width `.cp-idcard .cp-strip` already measured at 28px per segment',
+    'and it is 140x56 — outfit.html\'s five-segment width, measured here again at 28px per segment',
     () => `width/height are not 140/56 (found ${strip ? strip[1].replace(/\s+/g,' ').trim() : 'no rule'})`);
   check(!!strip && /align-items:\s*stretch/.test(strip[1]),
     'with `align-items: stretch`, the way `.cp-strip` runs its segments');
