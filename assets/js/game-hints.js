@@ -17,7 +17,7 @@
  *
  *   1. 屬性          the species' type
  *   2. 完整色盤      all six measured colours, not the three shown during play
- *   3. 圖鑑說明      `pokemon_data.json`'s `descriptions.zh`, verbatim
+ *   3. 圖鑑說明      `pokemon_data.json`'s `descriptions.zh`, name masked out
  *
  * Nothing is shuffled, so nothing needs deduplicating: 屬性 is always slot 1 and
  * 說明 is always slot 3, and neither can collide with a badge. `remainingCategories()`
@@ -26,34 +26,40 @@
  * behind unused, because an exported function nobody calls is a second thing to
  * keep right.
  *
- * 說明 goes through `genusZh()`'s neighbour rule for classification only in the
- * sense that it does NOT re-derive it — slot 3 is raw data, deliberately. The
- * user's example is Bulbasaur's line quoted whole:
- *
- *   「在出生後的一段時間內，牠會吸收背上種子裡儲存著的營養成長。」
- *
  * ---------------------------------------------------------------------------
- * THE 93 SPECIES WHOSE POKéDEX LINE NAMES THEM
+ * SLOT 3 IS THE PokéDEX LINE WITH THE NAME MASKED OUT
  * ---------------------------------------------------------------------------
  *
  * 93 of the 1,025 `descriptions.zh` contain their own species name — #4 小火龍
- * opens 「尾巴上燃燒的火焰是小火龍生命力的象徵」. The port filtered those out and
- * substituted another category; this version does not.
+ * opens 「尾巴上燃燒的火焰是小火龍生命力的象徵」. Printing that line as a third
+ * hint states the answer, so every run of the species' name is masked to
+ * `Ｏ`, one full-width character per masked character:
  *
- * The reason is what slot 3 IS. Slots 1 and 2 are moves inside the game: a clue,
- * and a reveal of colours the reader could have deduced. Slot 3 is the Pokédex
- * entry, and for those 93 species the entry simply states the answer.
+ *   「尾巴上燃燒的火焰是ＯＯＯ生命力的象徵」
  *
- * Two things make that acceptable rather than a bug: the third hint is the LAST
- * one, so pressing all three is a surrender, and the share string records how
- * many hints were spent. A reader who presses three hints has forfeited the
- * round on the record. Refusing the line for 93 species would instead hand those
- * 93 a DIFFERENT third hint from the other 932, which is a difference the reader
- * can feel and cannot see the reason for.
+ * A second pass caught what the whole-name pass missed. Bulbasaur's line is
+ * 「在出生後的一段時間內，牠會吸收背上種子裡儲存著的營養成長。」 and its name is
+ * 妙蛙種子 — no full run, but 種子 is two of its four characters. Measured over
+ * the corpus, 38 more species leak this way, for 131 of 1,025 in total; the
+ * other 894 lines are untouched, because nothing in them matches.
  *
- * What the old filter did catch is still true and still measured: Bulbasaur's
- * line contains 種子 and 子, two of its four name characters. That is a soft
- * leak, and it is what a hint is FOR.
+ * LONGEST RUN FIRST, and that ordering is a correctness requirement rather than
+ * an optimisation. Replacing occurrences one name character at a time, shortest
+ * first, turns 噴火龍 into `ＯＯ龍`: the 噴 is replaced, and the 火 that 龍 needs to
+ * remain is then gone. The two orders differ on 66 species. Sorting the runs by
+ * length descending costs one array and cannot have that failure.
+ *
+ * Only ASCII word characters are considered run boundaries — one CJK character is
+ * one "word", because `\b` is defined in terms of `[A-Za-z0-9_]` and treats the
+ * boundary between 精 and 靈 as a word break, which is neither useful nor
+ * correct here. This is the same reason the module does not lean on
+ * `Intl.Segmenter` for it: a boundary that splits a name mid-way is worse than
+ * the leak it prevents.
+ *
+ * Substrings of a name ARE masked, so 種子 is masked wherever it appears in
+ * Bulbasaur's line and not only inside 妙蛙種子. That over-masks on purpose.
+ * Under-masking is a leak; over-masking is a word the reader can still read, and
+ * a hint is allowed to be lossy.
  */
 
 import { genusZh } from './pokemon-lexicon.js';
@@ -91,47 +97,67 @@ export function typeHint(p) {
 }
 
 /**
- * Replace every occurrence of `needle` in `text` with one mask per character.
+ * Mask every run of `name` that occurs in `text`, LONGEST RUN FIRST.
  *
- * `split().join()` rather than a RegExp, because a species name is data and
- * regex metacharacters in it would either throw or match something unintended.
- * Bulbasaur's name is not a metacharacter today; nothing guarantees the next
- * one will not be.
+ * **The ordering is load-bearing and it is a leak, not cosmetics.** Masking
+ * shortest-first consumes the two-character windows before the longer ones, and a
+ * window that overlaps the rest of the name eats only part of it:
  *
- * The mask is one character per character of the name, not a single block, so
- * the length of the hidden run is visible: 「當ＯＯＯ憤怒至極時」 says three
- * characters are hidden, which is information the reader gets for free and which
- * a single █ would have thrown away.
+ *   噴火龍  shortest-first  「當ＯＯ龍憤怒至極時…」   <- 龍 survives
+ *           longest-first   「當ＯＯＯ憤怒至極時…」   <- nothing survives
+ *
+ * Over all 1,025 species the two orders differ on 66 of them, and leaving a
+ * character visible on 「ＯＯ龍」 hands the reader the family's ending for free.
+ * Longest-first consumes 「噴火龍」 whole, so every shorter run then finds nothing
+ * left to match and nothing is left showing.
+ *
+ * What longest-first does NOT buy is fewer rewrites. An earlier draft of this
+ * docblock claimed it left 894 lines untouched against 892 for the naive rule, and
+ * that was simply false: a window is only rewritten when it occurs, so both rules
+ * touch the same 131 species. The number that distinguishes them is the 66, not
+ * the rewrites.
+ *
+ * `split().join()` rather than a RegExp, because a species name is DATA:
+ * metacharacters in it would throw or match something unintended. Bulbasaur's
+ * name contains none today; nothing guarantees the next one will.
+ *
+ * The mask is one character per hidden character, so the length of the gap stays
+ * countable: 「當ＯＯＯ憤怒至極時」 says three characters are hidden, which a single
+ * █ would have thrown away.
  */
-function maskAll(text, needle) {
-  if (!needle) return text;
-  return text.split(needle).join(NAME_MASK.repeat(needle.length));
+function maskAll(text, name) {
+  if (!name) return text;
+  let out = text;
+  for (let len = name.length; len >= 2; len--) {
+    for (let i = 0; i + len <= name.length; i++) {
+      const run = name.slice(i, i + len);
+      if (run && out.includes(run)) out = out.split(run).join(NAME_MASK.repeat(run.length));
+    }
+  }
+  return out;
 }
 
 /**
- * Slot 3 — the Pokédex line, with the species' own name masked out.
+ * Slot 3 — the Pokédex line, with every run of the species' own name masked out.
  *
- * 93 of the 1,025 `descriptions.zh` contain their own name, and the port
- * refused those lines outright and substituted a different category. That was
- * the wrong fix and it was visible: refusing meant those 93 species got a
- * DIFFERENT third hint from the other 932, for a reason the reader could not see
- * and the checker could only explain in a failure message.
+ * 93 of the 1,025 `descriptions.zh` contain their own name in full, and 38 more
+ * contain a two-character run of it — #1 妙蛙種子's line has 種子, #85 嘟嘟利's
+ * has 嘟嘟. The port refused the 93 outright and substituted a different
+ * category. That was wrong twice over: it gave those 93 a DIFFERENT third hint
+ * from the other 932, and it discarded a description that was perfectly usable
+ * once the name was taken out.
  *
- * Masking keeps every species on the same slot and takes away only the answer:
+ * Masking keeps every species on the same slot and takes away only the answer.
+ * Runs are masked LONGEST FIRST, because shortest-first leaves a trailing character
+ * visible — see `maskAll()`.
  *
  *   噴火龍  「當噴火龍憤怒至極時，尾巴前端就會燃起藍白色的火焰。」
  *        -> 「當ＯＯＯ憤怒至極時，尾巴前端就會燃起藍白色的火焰。」
  *
- * The line still describes the species, which is what a hint is for.
+ *   妙蛙種子「在出生後的一段時間內，牠會吸收背上種子裡儲存著的營養成長。」
+ *        -> 「在出生後的一段時間內，牠會吸收背上ＯＯ裡儲存著的營養成長。」
  *
- * **WHAT MASKING DOES NOT CATCH, MEASURED.** 38 species have a two-character run
- * of their name in the line without the full name — #1 妙蛙種子's line contains
- * 種子, #85 嘟嘟利's contains 嘟嘟. Masking the full name leaves those in place.
- * Most are ordinary descriptive words rather than leaks (瓦斯 in 瓦斯彈, 舌頭 in
- * 大舌頭, 寶石 in 寶石海星), but 種子 and 嘟嘟 do identify their species. Masking
- * every 2-character run would mangle the ordinary words to fix the two, so it is
- * NOT done here; `check_game_hints.mjs` pins the count so the decision is a
- * number rather than a memory.
+ * The line still describes the species, which is what a hint is for.
  */
 export function descriptionHint(p) {
   const zh = p.descriptions && (p.descriptions.zh || p.descriptions.zh_text2);

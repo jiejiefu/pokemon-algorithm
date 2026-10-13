@@ -231,11 +231,14 @@ function paletteRevealed() {
 }
 
 /** Evolves IFF this id is a key of the edge list. `levels` + `unlevelled`. */
-let evolutionLevels = null;
-function evolvesOf(id) {
-  if (!evolutionLevels) return false;
-  return id in evolutionLevels.levels || id in evolutionLevels.unlevelled;
-}
+/* evolution_levels.json is NOT loaded.
+ *
+ * It was, and `evolvesOf()` gated the third hint on it. The evolution hint is
+ * gone — slot 2 is now the full palette — so the table had no reader, the fetch
+ * was still on every page load, and the function was still in the module.
+ * Both are removed rather than left dormant: an unused export is a second thing
+ * to keep right, and life.html owns this table for the page that actually
+ * evolves something. */
 
 function revealHint() {
   if (state.status !== 'playing' || state.cooldown > 0) return;
@@ -349,6 +352,35 @@ function searchMatches(q) {
     if (out.length >= 40) break;
   }
   return out;
+}
+
+/**
+ * Resolve a typed string to exactly ONE species, by whole name or whole number.
+ *
+ * This is the fallback behind Enter, and it exists for the reader the design
+ * actually serves: someone who knows it is 妙蛙種子 and cannot type it perfectly.
+ * The substring scan usually finds them anyway (it matches on any two characters),
+ * so this only fires where that did not — a paste, a name whose characters are
+ * scattered, or a list capped at 40.
+ *
+ * Whole-string only, deliberately. A fuzzy match here would guess on a typo and
+ * then submit it, and a wrong guess costs one of four attempts. Returning null
+ * and saying so costs nothing.
+ *
+ * @returns {{id:number}|null} null when it is zero or more than one match
+ */
+function resolveExact(raw) {
+  const text = raw.trim().toLowerCase();
+  if (!text) return null;
+  const id = Number(text);
+  const hit = Number.isInteger(id) && String(id) === text ? byId.get(id) : null;
+  if (hit) return { id: hit.id };
+  const exact = pokemon.filter((p) => {
+    const n = p.names || {};
+    return (n.zh || '').toLowerCase() === text || (n.zh_HK || '').toLowerCase() === text
+      || (n.en || '').toLowerCase() === text;
+  });
+  return exact.length === 1 ? { id: exact[0].id } : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -557,9 +589,57 @@ function wire() {
   els.search.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      /* Arrow keys first, so Enter takes the row the reader has walked to rather
+       * than snapping back to the first. Without them the ↓ key did nothing and
+       * the only reachable row was the top one, which is the same as having no
+       * listbox — it is a <ul role="listbox">, so it owes the reader navigation. */
+      const active = els.searchList.querySelector('[aria-selected="true"]');
+      if (active && !active.classList.contains('is-used')) {
+        pickFromSearch(Number(active.dataset.id));
+        return;
+      }
+
+      /* THEN THE EXACT NAME, and this ordering is the fix. It used to be
+       * first-suggestion-then-nothing, so a reader who typed 「伊布」 in full got
+       * whatever the substring scan ranked first — and 「伊布」 is not always that:
+       * the scan matches inside other names too (水伊布, 雷伊布, 妖精伊布), so the
+       * rank is dex order rather than "what you literally typed". A whole-name
+       * match is the stronger signal, so it is asked first. */
+      const exact = resolveExact(els.search.value);
+      if (exact) { pickFromSearch(exact.id); return; }
+
       const first = els.searchList.querySelector('.gm-search-item:not(.is-used)');
-      if (first) pickFromSearch(Number(first.dataset.id));
-    } else if (e.key === 'Escape') {
+      if (first) { pickFromSearch(Number(first.dataset.id)); return; }
+
+      /* Nothing matched, and the text is not a whole name or number. Say so, and
+       * say what would work — a silent no-op here is indistinguishable from a
+       * broken field. */
+      els.searchStatus.textContent = els.search.value.trim()
+        ? `找不到「${els.search.value.trim()}」。可以只打部分名稱，或輸入全國編號。`
+        : '先輸入名稱或全國編號。';
+    }
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const items = [...els.searchList.querySelectorAll('.gm-search-item')];
+      if (!items.length) return;
+      e.preventDefault();
+      const at = items.indexOf(els.searchList.querySelector('[aria-selected="true"]'));
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      /* Wrap, and skip the rows that are already guessed. Stopping after `length`
+       * steps bounds the search so a list of only-used rows cannot spin. */
+      let next = null;
+      for (let k = 1; k <= items.length; k++) {
+        const cand = items[(at + step * k + items.length * k) % items.length];
+        if (cand && !cand.classList.contains('is-used')) { next = cand; break; }
+      }
+      if (!next) return;
+      for (const it of items) it.setAttribute('aria-selected', 'false');
+      next.setAttribute('aria-selected', 'true');
+      next.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    if (e.key === 'Escape') {
       setRevealed(els.searchList, false);
       els.search.setAttribute('aria-expanded', 'false');
     }
@@ -656,6 +736,7 @@ async function init() {
   els.slots = document.getElementById('gm-slots');
   els.search = document.getElementById('gm-search');
   els.searchList = document.getElementById('gm-search-list');
+  els.names = document.getElementById('gm-names');
   els.searchStatus = document.getElementById('gm-search-status');
   els.result = document.getElementById('gm-result');
   els.resultTitle = document.getElementById('gm-result-title');
@@ -675,10 +756,9 @@ async function init() {
   els.difficultyNote = document.getElementById('gm-difficulty-note');
 
   try {
-    [pokemon, palettes, evolutionLevels] = await Promise.all([
+    [pokemon, palettes] = await Promise.all([
       loadJson('assets/data/pokemon_data.json'),
       loadJson('assets/data/color_palettes.json'),
-      loadJson('assets/data/evolution_levels.json'),
     ]);
   } catch (err) {
     els.palette.innerHTML = `<p class="gm-palette-empty">資料載入失敗：${escapeHtml(err.message)}</p>`;
@@ -688,6 +768,21 @@ async function init() {
   byId = new Map(pokemon.map((p) => [p.id, p]));
   genIds = genIdMap(pokemon);
   allGenerations = [...genIds.keys()].sort((a, b) => a - b);
+
+  /* The native fallback list, built ONCE.
+   *
+   * Built once rather than per keystroke because it is 1,025 options and it never
+   * changes — rebuilding it on every `input` event would be ~40 KB of DOM churn per
+   * character typed, on a page whose whole point is that the reader does not know
+   * the name and is therefore typing a lot.
+   *
+   * `value` is the bare zh-TW name because that is what the keyboard completes INTO;
+   * the id rides in `label` so the suggestion shows it without the reader having to
+   * remember a number. No `option` is disabled: the datalist cannot express "already
+   * guessed" and faking it would need a value the reader could not complete to. */
+  els.names.innerHTML = pokemon
+    .map((p) => `<option value="${escapeHtml(p.names.zh)}" label="#${p.id}"></option>`)
+    .join('');
 
   /* The spec: 「第一次進來都是簡單 + 第一世代」. So the default is written down
      rather than being "the first configured value", and anything read back from

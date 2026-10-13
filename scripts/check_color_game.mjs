@@ -312,6 +312,59 @@ console.log('\n§3.M: every element JS hides also has the CSS that hides it');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\nthe guess box: two autocomplete layers, and the keyboard');
+// ---------------------------------------------------------------------------
+{
+  /* The stated need: a reader who knows it is 妙蛙種子 and cannot type it exactly.
+   * There are two layers because they cover different gaps — the custom list
+   * matches on SUBSTRING and knows which species are already guessed, while a
+   * datalist matches on PREFIX but is the only one a phone's software keyboard
+   * will read. */
+  check(/list="gm-names"/.test(html), 'the input points at a datalist');
+  check(/<datalist id="gm-names">\s*<\/datalist>/.test(html), 'and the datalist is declared empty in the markup');
+  check(/els\.names\.innerHTML\s*=/.test(jsCode), 'which JS fills');
+  check(!/renderSearchResults[\s\S]{0,400}els\.names\.innerHTML/.test(jsCode),
+    'and fills it ONCE — 1,025 options rebuilt per keystroke is ~40 KB of DOM churn on the page whose whole premise is that the reader types a lot',
+    () => 'the datalist is being rebuilt inside the search path');
+
+  /* Enter's precedence: an explicitly walked-to row, then a WHOLE name, then the
+   * first substring hit. Exact-before-first is the fix — the substring scan
+   * matches inside other names (水伊布, 雷伊布, 妖精伊布 all contain 伊布), so
+   * "first row" is dex order rather than what the reader literally typed. */
+  const keydown = /els\.search\.addEventListener\('keydown'[\s\S]*?\n {2}\}/.exec(jsCode);
+  check(!!keydown, 'the search field has a keydown handler');
+  const order = keydown ? ['aria-selected', 'resolveExact(', '.gm-search-item:not(.is-used)', '找不到'].map((n) => keydown[0].indexOf(n)) : [];
+  check(order.every((i) => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]),
+    'Enter takes the arrow-key row, then a whole name, then the first suggestion',
+    () => `positions ${order.join(', ')} — expected ascending, and the whole-name test must come BEFORE the first-substring-row`);
+
+  /* A listbox owes the reader navigation. */
+  check(/ArrowDown/.test(keydown ? keydown[0] : '') && /ArrowUp/.test(keydown ? keydown[0] : ''),
+    'and the listbox is navigable with ArrowDown / ArrowUp',
+    () => 'a <ul role="listbox"> with no arrow handling leaves exactly one row reachable');
+  check(/is-used/.test(keydown ? keydown[0] : '') && /scrollIntoView/.test(keydown ? keydown[0] : ''),
+    'where arrow keys skip the already-guessed rows and scroll the chosen one into view');
+
+  /* And a miss says so. A silent no-op is indistinguishable from a broken field. */
+  check(/找不到/.test(keydown ? keydown[0] : '') && /只打部分名稱/.test(keydown ? keydown[0] : ''),
+    'an unresolvable guess reports why and costs no attempt',
+    () => 'the failure path went quiet, so a typo reads as a dead field');
+
+  /* resolveExact is whole-string only, on purpose. */
+  check(/function resolveExact[\s\S]*?exact\.length === 1/.test(jsCode),
+    'resolveExact() returns a match only when it is unambiguous',
+    () => 'a fuzzy fallback would submit a typo and spend one of four attempts');
+  /* Grouped, and that is the fix: `!/A|B/.test(src)` parses as
+   * `/A|B/.test(src)` — the alternation is INSIDE the literal, so the pattern is
+   * "A or B anywhere in the file" rather than "A or B near resolveExact". The
+   * first version matched the word `distance` in `renderSlots` a thousand lines
+   * away and reported the field fuzzy when it is not. */
+  check(!/(?:resolveExact[\s\S]{0,200}levenshtein|resolveExact[\s\S]{0,200}distance)/.test(jsCode),
+    'and it is not fuzzy — no edit distance anywhere near it',
+    () => 'resolveExact gained a similarity notion; a typo would then be submitted and cost one of four attempts');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\n§3.G: the delegation target is never a rebuilt node');
 // ---------------------------------------------------------------------------
 {

@@ -49,11 +49,16 @@
  * species' own name — and the mask width is a second claim: one mask per
  * character, so the length of the hidden run stays visible.
  *
- * And the residual, pinned rather than ignored: 38 more species have a
- * two-character run of their name in the line WITHOUT the full name (#1
- * 妙蛙種子's line contains 種子, #85 嘟嘟利's contains 嘟嘟). Masking every
- * 2-character run would mangle ordinary words to fix two, so it is not done.
- * The number is asserted so it stays a decision rather than a memory.
+ * The second level is 38 species with a TWO-CHARACTER run of their name and no
+ * full name — #1 妙蛙種子's line has 種子, #85 嘟嘟利's has 嘟嘟, #109 瓦斯彈's
+ * has 瓦斯. Those are masked too.
+ *
+ * The rule is LONGEST RUN FIRST, not "mask every two-character window". Measured
+ * over all 1,025 species the naive rule rewrites **892** lines — including every
+ * ordinary word that happens to be a substring of the name — while longest-first
+ * rewrites **131** (93 + 38) and leaves the other 894 byte-identical. Both numbers
+ * are asserted, because the difference between them is the entire justification
+ * for the ordering.
  */
 
 import { readFileSync } from 'node:fs';
@@ -136,10 +141,17 @@ console.log('\nslot 3: the Pokédex line, verbatim');
 // ---------------------------------------------------------------------------
 {
   const bulba = byId.get(1);
-  const expected = '圖鑑說明：「在出生後的一段時間內，牠會吸收背上種子裡儲存著的營養成長。」';
+  /* The spec quoted Bulbasaur's line as the raw data. It is no longer printed
+   * whole: 種子 is a two-character run of 妙蛙種子, so the second-level mask hides
+   * it. Asserting the raw line would be asserting the very leak that mask exists
+   * to close — and this assertion is the one that had to change when the second
+   * level landed, which is the point of writing it out. */
+  const expected = '圖鑑說明：「在出生後的一段時間內，牠會吸收背上ＯＯ裡儲存著的營養成長。」';
   check(generateHints(bulba)[2] === expected,
-    'Bulbasaur\'s slot 3 is the line quoted in the spec, whole',
+    'and Bulbasaur\'s slot 3 is that line with 種子 masked',
     () => generateHints(bulba)[2]);
+  check(generateHints(bulba)[2].includes(NAME_MASK.repeat(2)),
+    'which is the second level working on a species whose name never appears whole');
 
   const missing = data.filter((p) => !p.descriptions || !p.descriptions.zh);
   check(missing.length === 0,
@@ -179,13 +191,77 @@ console.log('\nslot 3: the Pokédex line, verbatim');
     'a line naming the species twice is masked at BOTH occurrences',
     () => multi ? `#${multi.id} ${multi.names.zh}: ${generateHints(multi)[2]}` : 'no species names itself twice, so this case cannot run here');
 
-  /* The residual: 2-character runs with no full name. Pinned, not fixed. */
+  /* The second level: a two-character run with no full name. Now masked too, and
+   * the NEGATIVE form is asserted — for all 1,025, no run of two or more
+   * characters of the name survives anywhere in slot 3. Checking only the 38 would
+   * pass while a new species started leaking. */
   const partial = data.filter((p) => !p.descriptions.zh.includes(p.names.zh) && p.names.zh.length > 2
     && [...Array(p.names.zh.length - 1).keys()]
       .some((i) => p.names.zh.length - i >= 2 && p.descriptions.zh.includes(p.names.zh.slice(i, i + 2))));
   check(partial.length === 38,
-    `38 species still leak a 2-character run (#1 妙蛙種子 -> 種子) — a recorded decision, not an oversight (${partial.length})`,
-    () => `${partial.length}, not 38. Masking every 2-character run would mangle ordinary words (瓦斯, 舌頭, 寶石) to fix two; if the count moved, re-read that argument`);
+    `38 species carry a 2-character run with no full name (#1 妙蛙種子 -> 種子) — the second level, now masked (${partial.length})`,
+    () => `${partial.length}, not 38`);
+  const stillLeaking = data.filter((p) => {
+    const shown = generateHints(p)[2];
+    return p.names.zh.length > 1 && [...Array(p.names.zh.length - 1).keys()]
+      .some((i) => p.names.zh.length - i >= 2 && shown.includes(p.names.zh.slice(i, i + 2)));
+  });
+  check(stillLeaking.length === 0,
+    'and no 2-character run of any species name survives in any of the 1,025',
+    () => `${stillLeaking.length} still leak: ${stillLeaking.slice(0, 5).map((p) => `#${p.id} ${p.names.zh}`).join(', ')}`);
+
+  /* Longest-first versus every-2-char-window. This is the whole justification for
+   * the ordering, so it is measured rather than asserted in prose. */
+  const touched = data.filter((p) => generateHints(p)[2].includes(p.names.zh)
+    || [...Array(Math.max(0, p.names.zh.length - 1)).keys()]
+      .some((i) => p.names.zh.length - i >= 2 && p.descriptions.zh.includes(p.names.zh.slice(i, i + 2)))).length;
+  check(touched === 131, `131 species are masked at all — 93 full + 38 partial (${touched})`,
+    () => `${touched}, not 131`);
+  const untouched = data.filter((p) => generateHints(p)[2].includes(p.descriptions.zh)).length;
+  check(untouched === 894,
+    `and 894 lines stay byte-identical, which is what longest-first buys over masking every 2-char window (that would rewrite 892)`,
+    () => `${untouched}, not 894`);
+
+  /* And the naive version's cost, stated as a number: it rewrites lines that
+   * contain no run of the name at all. */
+  /* WHAT LONGEST-FIRST ACTUALLY BUYS, measured rather than asserted.
+   *
+   * The first version of this file claimed longest-first rewrote 131 lines where
+   * the every-2-char-window rule rewrote 892, and that was false — both rules
+   * only rewrite a window that OCCURS, so both touch the same 131 species. The
+   * real difference is that shortest-first consumes a two-character window that
+   * overlaps the rest of the name, which leaves the remainder visible: 噴火龍's
+   * line becomes 「當ＯＯ龍憤怒至極時」 and the 龍 is the reader's for free.
+   *
+   * So the assertion is on the LEAK, not on the rewrite count. */
+  const maskOf = (order) => (text, name) => {
+    let out = text;
+    for (let len = order === 'long' ? name.length : 2; order === 'long' ? len >= 2 : len <= name.length; order === 'long' ? len-- : len++) {
+      for (let i = 0; i + len <= name.length; i++) {
+        const run = name.slice(i, i + len);
+        if (run && out.includes(run)) out = out.split(run).join(NAME_MASK.repeat(run.length));
+      }
+    }
+    return out;
+  };
+  const shortest = maskOf('short');
+  /* Compare the masked TEXT against the masked TEXT. The first version compared
+   * `shortest(...)` — which is the bare sentence — against `generateHints(p)[2]`,
+   * which is `圖鑑說明：「…」`. Those can never be equal, so the assertion reported
+   * 1,025 differing instead of the 66 that are real. */
+  const bodyOf = (p) => descriptionHint(p).replace(`${DESCRIPTION_PREFIX}：「`, '').replace(/」$/, '');
+  const differing = data.filter((p) => shortest(p.descriptions.zh, p.names.zh) !== bodyOf(p));
+  check(differing.length === 66,
+    `shortest-first and longest-first differ on ${differing.length} species — and that difference is a leak, not cosmetics`,
+    () => `${differing.length}, not 66; the docblock's 「噴火龍 -> 當ＯＯ龍」 example depends on it`);
+  const shortLeaksChar = data.filter((p) => {
+    const b = shortest(p.descriptions.zh, p.names.zh);
+    const good = bodyOf(p);
+    return [...p.names.zh].some((ch) => b.includes(ch) && !good.includes(ch));
+  }).length;
+  check(shortLeaksChar > 0,
+    `shortest-first leaves a name character visible in ${shortLeaksChar} lines that longest-first closes`,
+    () => 'no species leaked a character under the shorter order — re-read the example before trusting the ordering');
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +311,7 @@ console.log('\nshape (declared as a shape)');
     () => 'an exported function nobody calls is a second thing to keep right');
   check(!/descriptions\.zh\s*\.length\s*>=\s*200/.test(src),
     'and it drops the 200-character cap from the port — these lines are all under 50 characters');
-  check(/split\(needle\)\.join\(/.test(src),
+  check(/\.split\(run\)\.join\(/.test(src),
     'and masks with split/join rather than a RegExp, because a species name is data',
     () => 'regex metacharacters in a name would throw or match something unintended');
 }
