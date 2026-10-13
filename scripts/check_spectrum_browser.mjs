@@ -490,11 +490,29 @@ try {
   /* Restore the width, and assert the restore rather than assuming it: every
    * measurement below is a canvas pixel count or a feature figure, and a viewport left
    * at 1280 would change the canvas backing store under them. The only value carried
-   * forward is `NARROW`, so nothing downstream silently inherits a different page. */
+   * forward is `NARROW`, so nothing downstream silently inherits a different page.
+   *
+   * AND THE RESTORE IS POLLED, because A CDP COMMAND RESOLVING IS NOT THE PAGE HAVING
+   * APPLIED IT. `clearDeviceMetricsOverride` returns while the renderer still reports
+   * the override's own width, so reading `innerWidth` on the next line measured the
+   * stale value and failed this assertion on a page that was fine — green at 13:44 on
+   * 2026-10-13 with an 8.67 s run, then four consecutive reds, with nothing in the
+   * tree changed between them. Instrumented rather than guessed: at +0 ms the page
+   * still answered 1280, at +50 ms it answered 756, and it stayed there through
+   * 1500 ms.
+   *
+   * A fixed sleep would be a guess (§3.G5's rule, and the ceiling would be another
+   * number nobody could check), so this polls the PRECONDITION — which is §3.G9's
+   * finding applied to a viewport. The ceiling is named because the message quotes it,
+   * and it is an order of magnitude past the ~50 ms measured; being paid only on the
+   * failing path is what makes generosity free here.
+   */
+  const VIEWPORT_RESTORE_MS = 3000;
   await send('Emulation.clearDeviceMetricsOverride');
-  const RESTORED = await ev('innerWidth');
-  ok(RESTORED === NARROW,
-    `the viewport is restored to the checker's default (${RESTORED}px vs ${NARROW}px), so the canvas measurements that follow are taken at the width they are about`);
+  const RESTORED = await until(`innerWidth === ${NARROW}`, VIEWPORT_RESTORE_MS);
+  const SEEN = await ev('innerWidth');
+  ok(RESTORED,
+    `the viewport is restored to the checker's default within ${VIEWPORT_RESTORE_MS}ms (${SEEN}px vs ${NARROW}px), so the canvas measurements that follow are taken at the width they are about`);
 
   // -----------------------------------------------------------------------
   // The reveal moves, and it moves from the AudioContext's clock.
