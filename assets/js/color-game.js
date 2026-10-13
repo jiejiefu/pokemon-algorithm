@@ -43,14 +43,13 @@ import { spriteUrl, formatShare, formatHex, paletteUrl } from './color-palette.j
 import { hexToOklab, deltaEOk } from './color-match.js';
 import { taipeiDateKey } from './daily-pick.js';
 import {
-  MAX_ATTEMPTS, DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES,
+  MAX_ATTEMPTS, PALETTE_COLORS_SHOWN,
+  DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES,
   variantOf, poolFor, genIdMap, allIds,
   pickDailyTarget, pickUnlimitedTarget,
   paletteRows, visiblePalette, scoreGuess, tierOf, normalizeDifficulty, normalizeGeneration,
 } from './game-similarity.js';
-import {
-  MAX_HINTS, FINAL_HINT, emptyKnownFacts, learnFromGuess, generateHints, remainingCategories,
-} from './game-hints.js';
+import { MAX_HINTS, hintRevealsPalette, generateHints } from './game-hints.js';
 
 const STORE_PREFIX = 'pokemon-colorgame:';
 
@@ -66,7 +65,6 @@ const state = {
   status: 'playing',  // 'playing' | 'won' | 'lost'
   hintsShown: [],
   cooldown: 0,
-  known: emptyKnownFacts(),
 };
 
 let pokemon = [];
@@ -120,7 +118,6 @@ function newGame({ keepTarget = false } = {}) {
     state.target = currentTarget();
     state.guesses = [];
     state.hintsShown = [];
-    state.known = emptyKnownFacts();
     state.status = 'playing';
   }
   if (state.mode === 'daily') {
@@ -154,13 +151,9 @@ function restore(saved) {
   state.target = saved.target;
   state.guesses = [];
   state.hintsShown = [];
-  state.known = emptyKnownFacts();
   state.status = saved.status === 'playing' ? 'playing' : saved.status;
   const limit = attemptLimit();
-  for (const id of (saved.guesses || []).slice(0, limit)) {
-    state.guesses.push(scoreOne(id));
-    state.known = learnFromGuess(state.known, state.guesses[state.guesses.length - 1].related);
-  }
+  for (const id of (saved.guesses || []).slice(0, limit)) state.guesses.push(scoreOne(id));
   // Hints already spent are restored as SPENT but not re-shown: the reader paid
   // the cooldown for them and re-granting it would be a free re-roll.
   state.hintsShown = generateHintsForTarget().slice(0, saved.hints || 0);
@@ -205,7 +198,6 @@ function submitGuess(id) {
 
   const guess = scoreOne(id);
   state.guesses.push(guess);
-  state.known = learnFromGuess(state.known, guess.related);
 
   if (guess.correct) {
     state.status = 'won';
@@ -230,9 +222,12 @@ function giveUp() {
 
 function generateHintsForTarget() {
   const t = byId.get(state.target.id);
-  if (!t) return [];
-  const evolves = evolvesOf(t.id);
-  return generateHints(t, evolves, state.known);
+  return t ? generateHints(t) : [];
+}
+
+/** Whether the bar has expanded, from the slot that owns it. */
+function paletteRevealed() {
+  return state.hintsShown.some((_, i) => hintRevealsPalette(i));
 }
 
 /** Evolves IFF this id is a key of the edge list. `levels` + `unlevelled`. */
@@ -291,7 +286,7 @@ const TIER_LABEL = { close: '接近', mid: '普通', far: '偏遠', miss: '差�
  * guess that fully contains the primary look like a poor one.
  */
 function shareRows() {
-  const target = visiblePalette(palettes, state.target.id, state.target.variant, true).slice(0, 3);
+  const target = visiblePalette(palettes, state.target.id, state.target.variant, true).slice(0, PALETTE_COLORS_SHOWN);
   return state.guesses.map((guess) => {
     const rows = paletteRows(palettes, guess.id, state.target.variant);
     return target.map((entry) => {
@@ -368,7 +363,7 @@ function setRevealed(node, on) {
 
 function renderPalette() {
   const box = els.palette;
-  const revealed = state.hintsShown.length >= 2 || state.status !== 'playing';
+  const revealed = paletteRevealed() || state.status !== 'playing';
   setRevealed(els.paletteEmpty, false);
   if (!state.target) return;
   const rows = visiblePalette(palettes, state.target.id, state.target.variant, revealed);
@@ -390,27 +385,16 @@ function renderHints() {
   const box = els.hints;
   const spent = state.hintsShown.length;
   const total = state.hintsShown.length >= MAX_HINTS;
-  const left = remainingCategoriesForTarget();
   box.innerHTML = state.hintsShown.map((h, i) =>
     `<span class="gm-hint"><span class="gm-hint-index">${i + 1}</span>${escapeHtml(h)}</span>`).join('')
     + (total ? '' : `<button type="button" class="gm-btn-hint" id="gm-hint-btn"
         ${state.status !== 'playing' || state.cooldown > 0 || state.guesses.length === 0 ? 'disabled' : ''}>
         ${state.cooldown > 0 ? '' : '<span class="gm-hint-cooldown" style="transform:scaleX(0)"></span>'}
         ${spent === 0 ? '看一則提示' : '再看一則提示'}</button>`);
-  if (spent === 0 && state.guesses.length === 0 && !total) {
-    const btn = document.getElementById('gm-hint-btn');
-    if (btn) btn.title = '先猜一次，提示才會開始排隊';
-  }
   if (state.cooldown > 0) {
     const bar = box.querySelector('.gm-hint-cooldown');
     if (bar) bar.style.transform = `scaleX(${(state.cooldown / HINT_COOLDOWN_S).toFixed(3)})`;
   }
-}
-
-function remainingCategoriesForTarget() {
-  const t = byId.get(state.target && state.target.id);
-  if (!t) return [];
-  return remainingCategories(t, evolvesOf(t.id), state.known);
 }
 
 function renderSlots() {
@@ -487,6 +471,15 @@ function renderResult() {
   els.resultTitle.className = `gm-result-title${won ? ' is-won' : ''}`;
   els.resultSprite.src = spriteUrl(t.id, state.target.variant === 's');
   els.resultAnswer.innerHTML = `<a href="${paletteUrl(t)}">${escapeHtml(t.names.zh)}</a>${state.target.variant === 's' ? '（異色）' : ''}`;
+  /* The button below the answer is a SECOND route to the same page, so it has to
+   * be re-pointed at the target too. It shipped with a hardcoded
+   * `href="color.html"` and nothing ever rewrote it: finishing a game and
+   * clicking 「看牠的完整色盤」 landed on color.html's own default — the daily
+   * pick — which is a different Pokémon from the one just guessed. The static
+   * href is only ever seen while the panel is hidden, so nothing failed
+   * visibly; `check_color_game.mjs` found it as an id reached by neither lookup,
+   * which is what an unused element looks like from off the page. */
+  els.explore.href = paletteUrl(t);
   els.resultDetail.textContent = won
     ? `${state.guesses.length} 次之內猜中`
     : `最接近的一次是 OKLab 色盤距離 ${bestDistance().toFixed(4)}`;
@@ -667,6 +660,7 @@ async function init() {
   els.result = document.getElementById('gm-result');
   els.resultTitle = document.getElementById('gm-result-title');
   els.resultSprite = document.getElementById('gm-result-sprite');
+  els.explore = document.getElementById('gm-explore');
   els.resultAnswer = document.getElementById('gm-result-answer');
   els.resultDetail = document.getElementById('gm-result-detail');
   els.resultStats = document.getElementById('gm-result-stats');

@@ -279,6 +279,53 @@ const CHECKERS = [
     ],
   },
   {
+    /* 猜謎遊戲的出題與計分。兩個純函式模組在裸 Node 裡跑得完，所以這個檢查器
+     * 不需要瀏覽器——那正是它們被拆出去的直接原因（game-similarity.js 的檔頭）。
+     * 整個 `assets/js` 是 glob，因為兩個模組都 import 到 shared.js /
+     * color-match.js / daily-pick.js 的鏈。 */
+    script: 'scripts/check_game_similarity.mjs', group: 'color',
+    note: 'pools, the three difficulties, the OKLab distance, and the four share tiers re-measured',
+    inputs: [
+      'assets/data/color_palettes.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/*',
+    ],
+  },
+  {
+    script: 'scripts/test_check_game_similarity.mjs', checker: 'scripts/check_game_similarity.mjs', group: 'color',
+    note: '24 cases in child trees, four at a time',
+    inputs: [
+      'assets/data/color_palettes.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/*',
+    ],
+  },
+  {
+    /* 三則固定提示。`evolution_levels.json` 已經不再被讀——進化提示是七個類別裡
+     * 最弱的一個，而 `evolution_chains.json` 從來沒有被讀，因為那張表的 `stage`
+     * 不可信（§3.K）。 */
+    script: 'scripts/check_game_hints.mjs', group: 'color',
+    note: 'three fixed slots; type measured against the categories that would give the answer away',
+    inputs: [
+      'assets/data/pokemon_data.json',
+      'assets/js/*',
+    ],
+  },
+  {
+    /* 頁面本身。static 與 shell contract，不需要瀏覽器。 */
+    script: 'scripts/check_color_game.mjs', group: 'color',
+    note: 'the shell contract, the §3.M hidden/display pairing, and the §3.G node captures',
+    inputs: [
+      'color-game.html',
+      'assets/css/color-game.css',
+      'assets/css/shared.css',
+      'assets/js/color-game.js',
+      'assets/js/game-similarity.js',
+      'assets/js/game-hints.js',
+      'assets/js/shared.js',
+    ],
+  },
+  {
     /* NO fs read describes the page: it is fetched over HTTP from Live Server, so
      * the list below is read off the HTML by hand. Same caveat as the two cry
      * page checkers, and `manual: true` is what makes check_all print that

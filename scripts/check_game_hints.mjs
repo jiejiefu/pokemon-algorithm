@@ -3,38 +3,57 @@
  *
  *   node scripts/check_game_hints.mjs
  *
- * Every failure mode in this module looks correct: three strings, no names, and
- * nothing that throws. So there are no shape assertions here except the two
- * explicitly marked as such.
+ * Three fixed slots, so this file is much smaller than the category machine it
+ * replaced — and the interesting part is not the assertions, it is the two things
+ * that had to be measured before the module could be written at all.
  *
- * Four things:
+ * ---------------------------------------------------------------------------
+ * WHY 屬性 AND NOT CLASSIFICATION OR FIRST LETTER
+ * ---------------------------------------------------------------------------
  *
- * 1. **All seven categories must actually reach the player.** Not "produces a
- *    candidate" — all seven pass that — but "this category's text appears in some
- *    species' `generateHints()` result". The first version had no shuffle and took
- *    `vague[0]` and `medium[0]` unconditionally, and `evolution` sorts before
- *    `type`, so every game opened with the same sentence and closed its second
- *    slot with the types: five of the seven were dead code, with functions and
- *    docblocks and not one word a player would read. The second version added the
- *    shuffle but `description` stayed at 0, because it is the only member of the
- *    `specific` bucket and that bucket sorts after medium is exhausted.
+ * A hint's value is how far it cuts the candidate pool. Measured over all 1,025
+ * targets, with the pool a single hint leaves behind:
  *
- * 2. **The evolution line must not read `stage`.** `evolution_chains.json`'s
- *    `stage` is dex order and not depth (§3.K), and Eevee's family turns that
- *    into a witness you can name: Vaporeon #134 carries `stage` **2 (of 10)** in
- *    chain 67, which reads as 「還會再進化」, while it is a final evolution. So
- *    this assertion asks for that sentence directly rather than asking whether
- *    some function exists.
+ *   classification (genus)   2      ← strongest, and therefore NOT a hint
+ *   first letter              5      ← same
+ *   generation              120
+ *   type                    140      ← this project's slot 1
+ *   weight band             277
+ *   evolves / final form    519      ← weakest, and removed on that basis
  *
- * 3. **The Pokédex line must not leak the answer.** 93 `descriptions.zh` contain
- *    the species' own name, so those 93 must return `null` from the description
- *    hint and be covered by a different category instead.
+ * 「這一隻已經是進化的最終型」 is true for 568 of the 1,025 species (55%) and cuts
+ * the pool to about half — barely 2x, and it varies by only 457..568 across all
+ * targets, so it says almost nothing that varies. The reading 「if it has no
+ * evolution, tell me it has no evolution」 is the correct description of it.
  *
- * 4. **Known facts really do remove a category.** The guess card already carries
- *    type and evolution-family badges, so a hint repeating them is worth nothing.
- *    Asserting "the output contains no such word" does not work — after the
- *    shuffle, that category may simply not have been drawn. What is asserted is
- *    the CATEGORY SET, not the text.
+ * Classification and first letter are the opposite problem: leaving two or five
+ * candidates is not a clue, it is the answer. They are kept exported (slot 3's
+ * module still offers `speciesHint`) so the measurement above can be reproduced,
+ * and they are deliberately not in the set.
+ *
+ * ---------------------------------------------------------------------------
+ * SLOT 3 MASKS THE NAME RATHER THAN REFUSING THE LINE
+ * ---------------------------------------------------------------------------
+ *
+ * 93 of the 1,025 `descriptions.zh` contain their own species name — #4 小火龍
+ * opens 「尾巴上燃燒的火焰是小火龍生命力的象徵」. The port REFUSED those lines and
+ * substituted a different category. That was wrong twice over: it meant those 93
+ * species received a DIFFERENT third hint from the other 932, and it threw away
+ * a description that was perfectly usable once the name was taken out.
+ *
+ * Masking keeps every species on the same slot and removes only the answer:
+ *
+ *   「當噴火龍憤怒至極時…」 -> 「當ＯＯＯ憤怒至極時…」
+ *
+ * So the strong invariant is the negative one — slot 3 never contains the
+ * species' own name — and the mask width is a second claim: one mask per
+ * character, so the length of the hidden run stays visible.
+ *
+ * And the residual, pinned rather than ignored: 38 more species have a
+ * two-character run of their name in the line WITHOUT the full name (#1
+ * 妙蛙種子's line contains 種子, #85 嘟嘟利's contains 嘟嘟). Masking every
+ * 2-character run would mangle ordinary words to fix two, so it is not done.
+ * The number is asserted so it stays a decision rather than a memory.
  */
 
 import { readFileSync } from 'node:fs';
@@ -42,12 +61,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import {
-  HINT_CATEGORIES, HINT_CATEGORY_LABELS, HINT_CATEGORY_BUCKETS,
-  MAX_HINTS, FINAL_HINT,
-  emptyKnownFacts, learnFromGuess,
-  typeHint, evolutionHint, generationHint, speciesHint,
-  descriptionHint, firstLetterHint, weightHint,
-  buildCandidates, generateHints, remainingCategories,
+  MAX_HINTS, PALETTE_HINT, DESCRIPTION_PREFIX, NAME_MASK,
+  typeHint, descriptionHint, speciesHint, generateHints, hintRevealsPalette,
 } from '../assets/js/game-hints.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -61,257 +76,168 @@ function check(ok, description, detail = () => '') {
 }
 
 const data = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json'), 'utf8'));
-const chains = JSON.parse(readFileSync(join(ROOT, 'assets/data/evolution_chains.json'), 'utf8'));
-const levels = JSON.parse(readFileSync(join(ROOT, 'assets/data/evolution_levels.json'), 'utf8'));
 const byId = new Map(data.map((p) => [p.id, p]));
 
-/** Evolves IFF this id is a key of the edge list. `levels` = level-ups, `unlevelled` = stones/trades. */
-const evolves = (id) => id in levels.levels || id in levels.unlevelled;
-
 // ---------------------------------------------------------------------------
-console.log('\nevery game is exactly three hints, and the third is always the closer');
+console.log('\nthree slots, in order, always');
 // ---------------------------------------------------------------------------
 {
-  let wrongLength = 0, badFinal = 0, duplicate = 0;
+  check(MAX_HINTS === 3, '3 hints');
+
+  const lens = new Set();
+  let slot1Wrong = 0, slot2Wrong = 0, slot3Wrong = 0;
   for (const p of data) {
-    const h = generateHints(p, evolves(p.id), null);
-    if (h.length !== MAX_HINTS) wrongLength++;
-    if (h[2] !== FINAL_HINT) badFinal++;
-    if (h[0] === h[1]) duplicate++;
+    const h = generateHints(p);
+    lens.add(h.length);
+    if (h[0] !== typeHint(p)) slot1Wrong++;
+    if (h[1] !== PALETTE_HINT) slot2Wrong++;
+    if (h[2] !== descriptionHint(p)) slot3Wrong++;
   }
-  check(MAX_HINTS === 3, '3 hints, copied from the reference');
-  check(wrongLength === 0, 'every one of the 1,025 produces exactly 3',
-    () => `${wrongLength} produced a different count`);
-  check(badFinal === 0, 'and the third is always the same closing line',
-    () => `${badFinal} differ`);
-  check(duplicate === 0, 'no species is given the same hint twice',
-    () => `${duplicate} species repeat`);
+  check(lens.size === 1 && lens.has(3),
+    'every one of the 1,025 produces exactly 3 — the length never varies',
+    () => `lengths seen: ${[...lens].join(', ')}. A variable-length hint list makes the page's 「3 則」 a claim that is sometimes false`);
+  check(slot1Wrong === 0, 'slot 1 is always the type', () => `${slot1Wrong} differ`);
+  check(slot2Wrong === 0, 'slot 2 is always the palette reveal', () => `${slot2Wrong} differ`);
+  check(slot3Wrong === 0, 'slot 3 is always the Pokédex line', () => `${slot3Wrong} differ`);
 
-  check(hintRevealsPaletteIndex(0) === false && hintRevealsPaletteIndex(2) === true,
-    'the palette reveal is the third hint and not an earlier one');
-}
-
-/** What the page uses to decide whether to widen the bar; checked against FINAL_HINT's position. */
-function hintRevealsPaletteIndex(i) { return i >= 2; }
-
-// ---------------------------------------------------------------------------
-console.log('\nall seven categories really do reach the player');
-// ---------------------------------------------------------------------------
-{
-  const reached = new Map();
-  for (const p of data) {
-    const shown = generateHints(p, evolves(p.id), null);
-    for (const c of buildCandidates(p, evolves(p.id))) {
-      if (shown.includes(c.text)) reached.set(c.category, (reached.get(c.category) || 0) + 1);
-    }
-  }
-  for (const cat of HINT_CATEGORIES) {
-    const n = reached.get(cat) || 0;
-    // A floor, not a presence test. `buildCandidates` succeeding for all seven is
-    // the assertion that passed while five of them were dead code.
-    check(n >= 50, `「${HINT_CATEGORY_LABELS[cat]}」 reaches the player for ${n} of 1,025 species`,
-      () => `only ${n} — the category produces candidates but never gets a slot`);
-  }
-
-  const produced = new Set();
-  for (const p of data) for (const c of buildCandidates(p, evolves(p.id))) produced.add(c.category);
-  check(produced.size === HINT_CATEGORIES.length, 'and all seven produce at least one candidate',
-    () => `missing: ${HINT_CATEGORIES.filter((c) => !produced.has(c)).join(', ')}`);
-
-  // Determinism: the page re-calls this on every render, and an already-shown hint
-  // cannot be taken back.
-  let unstable = 0;
-  for (const p of data) {
-    const a = generateHints(p, evolves(p.id), null).join('|');
-    const b = generateHints(p, evolves(p.id), null).join('|');
-    if (a !== b) unstable++;
-  }
-  check(unstable === 0, 'the hints are stable across calls — a re-render cannot change them',
-    () => `${unstable} species produced different hints on the second call`);
-
-  // Variety: if every species opened with the same sentence, the shuffle is gone.
-  const firsts = new Set(data.map((p) => generateHints(p, evolves(p.id), null)[0]));
-  check(firsts.size >= 50, `the opening hint varies across species — ${firsts.size} distinct openings`,
-    () => `only ${firsts.size} distinct first hints across 1,025 species`);
+  // Slot 2 is the reveal, and that index MOVED from 2 to 1. A stale 2 still
+  // renders something plausible — the bar simply expands one press later than the
+  // sentence says — so this is asserted rather than trusted.
+  check(hintRevealsPalette(0) === false && hintRevealsPalette(1) === true,
+    'slot 2 expands the palette, not slot 3',
+    () => `reveal at 0: ${hintRevealsPalette(0)}, at 1: ${hintRevealsPalette(1)}, at 2: ${hintRevealsPalette(2)} — the constant moved from 2 to 1 when the reveal did, and a stale 2 looks fine`);
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe evolution line reads the edge list, not stage');
-// ---------------------------------------------------------------------------
-{
-  /* THE §3.K WITNESS. Eevee's chain stores all eight Eeveelutions as a LINEAR
-     main_line, so `stage` says Vaporeon is 2 of 10 — "still evolves". It is a
-     final evolution. If this line ever regresses to reading `stage`, the hint
-     starts lying about one of the most recognisable families in the game. */
-  const vaporeon = byId.get(134);
-  const row = chains[vaporeon.evolution_chain_id].main_line.find((x) => x.id === 134);
-  check(row && row.stage === 2,
-    'the trap is real in this data: Vaporeon #134 carries stage 2',
-    () => `stage is ${row && row.stage} — if this ever changes, the witness below is stale`);
-  check(evolves(134) === false,
-    'but the edge list says Vaporeon does not evolve at all');
-  check(evolutionHint(vaporeon, evolves(134)) === '這一隻已經是進化的最終型。',
-    'so the hint calls it a final evolution, not "will evolve again"',
-    () => evolutionHint(vaporeon, evolves(134)));
-
-  // And the other direction: Eevee really does evolve, via stones — which live in
-  // `unlevelled`, not `levels`. Reading only `levels` would get this wrong.
-  check(evolves(133) === true, 'Eevee #133 does evolve');
-  check(!(133 in levels.levels), 'and it is NOT in the level table — only in unlevelled',
-    () => 'if PokeAPI ever gives Eevee a level, the witness for reading only `levels` is gone');
-  check(evolutionHint(byId.get(133), evolves(133)) === '這一隻還會再進化。',
-    'so reading both tables is what makes the hint right');
-
-  const final = data.filter((p) => !evolves(p.id)).length;
-  const evolving = data.filter((p) => evolves(p.id)).length;
-  check(final + evolving === 1025, `${evolving} evolve, ${final} are final forms — the two partition the dex`,
-    () => `${evolving} + ${final} != 1025`);
-}
-
-// ---------------------------------------------------------------------------
-console.log('\nthe Pokédex line must not leak the answer');
-// ---------------------------------------------------------------------------
-{
-  const leakers = data.filter((p) => descriptionHint(p) === null
-    && p.descriptions && p.descriptions.zh && p.descriptions.zh.includes(p.names.zh));
-  check(leakers.length > 0,
-    `the leak exists in the data — ${leakers.length} zh descriptions name their own Pokémon`,
-    () => 'the filter is untested if nothing leaks');
-  check(leakers.every((p) => !descriptionHint(p)), 'and every one of them is refused');
-  const leaker = leakers[0];
-  check(!leaker.descriptions.zh.includes('「'), 'the refusal is not an accident of formatting');
-
-  // The refused ones must be covered by another category, not left with a hole.
-  const noDescription = leakers.every((p) => generateHints(p, evolves(p.id), null).length === MAX_HINTS);
-  check(noDescription, 'and each of them still gets a full set of three hints');
-}
-
-// ---------------------------------------------------------------------------
-console.log('\nwhat each category actually says');
+console.log('\nslot 1: the type');
 // ---------------------------------------------------------------------------
 {
   const pika = byId.get(25);
-  check(typeHint(pika) === '這一隻是電屬性。', 'single type reads naturally',
-    () => typeHint(pika));
   const bulba = byId.get(1);
-  check(typeHint(bulba) === '這一隻是草、毒的雙屬性。', 'dual type says so explicitly',
-    () => typeHint(bulba));
-  check(typeHint(byId.get(133)) === '這一隻是一般屬性。', 'Normal is 一般, the official zh-TW term',
-    () => typeHint(byId.get(133)));
+  const eevee = byId.get(133);
+  check(typeHint(pika) === '這一隻是電屬性。', 'single type reads naturally', () => typeHint(pika));
+  check(typeHint(bulba) === '這一隻是草、毒的雙屬性。', 'dual type says so explicitly', () => typeHint(bulba));
+  check(typeHint(eevee) === '這一隻是一般屬性。', 'Normal is 一般, the official zh-TW term', () => typeHint(eevee));
   check(typeHint({ types_zh: [], types: [] }) === null, 'a species with no types has no type hint');
+  check(typeHint({ types: ['Fire'] }) === '這一隻是Fire屬性。',
+    'and it falls back to the English list rather than saying nothing',
+    () => typeHint({ types: ['Fire'] }));
 
-  check(generationHint(pika) === '這一隻出現在第I世代。', 'generation I',
-    () => generationHint(pika));
-  check(generationHint(byId.get(906)) === '這一隻出現在第IX世代。', 'generation IX, the two-digit one',
-    () => generationHint(byId.get(906)));
-  check(generationHint({ generation: 99 }) === null, 'an unknown generation has no hint');
-
-  check(speciesHint(pika) === '這一隻屬於鼠寶可夢。', 'classification comes from genusZh()',
-    () => speciesHint(pika));
-  check(speciesHint({ genus: '', names: { zh: 'x' } }) === null, 'a species with no genus has no hint');
-
-  check(firstLetterHint(pika) === '名字的第一個字是「皮」。', 'first letter of the zh-TW name',
-    () => firstLetterHint(pika));
-  check(firstLetterHint({ names: {} }) === null, 'a species with no name has no letter hint');
-
-  // The weight bands must be monotonic and total: 5 bands over 0..∞.
-  const bands = [0.1, 9.9, 10, 49.9, 50, 99.9, 100, 249.9, 250, 1000]
-    .map((kg) => weightHint({ weight_kg: kg }));
-  check(new Set(bands.slice(0, 8)).size === 4,
-    'four distinct bands below 250 kg and they never repeat across a boundary',
-    () => bands.join(' | '));
-  check(bands[0] === bands[1] && bands[2] === bands[3] && bands[4] === bands[5] && bands[6] === bands[7],
-    'and each band is inclusive at its edge, so no weight falls between two bands');
-  check(bands[8] === bands[9] && bands[8].includes('超過'), 'above 250 kg is the last band',
-    () => bands.slice(8).join(' | '));
-  check(weightHint({ weight_kg: null }) === null, 'a species with no weight has no weight hint');
+  // The claim in the filehead: type leaves ~140 candidates.
+  const mean = data.reduce((sum, t) => sum
+    + data.filter((p) => p.types.some((x) => t.types.includes(x))).length, 0) / data.length;
+  check(mean > 60 && mean < 260,
+    `type leaves about ${Math.round(mean)} of 1,025 candidates — measured`,
+    () => `mean ${Math.round(mean)}; outside 60..260 the slot-1 justification in the filehead is wrong`);
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nknown facts really do remove a category');
+console.log('\nslot 3: the Pokédex line, verbatim');
 // ---------------------------------------------------------------------------
 {
-  /* Asserting the CATEGORY, not the text. "the output does not contain 火" cannot
-     tell a filtered category from a category the shuffle simply did not pick, and
-     that distinction is the whole mechanism. */
-  const fire = data.find((p) => p.types_zh && p.types_zh.includes('火') && !evolves(p.id));
-  const withType = generateHints(fire, evolves(fire.id), { types: ['火'], sameFamily: false, generations: [] });
-  check(!withType.includes(typeHint(fire)),
-    'a type the player has already been shown is never offered again',
-    () => withType.join(' / '));
+  const bulba = byId.get(1);
+  const expected = '圖鑑說明：「在出生後的一段時間內，牠會吸收背上種子裡儲存著的營養成長。」';
+  check(generateHints(bulba)[2] === expected,
+    'Bulbasaur\'s slot 3 is the line quoted in the spec, whole',
+    () => generateHints(bulba)[2]);
 
-  const familyKnown = generateHints(fire, evolves(fire.id), { types: [], sameFamily: true, generations: [] });
-  check(!familyKnown.includes(evolutionHint(fire, evolves(fire.id))),
-    'and neither is an evolution fact the badge already showed');
+  const missing = data.filter((p) => !p.descriptions || !p.descriptions.zh);
+  check(missing.length === 0,
+    'every species has a zh line, so slot 3 never falls back',
+    () => `${missing.length} missing, so the fallback sentence is what those players see`);
 
-  const genKnown = generateHints(fire, evolves(fire.id), { types: [], sameFamily: false, generations: [Number(fire.generation)] });
-  check(!genKnown.includes(generationHint(fire)), 'nor the generation the badge did NOT show');
-  check(genKnown.length === MAX_HINTS, 'and the set is still full — something else took the slot');
+  const lens = data.map((p) => p.descriptions.zh.length).sort((a, b) => a - b);
+  check(lens[lens.length - 1] < 200,
+    `and they are short (median ${lens[Math.floor(lens.length / 2)]}, max ${lens[lens.length - 1]})`,
+    () => 'over 200 characters would be an encyclopedia entry on a hint chip');
 
-  /* The badge does NOT show sameGeneration — the reference computes it and never
-     renders it — so learning the generation must NOT count as a spent fact.
-     Asserted on the CATEGORY set, not on output text: "the output does not
-     contain 第II世代" cannot tell "suppressed" from "the shuffle did not pick it",
-     and `remainingCategories` exists precisely so that distinction is observable. */
-  const nothingKnown = { types: [], sameFamily: false, generations: [] };
-  const all = remainingCategories(fire, evolves(fire.id), nothingKnown);
-  check(all.includes('generation'), 'an unknown generation is still available',
-    () => all.join(', '));
-  check(!remainingCategories(fire, evolves(fire.id), { ...nothingKnown, generations: [fire.generation] }).includes('generation'),
-    'and it stops being available the moment it is learned',
-    () => remainingCategories(fire, evolves(fire.id), { ...nothingKnown, generations: [fire.generation] }).join(', '));
-  /* Backwards in the first draft: it compared `nothing === known - 1`, so it
-     asked for the untouched list to be one SHORTER than the learned one. `===`
-     binds looser than `-`, so the subtraction was on the right-hand term and the
-     check read exactly inverted — a red line whose description says the opposite
-     of what it asserts. */
-  const afterType = remainingCategories(fire, evolves(fire.id), { types: ['火'], sameFamily: false, generations: [] });
-  check(afterType.length === all.length - 1,
-    'learning a type removes exactly one category, not a guess at how many',
-    () => `${all.length} -> ${afterType.length}: ${all.join(', ')} -> ${afterType.join(', ')}`);
+  /* THE STRONG INVARIANT, over every species rather than over the 93. A checker
+   * that only examined the leaking lines would pass while a new species started
+   * leaking. */
+  const leaking = data.filter((p) => generateHints(p)[2].includes(p.names.zh));
+  check(leaking.length === 0,
+    'no species\'s slot 3 contains its own name',
+    () => `${leaking.length} still leak: ${leaking.slice(0, 6).map((p) => `#${p.id} ${p.names.zh}`).join(', ')} — masking is done with split/join, so a species whose name appears with different spacing would slip past a substring test`);
 
-  // learnFromGuess merges, it does not overwrite.
-  const merged = learnFromGuess({ types: ['電'], sameFamily: false, generations: [1] },
-    { sharedTypes: ['火'], sameEvolutionFamily: true, generationIds: [4] });
-  check(merged.types.includes('電') && merged.types.includes('火'),
-    'learnFromGuess keeps the earlier facts and adds the new ones',
-    () => JSON.stringify(merged));
-  check(merged.sameFamily === true && merged.generations.includes(1) && merged.generations.includes(4),
-    'and a single true is enough to latch the family flag',
-    () => JSON.stringify(merged));
-  const fresh = learnFromGuess(null, null);
-  check(fresh.types.length === 0 && fresh.sameFamily === false, 'learning from nothing is an empty record',
-    () => JSON.stringify(fresh));
+  /* The user's example, asserted verbatim. */
+  const char = byId.get(6);
+  check(generateHints(char)[2] === '圖鑑說明：「當ＯＯＯ憤怒至極時，尾巴前端就會燃起藍白色的火焰。」',
+    'and the spec\'s example is exactly what it produces',
+    () => generateHints(char)[2]);
 
-  // Case-insensitivity: a badge renders 中文 but the data could be English.
-  const lower = generateHints(fire, evolves(fire.id), { types: [String(fire.types_zh[0]).toLowerCase()], sameFamily: false, generations: [] });
-  check(!lower.includes(typeHint(fire)), 'matching a known type is case-insensitive');
+  /* One mask per character, so the hidden run stays countable. */
+  const charmander = byId.get(4);
+  check(generateHints(charmander)[2].includes(NAME_MASK.repeat(3)),
+    `the mask is ${NAME_MASK} repeated once per hidden character`,
+    () => generateHints(charmander)[2]);
+  check(!generateHints(char)[2].includes('█') && NAME_MASK === 'Ｏ',
+    'and it is the fullwidth Ｏ the spec asks for, not a block glyph');
+
+  /* Every occurrence, not just the first. */
+  const multi = data.find((p) => (p.descriptions.zh.split(p.names.zh).length - 1) >= 2);
+  check(!multi || generateHints(multi)[2].includes(p.names.zh) === false,
+    'a line naming the species twice is masked at BOTH occurrences',
+    () => multi ? `#${multi.id} ${multi.names.zh}: ${generateHints(multi)[2]}` : 'no species names itself twice, so this case cannot run here');
+
+  /* The residual: 2-character runs with no full name. Pinned, not fixed. */
+  const partial = data.filter((p) => !p.descriptions.zh.includes(p.names.zh) && p.names.zh.length > 2
+    && [...Array(p.names.zh.length - 1).keys()]
+      .some((i) => p.names.zh.length - i >= 2 && p.descriptions.zh.includes(p.names.zh.slice(i, i + 2))));
+  check(partial.length === 38,
+    `38 species still leak a 2-character run (#1 妙蛙種子 -> 種子) — a recorded decision, not an oversight (${partial.length})`,
+    () => `${partial.length}, not 38. Masking every 2-character run would mangle ordinary words (瓦斯, 舌頭, 寶石) to fix two; if the count moved, re-read that argument`);
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe two shape assertions, marked as such');
+console.log('\nthe categories that are NOT hints, and why they are not');
 // ---------------------------------------------------------------------------
 {
-  const src = readFileSync(join(ROOT, 'assets/js/game-hints.js'), 'utf8');
-  /* Strip comments BEFORE either test. §3.S's false positive, hit again: this
-     module's own docblock names `evolution_chains.json` and `stage` in the
-     paragraph explaining why it must not read them, so the un-stripped test for
-     "does it mention the chain table" matched the warning about the chain table.
-     The first version stripped for the `stage` half and not for the
-     `evolution_chains` half, which is the kind of half-done that looks done. */
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-  /* A shape check, declared as one. The alternative is an import of
-     `evolution_chains.json`, which the module does not need — it needs the EDGE
-     list, and reading the chain table is exactly the mistake §3.K documents. So
-     the guard is "the module does not read the chain table at all", which is a
-     shape, and it is worth having because the failure it prevents is silent:
-     `stage` renders, parses, and answers. */
-  check(!/evolution_chains/.test(code) && !/\bstage\b/.test(code),
-    'the module never reads the chain table, so it cannot use `stage`',
-    () => 'it references the chain file — which is the §3.K trap re-entering');
+  const mean = (fn) => data.reduce((s, t) => s + fn(t), 0) / data.length;
 
-  check(/genusZh\(/.test(code), 'and it reuses genusZh() rather than re-deriving the classification');
-  check(!/GENUS_ZH\s*=/.test(code), 'without shipping its own copy of the table');
+  const byClass = mean((t) => data.filter((p) => p.genus === t.genus).length);
+  check(byClass < 10,
+    `classification would leave ~${byClass.toFixed(0)} candidates — it is the answer, not a hint`,
+    () => `mean ${byClass.toFixed(1)}`);
+
+  const byLetter = mean((t) => data.filter((p) => p.names.zh[0] === t.names.zh[0]).length);
+  check(byLetter < 12,
+    `first letter would leave ~${byLetter.toFixed(0)} candidates — same problem`,
+    () => `mean ${byLetter.toFixed(1)}`);
+
+  const byWeight = mean((t) => {
+    const band = (kg) => (kg < 10 ? 0 : kg < 50 ? 1 : kg < 100 ? 2 : kg < 250 ? 3 : 4);
+    return data.filter((p) => band(p.weight_kg) === band(t.weight_kg)).length;
+  });
+  check(byWeight > 200,
+    `and weight (~${Math.round(byWeight)}) is weaker than type, so it has no slot either`);
+
+  // speciesHint stays exported so the classification number above can be
+  // reproduced. Asserting it is dead code would be wrong.
+  check(speciesHint(byId.get(25)) === '這一隻屬於鼠寶可夢。',
+    'speciesHint() is still exported for that measurement',
+    () => speciesHint(byId.get(25)));
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nshape (declared as a shape)');
+// ---------------------------------------------------------------------------
+{
+  const src = readFileSync(join(ROOT, 'assets/js/game-hints.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  /* The port imported a PRNG and shuffled seven categories. With three fixed
+   * slots there is nothing to shuffle, so a leftover `mulberry32` would be a
+   * dependency on daily-pick.js for nothing — and §3.B1's rule is not to hold
+   * imports the page does not need. */
+  check(!/mulberry32|fnv1a/.test(src), 'the module no longer imports or calls a PRNG',
+    () => 'three fixed slots have nothing to shuffle, so the dependency is dead weight');
+  check(!/evolutionHint|weightHint|generationHint|firstLetterHint/.test(src),
+    'and the five unused hint functions are gone rather than left exported',
+    () => 'an exported function nobody calls is a second thing to keep right');
+  check(!/descriptions\.zh\s*\.length\s*>=\s*200/.test(src),
+    'and it drops the 200-character cap from the port — these lines are all under 50 characters');
+  check(/split\(needle\)\.join\(/.test(src),
+    'and masks with split/join rather than a RegExp, because a species name is data',
+    () => 'regex metacharacters in a name would throw or match something unintended');
 }
 
 console.log(`\n${failures ? `FAIL  ${failures} of ${total} checks failed` : `PASS  all ${total} checks passed`}`);
