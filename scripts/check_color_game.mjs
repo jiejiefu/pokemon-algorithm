@@ -57,6 +57,9 @@ const stripJs = (s) => s
   .replace(/\/\*[\s\S]*?\*\//g, ' ')
   .replace(/\/\/[^\n]*/g, ' ');
 const stripCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+import { TIPS, tipAt, typeDelay, randomTipIndex, TIP_TYPE_TOTAL_CAP_MS } from '../assets/js/game-tips.js';
+
 const jsCode = stripJs(js);
 const cssCode = stripCss(css);
 
@@ -434,6 +437,215 @@ console.log('\nthe hint button: free on the first press, cooldown after');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\nthe bar prints nothing until the round is over — and the numbers moved');
+// ---------------------------------------------------------------------------
+{
+  /* TWO QUESTIONS, and the page had them as one flag.
+   *
+   *   `revealed` — how MANY swatches (3, then all 6 after hint 2)
+   *   `showText`  — whether each swatch PRINTS its hex and share
+   *
+   * A shared condition renders plausibly: hint 2 arrives DURING play, so the
+   * numbers would light up on the second hint and stay on for the rest of the round.
+   * Same shape as `hintRevealsPalette` keeping its old index — a stale `2` and a
+   * stale `1` both produce something that looks fine. */
+  const rp = /function renderPalette[\s\S]*?\n}/.exec(jsCode);
+  check(!!rp, 'renderPalette() exists');
+  const body = rp ? rp[0] : '';
+  check(/const revealed = paletteRevealed\(\) \|\| state\.status !== 'playing'/.test(body),
+    '`revealed` still mixes "hint 2 shown" with "round over" — it is about COUNT');
+  check(/const showText = state\.status !== 'playing'/.test(body),
+    '`showText` is the round state ALONE, with no hint term in it',
+    () => 'hint 2 would print the numbers mid-round');
+  check(/\bconst showText = [^\n]*paletteRevealed/.test(body) === false,
+    'and the two are separate consts, not one flag read twice');
+
+  const detail = /const detail = showText[\s\S]*?: '';/.exec(body);
+  check(!!detail && /gm-swatch-hex/.test(detail[0]) && /gm-swatch-share/.test(detail[0]),
+    'the two labels are emitted only under `showText`');
+  check(/is-detailed/.test(body) && /classList\.toggle\('is-detailed', showText\)/.test(body),
+    'and the bar carries the same flag as a class, from the same expression');
+
+  /* THE FLEX LAYOUT THAT POSITIONS THE LABELS IS SCOPED TO THAT CLASS TOO.
+   * It was on `.gm-swatch` unconditionally, so every swatch kept 8px of bottom
+   * padding and a bottom-aligned flex box for text it no longer had. Invisible on a
+   * 132px bar — which is why the rule could be wrong without anything looking it. */
+  check(/\.gm-palette\.is-detailed \.gm-swatch/.test(css),
+    'and the swatch flex/padding rules hang off `.gm-palette.is-detailed .gm-swatch`',
+    () => 'the label layout is still unconditional, describing a layout that does not exist during play');
+  const swatchRule = /\.gm-swatch\s*\{([^}]*)\}/.exec(css);
+  check(!!swatchRule && !/align-items|justify-content|padding-bottom/.test(swatchRule[1]),
+    'and `.gm-swatch` itself keeps none of the label layout',
+    () => 'align-items / justify-content / padding-bottom are still on the base rule');
+
+  /* THE aria-label CARRIES THE SHARES, and this is the one that is not a style
+   * preference. A swatch width is invisible to a screen reader, so removing the
+   * printed numbers WITHOUT moving them into the label deletes the information for
+   * every non-visual reader — trading a sighted reader's redundancy for a blind
+   * reader's loss. §3.C: colour must never be the only channel. */
+  check(/box\.setAttribute\('aria-label'[\s\S]{0,220}?rows\.map\(\(r\) => `\$\{formatHex\(r\.hex\)\} \$\{formatShare\(r\.share\)\}`\)/.test(body),
+    'the aria-label lists every hex with its share',
+    () => 'the shares exist only as printed text, which a screen reader cannot see');
+  check(/title="\$\{formatHex\(row\.hex\)\} · \$\{formatShare\(row\.share\)\}"/.test(body),
+    'and the hover tooltip survives both states — it appears on hover, so it is not "printed on the bar"');
+
+  /* The labels have to FIT their own swatch, and a swatch's width is a function of
+   * its share — a question about the swatch's own inline size and nothing else.
+   * Measured: a 3.1% block is 52px and `#acc5ff` at 11px tabular is about 55px, so
+   * the hex printed outside its own block and was clipped by the card. A media query
+   * cannot ask this (all six widths are on one screen) and neither can the page
+   * (they change with the target), so it is a container query. */
+  check(/\.gm-palette\.is-detailed \.gm-swatch\s*\{[^}]*container-type:\s*inline-size/.test(css),
+    'each swatch is its own size container, which is what can ask how wide it got');
+  check(/@container \(max-width: 64px\)\s*\{\s*\.gm-swatch-hex\s*\{\s*display:\s*none/.test(css),
+    'and the hex is dropped below 64px, while the percentage — which fits — stays');
+  check(/@container \(max-width: 34px\)\s*\{\s*\.gm-swatch-share\s*\{\s*display:\s*none/.test(css),
+    'and below 34px even the percentage goes');
+  check(/is-detailed \.gm-swatch\s*\{[^}]*container-type/.test(css),
+    'the container is declared under `is-detailed` too — containment on a play-state bar would be layout containment for nothing');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe bar is the card\'s header, and the at-rest card is three things');
+// ---------------------------------------------------------------------------
+{
+  /* Palette flush to the card's top edge, as the reference has it. `padding: 0` plus
+   * `overflow: hidden` with the CARD's radius doing the clipping.
+   *
+   * `ruleBody()` is BRACE-SCOPED to the rule it names — it already existed in this
+   * file for §3.P's vacuous mutations, and I wrote a SECOND copy before noticing,
+   * which is the same mistake in a new place. The version this replaced was
+   * `/\.gm-target\s*\{[\s\S]*?padding:\s*0/`: lazy, so it finds the FIRST
+   * `padding: 0` after the selector, which is `.gm-slots`'s, 360 lines further down.
+   * Restoring `padding: 16px` on `.gm-target` would have left it green. A shape
+   * assertion that can be satisfied by a different rule is not a shape assertion. */
+  const target = ruleBody(cssCode, '.gm-target');
+  check(target !== null && !/padding/.test(target),
+    '`.gm-target` declares no padding at all, so the bar can reach the edge',
+    () => 'the bar is inset inside the card, so it reads as a sample rather than as the card\'s header');
+  check(/overflow:\s*hidden/.test(target || ''),
+    'and clips, which is what stops a swatch painting outside the rounded top');
+  check(/\.gm-card-body\s*\{/.test(css) && /class="gm-card-body"/.test(html),
+    'the padding moved into a `.gm-card-body` wrapper that the markup actually has');
+  const bodyRule = ruleBody(cssCode, '.gm-card-body');
+  check(!!bodyRule && /padding/.test(bodyRule),
+    'and that wrapper is what carries it');
+  const pal = ruleBody(cssCode, '.gm-palette');
+  check(!!pal && !/border-radius/.test(pal),
+    'and the bar dropped its own radius — keeping it would leave an 8px sliver of card between bar and edge',
+    () => 'the bar still has a radius, so the flush layout leaves a gap at the top');
+
+  /* The reserved-but-empty hint row: 34px plus a 12px gap, for nothing, while the
+   * hint BUTTON is mounted either way. */
+  check(!/\.gm-hints\s*\{[^}]*min-height/.test(css),
+    '`.gm-hints` keeps no `min-height`, so the at-rest card is bar + button + controls',
+    () => 'a 34px row plus a gap is reserved for hints that have not been taken');
+  check(/\.gm-hints\[hidden\]\s*\{\s*display:\s*none/.test(css),
+    'and needs the explicit display reset — the rule is `display: flex` from an author sheet (§3.M)');
+  check(/setRevealed\(els\.hints, spent > 0\)/.test(jsCode),
+    'and the attribute is written through setRevealed, with the condition the right way round',
+    () => '`setRevealed(node, !spent)` sets hidden = spent, so the row shows when EMPTY');
+
+  /* The control row's own visibility, decided LAST. */
+  check(/function renderFoot[\s\S]*?setRevealed\(els\.targetFoot/.test(jsCode),
+    'renderFoot() hides the row when neither of its two children shows');
+  const ra = /function renderAll[\s\S]*?\n}/.exec(jsCode);
+  check(!!ra && /renderFoot\(\);[\s\S]*$/.test(ra[0]) && /renderFoot\(\);/.test(ra[0].slice(-40)),
+    'and renderAll() calls it LAST, because both of its inputs are written above',
+    () => 'renderFoot() reads giveup.hidden / shinyBadge.hidden before their writers have run on some path');
+  check(!/\.gm-attempts/.test(css) && !/els\.attempts/.test(jsCode) && !/id="gm-attempts"/.test(html),
+    'and 「剩下 N 次機會」 is gone from all three files it was in',
+    () => 'a leftover element or reference: the element would be null and its first write would throw');
+  /* ORDER in the markup, not a CSS selector: the point is which child the row's
+   * `space-between` puts on the left, and that is decided by source order alone. */
+  check(/class="gm-btn gm-btn-ghost" id="gm-giveup"/.test(html)
+    && html.indexOf('id="gm-giveup"') < html.indexOf('id="gm-shiny-badge"'),
+    'and 放棄 comes BEFORE 異色 in the control row, so space-between puts it on the left',
+    () => 'the two children swapped, which flips which side each one lands on');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe rotating tip: six claims, and the sentence a screen reader hears');
+// ---------------------------------------------------------------------------
+{
+  check(/from '.\/game-tips\.js'/.test(jsCode), 'the tips live in a module of their own');
+  check(/TIPS,\s*tipAt, typeDelay, randomTipIndex,/.test(jsCode), 'and the page imports the tip API');
+
+  /* THE ACCESSIBILITY SPLIT. The visible text is written one character at a time, so
+   * a live region watching it would read every keystroke. The full sentence goes to a
+   * `.sr-only` region updated once per tip. Both regions are in the MARKUP, so the
+   * split is visible without running the page. */
+  check(/class="gm-tip-visible" aria-hidden="true"/.test(html),
+    'the typing region is `aria-hidden` in the markup');
+  check(/class="sr-only" id="gm-tip-live" aria-live="polite"/.test(html),
+    'and a `.sr-only` `aria-live` region carries the whole sentence');
+  check(/els\.tipLive\.textContent = `提示：\$\{tipAt\(tipIndex\)\}`/.test(jsCode),
+    'and the live region is written ONLY in advanceTip(), once per tip — never per character',
+    () => 'a screen reader would announce every keystroke');
+  check((jsCode.match(/tipLive\.textContent/g) || []).length === 2,
+    'exactly twice: once to seed the first tip, once to advance',
+    () => `found ${(jsCode.match(/tipLive\.textContent/g) || []).length} writes`);
+
+  check(/matchMedia\('\(prefers-reduced-motion: reduce\)'\)/.test(jsCode),
+    'reduced motion is read in JS, because a CSS rule cannot reach a timer');
+  check(/addEventListener\('change'/.test(jsCode) && /tipReduced = e\.matches/.test(jsCode),
+    'and re-read on change, so toggling the OS setting takes effect without a reload');
+  check(/if \(tipReduced\)[\s\S]{0,300}?els\.tipText\.textContent = tipAt\(tipIndex\)/.test(jsCode),
+    'and that branch sets the WHOLE sentence, with no typing and no erasing');
+  check(/@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?gm-tip-caret\s*\{\s*animation:\s*none;\s*opacity:\s*1/.test(css),
+    'while the caret stops blinking AND stays visible — a caret that disappears reads as a rendering failure');
+  check(/document\.addEventListener\('visibilitychange'/.test(jsCode) && /else stopTip\(\)/.test(jsCode),
+    'and the loop stops while the tab is hidden, so a reader returns to a whole sentence');
+
+  /* The MODULE is imported above and run, not grepped. Every assertion above about the
+   * tip API was a string in color-game.js — true whether or not the function it names
+   * works — so this file was never an input of this checker and `--prove-inputs`
+   * passed without it. That is the §4 warning in its purest form: the run is green
+   * having verified nothing about the module, and it looks like coverage. */
+  check(TIPS.length >= 6, `TIPS has ${TIPS.length} entries`, () => 'fewer than six, so the rotation is over before it is worth having');
+  check(TIPS.every((t) => typeof t === 'string' && t.trim().length > 0),
+    'every tip is a non-empty string',
+    () => 'an empty entry would render as a blank line with a blinking caret and nothing to read');
+  check(new Set(TIPS).size === TIPS.length, 'and no two are identical',
+    () => 'a duplicate means the rotation appears to stall while showing the same line twice');
+  check(TIPS.every((t) => t.length <= 40),
+    'each is short enough to type inside the capped budget',
+    () => `longest is ${Math.max(...TIPS.map((t) => t.length))} characters`);
+
+  /* The cap is the reason `typeDelay` exists, so it is asserted as an OUTCOME: the
+   * worst-case product of delay and length, not the presence of the arithmetic. */
+  for (const len of [8, 40, 120]) {
+    const worst = typeDelay(len, () => 1) * len;
+    check(worst <= TIP_TYPE_TOTAL_CAP_MS * 1.15,
+      `a ${len}-character tip finishes typing within the ${TIP_TYPE_TOTAL_CAP_MS}ms budget`,
+      () => `worst-case jitter gives ${Math.round(worst)}ms — a long CJK tip would hold the rotation for seconds`);
+  }
+  check(typeDelay(40, () => 0) < typeDelay(40, () => 1),
+    'a SHORT tip still gets its organic jitter — more jitter means a longer wait',
+    () => 'the jitter is not being applied at all');
+  /* The jitter's budget is whatever the cap leaves after the base, so a tip long
+   * enough that the base already fills the budget gets an EVEN pace rather than one
+   * that overruns it. Asserted both ways because either half alone is satisfiable by
+   * simply deleting the jitter. */
+  check(typeDelay(200, () => 0) === typeDelay(200, () => 1),
+    'and a LONG one types evenly instead, because its base has eaten the whole budget');
+
+  check(tipAt(-1) === TIPS[TIPS.length - 1] && tipAt(TIPS.length) === TIPS[0],
+    'tipAt() wraps in both directions, so the rotation cannot index out of range',
+    () => 'a negative or over-long index returns undefined and the line goes blank');
+  check(randomTipIndex(() => 0.999999) === TIPS.length - 1
+    && randomTipIndex(() => 0) === 0,
+    'randomTipIndex() stays inside the array at both ends of the random range',
+    () => 'Math.floor(random() * length) with random() close to 1 must not reach length');
+
+  /* Math.random must not be in the PAGE module: the seeded-daily-draw assertion
+   * above is a shape and cannot tell a cosmetic random from a draw. */
+  check(!/Math\.random/.test(jsCode),
+    'and color-game.js still contains no Math.random — the random start index is randomTipIndex() in the module',
+    () => 'the seeded-draw shape assertion now has to widen its exemption, which is worse than moving one call');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\nclicking a row fills the field; Enter spends the attempt');
 // ---------------------------------------------------------------------------
 {
@@ -685,9 +897,31 @@ console.log('\nthe stylesheet owns nothing but gm-');
   const selectors = [...cssCode.matchAll(/(^|\})\s*([^{}]*?)\s*\{/g)]
     .map((m) => m[2].trim())
     .filter((s) => s && !s.includes('@'));
-  const offenders = selectors.filter((s) => !/\.gm-/.test(s) && !s.startsWith(':root') && !/^[a-z-]+\s*$/i.test(s));
+  /* Keyframe STOPS are not selectors, exactly like the at-rule preludes excluded
+   * above, and this file had no `@keyframes` until the rotating tip's caret blink
+   * added one — so `50%, 100%` arrived as a "rule" that no edit to the stylesheet
+   * could ever fix, which is the failure mode the at-rule exclusion was already
+   * written for.
+   *
+   * ONLY THE SECOND STOP IS EVER SEEN, and the comment here used to say both were.
+   * The matcher's prelude must be preceded by `}` or start-of-line, so the first
+   * stop — the one straight after `@keyframes gm-tip-blink {` — is swallowed with
+   * the at-rule and never appears in the list. It was never an offender, and
+   * claiming it was would have been a second version of the same mistake: describing
+   * what the code does instead of what the code does.
+   *
+   * Narrow on purpose: a percentage stop, a comma-separated list of them, or
+   * `from`/`to`. Anything else still has to carry a `.gm-` class, and a bare
+   * selector is still reported. */
+  /* And `cssCode` is comment-stripped above, so a comment that happens to contain
+   * braces or a class name is not in this list either — running the same matcher over
+   * the RAW file reports three offenders where the checker reports one. */
+  const KEYFRAME_STOP = /^(?:\d{1,3}(?:\.\d+)?%\s*,?\s*)+$|^from\b|^to\b/i;
+  const realSelectors = selectors.filter((s) => !KEYFRAME_STOP.test(s));
+  const offenders = realSelectors.filter((s) => !/\.gm-/.test(s) && !s.startsWith(':root') && !/^[a-z-]+\s*$/i.test(s));
   check(offenders.length === 0,
-    `every rule targets a .gm- class (${selectors.length} rules scanned)`,
+    `every rule targets a .gm- class (${realSelectors.length} rules scanned, `
+    + `${selectors.length - realSelectors.length} keyframe stop(s) excluded)`,
     () => `${offenders.slice(0, 4).join(' | ')} — §3.B1: a page-scoped rule belongs in the page's own file, and anything that matches a shared .cp-* class here is a change to two other pages`);
 
   check(!/\.cp-|\.sc-/.test(cssCode),

@@ -191,24 +191,47 @@
    The target palette
    -------------------------------------------------------------------------- */
 
+/* The palette is the card's HEADER, flush with its top edge.
+ *
+ * `padding: 0` plus `overflow: hidden`, with the card's own `border-radius` doing
+ * the clipping — so the bar's top corners are the card's top corners and it spans
+ * the full width. It used to be inset by 16px on all four sides, which read as a
+ * colour sample floating inside a panel rather than as the panel's own header.
+ *
+ * Everything below the bar lives in `.gm-card-body`, which is where the padding
+ * went. That is why the wrapper element exists at all: padding cannot apply to the
+ * bar and not to its siblings from the same rule, and the bar is the one child that
+ * must reach the edges.
+ *
+ * `overflow: hidden` is doing real work here, not trimming corners: it is what
+ * stops a swatch's background painting outside the rounded top. */
 .gm-target {
   background: var(--bg-card);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  padding: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.gm-card-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 14px 16px 16px;
 }
 
 /* One strip, width proportional to share. So 「顯示全部顏色」 is the same bar
    growing more segments rather than a different image — the reader still sees the
    same widths, just no longer truncated. */
+/* No border-radius and no margin: the CARD's corners are the ones that show, and the
+ * card clips. Keeping a radius here too would have put an 8px sliver of card
+ * background between the bar and the top edge — which is exactly the inset the
+ * flush layout is removing. */
 .gm-palette {
   display: flex;
   width: 100%;
   min-height: 132px;
-  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--surface);
   transition: min-height 0.25s ease;
@@ -231,12 +254,23 @@
 
 .gm-swatch {
   position: relative;
+  min-width: 0;
+  transition: flex-grow 0.3s ease;
+}
+
+/* The flex/justify/padding that positions the two labels live ONLY in the detailed
+ * state.
+ *
+ * They used to be on `.gm-swatch` itself, unconditionally, which meant every swatch
+ * carried 8px of bottom padding and a bottom-aligned flex box for text it no longer
+ * had during play. An 8px inset is invisible on a 132px bar, so nothing looked
+ * wrong — but the rule was describing a layout that did not exist, and the only
+ * honest place for it is next to the thing it lays out. */
+.gm-palette.is-detailed .gm-swatch {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 8px;
-  min-width: 0;
-  transition: flex-grow 0.3s ease;
 }
 
 /* The hex is printed ON its own swatch, so the ink must be whichever side clears
@@ -257,13 +291,46 @@
   opacity: 0.8;
 }
 
+/* The labels have to FIT their own swatch, and a swatch's width is a function of its
+ * pixel share — so this is a question about the swatch's inline size and nothing
+ * else. A container query is the only thing that can ask it: the page cannot, because
+ * the six widths change with the target, and a media query cannot, because they are
+ * all on the same screen.
+ *
+ * Measured at the 1130px bar: shares sum to about 67.5, so a 3.1% block is
+ * `3.1 / 67.5 × 1130` = 52px, and `#acc5ff` at 11px tabular is about 55px — so the
+ * hex printed OUTSIDE its own block and was clipped by the card. The percentage
+ * (`3.1%`, about 26px) still fits, which is why only the hex is dropped.
+ *
+ * The hex is the one to drop: it is the more recoverable of the two, because the
+ * hover tooltip still carries it and the aria-label still lists every one.
+ */
+.gm-palette.is-detailed .gm-swatch { container-type: inline-size; }
+
+@container (max-width: 64px) {
+  .gm-swatch-hex { display: none; }
+}
+
+@container (max-width: 34px) {
+  .gm-swatch-share { display: none; }
+}
+
+/* NO `min-height`. It reserved a 34px row plus a 12px gap — 46px of nothing —
+ * before the first hint, and the hint BUTTON is always present anyway, so the card
+ * never looked as sparse as that space implied. The reference's card at rest is
+ * exactly three things: the bar, the hint button, and the control row.
+ *
+ * The cost is a height jump when the first hint appears, which the reference also
+ * has. `hidden` needs the explicit display reset: this rule sets `display: flex`
+ * from an author sheet, which beats the UA's `[hidden] { display: none }` (§3.M). */
 .gm-hints {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  min-height: 34px;
 }
+
+.gm-hints[hidden] { display: none; }
 
 /* The hint button's own row, right-aligned under the hint chips.
  *
@@ -360,11 +427,53 @@
 
 .gm-btn-hint-label { position: relative; }
 
+/* Controls left, status right — the reference's split. `space-between` rather than
+ * `justify-content: flex-end` so the two ends hold when either is hidden (放棄 is
+ * `hidden` until the round is live; 異色 only appears on a shiny draw). */
 .gm-target-foot {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
+  min-height: 32px;
+}
+
+.gm-target-foot[hidden] { display: none; }
+
+/* --------------------------------------------------------------------------
+   The rotating tip
+   -------------------------------------------------------------------------- */
+
+/* Ambient, so it is the quietest text under the input and sits above the status
+   line's own prominence without competing with it. `min-height` reserves exactly
+   one line so a status message appearing above it does not shuffle the paragraph
+   the reader is halfway through reading. */
+.gm-tip {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  min-height: 1.5em;
+}
+
+.gm-tip-caret {
+  display: inline-block;
+  margin-left: 1px;
+  font-weight: 700;
+  animation: gm-tip-blink 1s step-end infinite;
+}
+
+@keyframes gm-tip-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Reduced motion: the CARET stops blinking and stays visible rather than hiding.
+ * A caret that disappears reads as a rendering failure, so the animation is removed
+ * and `opacity: 1` is stated — the same shape as the reference's. The typewriter
+ * itself is skipped in JS, because a CSS rule cannot reach a JS timer. */
+@media (prefers-reduced-motion: reduce) {
+  .gm-tip-caret { animation: none; opacity: 1; }
 }
 
 .gm-shiny-badge {
@@ -377,13 +486,6 @@
 }
 
 .gm-shiny-badge[hidden] { display: none; }
-
-.gm-attempts {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  margin-right: auto;
-}
 
 /* --------------------------------------------------------------------------
    Guessing

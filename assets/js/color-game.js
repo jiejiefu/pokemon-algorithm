@@ -55,6 +55,10 @@ import {
   paletteRows, visiblePalette, scoreGuess, tierOf, normalizeDifficulty, normalizeGeneration,
 } from './game-similarity.js';
 import { MAX_HINTS, hintRevealsPalette, generateHints } from './game-hints.js';
+import {
+  TIPS, tipAt, typeDelay, randomTipIndex,
+  TIP_HOLD_MS, TIP_ERASE_PER_CHAR_MS,
+} from './game-tips.js';
 
 const STORE_PREFIX = 'pokemon-colorgame:';
 
@@ -280,6 +284,141 @@ function paletteRevealed() {
  * to keep right, and life.html owns this table for the page that actually
  * evolves something. */
 
+// ---------------------------------------------------------------------------
+// The rotating tip line
+// ---------------------------------------------------------------------------
+
+/**
+ * A typewriter that cycles the tips under the input, and that is allowed to be a
+ * typewriter at all.
+ *
+ * Four things here are requirements rather than styling, and each one has a failure
+ * mode that looks fine on screen:
+ *
+ * **THE VISIBLE TEXT IS `aria-hidden`.** It is written one character at a time, so
+ * a screen reader that watched the live region would read every keystroke aloud
+ * instead of the sentence. The full sentence goes into a `.sr-only` `aria-live`
+ * region instead, and that region is updated ONLY when a new tip starts — so each
+ * tip is announced once, as a line. Both regions are in the markup, not created
+ * here, so the split is visible to a checker reading the HTML.
+ *
+ * **REDUCED MOTION GETS WHOLE SENTENCES.** No typing, no erasing, and the caret
+ * stops blinking — it becomes a static character rather than disappearing, because
+ * a caret that vanishes reads as a rendering failure. The media query is read at
+ * mount AND re-read on change, so toggling the OS setting takes effect without a
+ * reload; `model3d-viewer.js` and `shared.js` each read it once inline and this is
+ * the third site, which is worth a shared helper someday and not worth coupling
+ * this change to that refactor now.
+ *
+ * **IT PAUSES WHEN THE TAB IS HIDDEN.** A background tab still runs timers, so a
+ * reader who switches away for a minute comes back mid-sentence. The cooldown timer
+ * above has its own `visibilitychange` listener for the same reason; two listeners
+ * on one event for two independent features is not shared state.
+ *
+ * **THE TOTAL TYPING TIME IS CAPPED**, by `typeDelay()` in the module — one CJK
+ * character is a full-width glyph and costs more wall time than a Latin one, so an
+ * uncapped per-character delay would make the long tips visibly slower.
+ */
+let tipTimer = null;
+let tipPhase = 'holding';
+let tipIndex = 0;
+let tipPos = 0;
+let tipVisible = true;
+let tipReduced = false;
+
+function stopTip() {
+  if (tipTimer !== null) { clearTimeout(tipTimer); tipTimer = null; }
+}
+
+function scheduleTip(ms, fn) {
+  stopTip();
+  tipTimer = setTimeout(fn, ms);
+}
+
+/** Move to the next tip and announce the WHOLE of it, once. */
+function advanceTip() {
+  tipIndex = (tipIndex + 1) % TIPS.length;
+  els.tipLive.textContent = `提示：${tipAt(tipIndex)}`;
+}
+
+function eraseTip() {
+  if (!tipVisible) return;
+  tipPhase = 'erasing';
+  if (tipPos <= 0) {
+    advanceTip();
+    tipPos = 0;
+    tipPhase = 'typing';
+    els.tipText.textContent = '';
+    /* One short delay so the empty caret gets a frame before typing starts. */
+    scheduleTip(TIP_ERASE_PER_CHAR_MS, typeTip);
+    return;
+  }
+  tipPos -= 1;
+  els.tipText.textContent = tipAt(tipIndex).slice(0, tipPos);
+  scheduleTip(TIP_ERASE_PER_CHAR_MS, eraseTip);
+}
+
+function typeTip() {
+  if (!tipVisible) return;
+  tipPhase = 'typing';
+  const tip = tipAt(tipIndex);
+  if (tipPos >= tip.length) {
+    tipPhase = 'holding';
+    els.tipText.textContent = tip;
+    scheduleTip(TIP_HOLD_MS, eraseTip);
+    return;
+  }
+  tipPos += 1;
+  els.tipText.textContent = tip.slice(0, tipPos);
+  scheduleTip(typeDelay(tip.length), typeTip);
+}
+
+/** One step, honouring reduced motion by swapping whole sentences. */
+function tickTip() {
+  if (!tipVisible) return;
+  if (tipReduced) {
+    tipPos = tipAt(tipIndex).length;
+    tipPhase = 'holding';
+    els.tipText.textContent = tipAt(tipIndex);
+    scheduleTip(TIP_HOLD_MS, () => { advanceTip(); tickTip(); });
+    return;
+  }
+  if (tipPhase === 'holding') { tipPhase = 'erasing'; scheduleTip(TIP_HOLD_MS, eraseTip); return; }
+  if (tipPhase === 'erasing') { eraseTip(); return; }
+  typeTip();
+}
+
+function initTip() {
+  const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+  tipReduced = mql.matches;
+  mql.addEventListener('change', (e) => {
+    tipReduced = e.matches;
+    /* Re-enter the loop so the new branch is taken from the current sentence, not
+     * from a half-typed one left over from the other branch. */
+    if (tipVisible) { stopTip(); tipPos = tipAt(tipIndex).length; tickTip(); }
+  });
+
+  /* A random starting tip. `randomTipIndex()` lives in game-tips.js rather than
+   * here, so this file keeps zero `Math.random` and the checker's seeded-daily-draw
+   * assertion stays at full strength instead of growing an exemption. Cosmetic, so
+   * it is NOT part of the daily state and nothing persists it. */
+  tipIndex = randomTipIndex();
+  tipPos = tipAt(tipIndex).length;
+  tipPhase = 'holding';
+  els.tipText.textContent = tipAt(tipIndex);
+  els.tipLive.textContent = `提示：${tipAt(tipIndex)}`;
+
+  tipVisible = document.visibilityState === 'visible';
+  if (tipVisible) tickTip();
+
+  document.addEventListener('visibilitychange', () => {
+    const next = document.visibilityState === 'visible';
+    if (next === tipVisible) return;
+    tipVisible = next;
+    if (next) tickTip(); else stopTip();
+  });
+}
+
 function revealHint() {
   if (state.status !== 'playing' || state.cooldown > 0) return;
   const all = generateHintsForTarget();
@@ -496,23 +635,60 @@ function setRevealed(node, on) {
   node.style.display = on ? '' : 'none';
 }
 
+/**
+ * The target's palette bar.
+ *
+ * TWO INDEPENDENT QUESTIONS, and conflating them is the whole hazard here:
+ *
+ *   `revealed` — how MANY swatches. 3 to begin with, all six after hint 2.
+ *   `showText`  — whether each swatch PRINTS its hex and its share.
+ *
+ * They were one flag, and that is wrong in a way that renders plausibly: hint 2
+ * arrives DURING play, so a shared condition would light the numbers up on the
+ * second hint and leave them on for the rest of the round. That is the same shape
+ * as `hintRevealsPalette` silently keeping its old index — a stale `2` and a stale
+ * `1` both produce something that looks fine.
+ *
+ * `showText` is `status !== 'playing'` and nothing else: won or given up. The reason
+ * the text is worth hiding is that **the share IS the pixel share and the WIDTH
+ * already says so** — a wider block simply is more of the sprite. Printing the
+ * number during play repeats what the eye already got. At the end it becomes a
+ * readable summary of a quantity you had to estimate, which is the moment a number
+ * earns its place.
+ *
+ * The `title` tooltip stays in BOTH states. It appears on hover, so it is not
+ * printed on the bar, and it is the one place a sighted reader can read a number
+ * mid-game.
+ *
+ * The aria-label carries every share, and this is not a nicety. A width is
+ * invisible to a screen reader, so removing the printed numbers without moving
+ * them into the label would delete the information for every non-visual reader —
+ * trading a sighted reader's redundancy for a blind reader's loss. §3.C's rule
+ * applies: colour must never be the only channel.
+ */
 function renderPalette() {
   const box = els.palette;
   const revealed = paletteRevealed() || state.status !== 'playing';
+  const showText = state.status !== 'playing';
   setRevealed(els.paletteEmpty, false);
   if (!state.target) return;
   const rows = visiblePalette(palettes, state.target.id, state.target.variant, revealed);
+
+  box.classList.toggle('is-detailed', showText);
   box.setAttribute('aria-label',
-    `目標寶可夢的色帶，共 ${rows.length} 色${revealed ? '（已顯示全部）' : '（還有更多顏色）'}`);
+    `目標寶可夢的色帶：${rows.map((r) => `${formatHex(r.hex)} ${formatShare(r.share)}`).join('，')}`
+    + `。共 ${rows.length} 色${revealed ? '' : '，還有更多顏色未顯示'}`);
+
   box.innerHTML = rows.map((row) => {
     const rgb = hexToRgb(row.hex);
     const ink = badgeStyle(rgb);
     const grow = row.share > 0 ? row.share : 1;
+    const detail = showText
+      ? `<span class="gm-swatch-share">${formatShare(row.share)}</span>
+         <span class="gm-swatch-hex">${formatHex(row.hex)}</span>`
+      : '';
     return `<div class="gm-swatch" style="flex:${grow} 1 0;${ink}"
-                 title="${formatHex(row.hex)} · ${formatShare(row.share)}">
-        <span class="gm-swatch-share">${formatShare(row.share)}</span>
-        <span class="gm-swatch-hex">${formatHex(row.hex)}</span>
-      </div>`;
+                 title="${formatHex(row.hex)} · ${formatShare(row.share)}">${detail}</div>`;
   }).join('');
 }
 
@@ -542,6 +718,14 @@ function renderHints() {
 
   box.innerHTML = state.hintsShown.map((h, i) =>
     `<span class="gm-hint"><span class="gm-hint-index">${i + 1}</span>${escapeHtml(h)}</span>`).join('');
+
+  /* The chip row is hidden outright before the first hint, rather than kept at a
+   * `min-height`. The reserved space was 34px plus a 12px gap, and the hint BUTTON
+   * is mounted either way — so the card looked as though something was missing from
+   * it. `setRevealed` rather than a direct write: `.gm-hints` is `display: flex`
+   * from an author rule, so `hidden` alone loses and leaves an empty 34px box
+   * (§3.M's shape). */
+  setRevealed(els.hints, spent > 0);
 
   els.hintRow.hidden = total;
   if (total) {
@@ -725,7 +909,31 @@ function renderShinyBadge() {
   setRevealed(els.shinyBadge, Boolean(state.target && state.target.variant === 's'));
 }
 
+/** Hide the control row when neither of its two children is showing. */
+function renderFoot() {
+  setRevealed(els.targetFoot, !els.giveup.hidden || !els.shinyBadge.hidden);
+}
+
 function renderAll() {
+  /* The control row's own visibility is decided LAST, on purpose.
+   *
+   * It carries two children and can be left with NEITHER visible: 放棄 is
+   * daily-only, and 異色 only appears on a shiny draw, so unlimited mode on a normal
+   * target is the empty case — and an empty 32px row with a min-height reads as a
+   * control that failed to load.
+   *
+   * It was declared directly after the `giveup.hidden` line, which read
+   * `els.shinyBadge.hidden` while `renderShinyBadge()` — the only writer of that
+   * attribute — had not necessarily run yet on every path. Same shape as the stale
+   * `hintRevealsPalette` index: the value was plausible on the paths where the
+   * caller had already got there. Reading it at the end makes it true on all of them.
+   *
+   * `setRevealed`, not a direct write — this row is `display: flex` from an author
+   * rule, so `hidden` alone loses (§3.M). And this was a CSS `:has()` first, with
+   * `:has(> [hidden]:only-child)`, which can never match: with two children neither
+   * one is `:only-child`. `:has(> :not([hidden]))` would have worked, but nothing in
+   * the suite can read whether a `:has()` selector matched, so the question moved
+   * into JS where it became checkable. */
   els.difficultyNote.textContent = `${DIFFICULTY_LABELS[state.difficulty]}：${DIFFICULTY_NOTES[state.difficulty]}`;
   renderGenerations();
   renderShinyBadge();
@@ -736,9 +944,7 @@ function renderAll() {
   const playing = state.status === 'playing';
   els.search.disabled = !playing || !state.target;
   els.giveup.hidden = !playing || state.mode !== 'daily';
-  els.attempts.textContent = state.mode === 'daily'
-    ? `剩下 ${Math.max(0, MAX_ATTEMPTS - state.guesses.length)} 次機會`
-    : `已猜 ${state.guesses.length} 次`;
+
   for (const tab of document.querySelectorAll('[data-difficulty]')) {
     const on = tab.dataset.difficulty === state.difficulty;
     tab.classList.toggle('is-on', on);
@@ -749,6 +955,9 @@ function renderAll() {
     tab.classList.toggle('is-on', on);
     tab.setAttribute('aria-checked', on ? 'true' : 'false');
   }
+
+  /* Last, because both of its inputs are written above. See renderFoot(). */
+  renderFoot();
 }
 
 // ---------------------------------------------------------------------------
@@ -1001,8 +1210,10 @@ async function init() {
   els.shareText = document.getElementById('gm-share-text');
   els.again = document.getElementById('gm-again');
   els.giveup = document.getElementById('gm-giveup');
-  els.attempts = document.getElementById('gm-attempts');
   els.shinyBadge = document.getElementById('gm-shiny-badge');
+  els.targetFoot = document.querySelector('.gm-target-foot');
+  els.tipText = document.getElementById('gm-tip-text');
+  els.tipLive = document.getElementById('gm-tip-live');
   els.gen = document.getElementById('gm-gen');
   els.genRow = document.getElementById('gm-gen-row');
   els.genLabel = document.getElementById('gm-gen-label');
@@ -1039,6 +1250,10 @@ async function init() {
 
   wire();
   newGame();
+  /* After `newGame()`, not before: the tip is ambient and reads better once the
+   * card has its first paint, and starting the timers before the palette renders
+   * means the first few hundred ms of a 5s hold are spent on a blank bar. */
+  initTip();
 }
 
 init();

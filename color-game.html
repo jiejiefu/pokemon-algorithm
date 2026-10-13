@@ -80,25 +80,33 @@
          在那裡；改變的是「看得到幾個」，不是「排在哪裡」。 -->
     <section class="gm-target" aria-labelledby="gm-target-title">
       <h2 id="gm-target-title" class="sr-only">目標色帶</h2>
+
+      <!-- 色條貼齊卡片上緣，是卡片自己的「頭」而不是浮在裡面的一塊。`.gm-target`
+           因此 padding: 0，靠 overflow: hidden + 卡片圓角裁切上緣；下方所有列都
+           在 .gm-card-body 裡，由它承載內距。參考版是這個結構。 -->
       <div class="gm-palette" id="gm-palette" role="img" aria-label="目標寶可夢的色帶">
         <div class="gm-palette-empty" id="gm-palette-empty">正在抽出色盤…</div>
       </div>
-      <div class="gm-hints" id="gm-hints"></div>
 
-      <!-- 提示按鈕自己的那一列，靠右，對齊參考版的位置：它在卡片內、色帶下方，
-           不是接在提示晶片後面。晶片長度會變（第三則是一整句圖鑑說明），接在
-           後面會讓按鈕每按一次就跳一次位置。 -->
-      <div class="gm-hint-row" id="gm-hint-row">
-        <button type="button" class="gm-btn-hint" id="gm-hint-btn">
-          <span class="gm-hint-bar" id="gm-hint-bar" hidden></span>
-          <span class="gm-btn-hint-label">看一則提示</span>
-        </button>
-      </div>
+      <div class="gm-card-body">
+        <div class="gm-hints" id="gm-hints"></div>
 
-      <div class="gm-target-foot">
-        <span class="gm-shiny-badge" id="gm-shiny-badge" hidden>異色</span>
-        <span class="gm-attempts" id="gm-attempts"></span>
-        <button type="button" class="gm-btn gm-btn-ghost" id="gm-giveup" hidden>放棄</button>
+        <!-- 提示按鈕自己的那一列，靠右，對齊參考版的位置：它在卡片內、色帶下方，
+             不是接在提示晶片後面。晶片長度會變（第三則是一整句圖鑑說明），接在
+             後面會讓按鈕每按一次就跳一次位置。 -->
+        <div class="gm-hint-row" id="gm-hint-row">
+          <button type="button" class="gm-btn-hint" id="gm-hint-btn">
+            <span class="gm-hint-bar" id="gm-hint-bar" hidden></span>
+            <span class="gm-btn-hint-label">看一則提示</span>
+          </button>
+        </div>
+
+        <!-- 控制列：控制項在左、狀態在右（參考版的分工）。「剩下 N 次機會」移除了
+             —— 四個槽位本身就是那個資訊，而且每一格都寫著「第 N 次機會」。 -->
+        <div class="gm-target-foot">
+          <button type="button" class="gm-btn gm-btn-ghost" id="gm-giveup" hidden>放棄</button>
+          <span class="gm-shiny-badge" id="gm-shiny-badge" hidden>異色</span>
+        </div>
       </div>
     </section>
 
@@ -120,6 +128,17 @@
         <datalist id="gm-names"></datalist>
         <ul id="gm-search-list" class="gm-search-list" role="listbox" hidden></ul>
         <p class="gm-search-status" id="gm-search-status" role="status" aria-live="polite"></p>
+
+        <!-- 輪播提示。位置在狀態列之下，所以它是輸入框底下最後一行，跟參考版的
+             RotatingTip 同一個位置。狀態列有字時這行會往下移 —— 可接受的位移，
+             而且錯誤訊息本來就該把眼睛拉過去。 -->
+        <p class="gm-tip">
+          <!-- 可見的那份是 aria-hidden：打字機逐字送出，沒有這層的話螢幕報讀器
+               會把每個字當成一次朗讀。這是參考版註解特別點出來的設計。 -->
+          <span class="gm-tip-visible" aria-hidden="true"><span class="gm-tip-text" id="gm-tip-text"></span><span class="gm-tip-caret">|</span></span>
+          <!-- 這一份帶完整句子，而且只在換句時更新一次，所以每則提示只被讀一次。 -->
+          <span class="sr-only" id="gm-tip-live" aria-live="polite"></span>
+        </p>
       </div>
       <ol class="gm-slots" id="gm-slots"></ol>
     </section>

@@ -322,6 +322,7 @@ const CHECKERS = [
       'assets/js/color-game.js',
       'assets/js/game-similarity.js',
       'assets/js/game-hints.js',
+      'assets/js/game-tips.js',
       'assets/js/shared.js',
     ],
   },
