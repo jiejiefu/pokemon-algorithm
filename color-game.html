@@ -84,6 +84,17 @@
         <div class="gm-palette-empty" id="gm-palette-empty">正在抽出色盤…</div>
       </div>
       <div class="gm-hints" id="gm-hints"></div>
+
+      <!-- 提示按鈕自己的那一列，靠右，對齊參考版的位置：它在卡片內、色帶下方，
+           不是接在提示晶片後面。晶片長度會變（第三則是一整句圖鑑說明），接在
+           後面會讓按鈕每按一次就跳一次位置。 -->
+      <div class="gm-hint-row" id="gm-hint-row">
+        <button type="button" class="gm-btn-hint" id="gm-hint-btn">
+          <span class="gm-hint-bar" id="gm-hint-bar" hidden></span>
+          <span class="gm-btn-hint-label">看一則提示</span>
+        </button>
+      </div>
+
       <div class="gm-target-foot">
         <span class="gm-shiny-badge" id="gm-shiny-badge" hidden>異色</span>
         <span class="gm-attempts" id="gm-attempts"></span>
@@ -140,8 +151,9 @@
         <li>色帶是目標寶可夢的實測色盤，前三色依像素占比排序。</li>
         <li>輸入名稱或全國編號猜一次，共四次機會。</li>
         <li>每次猜錯都會顯示一個 <strong>OKLab 色盤距離</strong>，越小越接近；同時可能出現同屬性或同進化家族的徽章。</li>
-        <li>三則提示依序揭露，而<strong>已經出現在徽章上的事實不會再被講一次</strong>。</li>
+        <li>共三則提示，依序揭露；<strong>第一則不用等</strong>，之後每一則要等五秒。</li>
         <li>第二則提示會把色帶從三色擴成全部的顏色。</li>
+        <li>還沒猜過也可以直接看提示 —— 提示不會消耗作答次數，但用了幾則會寫進成績裡。</li>
       </ol>
       <p class="gm-rules-note">
         <b>為什麼是距離而不是百分比？</b>這個網站的其他頁面用 OKLab 知覺距離比對顏色

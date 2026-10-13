@@ -165,9 +165,29 @@ console.log('\nevery getElementById resolves');
     && !html.includes(`list="${id}"`));
   check(orphans.length === 0, 'and no id is declared and reached by neither lookup',
     () => `${orphans.join(', ')} — either the markup or the query is out of date`);
-  check(delegated.size >= 4,
-    `and ${delegated.size} more ids by closest('#id') rather than by a captured node`,
-    () => `only ${delegated.size} — below four, some control probably moved to a captured node`);
+  /* The invariant is "every control reaches its handler by a route a re-render
+   * cannot break", and there are two such routes — `closest('#id')` on a delegated
+   * ancestor, and a direct listener on a node that is never rebuilt. This used to
+   * count only the first, with a floor of 4, because `closest()` was the only one
+   * in use. The hint button then moved to the second route, which is STRONGER (a
+   * delegated lookup cannot touch a detached node because it is matched against the
+   * event path; a captured one can), so the count dropped from 4 to 3 on an
+   * improvement.
+   *
+   * That is the §3.B2 shape: a number standing in for a claim, which then fails on
+   * the good case. So the count is now of both routes — and the binding is resolved
+   * from the `els` table rather than assumed, because "there is an `els.foo` line"
+   * is not "something listened to `els.foo`". */
+  const bound = new Set(delegated);
+  for (const m of js.matchAll(/els\.(\w+) = document\.getElementById\('([^']+)'\)/g)) {
+    if (new RegExp(`els\\.${m[1]}\\.addEventListener\\b`).test(js)) bound.add(m[2]);
+  }
+  check(bound.size >= 4,
+    `and ${bound.size} more ids reach a handler by a route a re-render cannot break `
+    + `(${delegated.size} delegated, ${bound.size - delegated.size} bound directly on a permanent node)`,
+    () => `only ${bound.size} — some control probably lost its handler route`);
+  check(/els\.hintBtn\.addEventListener/.test(js),
+    'and the hint button is in the second group: a permanent node, bound once');
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +329,108 @@ console.log('\n§3.M: every element JS hides also has the CSS that hides it');
       `${key} is hidden by attribute and .gm-btn carries the [hidden] rule that inline-flex needs`,
       () => `${key} is written .hidden = directly; if its author display is a flex box it also needs [hidden] { display: none }`);
   }
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n`--page-accent` is declared for the body, and differently per theme');
+// ---------------------------------------------------------------------------
+{
+  /* It is a HEADER-scoped token — shared.css defines it on six `.header-*` modifiers
+   * and nowhere else — and this file used it 13 times in the body, which is a
+   * sibling of the header rather than a descendant. Every one resolved nothing.
+   * The symptom was the hint button at `color: rgb(255,255,255)` on a white card. */
+  const accent = /\.gm-page\s*\{\s*--page-accent:\s*(#[0-9a-f]{3,8})/.exec(css);
+  const light = /\[data-theme="light"\]\s*\.gm-page\s*\{\s*--page-accent:\s*(#[0-9a-f]{3,8})/.exec(css);
+  check(!!accent && !!light,
+    'it is declared on `.gm-page` AND on `[data-theme="light"] .gm-page`',
+    () => 'one of the two themes has no value, and an undefined custom property silently falls back to the inherited one');
+
+  /* And they must DIFFER. This is the measurement, not a style preference: the
+   * `--rule-*` tokens are declared once in `:root`, so they are identical in both
+   * themes, and no single colour clears 4.5:1 against both a white card and a
+   * #161e38 one — white needs relative luminance <= 0.183, the dark card needs
+   * >= 0.127, and no cyan in the palette lands in that band. Measured 1.92:1 for
+   * `--rule-cyan` on white, which is the attempt this replaced.
+   *
+   * So a single-value accent is the DEFECT. Asserting only that a value exists
+   * would pass the one-colour version that measured 1.92:1 — §3.B2's shape again:
+   * the guard would be satisfiable by exactly the thing it was written to stop. */
+  check(!!accent && !!light && accent[1].toLowerCase() !== light[1].toLowerCase(),
+    'and the two are different colours, because no single one passes both themes',
+    () => `both are ${accent && accent[1]} — that measured ${accent === light ? '1.92:1 on white' : 'a fail'} in light theme`);
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe hint button: free on the first press, cooldown after');
+// ---------------------------------------------------------------------------
+{
+  /* The stated need: a reader who knows nothing yet must be able to press it.
+   * `state.guesses.length === 0` WAS in the disabled condition and was added during
+   * the port — the reference disables on `!targetPokemon || revealedHints.length >= 3
+   * || hintCooldown > 0` only. So the assertion is an absence, because an absence is
+   * what the port violated and a presence check would not say which one. */
+  const render = /function renderHints[\s\S]*?\n}/.exec(jsCode);
+  check(!!render, 'renderHints() is the hint row\'s only writer');
+  const r = render ? render[0] : '';
+  check(!/guesses\.length === 0/.test(r),
+    'and it never mentions the guess count, so zero guesses cannot disable the button',
+    () => 'the button is gated on having guessed, which inverts what a hint is for');
+  check(/els\.hintBtn\.disabled = state\.status !== 'playing' \|\| cooling/.test(r),
+    'the only reasons it can be disabled are "not playing" and "cooling"',
+    () => 'a reason crept back in that is not about the round being over');
+
+  /* FREE FIRST, THEN A COOLDOWN — the asymmetry, asserted as an if/else on the
+   * condition rather than as the mere presence of `wasFirst`. A presence check
+   * would pass a `if (wasFirst)` that cooled on the first hint, which is the
+   * opposite of what the comment claims. */
+  const reveal = /function revealHint[\s\S]*?\n}/.exec(jsCode);
+  check(!!reveal, 'revealHint() exists');
+  const rv = reveal ? reveal[0] : '';
+  check(/const wasFirst = state\.hintsShown\.length === 0/.test(rv),
+    'it records whether this is the first hint, BEFORE pushing');
+  check(/if \(!wasFirst\)\s*\{[\s\S]*?HINT_COOLDOWN_S/.test(rv),
+    'and starts the cooldown only when it was NOT the first — the free one is the exception',
+    () => 'the first hint is being cooled too, which is the half that was requested');
+  check(!/state\.cooldown = HINT_COOLDOWN_S[\s\S]{0,400}HINT_COOLDOWN_S[\s\S]{0,400}HINT_COOLDOWN_S/.test(rv),
+    'and there is exactly one cooldown arm, not one per branch',
+    () => 'more than one place assigns the cooldown, so they can disagree');
+
+  /* §3.I: a render that rewrites its own markup detaches a node it still holds.
+   * This one did — `els.hintBtn.innerHTML = ...` destroyed the cooldown bar living
+   * inside the button, so every `hidden` and `scaleX` after the first render went to
+   * a detached node and the bar never appeared. Nothing threw and nothing logged. */
+  check(!/hintBtn\.innerHTML/.test(jsCode),
+    'renderHints() writes the hint LABEL\'s textContent, never the button\'s innerHTML',
+    () => 'rewriting the button markup detaches the cooldown bar it also holds a reference to');
+  check(/els\.hintLabel\.textContent =/.test(r), 'and it holds the label as its own reference');
+  check(/els\.hintBar = document\.getElementById\('gm-hint-bar'\)/.test(jsCode),
+    'the bar is a permanent node, found once');
+
+  /* The terminal state has to be honest on its own, not only because the row is
+   * hidden. `hidden` is the row\'s business; `disabled` is the button\'s. Leaving the
+   * button enabled and still reading 再看一則提示 after the third hint is a lie that
+   * is invisible today and true the day anything unhides the row. */
+  check(/els\.hintBtn\.disabled = true;[\s\S]{0,160}els\.hintBar\.hidden = true/.test(r),
+    'after the third hint the button is disabled AND the bar is hidden, not merely un-shown',
+    () => 'the button\'s own state is only correct while the row happens to be hidden');
+
+  /* §3.M: an author `display` beats the UA `[hidden]` rule, so `.gm-hint-row` needs
+   * its own. Measured: the row is `display: flex` from a class, so `[hidden]` alone
+   * leaves a 0-height-but-not-none box and the card keeps its padding. */
+  check(/\.gm-hint-row\[hidden\]\s*\{\s*display:\s*none/.test(css),
+    'and `.gm-hint-row[hidden] { display: none }` exists — the row is `display:flex` from its class',
+    () => 'the row survives the third hint as an invisible box that still holds the card padding');
+  check(/\.gm-hint-bar\[hidden\]\s*\{\s*display:\s*none/.test(css), 'and the same for the bar');
+
+  /* The button must not also carry `.gm-btn`. Both are one class, so the winner is
+   * decided by source order, and `.gm-btn` sets a filled `background` at
+   * `min-height: 40px` — a filled 40px pill where the reference has a small outlined
+   * button. Two rules claiming the same properties is the bug, not the fix. */
+  check(/class="gm-btn-hint"/.test(html) && !/gm-btn gm-btn-hint/.test(html),
+    'the button carries only `gm-btn-hint`, so nothing competes for its background',
+    () => '`.gm-btn` and `.gm-btn-hint` are both one class and both set a background');
+  check(/\.gm-btn-hint:focus-visible/.test(css),
+    'and it brought its own focus ring rather than inheriting `.gm-btn`\'s');
 }
 
 // ---------------------------------------------------------------------------

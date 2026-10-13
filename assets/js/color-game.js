@@ -247,9 +247,26 @@ function revealHint() {
   // Never re-show: the earlier hints were shuffled with the same seed, so index
   // `length` is the next one that was not on screen. (restart-safe)
   const next = all[state.hintsShown.length];
-  if (next) state.hintsShown.push(next);
-  state.cooldown = HINT_COOLDOWN_S;
-  startCooldown();
+  if (!next) return;
+  const wasFirst = state.hintsShown.length === 0;
+  state.hintsShown.push(next);
+  /* The FIRST hint is free; hints 2 and 3 each start a cooldown.
+   *
+   * Free-first is the whole point of the change and it is a deliberate asymmetry.
+   * A hint exists for the reader who knows nothing yet, so gating the first one
+   * behind a guess inverts what the button is for — and the gate was invented
+   * during the port, not ported: the reference disables its hint button only on
+   * `!targetPokemon || revealedHints.length >= 3 || hintCooldown > 0`.
+   *
+   * Only the first is free. The reader gets one click with no friction, and every
+   * one after it has to wait five seconds, so the three hints are not three
+   * seconds of holding down a button. Five seconds is not an anti-cheat — it is
+   * long enough that you look at what you already have, which is the entire
+   * reason to space the reveals. */
+  if (!wasFirst) {
+    state.cooldown = HINT_COOLDOWN_S;
+    startCooldown();
+  }
   if (state.mode === 'daily') persistDaily();
   renderHints();
   renderPalette();
@@ -413,20 +430,68 @@ function renderPalette() {
   }).join('');
 }
 
+/**
+ * The hint row: the revealed hints, and the button that reveals the next one.
+ *
+ * Two things about the button's shape are the reference's, not mine. It is
+ * enabled from the first paint with nothing guessed — the reference's own comment
+ * says the row stays mounted "so the row reserves its height on the first
+ * paint", i.e. it is meant to be a stable affordance, not a reward for playing —
+ * and it sits on its OWN row under the hints, right-aligned, rather than trailing
+ * the hint chips. On a chip row it would sit immediately after a hint that can be
+ * forty characters long, so its position would move every time one appeared.
+ *
+ * `state.guesses.length === 0` used to be in the disabled condition. It was
+ * added during the port, the reference does not have it, and it protected
+ * nothing: hints do not consume an attempt (`guesses` and `hintsShown` are
+ * separate counters) and the count is printed in three places — localStorage, the
+ * share string's 「（N 則提示）」 and the result panel — so a three-hint round with
+ * no guesses reads exactly as loudly as one with four.
+ */
 function renderHints() {
   const box = els.hints;
   const spent = state.hintsShown.length;
-  const total = state.hintsShown.length >= MAX_HINTS;
+  const total = spent >= MAX_HINTS;
+  const cooling = state.cooldown > 0;
+
   box.innerHTML = state.hintsShown.map((h, i) =>
-    `<span class="gm-hint"><span class="gm-hint-index">${i + 1}</span>${escapeHtml(h)}</span>`).join('')
-    + (total ? '' : `<button type="button" class="gm-btn-hint" id="gm-hint-btn"
-        ${state.status !== 'playing' || state.cooldown > 0 || state.guesses.length === 0 ? 'disabled' : ''}>
-        ${state.cooldown > 0 ? '' : '<span class="gm-hint-cooldown" style="transform:scaleX(0)"></span>'}
-        ${spent === 0 ? '看一則提示' : '再看一則提示'}</button>`);
-  if (state.cooldown > 0) {
-    const bar = box.querySelector('.gm-hint-cooldown');
-    if (bar) bar.style.transform = `scaleX(${(state.cooldown / HINT_COOLDOWN_S).toFixed(3)})`;
+    `<span class="gm-hint"><span class="gm-hint-index">${i + 1}</span>${escapeHtml(h)}</span>`).join('');
+
+  els.hintRow.hidden = total;
+  if (total) {
+    /* The button is disabled as well as hidden, because `hidden` is the row's
+     * business and `disabled` is the button's. Leaving the button enabled and
+     * still reading 再看一則提示 is a lie that is invisible today and true the day
+     * anything unhides the row — and `revealHint()`'s own `length >= MAX_HINTS`
+     * guard is not a substitute, because the label and the disabled attribute are
+     * what the reader (and the next checker) reads. */
+    els.hintBtn.disabled = true;
+    els.hintBar.hidden = true;
+    els.hintBar.style.transform = 'scaleX(0)';
+    stopCooldown();
+    return;
   }
+
+  els.hintBtn.disabled = state.status !== 'playing' || cooling;
+  /* The LABEL's text only. This was `els.hintBtn.innerHTML = ...`, which is
+   * §3.I: writing the button's markup destroys the cooldown bar that lives inside
+   * it, so `els.hintBar` was a detached node from the first render onward and
+   * every `hidden` and `scaleX` after that went to a node no longer in the tree.
+   * The bar never appeared — the same silent failure as `graph-header.js`
+   * rewriting its own button and the click reading as outside, except this one
+   * threw nothing and logged nothing. */
+  const label = spent === 0 ? '看一則提示' : '再看一則提示';
+  els.hintLabel.textContent = cooling ? '提示冷卻中' : label;
+  els.hintBtn.setAttribute('aria-label', cooling ? '提示冷卻中' : label);
+
+  /* The progress bar is a child of the button and is scaled by the REMAINING
+   * fraction, so it drains left-to-right. It is left in the DOM while cooling and
+   * removed after, rather than the reverse: a bar at scaleX(0) and a bar that is
+   * not in the document are different things, and only one of them has a box. */
+  els.hintBar.hidden = !cooling;
+  els.hintBar.style.transform = cooling
+    ? `scaleX(${(state.cooldown / HINT_COOLDOWN_S).toFixed(3)})`
+    : 'scaleX(0)';
 }
 
 function renderSlots() {
@@ -657,7 +722,6 @@ function wire() {
     if (diff) { setDifficulty(diff.dataset.difficulty); return; }
     const mode = e.target.closest('[data-mode]');
     if (mode) { setMode(mode.dataset.mode); return; }
-    if (e.target.closest('#gm-hint-btn')) { revealHint(); return; }
     if (e.target.closest('#gm-giveup')) { giveUp(); return; }
     if (e.target.closest('#gm-again')) { newGame(); return; }
     if (e.target.closest('#gm-share-copy')) { copyShare(); return; }
@@ -733,6 +797,19 @@ async function init() {
   els.palette = document.getElementById('gm-palette');
   els.paletteEmpty = document.getElementById('gm-palette-empty');
   els.hints = document.getElementById('gm-hints');
+  /* The hint button and its bar are now PERMANENT nodes, found once.
+   *
+   * They used to be rebuilt into `innerHTML` on every render, which meant the
+   * click handler was delegated by id on a node that no longer existed between
+   * renders — it worked, but it also meant `disabled` was a string concatenated
+   * into markup. A button that exists from the first paint can be disabled as a
+   * property, and §3.G's rule about capturing a node is then not in play at all. */
+  els.hintRow = document.getElementById('gm-hint-row');
+  els.hintBtn = document.getElementById('gm-hint-btn');
+  els.hintBar = document.getElementById('gm-hint-bar');
+  els.hintLabel = els.hintBtn.querySelector('.gm-btn-hint-label');
+
+  els.hintBtn.addEventListener('click', () => revealHint());
   els.slots = document.getElementById('gm-slots');
   els.search = document.getElementById('gm-search');
   els.searchList = document.getElementById('gm-search-list');
