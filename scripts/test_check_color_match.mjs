@@ -41,6 +41,7 @@ import { cpus, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_color_match.mjs';
@@ -79,7 +80,7 @@ const ok = (name, pass, detail = '') => {
 };
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'colormatch-neg-'));
+  const dir = trackTree(mkdtempSync(join(tmpdir(), 'colormatch-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
@@ -655,7 +656,7 @@ async function runCase(i) {
   try {
     r = await run(dir);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    releaseTree(dir);
   }
 
   // The last case is a REMOVAL of a guard: it is expected to leave the checker

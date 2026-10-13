@@ -19,10 +19,11 @@
  * So the assertion is on the promise's SETTLEMENT, which is the one thing the
  * swallowed rejection could not hide.
  */
-import { copyFileSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'assets/js/cry-player.js');
@@ -187,7 +188,7 @@ const src = readFileSync(SRC, 'utf8');
  * has been deleted. The recorder ignores anything outside ROOT
  * (scripts/lib/record-inputs.cjs), so a temp directory is what makes this entry's
  * input list exact rather than hand-maintained. */
-const dir = mkdtempSync(join(tmpdir(), 'cry-overlap-neg-'));
+const dir = trackTree(mkdtempSync(join(tmpdir(), 'cry-overlap-neg-')));
 copyFileSync(join(ROOT, 'assets/js/cry-index.js'), join(dir, 'cry-index.js'));
 const mutantPath = join(dir, 'cry-player-mutant.mjs');
 const mutant = src
@@ -205,7 +206,7 @@ if (mutant === src) {
   check(!r.ok && /cur is not defined/.test(r.err),
     `the mutation IS caught: the mutant rejects with "${r.err}"`);
   await m.cryPlayer.stop().catch(() => {});
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 console.log(failures

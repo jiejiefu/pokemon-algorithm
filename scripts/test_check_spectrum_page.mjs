@@ -34,12 +34,13 @@
 
 import { execFileSync } from 'node:child_process';
 import {
-  cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
+  cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_spectrum_page.mjs';
@@ -83,7 +84,7 @@ const replaceOrThrow = (src, from, to) => {
 };
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'spectrum-neg-'));
+  const dir = trackTree(mkdtempSync(join(tmpdir(), 'spectrum-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
@@ -584,7 +585,7 @@ try {
         : caughtBy(out, c.expect) ? '' : `caught, but not by "${c.expect}"`);
   }
 } finally {
-  for (const d of trees) rmSync(d, { recursive: true, force: true });
+  for (const d of trees) releaseTree(d);
 }
 
 const failed = results.filter((r) => !r.pass);

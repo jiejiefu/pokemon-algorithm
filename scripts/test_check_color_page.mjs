@@ -23,13 +23,14 @@
  * so a failed case can never leave the working tree modified.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // assets/css/shared.css is here because check_color_page.mjs resolves the
@@ -44,7 +45,7 @@ const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
 /** Build a scratch tree containing only what the checker reads, then mutate it. */
 function makeTree(mutate) {
-  const dir = join(tmpdir(), `ccp-neg-${Math.random().toString(36).slice(2)}`);
+  const dir = trackTree(join(tmpdir(), `ccp-neg-${Math.random().toString(36).slice(2)}`));
   mkdirSync(join(dir, 'assets/js'), { recursive: true });
   mkdirSync(join(dir, 'assets/css'), { recursive: true });
   mkdirSync(join(dir, 'scripts'), { recursive: true });
@@ -88,7 +89,7 @@ const run = (dir) => new Promise((res) => {
   const { code, out } = await run(dir);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 const cases = [
@@ -618,7 +619,7 @@ const verdicts = await pool(cases.map((c) => async () => {
   try {
     ({ code, out } = await run(dir));
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    releaseTree(dir);
   }
   if (code === 0) return { name: c.name, detail: 'checker exited 0 — the invariant is not actually policed' };
   if (!caughtBy(out, c.expect)) {

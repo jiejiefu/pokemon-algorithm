@@ -22,12 +22,13 @@
  * baseline case is what establishes that the tree is sound.
  */
 
-import { mkdtempSync, mkdirSync, cpSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, cpSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir, cpus } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_game_similarity.mjs';
@@ -278,7 +279,7 @@ const ok = (name, pass, detail = '') => {
 };
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'gamesim-neg-'));
+  const dir = trackTree(mkdtempSync(join(tmpdir(), 'gamesim-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
@@ -301,7 +302,7 @@ const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
 {
   const dir = makeTree(null);
   let r;
-  try { r = await run(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
+  try { r = await run(dir); } finally { releaseTree(dir); }
   ok('baseline: the checker is green on the real tree', r.code === 0,
     r.code === 0 ? '' : `it already fails, so every case below proves nothing:\n${failLines(r.out).map((l) => `        ${l.trim()}`).join('\n')}`);
   if (r.code !== 0) {
@@ -350,7 +351,7 @@ async function runCase(i) {
   } catch (e) {
     return { name: c.name, pass: false, detail: `the mutation itself threw: ${e.message}` };
   } finally {
-    if (dir) rmSync(dir, { recursive: true, force: true });
+    if (dir) releaseTree(dir);
   }
 }
 

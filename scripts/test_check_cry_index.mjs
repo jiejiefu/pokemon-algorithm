@@ -59,6 +59,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 // Read from the real module, not a hardcoded list, so the cleanup case below knows
 // whether the id it removes is in the legacy roster too.
@@ -112,7 +113,7 @@ function rosterEdit(src, which, action, id) {
  * they are 330 KB in total and a diff that misses one file is a case that passes
  * for the wrong reason. The corpus is NOT re-copied; see `io` below.
  */
-const WORK = join(tmpdir(), `cry-neg-${process.pid}-${Math.random().toString(36).slice(2)}`);
+const WORK = trackTree(join(tmpdir(), `cry-neg-${process.pid}-${Math.random().toString(36).slice(2)}`));
 
 /** Every path under the corpus a case has touched since the last restore.
  *  Relative to CRIES, so a case writes `latest/5.ogg` and not the full path. */
@@ -412,7 +413,7 @@ const LEGACY_HAD_SHRINK = LEGACY_CRY_IDS.has(SHRINK_ID);
              : fail(`a clean dataset shrink was reported as a defect — the checker is hardcoding completeness:\n${out}`);
 }
 
-rmSync(WORK, { recursive: true, force: true });
+releaseTree(WORK);
 
 console.log(failures
   ? `\nFAIL  ${failures} negative case(s) did not behave`

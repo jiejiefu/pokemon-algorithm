@@ -26,13 +26,14 @@
  * tree modified.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // `categories.js` imports `shiny-index.js`, which imports nothing, but the point
@@ -49,7 +50,7 @@ const pass = (m) => console.log(`  ok   ${m}`);
 const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
 function makeTree(mutate) {
-  const dir = join(tmpdir(), `ccd-neg-${Math.random().toString(36).slice(2)}`);
+  const dir = trackTree(join(tmpdir(), `ccd-neg-${Math.random().toString(36).slice(2)}`));
   mkdirSync(dir, { recursive: true });
   cpSync(join(ROOT, JS_DIR), join(dir, JS_DIR), { recursive: true });
   mkdirSync(join(dir, 'assets/data'), { recursive: true });
@@ -87,7 +88,7 @@ const run = (dir) => new Promise((res) => {
   const { code, out } = await run(dir);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 const cases = [
@@ -237,7 +238,7 @@ const verdicts = await pool(cases.map((c) => async () => {
   try {
     ({ code, out } = await run(dir));
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    releaseTree(dir);
   }
   if (code === 0) return { name: c.name, detail: 'checker exited 0 — the invariant is not actually policed' };
   if (!caughtBy(out, c.expect)) {

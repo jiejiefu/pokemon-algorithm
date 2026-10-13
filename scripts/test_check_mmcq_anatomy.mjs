@@ -18,7 +18,6 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -29,12 +28,13 @@ import { fileURLToPath } from 'node:url';
 
 import { caughtBy } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_mmcq_anatomy.mjs';
 
 function makeTree(mutation) {
-  const dir = mkdtempSync(join(tmpdir(), 'mmcq-neg-'));
+  const dir = trackTree(mkdtempSync(join(tmpdir(), 'mmcq-neg-')));
   mkdirSync(join(dir, 'assets/js'), { recursive: true });
   mkdirSync(join(dir, 'assets/data'), { recursive: true });
   mkdirSync(join(dir, 'assets/images'), { recursive: true });
@@ -76,7 +76,7 @@ const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 {
   const dir = makeTree(null);
   const { code, out } = await run(dir);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
   code === 0
     ? pass('baseline: the checker passes on an unmutated copy of the tree')
     : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
@@ -146,7 +146,7 @@ const verdicts = await pool(CASES.map((c) => async () => {
   try {
     ({ code, out } = await run(dir));
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    releaseTree(dir);
   }
   if (code === 0) return { name: c.name, detail: `exited with 0 (expected failure naming "${c.expect}")` };
   if (caughtBy(out, c.expect)) return { name: c.name, detail: null };

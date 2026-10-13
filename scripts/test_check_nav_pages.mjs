@@ -35,12 +35,13 @@
  * bug in the checker.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_nav_pages.mjs';
@@ -73,7 +74,7 @@ const pass = (m) => console.log(`  ok   ${m}`);
 const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
 function makeTree(mutate) {
-  const dir = join(tmpdir(), `cnp-neg-${Math.random().toString(36).slice(2)}`);
+  const dir = trackTree(join(tmpdir(), `cnp-neg-${Math.random().toString(36).slice(2)}`));
   mkdirSync(dir, { recursive: true });
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
@@ -114,7 +115,7 @@ function run(dir) {
   const { code, out } = run(dir);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 const cases = [
@@ -366,7 +367,7 @@ for (const c of cases) {
   const { code, out } = run(dir);
   if (code !== 0 && caughtBy(out, c.expect)) pass(c.name);
   else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 /* Opposite direction. A page that mounts the nav correctly must not read as a
@@ -394,7 +395,7 @@ for (const c of cases) {
   const { code, out } = run(dir);
   code === 0 ? pass('a new page that mounts the nav correctly is not reported as a defect')
              : fail(`a correctly-mounted new page was reported as a defect — the checker is hardcoding the current page set:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 /* And the other direction of the derived set: an InfoPoke capture is third-party
@@ -405,7 +406,7 @@ for (const c of cases) {
   const { code, out } = run(dir);
   code === 0 ? pass('an InfoPoke capture with no nav is ignored, not failed')
              : fail(`an InfoPoke capture was treated as a page of this site:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 console.log(failures ? `\nFAIL  ${failures} negative case(s) did not behave` : '\nPASS  every negative case failed for the right reason');

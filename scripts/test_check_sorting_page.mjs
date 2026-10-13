@@ -37,12 +37,13 @@
  * there is no per-case flag to forget.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_sorting_page.mjs';
@@ -98,7 +99,7 @@ function countChecks(out) {
 }
 
 function makeTree(mutate, { strip = false } = {}) {
-  const dir = join(tmpdir(), `spp-neg-${Math.random().toString(36).slice(2)}`);
+  const dir = trackTree(join(tmpdir(), `spp-neg-${Math.random().toString(36).slice(2)}`));
   mkdirSync(join(dir, 'assets/js'), { recursive: true });
   mkdirSync(join(dir, 'assets/css'), { recursive: true });
   mkdirSync(join(dir, 'scripts'), { recursive: true });
@@ -162,7 +163,7 @@ function run(dir) {
 if (process.argv.includes('--static')) {
   const dir = makeTree(null, { strip: true });
   const { code, out } = run(dir);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
   console.log(out.trimEnd());
   console.log('\n(static half only — the browser half is NOT run. For that: node scripts/check_sorting_page.mjs)');
   process.exit(code);
@@ -182,7 +183,7 @@ let fullTotal = null;
   const { code, out } = run(dir);
   if (code === 0) { pass('baseline: the full checker passes on an unmutated copy of the tree'); fullTotal = countChecks(out); }
   else fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 {
   const dir = makeTree(null, { strip: true });
@@ -194,7 +195,7 @@ let fullTotal = null;
   else if (fullTotal - strippedTotal !== EXPECTED_STRIP_DROP) {
     fail(`the strip took ${fullTotal - strippedTotal} checks, expected exactly ${EXPECTED_STRIP_DROP} (${fullTotal} → ${strippedTotal}). A strip one check too WIDE would leave every cheap case asserting against a narrower checker, and they would all still pass; too NARROW and they are testing the browser for no reason. If you added or removed a check, update EXPECTED_STRIP_DROP deliberately.`);
   } else pass(`the stripped copy passes and drops exactly ${EXPECTED_STRIP_DROP} checks (${fullTotal} → ${strippedTotal})`);
-  rmSync(dir, { recursive: true, force: true });
+  releaseTree(dir);
 }
 
 const cases = [
@@ -528,7 +529,7 @@ for (const c of cases) {
   } catch (e) {
     fail(`${c.name} — harness error: ${e.message}`);
   } finally {
-    if (dir) rmSync(dir, { recursive: true, force: true });
+    if (dir) releaseTree(dir);
   }
 }
 

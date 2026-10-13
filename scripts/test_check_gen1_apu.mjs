@@ -68,6 +68,7 @@ import { tmpdir, cpus } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy, failLines } from './lib/negative.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = [
@@ -93,7 +94,7 @@ const ok = (name, pass, detail = '') => {
 };
 
 function makeTree(mutate) {
-  const dir = mkdtempSync(join(tmpdir(), 'gen1apu-neg-'));
+  const dir = trackTree(mkdtempSync(join(tmpdir(), 'gen1apu-neg-')));
   for (const f of SRC) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
@@ -563,7 +564,7 @@ async function runCase(i) {
         (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
     });
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    releaseTree(dir);
   }
 
   /* `expect` must name the assertion that actually catches this mutation, which is
