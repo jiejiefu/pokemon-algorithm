@@ -34,6 +34,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
+import { until } from './lib/cdp-until.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.OUTFIT_PORT || 5500;
@@ -868,16 +869,14 @@ ok(wide.sheetDisplay !== 'none' && wide.focusable,
  * race is not reproducible here, and what is being removed is the condition under which
  * a future timing change could corrupt those twelve reads with nothing to report it.
  *
- * The ceiling is named because the message quotes it, and it is paid only when the
- * restore does not arrive — which is the only path where being generous is free.
+ * The poll is `lib/cdp-until.mjs`, shared with the spectrum checker, which is where the
+ * first copy lived. This one was an iteration-count loop, which is the half of it that
+ * mattered: it counted attempts rather than milliseconds, so its "3000ms" was a number
+ * the machine chose rather than one this file declared.
  */
 const VIEWPORT_RESTORE_MS = 3000;
 await send('Emulation.clearDeviceMetricsOverride');
-let RESTORED = false;
-for (let waited = 0; waited <= VIEWPORT_RESTORE_MS && !RESTORED; waited += 60) {
-  RESTORED = (await ev('innerWidth')) === BASE_W;
-  if (!RESTORED) await new Promise((r) => setTimeout(r, 60));
-}
+const RESTORED = await until(ev, `innerWidth === ${BASE_W}`, VIEWPORT_RESTORE_MS);
 const SEEN_W = await ev('innerWidth');
 ok(RESTORED,
   `the viewport is restored to the checker's default of ${BASE_W}px within ${VIEWPORT_RESTORE_MS}ms (read ${SEEN_W}px), so the twelve geometry reads after it are taken at the width they are about`);

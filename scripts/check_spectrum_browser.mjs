@@ -42,6 +42,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MUTE_TAP, TAP_PROBE } from './lib/mute-tap.mjs';
+import { until } from './lib/cdp-until.mjs';
 import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -155,21 +156,12 @@ const ev = async (expression) => {
  *  guesses about how long a page takes — they are the measurement window of a
  *  "did this canvas MOVE" check, and polling for the movement instead would make
  *  the assertion vacuous. A wait and a sampling interval can look identical in the
- *  source and mean opposite things. */
-async function until(expression, ceilingMs, step = 60) {
-  const deadline = Date.now() + ceilingMs;
-  for (;;) {
-    let v;
-    try { v = await ev(expression); } catch { v = false; }
-    if (v) return true;
-    if (Date.now() >= deadline) return false;
-    await new Promise((r) => setTimeout(r, step));
-  }
-}
+ *  source and mean opposite things. The poll itself now lives in
+ *  `lib/cdp-until.mjs`, which `check_outfit_browser.mjs` also uses. */
 
 /** "The page is up": loaded AND past the point where its own DOM is built. */
 const booted = (extra = 'true') =>
-  until(`document.readyState === 'complete' && (${extra})`, 20000);
+  until(ev, `document.readyState === 'complete' && (${extra})`, 20000);
 
 /**
  * Ink on a canvas, counted by ALPHA over the whole surface and then by
@@ -509,7 +501,7 @@ try {
    */
   const VIEWPORT_RESTORE_MS = 3000;
   await send('Emulation.clearDeviceMetricsOverride');
-  const RESTORED = await until(`innerWidth === ${NARROW}`, VIEWPORT_RESTORE_MS);
+  const RESTORED = await until(ev, `innerWidth === ${NARROW}`, VIEWPORT_RESTORE_MS);
   const SEEN = await ev('innerWidth');
   ok(RESTORED,
     `the viewport is restored to the checker's default within ${VIEWPORT_RESTORE_MS}ms (${SEEN}px vs ${NARROW}px), so the canvas measurements that follow are taken at the width they are about`);
@@ -558,7 +550,7 @@ try {
    * that has happened — the play button releasing itself — and the assertion on the
    * next line reads that same attribute, so waiting on it is waiting on the real
    * thing rather than on a guess about how long this species lasts. */
-  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'false',
     'and releases it when the cry ends');
 
@@ -574,7 +566,7 @@ try {
   await ev('document.getElementById("sp-play").click()');
   /* Was a fixed 300 ms. The live curve is fed by the analyser, so the observable
    * that it has started is playback itself, which the button reports. */
-  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
   /* WAIT FOR THE ANALYSER TO ACTUALLY PRODUCE A FRAME, because `aria-pressed` is the
    * observable for whether PLAYBACK WAS ASKED FOR and it flips when play() is called —
    * not when there is anything to draw. Sampling straight after it is a race, and it
@@ -818,8 +810,8 @@ try {
     await new Promise((r) => setTimeout(r, 400));
     await ev(`(() => { document.getElementById('sp-q')
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
-    await until(`document.getElementById('sp-meta').textContent.includes(${JSON.stringify(q)})`, 20000);
-    await until("document.getElementById('sp-status')?.textContent.includes('幀')", 20000);
+    await until(ev, `document.getElementById('sp-meta').textContent.includes(${JSON.stringify(q)})`, 20000);
+    await until(ev, "document.getElementById('sp-status')?.textContent.includes('幀')", 20000);
     await new Promise((r) => setTimeout(r, 250));
   };
 
@@ -853,7 +845,7 @@ try {
    * 65,536 Hz — real arithmetic, so it genuinely takes time and a poll is the right
    * shape rather than a smaller number. The status line naming 合成 is what the
    * assertion below looks for, and it is set when that render lands. */
-  await until(`document.getElementById('sp-status')?.textContent.includes('合成')`, 30000);
+  await until(ev, `document.getElementById('sp-status')?.textContent.includes('合成')`, 30000);
   const gen1Status = await ev('document.getElementById("sp-status").textContent');
   ok(/合成/.test(gen1Status), `the synthesised cry path renders (${gen1Status})`);
 
@@ -864,7 +856,7 @@ try {
     'the cross-check panel says there is nothing to compare rather than showing a blank');
 
   await ev('document.getElementById("sp-play").click()');
-  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'true',
     'the synthesised cry plays through the same player and the same clock');
   /* Was a fixed 2200 ms. This one is a SAMPLING INTERVAL, not a readiness wait, and
@@ -908,15 +900,15 @@ try {
   /* Was a fixed 500 ms, and the wait it was standing in for is a fact rather than a
    * belief: the toggle sets `data-theme` synchronously (shared.js:547). Then TWO
    * animation frames, so the redraw has been scheduled and painted. */
-  await until(`document.documentElement.dataset.theme !== ${JSON.stringify(themeBefore)}`, 6000);
-  await until('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))', 2000);
+  await until(ev, `document.documentElement.dataset.theme !== ${JSON.stringify(themeBefore)}`, 6000);
+  await until(ev, 'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))', 2000);
   const themeAfter = await ev('document.documentElement.dataset.theme');
   const switchedPlot = await ev(`${INK}("#sp-plot")`);
   ok(themeAfter !== themeBefore && switchedPlot.distinct > 40,
     `the spectrogram survives a theme switch (${themeBefore} -> ${themeAfter})`
     + ` — the ramp is theme-independent, so it redraws identical (${switchedPlot.distinct} distinct colours)`);
   await ev('document.querySelector(".theme-toggle").click()');
-  await until(`document.documentElement.dataset.theme === ${JSON.stringify(themeBefore)}`, 6000);
+  await until(ev, `document.documentElement.dataset.theme === ${JSON.stringify(themeBefore)}`, 6000);
 
   /* The mute is asserted by reading the LIVE AudioParam, after a play, because the
    * AudioContext is built lazily and a probe before the first play reads a tap
@@ -1005,7 +997,7 @@ try {
   const stopPlayback = async () => {
     const pressed = await ev(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`);
     if (pressed) await ev('document.getElementById("sp-play").click()');
-    return until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
+    return until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
   };
 
   const spriteRest = await ev(SPRITE_BOX);
@@ -1014,7 +1006,7 @@ try {
     + ` (${spriteRest ? spriteRest.w.toFixed(1) : '?'} CSS px wide, transform ${JSON.stringify(spriteRest?.transform ?? 'null')})`);
 
   await ev('document.getElementById("sp-play").click()');
-  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
 
   const pulse = await ev(SAMPLE_SPRITE(1500));
   ok(pulse && pulse.widest > pulse.rest + 1,
@@ -1044,7 +1036,7 @@ try {
     features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
   });
   await ev('document.getElementById("sp-play").click()');
-  await until(`document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'true'`, 6000);
   const calm = await ev(SAMPLE_SPRITE(1500));
   ok(calm && calm.moved === 0 && calm.widest <= calm.rest + 0.01,
     `under prefers-reduced-motion the sprite does not move AT ALL`
