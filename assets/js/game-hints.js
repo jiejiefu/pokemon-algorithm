@@ -62,15 +62,16 @@
  * a hint is allowed to be lossy.
  */
 
-import { genusZh } from './pokemon-lexicon.js';
-
 /** At most 3 hints, and always exactly 3. */
 export const MAX_HINTS = 3;
 
-/** Slot 2's sentence. Fixed, like the reference's closer was. */
-export const PALETTE_HINT = '完整色盤 — 目標的所有顏色都在下面了';
+/** Slot 2's label. A bare noun: the palette is on screen, so a clause about it is noise. */
+export const PALETTE_HINT = '完整色盤';
 
-/** Slot 3's prefix. */
+/** Slot 1's prefix. */
+export const TYPE_PREFIX = '屬性';
+
+/** Slot 3's prefix. Same rule as slot 2: label, then the thing. */
 export const DESCRIPTION_PREFIX = '圖鑑說明';
 
 /**
@@ -92,8 +93,8 @@ export const NAME_MASK = 'Ｏ';
 export function typeHint(p) {
   const t = Array.isArray(p.types_zh) && p.types_zh.length ? p.types_zh : p.types;
   if (!Array.isArray(t) || !t.length) return null;
-  if (t.length === 1) return `這一隻是${t[0]}屬性。`;
-  return `這一隻是${t.join('、')}的雙屬性。`;
+  if (t.length === 1) return `${TYPE_PREFIX}：${t[0]}`;
+  return `${TYPE_PREFIX}：${t.join('、')}`;
 }
 
 /**
@@ -167,13 +168,6 @@ export function descriptionHint(p) {
   return `${DESCRIPTION_PREFIX}：「${maskAll(text, name)}」`;
 }
 
-/** Kept exported for callers that want the classification; not one of the slots. */
-export function speciesHint(p) {
-  const genus = genusZh(p);
-  if (!genus || genus === '—') return null;
-  return `這一隻屬於${genus}。`;
-}
-
 /**
  * The three hints, in order.
  *
@@ -188,9 +182,9 @@ export function speciesHint(p) {
  */
 export function generateHints(p) {
   return [
-    typeHint(p) || '這一隻的屬性查不到。',
+    typeHint(p) || `${TYPE_PREFIX}：查不到`,
     PALETTE_HINT,
-    descriptionHint(p) || '這一隻沒有圖鑑說明。',
+    descriptionHint(p) || `${DESCRIPTION_PREFIX}：查不到`,
   ];
 }
 

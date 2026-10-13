@@ -29,6 +29,7 @@
 | `detail.html` | Dossier: 3-col hero, Canvas radar, dual-type matrix, evolution chain, 4 move tabs. 3-way footer pager — §3.A |
 | `color.html` | One species' palette: `?slug=`, shade scales, theme exporter. Bare URL = the same seeded daily pick as the homepage, one draw two callers |
 | `colors-generator.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
+| `color-game.html` | Daily / unlimited palette guessing game over all 1,025 measured palettes — §3.W |
 | `colors-explore.html` | All 1,025 palettes, infinite scroll, URL filters |
 | `sorting.html` | 6 sorters on a 1,025-sprite Canvas, plus a 2–6 lane race — §3.G3 |
 | `maze.html` | BFS / DFS pathfinding, 40×40 grid, seedable RNG |
@@ -569,8 +570,25 @@ Pressing **超級進化** drew **93 sprites with 0 edges between them** and **�
 
 **Guarded by:** `check_graph_chip_network.mjs` (127 checks, ~0.1 s, static — the filter is three lines of arithmetic over `graph_data.json`, so a CDP checker would spend 6 s and a Chrome boot computing a connected-components count). It parses the chip list out of `graph.html` and `linkColors` out of `graph.js` rather than restating either (§3.S's rule), and asserts per chip that `links > 0` and the largest component clears a **50% floor**. **The tightest chip against that floor is 幻之 at 12/23 = 52%, and that 0.02 IS the finding** — one edge (#808→#809, the only bridge between its halves) from red. `超極巨化` is in `DECLARED_ISOLATED` with its reason (no Dynamax nodes or artwork exist — `find assets -iname '*dynamax*'` → 0) and **the checker fails if it ever gains links**, so the exception cannot outlive its reason. 15 mutations; 15 caught.
 
----
+### W. `color-game.html` Is A Static Game, And Three Things On It Are Decisions Rather Than Ports
+Ported from `pokemonpalette`'s `src/app/game/page.tsx` and `src/lib/game/`. **Nothing behind the reference's design was ported, because the reference is Next.js with accounts, leaderboards, a collection and a paid tier — and this site is static.** So each of the three interesting parts is a decision, and each is named below as one.
 
+- **THE THREE HINTS ARE FIXED AND NOT SHUFFLED, and the category machine that preceded them was 40% of the port.** The reference picks from seven categories with a seeded shuffle and dedupes against the guess card's badges. Three fixed answers cannot collide with anything, so `remainingCategories()` and `learnFromGuess()` were deleted rather than left dormant — an exported function nobody calls is a second thing to keep right. **Slot 2 is the whole palette, not a further reveal after it** — and it is what `evolution_levels.json` was fetched for. **That fetch and `evolvesOf()` are gone**; `life.html` owns the table.
+- **THE SCORE IS OKLAB BIDIRECTIONAL AND PERCENT-WEIGHTED, against the reference's sRGB channel sum.** The reference ranks by a hand-weighted per-channel distance, which is not a metric and can rank a palette closer that a reader sees as further. Colour distance is `color-match.js`'s problem and §3.B1's rule — one implementation, so `colors-generator.html` and this page cannot disagree about what 「接近」 means. **Nothing renders a percentage:** OKLab distance over a six-colour palette is not a 0–100 quantity, and printing one would invent precision the arithmetic does not have. The four share tiers are bands over the measured distribution, and `test_check_game_similarity.mjs` re-measures all four against the corpus.
+- **THE THIRD HINT MASKS EVERY RUN OF THE NAME, LONGEST FIRST, and both halves of that are load-bearing.** 93 of 1,025 `descriptions.zh` state their own species outright; 38 more carry a fragment (Bulbasaur's line holds 種子, two of 妙蛙種子's four characters), for **131 of 1,025**. Longest-first is a **correctness** requirement, not a speed one — replacing occurrences one character at a time turns 噴火龍 into `ＯＯ龍`, because the 火 that 龍 needs has already been replaced. The two orders differ on **66** species. **Substrings are masked too, so over-masking is accepted on purpose:** under-masking is a leak, over-masking is a word the reader can still read.
+
+**THE GUESS BOX HAS TWO AUTOCOMPLETE LAYERS BECAUSE NEITHER ONE ALONE SERVES THE STATED NEED** — 「知道是哪一隻，但打不出全名」.
+
+- **The custom list matches on SUBSTRING, so `伊布` finds 水伊布.** A `<datalist>` matches on **prefix** and would find only 伊布. The custom list also knows which species are already guessed and can disable them; a datalist cannot express that without offering a value the reader cannot complete to.
+- **The datalist is the only layer a phone's software keyboard will read.** The input was `autocomplete="off"` with no `list`, so there were **no** keyboard suggestions at all — the reader had to discover the dropdown. **It is built ONCE in `init()`**, never per keystroke: 1,025 options rebuilt on every `input` event is ~40 KB of DOM churn on the page whose whole premise is that the reader types a lot.
+- **Enter's order is walked row → whole name → first row, and the middle one is the fix.** The substring scan matches *inside* other names — 水伊布, 雷伊布, 妖精伊布 all contain 伊布 — so "the first row" is dex order rather than what was typed, and typing 「伊布」 in full had a real chance of submitting something else. **`resolveExact()` is whole-string only and returns `null` unless the match is unambiguous**: a fuzzy fallback would submit a typo and spend one of four attempts. A miss reports 找不到「…」 and what would work, **because a silent no-op is indistinguishable from a broken field.**
+- **Down/Up are not a nicety — a `<ul role="listbox">` with no arrow handling leaves exactly one row reachable.** They skip already-guessed rows and scroll the chosen one into view.
+
+**`check_game_hints.mjs` (35) AND `check_color_game.mjs` (65) COVER ALL OF IT, and one of the 65 was WRONG ON ARRIVAL.** Enter's precedence is asserted as an **index comparison** over the keydown block — the only form that catches a reordering rather than merely the presence of three strings. The `!/A|B/.test(src)` assertion, "no edit distance anywhere near `resolveExact`", parses as `/A|B/.test(src)`: the alternation lands **inside** the literal, so the pattern became *the word `distance` anywhere in the file*, it matched `renderSlots` a thousand lines away, and it reported the field fuzzy when it is not. Grouped, with that reasoning left in the file.
+
+**Guarded by:** `check_game_similarity.mjs` (101, plus 24 mutation cases), `check_game_hints.mjs` (35), `check_color_game.mjs` (65, which also re-checks §3.M's `[hidden]` pairing and §3.G's node captures).
+
+---
 
 ## 4. Verification & Testing Commands
 

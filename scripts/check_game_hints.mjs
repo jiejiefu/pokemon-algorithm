@@ -21,15 +21,20 @@
  *   weight band             277
  *   evolves / final form    519      ← weakest, and removed on that basis
  *
- * 「這一隻已經是進化的最終型」 is true for 568 of the 1,025 species (55%) and cuts
- * the pool to about half — barely 2x, and it varies by only 457..568 across all
- * targets, so it says almost nothing that varies. The reading 「if it has no
- * evolution, tell me it has no evolution」 is the correct description of it.
+ * 「這一隻已經是進化的最終型」 cuts the pool by barely 2x and varies by only
+ * 457..568 across all targets, so it says almost nothing that varies. The reading
+ * 「if it has no evolution, tell me it has no evolution」 is the correct description
+ * of it.
  *
  * Classification and first letter are the opposite problem: leaving two or five
- * candidates is not a clue, it is the answer. They are kept exported (slot 3's
- * module still offers `speciesHint`) so the measurement above can be reproduced,
- * and they are deliberately not in the set.
+ * candidates is not a clue, it is the answer.
+ *
+ * `speciesHint()` used to be exported from this module on the stated ground that
+ * the classification number had to stay reproducible. It could not be: it returns
+ * 「這一隻屬於鼠寶可夢。」, which has nothing to do with a final-form claim, and the
+ * figure quoted for it (568) contradicts this table's 519 — so it was never the
+ * measurement's source and was only keeping a dead export alive. Both are gone.
+ * A check that cannot reproduce its own number is a comment, not a guard.
  *
  * ---------------------------------------------------------------------------
  * SLOT 3 MASKS THE NAME RATHER THAN REFUSING THE LINE
@@ -67,7 +72,7 @@ import { dirname, join } from 'node:path';
 
 import {
   MAX_HINTS, PALETTE_HINT, DESCRIPTION_PREFIX, NAME_MASK,
-  typeHint, descriptionHint, speciesHint, generateHints, hintRevealsPalette,
+  typeHint, descriptionHint, generateHints, hintRevealsPalette,
 } from '../assets/js/game-hints.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -81,6 +86,12 @@ function check(ok, description, detail = () => '') {
 }
 
 const data = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json'), 'utf8'));
+
+/* The module's source, comments masked. Hoisted to module scope because the shape
+ * block below and the speciesHint-removal checks both need it, and a second read
+ * inside each block is two copies of the same decision. */
+const src = readFileSync(join(ROOT, 'assets/js/game-hints.js'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 const byId = new Map(data.map((p) => [p.id, p]));
 
 // ---------------------------------------------------------------------------
@@ -120,11 +131,11 @@ console.log('\nslot 1: the type');
   const pika = byId.get(25);
   const bulba = byId.get(1);
   const eevee = byId.get(133);
-  check(typeHint(pika) === '這一隻是電屬性。', 'single type reads naturally', () => typeHint(pika));
-  check(typeHint(bulba) === '這一隻是草、毒的雙屬性。', 'dual type says so explicitly', () => typeHint(bulba));
-  check(typeHint(eevee) === '這一隻是一般屬性。', 'Normal is 一般, the official zh-TW term', () => typeHint(eevee));
+  check(typeHint(pika) === '屬性：電', 'single type reads as a label', () => typeHint(pika));
+  check(typeHint(bulba) === '屬性：草、毒', 'a dual type is both, comma-separated', () => typeHint(bulba));
+  check(typeHint(eevee) === '屬性：一般', 'Normal is 一般, the official zh-TW term', () => typeHint(eevee));
   check(typeHint({ types_zh: [], types: [] }) === null, 'a species with no types has no type hint');
-  check(typeHint({ types: ['Fire'] }) === '這一隻是Fire屬性。',
+  check(typeHint({ types: ['Fire'] }) === '屬性：Fire',
     'and it falls back to the English list rather than saying nothing',
     () => typeHint({ types: ['Fire'] }));
 
@@ -287,19 +298,22 @@ console.log('\nthe categories that are NOT hints, and why they are not');
   check(byWeight > 200,
     `and weight (~${Math.round(byWeight)}) is weaker than type, so it has no slot either`);
 
-  // speciesHint stays exported so the classification number above can be
-  // reproduced. Asserting it is dead code would be wrong.
-  check(speciesHint(byId.get(25)) === '這一隻屬於鼠寶可夢。',
-    'speciesHint() is still exported for that measurement',
-    () => speciesHint(byId.get(25)));
+  // The classification hint is gone outright, so the guard is its absence — and
+  // absence is the checkable claim here. The number it used to be justified by was
+  // not reproducible from this module anyway.
+  check(!/export function speciesHint/.test(src),
+    'speciesHint() is gone rather than exported for a measurement that never used it',
+    () => 'a hint nobody renders, kept alive only by the checker that measures it');
+  check(!/pokemon-lexicon/.test(src),
+    'and the module no longer imports pokemon-lexicon.js at all',
+    () => 'genusZh() had exactly one caller — speciesHint() — so the import went with it');
+
 }
 
 // ---------------------------------------------------------------------------
 console.log('\nshape (declared as a shape)');
 // ---------------------------------------------------------------------------
 {
-  const src = readFileSync(join(ROOT, 'assets/js/game-hints.js'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   /* The port imported a PRNG and shuffled seven categories. With three fixed
    * slots there is nothing to shuffle, so a leftover `mulberry32` would be a
    * dependency on daily-pick.js for nothing — and §3.B1's rule is not to hold
