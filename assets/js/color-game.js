@@ -1248,6 +1248,11 @@ async function init() {
   state.gen = normalizeGeneration(store.get('gen', 1), allGenerations);
   state.mode = store.get('mode', 'daily') === 'unlimited' ? 'unlimited' : 'daily';
 
+  /* The header is mounted by the page's INLINE module, not from here: the nav mount
+   * has to be readable off the HTML, because a grep over `assets/js` cannot answer
+   * which pages mount it. `initThemeToggle()` is mounted beside it for the same
+   * reason — and it was missing from both, which is why the button sat in the corner
+   * as a 34px box that painted nothing. */
   wire();
   newGame();
   /* After `newGame()`, not before: the tip is ambient and reads better once the

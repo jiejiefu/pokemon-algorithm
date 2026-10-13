@@ -113,6 +113,33 @@ console.log('\nthe page shell');
     'no authored children inside the theme toggle',
     () => 'initThemeToggle() injects the pair itself and its guard only looks for .icon-sun, so a differently-named pair is doubled, not replaced');
 
+  /* THE TOGGLE HAS TO BE MOUNTED, not merely present.
+   *
+   * `check_nav_pages.mjs` reads the MARKUP, so a `.theme-toggle` in the header passed
+   * every header check on a page that never called `initThemeToggle()` — the button
+   * was there, 34x34, hit-testable, and painting nothing, because its two icons are
+   * injected at runtime. §3.G1a's shape exactly: the check asked whether the control
+   * EXIST rather than whether it did anything.
+   *
+   * The mount has to be readable off the HTML for the same reason the nav mount is —
+   * a grep over `assets/js` cannot answer which pages mount it — so the assertion
+   * reads the page, not the module. */
+  /* ANCHORED TO THE STATEMENT, not the bare name. The first version was
+   * `/initThemeToggle\(\)/.test(html)`, which the explanatory comment six lines
+   * above the call also satisfies — so deleting the call left it green. §3.P's
+   * finding again, in a different file: a comment is a false positive, and here the
+   * comment was written by the same change that introduced the bug the check guards.
+   * `html` is comment-stripped for the CSS assertions but NOT for this one, so the
+   * anchor has to do the work. */
+  check(/^\s*initThemeToggle\(\);\s*$/m.test(html),
+    "initThemeToggle() is CALLED from the page's inline module, so the button's icons are ever injected",
+    () => 'the button ships empty by design (§3.G2) and nothing fills it — present, hit-testable, painting nothing');
+  check(/import\s*\{[^}]*\binitThemeToggle\b[^}]*\}\s*from\s*'\.\/assets\/js\/shared\.js'/.test(html),
+    'and it is imported from shared.js, so the call is not a free identifier');
+  check(!/initThemeToggle/.test(jsCode),
+    'and color-game.js does NOT mount it a second time',
+    () => 'two mounts re-render the button onto a DOM that already has it');
+
   check(/initHeaderNav\('color-game\.html'\)/.test(html),
     "initHeaderNav('color-game.html') is called from the page's inline module",
     () => 'the mount must be in the HTML, not in color-game.js — check_nav_pages.mjs reads it off the HTML by design, because a grep over assets/js cannot answer which pages mount the nav');
@@ -358,6 +385,37 @@ console.log('\n`--page-accent` is declared for the body, and differently per the
    * So a single-value accent is the DEFECT. Asserting only that a value exists
    * would pass the one-colour version that measured 1.92:1 — §3.B2's shape again:
    * the guard would be satisfiable by exactly the thing it was written to stop. */
+  /* THE NATIVE DATALIST POPUP IS BROWSER UI, so it needs BOTH levers and the second
+   * one did not exist when the first was written.
+   *
+   * `color-scheme` is the official lever and it already resolved correctly on the
+   * input (measured: light in light theme, dark in dark theme). The popup was still
+   * reported white-on-black in light mode, so it was not drawn from it. The `<option>`
+   * elements are the one handle that reaches the popup itself, and THAT had no
+   * assertion at all — the CSS comment claimed one and there was none, which is the
+   * same claim-with-nothing-behind-it that §3.G1a is about.
+   *
+   * `cssCode` and not `css`: three of these four rules carry an explanatory comment
+   * between the selector and the declaration — which is this project's normal
+   * documentation style — and a raw-text regex has to treat that as an error. The
+   * same reason §3.S switched its rule-shaped assertions to a stripped copy.
+   *
+   * These are asserted on the TOKEN rather than on the literal value, because the
+   * whole point is that the two themes differ: a rule that hard-codes a dark pair
+   * satisfies "the colours exist" and is exactly the bug. */
+  check(/\.gm-names option\s*\{[^}]*background-color:\s*var\(--bg-card\)/.test(cssCode),
+    'the datalist options take `background-color: var(--bg-card)`, so the popup is the same surface as every other card',
+    () => 'the popup\'s background is not the page\'s own surface token, so it cannot follow the theme');
+  check(/\.gm-names option\s*\{[^}]*color:\s*var\(--text-primary\)/.test(cssCode),
+    'and `color: var(--text-primary)`, so its text is the page\'s own ink',
+    () => 'a hard-coded ink colour would satisfy the rule and be wrong in one theme');
+  check(!/\.gm-names option\s*\{[^}]*#[0-9a-f]{3,8}/i.test(cssCode),
+    'with no literal hex anywhere in the rule — the check that would catch a value pinned to one theme',
+    () => 'a literal colour cannot follow the theme, which is the whole defect');
+  check(/\.gm-search,\s*\.gm-names option\s*\{\s*color-scheme:\s*inherit/.test(cssCode),
+    'and `color-scheme` is stated explicitly on both, rather than left to the inherited chain',
+    () => 'whatever an ancestor did to color-scheme can reach the popup');
+
   check(!!accent && !!light && accent[1].toLowerCase() !== light[1].toLowerCase(),
     'and the two are different colours, because no single one passes both themes',
     () => `both are ${accent && accent[1]} — that measured ${accent === light ? '1.92:1 on white' : 'a fail'} in light theme`);
@@ -781,7 +839,9 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
    * datalist matches on PREFIX but is the only one a phone's software keyboard
    * will read. */
   check(/list="gm-names"/.test(html), 'the input points at a datalist');
-  check(/<datalist id="gm-names">\s*<\/datalist>/.test(html), 'and the datalist is declared empty in the markup');
+  check(/<datalist id="gm-names" class="gm-names">\s*<\/datalist>/.test(html),
+    'and the datalist is declared empty in the markup, with a `gm-` class as well as its id — '
+    + 'the popup\'s option rules are page-scoped and §3.B1 requires a `.gm-` selector for those');
   check(/els\.names\.innerHTML\s*=/.test(jsCode), 'which JS fills');
   check(!/renderSearchResults[\s\S]{0,400}els\.names\.innerHTML/.test(jsCode),
     'and fills it ONCE — 1,025 options rebuilt per keystroke is ~40 KB of DOM churn on the page whose whole premise is that the reader types a lot',

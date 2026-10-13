@@ -125,7 +125,7 @@
              is the good one — both exist because on a phone the software keyboard
              offers its own suggestions from this list, and without it there are none
              until the reader discovers the dropdown. -->
-        <datalist id="gm-names"></datalist>
+        <datalist id="gm-names" class="gm-names"></datalist>
         <ul id="gm-search-list" class="gm-search-list" role="listbox" hidden></ul>
         <p class="gm-search-status" id="gm-search-status" role="status" aria-live="polite"></p>
 
@@ -200,7 +200,14 @@
        changing. An external module would pass the import and fail the mount, and
        the failure is a header with an empty nav container, not an exception. -->
   <script type="module">
-    import { initHeaderNav } from './assets/js/shared.js';
+    /* Two mounts, and both belong HERE rather than in color-game.js — see the note
+     * above. `initThemeToggle()` was missing from this page entirely, which is why
+     * the button sat in the corner as a 34px box that painted nothing: present,
+     * hit-testable, and doing nothing, with no exception and nothing logged. The
+     * markup is correct, which is exactly what §3.G2 says to leave to the runtime —
+     * every other page calls this from its own module block and this one did not. */
+    import { initHeaderNav, initThemeToggle } from './assets/js/shared.js';
+    initThemeToggle();
     initHeaderNav('color-game.html');
   </script>
   <script type="module" src="assets/js/color-game.js"></script>

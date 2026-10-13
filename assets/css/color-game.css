@@ -567,6 +567,47 @@
 
 .gm-search-item.is-used { opacity: 0.45; }
 
+/* --------------------------------------------------------------------------
+   The NATIVE datalist popup
+   -------------------------------------------------------------------------- */
+
+/* The popup a `<datalist>` draws is BROWSER UI, not page content, which is why it
+ * is the one thing on this page that no amount of theming here is guaranteed to
+ * reach. Two levers, and they are not equally strong:
+ *
+ *   `color-scheme` is the official one. It is already set per theme — `:root` is
+ *   dark and `[data-theme="light"]` is light — and it resolves correctly on the
+ *   input (measured: light in light theme, dark in dark theme, on both `:root` and
+ *   the input). It was still reported as rendering white-on-black in light mode, so
+ *   the popup was not drawn from it.
+ *
+ *   The `<option>` elements are the one handle that reaches the popup itself.
+ *   Chrome renders datalist options as real option elements and honours their
+ *   computed background and colour. Firefox and Safari honour `color-scheme` here
+ *   and ignore this, which is why both are kept: where the first works the second is
+ *   redundant, and where the first fails the second is the only thing left.
+ *
+ * The tokens are the page's own, so the popup is the same surface as every other
+ * card — and `--text-primary` on `--bg-card` is the project's normal pairing, so the
+ * contrast is the site's, not a new number chosen for a widget.
+ *
+ * A browser that honours NEITHER will follow the OS, and no page CSS can change
+ * that. `check_color_game.mjs` asserts both levers exist and that they resolve to
+ * DIFFERENT values per theme, because a single-value declaration would be a check
+ * that passes while the popup stays dark.
+ */
+.gm-search,
+.gm-names option {
+  /* Explicit rather than inherited, so the popup cannot be affected by whatever an
+   * ancestor did to `color-scheme` between the theme block and this input. */
+  color-scheme: inherit;
+}
+
+.gm-names option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
 .gm-search-status {
   margin: 6px 2px 0;
   font-size: 13px;
