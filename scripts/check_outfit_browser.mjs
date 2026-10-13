@@ -832,6 +832,9 @@ ok(opened.after !== opened.before && opened.readout === '140%',
 // rather than the CSS re-read, because "display:none at 900px" and "no
 // `display:none` in the stylesheet" are the same claim and only one of them is
 // what a reader meets.
+// The default width is read BEFORE the override, because "restored" has to be a claim
+// about a number rather than about the absence of a command. It is 756 here.
+const BASE_W = await ev('innerWidth');
 await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
 const wide = await ev(`(async () => {
   await new Promise(r => setTimeout(r, 300));
@@ -850,7 +853,34 @@ ok(wide.toggleDisplay === 'none',
   'the disclosure control is out of the layout on a wide screen, not merely hidden');
 ok(wide.sheetDisplay !== 'none' && wide.focusable,
   'and the dock is simply open there — the same markup, no second state to keep in sync');
+
+/* Restore the width, and ASSERT the restore — because everything measured after this
+ * point is `getBoundingClientRect()` geometry (twelve of it, from `imgW` to
+ * `identBottom`), so a viewport left at 1200 would change every one of those numbers
+ * without any of them being wrong on their own terms. The assertion is the report.
+ *
+ * MEASURED, so the shape of the guard is not a guess: across four runs this `clear`
+ * restored synchronously — 0 ms already answered 756 — where
+ * `check_spectrum_browser.mjs` needed ~50 ms for the same command. The difference
+ * visible in the two files is that the `ev()` above already waits 300 ms, which drains
+ * a queued resize before the `clear` arrives, while the spectrum checker waits on
+ * neither side of its own. **So this is hardening rather than a live bug fix**: the
+ * race is not reproducible here, and what is being removed is the condition under which
+ * a future timing change could corrupt those twelve reads with nothing to report it.
+ *
+ * The ceiling is named because the message quotes it, and it is paid only when the
+ * restore does not arrive — which is the only path where being generous is free.
+ */
+const VIEWPORT_RESTORE_MS = 3000;
 await send('Emulation.clearDeviceMetricsOverride');
+let RESTORED = false;
+for (let waited = 0; waited <= VIEWPORT_RESTORE_MS && !RESTORED; waited += 60) {
+  RESTORED = (await ev('innerWidth')) === BASE_W;
+  if (!RESTORED) await new Promise((r) => setTimeout(r, 60));
+}
+const SEEN_W = await ev('innerWidth');
+ok(RESTORED,
+  `the viewport is restored to the checker's default of ${BASE_W}px within ${VIEWPORT_RESTORE_MS}ms (read ${SEEN_W}px), so the twelve geometry reads after it are taken at the width they are about`);
 
 // --- the COPY itself ---------------------------------------------------------
 //
