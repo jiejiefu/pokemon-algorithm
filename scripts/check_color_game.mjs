@@ -42,6 +42,14 @@ function check(ok, description, detail = () => '') {
 }
 
 const html = read('color-game.html');
+
+/* The markup with its comments removed, for any assertion about which ELEMENTS are
+ * present. §3.P's finding again, this time in the file the fix itself was written in:
+ * the comment explaining why the datalist is gone says 「A `<datalist>` popup」, so a
+ * presence test for `<datalist` was satisfied by the prose that documents its
+ * removal — and the absence test that should have caught it was the one reading the
+ * comment. The same reason `jsCode` and `cssCode` exist beside their sources. */
+const htmlCode = html.replace(/<!--[\s\S]*?-->/g, ' ');
 const js = read('assets/js/color-game.js');
 const css = read('assets/css/color-game.css');
 const similarity = read('assets/js/game-similarity.js');
@@ -385,36 +393,9 @@ console.log('\n`--page-accent` is declared for the body, and differently per the
    * So a single-value accent is the DEFECT. Asserting only that a value exists
    * would pass the one-colour version that measured 1.92:1 — §3.B2's shape again:
    * the guard would be satisfiable by exactly the thing it was written to stop. */
-  /* THE NATIVE DATALIST POPUP IS BROWSER UI, so it needs BOTH levers and the second
-   * one did not exist when the first was written.
-   *
-   * `color-scheme` is the official lever and it already resolved correctly on the
-   * input (measured: light in light theme, dark in dark theme). The popup was still
-   * reported white-on-black in light mode, so it was not drawn from it. The `<option>`
-   * elements are the one handle that reaches the popup itself, and THAT had no
-   * assertion at all — the CSS comment claimed one and there was none, which is the
-   * same claim-with-nothing-behind-it that §3.G1a is about.
-   *
-   * `cssCode` and not `css`: three of these four rules carry an explanatory comment
-   * between the selector and the declaration — which is this project's normal
-   * documentation style — and a raw-text regex has to treat that as an error. The
-   * same reason §3.S switched its rule-shaped assertions to a stripped copy.
-   *
-   * These are asserted on the TOKEN rather than on the literal value, because the
-   * whole point is that the two themes differ: a rule that hard-codes a dark pair
-   * satisfies "the colours exist" and is exactly the bug. */
-  check(/\.gm-names option\s*\{[^}]*background-color:\s*var\(--bg-card\)/.test(cssCode),
-    'the datalist options take `background-color: var(--bg-card)`, so the popup is the same surface as every other card',
-    () => 'the popup\'s background is not the page\'s own surface token, so it cannot follow the theme');
-  check(/\.gm-names option\s*\{[^}]*color:\s*var\(--text-primary\)/.test(cssCode),
-    'and `color: var(--text-primary)`, so its text is the page\'s own ink',
-    () => 'a hard-coded ink colour would satisfy the rule and be wrong in one theme');
-  check(!/\.gm-names option\s*\{[^}]*#[0-9a-f]{3,8}/i.test(cssCode),
-    'with no literal hex anywhere in the rule — the check that would catch a value pinned to one theme',
-    () => 'a literal colour cannot follow the theme, which is the whole defect');
-  check(/\.gm-search,\s*\.gm-names option\s*\{\s*color-scheme:\s*inherit/.test(cssCode),
-    'and `color-scheme` is stated explicitly on both, rather than left to the inherited chain',
-    () => 'whatever an ancestor did to color-scheme can reach the popup');
+  /* The `<datalist>` this block was written for is gone — see the search section
+   * below. The per-theme `--page-accent` split stays, because that one is about the
+   * PAGE. */
 
   check(!!accent && !!light && accent[1].toLowerCase() !== light[1].toLowerCase(),
     'and the two are different colours, because no single one passes both themes',
@@ -766,8 +747,72 @@ console.log('\neasy mode narrows the SUGGESTIONS, and only the suggestions');
   check(/genIds\.get\(state\.gen\)/.test(jsCode), 'and it reads the selected generation from genIds');
   check(/function searchMatches[\s\S]{0,400}?pool && !pool\.has/.test(jsCode),
     'searchMatches() skips anything outside it');
-  check(/function renderDatalist[\s\S]{0,400}?pool \|\| pool\.has/.test(jsCode),
-    'and so does the native datalist, which is the layer a phone keyboard reads');
+  /* `suggestionPool()` now has exactly ONE consumer, so there is nothing left to
+   * drift out of step with it — which the checker says out loud, because the two
+   * used to be the thing that was easy to get wrong. */
+  check((jsCode.match(/suggestionPool\(\)/g) || []).length === 3,
+    'and suggestionPool() has one consumer: the substring scan that opens this list',
+    () => `called ${(jsCode.match(/suggestionPool\(\)/g) || []).length} times — a second caller is a second filter to forget`);
+
+  /* A PHONE HAS NO ENTER KEY, and the two-step flow was unreachable by touch
+   * because of it: tap a suggestion row, the name lands in the field, the list closes,
+   * and the status line says 「按 Enter 作答」 to a reader with nothing to press. iOS
+   * fires `Enter` from its search key and it happens to work; much of Android has no
+   * key at all. */
+  check(/id="gm-submit"/.test(htmlCode) && /class="gm-btn gm-submit"/.test(htmlCode),
+    'the 作答 button exists, in the same `.gm-btn` family as every other control here');
+  check(/function canSubmit/.test(jsCode) && /function renderSubmit/.test(jsCode),
+    'with a named `canSubmit()` and one writer, `renderSubmit()`');
+
+  /* DISABLED rather than hidden when the round is over, so it cannot go from
+   * actionable to inert without the reader seeing why — a button that vanishes on the
+   * guess that won the game is a worse ending than one that greys out. */
+  check(/els\.submit\.hidden = !canSubmit\(\)/.test(jsCode)
+    && /els\.submit\.disabled = !canSubmit\(\)/.test(jsCode),
+    'and it is both hidden and disabled by the SAME answer, so the two cannot disagree',
+    () => '`hidden` and `disabled` are written from different conditions and one of them will be wrong');
+
+  /* THE BUTTON SYNTHESISES THE KEY rather than calling the submit chain itself. Two
+   * entry points that each re-implement "armed row, then whole name, then first row"
+   * is how they come to disagree, and the disagreement is invisible: one of them
+   * quietly accepts something the other refuses. */
+  check(/els\.submit\.addEventListener\('click'[\s\S]{0,300}?dispatchEvent\(new KeyboardEvent\('keydown', \{ key: 'Enter'/.test(jsCode),
+    'and it dispatches an `Enter` keydown at the field, so one implementation of the rule serves both routes',
+    () => 'the button has its own submit path; it will drift from the key\'s');
+  check(!/els\.submit\.addEventListener[\s\S]{0,300}?pickFromSearch/.test(jsCode),
+    'and it does NOT call pickFromSearch() directly, which would skip the whole-name and first-row fallbacks');
+
+  /* Every writer of the field or of the round state must refresh it. `renderAll()` is
+   * the one that covers a finished round; `chooseFromSearch`, `pickFromSearch` and the
+   * input listener are the ones that cover the field. Miss one and the button is stale
+   * on exactly the path where it matters. */
+  for (const [fn, label] of [['function renderAll', 'renderAll'], ['function chooseFromSearch', 'chooseFromSearch'],
+    ['function pickFromSearch', 'pickFromSearch']]) {
+    const body = new RegExp(fn + '[\\s\\S]*?\\n}').exec(jsCode);
+    check(!!body && /renderSubmit\(\)/.test(body[0]),
+      `${label}() refreshes the button`,
+      () => `${label}() changes state the button depends on and never re-renders it`);
+  }
+  check(/els\.search\.addEventListener\('input'[\s\S]{0,600}?renderSubmit\(\)/.test(jsCode),
+    'and so does the input listener, which is the path where the field changes most');
+  check(/\.gm-search-row\s*\{[^}]*grid-template-columns:\s*1fr max-content/.test(cssCode),
+    'the field and the button share a `1fr max-content` grid, so the field gives up exactly the button\'s width',
+    () => 'a flex push would re-flow the wrap by a different amount on hover and on submit');
+  check(/\.gm-submit\[hidden\]\s*\{\s*display:\s*none/.test(cssCode),
+    'and `.gm-submit[hidden]` resets the display — §3.M, the button is `display` from an author rule');
+
+  /* THE SUGGESTION SPRITE IS GREYSCALE, and that is the game rather than a look. A
+   * full-colour sprite beside the palette the reader is trying to match IS the answer
+   * sitting next to the question. The reference renders its results in full colour
+   * (`pokemon-search.tsx`, no filter), so this is deliberately better than the port. */
+  check(/\.gm-search-item img\s*\{[^}]*filter:\s*grayscale\(1\)/.test(cssCode),
+    'the sprite in the suggestion list is `filter: grayscale(1)`',
+    () => 'the sprite is in colour, which puts the answer beside the palette the reader is matching');
+  /* Scoped to that one selector: a GUESSED species shows real colours in the slots,
+   * and that is feedback rather than a hint. */
+  check(!/\.gm-slot-sprite[^{}]*\{[^}]*grayscale/.test(cssCode),
+    'and the greyscale is scoped to the dropdown — a guessed species keeps its colours',
+    () => 'the filter leaked onto the guess slots, where the colour IS the feedback');
 
   /* It must NOT narrow the guess. A Gen-1 round can still be answered with a
    * Paldea species — a bad guess, but a legal one — and blocking it would leave a
@@ -834,18 +879,26 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
 // ---------------------------------------------------------------------------
 {
   /* The stated need: a reader who knows it is 妙蛙種子 and cannot type it exactly.
-   * There are two layers because they cover different gaps — the custom list
-   * matches on SUBSTRING and knows which species are already guessed, while a
-   * datalist matches on PREFIX but is the only one a phone's software keyboard
-   * will read. */
-  check(/list="gm-names"/.test(html), 'the input points at a datalist');
-  check(/<datalist id="gm-names" class="gm-names">\s*<\/datalist>/.test(html),
-    'and the datalist is declared empty in the markup, with a `gm-` class as well as its id — '
-    + 'the popup\'s option rules are page-scoped and §3.B1 requires a `.gm-` selector for those');
-  check(/els\.names\.innerHTML\s*=/.test(jsCode), 'which JS fills');
-  check(!/renderSearchResults[\s\S]{0,400}els\.names\.innerHTML/.test(jsCode),
-    'and fills it ONCE — 1,025 options rebuilt per keystroke is ~40 KB of DOM churn on the page whose whole premise is that the reader types a lot',
-    () => 'the datalist is being rebuilt inside the search path');
+   *
+   * There was a SECOND layer for this — a `<datalist>` — and it is gone. Its popup is
+   * BROWSER UI: it opened on a bare click with an empty field and rendered as one long
+   * dark strip over the light theme, carrying all 151 Gen-1 names. `color-scheme` was
+   * already correct on the input (measured light in light theme, dark in dark) and so
+   * were `option { background; color }` (measured 17.71:1 / 14.57:1) — and the popup
+   * was drawn from neither. Nothing here can screenshot browser chrome, so no CSS fix
+   * could be verified, and the reliable one was to delete it. It also brought a ▼
+   * affordance Chrome draws on the field itself.
+   *
+   * So these are ABSENCE assertions, which is the only form that keeps it gone: a
+   * presence check is satisfied by a datalist that comes back. */
+  check(!/\blist=/.test(htmlCode),
+    'the input carries no `list` attribute, so the browser draws no popup',
+    () => 'a `list=` attribute is back, and its popup is browser UI this project can neither theme nor verify');
+  check(!/<datalist/.test(htmlCode), 'and the markup declares no datalist');
+  check(!/\brenderDatalist\b/.test(jsCode), 'no code builds one either');
+  check(!/\bels\.names\b/.test(jsCode) && !/gm-names/.test(jsCode),
+    'and nothing reaches for a `gm-names` node — a leftover would be `null` and its first write would throw',
+    () => 'something still references the removed datalist');
 
   /* Enter's precedence: an explicitly walked-to row, then a WHOLE name, then the
    * first substring hit. Exact-before-first is the fix — the substring scan

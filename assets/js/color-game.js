@@ -150,10 +150,6 @@ function currentTarget() {
 
 function newGame({ keepTarget = false } = {}) {
   stopCooldown();
-  /* A new round can change the suggestion pool, and the datalist is not rebuilt per
-   * keystroke, so it is rebuilt here. Mode, difficulty and generation all reach this
-   * function and nothing else needs to know the datalist moved. */
-  renderDatalist();
   /* A new round cannot inherit a half-chosen species from the previous one: the
    * armed pick refers to a round that no longer exists, and Enter after a reset
    * would submit it. */
@@ -534,27 +530,32 @@ function shareText() {
  * keystrokes, and there is no reason for that.
  */
 /**
- * The native fallback list, filtered exactly like `searchMatches()`.
+ * The 作答 button: visible only when there is something to submit.
  *
- * Rebuilt when the round changes — which is what `newGame()` is called for — and
- * never per keystroke: 1,025 `option` elements is ~40 KB of DOM churn, on the page
- * whose whole premise is that the reader does not know the name and types a lot.
- * The custom list is the per-keystroke one; this exists so a phone's software
- * keyboard has something to offer, and a keyboard suggestion for a species that
- * cannot be the target is worse than none.
+ * It exists because a click fills the field and ENTER submits, and **a phone has no
+ * Enter key.** Tapping a suggestion row put the name in the box, closed the list, and
+ * printed 「按 Enter 作答」 to a reader with no way to do that — on iOS the search key
+ * fires `Enter` and it happens to work, and on much of Android there is nothing to
+ * press. The whole two-step flow was unreachable by touch, which is the half of a
+ * page where autocomplete matters most.
  *
- * `value` is the bare zh-TW name because that is what the keyboard completes INTO,
- * and because a native selection lands on the same string the custom list writes.
- * The id rides in `label`. No `option` is disabled: a datalist cannot express
- * "already guessed", and faking it would need a value the reader could not
- * complete to.
+ * DISABLED rather than hidden while the round is over, so it cannot go from
+ * actionable to inert without the reader seeing why: a button that vanishes on the
+ * guess that won the game is a worse ending than one that greys out.
+ *
+ * Enabled by `canSubmit()`, never by "the field is non-empty" on its own — the same
+ * answer the Enter key gets, so the two routes cannot disagree about whether this
+ * round is still playable.
  */
-function renderDatalist() {
-  const pool = suggestionPool();
-  els.names.innerHTML = pokemon
-    .filter((p) => !pool || pool.has(p.id))
-    .map((p) => `<option value="${escapeHtml(p.names.zh)}" label="#${p.id}"></option>`)
-    .join('');
+function canSubmit() {
+  if (state.status !== 'playing' || !state.target) return false;
+  if (pendingPick != null) return true;
+  return els.search.value.trim().length > 0;
+}
+
+function renderSubmit() {
+  els.submit.hidden = !canSubmit();
+  els.submit.disabled = !canSubmit();
 }
 
 /**
@@ -943,6 +944,7 @@ function renderAll() {
   renderResult();
   const playing = state.status === 'playing';
   els.search.disabled = !playing || !state.target;
+  renderSubmit();
   els.giveup.hidden = !playing || state.mode !== 'daily';
 
   for (const tab of document.querySelectorAll('[data-difficulty]')) {
@@ -986,6 +988,7 @@ function wire() {
       els.searchStatus.textContent = '';
     }
     renderSearchResults();
+    renderSubmit();
   });
   els.search.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1106,12 +1109,14 @@ function chooseFromSearch(id) {
      * arm something and then refuses is worse than one that says why. */
     pendingPick = null;
     els.searchStatus.textContent = `#${id} ${p.names.zh} 已經猜過了。`;
+    renderSubmit();
     els.search.focus();
     return;
   }
 
   pendingPick = id;
-  els.searchStatus.textContent = `已選好 #${id} ${p.names.zh} —— 按 Enter 作答。`;
+  els.searchStatus.textContent = `已選好 #${id} ${p.names.zh} —— 按 Enter 或按右邊的作答。`;
+  renderSubmit();
   els.search.focus();
 }
 
@@ -1129,6 +1134,7 @@ function pickFromSearch(id) {
   els.search.value = '';
   pendingPick = null;
   setRevealed(els.searchList, false);
+  renderSubmit();
   els.searchStatus.textContent = ok ? '' : '這一隻已經猜過了。';
   if (!ok && !state.guesses.some((g) => g.id === id)) els.searchStatus.textContent = '這次已經結束了。';
   els.search.focus();
@@ -1198,7 +1204,17 @@ async function init() {
   els.slots = document.getElementById('gm-slots');
   els.search = document.getElementById('gm-search');
   els.searchList = document.getElementById('gm-search-list');
-  els.names = document.getElementById('gm-names');
+  els.submit = document.getElementById('gm-submit');
+
+  /* The button submits through the SAME chain as Enter, by synthesising the key —
+   * rather than calling `submitPendingPick()` itself. Two entry points that each
+   * re-implement "armed row, then whole name, then first row" is how they come to
+   * disagree, and the disagreement is invisible: one of them quietly accepts
+   * something the other refuses. A `KeyboardEvent` with `key: 'Enter'` is what the
+   * reader's own keyboard produces, so there is one implementation of the rule. */
+  els.submit.addEventListener('click', () => {
+    els.search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  });
   els.searchStatus = document.getElementById('gm-search-status');
   els.result = document.getElementById('gm-result');
   els.resultTitle = document.getElementById('gm-result-title');
@@ -1232,13 +1248,6 @@ async function init() {
   byId = new Map(pokemon.map((p) => [p.id, p]));
   genIds = genIdMap(pokemon);
   allGenerations = [...genIds.keys()].sort((a, b) => a - b);
-
-  /* No `renderDatalist()` here, deliberately. It used to be two lines below, which
-   * is BEFORE `state.difficulty` and `state.gen` are read out of the store — so it
-   * built the list from the defaults and `newGame()` rebuilt it correctly a few
-   * lines later anyway. `newGame()` is the one place a round changes and it calls
-   * it; building here would only have been right when the stored answer happened to
-   * equal the default. */
 
   /* The spec: 「第一次進來都是簡單 + 第一世代」. So the default is written down
      rather than being "the first configured value", and anything read back from

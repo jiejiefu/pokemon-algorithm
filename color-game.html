@@ -114,18 +114,28 @@
     <section class="gm-board" aria-label="你的猜測">
       <div class="gm-search-wrap">
         <label class="sr-only" for="gm-search">輸入寶可夢名稱或全國編號</label>
-        <input id="gm-search" class="gm-search" type="search" autocomplete="off"
-               list="gm-names" placeholder="輸入名稱或全國編號，例如 皮卡丘 或 25"
-               role="combobox" aria-autocomplete="list" aria-expanded="false"
-               aria-controls="gm-search-list" disabled>
-        <!-- Native autocomplete, for the keyboards that will not run this page's JS.
-             The custom list below matches on SUBSTRING (`伊布` finds 水伊布) and can
-             disable an already-guessed species; a datalist matches on PREFIX only and
-             knows nothing about the round. So this is the fallback layer and that one
-             is the good one — both exist because on a phone the software keyboard
-             offers its own suggestions from this list, and without it there are none
-             until the reader discovers the dropdown. -->
-        <datalist id="gm-names" class="gm-names"></datalist>
+        <!-- NO `list` attribute, and that is deliberate.
+             A `<datalist>` popup is BROWSER UI: it opened on a bare click with an
+             empty field and showed all 151 Gen-1 names as one long dark strip, over
+             the light theme, because `color-scheme` was already correct on the input
+             (measured light in light theme, dark in dark) and the popup was not drawn
+             from it. `option { background; color }` was applied too and measured
+             correct — 17.71:1 light, 14.57:1 dark — and the popup ignored it as well.
+             Nothing in this project can screenshot browser chrome, so the fix could
+             not be verified from here and the only reliable one was to delete it.
+             It also brought a ▼ affordance Chrome draws on the field itself.
+             What is lost is the phone keyboard's suggestion strip. What is kept is
+             the layer that was always better: this list matches on SUBSTRING
+             (`伊布` finds 水伊布), shows a sprite, disables what is already guessed,
+             takes arrow keys, and uses the page's own tokens so it cannot be a
+             different colour from the rest of the page. -->
+        <div class="gm-search-row">
+          <input id="gm-search" class="gm-search" type="search" autocomplete="off"
+                 placeholder="輸入名稱或全國編號，例如 皮卡丘 或 25"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false"
+                 aria-controls="gm-search-list" disabled>
+          <button type="button" class="gm-btn gm-submit" id="gm-submit" hidden disabled>作答</button>
+        </div>
         <ul id="gm-search-list" class="gm-search-list" role="listbox" hidden></ul>
         <p class="gm-search-status" id="gm-search-status" role="status" aria-live="polite"></p>
 
