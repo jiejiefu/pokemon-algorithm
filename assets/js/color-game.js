@@ -250,9 +250,22 @@ function submitGuess(id) {
 }
 
 function giveUp() {
-  if (state.status !== 'playing' || state.mode !== 'daily') return;
+  if (state.status !== 'playing') return;
   state.status = 'lost';
-  persistDaily();
+  /* Daily ONLY, and it has to be said here rather than left to `giveUp()`'s caller.
+   *
+   * `persistDaily()` has no mode check of its own — it writes to
+   * `dailyKey(difficulty, gen)` unconditionally. That was safe while giving up was
+   * DAILY-ONLY, because the mode gate below meant unlimited could never reach this
+   * line. Removing that gate without adding this one would write an unlimited round
+   * into today's store, and `newGame()`'s `restore()` would then read it back as the
+   * day's puzzle: a free answer, silently, on the next visit. Same shape as §3.G6,
+   * where one field's writer was read by another page's state.
+   *
+   * The reference draws the line in the same place — `handleGiveUp` at
+   * `pokemonpalette/src/app/game/page.tsx:1808` has no mode guard either, and its
+   * `saveGameAttempt` call is wrapped in `if (mode === "daily")`. */
+  if (state.mode === 'daily') persistDaily();
   renderAll();
 }
 
@@ -884,16 +897,38 @@ function renderResult() {
    * visibly; `check_color_game.mjs` found it as an id reached by neither lookup,
    * which is what an unused element looks like from off the page. */
   els.explore.href = paletteUrl(t);
+
+  /* `bestDistance()` is NULL when nothing was guessed, and BOTH call sites have to
+   * know that.
+   *
+   * Only one of them did. The stats line guarded it and this one did not, so 放棄 on a
+   * round with zero guesses threw `Cannot read properties of null (reading 'toFixed')`
+   * here — inside `renderAll()`, which means every line AFTER it was skipped:
+   * `els.giveup.hidden = !playing` never ran, so 放棄 stayed visible on a finished
+   * round. One null dereference produced a button that contradicted the page, and
+   * nothing said so. §3.G1a's shape: the second usage was written, the first was not
+   * checked.
+   *
+   * It is computed ONCE here rather than twice in one template. Two calls to a
+   * function that returns null "when there is nothing" is two places to forget, and
+   * the second call is the one a reader would never notice being wrong. */
+  const best = bestDistance();
+  const bestText = best === null ? '—' : best.toFixed(4);
   els.resultDetail.textContent = won
     ? `${state.guesses.length} 次之內猜中`
-    : `最接近的一次是 OKLab 色盤距離 ${bestDistance().toFixed(4)}`;
+    : (best === null ? '一次都沒猜就放棄了。' : `最接近的一次是 OKLab 色盤距離 ${bestText}`);
   els.resultStats.innerHTML = `
     <div><dt>用了幾次</dt><dd>${state.guesses.length}</dd></div>
     <div><dt>提示</dt><dd>${state.hintsShown.length}</dd></div>
     <div><dt>難度</dt><dd>${DIFFICULTY_LABELS[state.difficulty]}</dd></div>
-    <div><dt>最好的一次</dt><dd>${bestDistance() === null ? '—' : bestDistance().toFixed(4)}</dd></div>`;
+    <div><dt>最好的一次</dt><dd>${bestText}</dd></div>`;
   els.shareText.textContent = shareText();
-  els.again.hidden = state.mode !== 'unlimited';
+  /* No `els.again.hidden` here — that attribute has exactly one writer, in
+   * `renderAll()`. It used to be written in BOTH, which is the "state with two
+   * writers" shape: they happened to compute the same expression today, so nothing
+   * looked wrong, and the day one of them grows a second condition the two will
+   * disagree about where the button is. The button also MOVED out of this panel, so
+   * this function no longer has any business writing it. */
 }
 
 function bestDistance() {
@@ -912,7 +947,19 @@ function renderShinyBadge() {
 
 /** Hide the control row when neither of its two children is showing. */
 function renderFoot() {
-  setRevealed(els.targetFoot, !els.giveup.hidden || !els.shinyBadge.hidden);
+  /* An OR over EVERY child rather than a hardcoded list of two.
+   *
+   * The row carries 放棄 (both modes, while playing), 異色 (a shiny draw) and 下一題
+   * (unlimited only). Asking about the first two only meant that when 下一題 moved in
+   * the row could still go blank — on a shiny draw in unlimited, where both
+   * originals hide and only the new one shows. That reads as "unlimited broke the
+   * buttons" rather than as a missing term, and it is the same defect as naming two
+   * of three writers.
+   *
+   * `els.targetFoot.children` rather than three named ids, so a fourth control added
+   * to the row is counted by default instead of being forgotten. */
+  const anyVisible = [...els.targetFoot.children].some((el) => !el.hidden);
+  setRevealed(els.targetFoot, anyVisible);
 }
 
 function renderAll() {
@@ -945,7 +992,23 @@ function renderAll() {
   const playing = state.status === 'playing';
   els.search.disabled = !playing || !state.target;
   renderSubmit();
-  els.giveup.hidden = !playing || state.mode !== 'daily';
+  /* 放棄 is available in BOTH modes.
+   *
+   * It carried `|| state.mode !== 'daily'`, which was invented during the port: the
+   * reference's `handleGiveUp` gates on `status !== "playing" || !targetPokemon` and
+   * nothing else, and its Unlimited screenshot shows Give Up beside Get New Pokémon.
+   * So a reader in unlimited mode had no way to say 「我不猜了，看答案」, and the
+   * reason it read as a missing button rather than a deliberate one is that the
+   * control row then had NOTHING visible at all in that mode — `renderFoot()` hides
+   * an empty row, and 放棄 was its only always-on child.
+   *
+   * Only the round's own state matters now. */
+  els.giveup.hidden = !playing;
+  /* 下一題 is unlimited-only and needs no round state at all: a daily is one puzzle
+   * a day and is already recorded, so there is no "next" to go to. In unlimited the
+   * reader can skip at ANY time, matching the reference's Get New Pokémon — it is
+   * not gated on the round ending, because the round costs nothing to abandon. */
+  els.again.hidden = state.mode !== 'unlimited';
 
   for (const tab of document.querySelectorAll('[data-difficulty]')) {
     const on = tab.dataset.difficulty === state.difficulty;

@@ -595,6 +595,54 @@ console.log('\nthe bar is the card\'s header, and the at-rest card is three thin
   check(!/\.gm-attempts/.test(css) && !/els\.attempts/.test(jsCode) && !/id="gm-attempts"/.test(html),
     'and 「剩下 N 次機會」 is gone from all three files it was in',
     () => 'a leftover element or reference: the element would be null and its first write would throw');
+  /* 下一題 LIVES IN THE CARD'S CONTROL ROW, beside 放棄.
+   *
+   * It used to be in the result panel, labelled 「再玩一次」, and it was already the
+   * unlimited-only next round — so functionally nothing was missing, only its name and
+   * its seat. The reference puts Get New Pokémon beside Give Up in the card
+   * (`pokemonpalette/src/app/game/page.tsx:2494`), and after answering the reader's eye
+   * is still near the palette bar: the result panel runs sprite + answer + stats +
+   * the share block + a copy button, so 「下一題」 at its foot is a scroll away. */
+  const footBlock = /<div class="gm-target-foot">([\s\S]*?)<\/div>/.exec(htmlCode);
+  check(!!footBlock && /id="gm-again"/.test(footBlock[1]),
+    'the control row carries #gm-again',
+    () => '下一題 is not in the card, so answering scrolls away from the button that continues');
+  check(!!footBlock && /id="gm-giveup"/.test(footBlock[1])
+    && footBlock[1].indexOf('id="gm-giveup"') < footBlock[1].indexOf('id="gm-again"'),
+    'after 放棄, which puts the two controls on one row in the reference order');
+  check(!/id="gm-again"[\s\S]{0,400}?id="gm-again"/.test(htmlCode)
+    && (htmlCode.match(/id="gm-again"/g) || []).length === 1,
+    'and it appears EXACTLY ONCE in the markup — a second copy would be two buttons doing the same thing',
+    () => 'two 下一題 buttons exist, and only one of them is wired');
+  check(/>下一題</.test(htmlCode), 'and it reads 下一題, not 再玩一次',
+    () => 'in unlimited each round is a fresh draw, so 「再玩一次」 describes the wrong thing');
+  check(!/再玩一次/.test(htmlCode), 'with no leftover 「再玩一次」 label anywhere on the page');
+
+  /* UNLIMITED ONLY, AND NOT GATED ON THE ROUND. The reference's Get New Pokémon is
+   * visible in unlimited mode while still playing — it is a way out, not a reward. */
+  /* ANCHORED TO THE END OF THE STATEMENT. The first version was
+   * `/els\.again\.hidden = state\.mode !== 'unlimited'/`, and
+   * `state.mode !== 'unlimited' || state.status !== 'playing'` CONTAINS that string —
+   * so adding exactly the term the check forbids left it green. A substring match on
+   * an expression is satisfiable by a longer expression. */
+  check(/els\.again\.hidden = state\.mode !== 'unlimited';/.test(jsCode),
+    'its visibility is the MODE alone — the statement ends there, with no round-state term',
+    () => 'it is gated on the round ending, so a reader cannot abandon a puzzle in unlimited the way the reference allows');
+  check((jsCode.match(/els\.again\.hidden/g) || []).length === 1,
+    'written by exactly ONE place, because it had two writers when it lived in renderResult()',
+    () => 'two writers compute the same expression today; the day one grows a condition they will disagree about where the button is');
+
+  /* The control row hides only when EVERY child is hidden, and it now has three. */
+  check(/function renderFoot[\s\S]{0,400}?els\.targetFoot\.children/.test(jsCode),
+    'renderFoot() counts the row\'s children rather than naming two of them',
+    () => 'a row that asks about two of three children goes blank in the state where only the third shows — unlimited, shiny, round over');
+  check(!/!els\.giveup\.hidden \|\| !els\.shinyBadge\.hidden/.test(jsCode),
+    'and no longer names 放棄 and 異色 explicitly',
+    () => 'the hardcoded two-term list is back, and 下一題 is not in it');
+  check(/\.gm-target-foot > :last-child\s*\{\s*margin-left:\s*auto/.test(cssCode),
+    'the row pins its LAST child right, not `space-between` — with three children that would strand 異色 in the middle',
+    () => 'space-between with three children puts the badge in the centre');
+
   /* ORDER in the markup, not a CSS selector: the point is which child the row's
    * `space-between` puts on the left, and that is decided by source order alone. */
   check(/class="gm-btn gm-btn-ghost" id="gm-giveup"/.test(html)
@@ -1071,9 +1119,38 @@ console.log('\nthe daily round cannot be farmed by reloading');
 {
   check(/persistDaily/.test(jsCode) && /restore\(/.test(jsCode),
     'a finished daily round is written and read back');
-  check(/function giveUp\(\)\s*\{[\s\S]*?state\.mode !== 'daily'\) return;/.test(jsCode),
-    '「放棄」 is refused outside 每日 mode',
-    () => 'giveUp() with no mode guard ends the round, and since it calls newGame() on the next render the reader gets a second attempt at the same answer');
+  /* This asserted the OPPOSITE of what is now true, and its stated reason was false.
+   *
+   * It read: 「`giveUp()` with no mode guard ends the round, and since it calls
+   * `newGame()` on the next render the reader gets a second attempt at the same
+   * answer」. `giveUp()` does not call `newGame()` — it calls `renderAll()`, which
+   * draws nothing. So the gate was never preventing a second attempt; the rule was
+   * invented during the port (the reference's `handleGiveUp` has no mode guard) and
+   * the prose defending it described a code path that does not exist.
+   *
+   * What the gate WAS silently load-bearing for is the opposite direction, and it is
+   * asserted below: `persistDaily()` has no mode check of its own, so while giving up
+   * was daily-only nothing else could reach it from unlimited mode. Removing the gate
+   * without the guard underneath would write an unlimited round into today's store and
+   * `newGame()`'s `restore()` would serve it back as the day's puzzle. */
+  const giveUpBody = /function giveUp\(\)\s*\{[\s\S]*?\n\}/.exec(jsCode);
+  check(!!giveUpBody && !/state\.mode !== 'daily'/.test(giveUpBody[0]),
+    'and 「放棄」 works in BOTH modes — the reference gates on the round state only',
+    () => "giveUp() still refuses outside daily mode, so a reader in unlimited cannot say 「我不猜了，看答案」");
+  check(!!giveUpBody && /if \(state\.mode === 'daily'\) persistDaily\(\);/.test(giveUpBody[0]),
+    'while the DAILY WRITE inside it is mode-guarded, which is what the old gate was really protecting',
+    () => 'persistDaily() has no mode check of its own, so an unlimited give-up would be written into the daily store and restored as a free answer');
+  /* The SAME guard on `submitGuess()`, and it is asserted separately because the two
+   * bodies are identical-looking: the mutation that removed it was applied with a
+   * `replace(..., 1)` that hit `submitGuess()` first, because that function comes first
+   * in the file — so a guard test scoped only to `giveUp()` passed while the guard it
+   * was written about had been deleted from somewhere else. */
+  const submitBody = /function submitGuess\(id\)\s*\{[\s\S]*?\n\}/.exec(jsCode);
+  check(!!submitBody && /if \(state\.mode === 'daily'\) persistDaily\(\);/.test(submitBody[0]),
+    'and submitGuess() carries its own copy of that guard — asserted per-function, not once for the file');
+  check(/els\.giveup\.hidden = !playing;/.test(jsCode),
+    'and the button is hidden only by the round state, never by the mode',
+    () => 'the button still carries a mode term, so one of the two modes has no visible 放棄');
   /* The target is drawn in exactly ONE place. A render that re-drew it would hand
    * the reader a different puzzle for the same day every time the UI re-rendered,
    * and nothing in the pure modules could see it. */

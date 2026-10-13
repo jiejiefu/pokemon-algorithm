@@ -427,16 +427,28 @@
 
 .gm-btn-hint-label { position: relative; }
 
-/* Controls left, status right — the reference's split. `space-between` rather than
- * `justify-content: flex-end` so the two ends hold when either is hidden (放棄 is
- * `hidden` until the round is live; 異色 only appears on a shiny draw). */
+/* Controls left, the next-question and the status right — the reference's split.
+ *
+ * `margin-left: auto` on the LAST child rather than `space-between`, because the row
+ * has three children now and `space-between` would strand 異色 in the MIDDLE between
+ * 放棄 and 下一題. With the auto margin the first two stay together on the left and
+ * the last one takes the right edge — and when only 下一題 is showing, the auto margin
+ * on the sole child pushes it right on its own, which `space-between` would not: with
+ * one item it aligns to the start.
+ *
+ * It also preserves the two-child layout for free, because the badge is the last child
+ * whenever 下一題 is hidden.
+ *
+ * `min-height` is the floor for the badge-only state (a shiny draw in daily mode,
+ * round over), where there is no 40px button to set the height. */
 .gm-target-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   min-height: 32px;
 }
+
+.gm-target-foot > :last-child { margin-left: auto; }
 
 .gm-target-foot[hidden] { display: none; }
 

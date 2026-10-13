@@ -104,8 +104,12 @@
         <!-- 控制列：控制項在左、狀態在右（參考版的分工）。「剩下 N 次機會」移除了
              —— 四個槽位本身就是那個資訊，而且每一格都寫著「第 N 次機會」。 -->
         <div class="gm-target-foot">
+          <!-- 控制項在左、狀態與下一題在右。下一題住這裡而不是結果面板，是因為
+               參考版的 Get New Pokémon 就在 Give Up 旁邊，而且答完時眼睛還在色條
+               附近 —— 結果面板底部離答案有一段距離。 -->
           <button type="button" class="gm-btn gm-btn-ghost" id="gm-giveup" hidden>放棄</button>
           <span class="gm-shiny-badge" id="gm-shiny-badge" hidden>異色</span>
+          <button type="button" class="gm-btn" id="gm-again" hidden>下一題</button>
         </div>
       </div>
     </section>
@@ -169,7 +173,6 @@
         </div>
         <div class="gm-result-actions">
           <a class="gm-btn gm-btn-ghost" id="gm-explore" href="color.html">看牠的完整色盤</a>
-          <button type="button" class="gm-btn" id="gm-again" hidden>再玩一次</button>
         </div>
       </div>
     </section>
