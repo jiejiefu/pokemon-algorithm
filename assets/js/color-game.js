@@ -38,8 +38,14 @@
  *   round is locked once finished, so even 「放棄」 cannot reset it.
  */
 
-import { badgeStyle, hexToRgb } from './shared.js';
-import { spriteUrl, formatShare, formatHex, paletteUrl } from './color-palette.js';
+import { badgeStyle, hexToRgb, pokemonDetailUrl } from './shared.js';
+import {
+  spriteUrl, artworkUrl, formatShare, formatHex, paletteUrl,
+  /* The colour pages' strip width, in COLOURS. The guess row's strip is the same
+   * strip as `.cp-strip`, so it takes its count from the same constant rather than
+   * carrying a second `5` — §3.B1's rule, and it means one edit changes both. */
+  VISIBLE_STRIP_COLORS,
+} from './color-palette.js';
 import { hexToOklab, deltaEOk } from './color-match.js';
 import { taipeiDateKey } from './daily-pick.js';
 import {
@@ -807,7 +813,21 @@ function renderSlots() {
       continue;
     }
     const p = byId.get(g.id);
-    const pal = visiblePalette(palettes, g.id, state.target.variant, false);
+    /* The strip is the HORIZONTAL five-colour one, not the target bar's three.
+     *
+     * It used to be `visiblePalette(..., false)`, which is the PLAYING count — 3 —
+     * because the reference's GuessCard stacks all `PALETTE_COLORS_COUNT` (3)
+     * vertically in a 64px column (`pokemonpalette/src/components/guess-card.tsx:101`).
+     * That was a faithful port and it is not what this row wants now: the row is
+     * full-width, so a 56px vertical strip reads as a chip rather than as the
+     * species' palette, and three of six colours is a worse answer to 「我猜的是
+     * 什麼顏色」 than five.
+     *
+     * EQUAL cells, not proportional, and `.cp-strip` is the reason: a 3% colour in a
+     * proportional strip is a few pixels wide, so the strip would show four colours
+     * and a sliver. The share stays in each segment's `title`, which is where
+     * `.cp-strip` keeps it too. */
+    const pal = paletteRows(palettes, g.id, state.target.variant).slice(0, VISIBLE_STRIP_COLORS);
     const badges = [];
     if (g.correct) badges.push('');
     else if (g.related.sameEvolutionFamily) badges.push('<span class="gm-badge gm-badge-family">同一進化家族</span>');
@@ -817,13 +837,16 @@ function renderSlots() {
     rows.push(`<li class="gm-slot ${g.correct ? 'is-won' : ''}">
       <img class="gm-slot-sprite" src="${spriteUrl(g.id, state.target.variant === 's')}" alt="" loading="lazy" decoding="async">
       <div class="gm-slot-body">
-        <div class="gm-slot-name"><a href="${paletteUrl(p)}">${escapeHtml(p.names.zh)}</a></div>
+        <!-- 名稱走圖鑑，色帶走色盤 —— 跟結果面板同一組分工。兩者不是同一個目標，
+           所以沒有巢狀連結：色帶是名稱那個 <a> 的兄弟節點。 -->
+        <div class="gm-slot-name"><a href="${pokemonDetailUrl(p)}">${escapeHtml(p.names.zh)}</a></div>
         <div class="gm-slot-meta">${g.correct ? '答對了' : `OKLab 色盤距離 ${g.distance.toFixed(4)} · ${TIER_LABEL[tierOf(g.distance)]}`}</div>
         ${badges.length ? `<div class="gm-slot-badges">${badges.join('')}</div>` : ''}
       </div>
-      <div class="gm-slot-strip" role="img" aria-label="${escapeHtml(p.names.zh)} 的色盤">
-        ${pal.map((r) => `<span style="background:${r.hex}" title="${formatHex(r.hex)}"></span>`).join('')}
-      </div>
+      <a class="gm-slot-strip" href="${paletteUrl(p)}"
+         aria-label="查看 ${escapeHtml(p.names.zh)} 的完整色盤">
+        ${pal.map((r) => `<span style="background:${r.hex}" title="${formatHex(r.hex)} · ${formatShare(r.share)}"></span>`).join('')}
+      </a>
     </li>`);
   }
   els.slots.innerHTML = rows.join('');
@@ -886,8 +909,27 @@ function renderResult() {
   const won = state.status === 'won';
   els.resultTitle.textContent = won ? '答對了' : '這次沒猜到';
   els.resultTitle.className = `gm-result-title${won ? ' is-won' : ''}`;
-  els.resultSprite.src = spriteUrl(t.id, state.target.variant === 's');
-  els.resultAnswer.innerHTML = `<a href="${paletteUrl(t)}">${escapeHtml(t.names.zh)}</a>${state.target.variant === 's' ? '（異色）' : ''}`;
+  /* OFFICIAL ARTWORK for the reveal, not the 96x96 sprite.
+   *
+   * The 475x475 artwork is what every other page shows a species with —
+   * `detail.html`'s `.evolution-sprite`, `generations.html`, `maze.html`, `life.js`,
+   * `model3d.html`, `graph.html` — and this panel is the moment the round is over and
+   * the reader gets to look at what it was, so it is the wrong place for the small
+   * one. It also ups 0.6 KB to 115-200 KB, which is the honest price and is paid once,
+   * at round end, because `src` is assigned here.
+   *
+   * `artworkUrl()` existed and was called by nothing until now. */
+  els.resultSprite.src = artworkUrl(t.id, state.target.variant === 's');
+  /* The NAME goes to the Pokédex entry and 「看牠的完整色盤」 below goes to the colour
+   * page, so the two links in this panel answer two different questions. They used
+   * to be the same destination twice.
+   *
+   * `pokemonDetailUrl()` rather than a hand-built `detail.html?slug=`, because it
+   * carries the Nidoran ♀/♂ split (`nidoran-f` / `nidoran-m`) and the NFKD fix for
+   * Flabébé. §3.A forbids assembling either URL by hand, and a bare `nidoran` slug is
+   * strictly disallowed. Verified over the 1,025 records this page can reach: 1,025
+   * distinct slugs, no collisions, all resolvable by `detail.html:445`. */
+  els.resultAnswer.innerHTML = `<a href="${pokemonDetailUrl(t)}">${escapeHtml(t.names.zh)}</a>${state.target.variant === 's' ? '（異色）' : ''}`;
   /* The button below the answer is a SECOND route to the same page, so it has to
    * be re-pointed at the target too. It shipped with a hardcoded
    * `href="color.html"` and nothing ever rewrote it: finishing a game and

@@ -643,6 +643,66 @@ console.log('\nthe bar is the card\'s header, and the at-rest card is three thin
     'the row pins its LAST child right, not `space-between` — with three children that would strand 異色 in the middle',
     () => 'space-between with three children puts the badge in the centre');
 
+  /* THE STRIP IS HORIZONTAL, FIVE EQUAL SEGMENTS, AND 140x56.
+   *
+   * It was a 56px vertical stack of THREE, which is what the reference's GuessCard does
+   * (`guess-card.tsx:101`, `flex flex-col w-16` over `PALETTE_COLORS_COUNT`). That was a
+   * faithful port; at this page's full-width row it reads as a chip rather than as the
+   * species' palette, and it showed 3 of 6 colours.
+   *
+   * 140px is the project's own measurement, not a guess: `colors.css` records 「At 140px
+   * the five segments are 28px each, so the strip is a legible colour」 for
+   * `.cp-idcard .cp-strip`, which is this strip. */
+  const strip = /\.gm-slot-strip\s*\{([^}]*)\}/.exec(cssCode);
+  const seg = /\.gm-slot-strip span\s*\{([^}]*)\}/.exec(cssCode);
+  check(!!strip && !/flex-direction:\s*column/.test(strip[1]),
+    'the strip no longer stacks vertically',
+    () => 'it is still a column; the row is full-width so 56px across reads as a chip');
+  check(!!strip && /width:\s*140px/.test(strip[1]) && /height:\s*56px/.test(strip[1]),
+    'and it is 140x56 — the width `.cp-idcard .cp-strip` already measured at 28px per segment',
+    () => `width/height are not 140/56 (found ${strip ? strip[1].replace(/\s+/g,' ').trim() : 'no rule'})`);
+  check(!!strip && /align-items:\s*stretch/.test(strip[1]),
+    'with `align-items: stretch`, the way `.cp-strip` runs its segments');
+  /* `flex: 1 1 0` is load-bearing and the failure is already measured in colors.css:764:
+   * these spans have no intrinsic width, so `flex-basis: auto` resolves to 0 and with
+   * the default `flex-grow: 0` every segment collapses to its 1px right border —
+   * 「5 segments across a 180px strip came out 1px each」. */
+  check(!!seg && /flex:\s*1 1 0\b/.test(seg[1]),
+    'and each segment is `flex: 1 1 0` — basis 0 plus grow 1 is what shares the space evenly',
+    () => 'the segments collapse; `min-width: 0` alone leaves them at their border');
+  check(!!seg && /border-right:\s*1px/.test(seg[1]),
+    'plus a 1px separator, as `.cp-seg` has it, so two similar colours do not read as one block',
+    () => 'adjacent similar colours blur into one');
+  /* The narrow-viewport rule used to lump the strip into the sprite\'s 44px square. */
+  check(!/\.gm-slot-sprite, \.gm-slot-placeholder, \.gm-slot-strip/.test(cssCode),
+    'and the \u2264640px rule no longer lumps it into the sprite\'s 44px square',
+    () => 'five segments across 44px is 8.8px each, which is not a colour');
+  check(/\.gm-slot-strip\s*\{[^}]*width:\s*100px[^}]*height:\s*40px/.test(
+      (/@media \(max-width: 640px\)\s*\{[\s\S]*?\n\}/.exec(cssCode) || [''])[0]),
+    'it gets its own 100x40 below 640px instead — five legible 20px bands');
+
+  /* THE REVEAL USES THE 475x475 OFFICIAL ARTWORK, and NO `pixelated`.
+   *
+   * `image-rendering: pixelated` is correct for a 96px sprite UPSCALED — nearest
+   * neighbour keeps the pixel grid. This is 475px artwork at 200px, a DOWNSCALE, where
+   * nearest neighbour throws away the averaging that makes a reduction look clean. The
+   * project has already written that conclusion down for the same swap at
+   * `outfit.css:655`, where removing it fixed a visible artefact. */
+  check(/artworkUrl\(t\.id, state\.target\.variant === 's'\)/.test(jsCode),
+    'the result panel loads artworkUrl(), not spriteUrl()',
+    () => 'the reveal is still the 96x96 sprite at 200px');
+  check(!/els\.resultSprite\.src = spriteUrl/.test(jsCode),
+    'and `artworkUrl()` is no longer an export nothing calls');
+  const rs = /\.gm-result-sprite\s*\{([^}]*)\}/.exec(cssCode);
+  check(!!rs && !/image-rendering/.test(rs[1]),
+    'the result sprite carries NO `image-rendering` at all',
+    () => 'pixelated on a downscale of 475px artwork aliases the edges');
+  check(!!rs && /width:\s*200px/.test(rs[1]) && /height:\s*200px/.test(rs[1]),
+    'and it is 200x200, matching the markup\'s width/height attributes',
+    () => 'the CSS and the <img> attributes disagree, so the box is 200 and the reserved space is not');
+  check(/id="gm-result-sprite" alt="" width="200" height="200"/.test(htmlCode),
+    'which the markup agrees with — an <img> whose attributes disagree with its CSS reserves the wrong box before it loads');
+
   /* ORDER in the markup, not a CSS selector: the point is which child the row's
    * `space-between` puts on the left, and that is decided by source order alone. */
   check(/class="gm-btn gm-btn-ghost" id="gm-giveup"/.test(html)
@@ -948,6 +1008,52 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
     'and nothing reaches for a `gm-names` node — a leftover would be `null` and its first write would throw',
     () => 'something still references the removed datalist');
 
+  /* THE RESULT PANEL HAS THE SAME SPLIT, and the two links must NOT both be the colour
+   * page. The user drew this deliberately: the name answers 「這隻是誰，圖鑑怎麼說」and
+   * the button answers 「它的色盤完整長怎樣」. */
+  const resultBody = /function renderResult\(\)[\s\S]*?\n}/.exec(jsCode);
+  check(!!resultBody && /els\.resultAnswer\.innerHTML = `<a href="\$\{pokemonDetailUrl\(t\)\}"/.test(resultBody[0]),
+    'the result panel\'s name links to the Pokédex entry',
+    () => 'the name and the button below it point at the same page');
+  check(!!resultBody && /els\.explore\.href = paletteUrl\(t\)/.test(resultBody[0]),
+    'while 「看牠的完整色盤」 keeps paletteUrl()');
+  check(!!resultBody
+    && /pokemonDetailUrl\(t\)/.test(resultBody[0]) && /paletteUrl\(t\)/.test(resultBody[0]),
+    'so the two links in that panel are provably different destinations');
+
+  /* THE GUESS ROW HAS TWO LINKS AND THEY ANSWER TWO DIFFERENT QUESTIONS.
+   *
+   * The name goes to the Pokédex entry and the STRIP — the colour band itself — goes to
+   * the colour page. They used to be the same destination twice, and once the name
+   * moved there was no route to the colour page from a guess at all: the result panel
+   * shows the TARGET, not every guess.
+   *
+   * `pokemonDetailUrl()` rather than a built string, because it carries the Nidoran
+   * ♀/♂ split and the NFKD fix for Flabébé. §3.A forbids assembling either URL by hand
+   * and a bare `nidoran` slug is strictly disallowed. Verified over the 1,025 records
+   * this page can reach: 1,025 distinct slugs, no collisions, all resolvable. */
+  /* Anchored on the FILLED branch. `/<li class="gm-slot[\s\S]*?<\/li>/` matches the
+   * EMPTY one first — that branch also opens `<li class="gm-slot is-empty">` — so the
+   * assertions below were reading the placeholder and finding no links in it. */
+  const slotRow = /<li class="gm-slot \$\{g\.correct[\s\S]*?<\/li>/.exec(jsCode);
+  check(!!slotRow && /gm-slot-name"><a href="\$\{pokemonDetailUrl\(p\)\}"/.test(slotRow[0]),
+    'the guess row\'s name links to pokemonDetailUrl() — the Pokédex entry',
+    () => 'a hand-built `detail.html?slug=` would lose the Nidoran ♀/♂ split and the Flabébé NFKD fix');
+  check(!!slotRow && /<a class="gm-slot-strip" href="\$\{paletteUrl\(p\)\}"/.test(slotRow[0]),
+    'and the strip itself links to paletteUrl() — the colour page',
+    () => 'the row has no route to the colour page any more');
+  check(!!slotRow && /<\/a>\s*<\/li>/.test(slotRow[0]),
+    'and the strip is a SIBLING of that link, never a child of it',
+    () => 'the strip <a> nests inside the name <a>, which is invalid and breaks both');
+  /* aria-label, because a colour band has no text of its own and the segments inside are
+   * decorative. `role="img"` was on it before it became a link — that overrides the link
+   * role and would leave a screen reader announcing an image where there is a link. */
+  check(!!slotRow && /aria-label="查看 \$\{escapeHtml\(p\.names\.zh\)\} 的完整色盤"/.test(slotRow[0]),
+    'and it names its target in an aria-label, because the band has no text',
+    () => 'the link announces only as a nameless control');
+  check(!/class="gm-slot-strip" role="img"/.test(jsCode),
+    'while `role="img"` is gone — it would mask the link role');
+
   /* Enter's precedence: an explicitly walked-to row, then a WHOLE name, then the
    * first substring hit. Exact-before-first is the fix — the substring scan
    * matches inside other names (水伊布, 雷伊布, 妖精伊布 all contain 伊布), so
@@ -1190,9 +1296,40 @@ console.log('\nshape assertions, declared as shapes');
    * So the test is for a slice of palette rows in the page, which is the shape a
    * restated count would take. */
   check(/visiblePalette\(/.test(jsCode), 'the page asks visiblePalette() for the swatches');
-  check(!/paletteRows\([^)]*\)\.slice|\.slice\(0,\s*(PALETTE|THREE|\d+)\s*\)/.test(jsCode),
-    'and never slices a palette to decide how many swatches to show',
-    () => 'a slice here is a second copy of PALETTE_COLORS_SHOWN, which game-similarity.js owns');
+
+  /* SCOPED TO `renderPalette()`, and that scoping is a correction rather than a
+   * loosening. The claim is about the TARGET BAR: it must delegate its 3-vs-6 count to
+   * `visiblePalette()` so that rule lives in one place. The file-wide version of this
+   * test also caught the GUESS ROW's strip, which asks a different question — not "how
+   * many of the target's colours", but "how many colours in this species' strip" —
+   * and whose answer already exists as `VISIBLE_STRIP_COLORS` in `color-palette.js`.
+   *
+   * The alternative was a helper in `game-similarity.js`, and it was not taken because
+   * that module imports only pure modules (`color-match.js`, `daily-pick.js`) and is run
+   * in bare Node by `check_game_similarity.mjs`; reaching `VISIBLE_STRIP_COLORS` through
+   * `color-palette.js` would pull `shared.js` — a browser module — into that graph. The
+   * two counts have different owners, so testing them in one place was the error. */
+  const rp = /function renderPalette\(\)[\s\S]*?\n}/.exec(jsCode);
+  check(!!rp && !/\.slice\(/.test(rp[0]),
+    'and renderPalette() never slices — the target bar delegates its count',
+    () => 'a slice inside renderPalette() is a second copy of the 3-vs-6 rule, which game-similarity.js owns');
+  /* Read from `game-similarity.js`, not the page: `visiblePalette()` lives there, and
+   * testing the page for it was testing the wrong file — which is why the first version
+   * of this assertion failed on correct code. */
+  check(/const n = revealed \? rows\.length : PALETTE_COLORS_SHOWN/.test(similarity),
+    'with the reveal rule still owned by visiblePalette()\'s own single computation, in game-similarity.js',
+    () => 'the 3-vs-6 computation has moved or been restated');
+
+  /* The strip's count is a DIFFERENT question with a named owner, and it must be that
+   * name rather than a literal — a bare `5` here would be the same restated-count
+   * defect one function over. */
+  check(/paletteRows\(palettes, g\.id, state\.target\.variant\)\.slice\(0, VISIBLE_STRIP_COLORS\)/.test(jsCode),
+    'the guess row\'s strip takes its count from `VISIBLE_STRIP_COLORS`, the same 5 `.cp-strip` uses',
+    () => 'the strip carries its own number, so the two strips can disagree');
+  check(/VISIBLE_STRIP_COLORS,/.test(jsCode) && /from '\.\/color-palette\.js'/.test(jsCode),
+    'and that constant is imported, not re-declared');
+  check(!/const\s+(?:STRIP|ROW)_COLORS\s*=/.test(jsCode),
+    'with no second constant introduced alongside it');
   check(!/\b3\b\s*(?::|\?)?.*swatch|swatch.*\b3\b/.test(jsCode),
     'and no bare 3 anywhere near the swatch count',
     () => 'the number is restated');

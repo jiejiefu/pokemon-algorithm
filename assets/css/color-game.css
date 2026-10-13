@@ -724,18 +724,63 @@
 .gm-badge-family { color: var(--rule-green); }
 .gm-badge-type { color: var(--rule-gold); }
 
-/* The guess's own 3-colour strip. */
+/* The guess row's palette strip: HORIZONTAL, five EQUAL segments.
+ *
+ * It was a 56px vertical stack of three, which is what the reference's GuessCard does
+ * (`guess-card.tsx:101`, `flex flex-col w-16` over `PALETTE_COLORS_COUNT`). That was a
+ * faithful port and it does not survive this page's full-width row: at 56px across it
+ * reads as a chip rather than as the species' palette, and it showed 3 of 6 colours.
+ *
+ * 140px is MEASURED HERE, not borrowed. At 140px this strip's five segments came out
+ * 28 / 28 / 28 / 28 / 27px in the live page — the last is 27 because the first four
+ * carry a separator border — and five bands that wide are individually tellable.
+ * `.cp-strip` on the colour pages is the PRECEDENT for the two properties that decide
+ * whether that works, not for the size: its segments carry the same `flex: 1 1 0` and
+ * the same `border-width: 0 1px 0 0`, but its own box is different (`.cp-idcard
+ * .cp-strip` is `flex: 1 1 240px; min-width: 180px; height: 40px`).
+ *
+ * 56px tall, matching the sprite and the empty-slot placeholder beside it, so all three
+ * columns of the row share one height.
+ *
+ * `flex: 1 1 0` is load-bearing and the failure is measured in `colors.css:764-769`:
+ * these spans have no intrinsic width, so `flex-basis: auto` resolves to 0 and with the
+ * default `flex-grow: 0` every segment collapses to its 1px right border — 「5 segments
+ * across a 180px strip came out 1px each」. Basis 0 plus grow 1 is what shares the space
+ * evenly.
+ *
+ * IT IS ALSO A LINK, to the species' colour page — the name beside it goes to the
+ * Pokédex entry, so the two answer two different questions, and without this the row
+ * would have had no route to the colour page at all once the name moved. It is a
+ * sibling of that `<a>`, never a child, so nothing nests. */
 .gm-slot-strip {
   display: flex;
-  flex-direction: column;
-  width: 56px;
+  align-items: stretch;
+  width: 140px;
   height: 56px;
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  text-decoration: none;
+  /* A link has to say it is one, and a colour band has no underline of its own. */
+  box-shadow: inset 0 0 0 1px var(--hairline);
 }
 
-.gm-slot-strip span { flex: 1; }
+.gm-slot-strip:hover { box-shadow: inset 0 0 0 1px var(--hairline-strong); }
+
+.gm-slot-strip:focus-visible {
+  outline: 2px solid var(--page-accent);
+  outline-offset: 2px;
+}
+
+/* The 1px separator, as `.cp-seg`'s `border-width: 0 1px 0 0`. Without it two adjacent
+ * similar colours read as one block — which is the whole reason the strip exists. */
+.gm-slot-strip span {
+  flex: 1 1 0;
+  min-width: 0;
+  border-right: 1px solid var(--hairline);
+}
+
+.gm-slot-strip span:last-child { border-right: 0; }
 
 /* --------------------------------------------------------------------------
    Result
@@ -762,10 +807,22 @@
 
 .gm-result-title.is-won { color: var(--rule-green); }
 
+/* The 475x475 official artwork at 200px.
+ *
+ * **NO `image-rendering: pixelated` here, and that is the fix.** It was there because
+ * this used to be the 96x96 sprite displayed at 144px — an UPSCALE, where
+ * nearest-neighbour keeps the pixel grid and the result is correct. This is 475px
+ * artwork at 200px, a DOWNSCALE, where nearest-neighbour throws away exactly the
+ * averaging that makes a reduction look clean. The project's own conclusion, written
+ * for the same swap in `outfit.css:655`, where removing it fixed a visible resize
+ * artefact.
+ *
+ * 200px rather than the old 144 because the source has the pixels for it — the
+ * sprite did not, which is why it was small. */
 .gm-result-sprite {
-  width: 144px;
-  height: 144px;
-  image-rendering: pixelated;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
 }
 
 .gm-result-answer { font-size: 18px; margin: 0; }
@@ -886,7 +943,12 @@
   .gm-swatch-hex { font-size: 10px; }
   .gm-swatch-share { display: none; }
   .gm-slot { gap: 10px; padding: 9px 10px; }
-  .gm-slot-sprite, .gm-slot-placeholder, .gm-slot-strip { width: 44px; height: 44px; }
+  .gm-slot-sprite, .gm-slot-placeholder { width: 44px; height: 44px; }
+  /* The strip gets its OWN size below 640px, not the sprite's 44px square: five
+   * segments across 44px is 8.8px each, which is not a colour. 100px is five legible
+   * 20px bands, and at 390px the row still has ~230px left for the name and the
+   * distance line. */
+  .gm-slot-strip { width: 100px; height: 40px; }
   .gm-result-card { padding: 18px 14px; }
 }
 
