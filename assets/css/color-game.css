@@ -507,6 +507,24 @@
   flex: 0 0 auto;
 }
 
+/* The empty slot's stand-in for a sprite.
+ *
+ * EXACTLY the sprite's box — 56x56, `flex: 0 0 auto` — because a filled slot is
+ * 56x56 plus the body text and an empty one has to land in the same place. Change
+ * one and every guess row shifts horizontally the moment it is answered, which is
+ * the layout jump the four fixed slots exist to prevent.
+ *
+ * A dashed border and no background: the reference's empty slot is a muted
+ * skeleton block, and the reference's own comment on its placeholder column says
+ * the point is that "empty + filled slots line up at the new full-width layout". */
+.gm-slot-placeholder {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-sm);
+}
+
 .gm-slot-empty-text {
   font-size: 13px;
   color: var(--text-tertiary);
@@ -709,7 +727,7 @@
   .gm-swatch-hex { font-size: 10px; }
   .gm-swatch-share { display: none; }
   .gm-slot { gap: 10px; padding: 9px 10px; }
-  .gm-slot-sprite, .gm-slot-strip { width: 44px; height: 44px; }
+  .gm-slot-sprite, .gm-slot-placeholder, .gm-slot-strip { width: 44px; height: 44px; }
   .gm-result-card { padding: 18px 14px; }
 }
 

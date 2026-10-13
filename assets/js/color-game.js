@@ -45,7 +45,12 @@ import { taipeiDateKey } from './daily-pick.js';
 import {
   MAX_ATTEMPTS, PALETTE_COLORS_SHOWN,
   DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES,
-  variantOf, poolFor, genIdMap, allIds,
+  /* No `poolFor` — it was imported and never called, and `suggestionPool()` reads
+   * `genIds` instead. `poolFor()` is the draw's own entry point and it rebuilds the
+   * whole generation map on every call, which is fine once per round and wrong once
+   * per keystroke. Both still come from `genIdMap`, so this is the cheaper half of
+   * one source of truth rather than a second one. */
+  variantOf, genIdMap, allIds,
   pickDailyTarget, pickUnlimitedTarget,
   paletteRows, visiblePalette, scoreGuess, tierOf, normalizeDifficulty, normalizeGeneration,
 } from './game-similarity.js';
@@ -75,6 +80,33 @@ let allGenerations = [];
 
 const els = {};
 let cooldownTimer = 0;
+
+/**
+ * The species the reader CLICKED in the dropdown but has not submitted yet, or null.
+ *
+ * **A click fills the field; Enter submits.** This is the deliberate asymmetry
+ * between the two routes into the field, and it is not arbitrary:
+ *
+ *   typing -> Enter      ONE step, and unchanged. The reader named the species, so
+ *                        the intent is already unambiguous.
+ *   click -> Enter       TWO steps. A dropdown row is a small, imprecise target
+ *                        (the list is capped at 40), so a click is the LOWEST-intent
+ *                        way to choose a species — and it spends one of four
+ *                        attempts. Four attempts a day in daily mode.
+ *
+ * The reference submits on click (`handleSelect` calls `onPokemonSelect` directly,
+ * which is `handleGuess`). That is defensible there: it has accounts, a history and
+ * a shareable result, so a mis-click is diluted. This page has none of those.
+ *
+ * It also RESOLVED the datalist problem for free. A native datalist selection fills
+ * the field rather than submitting, so before this change the two autocomplete
+ * layers behaved differently from each other — the custom row guessed for you and
+ * the native one did not. Now both fill, and Enter submits both.
+ *
+ * Cleared by the `input` listener, because typing after a click is the reader
+ * changing their mind.
+ */
+let pendingPick = null;
 
 // ---------------------------------------------------------------------------
 // Storage
@@ -114,6 +146,14 @@ function currentTarget() {
 
 function newGame({ keepTarget = false } = {}) {
   stopCooldown();
+  /* A new round can change the suggestion pool, and the datalist is not rebuilt per
+   * keystroke, so it is rebuilt here. Mode, difficulty and generation all reach this
+   * function and nothing else needs to know the datalist moved. */
+  renderDatalist();
+  /* A new round cannot inherit a half-chosen species from the previous one: the
+   * armed pick refers to a round that no longer exists, and Enter after a reset
+   * would submit it. */
+  pendingPick = null;
   if (!keepTarget || !state.target) {
     state.target = currentTarget();
     state.guesses = [];
@@ -354,11 +394,57 @@ function shareText() {
  * divergence would make two pages suggest different species for the same
  * keystrokes, and there is no reason for that.
  */
-function searchMatches(q) {
+/**
+ * The native fallback list, filtered exactly like `searchMatches()`.
+ *
+ * Rebuilt when the round changes — which is what `newGame()` is called for — and
+ * never per keystroke: 1,025 `option` elements is ~40 KB of DOM churn, on the page
+ * whose whole premise is that the reader does not know the name and types a lot.
+ * The custom list is the per-keystroke one; this exists so a phone's software
+ * keyboard has something to offer, and a keyboard suggestion for a species that
+ * cannot be the target is worse than none.
+ *
+ * `value` is the bare zh-TW name because that is what the keyboard completes INTO,
+ * and because a native selection lands on the same string the custom list writes.
+ * The id rides in `label`. No `option` is disabled: a datalist cannot express
+ * "already guessed", and faking it would need a value the reader could not
+ * complete to.
+ */
+function renderDatalist() {
+  const pool = suggestionPool();
+  els.names.innerHTML = pokemon
+    .filter((p) => !pool || pool.has(p.id))
+    .map((p) => `<option value="${escapeHtml(p.names.zh)}" label="#${p.id}"></option>`)
+    .join('');
+}
+
+/**
+ * The species the SUGGESTION LIST may show, in easy mode.
+ *
+ * In easy mode the round is drawn from one generation, so a suggestion from
+ * another one is an answer the reader cannot act on — it would be a row that
+ * fills the field and then cannot be the target. The reference does the same
+ * thing and only for unlimited mode (`selectedGenerations={mode === "unlimited"
+ * ? … : undefined}`); here it is wired to whichever generation is selected.
+ *
+ * A Set, rebuilt per call, over at most ~151 ids. `poolFor()` would be the reuse —
+ * it is already imported and already the source of the draw — but it calls
+ * `genIdMap(data)` internally and rebuilds the whole map, and this runs on EVERY
+ * keystroke. `genIds` is that same map, built once in `init()`, so it is the
+ * cheaper half of one source of truth rather than a second one.
+ */
+function suggestionPool() {
+  if (state.difficulty !== 'easy') return null;
+  return new Set(genIds.get(state.gen) || []);
+}
+
+function searchMatches(q, { ignorePool = false } = {}) {
   const text = q.trim().toLowerCase();
   if (!text) return [];
+  const pool = ignorePool ? null : suggestionPool();
   const out = [];
   for (const p of pokemon) {
+    if (pool && !pool.has(p.id)) continue;
     const n = p.names || {};
     const idHit = String(p.id).includes(text);
     const zhHit = (n.zh || '').toLowerCase().includes(text);
@@ -501,8 +587,23 @@ function renderSlots() {
   for (let i = 0; i < limit; i++) {
     const g = state.guesses[i];
     if (!g) {
+      /* A NEUTRAL placeholder, and it used to carry a real sprite.
+       *
+       * It was `padId(i + 1)` — dex #1, #2, #3, #4 — so the four empty slots showed
+       * Bulbasaur, Ivysaur, Venusaur and Charmander. Two separate problems, and
+       * fixing only the obvious one makes it worse:
+       *
+       *   1. This project's sprites are named UNPADDED (`1.png`, `2.png`,
+       *      `10.png`), so `padId(i + 1)` produced `002.png` and every empty slot
+       *      was a BROKEN IMAGE. Caught by looking, not by the checker.
+       *   2. Had the path been corrected to `spriteUrl(i + 1)`, the slots would show
+       *      the real #1-#4 and read as four guesses already made.
+       *
+       * The reference renders its empty slots as skeleton blocks — a muted square,
+       * two muted bars, no image and no text. That is what this is now: an empty
+       * dashed square where the sprite sits, and the attempt number beside it. */
       rows.push(`<li class="gm-slot is-empty" aria-hidden="true">
-        <img class="gm-slot-sprite" alt="" src="assets/images/pokemon/${padId(i + 1)}.png" loading="lazy" decoding="async">
+        <span class="gm-slot-placeholder"></span>
         <div class="gm-slot-body"><span class="gm-slot-empty-text">第 ${i + 1} 次機會</span></div>
       </li>`);
       continue;
@@ -532,6 +633,18 @@ function renderSlots() {
 
 function renderSearchResults() {
   const q = els.search.value.trim();
+  /* The status line is CLEARED here, every keystroke, and re-set below if there is
+   * something to say.
+   *
+   * It was only written when the pool was the reason, which meant the message
+   * outlived the query that produced it: type 妙喵 (filtered out, so "本回合只從
+   * 第 I 世代出題"), then type 不存在的名字 — which matches nothing in the WHOLE
+   * corpus — and the line still said the generation, blaming the round for a typo.
+   *
+   * Silence is also the right default, because Enter owns the "nothing matched"
+   * case and prints 找不到「…」 with what would work. Two places reporting one
+   * failure is how the wrong one ends up being the one the reader sees. */
+  els.searchStatus.textContent = '';
   if (!q || state.status !== 'playing') { setRevealed(els.searchList, false); return; }
   const matches = searchMatches(q);
   const used = new Set(state.guesses.map((g) => g.id));
@@ -546,6 +659,15 @@ function renderSearchResults() {
   }).join('');
   setRevealed(els.searchList, matches.length > 0);
   els.search.setAttribute('aria-expanded', matches.length > 0 ? 'true' : 'false');
+
+  /* An empty list in easy mode is almost never "no such Pokémon" — it is usually
+   * a real species from another generation, which the pool just removed. Saying
+   * so is the difference between "my typing is broken" and "this round is narrow".
+   * Checked by re-running the scan WITHOUT the pool, so the message is only shown
+   * when the filter is the reason, and never when there is genuinely no match. */
+  if (!matches.length && suggestionPool() && searchMatches(q, { ignorePool: true }).length) {
+    els.searchStatus.textContent = `本回合只從第${numeralOf(state.gen)}世代出題。`;
+  }
 }
 
 function renderGenerations() {
@@ -637,10 +759,6 @@ function numeralOf(n) {
   return ({ 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX' })[n] || String(n);
 }
 
-function padId(id) {
-  return String(id).padStart(3, '0');
-}
-
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
@@ -650,10 +768,24 @@ function escapeHtml(s) {
 // ---------------------------------------------------------------------------
 
 function wire() {
-  els.search.addEventListener('input', () => renderSearchResults());
+  els.search.addEventListener('input', () => {
+    /* Typing after a click is the reader changing their mind, so the armed pick
+     * goes. Without this the sequence click row 2 -> type one more character ->
+     * Enter would submit row 2, which is now not what the field says. */
+    if (pendingPick !== null) {
+      pendingPick = null;
+      els.searchStatus.textContent = '';
+    }
+    renderSearchResults();
+  });
   els.search.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      /* THE ARMED PICK, before anything else. It is the only route into this field
+       * that names a species the reader has already chosen by hand, so it outranks
+       * the row they last walked to and the first row they did not. */
+      if (submitPendingPick()) return;
+
       /* Arrow keys first, so Enter takes the row the reader has walked to rather
        * than snapping back to the first. Without them the ↓ key did nothing and
        * the only reachable row was the top one, which is the same as having no
@@ -715,7 +847,7 @@ function wire() {
      tree before it is pressed — §3.G. */
   document.addEventListener('click', (e) => {
     const item = e.target.closest('.gm-search-item');
-    if (item && !item.classList.contains('is-used')) { pickFromSearch(Number(item.dataset.id)); return; }
+    if (item) { chooseFromSearch(Number(item.dataset.id)); return; }
     const gen = e.target.closest('[data-gen]');
     if (gen) { setGeneration(Number(gen.dataset.gen)); return; }
     const diff = e.target.closest('[data-difficulty]');
@@ -740,9 +872,53 @@ function wire() {
   });
 }
 
+/**
+ * A dropdown row was CLICKED: fill the field, name the species, submit nothing.
+ *
+ * The input gets the bare zh-TW name rather than the id, so a native datalist
+ * selection — which sets the same thing — lands on an identical value, and so the
+ * reader can still edit what they picked. `pendingPick` carries the id, because
+ * `resolveExact()` cannot recover it from a name the reader then changes.
+ *
+ * No `input` event is dispatched. It would re-run the search, close the list the
+ * reader just chose from, and clear `pendingPick` on the way through — the handler
+ * that sets the value would destroy the state that makes it mean anything.
+ */
+function chooseFromSearch(id) {
+  const p = byId.get(id);
+  if (!p) return;
+  els.search.value = p.names.zh;
+  setRevealed(els.searchList, false);
+  els.search.setAttribute('aria-expanded', 'false');
+
+  if (state.guesses.some((g) => g.id === id)) {
+    /* Already guessed. Fill the field so the reader can see which one they hit,
+     * but arm nothing: Enter would only be told no, and a click that appears to
+     * arm something and then refuses is worse than one that says why. */
+    pendingPick = null;
+    els.searchStatus.textContent = `#${id} ${p.names.zh} 已經猜過了。`;
+    els.search.focus();
+    return;
+  }
+
+  pendingPick = id;
+  els.searchStatus.textContent = `已選好 #${id} ${p.names.zh} —— 按 Enter 作答。`;
+  els.search.focus();
+}
+
+/** Submit the pending pick. Returns false when there is nothing armed. */
+function submitPendingPick() {
+  const id = pendingPick;
+  if (id == null) return false;
+  pendingPick = null;
+  pickFromSearch(id);
+  return true;
+}
+
 function pickFromSearch(id) {
   const ok = submitGuess(id);
   els.search.value = '';
+  pendingPick = null;
   setRevealed(els.searchList, false);
   els.searchStatus.textContent = ok ? '' : '這一隻已經猜過了。';
   if (!ok && !state.guesses.some((g) => g.id === id)) els.searchStatus.textContent = '這次已經結束了。';
@@ -846,20 +1022,12 @@ async function init() {
   genIds = genIdMap(pokemon);
   allGenerations = [...genIds.keys()].sort((a, b) => a - b);
 
-  /* The native fallback list, built ONCE.
-   *
-   * Built once rather than per keystroke because it is 1,025 options and it never
-   * changes — rebuilding it on every `input` event would be ~40 KB of DOM churn per
-   * character typed, on a page whose whole point is that the reader does not know
-   * the name and is therefore typing a lot.
-   *
-   * `value` is the bare zh-TW name because that is what the keyboard completes INTO;
-   * the id rides in `label` so the suggestion shows it without the reader having to
-   * remember a number. No `option` is disabled: the datalist cannot express "already
-   * guessed" and faking it would need a value the reader could not complete to. */
-  els.names.innerHTML = pokemon
-    .map((p) => `<option value="${escapeHtml(p.names.zh)}" label="#${p.id}"></option>`)
-    .join('');
+  /* No `renderDatalist()` here, deliberately. It used to be two lines below, which
+   * is BEFORE `state.difficulty` and `state.gen` are read out of the store — so it
+   * built the list from the defaults and `newGame()` rebuilt it correctly a few
+   * lines later anyway. `newGame()` is the one place a round changes and it calls
+   * it; building here would only have been right when the stored answer happened to
+   * equal the default. */
 
   /* The spec: 「第一次進來都是簡單 + 第一世代」. So the default is written down
      rather than being "the first configured value", and anything read back from

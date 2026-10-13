@@ -434,6 +434,132 @@ console.log('\nthe hint button: free on the first press, cooldown after');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\nclicking a row fills the field; Enter spends the attempt');
+// ---------------------------------------------------------------------------
+{
+  /* The dropdown is capped at 40 rows on a phone-sized target, and a daily round has
+   * four attempts, so a click is the lowest-intent way to choose a species. The
+   * reference submits on click (`handleSelect` -> `onPokemonSelect` -> `handleGuess`)
+   * because it has accounts, a history and a shareable result to absorb a mis-click;
+   * this page has none of those. */
+  const choose = /function chooseFromSearch[\s\S]*?\n}/.exec(jsCode);
+  const pick = /function pickFromSearch[\s\S]*?\n}/.exec(jsCode);
+  const submitPending = /function submitPendingPick[\s\S]*?\n}/.exec(jsCode);
+  check(!!choose && !!pick && !!submitPending,
+    'the click path, the submit path and the arm/disarm path are three named functions');
+
+  /* BOTH names are forbidden here, and the first version of this check forbade only
+   * `submitGuess` — which was VACUOUS. `chooseFromSearch()` does not submit
+   * directly; calling `pickFromSearch()`, which does, slips past a check for the
+   * inner name entirely. A mutation that made the click path call `pickFromSearch`
+   * — restoring exactly the behaviour this change removed — passed, because the
+   * click path's real submit is one call away and the assertion never looked.
+   *
+   * Two functions submit; a click must reach neither. */
+  check(choose && !/\b(submitGuess|pickFromSearch|submitPendingPick)\b/.test(choose[0]),
+    'and the CLICK path reaches none of the three submit functions — it fills the field',
+    () => 'a click still spends an attempt, one call removed');
+  check(pick && /submitGuess/.test(pick[0]),
+    'while pickFromSearch() is the one that submits');
+  check(/\b(submitGuess|pickFromSearch|submitPendingPick)\b/.test(choose[0]) === false,
+    'and that is an absence over the whole function body, not a single line of it');
+  check(choose && !/\.dispatchEvent\(new (InputEvent|Event)\('input'/.test(choose[0]),
+    'and it dispatches no `input` event, which would clear the pick it just set',
+    () => 'dispatching input re-runs the search, closes the list, and disarms the pending pick in one go');
+
+  /* Enter must try the armed pick before the row it last walked to, which is the
+   * only route into the field that names a species the reader chose by hand. */
+  const kd = /els\.search\.addEventListener\('keydown'[\s\S]*?\n {2}\}/.exec(jsCode);
+  check(!!kd, 'the keydown handler exists');
+  const at = kd ? ['submitPendingPick()', 'aria-selected', 'resolveExact(', '.gm-search-item:not(.is-used)'].map((n) => kd[0].indexOf(n)) : [];
+  check(at.every((i) => i >= 0) && at.every((v, i) => i === 0 || v > at[i - 1]),
+    "Enter tries the armed pick, then the arrow-key row, then a whole name, then the first row",
+    () => `positions ${at.join(', ')} — expected ascending, and submitPendingPick() must come first`);
+
+  /* Typing after a click is the reader changing their mind. Without this, click row
+   * 2 -> type one more character -> Enter would submit row 2, which is no longer
+   * what the field says. */
+  const inp = /els\.search\.addEventListener\('input'[\s\S]*?\}\);/.exec(jsCode);
+  check(!!inp && /pendingPick = null/.test(inp[0]),
+    'the input listener disarms the pending pick');
+  check(/function newGame[\s\S]*?pendingPick = null/.test(jsCode),
+    'and a new round disarms it too — an armed pick names a round that no longer exists',
+    () => 'Enter after a reset would submit a species from the previous round');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\neasy mode narrows the SUGGESTIONS, and only the suggestions');
+// ---------------------------------------------------------------------------
+{
+  check(/function suggestionPool/.test(jsCode) && /state\.difficulty !== 'easy'/.test(jsCode),
+    'suggestionPool() is null unless the difficulty is easy');
+  check(/genIds\.get\(state\.gen\)/.test(jsCode), 'and it reads the selected generation from genIds');
+  check(/function searchMatches[\s\S]{0,400}?pool && !pool\.has/.test(jsCode),
+    'searchMatches() skips anything outside it');
+  check(/function renderDatalist[\s\S]{0,400}?pool \|\| pool\.has/.test(jsCode),
+    'and so does the native datalist, which is the layer a phone keyboard reads');
+
+  /* It must NOT narrow the guess. A Gen-1 round can still be answered with a
+   * Paldea species — a bad guess, but a legal one — and blocking it would leave a
+   * reader who knows the answer unable to submit it. */
+  const resolve = /function resolveExact[\s\S]*?\n}/.exec(jsCode);
+  check(!!resolve && !/suggestionPool|state\.gen|state\.difficulty/.test(resolve[0]),
+    'resolveExact() is NOT filtered, so a species outside the pool can still be submitted',
+    () => 'the generation filter leaked into the guess path and a reader who knows the answer cannot submit it');
+
+  /* `poolFor()` was imported and never called. `suggestionPool()` reads `genIds`
+   * instead, because `poolFor()` rebuilds the whole generation map on every call and
+   * this path runs per keystroke. */
+  check(!/\bpoolFor\b/.test(jsCode),
+    'and the dead `poolFor` import is gone rather than left as a second way to ask',
+    () => '`poolFor` is imported but unused; if it is used, the search path rebuilds a 1,025-record map per keystroke');
+
+  /* The empty-state message must be conditional on the filter being the REASON.
+   * Shown unconditionally it blames the round for a typo. */
+  const rr = /function renderSearchResults[\s\S]*?\n}/.exec(jsCode);
+  check(!!rr && /if \(!matches\.length && suggestionPool\(\) && searchMatches\(q, \{ ignorePool: true \}\)\.length\)/.test(rr[0]),
+    'the 「只從第 N 世代出題」 line requires BOTH an empty list AND a match outside the pool',
+    () => 'it is printed whenever the list is empty, so a typo is reported as a narrow round');
+  check(!!rr && /els\.searchStatus\.textContent = ''/.test(rr[0].split('const matches')[0]),
+    'and the status line is cleared on every keystroke before anything re-sets it',
+    () => 'the message outlives the query that produced it');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe empty slots are placeholders, not dex #1 to #4');
+// ---------------------------------------------------------------------------
+{
+  /* It was `padId(i + 1)`, so the four empty slots carried dex #1-#4. Sprites are
+   * named UNPADDED here, so that was four broken images — and "fixing" it to
+   * `spriteUrl(i + 1)` would show the real Bulbasaur..Charmander, which reads as
+   * four guesses already made. The reference renders a muted skeleton block. */
+  const rs = /function renderSlots[\s\S]*?els\.slots\.innerHTML/.exec(jsCode);
+  check(!!rs, 'renderSlots() exists');
+  /* Slice the EMPTY branch only — from `is-empty` to its own `continue`. Taking
+   * everything after the string 'is-empty' also takes the FILLED branch, which
+   * legitimately has a `<img class="gm-slot-sprite">` and would fail this assertion
+   * forever. The two branches are separated by that `continue`, so it is the fence. */
+  const emptyBranch = rs ? (rs[0].split('is-empty')[1] || '').split('continue;')[0] : '';
+  check(!!emptyBranch, 'and the empty branch can be isolated from the filled one');
+  check(!/<img/.test(emptyBranch),
+    'it carries no <img> at all',
+    () => 'the empty slot is drawing a sprite again');
+  check(/gm-slot-placeholder/.test(emptyBranch), 'it renders .gm-slot-placeholder instead');
+  check(!/\bpadId\b/.test(jsCode.replace(/\*[^\n]*\n(?:[^\n]*\n)*?\*\//g, '')) || !/function padId/.test(jsCode),
+    'and padId() is gone — it existed only to build that broken path',
+    () => 'padId() has no callers; an unused helper is a second thing to keep right');
+  check(/\.gm-slot-placeholder/.test(css), 'the placeholder is styled');
+  /* It must occupy the sprite's box, or every answered row shifts sideways. */
+  const ph = /\.gm-slot-placeholder\s*\{([^}]*)\}/.exec(css);
+  const sp = /\.gm-slot-sprite\s*\{([^}]*)\}/.exec(css);
+  check(!!ph && !!sp && ph[1].includes('56px') && sp[1].includes('56px'),
+    'at exactly the sprite\'s 56x56, so empty and filled rows line up',
+    () => 'the placeholder and the sprite disagree on width, so answering shifts the row');
+  check(/\.gm-slot-sprite, \.gm-slot-placeholder/.test(css),
+    'and the narrow-viewport rule resizes both together');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\nthe guess box: two autocomplete layers, and the keyboard');
 // ---------------------------------------------------------------------------
 {
