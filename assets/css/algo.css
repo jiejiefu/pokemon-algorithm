@@ -220,6 +220,27 @@ body.al-body .al-toolbar .btn {
 .al-chip input { accent-color: var(--accent-gold); margin: 0; }
 .al-chip[data-checked="true"] { background: var(--accent-gold-surface); color: var(--on-accent); }
 
+/* 排序鍵 gets its own width, and the reason is a label that was 17 characters.
+ *
+ * A `<select>` sizes itself to its WIDEST option, so `max-width` on the shared
+ * `.al-select` is a promise that every option in that select fits. It was 15em =
+ * 195px, and the widest 排序鍵 option needed 259px — so the control clipped its
+ * own longest option at every width, including 1,440px, where nothing else on
+ * this page was tight. The dropdown was never wrong about which key was selected;
+ * it was just too narrow to show the list it offered.
+ *
+ * 18em = 234px clears the longest remaining label (「中文名筆畫（視瀏覽器而定）」,
+ * 13 characters ≈ 211px) with room, and still fits 320px's 296px content box. The
+ * 屬性 option's parenthetical is gone rather than accommodated, because
+ * `sort-keys.js`'s `note` already said all of it and `refreshKeyNote()` prints
+ * that into the panel below the toolbar — see §3.B1 on two copies of one thing.
+ *
+ * The page's own `check_sorting_page.mjs` measures the widest `SORT_KEYS[].label`
+ * against this number, so re-lengthening a label cannot quietly re-clip it. */
+#sortKeySelect {
+  max-width: 18em;
+}
+
 /* ---------- Work area ---------- */
 .al-main {
   display: grid;

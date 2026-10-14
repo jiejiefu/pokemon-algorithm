@@ -393,6 +393,91 @@ check(/@media\s*\(max-width:\s*560px\)\s*\{\s*\n\s*body\.al-body #algoPicker \.b
   () => 'algo.css\'s max-width:560px rule sizes the six algorithm buttons so they fit 320px in one row. Both halves are load-bearing: 6 × (12×2 + 18 + 2) = 294px against 296px of content box, a 2px margin. Rounding `padding: 5px 9px` to `10px` re-wraps the picker at exactly the width the rule exists for, so the number is asserted rather than left to a comment.');
 
 
+console.log('static: the 排序鍵 select can show every option it offers');
+
+/* A `<select>` SIZES ITSELF TO ITS WIDEST OPTION, so `max-width` on it is a promise
+ * that every option fits. Read off the rule rather than restated, because the whole
+ * defect was a `max-width` and a label that had each drifted away from the other. */
+const sortKeyMaxWidth = cssCode.match(/#sortKeySelect\s*\{[^}]*max-width:\s*(\d+)em/)?.[1];
+/* THE DESCRIPTION IS NOT ALLOWED TO INTERPOLATE THE MEASUREMENT, and that is the
+ * second lesson from the two sort-key cases failing to apply. A description that
+ * reads "(18em)" is a different string the moment the rule goes away, so a mutation
+ * harness pointing at it by exact text can never match the failure it is aimed at —
+ * it matches the baseline instead and reports 「the guard does not exist」, which is
+ * the one answer that is always wrong. §3.G9's rule inverted: the message quotes the
+ * named constant, not the number it happened to read. */
+check(sortKeyMaxWidth !== undefined && Number(sortKeyMaxWidth) >= 18,
+  '#sortKeySelect declares its own max-width, above the shared .al-select\'s 15em',
+  () => `#sortKeySelect's own max-width is ${sortKeyMaxWidth ? sortKeyMaxWidth + 'em' : 'absent'}; it needs to be at least 18em. .al-select's 15em = 195px could not hold the longest option (13 characters, ~211px), so the control clipped its own list at EVERY width including 1,440px.`);
+
+/* THE REAL INVARIANT IS THE DUPLICATION, NOT THE PIXELS, and it is checkable without
+ * a browser: an option label that repeats what its own `note` already says. `note` is
+ * printed by `refreshKeyNote()` into `#keyNote`, directly under the toolbar, and it
+ * has existed for the whole life of the field.
+ *
+ * So the assertion is that no label carries a parenthetical that is not on the list.
+ * The labels that legitimately do are not explanations of the key's behaviour, they
+ * are *disclosures* and *directions*: sort-keys.js's own comment says the 視瀏覵器而定
+ * wording is what stands in for a guarantee the page cannot make, and a sort key
+ * without its direction is ambiguous. Neither is a second copy of a note, which is
+ * why the rule has to be about duplication and cannot simply be 「no parentheses」. */
+const SORT_KEYS = (await import(join(ROOT, 'assets/js/sort-keys.js'))).SORT_KEYS;
+const parenthetical = (label) => (label.match(/（([^）]+)）/g) || []);
+
+/* KEYED BY `id`, AND THE LABELS ARE READ FROM THE MODULE RATHER THAN TYPED.
+ *
+ * The first version of this list held the label strings verbatim and every one of
+ * them had to be typed by hand — and I mistyped the same character twice in five
+ * entries, so 「中文名筆畫（視瀏覵器而定）」 matched nothing and the assertion fired on
+ * the one label it was written to excuse. That is the second time in this session a
+ * hand-copied string from a data file was the whole defect, after the
+ * `availableRaceSizes` anchor, and it is §3.S's rule stated as an implementation
+ * choice: read the constant out of the module, never restate it. The `id` is the
+ * only thing written here, and the label is looked up.
+ *
+ * The five are not explanations of the key's behaviour, they are DISCLOSURES and
+ * DIRECTIONS. sort-keys.js's own comment says the 視瀏覵器而定 wording stands in for a
+ * guarantee the page cannot make, because the browser's ICU may or may not carry
+ * zh-Hant-u-co-stroke collation data; and a sort key whose direction is not stated is
+ * ambiguous. None of them is a second copy of a `note`, which is why the rule has to
+ * be about duplication and cannot simply be 「no parentheses」. */
+const REVEALING = [
+  { id: 'name-stroke', why: 'a disclosure about collation support, which sort-keys.js says is what the label is for' },
+  { id: 'weight', why: 'the sort direction, which a key without is ambiguous' },
+  { id: 'height', why: 'the sort direction' },
+  { id: 'hue', why: 'which part of HSV the key uses' },
+  { id: 'name-en', why: 'the collation' },
+];
+const REVEALED_LABELS = new Set(REVEALING.map(r => SORT_KEYS.find(k => k.id === r.id)?.label));
+
+const unexplained = SORT_KEYS
+  .filter(k => parenthetical(k.label).length && !REVEALED_LABELS.has(k.label))
+  .map(k => `${k.id}: 「${k.label}」 carries ${parenthetical(k.label).join(' ')}`);
+check(unexplained.length === 0,
+  'no sort-key label repeats an explanation its own note already prints',
+  () => `${unexplained.join(' | ')}. A select sizes itself to its widest option, so a parenthetical is a width cost in the toolbar. The 屬性 key's label was 17 characters and 259px against a 195px control — and its note has said all of it in better prose, in #keyNote, directly below, since the field existed. §3.B1: two copies of one thing is duplication, and the copy that breaks the layout is the one to delete. Direction and disclosure parentheticals are legitimate and are the five ids in REVEALING.`);
+
+/* THE EXCEPTION LIST IS A FLOOR, NOT AN ALLOWANCE, and that is a separate
+ * assertion from the one above.
+ *
+ * The duplication check only fires on a label that CARRIES a parenthetical and is not
+ * on the list — so deleting a legitimate one makes the label innocent and the check
+ * silent. The mutation harness found it by writing exactly that mutation, which is
+ * the shape §3.W warns about: a guard that cannot be violated in one direction is a
+ * list nothing maintains.
+ *
+ * What is at risk is a DOCUMENTED decision. sort-keys.js's own comment says that
+ * label's job is to stand in for a guarantee the page cannot make; removing the
+ * words turns 「we cannot promise this」 into a silent claim, and nothing else in the
+ * suite would notice. The check is phrased as "the id is still present AND still
+ * carries one", so a key RENAMED to match a new list does not pass by being absent. */
+const lostDisclosures = REVEALING
+  .filter(r => { const k = SORT_KEYS.find(x => x.id === r.id); return !k || !parenthetical(k.label).length; })
+  .map(r => `${r.id} (${SORT_KEYS.find(x => x.id === r.id)?.label ?? 'no such key'}) — ${r.why}`);
+check(lostDisclosures.length === 0,
+  'every sort-key that is allowed a parenthetical still carries one',
+  () => `${lostDisclosures.join(' | ')}. REVEALING is not a list of labels the checker tolerates; it is the floor under the one above. Deleting 視瀏覵器而定 does not merely shorten a dropdown — sort-keys.js records that wording as standing in for a guarantee the page cannot make about the browser's ICU collation data, so removing it replaces 「we cannot promise this」 with a silent claim. Same for 矮→高 / 輕→重: a sort key whose direction is not stated is ambiguous.`);
+
 console.log('static: the 資料範圍 scope gate');
 
 /* THE PHONE BREAKPOINT IS IN TWO PLACES AND CANNOT BE IN ONE, because a media
@@ -1512,6 +1597,34 @@ if (!existsSync(CHROME)) {
         `the race-mode toolbar stays within ${TOOLBAR_CEILING}px at 320px, down from 403px`,
         () => `the toolbar measured ${raceSweep.heights.join(', ')}. 403px was 48% of an 844px phone viewport, and wrapping was the fix rather than a disclosure because the height came from `.al-chips` stacking — the thing wrapping removes.`);
 
+
+      /* 排序鍵, at every width of the sweep including 1440, because that is where the
+       * defect lived: `.al-select`'s `max-width: 15em` is a promise that every option
+       * in that select fits, and the widest one needed 259px against 195px. Nothing
+       * about it was phone-specific — it was clipped on a 1,440px desktop too, which
+       * is exactly why the sweep has to include the wide end.
+       *
+       * The group list above cannot find this one: `#sortKeySelect` is the control,
+       * not a container of controls, so it is read directly and measured the same way
+       * — clone, `nowrap`, `width: auto`, compare. */
+      const sortKeyFits = [];
+      for (const w of [1440, ...NARROW_WIDTHS]) {
+        await setWidth(w);
+        const m = JSON.parse(await evalJs(`(() => {
+          const b = document.getElementById('sortKeySelect');
+          const r = b.getBoundingClientRect();
+          const p = b.cloneNode(true);
+          p.style.cssText += ';position:absolute;visibility:hidden;white-space:nowrap;width:auto;max-width:none;left:-9999px;';
+          document.body.appendChild(p);
+          const need = p.getBoundingClientRect().width;
+          p.remove();
+          return JSON.stringify({ box: Math.round(r.width), need: Math.round(need) });
+        })()`));
+        if (m.need > m.box + 1) sortKeyFits.push(`${w}px ${m.box}<${m.need}`);
+      }
+      check(sortKeyFits.length === 0,
+        'the 排序鍵 select is at least as wide as the widest option it offers, at 1440 / 560 / 390 / 320px',
+        () => `${sortKeyFits.length} width(s) clipped the option list: ${sortKeyFits.join(' | ')}. A select sizes itself to its widest option, so a control narrower than that clips its own list — on the desktop too, which is why the sweep runs to 1,440px rather than starting at the phone breakpoint.`);
 
       /* Restore the wide viewport and the default URL before the stub-liveness read
        * below, which asserts a floor over the WHOLE run and would otherwise be

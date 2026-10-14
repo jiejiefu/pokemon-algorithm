@@ -68,6 +68,7 @@ const FILES = [
      unmutated and the harness reports 「the guard does not exist」. That is exactly
      what happened to the two 排序鍵 cases, and it is §3.W's shape — a mutation that
      cannot be applied prints what a mutation the assertion survives prints. */
+  'assets/js/sort-keys.js',
 ];
 
 /* The rendered half's check count. Hardcoded on purpose, and updating it is the
@@ -93,7 +94,7 @@ const FILES = [
  * picker's single row at 320px. Counted from the run rather than from the edit.
  * Deliberate, not incidental — see §3.G4 on why this number is hardcoded rather
  * than derived. */
-const EXPECTED_STRIP_DROP = 53;
+const EXPECTED_STRIP_DROP = 54;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -430,6 +431,46 @@ const cases = [
       ? s.replace('    padding: 5px 9px;\n    font-size: 12px;', '    padding: 5px 10px;\n    font-size: 12px;')
       : undefined,
     expect: 'the ≤560px rule shrinks the algorithm buttons, with the 9px padding named',
+  },
+
+/* ---- the 排序鍵 dropdown ----
+   *
+   * The first mutation is the one this defect actually WAS: a label lengthened with
+   * prose its own note already carries. It is caught by the duplication assertion
+   * rather than by the pixel one, because the pixel assertion needs a browser and the
+   * duplication is the cause — §3.F's rule that comparing an implementation to a
+   * DESCRIPTION is how an APU ends up confidently agreeing with the wrong thing. */
+  {
+    name: 'a sort-key label is lengthened back with prose its note already carries',
+    mutate: (f, s) => f === 'assets/js/sort-keys.js'
+      ? s.replace("id: 'type', label: '屬性', short: '屬性',", "id: 'type', label: '屬性（穩定性示範：同屬性視為相等）', short: '屬性',")
+      : undefined,
+    expect: 'no sort-key label repeats an explanation its own note already prints',
+  },
+  {
+    /* Found by writing it and watching the assertion above stay green: deleting a
+     * legitimate parenthetical leaves a label with NO parenthetical, which a check
+     * phrased as 「carries one and is not on the list」 cannot see. REVEALING was an
+     * allowance; it had to become a FLOOR, and this case is what proves it is one. */
+    name: 'a legitimate disclosure parenthetical is deleted, so 「we cannot promise this」 becomes a silent claim',
+    /* Matched by SHAPE, not by typing the label: an earlier version of this case
+     * wrote the parenthetical out by hand and got one character wrong, so the
+     * replace matched nothing and the harness reported 「the guard does not exist」
+     * for a mutation that had never been aimed at anything. §3.S's rule applied to a
+     * mutation — the anchor is a pattern over the file, never a transcription of it.
+     * That is the SECOND time in this session a hand-copied string was the whole
+     * defect, and the first was the REVEALING list it was aimed at. */
+    mutate: (f, s) => f === 'assets/js/sort-keys.js'
+      ? s.replace(/(id: 'name-stroke', label: '[^']*)（[^）]*）/, '$1')
+      : undefined,
+    expect: 'every sort-key that is allowed a parenthetical still carries one',
+  },
+  {
+    name: '#sortKeySelect drops its own max-width back to the shared .al-select value',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('#sortKeySelect {\n  max-width: 18em;\n}', '')
+      : undefined,
+    expect: '#sortKeySelect declares its own max-width, above the shared .al-select\'s 15em',
   },
 
   /* ---- the 資料範圍 scope gate ---- */

@@ -109,8 +109,23 @@ export const SORT_KEYS = [
     /* Single-key ON PURPOSE — see the file header. 18 types over 1,025 records
      * means heavy ties, which is exactly what the 顯示原始順序 toggle needs in
      * order to show that a stable algorithm keeps the shuffled relative order
-     * inside a tie group and an unstable one does not. */
-    id: 'type', label: '屬性（穩定性示範：同屬性視為相等）', short: '屬性',
+     * inside a tie group and an unstable one does not.
+     *
+     * The label is BARE and the explanation is not in it. It used to read
+     * 「屬性（穩定性示範：同屬性視為相等）」 — 17 characters, 259px at 13px — which
+     * is what `#sortKeySelect`'s `max-width: 15em` (195px) could not hold, so the
+     * dropdown clipped its own longest option at EVERY width including a 1,440px
+     * desktop. The `note` below has said all of it, in better prose, since the
+     * field existed, and `refreshKeyNote()` prints that into `#keyNote` directly
+     * under the toolbar.
+     *
+     * So the parenthetical was a second copy of the note, and the second copy was
+     * the one breaking the layout — §3.B1's rule that two copies of one thing is
+     * duplication rather than comparison, arriving in a control label.
+     *
+     * `short: '屬性'` was already the bare form, which is the tell: the long label
+     * was never the only copy. */
+    id: 'type', label: '屬性', short: '屬性',
     note: '這個鍵刻意沒有第二排序鍵，所以同屬性的寶可夢互為相等。開啟「顯示原始順序」後，穩定的演算法會保留洗牌後的相對順序，不穩定的會打亂。',
     compare: (a, b) => typeRankOf(a.data) - typeRankOf(b.data),
   },
