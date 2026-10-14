@@ -768,6 +768,89 @@
 }
 
 /* ---------------------------------------------------------------------------
+   9b. The probe's tall half, behind one disclosure.
+   --------------------------------------------------------------------------- */
+
+/* The summary is the row a phone reader taps, so it carries the name of what it holds
+   rather than 「更多」 — §3.G9's rule, which is about a collapsed control having to be
+   opened just to find out what it is, and a row labelled 「更多」 on a panel whose
+   visible half is already 「this one Pokémon」 would be exactly that.
+   *
+   *  `display: none` ABOVE the breakpoint, and that is a promise rather than an
+   *  omission: at 1280×1000 this panel measured `headY: 108`, `playY: 234` and a
+   *  3,640px document both before and after the disclosure existed, because the
+   *  summary sits BELOW the play button and cannot shift anything above it. The one
+   *  thing it did change at that width was adding a row the panel had never had — a
+   *  control that collapses reference material a desktop reader could always see. So it
+   *  is hidden there, and `syncProbeDisclosure()` forces `open` back to true above the
+   *  breakpoint on every crossing, which is what makes hiding the affordance safe:
+   *  `display: none` cannot leave content closed with no way to open it.
+   *
+   *  `spectrum.html`'s picker toggle is hidden above the breakpoint for the same reason
+   *  and with the same guarantee, so both pages make exactly one new control appear, and
+   *  only at the width where the control is needed. */
+.cy-more-summary {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .cy-more-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 11px;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    list-style: none;
+    background: var(--bg-card);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+  }
+
+  /* The marker is restyled rather than removed, the same disclosure triangle
+     `spectrum.css` uses for `.sp-box` and `.sp-covers`, so the pages that have one read
+     as one family. Removing the UA's without drawing a replacement is what leaves a
+     control with no affordance at all. */
+  .cy-more-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .cy-more-summary::before {
+    content: '▸';
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
+  }
+
+  .cy-more[open] > .cy-more-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .cy-more-summary:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: -2px;
+  }
+}
+
+/* `.cy-panel h3` carries `margin: 18px 0 8px`, sized for a heading that follows prose.
+   Here it follows the summary, so the first one keeps 18px on top of the summary's own
+   10px and the two rows read as three. `:not([open])`-scoped because a collapsed
+   disclosure has no visible heading to move. */
+.cy-more[open] > h3:first-of-type {
+  margin-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cy-more-summary::before {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    9. Below 900px the panel leaves the side and becomes a block above the grid.
    With the panel in flow the whole page is one scroller, so a sticky panel would
    pin over the content it is meant to sit beside -- the same reason

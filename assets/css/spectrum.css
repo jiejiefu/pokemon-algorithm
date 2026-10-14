@@ -266,6 +266,47 @@
 }
 
 /* ---------------------------------------------------------------------------
+   3a. 「搜尋與清單」 — the picker's disclosure, and what makes the rail work on a phone
+   --------------------------------------------------------------------------- */
+
+/* `display: contents`, and this is THE load-bearing declaration of the whole change:
+ * it makes the wrapper's children DIRECT FLEX ITEMS OF THE RAIL, which is exactly the
+ * arrangement the desktop layout had before the wrapper existed.
+ *
+ *  The wrapper cannot be `display: flex` and get the same result, and the difference is
+ *  not subtle. As a flex container the wrapper becomes the roster's flex parent, and a
+ *  flex item only shrinks below its content when its `min-height` allows it — so
+ * `.sp-roster`'s `flex: 1 1 auto` stopped meaning "fill the leftover height" and
+ * started meaning "be 5,347px tall". Measured at 1280×1000, with and without:
+ *
+ *    rail scrolls?          no (overflow 0)   ->  YES, 4,829px
+ *    .sp-roster box         503px            ->  5,347px
+ *    .sp-roster scrolls?    yes              ->  no
+ *
+ *  That inverts the rail's design: it is a viewport-height column whose ONE scroller is
+ *  the roster, and the rail itself is only a fallback for viewports too short to hold
+ *  the chrome. Inverting it moves the list's scrollbar out of the list and into the
+ *  whole rail, so a reader scrolls the rail to move through the list. The static check
+ *  reads the rules, not the boxes, so it stayed green over all of it. */
+.sp-picker {
+  display: contents;
+}
+
+/* The disclosure itself. `display: none` above the breakpoint, where the picker is
+ * always open and its contents always visible: a control that reveals what is already
+ * revealed is a row of the rail's height budget spent to say nothing. It is restored
+ * inside the 900px query below — in the SAME query that collapses the rail, so the
+ * control and the layout it belongs to cannot drift apart.
+ *
+ * Hidden means untabbable, and that is correct rather than a compromise: above the
+ * breakpoint there is nothing to toggle, and `syncPicker()` runs on every crossing of
+ * the breakpoint so a resize can never leave the rail's contents collapsed with no
+ * control on screen to reopen them. */
+.sp-picker-toggle {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
    4. Sources
    --------------------------------------------------------------------------- */
 
@@ -1619,6 +1660,67 @@
     overflow: visible;
     border-right: none;
     border-bottom: 1px solid var(--hairline);
+  }
+
+  /* THE PICKER'S DISCLOSURE IS THE BAR THE RAIL BECOMES, and it is restored here
+     rather than in a rule of its own so that 「the control exists」 and 「the rail is
+     one block above the content」 are the same declaration site.
+     *
+     *  The label carries BOTH facts a reader needs before opening it: which species is
+     *  on screen, and how big the list is. §3.G9's rule — a collapsed control that does
+     *  not say what it is set to is a control the reader has to open just to find out —
+     *  applied to the picker itself rather than to the source box inside it. Both come
+     *  from `renderPickerSummary()`, one function, so the two halves cannot disagree. */
+  .sp-picker-toggle {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    margin: 12px 0 0;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    color: var(--text-primary);
+    cursor: pointer;
+    background: var(--bg-card);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-sm);
+  }
+
+  /* The same restyled disclosure triangle `.sp-box` and `.sp-covers` use, rather than
+     the UA's, so the three rows on this rail read as one family. It is a `<button>` and
+     not a `<summary>`, so there is no `details[open]` to hang the rotation on — the
+     attribute that means the same thing here is the one the button already carries. */
+  .sp-picker-toggle::before {
+    content: '▸';
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
+  }
+
+  .sp-picker-toggle[aria-expanded="true"]::before {
+    transform: rotate(90deg);
+  }
+
+  .sp-picker-toggle:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: -2px;
+  }
+
+  /* The wrapper is a plain block here, which is what `display: contents` is not. Its
+     `[hidden]` needs its own rule for §3.M's reason: an author `display` beats the
+     user-agent's `[hidden] { display: none }` at any specificity, so the attribute
+     alone would leave the wrapper's contents laid out and visible while the button
+     says they are collapsed. `shared.css` already does this for
+     `.site-nav-drawer[hidden]`, and this is the same case. */
+  .sp-picker {
+    display: block;
+  }
+
+  .sp-picker[hidden] {
+    display: none;
   }
 
   /* The roster stops being a scroller, because nothing above it needs pinning any

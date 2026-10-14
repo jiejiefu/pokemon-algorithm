@@ -330,6 +330,101 @@ ok(/id: 'cries'/.test(NAV) && /icon: 'waveform'/.test(NAV),
   'the nav row is the 叫聲 group with the waveform icon');
 ok(/waveform:/.test(NAV), 'the waveform icon is defined');
 
+// ---------------------------------------------------------------------------
+// §3.X. The probe's tall half, behind one disclosure collapsed at 900px.
+//
+// MEASURED AT 390×844, before the disclosure existed, with a species selected:
+//
+//   .cy-panel        1,609px of a 6,914px document
+//     similar list    666px · caveat 262px · measured figures 171px
+//     plus three <h3>s, the weight chips and their note   ≈ 510px
+//   #probe-play      y = −5,309 — 5,309px ABOVE the viewport, after tapping card 40
+//   grid's 1st card  y = 2,246
+//
+// and after: .cy-panel 387px, #probe-play y=181, #cy-probe-head y=55, grid's 1st card
+// y=707. At 1280×1000 the panel measures the same before and after — 1,000px, sticky,
+// #probe-play at y=234, a 3,640px document — which is what the `display: none`
+// assertion below exists to keep true.
+//
+// The GEOMETRY is in `check_cry_mobile_layout.mjs`; this half is what a source and a
+// stylesheet can answer, and none of it could catch a layout on its own.
+// ---------------------------------------------------------------------------
+
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+/* `[\s\S]*?` and not `[\S]*?` — the latter cannot match a space, so it silently finds
+ * nothing in a stylesheet with no error. Measured: this helper's first version reported
+ * zero media queries in every file it was pointed at. */
+const maxWidthBlocks = (src) => [...src.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)\n\}/g)]
+  .map((m) => ({ width: Number(m[1]), body: m[2] }));
+
+const moreOpen = page.indexOf('<details class="cy-more" id="probe-more" open>');
+const moreClose = page.indexOf('</details>', moreOpen);
+ok(moreOpen > 0 && moreClose > moreOpen,
+  'the probe\'s figures, its similarity list and its caveat are behind ONE `<details>`, which is `open` in the markup so a reader with no JavaScript gets the page this shipped as');
+ok(page.indexOf('id="probe-wave"') < moreOpen && page.indexOf('id="probe-play"') < moreOpen
+  && page.indexOf('id="probe-spectrum"') < moreOpen,
+  'and the waveform, ▶ 播放叫聲 and the 看頻譜 link are OUTSIDE it — they answer 「what does this one sound like」, which is the question a reader who just tapped a card asked, and putting them behind a tap would be the fix making the original complaint');
+/* BOUNDED ON BOTH SIDES, because half of this is not half of it. The first version
+ * asked only that each id come after the opening tag, and a mutation that moved
+ * `#probe-stats` to just PAST `</details>` — the one place that breaks the layout and
+ * leaves the markup perfectly valid — satisfied it. This is §3.P's finding pointed at an
+ * assertion of my own: 「inside the disclosure」 is a statement about an interval, and
+ * an interval has two ends. */
+const insideDetails = (needle) => {
+  const at = page.indexOf(needle);
+  return at > moreOpen && at < moreClose;
+};
+ok(['id="probe-stats"', 'id="weights"', 'id="similar"', 'cy-caveat'].every(insideDetails),
+  'while 實測數值, the weight presets, the similarity list and the caveat are all INSIDE it — bounded by both tags, because a half-open interval is satisfied by content that has just been moved out of it, and the caveat last, because it qualifies 音色相似 and nothing else');
+ok(/<summary class="cy-more-summary">實測數值與音色相似<\/summary>/.test(page),
+  'and the summary names what it holds rather than saying 「更多」 — §3.G9\'s rule, on a panel whose visible half is already 「this one Pokémon」');
+
+const summaryBase = (() => {
+  const start = cssCode.indexOf('.cy-more-summary {');
+  return start < 0 ? '' : cssCode.slice(start, cssCode.indexOf('}', start));
+})();
+ok(/display:\s*none/.test(summaryBase),
+  'the summary is `display: none` above the breakpoint, so a desktop reader is not handed a control that collapses reference material they could always see — and `syncProbeDisclosure()` forces `open` on every crossing, which is what makes hiding the affordance safe');
+const summaryBlocks = maxWidthBlocks(cssCode).filter((b) => /\.cy-more-summary/.test(b.body));
+eq(summaryBlocks.length, 1,
+  'and it appears in exactly ONE `max-width` block, because two of them would be two widths the control belongs to');
+
+/* The breakpoint is read out of the STYLESHEET and required to be the block that drops
+ * the panel out of the side. `cries.css` has four 900px blocks and two of them are
+ * about other things — this file's own new block, and `.cg-picker`, which is the
+ * Generation I lab's control on a page that is not in scope here. A bare number
+ * comparison would have been satisfied by any of them; §3.S's shape, where a
+ * stylesheet-shaped assertion is satisfied by a rule with nothing to do with the claim. */
+const panelBlocks = maxWidthBlocks(cssCode).filter((b) => /\.cy-panel/.test(b.body));
+eq(panelBlocks.length, 1,
+  'and there is exactly ONE `max-width` block in `cries.css` that touches `.cy-panel` — the one that makes it static, which is the layout the disclosure exists to mitigate');
+ok(/position:\s*static/.test(panelBlocks[0]?.body ?? ''),
+  'and that block is the one giving the panel `position: static`, so the assertion for the number below names a block rather than a number');
+const mq = page.match(/const PANEL_COLLAPSE_MQ = '\(max-width: (\d+)px\)'/);
+ok(Boolean(mq) && panelBlocks.length === 1 && Number(mq[1]) === panelBlocks[0].width,
+  'and the page\'s `PANEL_COLLAPSE_MQ` is that block\'s width, so the stylesheet and the script cannot disagree about where the panel collapses');
+eq(summaryBlocks.filter((b) => b.width === panelBlocks[0]?.width).length, 1,
+  'and the summary appears at the SAME width the panel collapses at — the control and the layout it exists for are one declaration site each, or a reader gets a button on the wrong side of the breakpoint');
+
+/* NO GATE ON A GESTURE, and the reason is already asserted at the top of this file:
+ * there are exactly three mentions of `probe()` — the definition and two click handlers
+ * — and none of them precede the definition, so the boot path calls `renderProbe()`
+ * directly. `revealProbe()` living inside `probe()` is therefore safe, and this
+ * assertion is here to say that it depends on the one above rather than to restate it. */
+ok(/revealProbe\(\);/.test(probeBody[1] ?? ''),
+  '`revealProbe()` is called from `probe()`, which the count above proves is reachable only from the grid click and the similarity-list click');
+const revealBody = page.match(/function revealProbe\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
+ok(/if \(!collapsed\(\)\) return;/.test(revealBody),
+  'and it returns early above the breakpoint, so a desktop reader is never moved by a function that exists for a phone');
+/* THE TARGET IS THE PANEL, and this is the measured half. Scrolling to `.cy-probe-head`
+ * put the head at y=−45 and its NAME at y=−31 — above the fold, so the reader was shown
+ * a play button for a Pokémon whose name they could not read. */
+ok(/querySelector\('\.cy-panel'\)/.test(revealBody) && !/cy-probe-head/.test(revealBody),
+  'and it scrolls the PANEL rather than the probe head: `nearest` aligns an element that is entirely above the viewport by its bottom, which clipped the sprite and its name off the top of the screen');
+ok(/block:\s*'nearest'/.test(revealBody) && /prefers-reduced-motion/.test(revealBody),
+  'with `block: \'nearest\'` so a reader who already has the panel on screen is not moved at all, and the smooth behaviour gated on `prefers-reduced-motion` (§3.C)');
+
 console.log('');
 console.log(`  axes: ${axisKeys.join(', ')}`);
 console.log(`  presets: ${presetCount}, features per row: ${features.dimensions}`);

@@ -140,9 +140,74 @@ const CASES = [
   },
   {
     name: 'the caveat is moved out of the served DOM and built by script instead',
+    /* Anchored to the caveat's OWN closing tag, by its ten-space indent. It used to be
+     * `<div class="cy-caveat">[\s\S]*?<\/div>\n        <\/div>`, which was exact while
+     * the caveat's parent was the panel and the next closing tag was `#probe`'s. The
+     * caveat now sits inside a `<details>`, so what follows it is `</div>\n
+     * </details>` and the old pattern found no match there — and being non-greedy, it
+     * did not fail, it kept eating to the next `</div>\n        </div>` several hundred
+     * lines later and deleted that too, taking `#autoplay-slot` with it. The harness
+     * then reported 「did not behave」 against a completely different assertion.
+     *
+     * Which is §3.P's finding pointed at a mutation rather than at a checker: a lazy
+     * `[\s\S]*?` is satisfied by the first match ANYWHERE, and 「it deleted more than I
+     * meant to」 is indistinguishable from 「it deleted the right thing and something
+     * else happened to catch it」. The inner `<dl>` closes at twelve spaces, so ten is
+     * the only indent that names the caveat itself. */
     mutate: (dir) => editPage(dir, (s) => s
-      .replace(/<div class="cy-caveat">[\s\S]*?<\/div>\n        <\/div>/, '</div>')),
+      .replace(/<div class="cy-caveat">[\s\S]*?\n          <\/div>/, '')),
     expect: 'caveat is part of the served DOM',
+  },
+  /* ---- §3.X: the probe's disclosure, collapsed at 900px (§3.X's measured defect:
+     1,609px of panel on a 390x844 screen, and #probe-play 5,309px above the fold) ---- */
+  {
+    name: 'the summary is shown on a desktop too, where nothing is collapsed',
+    mutate: (dir) => editCss(dir, (s) => s
+      .replace('.cy-more-summary {\n  display: none;\n}', '.cy-more-summary {\n  display: flex;\n}')
+      .replace('  .cy-more-summary {\n    display: flex;', '  .cy-more-summary {\n    display: block;')),
+    expect: 'the summary is `display: none` above the breakpoint',
+  },
+  {
+    /* Past the CLOSING tag, not merely out of its position: a reorder inside the
+     * disclosure is still inside it, and an assertion that only asked 「after the
+     * opening tag」 would have called this a pass. The assertion was strengthened
+     * because this case failed to fail — see the note on `insideDetails`. */
+    name: 'the measured figures move past the disclosure\'s closing tag',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('          <h3>實測數值</h3>\n          <dl class="cy-stats" id="probe-stats"></dl>\n\n', '')
+      .replace('        </details>\n', '        </details>\n          <h3>實測數值</h3>\n          <dl class="cy-stats" id="probe-stats"></dl>\n')),
+    expect: 'while 實測數值, the weight presets, the similarity list and the caveat are all INSIDE it',
+  },
+  {
+    name: 'the page collapses at 820px while the stylesheet does it at 900px',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace("const PANEL_COLLAPSE_MQ = '(max-width: 900px)';", "const PANEL_COLLAPSE_MQ = '(max-width: 820px)';")
+      .replace('function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (!collapsed())',
+        'function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (innerWidth > 820)')),
+    expect: "the page's `PANEL_COLLAPSE_MQ` is that block's width",
+  },
+  {
+    name: 'the summary appears in a second max-width block, so there are two widths it belongs to',
+    mutate: (dir) => editCss(dir, (s) => s + '\n@media (max-width: 900px) {\n  .cy-more-summary { color: red; }\n}\n'),
+    expect: 'it appears in exactly ONE `max-width` block',
+  },
+  {
+    name: 'the reveal scrolls the probe head instead of the panel, which clips the name off the top',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace("document.querySelector('.cy-panel').scrollIntoView({", "document.querySelector('.cy-probe-head').scrollIntoView({")),
+    expect: 'and it scrolls the PANEL rather than the probe head',
+  },
+  {
+    name: 'the reveal stops bailing out above the breakpoint, so a desktop reader gets scrolled too',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('function revealProbe() {\n      if (!collapsed()) return;\n', 'function revealProbe() {\n')),
+    expect: 'and it returns early above the breakpoint',
+  },
+  {
+    name: 'the summary is renamed to 更多, so the reader opens it to find out what it holds',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('<summary class="cy-more-summary">實測數值與音色相似</summary>', '<summary class="cy-more-summary">更多</summary>')),
+    expect: 'and the summary names what it holds',
   },
   {
     name: 'the caveat stops saying this is not lineage',

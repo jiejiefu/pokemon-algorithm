@@ -1504,6 +1504,165 @@ ok(/const LEVEL_H = 2\d/.test(liveSource) && /const PAD_T = 1\d/.test(liveSource
 ok(/el\('sp-source-now'\)\.textContent\s*=\s*`\$\{ROSTERS\[state\.source\]/.test(bodyOf('buildSources')),
   'which is written from `buildSources()` on every change, so it cannot drift from `aria-checked`');
 
+/* ---------------------------------------------------------------------------
+   16. THE PICKER — §3.X. A rail that is 5,856px of a phone's 9,471px document.
+   ---------------------------------------------------------------------------
+
+   MEASURED AT 390×844, BEFORE THIS SECTION EXISTED, and every number below is from a
+   browser rather than from the stylesheet:
+
+     .sp-left-panel    5,856px tall,  62% of the whole 9,471px document
+     .sp-roster        5,347px of it, with `overflow-y: visible` and no height cap
+     #sp-hero          y=6,746 — the spectrogram, the entire reason for the page
+     #sp-play          y=397, i.e. 6,349px from the thing it controls
+
+   and AFTER: `.sp-left-panel` 270px, `.sp-roster` 0, `#sp-hero` y=1,189, `#sp-play`
+   y=114. The desktop rail measures identically before and after — rail 1000px, not
+   scrolling, overflow 0, `.sp-roster` 503px and scrolling, plot at y=653 — which is
+   what the `display: contents` assertion below exists to keep true.
+
+   The GEOMETRY is checked in `check_cry_mobile_layout.mjs`, which drives the real page
+   at a phone width. Everything here is the part a stylesheet and a source can answer,
+   and none of it would catch a layout by itself — which is §3.G1a's shape and the
+   reason the two halves are not interchangeable.
+   -------------------------------------------------------------------------- */
+
+/* `[\s\S]*?` and not `[\S]*?`: the latter cannot match a space, so it silently finds
+ * nothing in a stylesheet. That is not a guess about a typo — it is the reason this
+ * helper's first version reported zero media queries in both files with no error. */
+const maxWidthBlocks = (src) => [...src.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)\n\}/g)]
+  .map((m) => ({ width: Number(m[1]), body: m[2] }));
+
+/* Comments are masked to a SPACE rather than removed, so a match that spans a comment
+ * boundary still fails — and, more to the point here, so the prose in the docblocks
+ * above cannot satisfy a count that is about code. `check_cries_page.mjs` has the same
+ * helper with the same reasoning; it is four lines and it is not in `scripts/lib/`
+ * because a module there is hashed into every skip-cache key (§3.G7's closing note
+ * prices that), which is more than a masking regex is worth. */
+const masked = (src) => src
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' ');
+
+const pickerOpen = markup.indexOf('<div class="sp-picker" id="sp-picker">');
+const pickerClose = markup.indexOf('</div>', markup.indexOf('id="sp-roster-list"'));
+ok(pickerOpen > 0 && pickerClose > pickerOpen,
+  'the rail\'s filters and its roster are wrapped in ONE `.sp-picker` — a `<details>` can only wrap a contiguous range, so cutting the picker in two would give a phone two summaries and two things to tap');
+ok(markup.indexOf('class="sp-roster" id="sp-roster"') > pickerOpen
+  && markup.indexOf('class="sp-covers"') > markup.indexOf('class="sp-roster" id="sp-roster"'),
+  'and the roster is INSIDE it with the cover grid still inside the roster — the two relationships the rail\'s one-scroller design depends on, in the order the assertion above about the cover grid already assumed');
+
+/* THE STATUS LINE IS OUTSIDE, and it is an ABSENCE assertion, which is the only form
+ * this can take. `#sp-status` carries 計算中… and 「無法取得這隻的叫聲：…」 — a decode
+ * failure reported inside a collapsed box is a message in a `display: none` subtree,
+ * which is not an error the reader can read. `spectrum.html` had it between the
+ * transport and the roster, so the wrapper had to be opened AFTER it and the transport
+ * moved above both; that is the same finding as the contiguity assertion above, and it
+ * is asserted here because it is the reason the markup reads in the order it does. */
+ok(markup.indexOf('id="sp-status"') < pickerOpen && markup.indexOf('id="sp-status"') > 0,
+  'the status line stays OUTSIDE the picker — a decode error reported inside a collapsed box is in a `display: none` subtree, and the reader gets no error at all');
+
+const pickerRule = (() => {
+  const start = cssCode.indexOf('.sp-picker {');
+  return start < 0 ? '' : cssCode.slice(start, cssCode.indexOf('}', start));
+})();
+ok(/display:\s*contents/.test(pickerRule),
+  'the wrapper is `display: contents` above the breakpoint, which is what puts `.sp-roster` back as a direct flex item of the rail — measured: as a flex container the roster became 5,347px, stopped scrolling, and handed the rail a 4,829px overflow');
+ok(/^\.sp-picker-toggle \{[\s\S]*?\}/m.test(cssCode)
+  && /display:\s*none/.test(cssCode.slice(cssCode.indexOf('.sp-picker-toggle {'), cssCode.indexOf('}', cssCode.indexOf('.sp-picker-toggle {')))),
+  'and the toggle is `display: none` above the breakpoint, because a control that reveals what is already revealed is a row of the rail\'s height budget spent to say nothing');
+
+/* The breakpoint is read out of the STYLESHEET, and required to be the one whose block
+ * carries `.sp-left-panel` — because `spectrum.css` has three `max-width` blocks (980,
+ * 900, 1210) and a bare number comparison would be satisfied by the other two.
+ * `spectrum.html` cannot read a media query and a media query cannot read a custom
+ * property, so the number is written twice and this is the only thing that makes the
+ * duplication safe. §3.S's shape: a shape assertion satisfied by a rule that has
+ * nothing to do with the claim. */
+const railBlock900 = maxWidthBlocks(cssCode).filter((b) => b.width === 900);
+ok(railBlock900.length === 1 && /\.sp-left-panel/.test(railBlock900[0].body),
+  'there is exactly ONE 900px block in `spectrum.css` and it is the one that drops the rail out of the side — the assertion for the number below has to name a block, not a number');
+const mq = page.match(/const PANEL_COLLAPSE_MQ = '\(max-width: (\d+)px\)'/);
+ok(Boolean(mq) && railBlock900.length === 1 && Number(mq[1]) === railBlock900[0].width,
+  'and the page\'s `PANEL_COLLAPSE_MQ` is that same width, so the stylesheet and the script cannot disagree about where the rail collapses');
+const syncPickerBody = page.match(/function syncPicker\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
+ok(/setPickerOpen\(!collapsed\(\)\)/.test(syncPickerBody),
+  'the breakpoint is applied in ONE place — `syncPicker()` collapses the picker on a phone and expands it above, and every other writer of the open state is a gesture the reader made');
+
+/* `reveal: true` AT FOUR SITES AND NOT AT TWO, counted rather than grepped, because
+ * the claim is about which call sites and not about the string existing. The two that
+ * must NOT carry it are named for a reason each: the source change re-renders the rail
+ * ABOVE the plot and is not an answer to a question asked from the plot, and the boot
+ * selection would fight the browser's own restore-scroll-on-back. */
+const selectSites = [...masked(page).matchAll(/select\(([^;]*?)\);/g)].map((m) => m[1]);
+const revealing = selectSites.filter((a) => /reveal:\s*true/.test(a));
+eq(revealing.length, 4,
+  'exactly four `select()` call sites ask to be revealed — the cover chips, 隨機一隻, Enter in the search box and a roster row');
+eq(selectSites.filter((a) => /reveal/.test(a)).length, revealing.length,
+  'and no other call site mentions `reveal` at all, so 「open a list on a phone and see nothing change」 cannot come back through a fifth path');
+ok(/renderRoster\(\)\.ids\.length\s*\?/.test(page) === false
+  && /select\(ROSTERS\[key\]\.ids\[0\]\)/.test(masked(page)),
+  'the source change selects without revealing: it rebuilds everything above the plot, so scrolling the reader down to it would move them away from the control they just pressed');
+ok(/await select\(ROSTERS\[state\.source\]\.ids\.includes/.test(masked(page))
+  && !/reveal/.test(page.match(/await select\(ROSTERS\[state\.source\][^;]*;/)?.[0] ?? ''),
+  'and so does the boot selection: a page that scrolls itself on load fights restore-scroll-on-back, and the plot is one short scroll away once the rail is 270px');
+
+/* §3.M'S TRAP, AND IT IS LIVE HERE. The wrapper's own `display` inside the 900px query
+ * is `block`, which beats the user-agent's `[hidden] { display: none }` at any
+ * specificity — so `picker.hidden = true` on a wrapper with an author `display` leaves
+ * 5,300px of list on screen while the button says 「搜尋與清單 ▸」. `shared.css` already
+ * pays this once for `.site-nav-drawer[hidden]`, and `docs/incidents/page-defects.md#m`
+ * measures all three variants in headless Chrome; this page now has the fourth instance
+ * of the same shape. Asserted as a RULE rather than as behaviour, because behaviour is
+ * what `check_cry_mobile_layout.mjs` is for and this half cannot see a box. */
+const hiddenRule = cssCode.slice(cssCode.indexOf('.sp-picker[hidden]'));
+ok(/^\.sp-picker\[hidden\]\s*\{[^}]*display:\s*none/.test(hiddenRule),
+  'and `.sp-picker[hidden]` carries its own `display: none` — the wrapper declares `display: block` below the breakpoint, and an author `display` beats `[hidden]` at any specificity, so the attribute alone would leave the list on screen with the button shut');
+
+const revealPlotBody = page.match(/function revealPlot\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
+/* ORDER, COMPARED, because 「closes the picker BEFORE scrolling」 is a claim about two
+ * statements' positions and a presence assertion cannot make it: both statements survive
+ * either order, so a mutation that swaps them satisfies every version of the check that
+ * asks whether each one is there. The picker IS the distance — ~5,300px of it — so
+ * scrolling first aims at an offset that is about to stop existing and the browser clamps
+ * to the collapsed maximum. */
+ok(revealPlotBody.indexOf('setPickerOpen(false)') >= 0
+  && revealPlotBody.indexOf('setPickerOpen(false)') < revealPlotBody.indexOf('scrollIntoView'),
+  'and it closes the picker BEFORE scrolling, compared as positions rather than as two presences — the picker is the distance, so scrolling first aims at an offset that is about to stop existing');
+ok(/if \(!collapsed\(\)\) return;/.test(revealPlotBody),
+  '`revealPlot()` returns early above the breakpoint, so a desktop reader is never moved by a page that only has this problem on a phone');
+
+ok(/prefers-reduced-motion/.test(revealPlotBody) && /block:\s*'nearest'/.test(revealPlotBody),
+  '`block: \'nearest\'` so a reader who already has the plot on screen is not moved at all, and the smooth behaviour is gated on `prefers-reduced-motion` (§3.C)');
+
+/* `aria-expanded` IS PART OF THE OPEN STATE and is written in the same function, which
+ * is the only reason it can be trusted: a button announcing 「expanded」 over a `hidden`
+ * box is the opposite of what is on screen, and no browser checks the two against each
+ * other. */
+const setPickerBody = page.match(/function setPickerOpen\(open\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
+ok(/setAttribute\('aria-expanded'/.test(setPickerBody) && /picker\.hidden = (true|false)/.test(setPickerBody),
+  '`aria-expanded` and the wrapper\'s `hidden` are both written by `setPickerOpen()`, so the button cannot announce the opposite of what is on screen');
+ok(/state\.pickerReturnY = window\.scrollY/.test(setPickerBody),
+  'and the return offset is `window.scrollY`, recorded on CLOSING — the roster cannot report it on a phone, where it is 5,300px of box holding 2,640px of rows and its own `scrollTop` is permanently 0');
+eq((masked(page).match(/pickerReturnY/g) || []).length, 4,
+  '`pickerReturnY` appears four times and no more — declared, assigned and read in `setPickerOpen()`, and zeroed in `resetRoster()` — because a field with a fifth reader is a field whose meaning has started to leak');
+ok(/state\.pickerReturnY = 0/.test(page.match(/function resetRoster\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? ''),
+  'and `resetRoster()` is one of the two writers, because a filter change is a new question and the old offset belongs to a list that no longer exists');
+
+/* THE SUMMARY IS ONE WRITER. `#sp-picker-now` states which species is on screen and how
+ * big the list is, and both halves have to move together: a summary that says 「1025 隻」
+ * above a 40-row filtered list, or 「胖可丁」 above a list 妙蛙種子 is selected from, is
+ * the same defect §3.G9 found on the source radiogroup. */
+eq((masked(page).match(/el\('sp-picker-now'\)\.textContent/g) || []).length, 1,
+  'the picker\'s summary is written in exactly one place, so its two halves cannot disagree');
+ok(/function renderPickerSummary\(\)/.test(page)
+  && /renderPickerSummary\(\);/.test(page.match(/function renderRoster\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '')
+  /* The whole `select()` body, anchored by its own closing brace — every statement in
+   * it is indented six spaces, so `\n {4}}` is the function's end and nothing else. The
+   * first version anchored on the next `const meta`, which is three lines in and
+   * therefore reported a missing call for a call that is forty lines further down. */
+  && /renderPickerSummary\(\)/.test(page.match(/async function select\([^)]*\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? ''),
+  'and it is called from the two writers of its inputs: `renderRoster()` for the count and `select()` for the name');
+
 console.log('');
 if (fails.length) {
   console.log(`FAIL  ${fails.length} of ${checks} checks failed`);

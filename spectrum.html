@@ -51,29 +51,17 @@
     <!-- The rail is a SIBLING of `<main>`, not a descendant. The controls are not
          the page's main content, and nesting them inside `<main>` puts every
          button in the skip-link target — `cries.html:43,100` is the shape here. -->
-    <aside class="sp-left-panel" aria-label="選擇寶可夢">
+<aside class="sp-left-panel" aria-label="選擇寶可夢">
       <h2 class="sp-panel-head">選擇寶可夢</h2>
 
-      <!-- The source radiogroup, COLLAPSED, and the summary names the ACTIVE one.
-           A collapsed control that does not say what it is set to is a control the
-           reader has to open just to find out, which is most of the cost of opening
-           it — so the value travels with the label. -->
-      <details class="sp-box">
-        <summary id="sp-source-label">來源<span class="sp-summary-value" id="sp-source-now"></span></summary>
-        <div class="sp-sources" role="radiogroup" aria-labelledby="sp-source-label" id="sp-sources"></div>
-      </details>
-
-      <div class="sp-search">
-        <input id="sp-q" type="search" placeholder="搜尋名稱或編號，例：妙蛙種子、charmander、0006"
-               autocomplete="off" aria-label="搜尋寶可夢">
-      </div>
-
-      <span class="sp-filter-label" id="sp-rarity-label">稀有度</span>
-      <div class="sp-filters" role="group" aria-labelledby="sp-rarity-label" id="sp-filters"></div>
-
-      <span class="sp-filter-label" id="sp-gen-label">世代</span>
-      <div class="sp-filters" role="group" aria-labelledby="sp-gen-label" id="sp-gens"></div>
-
+      <!-- THE TRANSPORT SITS ABOVE THE PICKER, and that is a structural consequence
+           rather than a preference. A `<details>` can only wrap a CONTIGUOUS range of
+           siblings, so 「the filters and the roster」 in one disclosure with 「the
+           transport」 left outside meant either cutting the picker in two — which gives
+           two summaries and two things to tap on a phone — or moving the transport up,
+           which gives one. Cutting it in two is worse on both layouts, so it moved.
+           The desktop rail's total height is unchanged; only the reading order is, and
+           「what I can play」 above 「what I can pick」 is the order a reader arrives in. -->
       <div class="sp-transport">
         <button id="sp-play" class="sp-btn sp-btn-play" type="button" aria-pressed="false">▶ 播放</button>
         <button id="sp-random" class="sp-btn" type="button">隨機一隻</button>
@@ -81,37 +69,97 @@
       </div>
       <p id="sp-status" class="sp-status" role="status"></p>
 
-      <!-- THE PAGE'S ONLY SCROLL CONTAINER. The rail is `overflow: hidden` at a
-           fixed viewport height so this one can grow into the space the controls
-           above it leave; two nested scrollers is the shape users misread. Below
-           900px the rail goes static and this stops being a scroller at all.
+      <!-- THE PICKER'S DISCLOSURE CONTROL. It is a `<button aria-expanded>` and NOT a
+           `<details>` for a measured reason, and the reason is worth more than the
+           semantics it gives up.
 
-           THE COVER GRID LIVES IN HERE, and that is not a tidiness choice. It was
-           first placed as a sibling of this box, above it — which put 24 chips at
-           44px, 1,226px of them, into a rail whose total height is 900px and which
-           does not scroll. Opening it squeezed the roster from 271px to 9px and
-           put 876px of the grid past the rail's bottom edge, where nothing could
-           reach it: chips 15 through 24 were simply not on the screen and not
-           reachable by scrolling. Measured, not reasoned.
+           A `<details>` works: it is keyboard-operable, it needs no script, and its
+           summary is its own accessible name. What it cannot do is PRESERVE THE
+           DESKTOP LAYOUT, because `<details>` puts an `::details-content` box between
+           itself and its children, so `.sp-roster`'s flex parent stops being
+           `.sp-left-panel` and becomes an anonymous block that will not shrink below
+           its content. Measured at 1280×1000 with a `<details>` picker, against the
+           same page without it:
 
-           Inside the scroller the grid is reachable the way every other long list
-           on this page is, and the rail keeps the one-scroller property that the
-           static check asserts. The summary is sticky so it stays available while
-           you are down among the chips. -->
-      <div class="sp-roster" id="sp-roster">
-        <div class="sp-roster-head">
-          <span id="sp-roster-count"></span>
-          <button id="sp-clear" class="sp-clear" type="button" hidden>清除篩選</button>
-        </div>
+             rail scrolls?          no (overflow 0)  ->  YES, 4,829px
+             .sp-roster box         503px           ->  5,347px
+             .sp-roster scrolls?   yes             ->  no
+             roster's parent       .sp-left-panel  ->  .sp-picker
 
-        <details class="sp-covers">
-          <summary id="sp-chips-label">封面神獸快速選取</summary>
-          <div class="sp-chips" role="group" aria-labelledby="sp-chips-label" id="sp-chips"></div>
+           That inverts the rail's whole design — it is a viewport-height column whose
+           ONE scroller is the roster, with the rail itself a fallback for short
+           viewports (`spectrum.css`'s header, and `check_spectrum_page.mjs` asserts
+           both halves). Four candidate rules were measured against it first
+           (`display: contents` on the `<details>`, `flex: 1 1 0` on the roster,
+           `overflow: hidden` on the wrapper, and `min-height: 0` on both) and none of
+           them moved the number, which is what identified the extra box.
+
+           So the disclosure is a button over a plain `<div>`, and the desktop layout
+           is recovered with `.sp-picker { display: contents }` above the breakpoint —
+           which is exact, because it puts the roster back where it was: a direct flex
+           item of the rail. `aria-expanded` + `aria-controls` carry what the summary
+           would have, and the label carries the same two facts it did. -->
+      <button class="sp-picker-toggle" id="sp-picker-toggle" type="button"
+              aria-expanded="true" aria-controls="sp-picker">
+        搜尋與清單<span class="sp-summary-value" id="sp-picker-now"></span>
+      </button>
+
+      <div class="sp-picker" id="sp-picker">
+
+        <!-- The source radiogroup, COLLAPSED, and the summary names the ACTIVE one.
+             A collapsed control that does not say what it is set to is a control the
+             reader has to open just to find out, which is most of the cost of opening
+             it — so the value travels with the label. -->
+        <details class="sp-box">
+          <summary id="sp-source-label">來源<span class="sp-summary-value" id="sp-source-now"></span></summary>
+          <div class="sp-sources" role="radiogroup" aria-labelledby="sp-source-label" id="sp-sources"></div>
         </details>
 
-        <div id="sp-roster-list"></div>
-        <p class="sp-empty" id="sp-empty" hidden></p>
-        <div class="sp-sentinel" id="sp-sentinel" aria-hidden="true"></div>
+        <div class="sp-search">
+          <input id="sp-q" type="search" placeholder="搜尋名稱或編號，例：妙蛙種子、charmander、0006"
+                 autocomplete="off" aria-label="搜尋寶可夢">
+        </div>
+
+        <span class="sp-filter-label" id="sp-rarity-label">稀有度</span>
+        <div class="sp-filters" role="group" aria-labelledby="sp-rarity-label" id="sp-filters"></div>
+
+        <span class="sp-filter-label" id="sp-gen-label">世代</span>
+        <div class="sp-filters" role="group" aria-labelledby="sp-gen-label" id="sp-gens"></div>
+
+        <!-- THE PAGE'S ONLY SCROLL CONTAINER. The rail is `overflow: hidden` at a
+             fixed viewport height so this one can grow into the space the controls
+             above it leave; two nested scrollers is the shape users misread. Below
+             900px the rail goes static and this stops being a scroller at all — and it
+             stops being visible at all, because the picker that now contains it is
+             closed there.
+
+             THE COVER GRID LIVES IN HERE, and that is not a tidiness choice. It was
+             first placed as a sibling of this box, above it — which put 24 chips at
+             44px, 1,226px of them, into a rail whose total height is 900px and which
+             does not scroll. Opening it squeezed the roster from 271px to 9px and
+             put 876px of the grid past the rail's bottom edge, where nothing could
+             reach it: chips 15 through 24 were simply not on the screen and not
+             reachable by scrolling. Measured, not reasoned.
+
+             Inside the scroller the grid is reachable the way every other long list
+             on this page is, and the rail keeps the one-scroller property that the
+             static check asserts. The summary is sticky so it stays available while
+             you are down among the chips. -->
+        <div class="sp-roster" id="sp-roster">
+          <div class="sp-roster-head">
+            <span id="sp-roster-count"></span>
+            <button id="sp-clear" class="sp-clear" type="button" hidden>清除篩選</button>
+          </div>
+
+          <details class="sp-covers">
+            <summary id="sp-chips-label">封面神獸快速選取</summary>
+            <div class="sp-chips" role="group" aria-labelledby="sp-chips-label" id="sp-chips"></div>
+          </details>
+
+          <div id="sp-roster-list"></div>
+          <p id="sp-empty" class="sp-empty" hidden></p>
+          <div class="sp-sentinel" id="sp-sentinel" aria-hidden="true"></div>
+        </div>
       </div>
     </aside>
 
@@ -476,7 +524,41 @@
       filter: { legendary: false, mythical: false, baby: false, gen: 0 },
       q: '',
       batches: 1,
+      /* WHERE THE READER WAS INSIDE THE PICKER, in document coordinates.
+       *
+       *  It is `scrollY` and NOT the roster's own `scrollTop`, which was the first
+       *  version and could never be non-zero. On a phone the roster is not a scroller
+       *  at all: `spectrum.css` gives it `overflow: visible` below 900px because the
+       *  rail goes static, and with no height constraint a flex item sized by its
+       *  content cannot scroll — measured at 5,300px of box holding 2,640px of rows, so
+       *  every `scrollTop` read came back 0 and every write was a no-op. It is the
+       *  DOCUMENT that scrolls there, and on a desktop it is the roster, so one field
+       *  named for the roster would have been two quantities in one box — §3.G's split
+       *  again, one container further out.
+       *
+       *  Why the document's offset is the right number on the phone: everything above
+       *  the roster is identical whether the picker is open or shut, so restoring the
+       *  scroll offset recorded as it shut lands the reader on the row they left.
+       *
+       *  It is written on CLOSING and read on OPENING, which is the only pairing that
+       *  works: on open there is no position to return to yet, and on close the reader
+       *  is on their way out. `resetRoster()` zeroes it, because a facet change is a
+       *  new question and the old offset belongs to a list that no longer exists. */
+      pickerReturnY: 0,
     };
+
+    /* THE WIDTH AT WHICH THE RAIL COLLAPSES, as a named constant.
+     *
+     *  A media query cannot read a custom property and JavaScript cannot read a media
+     *  query, so "the rail collapses at 900px" is written in two files — this string
+     *  and the `@media (max-width: 900px)` block in `spectrum.css`. That duplication
+     *  is not negotiable; it can only be made CHECKABLE, and
+     *  `check_spectrum_page.mjs` reads the number out of the stylesheet and requires
+     *  it to be the breakpoint of the rule that hides the picker summary. A second
+     *  `@media (max-width: …)` in that file cannot satisfy it, which is the shape
+     *  §3.S hit: a rule-shaped assertion about a stylesheet that a wrong rule can pass. */
+    const PANEL_COLLAPSE_MQ = '(max-width: 900px)';
+    const collapsed = () => matchMedia(PANEL_COLLAPSE_MQ).matches;
 
     /** Rows per batch. `cries.html` uses 60 for the same reason: every row carries
      *  a sprite, and a list of 1,025 of them eager is the ~130 MB of decode the
@@ -1103,13 +1185,14 @@ const RARITY = [
       };
     }
 
-    async function select(id, { play = false } = {}) {
+    async function select(id, { play = false, reveal = false } = {}) {
       if (id === null || id === undefined) return;
       state.id = id;
       const meta = state.meta.get(id);
       el('sp-name').textContent = meta?.names?.zh ?? `#${formatPokemonId(id)}`;
       el('sp-art').src = spriteUrl(meta, id);
       el('sp-meta').textContent = `#${formatPokemonId(id)}${meta?.names?.en ? ` · ${meta.names.en}` : ''}`;
+      renderPickerSummary();
       for (const chip of el('sp-chips').children) {
         chip.setAttribute('aria-pressed', String(Number(chip.dataset.id) === id));
       }
@@ -1181,6 +1264,122 @@ const RARITY = [
       el('sp-status').textContent =
         `${got.note} → 16 kHz · ${rows.duration.toFixed(3)} 秒 · ${rows.nFrames} 幀 × ${N_MEL} 帶`;
       if (play && autoplay.on) toggle();
+      /* LAST, and after every render above, for two reasons that are one reason.
+       *
+       *  `reveal` is NOT `play`, and the difference is that a reader who pressed
+       *  something wanted to SEE the answer: picking a row 900px down an open list
+       *  changed the plot, not the row, so a page that does not move leaves them
+       *  looking at a list whose selected row is marked and no indication that
+       *  anything else happened. Boot and a source change do NOT pass it — a page
+       *  that scrolls itself on load is a page that fights the browser's own
+       *  restore-scroll-on-back, and a source switch re-renders the rail above the
+       *  plot rather than answering a question the reader asked from down in it.
+       *
+       *  After the renders, because `renderStats()` and `renderCross()` are what give
+       *  the numbers section its height, and scrolling to a plot measured against a
+       *  section that is still short lands ~170px short of where the reader's eye
+       *  goes next. */
+      if (reveal) revealPlot();
+    }
+
+    /**
+     * Close the picker and put the plot in front of the reader.
+     *
+     *  ORDER MATTERS, and it is the reason this is a function rather than a bare
+     *  `scrollIntoView` at the click sites: the picker is ~5,300px tall when open on a
+     *  phone, so closing it FIRST is what removes the distance. Scrolling first would
+     *  scroll to an offset that is about to stop existing, and the browser would clamp
+     *  to the new maximum and leave the reader somewhere neither place asked for.
+     *
+     *  `block: 'nearest'` rather than `'start'`, because the point is 「make it visible」
+     *  and not 「put it at the top」. A reader who picks 隨機一隻 from the transport with
+     *  the plot already on screen must not be moved at all, and that is the same
+     *  sentence that keeps the desktop out of this function.
+     */
+    function revealPlot() {
+      if (!collapsed()) return;
+      setPickerOpen(false);
+      /* `.sp-hero`, not `#sp-hero`: the section carries no id — `<h2 id="sp-hero-h">`
+       * is the labelledby target inside it. Written as `el('sp-hero')` this was a
+       * `TypeError` on null at the LAST line of `select()`, which is the worst place to
+       * throw from: every render above had already happened, so the page looked right,
+       * the species had changed, and only the one thing the reader asked for was
+       * missing. Nothing said so — §3.I's shape, one level down, and the reason the id
+       * is now read as a class. */
+      document.querySelector('.sp-hero').scrollIntoView({
+        block: 'nearest',
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    }
+
+    /**
+     * The picker's one-line label, written from ONE place.
+     *
+     *  It is called from `renderRoster()` (which has just written the count) and from
+     *  `select()` (which has just written the name), and it reads `#sp-roster-count`
+     *  rather than recomputing the count — so the summary and the count line cannot
+     *  disagree, which is the only thing worth guarding here. Recomputing it would make
+     *  a second copy of `visibleIds().length` to keep right.
+     */
+    function renderPickerSummary() {
+      const meta = state.meta?.get(state.id);
+      const name = meta?.names?.zh
+        ?? (state.id == null ? '尚未選擇' : `#${formatPokemonId(state.id)}`);
+      el('sp-picker-now').textContent = `${name} · ${el('sp-roster-count').textContent}`;
+    }
+
+    /**
+     * One writer for 「the picker is open」, and the button's `aria-expanded` is part of
+     * that state rather than a second copy of it.
+     *
+     *  `aria-expanded` is written HERE and nowhere else, which is the only reason it can
+     *  be trusted: a button that says 「expanded」 while `hidden` is set on the thing it
+     *  controls announces the opposite of what is on screen, and the two are separate
+     *  attributes that no browser checks against each other.
+     */
+    function setPickerOpen(open) {
+      const picker = el('sp-picker');
+      if (open === !picker.hidden) return;
+      if (open) {
+        /* `hidden` is cleared BEFORE the scroll, not after, because the two are not
+         * independent: the offset is measured against a document that has to BE the
+         * open one. Scrolling first aims at a height the page no longer has, so the
+         * browser clamps to the collapsed maximum and the reader lands somewhere
+         * neither state asked for. */
+        picker.hidden = false;
+        el('sp-picker-toggle').setAttribute('aria-expanded', 'true');
+        window.scrollTo(0, state.pickerReturnY);
+        return;
+      }
+      /* Written on CLOSING, not on opening: on open there is no position to return to
+       * yet, and on close the reader is already on their way out of the list. */
+      state.pickerReturnY = window.scrollY;
+      picker.hidden = true;
+      el('sp-picker-toggle').setAttribute('aria-expanded', 'false');
+    }
+
+    /**
+     * Open above the collapse breakpoint, collapsed below it — and this is JAVASCRIPT
+     * because it has to be. A media query cannot set `hidden` and CSS cannot decide what
+     * a control should do, so 「open on a desktop, collapsed on a phone」 is not
+     * expressible in a stylesheet at all. The stylesheet's half is which of the two
+     * elements is `display: none`, and both halves read the same width from
+     * `PANEL_COLLAPSE_MQ`.
+     *
+     *  THE TWO DIRECTIONS ARE NOT SYMMETRIC, and the asymmetry is the whole design.
+     *  Collapsing is what turns a 5,856px rail into a 270px bar, so it happens whenever
+     *  the viewport is at or below the breakpoint. Expanding is what keeps the rail's
+     *  contents reachable, because above the breakpoint the toggle is `display: none` —
+     *  so a resize that left the picker collapsed would hide the entire rail with no
+     *  control anywhere on screen to reopen it. That is a worse failure than never
+     *  collapsing, so it is unconditional.
+     *
+     *  A reader who opens the picker on a phone and then rotates is NOT closed again by
+     *  this: it is already open, `setPickerOpen` returns early, and their list position
+     *  survives. Only the breakpoint's own crossing decides, and never a gesture.
+     */
+    function syncPicker() {
+      setPickerOpen(!collapsed());
     }
 
     // ---------------------------------------------------------------------
@@ -1550,7 +1749,7 @@ const RARITY = [
           `<img src="${spriteUrl(meta, id)}" alt="" loading="lazy" decoding="async" width="28" height="28">`
           + `<span>${escapeHtml(meta?.names?.zh ?? id)}`
           + `<em>${escapeHtml(edition)}</em></span>`;
-        b.addEventListener('click', () => select(id, { play: true }));
+        b.addEventListener('click', () => select(id, { play: true, reveal: true }));
         host.append(b);
       }
     }
@@ -1582,6 +1781,13 @@ const RARITY = [
           buildFilters();
           resetRoster();
           renderRoster();
+          /* No `reveal`, and the reason is that this is not an answer to a question the
+           * reader asked FROM the plot. Switching source rebuilds everything above the
+           * plot and selects the first species of the new roster, so the reader is
+           * already looking at the region that changed; scrolling them down to it
+           * would move them away from the control they just pressed, which is above
+           * it. The four call sites that pass `reveal: true` are all 「I chose a
+           * species」 gestures, and a source switch is not one. */
           select(ROSTERS[key].ids[0]);
         });
         host.append(b);
@@ -1705,7 +1911,16 @@ const RARITY = [
       const empty = el('sp-empty');
       empty.hidden = ids.length > 0;
       if (ids.length === 0) empty.textContent = emptyReason();
-      el('sp-sentinel').hidden = want >= ids.length;
+el('sp-sentinel').hidden = want >= ids.length;
+      /* Nothing here restores a scroll position, and that is deliberate. This rebuild
+       * replaces the list's `innerHTML`, which resets the reader to the top of it — and
+       * on a phone the rebuild is usually the NEXT BATCH, which the IntersectionObserver
+       * loads as soon as they scroll toward it. Restoring here from the DOM would fight
+       * that: a facet change leaves a non-zero offset on screen against a shorter list,
+       * so the reader would be scrolled past their own end. The one place a position is
+       * restored is `setPickerOpen()`, from `state.pickerReturnY`, and `resetRoster()`
+       * is what makes that field the authority rather than the DOM. */
+      renderPickerSummary();
     }
 
     /** Only the highlight moves.
@@ -1815,6 +2030,14 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
 
     function resetRoster() {
       state.batches = 1;
+      /* A NEW QUESTION has a new top. `state.pickerReturnY` is the only record of where
+       * the reader was, and after a facet change there is no meaningful offset into a
+       * different list — keeping the old one would reopen the picker at, say, row 480
+       * of a set that now has 12 rows, which is scrolled past the end and reads as an
+       * empty list rather than as one that is short. This is why it is its own field
+       * rather than something derived from `batches`: they are reset together and they
+       * are not the same quantity. */
+      state.pickerReturnY = 0;
     }
 
     /** One path every facet change takes, so the chip counts, the list, the empty
@@ -1929,7 +2152,7 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
          * recording for. */
         const ids = visibleIds();
         if (!ids.length) return;
-        select(ids[Math.floor(Math.random() * ids.length)], { play: true });
+        select(ids[Math.floor(Math.random() * ids.length)], { play: true, reveal: true });
       });
 
       /* Search FILTERS the list rather than jumping to a hit. The rail exists so a
@@ -1958,7 +2181,7 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
           afterFilterChange();
           return;
         }
-        select(first, { play: true });
+        select(first, { play: true, reveal: true });
       });
 
       /* Delegated, and attached ONCE to the container rather than per row. Both
@@ -1969,7 +2192,7 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
       el('sp-roster-list').addEventListener('click', (e) => {
         const row = e.target.closest('.sp-row');
         if (!row) return;
-        select(Number(row.dataset.id), { play: true });
+        select(Number(row.dataset.id), { play: true, reveal: true });
       });
 
       el('sp-filters').addEventListener('click', (e) => {
@@ -2014,8 +2237,39 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
         }, 180);
       });
 
+/* THE PICKER'S THREE LISTENERS, and they are registered HERE rather than next to
+         their markup for the same reason `initThemeToggle()` is called from the inline
+         module on `color-game.html`: a grep over `assets/js` cannot answer which pages
+         own a control, and this one is page state rather than a shared module's. */
+
+      /* Boot, and again on every crossing of the breakpoint, in BOTH directions. The
+         collapsing direction is the one that fixes the defect; the expanding direction
+         is the one that prevents a worse one — above the breakpoint the toggle is
+         `display: none`, so a picker left collapsed by a rotation would hide the entire
+         rail with nothing on screen that can reopen it. §3.O's lesson about a rule
+         whose stated condition stopped being true, applied to a boolean: it was written
+         when 「a phone is narrow and stays narrow」, which is false the moment the reader
+         rotates. */
+      syncPicker();
+      matchMedia(PANEL_COLLAPSE_MQ).addEventListener('change', syncPicker);
+
+      /* The reader's gesture, and it is the only call site that takes the open state
+         from the button. `setPickerOpen` is idempotent, so a click that agrees with the
+         breakpoint does nothing rather than fighting `syncPicker`. */
+      el('sp-picker-toggle').addEventListener('click', () => {
+        setPickerOpen(el('sp-picker').hidden);
+      });
+
+
       const wanted = Number(params.get('id'));
       const first = ROSTERS[state.source].ids[0];
+      /* No `reveal` on the boot selection, and this is the one that would have been
+       * hardest to notice if it were wrong: a page that scrolls itself on load fights
+       * the browser's own restore-scroll-on-back, and on a phone it would move the
+       * reader past the intro they are about to read. A shared-URL visit lands at the
+       * plot because the intro is one short scroll away — measured at 990px below the
+         * collapsed rail, against 6,746px before the picker existed — not because the
+         * page threw them there. */
       await select(ROSTERS[state.source].ids.includes(wanted) ? wanted : first);
     }
 

@@ -113,6 +113,105 @@ const edit = (dir, file, fn) => {
 };
 
 const CASES = [
+  /* ---- §3.X: the picker. Measured at 390x844 before it existed: `.sp-left-panel`
+     5,856px of a 9,471px document, `.sp-roster` 5,347px of it uncapped, and the
+     spectrogram — the reason the page exists — at y=6,746. ---- */
+  {
+    /* The one this file's header already argues for twice, in the other direction:
+     * `display: contents` is what keeps `.sp-roster` a direct flex item of the rail. */
+    name: 'the picker becomes a flex container, so the roster stops filling the rail',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-picker {\n  display: contents;\n}', '.sp-picker {\n  display: flex;\n  flex-direction: column;\n}')),
+    expect: 'the wrapper is `display: contents` above the breakpoint',
+  },
+  {
+    name: 'the toggle is visible on a desktop, where nothing is collapsed',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-picker-toggle {\n  display: none;\n}', '.sp-picker-toggle {\n  display: flex;\n}')),
+    expect: 'and the toggle is `display: none` above the breakpoint',
+  },
+  {
+    /* A CSS-only reveal cannot fix §3.M's trap here, so the mutation is the one that
+     * leaves it: the wrapper has an author `display` and the `hidden` rule is gone, so
+     * the attribute says collapsed and the box is laid out. */
+    name: 'the wrapper keeps an author display with no `[hidden]` override, so `hidden` loses',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '  .sp-picker {\n    display: block;\n  }', '  .sp-picker {\n    display: block;\n  }\n')
+        .replace(/\n  \.sp-picker\[hidden\] \{\n    display: none;\n  \}\n/, '\n')),
+    expect: 'and `.sp-picker[hidden]` carries its own `display: none`',
+  },
+  {
+    name: 'the status line moves inside the picker, where a decode error is unreadable',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '      <p id="sp-status" class="sp-status" role="status"></p>\n\n', '')
+        .replace('      <div class="sp-picker" id="sp-picker">',
+          '      <div class="sp-picker" id="sp-picker">\n        <p id="sp-status" class="sp-status" role="status"></p>')),
+    expect: 'the status line stays OUTSIDE the picker',
+  },
+  {
+    /* The duplication this whole pair of assertions exists for: a media query cannot
+     * read a custom property, so the width is written in two files. */
+    name: 'the page collapses at 820px while the stylesheet collapses the rail at 900px',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, "const PANEL_COLLAPSE_MQ = '(max-width: 900px)';", "const PANEL_COLLAPSE_MQ = '(max-width: 820px)';")
+        .replace('const collapsed = () => matchMedia(PANEL_COLLAPSE_MQ).matches;',
+          'const collapsed = () => innerWidth <= 820;')),
+    expect: "the page's `PANEL_COLLAPSE_MQ` is that same width",
+  },
+  {
+    /* A SECOND 900px block touching the rail, which is what a bare number comparison
+     * could not tell from the first — `spectrum.css` already has three breakpoints. */
+    name: 'a second 900px block starts touching .sp-left-panel',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      s + '\n@media (max-width: 900px) {\n  .sp-left-panel { padding-left: 2px; }\n}\n'),
+    expect: 'there is exactly ONE 900px block in `spectrum.css`',
+  },
+  {
+    /* `play: true` and `reveal: true` coincide at four of the six call sites today, so
+     * this mutation is the one that proves the assertion is not reading `play`. */
+    name: 'the boot selection is given `reveal`, so a shared URL scrolls the reader away',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, 'await select(ROSTERS[state.source].ids.includes(wanted) ? wanted : first);',
+        'await select(ROSTERS[state.source].ids.includes(wanted) ? wanted : first, { reveal: true });')),
+    expect: 'exactly four `select()` call sites ask to be revealed',
+  },
+  {
+    name: 'the reveal stops bailing out above the breakpoint, so a desktop reader gets scrolled too',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, 'function revealPlot() {\n      if (!collapsed()) return;\n', 'function revealPlot() {\n')),
+    expect: '`revealPlot()` returns early above the breakpoint',
+  },
+  {
+    /* ORDER: the picker is the distance, so scrolling before closing it aims at an
+     * offset that is about to stop existing. */
+    name: 'the reveal scrolls before closing the picker, aiming at an offset that is about to go',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, '      setPickerOpen(false);\n      /* `.sp-hero`, not `#sp-hero`', '      /* `.sp-hero`, not `#sp-hero`')
+        .replace("behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',\n      });",
+          "behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',\n      });\n      setPickerOpen(false);")),
+    expect: 'and it closes the picker BEFORE scrolling',
+  },
+  {
+    /* The roster's own `scrollTop` is permanently 0 on a phone, so storing it stores a
+     * constant and the restore does nothing while reading as a feature. */
+    name: 'the return offset is the roster\'s own scrollTop, which is always 0 on a phone',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, 'state.pickerReturnY = window.scrollY;', "state.pickerReturnY = el('sp-roster').scrollTop;")),
+    expect: 'and the return offset is `window.scrollY`',
+  },
+  {
+    name: 'aria-expanded is left to the markup, so the button can announce the opposite of the box',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      s.replace(/\n\s*el\('sp-picker-toggle'\)\.setAttribute\('aria-expanded', '(true|false)'\);/g, '')),
+    expect: '`aria-expanded` and the wrapper\'s `hidden` are both written by `setPickerOpen()`',
+  },
+  {
+    name: 'the summary is written from two places, so its two halves can disagree',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, 'el(\'sp-status\').textContent =\n        `${got.note}',
+          "el('sp-picker-now').textContent = '1025 / 1025 隻';\n      el('sp-status').textContent =\n        `${got.note}")),
+    expect: 'the picker\'s summary is written in exactly one place',
+  },
   {
     /* The harness. Every case below is meaningless without it. */
     name: 'baseline: the unmutated tree passes every check',

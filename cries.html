@@ -72,6 +72,35 @@
           <p class="cy-panel-note"><a class="cy-to-spectrum" id="probe-spectrum"
              href="spectrum.html">看頻譜 →</a></p>
 
+          <!-- THE TALL HALF OF THE PROBE, behind one disclosure, collapsed on a phone.
+             *
+             *  Measured at 390×844 with a species selected, before this element existed:
+             *  `.cy-panel` rendered 1,609px tall out of a 6,914px document, made of
+             *    similar list 666px · caveat 262px · measured figures 171px
+             *    plus three <h3>s, the weight chips and their note  ≈ 510px
+             *  and the part that stays visible — the art, the name, the 48px waveform,
+             *  ▶ 播放叫聲 and the 看頻譜 link — is ≈ 300px. So 1,309px of a phone screen
+             *  was sitting above the grid of 1,025 cards, and the symptom was that
+             *  tapping a card 40 rows down left #probe-play at y=−5,309: 5,309px ABOVE
+             *  the viewport.
+             *
+             *  WHAT STAYS OUT AND WHY. The waveform and the play button are the answer
+             *  to 「what does this one sound like」, which is what a reader who just
+             *  tapped a card asked, so they are not behind a tap. 實測數值 and 音色相似
+             *  are a REFERENCE — eight figures and a ranked list you read once and then
+             *  stop needing — and they are the part that pushed the grid off the screen.
+             *  The caveat goes with them because it qualifies 音色相似 and nothing else.
+             *
+             *  `<details>` and not a button here, unlike `spectrum.html`'s picker, and the
+             *  reason is that this one costs nothing: `.cy-panel` is a BLOCK, so there is
+             *  no flex relationship for a wrapper to break. (Over there the same element
+             *  put an `::details-content` between `.sp-roster` and its flex parent and
+             *  turned the rail's one scroller into a 5,347px block — the two pages look
+             *  like the same pattern and are not.) It also degrades correctly: `open` in
+             *  the markup means a reader with no JavaScript gets today's page. -->
+        <details class="cy-more" id="probe-more" open>
+          <summary class="cy-more-summary">實測數值與音色相似</summary>
+
           <h3>實測數值</h3>
           <dl class="cy-stats" id="probe-stats"></dl>
 
@@ -94,6 +123,7 @@
             </dl>
             <p>所以這裡給的是一份<strong>清單</strong>，不是一個答案。名單前幾名通常只是同一類音色；每一隻現代叫聲都是獨立創作的，演化關係不預測叫聲長什麼樣。</p>
           </div>
+        </details>
         </div>
       </aside>
 
@@ -241,6 +271,20 @@
       featureNames: [],
       pokemon: [],
     };
+
+    /* THE WIDTH AT WHICH THE PANEL'S TALL HALF COLLAPSES, as a named constant.
+     *
+     *  A media query cannot read a custom property and JavaScript cannot read a media
+     *  query, so this number is written twice: here, and in the `@media` block in
+     *  `cries.css` that drops the panel's stickiness. That duplication cannot be
+     *  avoided, only made CHECKABLE — `check_cries_page.mjs` reads the width out of
+     *  the stylesheet and requires it to be the breakpoint of the block that also
+     *  carries the panel's `position: static`, because `cries.css` has two 900px
+     *  blocks and the other one is about a different page's control. A bare number
+     *  comparison would have let the wrong block satisfy it, which is §3.S's shape: a
+     *  shape assertion that the wrong rule can pass. */
+    const PANEL_COLLAPSE_MQ = '(max-width: 900px)';
+    const collapsed = () => matchMedia(PANEL_COLLAPSE_MQ).matches;
 
     const el = (id) => document.getElementById(id);
     const grid = el('grid');
@@ -780,6 +824,54 @@
       }
       renderProbe();
       if (autoplay.on) togglePlay(id);
+      revealProbe();
+    }
+
+    /**
+     * Put the probe in front of a reader who just tapped a card.
+     *
+     *  NO GATE ON A GESTURE IS NEEDED HERE, which is worth stating because it was the
+     *  thing worth getting wrong: `check_cries_page.mjs` already asserts that this file
+     *  contains exactly three mentions of `probe()` — the definition and two click
+     *  handlers — and that none of them sit above the definition in the source, so
+     *  boot calls `renderProbe()` directly and cannot reach here. That assertion is
+     *  load-bearing for this function, which is why it is cited rather than duplicated.
+     *
+     *  `block: 'nearest'` rather than `'start'` or `'center'`: the question is 「can I
+     *  see it」 and not 「put it at the top」, so a reader who taps the second card of the
+     *  grid — with the panel already on screen — is not moved at all. Measured at
+     *  390×844 before this: tapping card 40 left `#probe-play` at y=−5,309, and
+     *  `#probe-play` is what the reader came for.
+     *
+     *  THE TARGET IS THE PANEL, not `.cy-probe-head`, and that is the second half of
+     *  the measurement. Scrolling to the head clipped it — `nearest` aligns an element
+     *  that is entirely ABOVE the viewport by its bottom, which put the head at y=−45
+     *  and the sprite's NAME at y=−31, i.e. above the fold: the reader was shown a play
+     *  button for a Pokémon they could not read the name of. The panel is the right
+     *  target because 「the whole always-visible strip」 is the unit, and `nearest` on a
+     *  387px box inside an 844px viewport clamps to 0, which is the correct answer.
+     */
+    function revealProbe() {
+      if (!collapsed()) return;
+      document.querySelector('.cy-panel').scrollIntoView({
+        block: 'nearest',
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    }
+
+    /**
+     * The probe's tall half: open above the collapse breakpoint, collapsed below it.
+     *
+     *  This is JavaScript for the same reason `spectrum.html`'s picker is: a media
+     *  query cannot set `open`. The two directions are not symmetric either — opening
+     *  above the breakpoint is unconditional, because a phone that rotated would then
+     *  leave 1,309px of reference material collapsed with nothing on screen saying so,
+     *  and a desktop panel is a 340px column where all of it is the point.
+     */
+    function syncProbeDisclosure() {
+      const more = el('probe-more');
+      if (!collapsed()) more.open = true;
+      else if (more.open) more.open = false;
     }
 
     function syncPlayButtons() {
@@ -954,6 +1046,18 @@
       render();
       renderProbe();
       observeSentinel();
+
+      /* Boot, and on every crossing of the breakpoint. It is here rather than beside
+       * the markup for the reason §3.S records: a grep over the codebase cannot answer
+       * which page owns a control, and `mountAutoplay` a few lines up is the same case
+       * — the mount belongs next to the page's other mounts.
+       *
+       *  NOT a `matchMedia` handler on a resize listener, and the reason is that a
+       *  resize fires for a hundred reasons that have nothing to do with crossing the
+       *  breakpoint — a mobile URL bar hiding, a zoom change, a soft keyboard opening.
+       *  Each of those would collapse a panel the reader had opened. */
+      syncProbeDisclosure();
+      matchMedia(PANEL_COLLAPSE_MQ).addEventListener('change', syncProbeDisclosure);
 
       // A deep link, so a particular cry can be linked to and so the browser's
       // back button moves between probes rather than leaving the page.

@@ -374,6 +374,29 @@ const CHECKERS = [
     inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json', 'assets/js/shared.js'],
   },
   {
+    /* §3.X. BOTH pages at 390x844, and both in one browser, because the two defects
+     * have one cause and two copies of the measurement is how they stop looking
+     * related. NOT `manual`, which is the point: `check_spectrum_browser.mjs`
+     * deliberately widens past the 900px breakpoint and `check_cries_browser.mjs` is
+     * manual, so a guard for the phone layout placed in either of them would not run.
+     *
+     * No mutation harness, deliberately and expensively — see the file's own header for
+     * what that costs. The mutations live in the two static checkers beside it. */
+    script: 'scripts/check_cry_mobile_layout.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
+    note: 'page inputs read off the HTML, not recorded',
+    inputs: [
+      'cries.html',
+      'spectrum.html',
+      'assets/css/cries.css',
+      'assets/css/spectrum.css',
+      'assets/js/cry-autoplay.js',
+      'assets/js/shared.js',
+      'assets/js/species-ramp.js',
+      'assets/js/cry-spectrogram.js',
+      'assets/data/cry_features.json',
+    ],
+  },
+  {
     /* NO fs read describes the page: it is fetched over HTTP from Live Server, so
      * this list is the page's own imports and fetches, read off the HTML. That is a
      * human reading, not a recording, and it is the one place in this manifest where

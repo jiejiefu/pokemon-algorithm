@@ -523,3 +523,103 @@ Both guards, not one: the live check still matters for keyboard-activated and sy
 ### The guard proves the three close paths survived
 
 A fix that only makes the button open is half a fix — closing the bar by dragging to orbit the camera is the defect §3.N's threshold exists to prevent, and a regression there is invisible to "the button opens". `check_graph_browser.mjs` now dispatches real presses for all of it: 3 open/close rounds plus the nav's computed `visibility`, a canvas click that must close, an 80px orbit drag that must **not**, and Escape. **Reverting the one-line guard fails 8 of those assertions** — verified by reverting and re-running, because a guard nobody has seen fail is a claim rather than a check.
+
+## X. 兩個頁面在手機上，控制欄在主內容之上——而且沒有任何東西量過那個寬度
+
+`cries.html`（叫聲總覽）與 `spectrum.html`（叫聲頻譜）是同一個版型：**控制欄（sticky、自己捲動）｜內容欄**。到了 `≤900px`，兩頁都把它翻成單欄、把控制欄排在**前面**、並且 `position: static`：
+
+- `cries.css:777` — 註解的理由是「sticky 會蓋住它本來要並排的內容」
+- `spectrum.css` 的 900px 區塊 — 同一句理由
+
+**900px 以下沒有「並排」可言，所以拿掉 stickiness 的唯一理由在這個寬度不存在。**剩下的就是一個高的區塊壓在內容上面，而且會跟著捲走。
+
+### 量到的（390×844，headless Chrome，經頁面自己的 `drawImage`/佈局）
+
+**spectrum.html**，剛載入：
+
+| 量 | 修前 |
+| --- | ---: |
+| `.sp-left-panel` 高度 | **5,856px**（整份文件 9,471px 的 62%） |
+| `.sp-roster` | **5,347px**，`overflow-y: visible`（無上限） |
+| `#sp-hero`（頻譜圖）top | **6,746px** |
+| `#sp-play` | 視窗 y=397 |
+
+`spectrum.html` 的 `IntersectionObserver`（root: `.sp-roster`）會在讀者捲近底部時**每次再加 60 列**，所以圖表不只是遠——越接近它越遠。
+
+**cries.html**：
+
+| 量 | 未選一隻 | 點第 40 張卡之後 |
+| --- | ---: | ---: |
+| `.cy-panel` | 169px | **1,609px** |
+| `#probe-play` 視窗位置 | — | **y = −5,309**（在視窗上方 5,309px） |
+| 網格第一張卡 top | 597px | 2,246px |
+
+那 1,609px 的組成：`相似清單` 666px + `警語` 262px + `實測數值` 171px + 三個 `<h3>`、權重晶片與其註 ≈ 510px。永遠可見的部分（圖、名、48px 波形、▶ 播放叫聲、看頻譜）≈ 300px。
+
+### 沒有東西看得見，而且不是巧合
+
+- `check_spectrum_browser.mjs` **刻意把視窗拉寬過 900px 斷點**（它的對象是 `.sp-about` 的兩欄）
+- `check_cries_browser.mjs` 是 **`manual: true`**
+- 沒有任何一項斷言量過手機寬度
+
+這是 §3.O「guarded by nothing」那一類：規則存在，但沒有任何量測在它生效的條件下執行。
+
+### `<details>` 在這裡不能用，因為它會插入一個盒子
+
+第一版用 `<details class="sp-picker" open>` 配 `summary`，因為它免 JavaScript、鍵盤可用、summary 就是自己的可存取名稱。**它在 `spectrum.html` 上破壞了桌面版**，而且量得很乾淨：
+
+| | 原本 | 改用 `<details>` |
+| --- | --- | --- |
+| rail 自己捲動？ | **false**（溢出 0） | **true**（溢出 4,829px） |
+| `.sp-roster` 盒子 | 503px | 5,347px |
+| `.sp-roster` 會捲？ | **true** | **false** |
+
+原因：`<details>` 在 **box tree** 裡多插一層 `::details-content`，所以 `.sp-roster` 的 flex 父層不再是 `.sp-left-panel`，而是一個不會縮到比內容更小的匿名區塊。**先量了四個候選修法**（對 `<details>` 用 `display: contents`、`flex: 1 1 0`、wrapper `overflow: hidden`、兩處 `min-height: 0`），**沒有一個改動那個數字**——是那個數字指出了多出的盒子。
+
+所以 disclosure 改成 `<button aria-expanded>` + `<div hidden>`，桌面版用 `.sp-picker { display: contents }` 復原——**位元組相同**，因為它把 roster 放回原處，成為 rail 的直接 flex item。量測確認三項：rail 1000px、不捲動、roster 503px 且捲動、文件 3,640px，全部與原版一致。
+
+**`cries.html` 用 `<details>` 沒有這個問題，因為 `.cy-panel` 是 block**，不是 flex column。而且它在 markup 裡是 `open`，所以沒有 JavaScript 的讀者拿到的就是今天這頁。**兩個頁面長得像同一個 pattern，其實不是**——這是本次最容易被下一個人弄錯的一件事。
+
+### 手機上捲動的是文件，不是 roster
+
+第一版的 `state.rosterScroll` 存的是 `el('sp-roster').scrollTop`，**永遠是 0**。因為 900px 以下 `spectrum.css` 給 `.sp-roster` `overflow: visible`，沒有高度限制的 flex item 由內容決定大小，於是它 **5,300px 的盒子裝 2,640px 的內容，根本不會捲**；在這個寬度上是**文件**在捲。欄位改成 `state.pickerReturnY`（`window.scrollY`，關閉時寫、開啟時還原）。§3.G 的「捲動位置換了容器，欄位就不能共用」，往外多一層。
+
+### 兩次「量到對的數字、但量錯了量」
+
+**一、`getBoundingClientRect()` 會對收合起來的 `<details>` 裡的後代說謊。** 量到 `rosterH: 2707` 與 `rail: 270` 同時為真——不可能。真相是 `rosterVisible: false` 而 rect 回傳 2,707px：Chrome 跳過 `::details-content` 內的佈局，`getBoundingClientRect()` 回傳**記住的舊尺寸**。正確的機制斷言是 `checkVisibility()`。§3.M 說「斷言算出的盒子，不是屬性，因為屬性會說謊」——**這裡連 rect 都說謊，而 `checkVisibility()` 不會**。
+
+**二、捲到 `.cy-probe-head` 會把寶可夢名稱切出畫面。** 第一版捲到 head，`nearest` 對一個完全在視窗之上的元素是**對齊底部**，於是 head 在 y=−45、**名稱在 y=−31**——讀者看到一個播放鍵，卻讀不到那是誰。「播放鍵在畫面上」這條斷言是綠的，頁面仍然是錯的。改成捲 `.cy-panel`。
+
+**三、捲動位置還原有兩層。** 重新展開時會**再觸發一批 60 列**（rail 5,912px → 8,552px），而 `renderRoster()` 換掉 `innerHTML` 會把位置歸零一次。只在開啟時還原等於什麼都沒做。
+
+### 一個 media query 不能決定一個 attribute
+
+「桌面上開、手機上關」**在樣式表裡根本不可表達**：media query 不能設 `open` 或 `hidden`，CSS 也不能收合。所以 `syncPicker()` / `syncProbeDisclosure()` 在開機與**每次跨過斷點時**套用它。**兩個方向不對稱，而且不對稱本身就是設計**：收合是修好缺陷的那一側；展開是防止更糟的那一側，因為桌面版 toggle 是 `display: none`，被旋轉留下的收合 picker 會**讓整個 rail 消失而沒有任何控制項可以打開它**。
+
+而那個寬度**必須寫兩份**（media query 不能讀 custom property，JS 也不能讀 media query）。因此 `check_cries_page.mjs` 與 `check_spectrum_page.mjs` 都**從樣式表讀出那個數字**，並且要求它是**帶 `.cy-panel` / `.sp-left-panel` 的那一個區塊**——`cries.css` 有四個 900px 區塊，其中兩個（`.cy-more-summary` 與 `.cg-picker`）跟這件事無關。純數字比較會被其中任何一個滿足。
+
+### 自己寫的斷言裡找到的三個洞
+
+**一、半開的區間不是區間。** 第一版的斷言只問「每個 id 在 `<details>` 開頭之後」，於是把 `#probe-stats` 移到 `</details>` **之後**的 mutation 通過了。「在 disclosure 裡面」是關於一個區間的陳述，而區間有兩端。§3.P 的發現，指向我自己的斷言。
+
+**二、順序不是兩個「有沒有」。** 「先收合再捲動」對兩個敘述的**位置**做陳述；把兩者對調後，每一個「是否存在」的版本都滿足。改成比較 index。
+
+**三、`[hidden]` 對上 author `display`。** mutation 刪掉 `.sp-picker[hidden] { display: none }` 時 checker 還是綠的——因為我從來沒斷言那條規則。`.sp-picker` 在 900px 以下自己宣告 `display: block`，**任何 author `display` 都贏過 UA 的 `[hidden]`**。`docs/incidents/page-defects.md#m` 量過三種變體，這是同一個形狀的第四個實例。
+
+### 一個 mutation 刪掉太多東西，看起來像刪對了
+
+`test_check_cries_page.mjs` 裡「把警語移出 served DOM」那一案，原来的 pattern 是 `<div class="cy-caveat">[\s\S]*?</div>\n        </div>`。警語現在在 `<details>` 裡，後面接的是 `</div>\n        </details>`，所以那個 pattern 在那裡**沒有匹配**——而它是非貪婪的，所以它**沒有失敗**，它繼續吃到幾百行之後的下一個 `</div>\n        </div>`，把那個也刪了，連 `#autoplay-slot` 一起。harness 於是對一條完全不同的斷言回報「did not behave」。
+
+錨定到警語自己的收尾標籤（十個空格縮排；內層的 `<dl>` 是十二個）。**§3.P 的發現，指向一個 mutation 而不是一個 checker**：「我刪的比我想的多」和「我刪對了、別的東西剛好抓到它」在報告裡長得一樣。
+
+### 守衛是機制加結果，兩個都要
+
+只斷言結果會被運氣滿足：`#sp-hero` 靠近手機畫面頂端，在一個 roster 剛好只畫 60 列的頁面上也是真的，而那個頁面在 600 列時會再壞一次，且什麼都不說。只斷言機制則會被一個「對的理由做對的事」的頁面滿足——§3.O 的形狀。
+
+`check_cry_mobile_layout.mjs` 兩者都量。**它不是 `manual`，而且不是任何一個既有 browser checker 的一部分**，因為前者只管 `spectrum.html`、後者不執行。**它沒有 mutation harness，這個代價寫在檔頭**：每一案都要對自己的樹開一個 Chrome，四案的錢足以買下整個 `test_check_spectrum_page.mjs`；static 那兩半有 harness，mutation 都在那裡。
+
+### 收尾時 event loop 不會自己空閒
+
+checker 印完 `PASS` 之後坐著不動超過 200 秒，原因是 DevTools 的 WebSocket，加上找到 target 的那個 `fetch`——undici 會把那條 socket 留著做 keep-alive。§4 對 runner 自己的 liveness probe 記過同一個坑，那次它呈現為「skip cache 壞了，一次全快取跑花 6.5 秒做 0.09 秒的工作」。
+
+而且 **kill Chrome 然後立刻 exit 會留下 6 MB 的 profile tree**：`tmp-trees.mjs` 在 `process.exit` 時 sweep，而它的 `sweep()` 用的是沒有 retry 的裸 `rmSync`，所以 sweep 在瀏覽器還活著時刪一個 Chrome 正在寫的目錄會丟 `EBUSY`，被那個模組的 `catch {}` 吞掉。量到的是**每次跑留一個 `crl-*` tree、零個孤兒行程**——`ps` 乾淨而磁碟不乾淨，那是兩者中比較難發現的那個。修法是等行程真的沒了再讓 sweep 跑，而不是寫第二份 retry 策略。
