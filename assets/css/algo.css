@@ -229,6 +229,48 @@ body.al-body .header { flex: none; }
 }
 .al-overlay[hidden] { display: none; }
 
+/* ---------- Scope gate ----------
+   `.al-overlay` is `display: flex; align-items: center; justify-content: center`,
+   which centres ONE run of text. The gate needs three stacked blocks of
+   different weights — a heading, the reason, and the instruction — so it is its
+   own column, and it is `is-gate` rather than a second overlay element so the
+   `hidden` pairing that `.al-overlay[hidden]` owns stays the single mechanism
+   for "the overlay is not showing" (§3.M: an author `display` beats `[hidden]`,
+   which is why this file sets it explicitly rather than relying on the UA sheet).
+
+   The gate is the page's widest text and it is centred, so it gets a measure —
+   without `max-width` the 168 MB sentence runs the full width of a 1,900px stage
+   and reads as one line nobody finishes. */
+.al-overlay-gate.is-gate {
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 24px;
+}
+.al-overlay-gate.is-gate > #loadingText {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 52ch;
+}
+.al-gate-why { color: var(--text-secondary); font-size: 13.5px; line-height: 1.7; }
+.al-gate-hint {
+  color: var(--text-primary);
+  font-weight: bold;
+  border-left: 3px solid var(--accent-gold);
+  padding-left: 10px;
+}
+
+/* The 資料範圍 group. `max-width` on `.al-select` is 15em, which fits
+   「第 8 世代 伽勒爾 · 96 隻」 comfortably, so there is nothing page-specific to
+   add — this block exists for ONE declaration: the group must not be allowed to
+   squeeze its label out of the toolbar's wrap. `flex: none` on the LABEL is the
+   load-bearing part, since 「資料範圍」 is four characters of `white-space:
+   nowrap` text and a shrinking label would be the first thing the toolbar drops
+   on a 390px phone. */
+.al-scope { flex: none; }
+.al-scope .al-label { flex: none; }
+
 /* ---------- Sidebar ----------
    The ONLY scrollport on these pages. `min-height: 0` lets it shrink to the
    grid track instead of growing it, and `overflow-y: auto` is what turns the

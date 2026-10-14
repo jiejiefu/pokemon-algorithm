@@ -90,6 +90,42 @@ function stripComments(src, kind) {
 
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
+/* THE BLOCK OF A HANDLER, BRACE-MATCHED TO ITS OWN CLOSING BRACE.
+ *
+ * This exists because the language-switch assertion below was a `[\s\S]*?` pair
+ * with an indentation-shaped terminator, and that is the exact shape §3.P records
+ * as vacuous: the tail ran 9,172 characters PAST the handler's end — all the way
+ * into the boot sequence — because the handler closes at six spaces and the
+ * pattern asked for eight. It was not *currently* vacuous (the one other
+ * `highlightPseudo` call in the file differs by an `?.`, so the pattern could not
+ * be satisfied by the wrong one), which is the worse half to discover: a
+ * structurally wrong assertion that happens to be right today and stops being
+ * right the next time anything below it in the file moves.
+ *
+ * It failed on the 資料範圍 work for exactly that reason. The fix is not a wider
+ * tolerance; it is reading the block the assertion is about.
+ *
+ * `openAt` is the index of the `{` that opens the body. Counting has to start
+ * AFTER it, and the string-literal skip is not optional: a `}` inside a string
+ * (`'}'`) would otherwise close the block early. */
+function blockFrom(src, openAt) {
+  if (openAt < 0) return null;
+  let depth = 0, i = openAt;
+  let quote = null;
+  for (; i < src.length; i++) {
+    const c = src[i];
+    if (quote) {
+      if (c === '\\') { i++; continue; }
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') { quote = c; continue; }
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(openAt, i + 1); }
+  }
+  return null;
+}
+
 /* ------------------------------------------------------- STUBBED SPRITES
  *
  * The page boots by fetching 1,025 sprites, and they are 126.7 KB on average — about
@@ -294,17 +330,116 @@ check(/if \(!sweep\(ctx, CFG, sweepAt\)\) sweepAt = 0;/.test(htmlCode)
     return `the single-mode caller resets is ${single ? 'present' : 'MISSING'} and the race-lane caller\'s is ${lane ? 'present' : 'MISSING'}. Both must be "if (!sweep(...)) <field> = 0;" — sweep() cannot zero a field it was only passed.`;
   });
 
-/* The four sample sizes must be the SAME four in the module, the <select>, and the
- * state default. `state.n` is validated against RACE_SIZES on load, so a size in the
- * select that is not in the array is an option that silently falls back. */
+/* The four sample sizes must be the SAME four in the module and the state default.
+ * `state.n` is validated against RACE_SIZES on load, so a size that is not in the
+ * array is one that silently falls back.
+ *
+ * The <select>'s options are BUILT, not written: 資料範圍 decides which subset is
+ * loaded, and `sampleEvenly` returns `arr.slice()` the moment `n >= arr.length`, so
+ * a static option list under a 72-generation scope would offer four sizes that all
+ * render the same 72 sprites under a label saying 1,025. So this now asserts the
+ * options come from the same derivation rather than that they match a literal. */
 const sizes = [...htmlCode.match(/const RACE_SIZES = \[([^\]]*)\]/)?.[1].matchAll(/'(\d+)'/g)].map(m => m[1]);
 check(JSON.stringify(sizes) === JSON.stringify(['100', '250', '500', '1025']),
   'RACE_SIZES is 100 / 250 / 500 / 1025',
   () => `RACE_SIZES is [${sizes.join(', ')}] — expected 100, 250, 500, 1025`);
-const options = [...htmlCode.matchAll(/<option value="(\d+)"/g)].map(m => m[1]);
-check(options.length === sizes.length && sizes.every(s => options.includes(s)),
-  'the sample-size <select> offers exactly the sizes RACE_SIZES accepts',
-  () => `the select offers [${options.join(', ')}] but RACE_SIZES is [${sizes.join(', ')}]. state.n is validated against RACE_SIZES on load, so an option outside it is one that silently falls back to the default.`);
+const sizeOptions = [...htmlCode.matchAll(/<option value="(\d+)"/g)].map(m => m[1]);
+check(sizeOptions.length === 0 && /function offeredRaceSizes\(/.test(htmlCode)
+  && /const offered = offeredRaceSizes\(ALL\.length\)/.test(htmlCode)
+  /* The FILTER is part of the assertion, not just the call. Without it the check
+   * is satisfied by `offeredRaceSizes()` that ignores its argument and returns
+   * `RACE_SIZES.slice()` — which is precisely the mutation, and which passes a
+   * check that only asks where the options come from. Found by writing the
+   * mutation first. */
+  && /RACE_SIZES\.filter\((s|sz|n|v) => Number\(\1\) <= len\)/.test(htmlCode)
+  && /if \(usable\.length\) return usable;\s*\n\s*return \[String\(len\)\];/.test(htmlCode)
+  && /raceSizeSelect\.replaceChildren/.test(htmlCode),
+  'the sample-size <select> is built from offeredRaceSizes(), which FILTERS by the loaded count',
+  () => `the select has ${sizeOptions.length} static <option> element(s) ${sizeOptions.length ? `[${sizeOptions.join(', ')}] ` : ''}and is not repopulated from a filtering offeredRaceSizes(). Under a small 資料範圍 that means every offered size renders the same subset while the label claims otherwise — sampleEvenly() returns arr.slice() as soon as n >= arr.length. The "if (usable.length)" fallback matters too: without it a 72-generation offers NOTHING, which is worse than offering one.`);
+check(/if \(!offered\.includes\(state\.n\)\) state\.n = offered\[0\]/.test(htmlCode),
+  'syncRaceSizes() re-validates state.n against the offered set',
+  () => 'a `?n=1025&scope=6` link would leave state.n at 1025 while the select shows only the scope size, and the result panel would print a number the reader cannot pick.');
+check(/if \(!ALL\.length\) \{\s*race = null;/.test(htmlCode),
+  'buildRace() refuses to build lanes over an empty scope',
+  () => 'with the gate up (ALL empty) buildRace() would build two canvases sized from Number(state.n) sprites that do not exist and two SortRuns over an empty array. §3.G3: the control looks live and renders nothing.');
+
+console.log('static: the 資料範圍 scope gate');
+
+/* THE PHONE BREAKPOINT IS IN TWO PLACES AND CANNOT BE IN ONE, because a media
+ * query cannot be read by JS and JS cannot write into a stylesheet. So the number
+ * is asserted to agree — and read OUT OF algo.css rather than compared against a
+ * second literal here, or this assertion would be satisfied by any 900px block in
+ * the file. algo.css has exactly one, and it is pinned by requiring it to be the
+ * one carrying `.al-main` (the layout the gate exists for) rather than by a bare
+ * number comparison. §3.X's rule. */
+const CSS_NARROW_BLOCK = cssCode.match(/@media\s*\(max-width:\s*(\d+)px\)\s*\{/)?.[1];
+check(CSS_NARROW_BLOCK != null
+  && /\@media\s*\(max-width:\s*900px\)\s*\{\s*\.al-main\s*\{/.test(cssCode)
+  && new RegExp(`const NARROW_MQ = '\\(max-width: ${CSS_NARROW_BLOCK}px\\)'`).test(htmlCode),
+  `the JS breakpoint matches algo.css's phone breakpoint (${CSS_NARROW_BLOCK ?? 'none found'}px)`,
+  () => `NARROW_MQ in sorting.html and the max-width in algo.css disagree. algo.css declares ${CSS_NARROW_BLOCK ?? 'no'}px; the JS constant is read from \`const NARROW_MQ = '(max-width: NNNpx)'\`. They are two copies of one number because a media query and JS cannot read each other, so this is the only thing keeping them equal — and a reader whose phone layout starts at 600px while the gate starts at 900px is a page that loads 168 MB on the exact device it was built to spare.`);
+
+/* The device signal is the WIDTH, and the rejected alternatives are named because
+ * "why not deviceMemory" is the first question a reader asks about a memory gate
+ * and the answer is not obvious: Safari does not implement it, which includes iOS. */
+check(/needsChoice = scopeFromUrl == null && matchMedia\(NARROW_MQ\)\.matches/.test(htmlCode),
+  'the gate is a media query on the width, gated on the link saying nothing',
+  () => 'needsChoice must be `scopeFromUrl == null && matchMedia(NARROW_MQ).matches`. Two halves: a shared ?scope= link must never be second-guessed by the reader\'s device, and the default has to come from somewhere checkable. navigator.deviceMemory cannot be that — Safari does not implement it.');
+check(!/navigator\s*\.\s*deviceMemory|navigator\s*\.\s*userAgent|hardwareConcurrency|maxTouchPoints/.test(htmlCode),
+  'no capability sniff decides what loads',
+  () => 'the gate must read from one signal. `navigator.deviceMemory` is Chromium-only and ABSENT in Safari/iOS — the platform this exists for — and userAgent sniffing is wrong on iPad. If this fires because a future edit wanted a second signal, it is a decision that needs the incident write-up, not a line.');
+check(/params\.get\('scope'\)/.test(htmlCode)
+  && /scope:\s*pick\(scopeFromUrl, SCOPE_IDS, 'all'\)/.test(htmlCode),
+  '?scope= is validated against SCOPE_IDS',
+  () => 'state.scope is not validated against the SCOPES list, so a share link carrying `?scope=99` would filter DATA to an empty set and render a blank canvas with no error.');
+check(/p\.set\('scope', state\.scope\);/.test(htmlCode),
+  'the share link always carries the scope, including the default',
+  () => 'writing it only when non-default makes a link\'s meaning depend on the width of whoever opens it: the same URL would load 168 MB on a desktop and open the gate on a phone. Writing it always is what makes `scopeFromUrl == null` narrower than it looks — a shared link never reaches the gate.');
+
+/* The gate is NOT a scope value. `all` is both "no filter" and the default, so
+ * making it a tenth id would give one string two meanings across every reader of
+ * state.scope. Asserted as the absence of that shape, because an assertion that
+ * a value is NOT in a list cannot be phrased as a presence check. */
+const scopeIds = [...htmlCode.match(/const SCOPES = \[([\s\S]*?)\n    \];/)?.[1].matchAll(/id:\s*'(\w+)'/g)].map(m => m[1]);
+check(scopeIds.length === 10 && scopeIds[0] === 'all' && new Set(scopeIds).size === 10,
+  'SCOPES is 所有世代 plus the nine generations, ten distinct ids',
+  () => `SCOPES is [${scopeIds.join(', ')}] — expected ten distinct ids starting with 'all'. A generation whose id repeats another one makes the select offer two rows the page cannot tell apart, and one that is missing makes the gate's first screen quieter than it claims to be.`);
+check(!/state\.scope\s*===\s*null|scope:\s*null/.test(htmlCode),
+  "'all' is never used to mean 「還沒決定」",
+  () => 'a null scope would be the gate expressed inside state.scope, which is the shape this design rejected: `all` already means 「全部」, so the same string would carry both meanings and every reader of state.scope would have to know which one it holds.');
+
+/* IMG.clear() is the line the whole feature turns on. */
+const loadScopeBody = htmlCode.match(/async function loadScope\([\s\S]*?\n    \}/)?.[0] || '';
+check(/IMG\.clear\(\);/.test(loadScopeBody) && /single = null;/.test(loadScopeBody) && /race = null;/.test(loadScopeBody),
+  'a scope change releases the previous scope: IMG.clear() plus both node holders',
+  () => `loadScope() must clear IMG and null both \`single\` and \`race\`. Found: IMG.clear() ${/IMG\.clear\(\);/.test(loadScopeBody)}, single ${/single = null;/.test(loadScopeBody)}, race ${/race = null;/.test(loadScopeBody)}. Without IMG.clear() the previous scope's Image objects stay reachable from the Map and the memory this feature exists to save is never released — a gate that only avoids the FIRST load, beside a control that invites the second.`);
+
+/* No user-visible copy may still claim 1,025 while the page can draw 72. Each of
+ * these was a literal; asserting the absence is the only form that can express
+ * 「must not say a fixed count」. */
+const copyClaims = [
+  ['loading overlay', /載入 1,025 隻/],
+  ['canvas aria-label', /aria-label="1,025 隻寶可夢/],
+  ['race result pointer', /要看單一的一千隻網格/],
+  ['audio hint', /1,025 次搬移就是上千聲/],
+];
+for (const [what, re] of copyClaims) {
+  check(!re.test(html), `the ${what} no longer states 1,025 as a fixed count`,
+    () => `the ${what} still says 1,025, which is now only true for one of ten scopes. §3.B1: the page's own copy must stop describing what the page stopped offering.`);
+}
+check(/canvas\.setAttribute\('aria-label'[\s\S]{0,120}?\.length\.toLocaleString\(\)/.test(htmlCode),
+  "the canvas's accessible name is derived from the loaded count",
+  () => 'a 72-sprite grid that announces itself as 1,025 to a screen reader is the same lie as a 1,025 label under 72 sprites, and it is the one place a non-visual reader meets the scope.');
+check(/function ensureLoop\(\)[\s\S]*?loopStarted/.test(htmlCode)
+  && /requestAnimationFrame\(frame\)/.test(htmlCode)
+  && !/requestAnimationFrame\(frame\);[\s\S]{0,400}?needsChoice/.test(htmlCode),
+  'the render loop starts on first load, not at the gate',
+  () => 'if boot calls requestAnimationFrame(frame) unconditionally, the gate runs a permanent 60fps loop that clears a canvas and paints nothing — a battery cost on exactly the device the gate exists for.');
+
+/* The button the gate points at has to EXIST by the time the gate shows. */
+check(/renderScopeSelect\(\);\s*\n\s*loadPokemonData\(\)/.test(htmlCode),
+  'the scope select is built before the gate can ask for it',
+  () => 'the gate tells the reader to use the 資料範圍 dropdown. If renderScopeSelect() ran after loadPokemonData().then(...), a slow or failed JSON fetch leaves the gate pointing at a control that is not in the DOM yet — §3.W\'s els.submit bug, one level up.');
 
 /* The lane ceiling is written in four places and any one of them alone is wrong. */
 const ceiling = Number(htmlCode.match(/const RACE_N_MAX = (\d+);/)?.[1]);
@@ -591,11 +726,19 @@ check(/lang:\s*pick\(params\.get\('lang'\),\s*PSEUDO_LANGS\.map\(l => l\.id\),\s
 /* The highlight must survive a mid-run switch, or the panel goes blank exactly
  * when a reader is following a run. Asserted as SHAPE because that is what it is:
  * one `renderPseudocode` plus one `highlightPseudo` reading the same expression
- * the seek/step handlers use. */
-const langSwitchBody = htmlCode.match(/btn\.addEventListener\('click', \(\) => \{[\s\S]*?state\.lang = lang\.id[\s\S]*?\n {8}\}\);/);
-check(!!langSwitchBody
-      && /renderPseudocode\(state\.algo\)/.test(langSwitchBody[0])
-      && /highlightPseudo\(state\.algo, single\.run\?\.events\[single\.run\.cursor - 1\]\)/.test(langSwitchBody[0]),
+ * the seek/step handlers use.
+ *
+ * SCOPED BY BRACE, not by a `[\s\S]*?\n {8}\}\);` terminator. That pattern's tail
+ * ran 9,172 characters past this handler — the handler closes at six spaces and
+ * it asked for eight — so what it actually asserted on was the whole rest of the
+ * file. It was right by luck: the only other `highlightPseudo` call differs by an
+ * `?.`, so the wrong block could not satisfy it today, but nothing about the
+ * PATTERN prevented that and it broke on an unrelated edit. §3.P. */
+const langSwitchOpen = htmlCode.indexOf("state.lang = lang.id");
+const langSwitchBlock = blockFrom(htmlCode, htmlCode.indexOf('{', langSwitchOpen));
+check(!!langSwitchBlock
+      && /renderPseudocode\(state\.algo\)/.test(langSwitchBlock)
+      && /highlightPseudo\(state\.algo, single\.run\?\.events\[single\.run\.cursor - 1\]\)/.test(langSwitchBlock),
   'switching language re-renders AND re-applies the current highlight',
   () => 'the language handler repaints the list without re-running highlightPseudo, so the active line is dropped for the rest of the run — the panel still tracks steps numerically but stops showing WHICH line is executing. That is the one thing the panel is for.');
 
@@ -1109,19 +1252,151 @@ if (!existsSync(CHROME)) {
         'single mode still paints its own canvas, and only its own',
         () => `single canvas ink=${single.ink}, hidden=${single.canvasHidden}, backing=${single.w}x${single.h}, race grid hidden=${single.raceHidden}. The race lanes drawing into this canvas was the bug; the reverse — single mode painting into a lane — would be the mirror image.`);
 
+      /* ------------------------------------------------------- 390x844
+       *
+       * THE WIDTH NOTHING MEASURED, and the reason this section exists rather than
+       * a note. Everything above runs at 1440×900 with `mobile: false`; the whole
+       * feature under test is a `max-width: 900px` branch, so before this section
+       * the suite asserted the desktop path 37 times and the phone path not at
+       * all. §3.O and §3.X both record that gap in this project's own history —
+       * 「nothing in the suite reads a header's geometry」 — and this is the same
+       * hole in a different element, opened by adding a second behaviour to a
+       * page whose only tested width was the wide one.
+       *
+       * THE CLAIM IS "ZERO IMAGE REQUESTS", and it is measured by resetting the
+       * stub counter and reading it, rather than by looking at the DOM for a gate
+       * element. The DOM check is what a reader would write, and it is satisfied
+       * by a page that shows the gate AND loads 168 MB behind it — which is the
+       * exact defect the feature exists to prevent, invisible to a shape check.
+       * The counter is the only thing that can see it.
+       *
+       * `mobile: true` is set as well as the width, because the gate reads a media
+       * query and a width override alone answers it; the flag is what makes it a
+       * phone rather than a 390px-wide window on a desktop. The gate does NOT read
+       * it — `navigator` sniffing is rejected in the static half — so this is belt
+       * and braces against the emulation being wrong, not against the page. */
+      const PHONE = { width: 390, height: 844, deviceScaleFactor: 3, mobile: true };
+      await send('Emulation.setDeviceMetricsOverride', PHONE);
+      const stubbedBeforeGate = stubbed;
+      await send('Page.navigate', { url: `${BASE}/sorting.html` });
+      /* Poll for the GATE, on a precondition only the gate has: the overlay is not
+       * hidden AND the canvas is still 300×150 (nothing has painted it). A wait on
+       * the overlay alone would resolve against the loading state of the default
+       * scope, which is the same value — §3.B2's vacuity shape, where an assertion
+       * cannot distinguish the two states it is meant to separate. */
+      const gateUp = await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const ov = document.getElementById('loading');
+          const cv = document.getElementById('singleCanvas');
+          const gate = ov && !ov.hidden && ov.classList.contains('is-gate');
+          if (gate) { r({ gate, canvasW: cv.width, text: (document.getElementById('loadingText')?.textContent || '').slice(0, 40) }); return; }
+          if (Date.now() - t0 > 20000) { r({ gate: false, canvasW: cv.width, text: '' }); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      check(gateUp.gate === true,
+        'at 390x844 the page opens on the scope gate instead of loading 1,025 sprites',
+        () => `after 20s the overlay was not a gate (text started "${gateUp.text}"). Either needsChoice did not fire — the media query disagrees with algo.css — or the gate was replaced by a load that had already started.`);
+      check(stubbed === stubbedBeforeGate,
+        `a gated phone load asks for ZERO sprites (${stubbed - stubbedBeforeGate} requested)`,
+        () => `${stubbed - stubbedBeforeGate} image request(s) were made while the gate was up. The gate exists for a memory budget (~168 MB at 1,025 sprites), so a page that shows the gate and fetches anyway satisfies every DOM check and none of the ones that matter.`);
+
+      /* Picking a scope by DRIVING THE CONTROL, not by calling loadScope(). A direct
+       * call would skip the select's own writer, its `state.scope` assignment and the
+       * URL round trip — three of the four things the change is made of. §3.G: the
+       * same state for free is reached by using the page's own affordance. */
+      const scopePicked = await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const sel = document.getElementById('scopeSelect');
+          const opts = sel ? [...sel.options].map(o => o.value + ':' + o.textContent) : [];
+          if (sel && sel.options.length === 10) { r({ opts }); return; }
+          if (Date.now() - t0 > 15000) { r({ opts }); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      check(scopePicked.opts.length === 10
+        && scopePicked.opts[0].startsWith('all:')
+        && scopePicked.opts.some(o => o.startsWith('5:') && o.includes('156')),
+        'the scope select offers 所有世代 plus nine generations, each labelled with its own count',
+        () => `the select offered ${scopePicked.opts.length} option(s): ${scopePicked.opts.join(' | ')}. The count in the label is what the reader commits memory against, so it cannot be omitted and it cannot be wrong — 第 5 世代 is 156 records in pokemon_data.json.`);
+
+      const beforePick = stubbed;
+      await evalJs(`(() => { const s = document.getElementById('scopeSelect'); s.value = '5'; s.dispatchEvent(new Event('change')); return true; })()`);
+      /* Wait for the LOAD, on `is-gate` being gone — a precondition only a finished
+       * load has. Polling on the sprite count instead would race the stub. */
+      const afterPick = await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const ov = document.getElementById('loading');
+          if (ov && ov.hidden) { r({ loaded: true, label: document.getElementById('singleCanvas').getAttribute('aria-label') }); return; }
+          if (Date.now() - t0 > 30000) { r({ loaded: false, label: null }); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      check(afterPick.loaded === true,
+        'choosing 第 5 世代 loads it and dismisses the gate',
+        () => 'the overlay never went hidden within 30s of picking 第 5 世代. loadScope() awaits loadAllPokemonNodes and hides the overlay after it resolves, so this is either the fetch failing or loadScope() throwing before its last line.');
+      check(stubbed - beforePick === 156,
+        `第 5 世代 asks for exactly its own 156 sprites (asked for ${stubbed - beforePick})`,
+        () => `the scope filter is off: picking 第 5 世代 made ${stubbed - beforePick} sprite request(s). assets/data/pokemon_data.json has 156 records with generation === 5. Either scopedData() compares the wrong field or scope.count is prose that does not match the data — and the option label tells the reader 156.`);
+
+      /* The derived sample sizes, at the scope where they are wrong without it.
+       * 第 6 世代 is the smallest at 72, which is below the smallest of the four
+       * static sizes — so this is the case where `offeredRaceSizes()` has to fall
+       * through to "offer the scope's own size" rather than filter. */
+      await evalJs(`(() => { const s = document.getElementById('scopeSelect'); s.value = '6'; s.dispatchEvent(new Event('change')); return true; })()`);
+      const after72 = await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const ov = document.getElementById('loading');
+          const rs = document.getElementById('raceSizeSelect');
+          if (ov && ov.hidden && rs && rs.options.length) {
+            r({ opts: [...rs.options].map(o => o.value), stateN: rs.value });
+            return;
+          }
+          if (Date.now() - t0 > 30000) { r({ opts: [], stateN: null }); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      check(after72.opts.length === 1 && after72.opts[0] === '72',
+        'a 72-generation offers exactly one sample size, and it is 72',
+        () => `the 取樣 select offered [${after72.opts.join(', ')}] under 第 6 世代 (72 records). Without offeredRaceSizes() the four static sizes survive, and sampleEvenly() returns arr.slice() as soon as n >= arr.length — so all four would render the same 72 sprites under labels reading 100 through 1,025. A reader picks 500, watches 72, and has no way to tell the control did anything.`);
+
+      /* The gate must NOT be reachable from a link, because a link is a claim about
+       * what the sender was looking at. Same viewport, same media query, explicit
+       * scope — this is the one navigation that gets to load. */
+      await send('Page.navigate', { url: `${BASE}/sorting.html?scope=1` });
+      const viaLink = await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const ov = document.getElementById('loading');
+          if (ov && ov.hidden) { r({ loaded: true, scope: new URL(location.href).searchParams.get('scope') }); return; }
+          if (Date.now() - t0 > 30000) { r({ loaded: false }); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      check(viaLink.loaded === true && viaLink.scope === '1',
+        '?scope=1 loads at a phone width — a shared link is never gated',
+        () => `a 390px viewport opening ?scope=1 reported loaded=${viaLink.loaded}. needsChoice is \`scopeFromUrl == null && matchMedia(NARROW_MQ).matches\`, and this URL names a scope, so the gate must not fire. If it did, a sender who shared a link from a desktop would have their reader see a picker instead of their race.`);
+
+      /* Restore the wide viewport and the default URL before the stub-liveness read
+       * below, which asserts a floor of 1,025 over the WHOLE run and would
+       * otherwise be measuring a phone session. */
+      await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await send('Page.navigate', { url: `${BASE}/sorting.html?scope=all&mode=race&algos=bubble,quick&n=1025&speed=fast&seed=424242` });
+      await evalJs(READY.replace('%LANES%', '2'));
+
       check(noise.length === 0, 'the page produced no console errors or exceptions',
         () => noise.slice(0, 3).join(' | '));
 
       /* The stub has to be PROVEN live, or the speedup is a claim nothing checks. A typo
-       * in the urlPattern falls through to the real sprite directory, all 33 rendered
+       * in the urlPattern falls through to the real sprite directory, all the rendered
        * checks still pass, and the run quietly takes four times as long — the same shape
-       * as a silent skip-cache hit. One page load asks for 1,025 sprites, so requiring
-       * at least that many is the floor that proves interception happened, and the
-       * figure is printed so a regression in the pattern is visible rather than
-       * inferred from a timing. */
-      check(stubbed >= 1025,
-        `the sprite stub answered all ${stubbed.toLocaleString('en-US')} image requests (1,025 per page load)`,
-        () => `only ${stubbed} request(s) were intercepted, so the run fetched real sprites over HTTP — which is why it was slow. Either the glob "${SPRITE_GLOB}" no longer matches ${ASSETS_IMAGES} or Fetch.enable was not reached.`);
+       * as a silent skip-cache hit.
+       *
+       * THE FLOOR IS NOW HIGHER THAN ONE PAGE LOAD, because the run loads more than one:
+       * the wide half's navigations, then the 390×844 section's four (a gate that asks
+       * for ZERO, 156, 72 and 151). So the floor is the sum, not 1,025 — and the sum is
+       * written out as arithmetic rather than as one magic number, because a magic total
+       * is a second copy of every scope's count and would drift silently. §3.B1's rule,
+       * applied to an assertion.
+       *
+       * The individual counts are the same numbers the 390×844 section just asserted
+       * against `pokemon_data.json`, so if a scope's real size moves, both this floor
+       * and those two checks move with it rather than disagreeing about which is right. */
+      const WIDE_LOADS = 1025;
+      const PHONE_LOADS = 0 + 156 + 72 + 151;
+      const EXPECTED_STUB_FLOOR = WIDE_LOADS + PHONE_LOADS;
+      check(stubbed >= EXPECTED_STUB_FLOOR,
+        `the sprite stub answered all ${stubbed.toLocaleString('en-US')} image requests (${EXPECTED_STUB_FLOOR.toLocaleString('en-US')} expected across the wide and phone sections)`,
+        () => `only ${stubbed} request(s) were intercepted against an expected floor of ${EXPECTED_STUB_FLOOR}, so the run fetched real sprites over HTTP — which is why it was slow. Either the glob "${SPRITE_GLOB}" no longer matches ${ASSETS_IMAGES} or Fetch.enable was not reached.`);
 
       /* `minInk` starts at Infinity, which is the right identity for a minimum and the
        * wrong thing to PRINT. Every contribution is now a real number (a configuration

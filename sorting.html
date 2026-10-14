@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>排序演算法 — 氣泡／選擇／插入／快速／合併／堆積 | 寶可夢演算法</title>
-  <meta name="description" content="用 1,025 隻寶可夢的排序視覺化六種排序演算法：偽代碼逐行同步高亮、比較與搬移次數計數、單步與時間軸倒退、2–6 條競速賽道。">
+  <meta name="description" content="用寶可夢的排序視覺化六種排序演算法：可選單一世代或全部 1,025 隻、偽代碼逐行同步高亮、比較與搬移次數計數、單步與時間軸倒退、2–6 條競速賽道。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
   <meta name="theme-color" content="#0b1020">
@@ -52,6 +52,11 @@
       <button class="btn" type="button" role="tab" id="tabRace" aria-selected="false" aria-controls="sortStage">競速</button>
     </div>
     <span class="al-divider" aria-hidden="true"></span>
+    <div class="al-group al-scope">
+      <label class="al-label" for="scopeSelect">資料範圍</label>
+      <select class="al-select" id="scopeSelect" aria-describedby="scopeNote"></select>
+    </div>
+    <span class="al-divider" aria-hidden="true"></span>
     <div class="al-group">
       <label class="al-label" for="sortKeySelect">排序鍵</label>
       <select class="al-select" id="sortKeySelect"></select>
@@ -74,12 +79,7 @@
     <div class="al-group" id="raceControls" hidden>
       <div class="al-chips" id="raceAlgoPicker" role="group" aria-label="參賽演算法（2 至 6 個）"></div>
       <label class="al-label" for="raceSizeSelect">取樣</label>
-      <select class="al-select" id="raceSizeSelect">
-        <option value="100">100 隻</option>
-        <option value="250" selected>250 隻</option>
-        <option value="500">500 隻</option>
-        <option value="1025">1,025 隻</option>
-      </select>
+      <select class="al-select" id="raceSizeSelect"></select>
       <button class="btn btn-utility" type="button" id="btnRaceReshuffle">重新抽籤</button>
       <button class="btn" type="button" id="btnRacePlay">▶ 比賽</button>
     </div>
@@ -99,9 +99,11 @@
 
   <main class="al-main">
     <div class="al-stage" id="sortStage">
-      <canvas id="singleCanvas" role="img" aria-label="1,025 隻寶可夢排列成網格，排序時依演算法逐步移動"></canvas>
+      <canvas id="singleCanvas" role="img" aria-label="寶可夢排列成網格，排序時依演算法逐步移動"></canvas>
       <div class="al-lanes" id="raceGrid" hidden></div>
-      <div class="al-overlay" id="loading">載入 1,025 隻寶可夢<span id="loadingProgress"></span>…</div>
+      <div class="al-overlay al-overlay-gate" id="loading" role="status" aria-live="polite">
+        <span id="loadingText">載入中…</span><span id="loadingProgress"></span>
+      </div>
     </div>
 
     <aside class="al-side">
@@ -133,6 +135,11 @@
       </div>
 
       <div class="al-panel">
+        <h2>資料範圍</h2>
+        <p class="al-hint" id="scopeNote"></p>
+      </div>
+
+      <div class="al-panel">
         <h2>排序鍵</h2>
         <p class="al-hint" id="keyNote">選擇要比較的欄位。改鍵只影響<em>接下來</em>開始的排序——進行中的排序會維持它開始時的比較器，否則「已經排好的」對飛行中的資料會無聲地換掉。</p>
         <p class="al-hint" id="rainbowNote" hidden>每隻寶可夢身上的一圈顏色，是它<em>洗牌後</em>的原始位置。選「屬性」這種同值很多的排序鍵，再開這個：穩定的演算法會保留同一組內的原始先後順序，不穩定的會打亂——那就是穩定性唯一能讓你看見的地方。</p>
@@ -145,7 +152,7 @@
           <label for="audioVolume">音量 <input type="range" id="audioVolume" min="0" max="100" value="20"></label>
           <label for="audioLegacy"><input type="checkbox" id="audioLegacy"> 舊版叫聲（只有 1–649 有）</label>
         </div>
-        <p class="al-hint" id="audioHint">預設關閉：這個頁面最多每 55 毫秒發一聲，1,025 次搬移就是上千聲，所以由你決定要不要開。開啟後極快檔會維持在每 55 毫秒一聲，不會變成噪音牆。音量與靜音狀態和本站其它叫聲頁共用同一組設定。</p>
+        <p class="al-hint" id="audioHint">預設關閉：這個頁面最多每 55 毫秒發一聲，一千隻的排序就是上千聲，所以由你決定要不要開。開啟後極快檔會維持在每 55 毫秒一聲，不會變成噪音牆。音量與靜音狀態和本站其它叫聲頁共用同一組設定。</p>
       </div>
 
       <div class="al-panel">
@@ -175,6 +182,10 @@
     const ctx = canvas.getContext('2d');
     const loading = document.getElementById('loading');
     const loadingProgress = document.getElementById('loadingProgress');
+    const loadingText = document.getElementById('loadingText');
+    const scopeSelect = document.getElementById('scopeSelect');
+    const scopeNote = document.getElementById('scopeNote');
+    const raceSizeSelect = document.getElementById('raceSizeSelect');
     const raceGrid = document.getElementById('raceGrid');
     const pseudoTitle = document.getElementById('pseudoTitle');
     const pseudoList = document.getElementById('pseudoList');
@@ -240,6 +251,29 @@
       return out;
     }
 
+    /* WHICH OF THE FOUR SIZES ARE OFFERED IS DERIVED FROM THE SCOPE, and the
+     * reason is a defect the scope would otherwise create rather than a nicety.
+     *
+     * `sampleEvenly` returns `arr.slice()` the moment `n >= arr.length` — which is
+     * the correct behaviour for its own callers and catastrophic for a 72-scope:
+     * all four of 100/250/500/1025 would render the SAME 72 sprites while the
+     * label said 「1,025 隻」. A reader would pick 500, watch 72, and have no way
+     * to tell the control did anything.
+     *
+     * So the four stay a literal (`state.n` needs a validator before `ALL`
+     * exists) and the OFFERED set is a filter over it, with the scope's own size
+     * appended when the scope is smaller than the smallest option — otherwise
+     * gen 6 offers nothing at all, which is worse than offering one size.
+     *
+     * The numbers are not filtered by the SELECT's width, which is the mistake
+     * that shape usually invites: legibility is a per-lane-canvas property and
+     * `finishRace()` already states it after the race. */
+    function offeredRaceSizes(len) {
+      const usable = RACE_SIZES.filter(s => Number(s) <= len);
+      if (usable.length) return usable;
+      return [String(len)];
+    }
+
     /* -------------------------------------------------------------- SPEED */
     /* Steps processed per animation frame. The generators yield on every
      * comparison, so this is a real step count and not a frame count — which is
@@ -273,9 +307,78 @@
      * legibility, not the clamp.
      *
      * These four REPLACE 60/130/260, so an old `?n=130` share link lands on the
-     * default rather than on the size it was shared with. */
+     * default rather than on the size it was shared with.
+     *
+     * It stays a LITERAL and the 資料範圍 select does not replace it, because
+     * `offeredRaceSizes` needs a list to filter and `state.n` needs a validator
+     * before `ALL` exists. What the scope changes is which of the four are
+     * OFFERED, which is derived — see `offeredRaceSizes`. */
     const RACE_SIZES = ['100', '250', '500', '1025'];
     const RACE_N_MAX = 6;
+
+    /* -------------------------------------------------------------- SCOPE
+     * 資料範圍: which slice of the 1,025 this page loads. It exists because of a
+     * memory budget, and the budget is measured, not asserted:
+     *
+     *   1,025 sprites × 126.7 KB average = ~130 MB of encoded PNG, plus
+     *   1,025 × 96×96×4 = ~38 MB decoded, so ~168 MB before a single comparison
+     *   is made. Add `SortRun`'s 400,000-event cap (~33 MB at n=1,025) and the
+     *   peak is ~200 MB, which is a normal desktop tab and an aggressive one on
+     *   a phone.
+     *
+     * The nine generations are 151/100/135/107/156/72/88/96/120, so the worst
+     * generation is 1/6.6 the payload and the cheapest is 1/14.
+     *
+     * `region` is copied from pokedex.html's `GEN_FILTERS` — the same nine
+     * strings, so a reader who learned 伽勒爾 there meets it here — and `count`
+     * is measured over assets/data/pokemon_data.json, not estimated. Both are
+     * PROSE the reader compares before committing memory, which is why they are
+     * literal: deriving the count would require the JSON, and the JSON fetch is
+     * the smaller half of what we are gating.
+     *
+     * `'all'` is a PEER of the nine here rather than the absence of a filter,
+     * because it is the one value that answers 「我什麼都要」 and it needs its own
+     * row and its own count. */
+    const SCOPES = [
+      { id: 'all', label: '所有世代', count: 1025 },
+      { id: '1', label: '第 1 世代 關都', count: 151 },
+      { id: '2', label: '第 2 世代 城都', count: 100 },
+      { id: '3', label: '第 3 世代 豐緣', count: 135 },
+      { id: '4', label: '第 4 世代 神奧', count: 107 },
+      { id: '5', label: '第 5 世代 合眾', count: 156 },
+      { id: '6', label: '第 6 世代 卡洛斯', count: 72 },
+      { id: '7', label: '第 7 世代 阿羅拉', count: 88 },
+      { id: '8', label: '第 8 世代 伽勒爾', count: 96 },
+      { id: '9', label: '第 9 世代 帕底亞', count: 120 },
+    ];
+    const SCOPE_IDS = SCOPES.map(s => s.id);
+
+    /* THE PHONE BREAKPOINT, AND IT IS ALGO.CSS'S OWN.
+     *
+     * `matchMedia` rather than `navigator.userAgent`, because the page already
+     * HAS a phone layout and it already has a number for where it starts:
+     * algo.css's single `@media (max-width: 900px)` block. Sniffing the UA would
+     * be a second, disagreeing definition of "phone" that nothing measures.
+     *
+     * `navigator.deviceMemory` is the obvious capability signal and it is
+     * ABSENT in Safari — including iOS, which is the platform this feature
+     * exists for — so it cannot be the gate. `hardwareConcurrency` and
+     * `maxTouchPoints` are proxies for a number nobody wanted to measure.
+     *
+     * The number is written twice because CSS media queries and JS cannot read
+     * each other; `check_sorting_page.mjs` reads it OUT OF algo.css and asserts
+     * the two agree, which is the only reason the copy is safe to keep. */
+    const NARROW_MQ = '(max-width: 900px)';
+
+    /* ONE sentence, TWO sinks: the gate overlay and the sidebar panel. Written
+     * as prose here rather than in the HTML so the two cannot drift into two
+     * different explanations of the same control — §3.B1's rule, where the copy
+     * has to stop describing something the page stopped doing. */
+    const SCOPE_WHY =
+      '這一頁把每隻寶可夢畫成一個節點，所以記憶體用量跟「畫了幾隻」成正比：' +
+      '全部 1,025 隻約 168 MB（圖檔本身），單一世代最少的一代（第 6 世代，72 隻）約 12 MB。' +
+      '畫面窄的裝置不會自動載入全部，改用上方的「資料範圍」選一項；已載入之後隨時可以換，' +
+      '換掉會把上一批的圖從記憶體裡放掉。';
 
     /* ------------------------------------------------------------ PSEUDOCODE
      * Two renderings of the SAME statement list, and `pseudoPy` is written so
@@ -297,9 +400,23 @@
     const PYTHON_CAPTION = 'Python 版：n 是 len(arr)；swap() 是換位用的工具函式，不是 Python 內建。';
 
     /* --------------------------------------------------------------- STATE */
-    const params = new URLSearchParams(location.search);
+const params = new URLSearchParams(location.search);
     const pick = (value, allowed, dflt) => (allowed.includes(value) ? value : dflt);
 
+    /* THE DEVICE DECISION AND THE LINK'S DECISION ARE TWO FIELDS, and the
+     * reason they cannot be one is that `'all'` is BOTH "no filter" and the
+     * default — so if the gate were a scope value it would have to be a tenth
+     * id, and every reader of `state.scope` (the select, the URL, `loadScope`)
+     * would then have to know which of two meanings the same string carries.
+     *
+     * §3.G6's shape, with the field count reversed: there one field had to carry
+     * two decisions because the writer could not tell them apart. Here keeping the
+     * gate OUT of `state.scope` is what keeps them distinguishable, and the two
+     * fields have disjoint writers — `scopeFromUrl` is read once from `params`
+     * and never written again, `needsChoice` is read once from the media query
+     * and never written again. Neither can drift, because neither has a writer
+     * that could disagree with the other. */
+    const scopeFromUrl = params.get('scope');
     const state = {
       mode: pick(params.get('mode'), ['single', 'race'], 'single'),
       algo: pick(params.get('algo'), ALGO_IDS, 'bubble'),
@@ -311,12 +428,17 @@
       legacy: params.get('legacy') === '1',
       rainbow: params.get('rainbow') === '1',
       gridIndices: params.get('gridIndices') === '1',
+      /* A link that names a scope loads it, whatever the device is. That is the
+       * whole rule and it is one `&&`: a sender who shared `?scope=6` from a
+       * desktop must not have the next reader's phone second-guess them. */
+      scope: pick(scopeFromUrl, SCOPE_IDS, 'all'),
       /* Reading preference, NOT run state: it survives choosing an algorithm,
        * switching to race mode and reloading, and it is carried in the share
        * link for the same reason `key` and `speed` are — a link to this page is
        * a claim about what the sender was looking at. */
       lang: pick(params.get('lang'), PSEUDO_LANGS.map(l => l.id), PSEUDO_LANGS[0].id),
     };
+    const needsChoice = scopeFromUrl == null && matchMedia(NARROW_MQ).matches;
     if (state.algos.length < 2) state.algos = ['bubble', 'quick'];
     let speed = SPEED_TIERS.find(s => s.id === state.speed);
 
@@ -327,17 +449,25 @@
       p.set('key', state.key);
       p.set('speed', state.speed);
       p.set('seed', state.seed);
+      /* Written UNCONDITIONALLY and from `state.scope`, not deleted when it is
+       * `'all'`. The alternative — omit the default — makes the link's meaning
+       * depend on the width of whoever opens it: the same URL would load 168 MB
+       * on a desktop and open the gate on a phone, and 「同一個連結看的是同樣的
+       * 東西」 would be true only for the person who sent it. Writing it always
+       * is what makes the two branches above (`scopeFromUrl == null`) narrower
+       * than they look: a shared link NEVER reaches the gate. */
+      p.set('scope', state.scope);
       if (state.mode === 'single') { p.set('algo', state.algo); p.delete('algos'); p.delete('n'); }
       else { p.set('algos', state.algos.join(',')); p.set('n', state.n); p.delete('algo'); }
       if (state.legacy) p.set('legacy', '1'); else p.delete('legacy');
       if (state.rainbow) p.set('rainbow', '1'); else p.delete('rainbow');
       if (state.gridIndices) p.set('gridIndices', '1'); else p.delete('gridIndices');
       /* Written from `state.lang` itself rather than a literal. The first version
-     * hardcoded `p.set('lang', 'py')` against a picker whose ids read
-     * `['pseudo','python']` — two vocabularies for one value, and a share link
-     * that reopened in the other language with no error anywhere. Deriving the
-     * write from the same list the read validates against deletes the class
-     * rather than pinning one instance of it. */
+       * hardcoded `p.set('lang', 'py')` against a picker whose ids read
+       * `['pseudo','python']` — two vocabularies for one value, and a share link
+       * that reopened in the other language with no error anywhere. Deriving the
+       * write from the same list the read validates against deletes the class
+       * rather than pinning one instance of it. */
     if (state.lang !== PSEUDO_LANGS[0].id) p.set('lang', state.lang); else p.delete('lang');
       history.replaceState(null, '', u);
     }
@@ -388,6 +518,150 @@
       });
     }
     const IMG = new Map();
+
+    /* --------------------------------------------------------------- SCOPE
+     * `DATA` is all 1,025 records and is fetched ONCE, unconditionally: it is
+     * 2.8 MB of JSON against 130 MB of sprites, so gating it would save 6% of the
+     * payload while making every scope choice a second round trip. What is gated
+     * is `ALL`, the slice the page actually DRAWS, and the images behind it.
+     *
+     * That split is why `SCOPES[].count` can be prose: it is what the select
+     * promises before the fetch, and `scopedData()` is what the page measures
+     * after it. They are checked against each other. */
+    let DATA = [];
+
+    function scopedData(scopeId) {
+      return scopeId === 'all' ? DATA : DATA.filter(d => d.generation === Number(scopeId));
+    }
+
+    /* The 資料範圍 select is BUILT here rather than written into the HTML, for the
+     * reason `RACE_SIZES` staying a literal is not a contradiction: the option
+     * list and `SCOPES` have to agree, and two hand-maintained lists is one more
+     * thing to keep right than there are already. `SCOPES` is the only copy, and
+     * `check_sorting_page.mjs` reads the LABEL FORMAT out of this loop rather
+     * than restating it — §3.S's rule, for the same reason `OPEN_BUTTON_MOUNT`
+     * exists.
+     *
+     * The count in the label is the reason the control can be chosen without a
+     * guess, so it is `scope.count` and not `ALL.length`: this runs before the
+     * sprites exist and the point is the number the reader is about to commit. */
+    function renderScopeSelect() {
+      for (const s of SCOPES) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.label} · ${s.count.toLocaleString()} 隻`;
+        scopeSelect.appendChild(opt);
+      }
+      scopeSelect.value = state.scope;
+      /* The sidebar panel's body is written HERE rather than in the HTML, so the
+     * gate overlay and the panel cannot drift into two different explanations of
+     * one control. The panel's own `<h2>資料範圍</h2>` IS in the HTML: a heading
+     * with no body is a real state if the module throws before it gets here, and
+     * this one does not need a count to be true. */
+      scopeNote.textContent = SCOPE_WHY;
+    }
+
+    /* ONE writer for the progress overlay's text, because the overlay has two
+     * distinct jobs and §3.P's rule is that a control with two writers grows a
+     * third: the gate says 「pick one」, a load in flight says how far along it
+     * is.
+     *
+     * `#loadingText` and `#loadingProgress` are SIBLINGS and neither is ever
+     * replaced. The first version nested the progress span inside the text node
+     * and rewrote the parent's innerHTML per load — which detached the span the
+     * module's own `loadingProgress` const still pointed at, so every write after
+     * the first load went to a node that was no longer in the tree. §3.I's
+     * shape, and the same one that made color-game's hint bar invisible. */
+    function setOverlay(html) {
+      loading.hidden = false;
+      loadingProgress.textContent = '';
+      loadingText.innerHTML = html;
+    }
+
+    /* THE GATE. `ALL` is empty, `single` is null and no sprite has been
+     * requested — the assertion `check_sorting_page.mjs` makes at 390×844 is
+     * "zero image requests", because that is the claim the feature makes. */
+    function showScopeGate() {
+      setOverlay(
+        `<b>先選一個資料範圍</b>` +
+        `<span class="al-gate-why">${SCOPE_WHY}</span>` +
+        `<span class="al-gate-hint">用上方工具列的「資料範圍」選；選「所有世代」也可以。</span>`);
+      loading.classList.add('is-gate');
+      refreshKeyNote();
+    }
+
+    /* The one writer for `raceSizeSelect`, and the one place `state.n` is
+     * re-validated. Both halves matter: the options are what the reader can pick
+     * and `state.n` is what the run uses, so a `?n=1025&scope=6` link that
+     * updated only the options would still draw 1025 — well, it would draw 72,
+     * but it would ALSO print 「1,025 隻」 in the result panel, which is the lie
+     * `offeredRaceSizes` exists to prevent. */
+    function syncRaceSizes() {
+      const offered = offeredRaceSizes(ALL.length);
+      if (!offered.includes(state.n)) state.n = offered[0];
+      raceSizeSelect.replaceChildren(...offered.map(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = `${Number(v).toLocaleString()} 隻`;
+        return opt;
+      }));
+      raceSizeSelect.value = state.n;
+    }
+
+    let loopStarted = false;
+    function ensureLoop() {
+      if (loopStarted) return;
+      loopStarted = true;
+      requestAnimationFrame(frame);
+    }
+
+    /* EVERY SCOPE CHANGE RUNS THROUGH HERE, and it is the only place that loads
+     * sprites. `IMG.clear()` is the load-bearing line: without it the previous
+     * scope's `Image` objects stay reachable from the Map and the memory this
+     * whole feature exists to save is never released — a gate that only avoids
+     * the FIRST load, with a control beside it that invites the second.
+     *
+     * `race = null` for the same reason on the JS side: the lanes hold their own
+     * `nodes` array built from the old `ALL`, so a rebuild is not optional.
+     *
+     * `syncUrl()` is called at the END, not at the start, so a link copied
+     * mid-load describes the state that finished rather than the one requested. */
+    async function loadScope(scopeId) {
+      const scope = SCOPES.find(s => s.id === scopeId) || SCOPES[0];
+      state.scope = scope.id;
+      scopeSelect.value = scope.id;
+      loading.classList.remove('is-gate');
+      setOverlay(`載入 ${scope.count.toLocaleString()} 隻寶可夢…`);
+      const data = scopedData(scope.id);
+      IMG.clear();
+      race = null;
+      single = null;
+      try {
+        const nodes = await loadAllPokemonNodes(data, 1200, 800, {
+          onProgress: (done, total) => { loadingProgress.textContent = ` ${done.toLocaleString()} / ${total.toLocaleString()}`; },
+        });
+        for (const n of nodes) IMG.set(n.data.id, n.img);
+      } catch (err) {
+        loadingText.textContent = '載入失敗，請確認是否用 Local Server 開啟。';
+        console.error(err);
+        return;
+      }
+      ALL = data;
+      syncRaceSizes();
+      fitCanvas();
+      /* The canvas's accessible name is DERIVED, so a 72-sprite grid does not
+     * announce itself as 1,025 to a screen reader — the same copy rule as
+     * `finishRace`'s pointer, and the reason it is a count and not 「寶可夢網格」. */
+      canvas.setAttribute('aria-label',
+        `${data.length.toLocaleString()} 隻寶可夢排列成網格，排序時依演算法逐步移動`);
+      loading.hidden = true;
+      refreshKeyNote();
+      setMode(state.mode);
+      resetSingle();
+      ensureLoop();
+    }
+
+    scopeSelect.addEventListener('change', () => loadScope(scopeSelect.value));
 
     function resetSingle({ reshuffle = false, newSeed = false } = {}) {
       if (newSeed) state.seed = String(Math.floor(Math.random() * 1e9));
@@ -658,6 +932,19 @@
     }
 
     function buildRace() {
+      /* Nothing loaded yet — the scope gate is up, or the JSON is still in
+       * flight. Without this the gate would build a race over ZERO nodes: two
+       * canvases sized from `Number(state.n)` sprites that do not exist, two
+       * `SortRun`s over an empty array, and `raceResult` waiting on a race
+       * that is already finished. `loadScope()` nulls `race` and `setMode()`
+       * calls this again, so the guard costs one early return and is the
+       * difference between "the reader picked race mode before choosing a
+       * scope" and "race mode silently shows nothing" — §3.G3's shape. */
+      if (!ALL.length) {
+        race = null;
+        updateRaceButton();
+        return;
+      }
       const n = Number(state.n);
       const subset = sampleEvenly(ALL, n);
       raceGrid.innerHTML = '';
@@ -759,13 +1046,20 @@
       const legibility = px >= 14 ? '看得清楚每一隻'
         : px >= 9 ? '看得出輪廓，認名字要靠顏色'
         : '看的是排序前後的顏色分佈，不是認得出個別寶可夢';
+      /* The pointer back to single mode names the SCOPE, not 「一千隻」. A
+       * 72-generation reader who followed it would land on 72 sprites and have
+       * every reason to think the link lied about the size — §3.B1's rule that
+       * the page's own copy must not describe what the page stopped offering. */
+      const singleTarget = state.scope === 'all'
+        ? '要看全部 1,025 隻的網格，請切回「單一」。'
+        : `要看全部 1,025 隻的網格，請把「資料範圍」改成「所有世代」再切回「單一」。`;
       raceResult.innerHTML =
         `<b>結果（${Number(state.n).toLocaleString()} 隻、同一個起始順序、同一個排序鍵，依總步數）：</b><ol>` +
         ranking.map(l => `<li>${ALGO_META[l.algo].label} — ${l.run.totalSteps.toLocaleString()} 步` +
           `（比較 ${l.run.comparisons.toLocaleString()}，搬移 ${l.run.moves.toLocaleString()}）</li>`).join('') +
         `</ol><p class="al-hint">步數包含每一次比較和每一次搬移，所以它衡量的是這個演算法在這份資料上的工作量，不是速度。` +
         `這 ${race.lanes.length} 條賽道裡每隻寶可夢是 ${px.toFixed(1)}px — ${legibility}；賽道越多，每隻越小，2 條時看得到個別寶可夢、6 條時看到的是整片顏色在移動。` +
-        `要看單一的一千隻網格，請切回「單一」。</p>`;
+        `${singleTarget}</p>`;
       /* Re-measure AFTER the panel has its text, not after unhiding it. Unhiding an
        * empty <p> gives it one line of height; filling it with a heading, six list
        * items and a paragraph makes it several times taller, and the lane rows are
@@ -970,8 +1264,13 @@
       raceAlgoPicker.appendChild(label);
     }
 
-    document.getElementById('raceSizeSelect').value = state.n;
-    document.getElementById('raceSizeSelect').addEventListener('change', e => {
+    /* `.value` is NOT set here any more: `syncRaceSizes()` is the only writer and it
+     * runs inside `loadScope()`, because the offered set depends on the scope and
+     * the scope is not known until the data is. Writing it before then is what
+     * would put 「250 隻」 into a 72-scope's select — `replaceChildren` runs later
+     * and replaces the whole list anyway, so the early write is dead code that
+     * looks live. */
+    raceSizeSelect.addEventListener('change', e => {
       state.n = e.target.value;
       buildRace();
       syncUrl();
@@ -1143,27 +1442,34 @@
     document.addEventListener('themechange', () => { refreshTokens(); });
 
     /* --------------------------------------------------------------- BOOT
-     * One loader, two consumers of its result: loadAllPokemonNodes builds the
-     * PokemonNodes, and the page keeps the Image objects off them rather than
-     * writing a second copy of the fetching code here. */
+     * Two stages, and the split IS the feature. `loadPokemonData()` is 2.8 MB
+     * and unconditional — gating it would save 6% of the payload while making
+     * every scope choice a second round trip. `loadScope()` is the 130 MB half
+     * and it is the one the gate skips, which is why this function does not
+     * simply fall through into it.
+     *
+     * The `async` is gone from the `.then` for the same reason: a load that
+     * starts is one `loadScope()` call, and it is called from three places
+     * (boot, the select's `change`, and nothing else), so it is its own function
+     * with its own error handling rather than a branch in here.
+     *
+     * `renderScopeSelect()` runs BEFORE the gate decision so the control exists
+     * on the gate path — a gate that tells the reader to use a dropdown that has
+     * not been built yet is §3.W's `els.submit` bug one level up.
+     *
+     * `requestAnimationFrame(frame)` moved into `ensureLoop()`, called by
+     * `loadScope()`. A gate that starts a permanent 60fps loop that clears a
+     * canvas and paints nothing is a battery cost on exactly the device this
+     * feature exists for. */
+    renderScopeSelect();
     loadPokemonData()
-      .then(async (data) => {
-        const nodes = await loadAllPokemonNodes(data, 1200, 800, {
-          onProgress: (done, total) => {
-            loadingProgress.textContent = ` ${done.toLocaleString()} / ${total.toLocaleString()}`;
-          },
-        });
-        for (const n of nodes) IMG.set(n.data.id, n.img);
-        ALL = data;
-        fitCanvas();
-        loading.hidden = true;
-        refreshKeyNote();
-        setMode(state.mode);
-        resetSingle();
-        requestAnimationFrame(frame);
+      .then((data) => {
+        DATA = data;
+        if (needsChoice) showScopeGate();
+        else loadScope(state.scope);
       })
       .catch(err => {
-        loading.textContent = '載入失敗，請確認是否用 Local Server 開啟。';
+        loadingText.textContent = '載入失敗，請確認是否用 Local Server 開啟。';
         console.error(err);
       });
   </script>

@@ -74,10 +74,12 @@ const FILES = [
  * rendered half, which is the point of the guard: `the speed picker is built before
  * anything clicks it` and `every configuration the browser half visited was actually
  * measured` have no static counterpart to move the total by instead. */
-/* 37 before the four rendered-half guards on the result panel (the probe's two
- * checks plus the two READY checks). Deliberate, not incidental — see §3.G4 on
- * why this number is hardcoded rather than derived. */
-const EXPECTED_STRIP_DROP = 41;
+/* 41 → 48 when the 390×844 section added seven checks: gate up, ZERO sprite
+ * requests, ten labelled options, the pick loading, exactly 156 requests for 第 5
+ * 世代, the 72-generation's single derived sample size, and `?scope=1` not being
+ * gated. Deliberate, not incidental — see §3.G4 on why this number is hardcoded
+ * rather than derived. */
+const EXPECTED_STRIP_DROP = 48;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -350,17 +352,81 @@ const cases = [
 
   /* ---- sample sizes ---- */
   {
-    /* state.n is validated against RACE_SIZES on load, so an option outside the
-     * array is an option that silently falls back — a select that renders and does
-     * nothing, which no URL-driven check would see. */
-    name: 'the 1,025 option is removed from the select but kept in RACE_SIZES',
-    mutate: (f, s) => f === 'sorting.html' ? s.replace('        <option value="1025">1,025 隻</option>\n', '') : undefined,
-    expect: 'the sample-size <select> offers exactly the sizes RACE_SIZES accepts',
+    /* Retargeted when the 取样 options became derived. The old case deleted a
+     * static `<option value="1025">` and the harness reported the anchor stale —
+     * which is §3.W's shape working: a mutation that cannot be applied prints
+     * exactly what a mutation the assertion survives prints. The equivalent defect
+     * now is an option list that stopped being derived, so that is what this
+     * breaks: the filter becomes a hardcoded array of the four, which is what
+     * `offeredRaceSizes` exists to prevent and what `syncRaceSizes` would then
+     * repopulate from under a 72-scope. */
+    name: 'offeredRaceSizes() stops filtering, so a small scope offers sizes it cannot fill',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('      const usable = RACE_SIZES.filter(s => Number(s) <= len);', '      const usable = RACE_SIZES.slice();')
+      : undefined,
+    expect: 'the sample-size <select> is built from offeredRaceSizes(), which FILTERS by the loaded count',
+  },
+  {
+    name: 'syncRaceSizes() stops re-validating state.n against what it offers',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('  if (!offered.includes(state.n)) state.n = offered[0];', '  ;')
+      : undefined,
+    expect: 'syncRaceSizes() re-validates state.n against the offered set',
   },
   {
     name: 'the sample sizes themselves change',
     mutate: (f, s) => f === 'sorting.html' ? s.replace("const RACE_SIZES = ['100', '250', '500', '1025'];", "const RACE_SIZES = ['100', '250', '500'];") : undefined,
     expect: 'RACE_SIZES is 100 / 250 / 500 / 1025',
+  },
+
+  /* ---- the 資料範圍 scope gate ---- */
+  {
+    /* The one line the whole feature turns on. Dropping it and the gate still
+     * works on first load — it avoids the FIRST 168 MB — so every rendered check
+     * about arriving at the gate would still pass, and the memory is never given
+     * back when a reader switches scope. This is why it is a static assertion and
+     * not a browser one. */
+    name: 'a scope change stops releasing the previous scope\'s images',
+    mutate: (f, s) => f === 'sorting.html' ? s.replace('      IMG.clear();\n', '') : undefined,
+    expect: 'a scope change releases the previous scope: IMG.clear() plus both node holders',
+  },
+  {
+    name: 'the gate is decided by width alone, so a shared ?scope= link gets overridden',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('const needsChoice = scopeFromUrl == null && matchMedia(NARROW_MQ).matches;', 'const needsChoice = matchMedia(NARROW_MQ).matches;')
+      : undefined,
+    expect: 'the gate is a media query on the width, gated on the link saying nothing',
+  },
+  {
+    name: 'the breakpoint moves to 600px, so phones above it load 168 MB silently',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace("const NARROW_MQ = '(max-width: 900px)';", "const NARROW_MQ = '(max-width: 600px)';")
+      : undefined,
+    expect: 'the JS breakpoint matches algo.css\'s phone breakpoint (900px)',
+  },
+  {
+    /* The reason deviceMemory is not the gate, asserted as an absence so the
+     * question cannot be re-opened by a well-meaning edit. */
+    name: 'the gate starts sniffing navigator.deviceMemory, which Safari does not implement',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('const needsChoice = scopeFromUrl == null && matchMedia(NARROW_MQ).matches;',
+                  'const needsChoice = scopeFromUrl == null && (navigator.deviceMemory ?? 8) <= 4;')
+      : undefined,
+    expect: 'no capability sniff decides what loads',
+  },
+  {
+    name: 'the overlay goes back to stating 1,025 whatever is loaded',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('setOverlay(`載入 ${scope.count.toLocaleString()} 隻寶可夢…`);', 'setOverlay(`載入 1,025 隻寶可夢…`);')
+      : undefined,
+    expect: 'the loading overlay no longer states 1,025 as a fixed count',
+  },
+  {
+    name: 'buildRace() stops refusing an empty scope, so the gate builds lanes over zero nodes',
+    mutate: (f, s) => f === 'sorting.html'
+      ? s.replace('      if (!ALL.length) {\n        race = null;\n        updateRaceButton();\n        return;\n      }\n', '')
+      : undefined,
+    expect: 'buildRace() refuses to build lanes over an empty scope',
   },
 
   /* ---- the memory claim ---- */
