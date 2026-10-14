@@ -363,6 +363,36 @@ check(/if \(!ALL\.length\) \{\s*race = null;/.test(htmlCode),
   'buildRace() refuses to build lanes over an empty scope',
   () => 'with the gate up (ALL empty) buildRace() would build two canvases sized from Number(state.n) sprites that do not exist and two SortRuns over an empty array. §3.G3: the control looks live and renders nothing.');
 
+console.log('static: the toolbar wraps its own children');
+
+/* THE TWO HALVES OF ONE FIX, asserted separately because either alone is inert.
+ *
+ * `flex-wrap` on the two control groups does nothing while flex items may still
+ * shrink to min-content, and `min-content` for CJK with no spaces is ONE
+ * CHARACTER — so the labels broke across lines while the row stayed one row.
+ * `white-space: nowrap` without the wrap does nothing either, because the items
+ * still shrink and nowrap only changes what they shrink TOWARD. Asserted as two
+ * checks so a mutation that drops one says which half is missing. */
+check(/#singleControls,\s*\n#raceControls\s*\{\s*\n\s*flex-wrap:\s*wrap;\s*\n\s*\}/.test(cssCode),
+  'both control groups wrap their own children',
+  () => '`.al-toolbar` has `flex-wrap: wrap`, which wraps GROUPS. `#singleControls` and `#raceControls` are each one `.al-group`, and `.al-group` has no wrap — so their six children are flex items that shrink to min-content instead of wrapping. Measured before the fix: 跳至結果 at 44x82px with its label broken across three lines.');
+check(/body\.al-body \.al-toolbar \.btn\s*\{\s*\n\s*white-space:\s*nowrap;\s*\n\s*\}/.test(cssCode),
+  'the toolbar\'s buttons are nowrap, which is what makes the wrap mean anything',
+  () => 'without `white-space: nowrap` on the toolbar\'s buttons the wrap is inert: flex items shrink to min-content, and for Chinese text with no spaces min-content is one character, so 「跳至結果」 becomes a 44px box three lines tall inside a 20px-radius pill. The two declarations are one fix and neither works alone.');
+/* §3.B1's rule as an assertion: a page-only need goes in a page stylesheet, not
+ * into the shared button rule. `.btn` lives in shared.css and is used by every page
+ * on the site, so a `nowrap` added there would be a claim about all of them made on
+ * this page's behalf — and `check_nav_pages.mjs` reads shared.css, so it would not
+ * even notice. */
+check(!/^\.btn\s*\{[^}]*white-space\s*:/m.test(cssCode)
+  && !/body\.al-body \.btn\s*\{/.test(cssCode),
+  'the nowrap rule is scoped to .al-toolbar, not to .btn',
+  () => 'the selector drifted to `.btn` or `body.al-body .btn`. `.btn` is shared.css\'s rule for every button on the site; this need belongs to this page\'s toolbar (§3.B1 — add a page-prefixed rule, never restate a shared one).');
+check(/@media\s*\(max-width:\s*560px\)\s*\{\s*\n\s*body\.al-body #algoPicker \.btn\s*\{[^}]*padding:\s*5px 9px;[^}]*font-size:\s*12px;/.test(cssCode),
+  'the ≤560px rule shrinks the algorithm buttons, with the 9px padding named',
+  () => 'algo.css\'s max-width:560px rule sizes the six algorithm buttons so they fit 320px in one row. Both halves are load-bearing: 6 × (12×2 + 18 + 2) = 294px against 296px of content box, a 2px margin. Rounding `padding: 5px 9px` to `10px` re-wraps the picker at exactly the width the rule exists for, so the number is asserted rather than left to a comment.');
+
+
 console.log('static: the 資料範圍 scope gate');
 
 /* THE PHONE BREAKPOINT IS IN TWO PLACES AND CANNOT BE IN ONE, because a media
@@ -376,7 +406,11 @@ const CSS_NARROW_BLOCK = cssCode.match(/@media\s*\(max-width:\s*(\d+)px\)\s*\{/)
 check(CSS_NARROW_BLOCK != null
   && /\@media\s*\(max-width:\s*900px\)\s*\{\s*\.al-main\s*\{/.test(cssCode)
   && new RegExp(`const NARROW_MQ = '\\(max-width: ${CSS_NARROW_BLOCK}px\\)'`).test(htmlCode),
-  `the JS breakpoint matches algo.css's phone breakpoint (${CSS_NARROW_BLOCK ?? 'none found'}px)`,
+  'the JS breakpoint matches algo.css\'s phone breakpoint',
+  // The measured number is in the DETAIL, never in the description: a description
+  // that interpolates its own measurement stops matching the text a mutation
+  // harness aims at the moment the thing it measures changes. See the #sortKeySelect
+  // assertion below for the case that made this a rule.
   () => `NARROW_MQ in sorting.html and the max-width in algo.css disagree. algo.css declares ${CSS_NARROW_BLOCK ?? 'no'}px; the JS constant is read from \`const NARROW_MQ = '(max-width: NNNpx)'\`. They are two copies of one number because a media query and JS cannot read each other, so this is the only thing keeping them equal — and a reader whose phone layout starts at 600px while the gate starts at 900px is a page that loads 168 MB on the exact device it was built to spare.`);
 
 /* The device signal is the WIDTH, and the rejected alternatives are named because
@@ -1366,9 +1400,122 @@ if (!existsSync(CHROME)) {
         '?scope=1 loads at a phone width — a shared link is never gated',
         () => `a 390px viewport opening ?scope=1 reported loaded=${viaLink.loaded}. needsChoice is \`scopeFromUrl == null && matchMedia(NARROW_MQ).matches\`, and this URL names a scope, so the gate must not fire. If it did, a sender who shared a link from a desktop would have their reader see a picker instead of their race.`);
 
+      /* ------------------------------------------------------- toolbar geometry
+       *
+       * THE INVARIANT IS "A CONTROL IS AS WIDE AS ITS OWN TEXT", NOT A HEIGHT.
+       *
+       * The defect this section closes was found in a screenshot, not by reading
+       * the stylesheet: at 390px the single-mode row rendered 跳至結果 at 44×82px
+       * and 重新洗牌 at 50×62, with the labels broken across three lines inside a
+       * 20px-radius pill, which reads as two controls overlapping. Root cause is
+       * one property: `.al-group` has no `flex-wrap`, and flex items have
+       * `min-width: auto`, which for Chinese text with no spaces is ONE CHARACTER.
+       * So the buttons shrank to min-content rather than wrapping.
+       *
+       * A height assertion would have caught the symptom and not the cause — a
+       * toolbar can be tall and fine. What actually went wrong is that a control
+       * was NARROWER than the text inside it, and that has a measurable form: clone
+       * the control, force `white-space: nowrap; width: auto`, and compare. That is
+       * the assertion, and it is why the two CSS declarations it guards are one
+       * fix: without the `nowrap` this measurement cannot be taken, and without the
+       * wrap the widths are the wrong ones.
+       *
+       * §3.M's rule applies with extra force here — assert the computed box,
+       * because `getBoundingClientRect()` on the real control reports the squashed
+       * width as the truth. The clone is what produces the competing number. */
+      const SQUEEZED = `(() => {
+        const out = [];
+        for (const sel of ['#singleControls', '#raceControls', '.al-toggle']) {
+          const g = document.querySelector(sel);
+          if (!g || g.hidden || g.closest('[hidden]')) continue;
+          for (const b of g.querySelectorAll('button, select')) {
+            if (b.closest('[hidden]')) continue;
+            const r = b.getBoundingClientRect();
+            if (!r.width) continue;
+            const p = b.cloneNode(true);
+            p.style.cssText += ';position:absolute;visibility:hidden;white-space:nowrap;width:auto;max-width:none;left:-9999px;';
+            b.parentElement.appendChild(p);
+            const need = p.getBoundingClientRect().width;
+            p.remove();
+            if (need > r.width + 1) out.push((b.textContent || b.id || b.tagName).trim().slice(0, 8) + ' ' + Math.round(r.width) + '<' + Math.round(need));
+          }
+        }
+        return out;
+      })()`;
+      /* Resizes POLL for the applied width rather than sleeping. §3.G5: the
+       * `Emulation.setDeviceMetricsOverride` reply arrives before the renderer has
+       * applied it, so a read on the next line gets the previous width — the same
+       * race that made `check_spectrum_browser.mjs` red on a correct page for four
+       * consecutive runs. */
+      const setWidth = async (w) => {
+        await send('Emulation.setDeviceMetricsOverride', { width: w, height: 844, deviceScaleFactor: 1, mobile: w <= 900 });
+        const applied = await evalJs(`new Promise(r => { const t0 = Date.now(); const t = () => {
+            if (innerWidth === ${w}) { r(true); return; }
+            if (Date.now() - t0 > 5000) { r(false); return; }
+            setTimeout(t, 40);
+          }; t(); })`);
+        if (!applied) throw new Error(`the viewport never reached ${w}px — a resize whose result was never read is not a measurement`);
+      };
+      const NARROW_WIDTHS = [560, 390, 320];
+
+      const TOOLBAR_CEILING = 320;
+      /* Quoted rather than derived, and the number it REPLACES is in the message:
+       * 403px, which was race mode at 320px with `.al-chips` stacking six chips five
+       * deep into a 95×199 column. Wrapping made the worst case SHORTER, not taller,
+       * because the chips were the tall thing — which is why this section exists as
+       * a floor rather than as a "did it get worse" check. */
+      const sweep = async (label) => {
+        const found = [];
+        const heights = [];
+        for (const w of NARROW_WIDTHS) {
+          await setWidth(w);
+          const squeezed = await evalJs(SQUEEZED);
+          const h = await evalJs(`Math.round(document.querySelector('.al-toolbar').getBoundingClientRect().height)`);
+          heights.push(`${w}px:${h}`);
+          for (const s of squeezed) found.push(`${w}px ${label} ${s}`);
+        }
+        return { found, heights };
+      };
+
+      const singleSweep = await sweep('single');
+      check(singleSweep.found.length === 0,
+        'no single-mode control is narrower than its own label, at 560 / 390 / 320px',
+        () => `${singleSweep.found.length} squeezed control(s): ${singleSweep.found.join(' | ')}. A control narrower than its text is a control whose label has been broken across lines — CJK has no spaces, so min-content is one character and the shrink floor is 「跳至結果」 in a 44px box.`);
+      check(Number(singleSweep.heights[2].split(':')[1]) <= TOOLBAR_CEILING,
+        `the single-mode toolbar stays within ${TOOLBAR_CEILING}px at 320px`,
+        () => `the toolbar measured ${singleSweep.heights.join(', ')}. It was 308px before the fix; it was 403px in race mode, which is the number worth remembering.`);
+
+      /* The six algorithm buttons staying on ONE row at 320px is the specific claim
+       * the `max-width: 560px` rule makes, and it is asserted rather than left to
+       * the arithmetic in the stylesheet's comment — that arithmetic is
+       * 6 × 44 + 30 = 294 against 296 available, a 2px margin. A maintainer who
+       * rounds `padding: 5px 9px` to `10px` re-wraps the picker at exactly the
+       * width the rule exists for, and nothing else in the file would notice. */
+      await setWidth(320);
+      const algoRows = await evalJs(`new Set([...document.getElementById('algoPicker').children].map(c => Math.round(c.getBoundingClientRect().y))).size`);
+      check(algoRows === 1,
+        'the six algorithm buttons stay on one row at 320px',
+        () => `they occupied ${algoRows} rows. algo.css's max-width:560px rule sizes them at 6 × 44px + 5 × 6px gaps = 294px against 296px of content box — a 2px margin. Padding is 9px and not 10px for that reason.`);
+
+      await send('Page.navigate', { url: `${BASE}/sorting.html?scope=1&mode=race` });
+      await evalJs(`new Promise(r => { const t0 = Date.now(); const tick = () => {
+          const n = document.querySelectorAll('.al-lane').length;
+          if (n >= 2) { r(true); return; }
+          if (Date.now() - t0 > 30000) { r(false); return; }
+          setTimeout(tick, 100);
+        }; tick(); })`);
+      const raceSweep = await sweep('race');
+      check(raceSweep.found.length === 0,
+        'no race-mode control is narrower than its own label, at 560 / 390 / 320px',
+        () => `${raceSweep.found.length} squeezed control(s): ${raceSweep.found.join(' | ')}. Race mode is the worse half of this defect and the half a single-mode fix leaves broken: \`.al-chips\` DOES wrap, so six chips stacked five deep into a 95×199 column at 320px while the group's other four children crushed beside them.`);
+      check(Number(raceSweep.heights[2].split(':')[1]) <= TOOLBAR_CEILING,
+        `the race-mode toolbar stays within ${TOOLBAR_CEILING}px at 320px, down from 403px`,
+        () => `the toolbar measured ${raceSweep.heights.join(', ')}. 403px was 48% of an 844px phone viewport, and wrapping was the fix rather than a disclosure because the height came from `.al-chips` stacking — the thing wrapping removes.`);
+
+
       /* Restore the wide viewport and the default URL before the stub-liveness read
-       * below, which asserts a floor of 1,025 over the WHOLE run and would
-       * otherwise be measuring a phone session. */
+       * below, which asserts a floor over the WHOLE run and would otherwise be
+       * measuring a phone session. */
       await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await send('Page.navigate', { url: `${BASE}/sorting.html?scope=all&mode=race&algos=bubble,quick&n=1025&speed=fast&seed=424242` });
       await evalJs(READY.replace('%LANES%', '2'));

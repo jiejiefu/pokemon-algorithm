@@ -61,6 +61,13 @@ const FILES = [
   'assets/js/sort-run.js',
   'assets/js/sorting-algorithms.js',
   'assets/js/shared.js',
+  /* Listed for the MUTATION pass, not the copy — the whole assets/js directory is
+     already copied wholesale above, and the copy loop skips `assets/js/` entries.
+     That makes this list the only thing that decides which files a case may touch,
+     and a case aimed at a module NOT in it applies nothing: the checker runs
+     unmutated and the harness reports 「the guard does not exist」. That is exactly
+     what happened to the two 排序鍵 cases, and it is §3.W's shape — a mutation that
+     cannot be applied prints what a mutation the assertion survives prints. */
 ];
 
 /* The rendered half's check count. Hardcoded on purpose, and updating it is the
@@ -73,13 +80,20 @@ const FILES = [
  * It moved 35 → 37 when `min ∞ px` was closed, and BOTH of those checks are in the
  * rendered half, which is the point of the guard: `the speed picker is built before
  * anything clicks it` and `every configuration the browser half visited was actually
- * measured` have no static counterpart to move the total by instead. */
-/* 41 → 48 when the 390×844 section added seven checks: gate up, ZERO sprite
- * requests, ten labelled options, the pick loading, exactly 156 requests for 第 5
- * 世代, the 72-generation's single derived sample size, and `?scope=1` not being
- * gated. Deliberate, not incidental — see §3.G4 on why this number is hardcoded
- * rather than derived. */
-const EXPECTED_STRIP_DROP = 48;
+ * measured` have no static counterpart to move the total by instead.
+ *
+ * 41 → 48 for the 390×844 scope-gate section: gate up, ZERO sprite requests, ten
+ * labelled options, the pick loading, exactly 156 requests for 第 5 世代, the
+ * 72-generation's single derived sample size, and `?scope=1` not being gated.
+ * 48 → 53 for the toolbar-geometry sweep, which is FIVE and not six: squeezed
+ * controls and toolbar height in each of single and race, plus the algorithm
+ * picker's single row at 320px. Counted from the run rather than from the edit.
+ * 48 → 53 for the toolbar-geometry sweep, which is FIVE and not six: squeezed
+ * controls and toolbar height in each of single and race, plus the algorithm
+ * picker's single row at 320px. Counted from the run rather than from the edit.
+ * Deliberate, not incidental — see §3.G4 on why this number is hardcoded rather
+ * than derived. */
+const EXPECTED_STRIP_DROP = 53;
 
 let failures = 0;
 const pass = (m) => console.log(`  ok   ${m}`);
@@ -379,6 +393,45 @@ const cases = [
     expect: 'RACE_SIZES is 100 / 250 / 500 / 1025',
   },
 
+  /* ---- the toolbar wraps its own children ----
+   *
+   * The first two are a PAIR on purpose. Either alone is inert, which is exactly
+   * what makes them easy to delete one at a time and never notice: without the
+   * wrap the `nowrap` changes nothing, and without the `nowrap` the wrap changes
+   * nothing. If only one of the two assertions existed, dropping the other would
+   * pass. */
+  {
+    name: 'the control groups stop wrapping their own children',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('#singleControls,\n#raceControls {\n  flex-wrap: wrap;\n}', '#singleControls,\n#raceControls {\n}')
+      : undefined,
+    expect: 'both control groups wrap their own children',
+  },
+  {
+    name: 'the toolbar buttons lose their nowrap, so the wrap becomes inert',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('body.al-body .al-toolbar .btn {\n  white-space: nowrap;\n}', 'body.al-body .al-toolbar .btn {\n}')
+      : undefined,
+    expect: 'the toolbar\'s buttons are nowrap, which is what makes the wrap mean anything',
+  },
+  {
+    name: 'the nowrap is hoisted onto .btn, which is shared.css\'s rule for every button on the site',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('body.al-body .al-toolbar .btn {\n  white-space: nowrap;\n}', 'body.al-body .btn {\n  white-space: nowrap;\n}')
+      : undefined,
+    expect: 'the nowrap rule is scoped to .al-toolbar, not to .btn',
+  },
+  {
+    /* The 2px margin. 294px of buttons against 296px of content box, so rounding
+     * the padding up by one re-wraps the picker at exactly 320px — a width nothing
+     * else in the file would notice. */
+    name: 'the algorithm button padding is rounded from 9px to 10px',
+    mutate: (f, s) => f === 'assets/css/algo.css'
+      ? s.replace('    padding: 5px 9px;\n    font-size: 12px;', '    padding: 5px 10px;\n    font-size: 12px;')
+      : undefined,
+    expect: 'the ≤560px rule shrinks the algorithm buttons, with the 9px padding named',
+  },
+
   /* ---- the 資料範圍 scope gate ---- */
   {
     /* The one line the whole feature turns on. Dropping it and the gate still
@@ -402,7 +455,7 @@ const cases = [
     mutate: (f, s) => f === 'sorting.html'
       ? s.replace("const NARROW_MQ = '(max-width: 900px)';", "const NARROW_MQ = '(max-width: 600px)';")
       : undefined,
-    expect: 'the JS breakpoint matches algo.css\'s phone breakpoint (900px)',
+    expect: 'the JS breakpoint matches algo.css\'s phone breakpoint',
   },
   {
     /* The reason deviceMemory is not the gate, asserted as an absence so the

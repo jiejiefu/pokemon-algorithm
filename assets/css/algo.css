@@ -80,6 +80,53 @@ body.al-body .header { flex: none; }
   min-width: 0;
 }
 
+/* THE TOOLBAR WRAPS GROUPS, NOT THE GROUPS' OWN CHILDREN — and the difference is
+   the whole defect this rule set fixes.
+ *
+ * `.al-toolbar` above has `flex-wrap: wrap`, so a GROUP that does not fit moves to
+   the next row. It says nothing about what happens INSIDE a group: `#singleControls`
+ * and `#raceControls` are each a single `.al-group`, and `.al-group` below has no
+ * wrap, so their six children are flex items that shrink to fit rather than wrap.
+ *
+ * Flex items have `min-width: auto`, which stops them going below their MIN-CONTENT
+ * width — and for Chinese text with no spaces, min-content is ONE CHARACTER. So the
+ * shrink floor is 跳至結果 at 44×82px, with the label broken across three lines
+ * inside a `--radius-pill` (20px) box. Measured at 390px:
+ *
+ *     control          box        control          box
+ *     氣泡…插入 picker  126×48     重新洗牌          50×62
+ *     ◀                 38×32      ▶ 播放           41×63
+ *     ▶                 37×29      跳至結果         44×82
+ *
+ * `scrollWidth === clientWidth`, so nothing is clipped horizontally and no two
+ * controls geometrically overlap. What reads as 「合併 overlaps 堆積」 in the 390px
+ * screenshot is this 20px radius applied to a 41×63 pill: two adjacent capsules
+ * with `box-shadow` read as circles touching. §3.O's shape again — a radius that
+ * means one thing on a chip doing another thing on a squashed button.
+ *
+ * Race mode is worse for a different reason and fixing only this group would leave
+ * it: `.al-chips` DOES wrap (`flex-wrap: wrap`), so six chips stack five deep into a
+ * 95×199 column at 320px while the group's other four children crush beside them. */
+#singleControls,
+#raceControls {
+  flex-wrap: wrap;
+}
+
+/* THE LOAD-BEARING HALF, and it has to be here rather than on `.btn` in
+ * shared.css (§3.B1: never edit an existing shared rule for a page-only need).
+ *
+ * Without `nowrap`, wrapping the row above changes NOTHING: the items still shrink,
+ * because nowrap is what makes min-content the whole label instead of one character.
+ * The two declarations are one fix and neither works alone.
+ *
+ * `body.al-body` AND `.al-toolbar` both scope it, so the guarantee is stated as the
+ * property of this toolbar rather than of buttons in general. Every button in here
+ * is one to three characters or a short word, so nothing it can catch is worth the
+ * rule. `.al-toggle` already carried its own nowrap for the same reason. */
+body.al-body .al-toolbar .btn {
+  white-space: nowrap;
+}
+
 .al-group {
   display: flex;
   align-items: center;
@@ -151,6 +198,7 @@ body.al-body .header { flex: none; }
   font-family: inherit;
   max-width: 15em;
 }
+
 
 /* Checkbox chips (race-mode lane picker) */
 .al-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -625,4 +673,29 @@ body.al-body [hidden] { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .al-lane.is-done { transition: none; }
+}
+
+/* ---------- Very narrow: the six algorithm buttons ----------
+   A SECOND breakpoint, not a second attempt at the same one, and the reason is
+   arithmetic rather than taste.
+
+   `#singleControls` wraps now, so nothing crushes — but the algorithm picker is
+   the widest single child and it would wrap to two rows at 390px and three at
+   320px, costing ~120px of toolbar for a control the reader sets once per run.
+   Measured natural width: 366px at 13px font (6 × 56px + 5 × 6px gaps). The 320px
+   viewport leaves 296px of content box, so one row needs each button under
+   (296 − 30) / 6 = 44.3px.
+
+   At `font-size: 12px; padding: 5px 9px` a two-character label is
+   12×2 + 18 + 2 (border) = 44px, and 6 × 44 + 30 = 294px — one row with 2px to
+   spare. That margin is thin enough to name: it is why the padding is 9px and not
+   10px, and a maintainer who rounds it up re-wraps the picker at exactly 320px,
+   which is the width this rule exists for. `check_sorting_page.mjs` measures the
+   resulting rows rather than trusting the arithmetic.
+ */
+@media (max-width: 560px) {
+  body.al-body #algoPicker .btn {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
 }
