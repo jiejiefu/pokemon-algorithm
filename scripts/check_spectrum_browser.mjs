@@ -546,6 +546,45 @@ try {
   ok(await ev('document.getElementById("sp-play").getAttribute("aria-pressed")') === 'true',
     'the play button reports pressed for the life of the playback');
 
+  /* TWO CONTROLS, ONE STATE, AND BOTH DIRECTIONS — because the failure is not
+   * symmetric.
+   *
+   *  `#sp-hero-play` beside the plot is the same button at a second place on the page:
+   *  at 390×844 the rail is a 270px bar at the top of a 3,900px document, so the
+   *  control that plays the picture is 1,050px from the picture while you are looking
+   *  at it. §3.I's shape one level down is a second control with a second WRITER, and
+   *  it renders as a page where one says 停止 and the other still says 播放 — pressing
+   *  the one that is behind then shows the reader nothing at all.
+   *
+   *  Only a browser can see this. `check_spectrum_page.mjs` asserts that
+   *  `setPlayButton()` iterates `[data-play]`, which is the MECHANISM; this is the
+   *  OUTCOME, and the two are asserted separately because either alone can be right
+   *  about the wrong thing — §3.G1a's shape.
+   *
+   *  Read at the same moment as the rail's, not in sequence, so the assertion is about
+   *  them AGREEING rather than about an ordering. */
+  const BOTH = `(() => [...document.querySelectorAll('[data-play]')]
+    .map((b) => ({ id: b.id, pressed: b.getAttribute('aria-pressed'), label: b.textContent.trim() })))()`;
+  const playingBoth = await ev(BOTH);
+  ok(playingBoth.length === 2
+    && playingBoth.every((b) => b.pressed === 'true'),
+    'the control beside the plot reports pressed while the rail\'s does — one state, two controls',
+    );
+  ok(playingBoth.every((b) => b.label === '■ 停止'),
+    `and both say the same word, so one button cannot read 停止 while the other reads 播放 (${playingBoth.map((b) => `${b.id}: ${b.label}`).join(', ')})`);
+
+  /* AND FROM THE OTHER SIDE. Pressing the plot's control must reach the same state,
+   * which is a different claim from 「the rail's press reached the plot's」: it fails
+   * if one of the two click listeners was never bound, which is the way this is
+   * actually introduced — a button that looks identical and does nothing. */
+  await until(ev, `document.getElementById('sp-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
+  await ev('document.getElementById("sp-hero-play").click()');
+  await until(ev, `document.getElementById('sp-hero-play')?.getAttribute('aria-pressed') === 'true'`, 8000);
+  const bothFromHero = await ev(BOTH);
+  ok(bothFromHero.every((b) => b.pressed === 'true'),
+    'and pressing the plot\'s control reaches the rail\'s too — the reverse direction, because a control that looks identical and does nothing is a different failure from one that shows the wrong state');
+  await until(ev, `document.getElementById('sp-hero-play')?.getAttribute('aria-pressed') === 'false'`, 15000);
+
   /* Was a fixed 1600 ms, waiting for a cry to end. The page exposes exactly when
    * that has happened — the play button releasing itself — and the assertion on the
    * next line reads that same attribute, so waiting on it is waiting on the real

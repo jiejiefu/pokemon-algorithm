@@ -1235,15 +1235,80 @@ for (const [sel, which] of Object.entries(rhythm)) {
 ok(/margin:\s*0;/.test(marginRule('.sp-about')),
   "and .sp-about carries none, because it is the last child of .sp-page and its 26px had nothing under it");
 
-/* The plot's heading is NOT WRAPPED, and this is a claim about an absence.
+/* THE PLOT'S HEADING ROW, WHICH USED TO NOT EXIST, and this replaced an assertion that
+ * it did not.
  *
  * `.sp-hero-head` held exactly one element — the `<h2>` — inside a `display: flex` with
- * a `gap`, which renders identically to no wrapper. It is not in the stylesheet any
- * more and it is not in the markup, and both halves are asserted because either alone
- * leaves the other as dead weight: a rule with no element, or an element with no rule,
- * and the class audit above already covers the second. */
-ok(!markup.includes('sp-hero-head') && !/\.sp-hero-head/.test(cssCode),
-  'the plot heading is a bare <h2> — the single-child wrapper is gone from the markup AND the stylesheet, not emptied and left behind');
+ * a `gap`, which renders identically to no wrapper, and it was deleted from both files
+ * rather than emptied. The file's own sentence said what would happen next: 「a wrapper
+ * with a single child is a container nothing can be put into yet, and leaving it is how
+ * the next person puts something in it.」 Something has been put into it — the control
+ * that plays the plot, which at 390×844 is otherwise 1,100px from the picture.
+ *
+ * SO THE CLAIM IS THE CHILD COUNT AND NOT THE CLASS NAME, and that is the whole reason
+ * this is not simply the old assertion flipped. `test_check_spectrum_page.mjs` has a
+ * negative case that puts a SINGLE-child `.sp-hero-head` back, and it was written to
+ * catch exactly the wrapper this paragraph describes; an assertion about the name would
+ * pass it, and one that asks for the play control is what makes it red again. */
+const heroHead = markup.match(/<div class="sp-hero-head">([\s\S]*?)<\/div>/);
+ok(Boolean(heroHead) && /<h2 id="sp-hero-h">時頻圖<\/h2>/.test(heroHead[1])
+  && /id="sp-hero-play"/.test(heroHead[1]) && /data-play/.test(heroHead[1]),
+  'the plot heading sits in a `.sp-hero-head` row with the play control beside it — TWO children, which is the thing the single-child wrapper was deleted for lacking, and the name alone would not catch the wrapper coming back');
+
+const heroHeadRule = (() => {
+  const start = cssCode.indexOf('.sp-hero-head {');
+  return start < 0 ? '' : cssCode.slice(start, cssCode.indexOf('}', start));
+})();
+const heroH2Rule = (() => {
+  const start = cssCode.indexOf('.sp-hero h2 {');
+  return start < 0 ? '' : cssCode.slice(start, cssCode.indexOf('}', start));
+})();
+ok(/display:\s*flex/.test(heroHeadRule) && /justify-content:\s*space-between/.test(heroHeadRule),
+  'the row is a flex row that puts the heading left and the control right — `space-between` on the row rather than `margin-left: auto` on the button, because 「heading left, control right」 is a statement about the row');
+
+/* THE 8px BELOW THE HEADING LIVES ONCE, and it moved to the row when the row appeared.
+ * Two rules claiming the same interval is §3.S's bug — the shape `.gm-btn` /
+ * `.gm-btn-hint` had — and here it would put a second 8px under a heading that already
+ * has one, which reads as a heading that is further from its plot than the plot is.
+ *
+ * AND THE LONGHAND/SHORTHAND ARE BOTH READ, because the first version looked for
+ * `margin-bottom` while this stylesheet writes `margin: 0` — so it was satisfied by any
+ * heading, including one carrying a second 8px, and the mutation that added exactly
+ * that passed. §3.B2's shape pointed at the assertion written to prevent it: a guard
+ * that can only pass. The value is read, not matched, so `margin: 0 0 8px` and
+ * `margin: 8px` are both caught. */
+const h2BottomMargin = (() => {
+  const longhand = heroH2Rule.match(/margin-bottom:\s*([^;]+)/);
+  if (longhand) return longhand[1].trim();
+  const shorthand = heroH2Rule.match(/(?:^|[^-])margin:\s*([^;]+)/);
+  if (!shorthand) return '0';
+  const parts = shorthand[1].trim().split(/\s+/);
+  return parts.length === 1 ? parts[0] : parts[3];
+})();
+ok(/^(0|0px|0em)$/.test(h2BottomMargin)
+  && /(?:margin:\s*0 0 8px|margin-bottom:\s*8px)/.test(heroHeadRule),
+  `the 8px between the heading and the canvas is declared once, on the row — the heading's own bottom margin is ${h2BottomMargin}, and a second 8px there would double the gap`);
+
+/* `.sp-btn-play` IS NOT REUSED, and the reason is arithmetic rather than taste: it
+ * carries `flex: 2 1 auto`, sized for a 300px rail where 播放 is the primary action
+ * and wants two thirds of the row against 隨機一隻's one. Beside a heading in a 1,180px
+ * band the same value grows the button to half the plot's width. */
+ok(/class="sp-btn sp-btn-plot"/.test(markup) && !/id="sp-hero-play"[^>]*sp-btn-play/.test(markup),
+  'the plot\'s control carries `.sp-btn-plot` and NOT `.sp-btn-play`, whose `flex: 2 1 auto` is sized for the rail and would grow this button to half the plot\'s width');
+ok(/^\.sp-btn-plot \{[^}]*flex:\s*0 0 auto/m.test(cssCode),
+  'and `.sp-btn-plot` is sized not to grow, so the flex value means 「primary」 in the rail and nothing at all here rather than the same wrong thing in both');
+
+/* ONE WRITER FOR THE PLAY STATE. Two controls that both call `toggle()` and each write
+ * their own `aria-pressed` is §3.I's shape one level down, and it renders as a page
+ * where one button says 停止 while the other still says 播放. */
+const setPlayButtonBody = page.match(/function setPlayButton\(playing\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
+ok(/querySelectorAll\('\[data-play\]'\)/.test(setPlayButtonBody)
+  && !/getElementById\('sp-/.test(setPlayButtonBody),
+  '`setPlayButton()` writes EVERY `[data-play]` control rather than one id by name — two controls that both call `toggle()` and each write their own state is a page that disagrees with itself about whether sound is playing');
+eq((markup.match(/<button[^>]*data-play/g) || []).length, 2,
+  'and there are exactly two of them, so a third control added without thinking about this loop would be a third thing to remember');
+ok(/id="sp-play"/.test(markup),
+  'the rail\'s control keeps its id, which is load-bearing outside this file — `check_spectrum_browser.mjs` reads that exact id in fifteen places, and an id-less button is the one nothing can assert about');
 
 
 const asideAt = markup.indexOf('<aside class="sp-left-panel"');
@@ -1277,6 +1342,29 @@ ok(!markup.includes('class="sp-figure"') && !classes.has('sp-figure'),
   'and that 28px identity strip is gone from both the markup and the stylesheet, rather than left behind as a second thing to keep right');
 ok(/@media \(max-width: 980px\)[\s\S]{0,400}grid-template-columns:\s*minmax\(0, 1fr\)/.test(cssCode),
   'below the width where 6:4 would break the measure, the intro collapses to one column');
+
+/* THE FIGURE IS SECOND IN THAT ONE COLUMN, and this is `order` rather than DOM order,
+ * so it cannot be read off the markup at all: the `<figure>` already follows
+ * `.sp-intro-body` in the source and always has. `order: -1` was what put it — and the
+ * page's only `<h1>` — above the explanation on a phone.
+ *
+ * The reason it was there was a good one that turned out to be about the wrong axis:
+ * 「a reader who has lost the columns still wants to know what they are looking at
+ * first」. What the reader wants first is the sentence saying what the page IS, and on a
+ * phone this one is three paragraphs of it. The sprite is the SUBJECT, not the
+ * introduction, and it now sits 40px above the picture of that subject.
+ *
+ * The cost is zero by construction, which is why this is an `order` and not a move: the
+ * figure is already inside `.sp-intro`, so moving it from the first grid cell to the
+ * last is 90px from above the prose to below it. `#sp-hero` measured 1,189px before and
+ * after at 390×844, and `check_cry_mobile_layout.mjs` asserts it is still inside a
+ * screen and a half. */
+const introArtBlock = (() => {
+  const start = cssCode.indexOf('.sp-intro-art {', cssCode.indexOf('@media (max-width: 980px)'));
+  return start < 0 ? '' : cssCode.slice(start, cssCode.indexOf('}', start));
+})();
+ok(introArtBlock.length > 0 && !/order:\s*-?\d/.test(introArtBlock),
+  'the collapsed one-column intro keeps the figure AFTER the prose — no `order` on `.sp-intro-art`, because `order: -1` put the sprite, and the page\'s only `<h1>`, above the explanation on a phone');
 
 /* The rail is a viewport-height column that does NOT scroll, and the roster is
  * the one thing inside it that does. Two assertions because either alone is

@@ -623,3 +623,27 @@ A fix that only makes the button open is half a fix — closing the bar by dragg
 checker 印完 `PASS` 之後坐著不動超過 200 秒，原因是 DevTools 的 WebSocket，加上找到 target 的那個 `fetch`——undici 會把那條 socket 留著做 keep-alive。§4 對 runner 自己的 liveness probe 記過同一個坑，那次它呈現為「skip cache 壞了，一次全快取跑花 6.5 秒做 0.09 秒的工作」。
 
 而且 **kill Chrome 然後立刻 exit 會留下 6 MB 的 profile tree**：`tmp-trees.mjs` 在 `process.exit` 時 sweep，而它的 `sweep()` 用的是沒有 retry 的裸 `rmSync`，所以 sweep 在瀏覽器還活著時刪一個 Chrome 正在寫的目錄會丟 `EBUSY`，被那個模組的 `catch {}` 吞掉。量到的是**每次跑留一個 `crl-*` tree、零個孤兒行程**——`ps` 乾淨而磁碟不乾淨，那是兩者中比較難發現的那個。修法是等行程真的沒了再讓 sweep 跑，而不是寫第二份 retry 策略。
+
+### 後續：sprite 在手機上移回說明文字下方，並在時頻圖旁加了播放鍵
+
+讀者在手機上回報兩件事，兩件都不是缺陷而是決定，但**第一件推翻了一句寫在 `spectrum.css` 裡的理由**。
+
+**`order: -1` 的理由是對的，而它問的是錯的軸。** 原本寫的是「sprite 放在說明文字**上方**，因為失去欄位後的讀者仍想先知道自己在看什麼」。這句話對**讀者**是對的，對**位置**是錯的：讀者最先要的是「這頁在講什麼」的那一句，而這頁在手機上是三段。實測在 390×844：sprite、名字與編號原本壓在 `<h1>叫聲頻譜</h1>` **之上**——那不只是版面偏好，是**螢幕閱讀器先聽到一隻寶可夢、再聽到這頁是什麼頁面**。
+
+去掉 `order: -1` 之後成本是零，因為 `<figure>` 本來就在 `.sp-intro` 裡，`order` 只決定它落在單欄 grid 的哪一格：從第一格換到最後一格，是 90px 從說明文字上方換到下方。量到的 `#sp-hero` 是 **1,189px → 1,160px**。
+
+**`.sp-hero-head` 拿回它的第二個子元素，而 §3.V 早就預言了這件事。** 那個 wrapper 當初被刪的理由寫在同一個檔案裡：「只有一個子元素的 wrapper 是還沒人放東西進去的容器，留著它就是讓下一個人把東西放進去。」現在放進去的是播放鍵。**斷言也跟著換了斷法**：原本斷言「這個 class 不存在」，現在斷言「這一列有兩個子元素」——因為名稱層面的斷言會讓既有的 mutation 通過，而那一案正是為了擋這種形狀寫的。
+
+**`<details>` 不能用在這裡，第二次被量到。** 第一次是 §3.X 的 rail picker：`<details>` 在 box tree 裡插一個 `::details-content`，`.sp-roster` 的 flex 父層就不再是 rail。而這次是 `.sp-hero`，它沒有 flex 結構——**兩頁長得像同一個 pattern，其實一個是 flex column、一個是 block**。
+
+**兩個控制項、兩個方向都測，因為失敗不對稱。** `#sp-hero-play` 與 rail 的 `#sp-play` 呼叫同一個 `toggle()`，`setPlayButton()` 用 `[data-play]` 迭代——一次寫入、兩個節點，與 `cries.html` 的 `syncPlayButtons()` 同一個形狀。「按 rail 的鍵 → 圖旁那顆變 pressed」和「按圖旁的鍵 → rail 的那顆變 pressed」是**兩個不同的主張**：後者擋的是「按鈕看起來一樣但什麼都沒做」，而那正是它最可能被引進來的方式。
+
+**量對比時踩到的方法錯誤值得記一次。** 第一版在執行期 `document.documentElement.dataset.theme = 'dark'`，量到按鈕 **1.08:1**——淺色 theme 的墨配深色底。頁面真正的路徑是 `<head>` 的內聯腳本讀 `localStorage['pokemon-theme']`，所以正確的量法是寫入 storage 再重新導航，量到 **17.71:1 / 14.57:1**。**rail 上既有的那顆按鈕會讀到同樣的 1.08**，所以那不是新按鈕的問題，是量法的問題——§3.W 的 datalist 那一案是同一族。
+
+### 三個洞，全部在這個檔案裡，而且全部由 mutation 找到
+
+**一、長手寫 vs 簡寫。** 「8px 只宣告一次」那條斷言找的是 `margin-bottom`，而 `spectrum.css` 寫的是 `margin: 0 0 8px`——**所以它被任何一個標題滿足，包括多帶一個 8px 的那個**，而 mutation 加的正是那個 8px。改成讀值（`margin: 0 0 8px` 與 `margin: 8px` 都抓得到）。§3.B2 的形狀，指向為了防止它而寫的斷言。
+
+**二、一個 case 停下來了，而它的意圖還在。** 「單子元素 `.sp-hero-head`」那一案改寫的目標字串是 `<section class="sp-hero">` 後面接一個裸 `<h2>`，而那段 markup 已經不存在了。**修法是保留意圖、把 mutation 換一個方向**：讓那一列失去播放鍵，回到只有一個子元素。順帶得到一個好結果——同一個形狀現在從兩個方向都會讓斷言變紅。
+
+**三、三參數的呼叫被兩參數的簽名吃掉。** `check_cry_mobile_layout.mjs` 裡有二十處寫成 `ok(cond, label, detail)`，而 `ok` 是 `(cond, what)`——**JavaScript 默默接受，於是每一處都只印出一個短標籤，把它剛剛量到的數字丟掉**。§3.G9 的「訊息要么引用具名常數、要么引用一個謊」被違反，而症狀只有失敗訊息裡的 `undefinedpx`。改成可變參。

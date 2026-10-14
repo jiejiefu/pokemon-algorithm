@@ -63,7 +63,7 @@
            The desktop rail's total height is unchanged; only the reading order is, and
            「what I can play」 above 「what I can pick」 is the order a reader arrives in. -->
       <div class="sp-transport">
-        <button id="sp-play" class="sp-btn sp-btn-play" type="button" aria-pressed="false">▶ 播放</button>
+        <button id="sp-play" class="sp-btn sp-btn-play" type="button" aria-pressed="false" data-play>▶ 播放</button>
         <button id="sp-random" class="sp-btn" type="button">隨機一隻</button>
         <div id="sp-autoplay-slot"></div>
       </div>
@@ -222,7 +222,33 @@
           </div>
 
           <section class="sp-hero" aria-labelledby="sp-hero-h">
-            <h2 id="sp-hero-h">時頻圖</h2>
+            <!-- THE PLOT'S OWN PLAY CONTROL, and this row is `.sp-hero-head` — the
+                 class §3.V recorded as DELETED because it held exactly one element,
+                 this `<h2>`, inside a `display: flex` with a gap, which renders
+                 identically to no wrapper.
+
+                 It is the same name on purpose, and the same file's own sentence says
+                 what happens next: 「a wrapper with a single child is a container
+                 nothing can be put into yet, and leaving it is how the next person
+                 puts something in it.」 This is that. The checker's assertion changes
+                 from 「the class does not exist」 to 「the row has TWO children」,
+                 because the second is the claim that is actually load-bearing — and
+                 because the negative case that puts a SINGLE-child wrapper back
+                 (`test_check_spectrum_page.mjs`) has to keep failing, which it would
+                 not if the assertion were only about the name.
+
+                 WHY THE CONTROL IS HERE AND NOT IN THE RAIL ALONE: at 390×844 the rail
+                 is a 270px bar pinned to the top of a 3,885px document, so the
+                 button that plays the picture is 1,100px from the picture while the
+                 reader is looking at it. This one is 8px above the canvas. Both call
+                 the same `toggle()` and both carry `data-play`, so `setPlayButton()`
+                 writes them together — one writer, two nodes, which is the shape
+                 `cries.html`'s `syncPlayButtons()` already uses. -->
+            <div class="sp-hero-head">
+              <h2 id="sp-hero-h">時頻圖</h2>
+              <button id="sp-hero-play" class="sp-btn sp-btn-plot" type="button"
+                      aria-pressed="false" data-play>▶ 播放</button>
+            </div>
 
             <canvas id="sp-plot" class="sp-plot" role="img" aria-describedby="sp-plot-alt"></canvas>
             <p id="sp-plot-alt" class="sp-caption"></p>
@@ -1655,9 +1681,30 @@ const RARITY = [
       }
     }
 
+    /**
+     * The play state, written to EVERY play control on the page.
+     *
+     *  There are two: `#sp-play` in the rail and `#sp-hero-play` beside the plot, and
+     *  they are the same button at two places on the page rather than two features —
+     *  `toggle()` is the only thing either of them calls. A second control with a
+     *  second writer is §3.I's shape one level down, and its symptom is a page where
+     *  the two disagree about whether sound is playing: one says 停止 while the other
+     *  still says 播放, and pressing the one that is behind shows the reader nothing
+     *  happened.
+     *
+     *  `querySelectorAll('[data-play]')` rather than two ids, because the attribute is
+     *  what says 「this is a play control」 and a third one would be found by the same
+     *  loop. It is the shape `cries.html`'s `syncPlayButtons()` uses, and the reason
+     *  both pages can answer it the same way is that neither of them invented it.
+     *
+     *  `#sp-play` KEEPS ITS ID, and that is load-bearing outside this file:
+     *  `check_spectrum_browser.mjs` reads that exact id in fifteen places, and the
+     *  button with no id would be the one nothing can assert about. */
     function setPlayButton(playing) {
-      el('sp-play').setAttribute('aria-pressed', String(playing));
-      el('sp-play').textContent = playing ? '■ 停止' : '▶ 播放';
+      for (const node of document.querySelectorAll('[data-play]')) {
+        node.setAttribute('aria-pressed', String(playing));
+        node.textContent = playing ? '■ 停止' : '▶ 播放';
+      }
     }
 
     function onStarted(info) {
@@ -2131,7 +2178,16 @@ el('sp-gens').innerHTML = GEN_LIST.map((g) => chip(
         + '太暗的顏色會往白色調，直到看得見為止——1,025 隻裡有 68 隻的原始顏色低於 3:1，'
         + '其中最暗的捷拉比邦 rgb(56,51,50) 只有 1.63:1。顏色是身分，不是數值，判斷強弱請看形狀。';
 
-      el('sp-play').addEventListener('click', () => toggle());
+      /* One listener per control, both delegating to `toggle()`. They are bound here
+       * beside the other mounts rather than next to their own markup, for the reason
+       * §3.S records: a grep over the codebase cannot answer which page owns a control.
+       * A delegated listener on the document would have been one line instead of two,
+       * and it would have made 「which node is this control」 an answer derived at
+       * click time from `closest()` — §3.G's detached-node shape, one indirection away
+       * from being a page that goes dead after its first re-render. */
+      for (const btn of document.querySelectorAll('[data-play]')) {
+        btn.addEventListener('click', () => toggle());
+      }
 
       /* `insertAdjacentHTML` rather than replacing innerHTML, so 「隨機一隻」 stays in
        * the markup where it is readable without JS, greppable, and present if the

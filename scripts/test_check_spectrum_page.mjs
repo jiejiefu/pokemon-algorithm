@@ -570,15 +570,51 @@ const CASES = [
   },
 
   {
-    /* The single-child wrapper comes BACK, emptied rather than removed. This is the
-     * version that looks like tidiness in review — the markup still renders — and the
-     * assertion is on its absence from BOTH files, because a rule left behind with no
-     * element is the other half of the same drift. */
-    name: 'the single-child `.sp-hero-head` wrapper is put back around the plot heading',
+    /* The single-child wrapper case, PIVOTED rather than deleted, and the pivot is
+     * the point: the string this case used to rewrite was `<section class="sp-hero">`
+     * followed immediately by a bare `<h2>`, and that markup does not exist any more —
+     * §3.X gave the row a second child. The DEFECT this case describes is still real
+     * and still worth catching, so the case now produces it the only way it can be
+     * produced any more: by taking the play control away and leaving the row with the
+     * one child it was deleted for. A case that stopped applying is §3.P's finding,
+     * and the fix is to keep the intent and move the mutation, not to delete the case.
+     *
+     * It also now proves something it could not before. Asserted as 「the class does not
+     * exist」 the old case was a check on a name; asserted as 「the row has the heading
+     * AND the control」 it is a check on the thing the name stands for, and the same
+     * single-child shape fails it from either direction. */
+    name: 'the plot heading row loses its play control, leaving the single-child wrapper again',
     mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
-      replaceOrThrow(s, '          <section class="sp-hero" aria-labelledby="sp-hero-h">\n            <h2 id="sp-hero-h">時頻圖</h2>',
-        '          <section class="sp-hero" aria-labelledby="sp-hero-h">\n            <div class="sp-hero-head"><h2 id="sp-hero-h">時頻圖</h2></div>')),
-    expect: 'the plot heading is a bare <h2>',
+      replaceOrThrow(s,
+        '            <div class="sp-hero-head">\n              <h2 id="sp-hero-h">時頻圖</h2>\n              <button id="sp-hero-play" class="sp-btn sp-btn-plot" type="button"\n                      aria-pressed="false" data-play>▶ 播放</button>\n            </div>',
+        '            <div class="sp-hero-head">\n              <h2 id="sp-hero-h">時頻圖</h2>\n            </div>')),
+    expect: 'the plot heading sits in a `.sp-hero-head` row with the play control beside it',
+  },
+  {
+    name: 'the mobile intro puts the sprite back above the prose, ahead of the <h1>',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '  .sp-intro-art {\n    justify-self: start;', '  .sp-intro-art {\n    justify-self: start;\n    order: -1;')),
+    expect: "the collapsed one-column intro keeps the figure AFTER the prose",
+  },
+  {
+    name: 'the plot\'s control reuses `.sp-btn-play`, so `flex: 2 1 auto` grows it to half the plot',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s, 'class="sp-btn sp-btn-plot"', 'class="sp-btn sp-btn-play"')),
+    expect: 'the plot\'s control carries `.sp-btn-plot` and NOT `.sp-btn-play`',
+  },
+  {
+    name: '`setPlayButton()` writes only the rail\'s control, so the two disagree while playing',
+    mutate: (dir) => edit(dir, 'spectrum.html', (s) =>
+      replaceOrThrow(s,
+        "      for (const node of document.querySelectorAll('[data-play]')) {\n        node.setAttribute('aria-pressed', String(playing));\n        node.textContent = playing ? '■ 停止' : '▶ 播放';\n      }",
+        "      el('sp-play').setAttribute('aria-pressed', String(playing));\n      el('sp-play').textContent = playing ? '■ 停止' : '▶ 播放';")),
+    expect: '`setPlayButton()` writes EVERY `[data-play]` control',
+  },
+  {
+    name: 'the 8px below the plot heading is left on the <h2> as well as on its new row',
+    mutate: (dir) => edit(dir, 'assets/css/spectrum.css', (s) =>
+      replaceOrThrow(s, '.sp-hero h2 {\n  margin: 0;', '.sp-hero h2 {\n  margin: 0 0 8px;')),
+    expect: 'the 8px between the heading and the canvas is declared once, on the row',
   },
 
   // -------------------------------------------------------------------------

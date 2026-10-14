@@ -938,16 +938,40 @@
 
 /* One column below the width at which a 6:4 split would leave the prose too narrow
    to keep a 68ch measure — the same breakpoint `cries.css:133` uses for the same
-   reason. The sprite goes ABOVE the prose on the way down, because a reader who
-   has lost the columns still wants to know what they are looking at first. */
+   reason.
+
+   THE SPRITE GOES BELOW THE PROSE, and this is the reversal of a decision this file
+   used to make here for a good reason: 「the sprite goes ABOVE the prose on the way
+   down, because a reader who has lost the columns still wants to know what they are
+   looking at first」. That was right about the READER and wrong about the POSITION —
+   what the reader wants first is the sentence that says what the page is, and on a
+   phone this one is three paragraphs of it.
+
+   Measured at 390×844 with `order: -1` in place: the sprite, the name and the id sat
+   **above** `<h1>叫聲頻譜</h1>`, which is not only a layout preference — the figure
+   precedes the page's only `<h1>` in the reading order a screen reader takes, so the
+   document announced a Pokémon before it announced what kind of page it was on.
+
+   THE FIGURE IS NOT MOVED IN THE DOM, and that is why this costs nothing in height:
+   it is already inside `.sp-intro` and already the LAST of nothing — `order` only
+   decides which cell of the collapsed one-column grid it lands in. Moving it from
+   first to last is 90px from above the prose to below it, so `#sp-hero` measures
+   1,189px before and after and `check_cry_mobile_layout.mjs`'s `heroTop <= 1.6
+   viewports` is unaffected. A version that moved the `<figure>` OUT of `.sp-intro`
+   into the plot's own heading row would have been tighter to the plot, and it would
+   also have taken the identity out of the band it belongs to.
+ */
 @media (max-width: 980px) {
   .sp-intro {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* A ROW, not a centred block: the sprite beside its own name, which is what
+   * `text-align: center` was compensating for before the caption went beside it.
+   * `justify-self: start` keeps it left-aligned with the prose column rather than
+   * centred under it, so the eye does not have to travel back to the left edge. */
   .sp-intro-art {
     justify-self: start;
-    order: -1;
     text-align: left;
     display: flex;
     align-items: center;
@@ -974,9 +998,38 @@
   margin: 0 0 var(--sp-band-gap);
 }
 
-.sp-hero h2 {
+/* The row above the plot: the section's heading and the control that plays it.
+ * `space-between` and not a `gap` with `margin-left: auto` on the button, because the
+ * heading is the left thing and the control is the right one, and that is a statement
+ * about the row rather than about the button — the same reason §3.O puts a drawer
+ * child's `flex-direction` on the parent and not on the item.
+ *
+ * It is `min-height` and not `height`, because the button is 44px and the heading is a
+ * 15px line box; a fixed height here would either clip the button's focus ring or
+ * leave the row 4px taller than its tallest child. */
+.sp-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
   margin: 0 0 8px;
+}
+
+.sp-hero h2 {
+  margin: 0;
   font-size: 15px;
+}
+
+/* NOT `.sp-btn-play`. That rule carries `flex: 2 1 auto`, which is right inside
+ * `.sp-transport` — a 300px rail where 播放 is the primary action and wants two thirds
+ * of the row against 隨機一隻's one — and wrong here, where the button sits beside a
+ * heading in a 1,180px band and `flex: 2` would make it grow to half the plot's width.
+ * Two rules for two layouts beats one rule whose flex value means 「primary」 in one
+ * place and nothing at all in the other. */
+.sp-btn-plot {
+  flex: 0 0 auto;
+  font-weight: 600;
 }
 
 .sp-plot {

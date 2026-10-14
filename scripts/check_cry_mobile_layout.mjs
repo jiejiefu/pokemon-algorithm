@@ -108,10 +108,24 @@ const ev = async (expression) => {
 };
 
 let checks = 0; const fails = [];
-const ok = (cond, what) => {
+/**
+ * `ok(cond, what[, detail])`.
+ *
+ *  THE THIRD ARGUMENT IS THE MEASUREMENT, and it is not optional decoration. This file
+ *  had a two-argument `ok` and twenty call sites passing a third, which JavaScript
+ *  accepts silently: every one of them printed a bare 「ok」 or 「FAIL」 and dropped the
+ *  numbers it had just taken. §3.G9's rule is the one this violates — 「the message
+ *  quotes the named constant or it quotes a lie」 — and a geometry assertion whose
+ *  failure line cannot say what it measured is a red line nobody can act on.
+ *
+ *  It is variadic rather than twenty edits because the third argument was already the
+ *  right thing to pass; what was missing was a signature that received it.
+ */
+const ok = (cond, what, detail) => {
   checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
+  const line = detail ? `${what} — ${detail}` : what;
+  if (!cond) fails.push(line);
+  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${line}`);
 };
 
 await send('Page.enable');
@@ -183,8 +197,25 @@ const sp = await ev(`(() => {
     playY: Math.round(box(q('#sp-play')).top),
     vh: innerHeight,
     rows: document.querySelectorAll('.sp-row').length,
+    artTop: Math.round(box(q('.sp-intro-art')).top + scrollY),
+    h1Bottom: Math.round(box(q('.sp-intro-body h1')).bottom + scrollY),
+    plotBtnY: Math.round(box(q('#sp-hero-play')).top),
+    plotBtnH: Math.round(box(q('#sp-hero-play')).height),
+    plotTop: Math.round(box(q('#sp-plot')).top),
+    plotBottom: Math.round(box(q('#sp-plot')).bottom),
   };
 })()`);
+
+/* Two DERIVED readings, computed here rather than in the page because `box` and `q` do
+ * not exist in this scope — the first version put them inside the IIFE, where `sp`
+ * resolved to a global and the assignment succeeded silently against nothing. That is
+ * §3.B1's shape: a line that looks like it works and produces no reader-visible effect
+ * at all, and the only symptom was `undefinedpx` in a message.
+ *
+ *  `plotBtnGap` is the CLAIM, not the numbers: 「directly above the canvas」 is a
+ *  distance, and measuring the two boxes is how a distance is checked. */
+sp.plotBtnGap = sp.plotTop - (sp.plotBtnY + sp.plotBtnH);
+sp.railBtnY = sp.playY;
 
 /* MECHANISM. The picker is one summary row and the roster inside it is not laid out at
  * all. `checkVisibility()` and not the rect: a rect inside a closed `<details>` reports
@@ -198,6 +229,27 @@ ok(sp.toggleAria === 'false' && sp.toggleDisplay !== 'none',
   '`aria-expanded` is "false" on a toggle that is visible — the button must not announce the opposite of what is on screen, and nothing in a browser checks the two');
 ok(sp.summary.length > 0 && /\d+ \/ \d+ 隻/.test(sp.summary),
   `the collapsed label states both facts (「${sp.summary}」)`);
+
+/* THE FIGURE IS THE LAST THING IN THE INTRO, which is `order` rather than DOM order
+ * and therefore invisible here except as geometry. `order: -1` used to put the sprite,
+ * and the page's only `<h1>`, above three paragraphs of explanation on a phone.
+ *
+ *  This is asserted as the figure's TOP being below the `<h1>`'s BOTTOM rather than as
+ * 「below the prose」, because it is a single comparison that catches both halves: the
+ * sprite arriving above the h1 is the same defect with the same cause, and measuring
+ * only the prose would let it back in. */
+ok(sp.artTop > sp.h1Bottom && sp.artTop < sp.heroTop,
+  'the sprite sits after the explanation AND after the <h1>, immediately above the plot',
+  `the figure is at y=${sp.artTop}, the <h1> ends at ${sp.h1Bottom} and the plot starts at ${sp.heroTop} — it was above the h1, at the top of the document`);
+
+/* THE PLOT'S OWN PLAY CONTROL, and the reason it is measured here rather than only in
+ * `check_spectrum_browser.mjs`: the browser checker proves the two controls agree about
+ * state, and this proves the second one is anywhere NEAR the picture. The two are
+ * different claims — a control that is correctly wired and 1,000px away satisfies the
+ * first and is useless for the second. */
+ok(sp.plotBtnGap >= 0 && sp.plotBtnGap <= 40,
+  'the plot\'s play control sits directly above its canvas',
+  `${sp.plotBtnGap}px between the button\'s bottom edge and the canvas (the rail\'s is ${sp.railBtnY}px from the top of the document)`);
 
 /* OUTCOME. The rail is a bar, and the page's reason for existing is within a screen and
  * a half of the top rather than 6,746px down. The budget is 1.6 viewports against a
@@ -232,6 +284,8 @@ const spTapped = await ev(`(async () => {
     summary: document.getElementById('sp-picker-now').textContent,
     plotTop: Math.round(plot.top), plotBottom: Math.round(plot.bottom), vh: innerHeight,
     scrollY: Math.round(scrollY),
+    btnTop: Math.round(document.getElementById('sp-hero-play').getBoundingClientRect().top),
+    btnBottom: Math.round(document.getElementById('sp-hero-play').getBoundingClientRect().bottom),
   };
 })()`);
 ok(spTapped.name === String(spTapped.wanted) || spTapped.name.length > 0, 'the tap selected a species',
@@ -241,6 +295,14 @@ ok(spTapped.pickerHidden, 'and the picker closed itself',
 ok(spTapped.plotTop < spTapped.vh && spTapped.plotBottom > 0,
   'THE ASSERTION THIS FILE EXISTS FOR: the plot is on screen after choosing from a list',
   `the plot spans y=${spTapped.plotTop}..${spTapped.plotBottom} in an ${spTapped.vh}px viewport`);
+/* The control and the picture together, and this is where the claim belongs. Measured
+ * at scroll 0 the button is at y=1,160 and the canvas at 1,212 — both below the fold,
+ * correctly, because the plot being 1.4 viewports down is what §3.X's reveal is for.
+ * Asserting 「both on one screen」 before the selection therefore asserted something
+ * false, and the fix was to move the assertion to the state where it is a claim. */
+ok(spTapped.btnTop < spTapped.vh && spTapped.btnBottom > 0,
+  'and the control that plays it is on the same screen as the picture it plays',
+  `the button spans y=${spTapped.btnTop}..${spTapped.btnBottom} beside the canvas at ${spTapped.plotTop}..${spTapped.plotBottom}`);
 
 /* AND THE READER CAN GO BACK. The offset is recorded on closing; without this the
  * feature is "pick something, then start the list again". */
@@ -458,7 +520,10 @@ console.log(`PASS  ${checks} checks`);
  * finished its work at 31ms and exited at 6033ms. */
 await finish(0);
 
-/** An `eq` for two measured numbers, so a failure quotes both. */
-function eq2(cond, _what, message) {
+/* This was `eq2(cond, what, message)` with `_what` discarded, which is the same silent
+ * third argument as above wearing a different name. There is exactly one call site and
+ * it never had a second label to give, so it is a call to `ok` with the detail — not a
+ * second spelling of `ok` that a reader has to work out which one a site is using. */
+function eq2(cond, _unused, message) {
   ok(cond, message);
 }
