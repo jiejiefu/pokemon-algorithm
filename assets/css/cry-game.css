@@ -699,6 +699,181 @@
   color: var(--text-tertiary);
 }
 
+/* --- the per-question review: ten rows of four --------------------------- */
+
+.cg-review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cg-review[hidden] { display: none; }
+
+.cg-review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+/* The row label is a FIXED width so the four sprites line up in a column down
+   the whole panel. Left to size itself, 「第 10 題」 is wider than 「第 1 題」 and
+   every row's first sprite shifts by a few pixels — ten rows of almost-aligned
+   grids, which reads as sloppy rather than as a list. */
+.cg-review-index {
+  flex: 0 0 44px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cg-review-sprites {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 64px, not 96px. The card is `max-width: 520px` and four sprites plus the label
+   and the mark has to fit inside it; 96px would need 420px of sprite column and
+   either overflow the card or widen it past every other panel on the page. 64 is
+   still comfortably above the 44px touch minimum, and colour-game drops its own
+   sprites to 44 below 560px — so this is between the two rather than below
+   either. */
+.cg-review-sprite {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  padding: 3px 0 2px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cg-review-sprite:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.cg-review-sprite:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 1px;
+}
+
+.cg-review-sprite img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+}
+
+.cg-review-name {
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  /* The four characters of 「天然雀」 at 11px are about 44px, and a 64px column
+   * holds two. `nowrap` plus the overflow rule below means the name is never
+   * WRAPPED across two lines, which would make the ten rows different heights —
+   * the same defect as the row label, one level down. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+
+/* The play glyph sits ON the sprite's top-left corner rather than beside the
+ * name, because the name is already using the width. `data-playing` is what
+ * `setReviewPlaying()` writes, so the icon and the state are ONE value — the
+ * same rule as the card's play button, and for the same reason. */
+.cg-review-play {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cg-review-sprite:hover .cg-review-play,
+.cg-review-sprite:focus-visible .cg-review-play,
+.cg-review-sprite[data-playing] .cg-review-play {
+  opacity: 1;
+}
+
+/* A CSS triangle, so the review needs no icon font and no SVG asset — the same
+   construction as `.cg-wave-play::after`. */
+.cg-review-play::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--text-primary);
+}
+
+.cg-review-sprite[data-playing] .cg-review-play::after {
+  width: 8px;
+  height: 10px;
+  border: 0;
+  background: linear-gradient(
+    to right,
+    var(--text-primary) 0 3px,
+    transparent 3px 5px,
+    var(--text-primary) 5px 8px
+  );
+}
+
+.cg-review-sprite[data-playing] {
+  border-color: var(--cg-accent);
+  background: var(--surface-hover);
+}
+
+/* THE SAME TWO STATES THE BOARD USES, so the review reads as an answer key
+   rather than as a second, differently-coloured scoring system: green is the
+   answer, red is the pick the reader made and it was wrong, and a species that
+   was neither is simply left alone. */
+.cg-review-sprite.is-answer {
+  border-color: var(--rule-green);
+}
+
+.cg-review-sprite.is-picked-wrong {
+  border-color: var(--rule-red);
+}
+
+/* The mark is a separate element rather than a glyph on the sprite, because it
+   is the one thing in this block that is about the READER's answer rather than
+   about the species — and it must stay legible while the sprite greys out. */
+.cg-review-mark {
+  flex: 0 0 20px;
+  font-size: 15px;
+  line-height: 1;
+  text-align: center;
+}
+
+.cg-review-mark.is-right { color: var(--rule-green); }
+.cg-review-mark.is-wrong { color: var(--rule-red); }
+.cg-review-mark.is-idle { color: var(--text-tertiary); }
+
 .cg-share {
   display: flex;
   flex-direction: column;
@@ -777,6 +952,19 @@
   .cg-intro h1 { font-size: 26px; }
   .cg-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .cg-choice { min-height: 112px; }
+  /* The review keeps all four per row rather than folding to two. Ten rows of two
+   * would be twenty rows on a phone, and this block is already the tallest thing
+   * on the page; at 320px the four sprites are 4x44 + 3x4 gaps = 188px beside a
+   * 44px label, which still fits. */
+  .cg-review-sprites { gap: 4px; }
+  .cg-review-index { flex-basis: 38px; font-size: 11px; }
+  .cg-review-row { gap: 6px; padding: 5px 6px; }
+  /* 44px, ON ITS OWN LINE rather than lumped in with `.cg-choice`. The board's
+     sprites drop to 44 for the same reason colour-game's do, and §3.W's finding
+     is that a lumped selector is how a 64px element silently becomes 44px. */
+  .cg-review-sprite { width: 44px; }
+  .cg-review-sprite img { width: 44px; height: 44px; }
+  .cg-review-name { max-width: 44px; font-size: 10px; }
   .cg-wave { height: 104px; }
   .cg-cell { font-size: 13px; }
 }

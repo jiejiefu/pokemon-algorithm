@@ -346,6 +346,7 @@ function currentPool() {
  */
 function newRound() {
   stopProgress();
+  reviewPlayingId = null;
   setRevealed(els.waveProgress, true);
   els.waveProgress.style.transform = 'scaleX(0)';
   setPlayState(false);
@@ -1041,7 +1042,16 @@ function renderResult() {
 
   const done = state.status === 'done';
   setRevealed(els.result, done);
-  if (!done) return;
+  if (!done) {
+    /* CLEARED, not left in place. `renderReview()` only runs on the finished path,
+     * so starting a new round would otherwise leave the PREVIOUS round's forty
+     * sprites in the DOM underneath a hidden panel — and a reader who answered a
+     * fresh round and scrolled would find the old answer key, which is worse than
+     * no review at all. */
+    els.review.innerHTML = '';
+    reviewPlayingId = null;
+    return;
+  }
 
   const s = scoreRound(state.questions, state.picks);
   els.resultTitle.textContent = `${s.correct} / ${s.total}`;
@@ -1056,6 +1066,8 @@ function renderResult() {
     Number.isFinite(SIMILARITY_CEILING[state.difficulty]) ? SIMILARITY_CEILING[state.difficulty] : '無'
   }。`;
 
+  renderReview();
+
   els.shareText.textContent = shareText({
     questions: state.questions,
     picks: state.picks,
@@ -1066,6 +1078,106 @@ function renderResult() {
   });
 
   revealResult();
+}
+
+/**
+ * The per-question review: ten rows of four, forty Pokémon, every one playable.
+ *
+ * **THE IDS ARE ALREADY IN MEMORY.** `state.questions` holds each question's four
+ * `options` and its `answer`, so a finished round has everything this needs and
+ * nothing extra has to be persisted — which is the reason a finished daily round
+ * restores and still draws its full review after a reload.
+ *
+ * Each sprite is a `<button>`, so the whole 64×64 tile is the target rather than a
+ * small glyph inside it — §3.W's touch-target rule, and the glyph is only
+ * decoration. The listener is DELEGATED from `#cg-review` because the whole block
+ * is rebuilt on every render: forty per-button listeners would all be sitting on
+ * nodes that were thrown away, and a detached node does not bubble (§3.I).
+ *
+ * Every species plays ITSELF, which is the point. The reference's result page
+ * does the same — all forty of its cards are clickable — and playing the
+ * distractors is what lets a reader hear which of the four they were looking for.
+ * A per-question button that plays only the answer would tell them nothing they
+ * did not already have in green two inches above.
+ *
+ * The marks reuse the board's own two states rather than inventing a third
+ * vocabulary: green is the answer, red is the pick that was wrong, and a species
+ * that was neither is left plain.
+ */
+function renderReview() {
+  const rows = state.questions.map((q, qi) => {
+    const pick = state.picks[qi];
+    const right = pick != null && pick === q.answer;
+    const cells = q.options.map((id) => {
+      const p = byId.get(id);
+      if (!p) return '';
+      let cls = 'cg-review-sprite';
+      if (id === q.answer) cls += ' is-answer';
+      else if (pick === id) cls += ' is-picked-wrong';
+      return `<button type="button" class="${cls}" data-id="${id}"
+        aria-label="播放 #${id} ${escapeHtml(p.names.zh)} 的叫聲">
+        <span class="cg-review-play" aria-hidden="true"></span>
+        <img src="${spriteUrl(id)}" alt="" width="64" height="64" loading="lazy" decoding="async">
+        <span class="cg-review-name">${escapeHtml(p.names.zh)}</span>
+      </button>`;
+    }).join('');
+    const mark = right
+      ? '<span class="cg-review-mark is-right" title="答對">✓</span>'
+      : '<span class="cg-review-mark is-wrong" title="答錯">✗</span>';
+    return `<li class="cg-review-row">
+      <span class="cg-review-index">第 ${qi + 1} 題</span>
+      <div class="cg-review-sprites">${cells}</div>${mark}
+    </li>`;
+  });
+  els.review.innerHTML = rows.join('');
+  /* RE-APPLIED AFTER THE REBUILD. The block is rebuilt on every render, so a
+   * render that happens while a review sprite is sounding — toggling the autoplay
+   * switch is the reachable one — would otherwise drop the glyph and leave the
+   * page disagreeing with the audio about what is audible. */
+  if (reviewPlayingId != null) {
+    const active = els.review.querySelector(`[data-id="${reviewPlayingId}"]`);
+    if (active) active.dataset.playing = '';
+  }
+}
+
+/**
+ * Mark exactly one review sprite as playing.
+ *
+ * `cryPlayer.play()` stops whatever was sounding before it starts the next, so
+ * two glyphs lit at once would mean the page and the audio disagreeing about what
+ * is audible — and the reader would have no way to tell which one to wait for.
+ * The previous id is cleared rather than clearing all of them, because the block
+ * is only rebuilt when the ROUND changes and forty `querySelectorAll` writes on
+ * every click would be forty writes to fix a problem one line solves.
+ */
+let reviewPlayingId = null;
+function setReviewPlaying(id) {
+  if (reviewPlayingId != null) {
+    const prev = els.review.querySelector(`[data-id="${reviewPlayingId}"]`);
+    if (prev) delete prev.dataset.playing;
+  }
+  reviewPlayingId = id;
+  if (id == null) return;
+  const next = els.review.querySelector(`[data-id="${id}"]`);
+  if (next) next.dataset.playing = '';
+}
+
+async function playFromReview(id) {
+  const p = byId.get(id);
+  if (!p) return;
+  try {
+    await cryPlayer.play(id, {
+      legacy: CRY_SET === 'legacy',
+      onStart: () => setReviewPlaying(id),
+    });
+  } catch (e) {
+    /* Announced, because this one IS a direct request: the reader pressed a
+     * specific sprite and the honest answer to that is that it could not be
+     * played. The auto-play path is the one that falls back to silence. */
+    setReviewPlaying(null);
+    lastAnnouncement = `#${id} ${p.names.zh} 的叫聲播不出來（${e && e.reason ? e.reason : 'unknown'}）。`;
+    renderAll();
+  }
 }
 
 /**
@@ -1175,6 +1287,12 @@ function wire() {
   });
   els.hintBtn.addEventListener('click', useHint);
 
+  els.review.addEventListener('click', (e) => {
+    const btn = e.target.closest('.cg-review-sprite');
+    if (!btn) return;
+    playFromReview(Number(btn.dataset.id));
+  });
+
   els.choices.addEventListener('click', (e) => {
     const btn = e.target.closest('.cg-choice');
     if (!btn || btn.disabled) return;
@@ -1269,6 +1387,7 @@ async function init() {
   els.shareText = document.getElementById('cg-share-text');
   els.shareCopy = document.getElementById('cg-share-copy');
   els.listen = document.getElementById('cg-listen');
+  els.review = document.getElementById('cg-review');
 
   try {
     const [data, features] = await Promise.all([

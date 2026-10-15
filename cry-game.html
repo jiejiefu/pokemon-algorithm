@@ -139,6 +139,19 @@
         <div class="cg-grid" id="cg-grid" aria-label="十題的結果"></div>
         <p class="cg-result-band" id="cg-result-band"></p>
         <p class="cg-result-detail" id="cg-result-detail"></p>
+
+        <!-- The per-question review: ten rows of four, forty Pokémon, each one
+             playable. Deliberately NOT a `<details>` — §3.X measured that
+             `::details-content` inserts a box into the box tree, so a flex parent
+             stops being the flex parent and `.sp-roster` grew from 503 px to
+             5,347 px on spectrum.html. A `<summary>` is a disclosure, and this is
+             the round's study material, not an aside.
+
+             Empty in the markup and filled by `renderReview()`. The ids are all
+             reachable from `state.questions`, which already holds every option of
+             every question — nothing about a finished round has to be persisted to
+             draw this. -->
+        <ol class="cg-review" id="cg-review" aria-label="每題的四個選項"></ol>
         <div class="cg-share">
           <h3 class="cg-share-title">成績</h3>
           <pre class="cg-share-text" id="cg-share-text" tabindex="0"></pre>

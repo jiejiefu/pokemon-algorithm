@@ -330,6 +330,46 @@ const CASES = [
     expect: 'the switch is mounted BEFORE the first round is drawn',
   },
 
+  /* ---- The result review. ---- */
+  {
+    name: 'each sprite gets its own listener, so a re-rendered block stops working',
+    mutate: (dir) => editJs(dir,
+      "  els.review.innerHTML = rows.join('');",
+      "  els.review.innerHTML = rows.join('');\n  for (const b of els.review.querySelectorAll('.cg-review-sprite')) b.addEventListener('click', () => playFromReview(Number(b.dataset.id)));"),
+    expect: 'and renderReview() attaches no listener at all',
+  },
+  {
+    /* A per-question button playing only the answer would tell the reader nothing
+     * the green border two inches above has not already said. */
+    name: 'a review sprite plays the question\'s answer instead of its own',
+    mutate: (dir) => editJs(dir, 'await cryPlayer.play(id, {', 'await cryPlayer.play(state.questions[state.indexOfCurrent].answer, {'),
+    expect: 'and a review sprite plays ITS OWN id',
+  },
+  {
+    name: 'the review becomes a <details>, which inserts a box into the box tree',
+    mutate: (dir) => editHtml(dir, '<ol class="cg-review" id="cg-review" aria-label="每題的四個選項"></ol>',
+      '<details class="cg-review" id="cg-review"><summary>每題</summary><ol></ol></details>'),
+    expect: 'and it is NOT a <details>',
+  },
+  {
+    name: 'the previous round\'s sprites are left in the DOM under a hidden panel',
+    mutate: (dir) => editJs(dir,
+      "    els.review.innerHTML = '';\n    reviewPlayingId = null;\n    return;",
+      '    return;'),
+    expect: 'starting a new round clears the review',
+  },
+  {
+    name: 'two review glyphs can be lit at once, so the reader cannot tell which to wait for',
+    mutate: (dir) => editJs(dir, 'const prev = els.review.querySelector(`[data-id="${reviewPlayingId}"]`);\n    if (prev) delete prev.dataset.playing;', ''),
+    expect: 'the PREVIOUS one is cleared rather than clearing all forty',
+  },
+  {
+    name: 'the review uses the 475px artwork instead of the sprite the cry sits beside',
+    mutate: (dir) => editJs(dir, '<img src="${spriteUrl(id)}" alt="" width="64" height="64" loading="lazy" decoding="async">',
+      '<img src="${artworkUrl(id)}" alt="" width="64" height="64" loading="lazy" decoding="async">'),
+    expect: 'the 96px sprite and never the 475px artwork',
+  },
+
   /* ---- The four the browser found, pinned as shapes. ---- */
   {
     name: 'advance() closes the round from the derived index, ending one question early',

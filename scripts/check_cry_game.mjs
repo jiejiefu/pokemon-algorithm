@@ -957,6 +957,65 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
 }
 
 // ---------------------------------------------------------------------------
+/* The result review is ten rows of forty, and §3.I is the whole reason its
+ * listener is delegated: the block is rebuilt wholesale on every render, so a
+ * per-sprite listener would be bound to a node about to be thrown away. */
+console.log('\nthe result review is delegated, and renders forty playable sprites');
+{
+  check(htmlCode.includes('id="cg-review"'), 'the review list exists');
+  check(!/<details[\s>]/.test(htmlCode),
+    'and it is NOT a <details> — §3.X measured that ::details-content inserts a box into the box tree and broke a flex parent on spectrum.html');
+  check(/aria-label="每題的四個選項"/.test(htmlCode), 'with a label a screen reader can reach');
+
+  const review = fnBody(jsCode, 'renderReview') || '';
+  check(/state\.questions\.map/.test(review), 'renderReview() reads the round, so nothing extra is persisted to draw it');
+  check((review.match(/cg-review-sprite/g) || []).length >= 2,
+    'and builds a button per option — forty for a ten-question round');
+  check(/aria-label="播放 #/.test(review),
+    'each button is a REAL <button> with a label naming the species, so the whole 64px tile is the target and it announces what it does');
+  check(/<img[^>]*loading="lazy"/.test(review), 'and its sprite is lazy — forty images the reader may never scroll to');
+  check(/spriteUrl\(id\)/.test(review) && !/artworkUrl/.test(review),
+    'the 96px sprite and never the 475px artwork, as everywhere else on this page');
+  check(/escapeHtml\(p\.names\.zh\)/.test(review), 'the name is escaped — it is DATA, and 圖鑑說明 has produced apostrophes');
+
+  check(/els\.review\.addEventListener/.test(jsCode), 'the click is delegated from #cg-review');
+  /* AN ABSENCE WITHIN THE FUNCTION THAT BUILDS THEM, not a regex trying to spot a
+   * loop. The first version looked for `for (...) { … addEventListener }` with
+   * `[^}]*` between, which cannot cross a closing brace — so a per-sprite listener
+   * added inside a nested block passed, and a mutation adding one after the
+   * `innerHTML` write passed too. The claim is about what `renderReview()` does,
+   * so it reads that function's body. */
+  check(!/addEventListener/.test(review),
+    'and renderReview() attaches no listener at all — the block is replaced on every render',
+    () => [...review.matchAll(/.{0,60}addEventListener.{0,40}/g)].map((m) => m[0]).join(' | '));
+
+  /* EVERY SPECIES PLAYS ITSELF. The whole reason the review exists is that a
+   * reader can hear all four and pick out the answer; a per-question button
+   * playing only the answer would say nothing they could not read in green two
+   * inches above. The reference's result page lets all forty of its cards play. */
+  check(/cryPlayer\.play\(id, \{/.test(jsCode),
+    'and a review sprite plays ITS OWN id, not the question\'s answer');
+  check(/onStart: \(\) => setReviewPlaying\(id\)/.test(jsCode),
+    'lighting exactly that sprite from onStart, so the glyph and the audio agree');
+  check(/let reviewPlayingId = null/.test(jsCode) && /delete prev\.dataset\.playing/.test(jsCode),
+    'the PREVIOUS one is cleared rather than clearing all forty — two glyphs lit at once would leave the reader unable to tell which to wait for');
+  check(/active\.dataset\.playing = ''/.test(jsCode),
+    'and the state is re-applied after a rebuild, because the block is replaced on every render');
+
+  /* A DIRECT REQUEST FAILS LOUDLY. This is the opposite of the auto-play path: the
+   * reader pressed one specific sprite, so the honest answer to that is that it
+   * could not be played. */
+  check(/lastAnnouncement = `#\$\{id\}.*播不出來/s.test(jsCode) || /#\$\{id\} \$\{p\.names\.zh\} 的叫聲播不出來/.test(jsCode),
+    'a failed review play announces itself, unlike a failed auto-play which falls back to silence');
+
+  /* A NEW ROUND MUST NOT LEAVE THE PREVIOUS ANSWER KEY IN THE DOM. */
+  const result = fnBody(jsCode, 'renderResult') || '';
+  check(/els\.review\.innerHTML = ''/.test(result),
+    'starting a new round clears the review rather than leaving forty sprites under a hidden panel');
+  check(/reviewPlayingId = null/.test(jsCode),
+    'and the playing pointer is reset with it');
+}
+
 console.log('\nthe four defects a static checker could not have found');
 // ---------------------------------------------------------------------------
 {
