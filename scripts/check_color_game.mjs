@@ -91,6 +91,39 @@ function ruleBody(source, selector) {
   return null;
 }
 
+/**
+ * The body of one JS block, brace-matched from the `{` that follows `anchor`.
+ *
+ * `ruleBody()` above is the CSS half; this is the JS half, and it exists for the
+ * same reason. The assertions about the Enter chain are about WHICH BLOCK each
+ * step lives in — "while the list is open, Enter selects and does not submit" is a
+ * claim about the `if (listIsOpen())` block, and a lazy `[\s\S]*?` would be
+ * satisfied by a `pickFromSearch()` call in the block below it, which is exactly
+ * the mutation this file was written to catch. §3.P's second vacuous shape.
+ *
+ * Returns null when `anchor` is absent or has no opening brace after it, so a
+ * caller can assert on null rather than on an empty string that matches anything.
+ */
+function blockBody(source, anchor) {
+  const at = source.indexOf(anchor);
+  if (at < 0) return null;
+  const open = source.indexOf('{', at + anchor.length - 1);
+  if (open < 0) return null;
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    else if (source[i] === '}') { depth--; if (depth === 0) return source.slice(open + 1, i); }
+  }
+  return null;
+}
+
+/** Every index of `needle` in `hay`, ascending. Empty array when absent. */
+function indicesOf(hay, needle) {
+  const out = [];
+  for (let i = hay.indexOf(needle); i >= 0; i = hay.indexOf(needle, i + 1)) out.push(i);
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 console.log('\nthe page shell');
 // ---------------------------------------------------------------------------
@@ -833,14 +866,24 @@ console.log('\nclicking a row fills the field; Enter spends the attempt');
     'and it dispatches no `input` event, which would clear the pick it just set',
     () => 'dispatching input re-runs the search, closes the list, and disarms the pending pick in one go');
 
-  /* Enter must try the armed pick before the row it last walked to, which is the
-   * only route into the field that names a species the reader chose by hand. */
+  /* Enter's precedence, restated as what it is NOW. The previous version asserted
+   * an ascending index over four names, and the rule it described — armed pick,
+   * then arrow-key row, then whole name, then FIRST ROW — ended with a submit the
+   * reader never asked for. An index comparison cannot notice that: the names were
+   * still there and still ascending, so the assertion kept passing while the
+   * behaviour it claimed to police was the defect. §3.B2's shape, pointed at the
+   * assertion written to prevent it.
+   *
+   * What replaces it is the rule itself: an armed pick outranks everything, and the
+   * list-open path must not reach a submit unless the list held ONE row. */
   const kd = /els\.search\.addEventListener\('keydown'[\s\S]*?\n {2}\}/.exec(jsCode);
   check(!!kd, 'the keydown handler exists');
-  const at = kd ? ['submitPendingPick()', 'aria-selected', 'resolveExact(', '.gm-search-item:not(.is-used)'].map((n) => kd[0].indexOf(n)) : [];
-  check(at.every((i) => i >= 0) && at.every((v, i) => i === 0 || v > at[i - 1]),
-    "Enter tries the armed pick, then the arrow-key row, then a whole name, then the first row",
-    () => `positions ${at.join(', ')} — expected ascending, and submitPendingPick() must come first`);
+  const kdBody = kd ? kd[0] : '';
+  const armedAt = kdBody.indexOf('submitPendingPick()');
+  check(armedAt >= 0, 'and Enter submits an armed pick');
+  check(armedAt >= 0 && armedAt < kdBody.indexOf('listIsOpen()'),
+    'and the armed pick is tested BEFORE the list is consulted',
+    () => 'a click is the only route that names a species the reader chose by hand; it outranks any row');
 
   /* Typing after a click is the reader changing their mind. Without this, click row
    * 2 -> type one more character -> Enter would submit row 2, which is no longer
@@ -1061,18 +1104,9 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
   check(!/class="gm-slot-strip" role="img"/.test(jsCode),
     'while `role="img"` is gone — it would mask the link role');
 
-  /* Enter's precedence: an explicitly walked-to row, then a WHOLE name, then the
-   * first substring hit. Exact-before-first is the fix — the substring scan
-   * matches inside other names (水伊布, 雷伊布, 妖精伊布 all contain 伊布), so
-   * "first row" is dex order rather than what the reader literally typed. */
+  /* A listbox owes the reader navigation. */
   const keydown = /els\.search\.addEventListener\('keydown'[\s\S]*?\n {2}\}/.exec(jsCode);
   check(!!keydown, 'the search field has a keydown handler');
-  const order = keydown ? ['aria-selected', 'resolveExact(', '.gm-search-item:not(.is-used)', '找不到'].map((n) => keydown[0].indexOf(n)) : [];
-  check(order.every((i) => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]),
-    'Enter takes the arrow-key row, then a whole name, then the first suggestion',
-    () => `positions ${order.join(', ')} — expected ascending, and the whole-name test must come BEFORE the first-substring-row`);
-
-  /* A listbox owes the reader navigation. */
   check(/ArrowDown/.test(keydown ? keydown[0] : '') && /ArrowUp/.test(keydown ? keydown[0] : ''),
     'and the listbox is navigable with ArrowDown / ArrowUp',
     () => 'a <ul role="listbox"> with no arrow handling leaves exactly one row reachable');
@@ -1096,6 +1130,137 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
   check(!/(?:resolveExact[\s\S]{0,200}levenshtein|resolveExact[\s\S]{0,200}distance)/.test(jsCode),
     'and it is not fuzzy — no edit distance anywhere near it',
     () => 'resolveExact gained a similarity notion; a typo would then be submitted and cost one of four attempts');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe IME\'s 選字 key is Enter too, and it is not the game\'s');
+// ---------------------------------------------------------------------------
+{
+  const kdBody = blockBody(jsCode, "els.search.addEventListener('keydown', (e) =>");
+  check(!!kdBody, 'the keydown handler body is readable');
+
+  /* All three signals, because missing one is not a degraded result — it is a
+   * spent attempt. `isComposing` is the standard flag and covers Chrome and
+   * Firefox; `keyCode === 229` is what some Windows IMEs send instead; and Safari
+   * reports `isComposing === false` on the very keydown that commits, which is why
+   * `composing` is tracked from the composition events. */
+  check(!!kdBody && /isComposing/.test(kdBody) && /keyCode === 229/.test(kdBody) && /\bcomposing\b/.test(kdBody),
+    'the guard tests isComposing, keyCode === 229 and the composition flag',
+    () => 'any one of the three missing re-opens the defect on the engine it covers');
+  check(/compositionstart/.test(jsCode) && /compositionend/.test(jsCode),
+    'and both composition events are wired, because Safari\'s isComposing lies on the commit keydown',
+    () => 'the Safari path depends on a flag nothing ever sets');
+
+  /* The guard must come BEFORE the preventDefault. A preventDefault on the IME's
+   * own keydown stops some IMEs committing at all, so the reader loses the
+   * CHARACTER — which is a worse failure than losing the guess, because it is
+   * silent and looks like the field is broken. */
+  const guardAt = kdBody ? kdBody.indexOf('isComposing') : -1;
+  const pdAt = kdBody ? kdBody.indexOf('e.preventDefault()') : -1;
+  check(guardAt >= 0 && pdAt >= 0 && guardAt < pdAt,
+    'the IME guard runs BEFORE the Enter branch calls preventDefault',
+    () => `guard at ${guardAt}, preventDefault at ${pdAt} — the IME keydown must return untouched`);
+
+  /* And the guard itself must not preventDefault. Measured, not reasoned: on
+   * Windows/Chrome a preventDefault on the composing Enter suppresses the commit
+   * and the character never lands in the field. */
+  const guardLine = kdBody ? (kdBody.slice(guardAt).split('\n').find((l) => l.includes('isComposing')) || '') : '';
+  check(guardLine.includes('return') && !guardLine.includes('preventDefault'),
+    'and the guard returns without cancelling the key, so the composition still commits',
+    () => 'the guard cancelled the IME keydown, so the character never reaches the field');
+
+  /* THE TRAP, and the reason this assertion exists rather than a comment: the 作答
+   * button submits by DISPATCHING a synthetic `new KeyboardEvent('keydown', {key:
+   * 'Enter'})`. A constructed event has `isTrusted === false` and `keyCode === 0`.
+   * So a guard written to be tidy about untrusted events — `if (!e.isTrusted)
+   * return`, or `if (e.keyCode === 0) return` — silently kills the ONLY route to
+   * answering on a phone, where there is no Enter key at all. Nothing throws, and
+   * the button it just disabled is still on screen. */
+  check(!/isTrusted/.test(guardLine) && !/keyCode === 0/.test(guardLine),
+    'and the guard does not reject on isTrusted or keyCode === 0, which the 作答 button\'s synthetic event carries',
+    () => 'the button dispatches an untrusted keydown with keyCode 0; rejecting either leaves a phone with no way to answer');
+  check(/els\.submit\.addEventListener\('click'[\s\S]{0,300}?dispatchEvent\(new KeyboardEvent\('keydown'/.test(jsCode),
+    'which matters because the 作答 button really does dispatch that synthetic keydown',
+    () => 'the button has stopped sharing the Enter chain, so the IME guard is no longer the only thing standing between it and a broken button');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nwhile the list is open, Enter SELECTS — it never guesses');
+// ---------------------------------------------------------------------------
+{
+  const kdBody = blockBody(jsCode, "els.search.addEventListener('keydown', (e) =>") || '';
+  const openBlock = blockBody(kdBody, 'if (listIsOpen())');
+  check(!!openBlock, 'the list-open branch is readable');
+
+  /* The whole defect in one sentence: with 26 rows showing, Enter must not reach a
+   * submit. It used to, and it picked #86 小海獅 because `pokemon` is dex order —
+   * one of four daily attempts spent on a species the reader never named. */
+  check(!!openBlock && /chooseFromSearch\(/.test(openBlock),
+    'a multi-row list routes Enter to chooseFromSearch(), which fills the field and submits nothing',
+    () => 'Enter on an open list is submitting again');
+  check(!!openBlock && /soleCandidate\(\)/.test(openBlock),
+    'and the one exception is named: a list holding exactly one candidate',
+    () => '「海星星」 matches one species, so Enter there is the reader naming their answer');
+
+  /* What the helper COMPUTES, not merely that it is called. Both of these came
+   * out of a mutation run: dropping `:not(.is-used)` and hard-coding `return true`
+   * both left every assertion in this block green, because the block only ever
+   * tested for the helper's NAME. §3.P's shape — an assertion about the mechanism
+   * when the claim is about the mechanism's result.
+   *
+   * Counting an already-guessed row makes Enter "submit" on a list that offers
+   * nothing to submit, and ignoring `hidden` makes `canSubmit()`'s whole-name
+   * clause permanently false — so the button can never light for a name that
+   * matched nothing in the list. */
+  const sole = blockBody(jsCode, 'function soleCandidate()');
+  check(!!sole && /:not\(\.is-used\)/.test(sole),
+    'soleCandidate() counts only rows that are still guessable',
+    () => 'an already-guessed row is not a candidate, so offering it as the sole one submits nothing the reader could act on');
+  const open = blockBody(jsCode, 'function listIsOpen()');
+  check(!!open && /els\.searchList\.hidden/.test(open),
+    'listIsOpen() reads the rendered state rather than assuming a list',
+    () => 'renderSearchResults() leaves the previous rows in the DOM on its early exits, so "rows exist" is not "a list is showing"');
+
+  /* Counted rather than pattern-matched, because the mutation that matters is a
+   * SECOND `pickFromSearch()` in this block that no `soleCandidate()` test guards.
+   * An index comparison over `only != null` would catch that too, and both are
+   * here because either alone can be satisfied by the other call. */
+  const picks = indicesOf(openBlock, 'pickFromSearch(');
+  const guarded = openBlock.indexOf('only != null');
+  check(picks.length === 1 && guarded >= 0 && picks[0] > guarded,
+    'the only submit reachable from an open list is the sole-candidate one',
+    () => `found ${picks.length} pickFromSearch() call(s), sole-candidate test at ${guarded} — an open list must not submit on an ambiguous query`);
+
+  /* And the select route must not itself submit, one call removed. This is the
+   * assertion that already existed for the CLICK path, and it was the click path's
+   * vacuous first version all over again if it is only checked at the call site. */
+  check(!/\b(submitGuess|submitPendingPick)\b/.test(openBlock),
+    'the open-list branch calls neither submitGuess() nor submitPendingPick() directly');
+
+  /* `canSubmit()` is the SAME question asked by the button, so it must be the same
+   * three tests in the same order. It used to end in "the field is non-empty",
+   * which lit the button while 26 rows were open and nothing was chosen — and a
+   * tap there would have to guess one. */
+  const can = blockBody(jsCode, 'function canSubmit()');
+  check(!!can && /pendingPick != null/.test(can) && /soleCandidate\(\) != null/.test(can)
+    && /listIsOpen\(\)/.test(can) && /resolveExact\(/.test(can),
+    'canSubmit() asks the same three questions Enter asks — armed, sole candidate, whole name',
+    () => 'the button and the key have started answering different questions about the same round');
+  check(!!can && !/els\.search\.value\.trim\(\)\.length/.test(can),
+    'and it no longer treats "the field is non-empty" as something to submit',
+    () => 'a query matching 26 rows, or none at all, still lights the button');
+
+  /* The list being open or shut is what moves the button, so every writer of that
+   * state has to redraw it. `renderSearchResults()` has TWO exits and the early one
+   * is the one that empties the field. */
+  const rsr = blockBody(jsCode, 'function renderSearchResults()');
+  check(!!rsr && indicesOf(rsr, 'renderSubmit()').length >= 2,
+    'renderSearchResults() redraws the button on both exits, including the early one that empties the field',
+    () => `found ${rsr ? indicesOf(rsr, 'renderSubmit()').length : 0} call(s) — one is not enough`);
+  check(/if \(e\.key === 'Escape'\)[\s\S]{0,200}?renderSubmit\(\)/.test(jsCode),
+    'Escape closes the list and redraws the button with it');
+  check(/if \(!e\.target\.closest\('\.gm-search-wrap'\)\)[\s\S]{0,200}?renderSubmit\(\)/.test(jsCode),
+    'and so does a click on empty space');
 }
 
 // ---------------------------------------------------------------------------

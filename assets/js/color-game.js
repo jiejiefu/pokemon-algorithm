@@ -118,6 +118,28 @@ let cooldownTimer = 0;
  */
 let pendingPick = null;
 
+/**
+ * True between `compositionstart` and `compositionend` on the guess field.
+ *
+ * **A Chinese or Japanese IME's 選字 key is `Enter`, and it is the SAME key the
+ * game submits with.** There was no check for it anywhere in this project: this
+ * field read `e.key === 'Enter'` and went straight into the submit chain, so a
+ * reader typing 「ㄏㄞˇ」 and pressing Enter to commit 「海」 spent an attempt on
+ * whatever the fallback picked — which was #86 小海獅, the first of the 26 species
+ * whose name contains 「海」, because `pokemon` is dex order.
+ *
+ * `KeyboardEvent.isComposing` is the standard signal and is enough on Chrome and
+ * Firefox. It is NOT enough on Safari, which reports `isComposing === false` on
+ * the keydown that commits the composition — so the flag is tracked from the
+ * composition events too, and all three are tested. **The IME keydown must also
+ * NOT be `preventDefault()`ed**, or the composition never commits and the reader
+ * loses the character outright; that is why this guard returns before the
+ * `preventDefault()` below rather than inside the Enter branch.
+ *
+ * `@type {boolean}`
+ */
+let composing = false;
+
 // ---------------------------------------------------------------------------
 // Storage
 // ---------------------------------------------------------------------------
@@ -549,6 +571,39 @@ function shareText() {
  * keystrokes, and there is no reason for that.
  */
 /**
+ * Is the suggestion list currently on screen?
+ *
+ * `hidden` and not `display`, because `renderSearchResults()` returns early in
+ * several places and leaves the previous `innerHTML` in place — so "are there rows
+ * in the DOM" is not "is there a list for the reader to choose from". Both are
+ * written together by `setRevealed()` (§3.M).
+ *
+ * @returns {boolean}
+ */
+function listIsOpen() {
+  return !els.searchList.hidden;
+}
+
+/**
+ * The single row left to choose from, or null.
+ *
+ * One candidate means the choice is already made: 「海星星」 matches exactly one
+ * species, so Enter there is the reader naming their answer rather than picking
+ * among options, and demanding a second Enter would only be ceremony. Zero or two
+ * or more means a real decision, and Enter SELECTS instead (§ the keydown handler).
+ *
+ * Already-guessed rows are excluded because `chooseFromSearch()` refuses them, so
+ * counting them would offer to "select" a row that then says 已經猜過了.
+ *
+ * @returns {number|null} dex id, or null when there is no single candidate
+ */
+function soleCandidate() {
+  if (!listIsOpen()) return null;
+  const rows = els.searchList.querySelectorAll('.gm-search-item:not(.is-used)');
+  return rows.length === 1 ? Number(rows[0].dataset.id) : null;
+}
+
+/**
  * The 作答 button: visible only when there is something to submit.
  *
  * It exists because a click fills the field and ENTER submits, and **a phone has no
@@ -564,12 +619,17 @@ function shareText() {
  *
  * Enabled by `canSubmit()`, never by "the field is non-empty" on its own — the same
  * answer the Enter key gets, so the two routes cannot disagree about whether this
- * round is still playable.
+ * round is still playable. That is why this asks the SAME three questions the
+ * keydown handler asks, in the same order: an armed pick, then a sole candidate,
+ * then a whole name. "Non-empty" was the fourth reading and it was wrong twice
+ * over — it lit the button while the list was open with 26 rows and nothing chosen
+ * (a tap would have to guess one), and it lit it for a query that matched nothing.
  */
 function canSubmit() {
   if (state.status !== 'playing' || !state.target) return false;
   if (pendingPick != null) return true;
-  return els.search.value.trim().length > 0;
+  if (soleCandidate() != null) return true;
+  return !listIsOpen() && resolveExact(els.search.value) != null;
 }
 
 function renderSubmit() {
@@ -866,7 +926,17 @@ function renderSearchResults() {
    * case and prints 找不到「…」 with what would work. Two places reporting one
    * failure is how the wrong one ends up being the one the reader sees. */
   els.searchStatus.textContent = '';
-  if (!q || state.status !== 'playing') { setRevealed(els.searchList, false); return; }
+  /* `renderSubmit()` on EVERY exit, including the early one below, because
+   * `canSubmit()` now asks whether the list is open — so opening and closing it
+   * are what move the 作答 button. A keystroke that empties the field closes the
+   * list, and a reader who then presses Enter deserves the same answer the button
+   * gives. Leaving it to the caller's own `renderSubmit()` is how the button and
+   * the key started disagreeing in the first place. */
+  if (!q || state.status !== 'playing') {
+    setRevealed(els.searchList, false);
+    renderSubmit();
+    return;
+  }
   const matches = searchMatches(q);
   const used = new Set(state.guesses.map((g) => g.id));
   els.searchList.innerHTML = matches.map((p) => {
@@ -889,6 +959,7 @@ function renderSearchResults() {
   if (!matches.length && suggestionPool() && searchMatches(q, { ignorePool: true }).length) {
     els.searchStatus.textContent = `本回合只從第${numeralOf(state.gen)}世代出題。`;
   }
+  renderSubmit();
 }
 
 function renderGenerations() {
@@ -1095,7 +1166,19 @@ function wire() {
     renderSearchResults();
     renderSubmit();
   });
+  /* The IME's 選字 key. `isComposing` covers Chrome and Firefox; `keyCode === 229`
+   * is the legacy signal some Windows IMEs send instead; `composing` covers Safari,
+   * which reports `isComposing === false` on the keydown that commits. All three,
+   * because missing one is not a degraded result — it is a spent attempt. */
+  els.search.addEventListener('compositionstart', () => { composing = true; });
+  els.search.addEventListener('compositionend', () => { composing = false; });
+
   els.search.addEventListener('keydown', (e) => {
+    /* FIRST, and before the `preventDefault()`: this keydown belongs to the input
+     * method, not to the game. Preventing the default here is what stops some
+     * IMEs committing at all, which loses the character rather than the guess. */
+    if (e.isComposing || e.keyCode === 229 || composing) return;
+
     if (e.key === 'Enter') {
       e.preventDefault();
       /* THE ARMED PICK, before anything else. It is the only route into this field
@@ -1103,27 +1186,31 @@ function wire() {
        * the row they last walked to and the first row they did not. */
       if (submitPendingPick()) return;
 
-      /* Arrow keys first, so Enter takes the row the reader has walked to rather
-       * than snapping back to the first. Without them the ↓ key did nothing and
-       * the only reachable row was the top one, which is the same as having no
-       * listbox — it is a <ul role="listbox">, so it owes the reader navigation. */
-      const active = els.searchList.querySelector('[aria-selected="true"]');
-      if (active && !active.classList.contains('is-used')) {
-        pickFromSearch(Number(active.dataset.id));
-        return;
+      /* WHILE THE LIST IS OPEN, ENTER SELECTS AND NEVER SUBMITS — except when the
+       * list holds exactly one candidate, where there is no choice left to make and
+       * a second Enter would only be ceremony.
+       *
+       * The rule replaced "and if there was nothing better, submit the first row",
+       * which spent one of four daily attempts on #86 小海獅 because 「海」 matches
+       * 26 species and `pokemon` is in dex order. The first Enter now costs nothing
+       * whatever it picks: it fills the field with a WHOLE name the reader can see,
+       * walk away from with ↓, or clear and retype. */
+      if (listIsOpen()) {
+        const only = soleCandidate();
+        if (only != null) { pickFromSearch(only); return; }
+        const active = els.searchList.querySelector('[aria-selected="true"]');
+        const target = active && !active.classList.contains('is-used')
+          ? active
+          : els.searchList.querySelector('.gm-search-item:not(.is-used)');
+        if (target) { chooseFromSearch(Number(target.dataset.id)); return; }
       }
 
-      /* THEN THE EXACT NAME, and this ordering is the fix. It used to be
-       * first-suggestion-then-nothing, so a reader who typed 「伊布」 in full got
-       * whatever the substring scan ranked first — and 「伊布」 is not always that:
-       * the scan matches inside other names too (水伊布, 雷伊布, 妖精伊布), so the
-       * rank is dex order rather than "what you literally typed". A whole-name
-       * match is the stronger signal, so it is asked first. */
+      /* The list is closed and nothing is armed, so there is no row to walk to and
+       * the field is the only thing that can name a species. A whole name beats the
+       * substring scan's ranking: 「伊布」 matches inside 水伊布 / 雷伊布 / 妖精伊布, so
+       * the scan's order is dex order rather than what the reader literally typed. */
       const exact = resolveExact(els.search.value);
       if (exact) { pickFromSearch(exact.id); return; }
-
-      const first = els.searchList.querySelector('.gm-search-item:not(.is-used)');
-      if (first) { pickFromSearch(Number(first.dataset.id)); return; }
 
       /* Nothing matched, and the text is not a whole name or number. Say so, and
        * say what would work — a silent no-op here is indistinguishable from a
@@ -1131,6 +1218,8 @@ function wire() {
       els.searchStatus.textContent = els.search.value.trim()
         ? `找不到「${els.search.value.trim()}」。可以只打部分名稱，或輸入全國編號。`
         : '先輸入名稱或全國編號。';
+      renderSubmit();
+      return;
     }
 
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1156,6 +1245,9 @@ function wire() {
     if (e.key === 'Escape') {
       setRevealed(els.searchList, false);
       els.search.setAttribute('aria-expanded', 'false');
+      /* Closing the list is what makes a whole name submittable, so the button
+       * moves with it — see `canSubmit()`. */
+      renderSubmit();
     }
   });
 
@@ -1174,7 +1266,12 @@ function wire() {
     if (e.target.closest('#gm-giveup')) { giveUp(); return; }
     if (e.target.closest('#gm-again')) { newGame(); return; }
     if (e.target.closest('#gm-share-copy')) { copyShare(); return; }
-    if (!e.target.closest('.gm-search-wrap')) { setRevealed(els.searchList, false); }
+    /* A click on empty space dismisses the list, and that is a list-state change
+     * `canSubmit()` reads — see the Escape branch for why. */
+    if (!e.target.closest('.gm-search-wrap')) {
+      setRevealed(els.searchList, false);
+      renderSubmit();
+    }
   });
 
   /* `/` focuses, `h` reveals a hint. Both are suppressed while typing — otherwise
@@ -1313,7 +1410,7 @@ async function init() {
 
   /* The button submits through the SAME chain as Enter, by synthesising the key —
    * rather than calling `submitPendingPick()` itself. Two entry points that each
-   * re-implement "armed row, then whole name, then first row" is how they come to
+   * re-implement "armed pick, then sole candidate, then whole name" is how they come to
    * disagree, and the disagreement is invisible: one of them quietly accepts
    * something the other refuses. A `KeyboardEvent` with `key: 'Enter'` is what the
    * reader's own keyboard produces, so there is one implementation of the rule. */
