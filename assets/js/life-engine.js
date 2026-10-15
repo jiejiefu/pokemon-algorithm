@@ -1,3 +1,5 @@
+import { eraTypes, TYPE_INTRO_GEN, LETS_GO_TYPE_ERA } from './type-era.js';
+
 /**
  * Pokémon Conway's Game of Life — Core Automata & Genetics Engine
  *
@@ -12,6 +14,8 @@
  *    proved empty with a 1-cell moat — see pickWildSite)
  * 7. Generation locking & Legendary Medals unlock milestones (1 medal per 6 families)
  * 8. Classical Conway stamp patterns
+ * 9. Type territory: what last lived in each cell, and which types the board
+ *    has collected at all (see #claim / typesOf / seenTypes)
  */
 
 // Classical Conway patterns (coordinates relative to top-left / center)
@@ -367,6 +371,8 @@ export const BRANCH_WEIGHTS = new Map([
   [700, 1]  // 仙子伊布  fairy move
 ]);
 
+const GEN1_STONE_EVOLUTIONS = new Set([134, 135, 136]);
+
 /**
  * Species that stop evolving entirely while a given mode is on.
  *
@@ -489,6 +495,8 @@ export class GameEngine {
   constructor(metadata, evolutionLevels = null, mode = '') {
     this.metadata = metadata;
     this.cells = new Map(); // key -> Cell
+    this.territory = new Map(); // key -> primary type name of the last occupant
+    this.seenTypes = new Set(); // every type this board has ever held (monotonic)
     this.generation = 0;
     this.unlockedFamilies = new Set();
     this.unlockedSpecies = new Set();
@@ -556,18 +564,65 @@ export class GameEngine {
   }
 
   /**
+   * The three evolution stones available in the original games.
+   *
+   * A STATED FACT, not a derivation, and the reason it cannot be derived is the
+   * interesting part. Filtering the branch by type era — "a destination whose
+   * types all exist in this generation may be reached" — admits SIX of the eight
+   * on a Gen 1 board, because 太陽伊布 (超能力), 葉伊布 (草) and 冰伊布 (冰) are all
+   * typed with Gen 1 types too. The set of destinations and the set of types are
+   * not the same question, and only one of them is answerable from TYPE_INTRO_GEN.
+   *
+   * 红/绿/蓝/黄's 伊布 evolves with 水之石 / 雷之石 / 火之石 into 水伊布 / 雷伊布 /
+   * 火伊布 and nothing else. All three are era-1 types, so restricting the branch
+   * to them leaves a Gen 1 board holding exactly the 15 types its generation had —
+   * which is the whole point, and why the table is a constant rather than a
+   * computation.
+   */
+/**
+   * Which of the eight 伊布 destinations a board at `era` can reach.
+   *
+   * GEN 1 GETS THE THREE STONES; every later era gets every destination whose
+   * types it has. A Let's Go board is era 7 (LETS_GO_TYPE_ERA), so it reaches all
+   * eight — the 2018 game's roster is Gen 1's, but its typing is not.
+   *
+   * THE CONSEQUENCE WORTH NAMING: because every admitted destination is era-valid
+   * BY CONSTRUCTION, the branch can never contribute a type its board does not
+   * already have. That is why the type denominator is simply the generation's own
+   * count — 15 in Gen 1, 17 in Gens 2-5, 18 from Gen 6 — with no special case and
+   * no reachable-set arithmetic. `check_life_page.mjs` asserts that equality
+   * across all 9 eras and both modes, so it stays a verified property rather than
+   * a coincidence.
+   */
+  branchDestinationsFor(era = this.typeEra()) {
+    return [...BRANCH_WEIGHTS.keys()].filter(id => {
+      if (era === 1) return GEN1_STONE_EVOLUTIONS.has(id);
+      const sp = this.metadata.speciesById.get(id);
+      return !!sp && era >= Math.max(...sp.types.map(t => TYPE_INTRO_GEN[t]));
+    });
+  }
+
+  /**
    * Species `fromId` can become on this board, newest generation's rules aside.
    *
-   * Generation-locked by default. The one exception is CROSS_GEN_BRANCH_ROOTS,
-   * and the filter is what makes the exception mean something: without the
-   * `generation === this.metadata.gen` test, a Gen 1 Eevee would have no
-   * reachable destinations at all, because 水/雷/火伊布 would be filtered out by
-   * the branch rules and the other five by the generation.
+   * Generation-locked by default, and the filter is what makes the exception mean
+   * something: without the `generation === this.metadata.gen` test, a Gen 1 Eevee
+   * would have no reachable destinations at all, because every one of the eight
+   * belongs to a later generation.
+   *
+   * The branch is then narrowed by TYPE ERA rather than by which generation the
+   * destination belongs to. That is what keeps a Gen 1 board inside its 15 types:
+   * 仙子伊布 is Fairy, so it is unreachable before Gen 6, and 月亮伊布 is 惡, so
+   * it is unreachable before Gen 2 — while 水/雷/火伊布 are era-1 types and stay
+   * reachable on every board.
    */
   successorsOf(fromId) {
     const edges = this.evolutionEdges.get(fromId);
     if (!edges || edges.length === 0) return [];
-    if (CROSS_GEN_BRANCH_ROOTS.has(fromId)) return edges;
+    if (CROSS_GEN_BRANCH_ROOTS.has(fromId)) {
+      const allowed = new Set(this.branchDestinationsFor());
+      return edges.filter(e => allowed.has(e.to));
+    }
     const gen = this.metadata.gen;
     return edges.filter(e => this.metadata.speciesById.get(e.to)?.generation === gen);
   }
@@ -635,12 +690,79 @@ export class GameEngine {
       this.rebuildWildIndex();
     }
     this.cells.clear();
+    this.territory.clear();
+    this.seenTypes.clear();
     this.generation = 0;
     this.unlockedFamilies.clear();
     this.unlockedSpecies.clear();
     this.unlockedMedalIds.clear();
     this.unlockedMedals = [];
     this.wildEncounterCount = 0;
+  }
+
+  /**
+   * The generation whose TYPE RULES this board runs under, which is not always
+   * the generation whose ROSTER it runs under.
+   *
+   * They come apart in exactly one mode: a Let's Go board is a 2018 game playing
+   * the Gen 1 roster, so its types are read at LETS_GO_TYPE_ERA while its species
+   * stay the Gen 1 151. Every other mode answers the roster's own generation.
+   */
+  typeEra() {
+    return this.mode === 'letsGo' ? LETS_GO_TYPE_ERA : this.metadata.gen;
+  }
+
+  /**
+   * The types THIS board knows a species by.
+   *
+   * The one answer to that question, and the renderer, the wash and the type
+   * drawer all ask it rather than reading `species.types` themselves — three
+   * places each holding their own idea of a species' type is §3.I's shape with
+   * a colour attached.
+   *
+   * THERE IS NO CROSS-GENERATION EXEMPTION HERE, and there used to be one. It
+   * existed because the branch was not era-restricted: 仙子伊布 could be reached
+   * from a Gen 1 board, its Fairy type had no Gen 1 era, and `eraTypes` returned
+   * `[]` for it — which renders as the hardcoded `#78c850` fallback rather than as
+   * a bug. `branchDestinationsFor()` removed the cause, so the symptom's treatment
+   * went with it. The two were one change and must be reverted together: reinstating
+   * a later-generation branch without reinstating the exemption yields an empty
+   * typing again, and nothing else on the page would say so.
+   */
+  typesOf(species) {
+    if (!species) return [];
+    return eraTypes(species, this.typeEra());
+  }
+
+  /**
+   * Record the type of whatever last occupied a cell.
+   *
+   * ONE entry per key, so a cell is one colour and a newcomer REPLACES the old
+   * owner rather than adding a second wash: Grass gives way to Fire and the
+   * green is gone from that cell. Nothing is ever composited and no cell ever
+   * carries two types.
+   *
+   * The stored value is the TYPE NAME (`'Grass'`), not a colour. Type colours
+   * live in shared.js and are a rendering concern; the engine stays free of DOM
+   * so `check_life_page.mjs` can drive it in bare Node.
+   *
+   * PRIMARY TYPE ONLY (`types[0]`), which is the same field the cell renderer
+   * already keys `TYPE_COLORS` on. 499 of 1,025 species are mono-type so for
+   * them this is unambiguous; the other 526 show their first type only, which
+   * is what the claim means and not a fallback for a missing one — all 1,025
+   * records carry a non-empty typing on every generation, and
+   * `check_life_page.mjs` asserts that rather than assuming it.
+   */
+  #claim(x, y, speciesId) {
+    const type = this.typesOf(this.metadata.speciesById.get(speciesId))?.[0];
+    if (!type) return;
+    this.territory.set(cellKey(x, y), type);
+    // Collected, not derived: a type stays on the board's record once anything
+    // has ever carried it, which is what makes the button a "seen" count rather
+    // than a snapshot. Note that `deleteCell` does NOT reach this line — erasing
+    // the last cell of a type leaves it collected, and that is the intended
+    // asymmetry between the wash (current) and this set (ever).
+    this.seenTypes.add(type);
   }
 
   /**
@@ -671,6 +793,7 @@ export class GameEngine {
 
     const key = cellKey(x, y);
     this.cells.set(key, cell);
+    this.#claim(x, y, speciesId);
 
     this.recordDiscovery(speciesId, familyId);
     return cell;
@@ -678,9 +801,23 @@ export class GameEngine {
 
   /**
    * Remove a cell at (x, y)
+   *
+   * THE ERASER, AND ONLY THE ERASER. The wash goes with it, because a reader who
+   * erased a cell is asking for the cell back, and a leftover colour would be a
+   * mark no action on the page can remove.
+   *
+   * This is load-bearing in the other direction too: Conway deaths never come
+   * through here. `tick()` builds a fresh `nextCells` and assigns it wholesale,
+   * so a cell that starved or overcrowded is simply not copied — its wash
+   * survives, which is the entire point of the layer. `check_life_page.mjs`
+   * asserts BOTH directions, because the difference between them is invisible
+   * from either side alone: erasing is a method call and starving is an
+   * omission.
    */
   deleteCell(x, y) {
-    this.cells.delete(cellKey(x, y));
+    const key = cellKey(x, y);
+    this.cells.delete(key);
+    this.territory.delete(key);
   }
 
   /**
@@ -695,6 +832,8 @@ export class GameEngine {
    */
   clear() {
     this.cells.clear();
+    this.territory.clear();
+    this.seenTypes.clear();
     this.generation = 0;
   }
 
@@ -732,8 +871,13 @@ export class GameEngine {
    * Randomize grid with specified density in a given bounding box
    */
   seedRandom(density = 0.20, width = 30, height = 24, centerX = 0, centerY = 0, defaultSpeciesId = null) {
-    this.cells.clear();
-    this.generation = 0;
+    // `clear()`, NOT `this.cells.clear()`.
+    //
+    // The two were identical until the wash existed, and a reseed that emptied
+    // the board while leaving every old colour behind is the §3.M shape: one
+    // state, two writers, and the second one is silent about the half it does
+    // not know about. `clear()` is the single writer of "the board is empty".
+    this.clear();
 
     const startX = Math.floor(centerX - width / 2);
     const startY = Math.floor(centerY - height / 2);
@@ -1019,6 +1163,21 @@ export class GameEngine {
     }
 
     this.cells = nextCells;
+
+    // 3b. Claim the wash for every live cell, AFTER the swap.
+    //
+    // One pass over the FINAL population rather than a claim inside each of the
+    // four branches above, and the reason is EVOLUTION: a cell that evolved this
+    // generation changed species, and the wash has to name the species it is now.
+    // The branch runs at CROSS_GEN_BRANCH_ROOTS (#133), so 伊布 -> 水伊布 is a
+    // real crossing — Normal becomes Water, and the old green-on-a-Normal-cell
+    // would be the stale answer. Claiming during the loop would record the
+    // species on the way IN and be wrong from that generation onward.
+    //
+    // Reading `nextCells` rather than the parents is the whole point, and it is
+    // also what keeps this to one write site: survive, evolve, reproduce and the
+    // wild spawn all land in the same map before this line runs.
+    for (const c of nextCells.values()) this.#claim(c.x, c.y, c.speciesId);
 
     // 4. Check for newly unlocked legendary medal
     const newlyUnlockedMedal = this.checkMedalProgress();

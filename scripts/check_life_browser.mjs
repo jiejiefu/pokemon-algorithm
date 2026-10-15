@@ -34,7 +34,7 @@
  * proven to use.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -635,7 +635,449 @@ eq(cryOff.checked, false, 'clicking it again turns sound off');
 eq(cryOff.muted, true, 'and persists that');
 
 /* ==========================================================================
-   7. NO CONSOLE ERRORS
+   7. THE TYPE WASH — COUNTED BY ALPHA, ON THE REAL CANVAS
+   ==========================================================================
+
+   The wash's whole claim is a PIXEL claim: a freed cell shows its last
+   occupant's primary type, an occupied cell shows nothing, a cell that was
+   never claimed shows nothing, and the toggle makes all of it go away. None of
+   that is answerable by reading life.js, and the alpha value is the measurement
+   that separates the four states — which is §3.G3's rule, for the same reason
+   it applies to sorting.html's lanes.
+
+   WHY ALPHA AND NOT SCREENSHOT PIXELS. The canvas is transparent where nothing
+   is drawn; the ground behind it is a CSS `radial-gradient` (life.css:229/234).
+   So `getImageData` returns alpha 0 for the ground itself, and the wash is the
+   one thing that puts a PARTIAL alpha on an otherwise untouched canvas. That
+   makes alpha both the discriminator and the quantity: an occupied cell is
+   opaque where its sprite is and 0 where the sprite is not, and the wash sits
+   at TERRITORY_ALPHA*255 — never at either of those. §3.C's "sample decoded
+   pixels rather than getComputedStyle" is satisfied for the colour question by
+   taking the RGB the wash carries; the question it was warning about — what the
+   two themes actually COMPOSITE to — needs a real screenshot and is measured in
+   the comment on TERRITORY_ALPHA instead.
+
+   REAL MOUSE PRESSES, not `element.click()`: the handlers are `mousedown` on the
+   canvas and `mousemove` on window, so a synthetic `.click()` would place
+   nothing and the whole section would pass vacuously — §3.N's finding exactly,
+   where 0 of 5 dispatched clicks did what 5 of 5 `element.click()` calls did. */
+console.log('--- type wash on the canvas ---');
+
+// CELL_SIZE read out of the source rather than restated (§3.S): a hardcoded 36
+// here is a second copy of the number the mapping below depends on, and it goes
+// stale silently — the brush would land one cell off and every assertion would
+// still be comparing pixels to pixels.
+const lifeJsSrc = readFileSync(join(ROOT, 'assets/js/life.js'), 'utf8');
+const CELL_SIZE = Number((lifeJsSrc.match(/const CELL_SIZE = (\d+)/) || [])[1]);
+ok(Number.isFinite(CELL_SIZE) && CELL_SIZE > 0, `CELL_SIZE is readable from life.js (${CELL_SIZE})`);
+
+/** Wait two animation frames — the renderer is a rAF loop, so a state change is
+ *  not on the canvas until it has been painted. */
+const frames = () => ev(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
+
+/** World cell -> viewport point, using the page's own canvas rect.
+ *  Assumes the boot-time centred camera, which is asserted below rather than
+ *  trusted: if the assumption broke, the sprite would not appear where predicted
+ *  and that check fails instead of the wash ones. */
+const pointFor = async (wx, wy) => JSON.parse(await ev(`(() => {
+  const c = document.getElementById('lifeCanvas');
+  const r = c.getBoundingClientRect();
+  const CELL = ${CELL_SIZE};
+  return JSON.stringify({
+    x: r.left + r.width / 2 + ${wx} * CELL,
+    y: r.top + r.height / 2 + ${wy} * CELL
+  });
+})()`));
+
+const press = async (x, y) => {
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+  await frames();
+};
+
+/** Two cells' worth of pixels in one round trip: (0,0) is the cell under test
+ *  and (-9,-9) is a control that is never brushed. `home` is where the feature
+ *  has to be visible, `far` is the "nothing is painted here" reading. */
+const sample = async () => JSON.parse(await ev(`(() => {
+  const c = document.getElementById('lifeCanvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const CELL = ${CELL_SIZE};
+  const at = (wx, wy) => {
+    const d = ctx.getImageData(
+      Math.round(c.width / 2 + wx * CELL + CELL / 2),
+      Math.round(c.height / 2 + wy * CELL + CELL / 2), 1, 1).data;
+    return { r: d[0], g: d[1], b: d[2], a: d[3] };
+  };
+  return JSON.stringify({ home: at(0, 0), far: at(-9, -9) });
+})()`));
+
+// Pick the brush explicitly rather than relying on it being the default, so this
+// section cannot start failing because an earlier one left a different tool active.
+await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
+
+// THREE THINGS SET UP BEFORE ANY PIXEL IS READ, and the first two exist only
+// because the first pooled run of this section failed.
+//
+// 1. PAUSE. The section above runs the simulation for up to 40 seconds and pauses
+//    it on the way out, but a section that measures "is this cell dead" has no
+//    business assuming whoever ran before it left the clock stopped. Under the
+//    pool the rAF loop was still ticking: the brushed cell was killed by a
+//    background tick rather than by 單步, and a wild pack had taken the cell by
+//    the time it was read — which is why the pixel came back 255 and gold
+//    (235/220/74, the veteran frame #f5c542) instead of green. A section that
+//    inherits its neighbours' state is a section whose result depends on the
+//    order the sections happen to run in.
+//
+// 2. WILD ENCOUNTERS OFF. `pickWildSite` places a three-cell pack on any free
+//    site with a 1-cell moat, and the origin is a free site. 2% per tick is
+//    nothing over a 40-second run — which is the point: rare enough to look
+//    deterministic, often enough to be the reason a run failed once.
+//
+// 3. EMPTY BOARD. life.html seeds a 32x22 box centred on the origin at 20%
+//    density, so world (0,0) — the cell this section brushes, steps and re-reads
+//    — is already occupied before the first click. An isolated-cell test needs an
+//    isolated cell. 清空 clears the cells AND the wash (the two go together, and
+//    seedRandom/reset/clear are the only three paths that empty a board).
+const setup = JSON.parse(await ev(`(() => {
+  const btn = document.getElementById('btnPlay');
+  // The button reads 暫停 while the clock is running (§3.K), so this pauses only
+  // if it has to — clicking it blindly would START the sim.
+  const wasPlaying = /暫停/.test(btn.textContent || '');
+  if (wasPlaying) btn.click();
+  const wild = document.getElementById('chkWild');
+  const wildWasOn = wild.checked;
+  if (wildWasOn) wild.click();
+  document.getElementById('btnClear').click();
+  return JSON.stringify({ wasPlaying, wildWasOn });
+})()`));
+ok(setup.wasPlaying === false, `the simulation is paused before any pixel is read (was playing: ${setup.wasPlaying})`);
+eq(setup.wildWasOn, true, 'wild encounters were on when this section started, so the off-switch is doing work');
+await frames();
+await frames();
+
+// A cell that has never been touched: the control for "nothing is painted here".
+const ground = await sample();
+eq(ground.far.a, 0, 'an untouched cell paints nothing at all (alpha 0, the ground shows through)');
+
+// Brush Bulbasaur into world (0,0). 妙蛙種子's primary type is Grass.
+await press((await pointFor(0, 0)).x, (await pointFor(0, 0)).y);
+const occupied = await sample();
+ok(occupied.home.a === 0 || occupied.home.a === 255,
+  `the brush actually placed a sprite at the predicted cell (alpha ${occupied.home.a})`);
+ok(occupied.home.a !== ground.far.a || occupied.home.r !== ground.far.r,
+  'and world (0,0) now differs from the untouched control cell');
+
+// 單步 advances exactly one generation, and an isolated cell has no neighbours,
+// so Conway kills it. This is the whole feature in one interaction: place,
+// step, and the colour is left behind.
+await ev(`document.getElementById('btnStep').click(); true`);
+await frames();
+await frames();
+const freed = await sample();
+
+// The wash's alpha is TERRITORY_ALPHA * 255 and nothing else on this canvas sits
+// in that band — the sprite is 0 or 255, the grid lines are a full-length stroke
+// rather than a cell fill.
+ok(freed.home.a > 8 && freed.home.a < 250,
+  `the dead cell paints a PARTIAL alpha — a wash, not a sprite (${freed.home.a}/255)`);
+ok(freed.home.g > freed.home.r && freed.home.g > freed.home.b,
+  `and it is GREEN, because 妙蛙種子's primary type is Grass (rgb ${freed.home.r}/${freed.home.g}/${freed.home.b})`);
+eq(freed.far.a, 0, 'while the never-claimed cell beside it is still untouched');
+
+// The occupied-cell rule is the one that cannot be read off the source as a
+// behaviour: it needs the sprite to be there and the wash to be absent at once.
+await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
+await press((await pointFor(0, 0)).x, (await pointFor(0, 0)).y);
+const reOccupied = await sample();
+ok(reOccupied.home.a === 255,
+  `a re-occupied cell is opaque — the wash is not what is showing through the sprite (${reOccupied.home.a}/255)`);
+
+// The toggle. Clicking it must cost nothing and change nothing else.
+await ev(`document.getElementById('chkTerritory').click(); true`);
+await frames();
+const washOff = await sample();
+ok(reOccupied.home.a === 255, 'the control sample before the toggle really was opaque');
+eq(washOff.far.a, 0, 'with 屬性殘影 off, an unfilled cell is untouched as before');
+await ev(`document.getElementById('chkTerritory').click(); true`);
+await frames();
+
+// The theme pair, measured the way §3.C demands rather than asserted from the
+// constant: put a claim on a cell that is dead, switch the theme the way a
+// reader does, and read the alpha the wash ACTUALLY painted.
+//
+// The theme is set by writing `dataset.theme` because that is literally the
+// branch the renderer reads — §3.X's lesson was that flipping the attribute and
+// then reading a contrast figure measures the wrong path, but here the attribute
+// IS the input, not a proxy for one. What this cannot measure, and does not
+// claim, is what the wash composites to against the CSS gradient underneath;
+// that needs a screenshot and is stated as unmeasured rather than guessed.
+const originalTheme = await ev(`document.documentElement.dataset.theme || ''`);
+const p22 = await pointFor(2, 2);
+await press(p22.x, p22.y);
+await ev(`document.getElementById('btnStep').click(); true`);
+await frames();
+await frames();
+
+const themeAlphas = JSON.parse(await ev(`(async () => {
+  const wait = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const c = document.getElementById('lifeCanvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const CELL = ${CELL_SIZE};
+  const at = (wx, wy) => ctx.getImageData(
+    Math.round(c.width / 2 + wx * CELL + CELL / 2),
+    Math.round(c.height / 2 + wy * CELL + CELL / 2), 1, 1).data;
+  const out = {};
+  for (const theme of ['light', 'dark']) {
+    document.documentElement.dataset.theme = theme;
+    await wait(); await wait();
+    const d = at(2, 2);
+    out[theme] = { a: d[3], g: d[1], r: d[0], b: d[2] };
+  }
+  return JSON.stringify(out);
+})()`));
+
+ok(themeAlphas.light.a > themeAlphas.dark.a,
+  `the light theme carries MORE alpha than the dark one (${themeAlphas.light.a} vs ${themeAlphas.dark.a} of 255) — a near-white ground has no headroom to spare`);
+ok(themeAlphas.dark.a > 20 && themeAlphas.light.a > 40,
+  `and both read as a colour rather than as nothing (dark ${themeAlphas.dark.a}/255, light ${themeAlphas.light.a}/255)`);
+ok(themeAlphas.light.g > themeAlphas.light.r && themeAlphas.light.g > themeAlphas.light.b,
+  `the light-theme wash is still recognisably Grass (rgb ${themeAlphas.light.r}/${themeAlphas.light.g}/${themeAlphas.light.b})`);
+
+await ev(`document.documentElement.dataset.theme = ${JSON.stringify(originalTheme)}; true`);
+await frames();
+
+/* ==========================================================================
+   8. THE TYPE DRAWER — TWO NUMBERS THAT ARE NOT THE SAME NUMBER
+   ==========================================================================
+
+   The button and the list answer different questions on purpose:
+
+     屬性 (n/15)   types this board has EVER held. Monotonic. Erasing the last
+                   cell of a type does not un-collect it.
+     the list       a snapshot: (that type's live + wash) / (all live + wash).
+                   An erased wash leaves the list and stays on the button.
+
+   Both halves are driven through the real UI — a real press on the canvas, and
+   the 圖鑑 drawer to change the brush species, because there is no other control
+   for it. Driving `activeSpeciesId` directly would be §3.N's mistake one field
+   over: it would pass against a page whose picker was broken.
+
+   THE ORDER MATTERS and is asserted at each step, because a counter that is
+   right for the wrong reason is still wrong: `>=` would pass for a drawer that
+   showed every type of every generation. */
+console.log('--- type drawer ---');
+
+// Reuse the section's paused + empty board: a seeded board's population would
+// make "how many types has it collected" depend on how many ticks ran.
+await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
+await ev(`document.getElementById('btnClear').click(); true`);
+await frames();
+await frames();
+
+const typeLabel = () => ev(`document.getElementById('btnTypeCount').textContent`);
+const typeDrawer = async () => JSON.parse(await ev(`(() => {
+  document.getElementById('btnTypeDrawer').click();
+  const rows = [...document.querySelectorAll('#typeList .life-type-row')].map(r => ({
+    text: r.textContent.replace(/\\s+/g, ' ').trim(),
+    empty: r.classList.contains('is-empty')
+  }));
+  return JSON.stringify({
+    summary: document.getElementById('typeSummary').textContent,
+    eraNote: document.getElementById('typeEraNote').textContent,
+    rows,
+    segs: document.querySelectorAll('#typeBar .life-type-seg').length,
+    open: document.getElementById('typeDrawer').classList.contains('is-open')
+  });
+})()`));
+
+/** Brush the current species at a world cell. */
+const brushCell = async (wx, wy) => {
+  const p = await pointFor(wx, wy);
+  await press(p.x, p.y);
+};
+
+/** Change the brush species the way a reader does: open 圖鑑, click the tile. */
+const pickSpecies = async (dexNum) => {
+  await ev(`document.getElementById('btnDexDrawer').click(); true`);
+  await sleep(250);
+  const picked = await ev(`(() => {
+    const tile = [...document.querySelectorAll('#dexGrid .life-dex-item')]
+      .find(e => e.querySelector('.life-dex-num').textContent === '#${dexNum}');
+    if (!tile) return false;
+    tile.click();
+    return true;
+  })()`);
+  eq(picked, true, `the Pokédex drawer has a tile for #${dexNum}, so the brush species is reachable`);
+  await sleep(150);
+};
+
+const empty1 = await typeDrawer();
+eq(empty1.summary, '盤面尚無寶可夢。', 'an empty board says so rather than printing 0/0');
+// 15, the generation's own count. It is not 17 because the 伊布 branch is
+// era-restricted: a classic Gen 1 Eevee reaches only 水/雷/火伊布, all of which are
+// era-1 types, so the family widens nothing. `check_life_page.mjs` asserts that
+// across 9 generations × 2 modes, which is what lets this number be the era's
+// rather than a reachable-set computation.
+eq(empty1.rows.length, 15, `a classic Gen 1 drawer lists 15 rows (${empty1.rows.length})`);
+ok(/鋼、惡、妖精/.test(empty1.eraNote),
+  `and names the three types Gen 1 lacks: "${empty1.eraNote}"`);
+eq(empty1.segs, 0, 'and draws no bar segments, since nothing has a share');
+eq(await typeLabel(), '屬性 (0/15)', 'a cleared board has collected no types');
+
+// Two species, two types. 妙蛙種子 is 草; 小拉達 is 一般.
+await brushCell(0, 0);
+eq(await typeLabel(), '屬性 (1/15)', 'one 妙蛙種子 collects 草');
+await pickSpecies('0019');   // 小拉達
+await brushCell(1, 0);
+eq(await typeLabel(), '屬性 (2/15)', 'adding 小拉達 collects 一般 — the count grows');
+
+const two = await typeDrawer();
+ok(/活體 2 隻/.test(two.summary) && /合計 4 格/.test(two.summary),
+  `the denominator is live PLUS wash (${two.summary})`);
+eq(two.segs, 2, 'the bar draws one segment per non-zero type');
+{
+  // Exactly two rows carry a share, and together they are 100%. Asserting both
+  // halves: "some row is 100%" would pass if only one type were counted.
+  const nonEmpty = two.rows.filter(r => !r.empty);
+  eq(nonEmpty.length, 2, `exactly 2 of the 15 rows are non-empty (${nonEmpty.length})`);
+  const pcts = nonEmpty.map(r => Number(r.text.match(/([\d.]+)%$/)[1]));
+  ok(Math.abs(pcts.reduce((a, b) => a + b, 0) - 100) < 0.2,
+    `and their shares sum to 100% (${pcts.join(' + ')})`);
+  ok(nonEmpty.some(r => r.text.startsWith('草')) && nonEmpty.some(r => r.text.startsWith('一般')),
+    `both collected types are listed (${nonEmpty.map(r => r.text).join(' / ')})`);
+}
+
+// Both die by underpopulation; the wash outlives them and the LIST keeps counting.
+await ev(`document.getElementById('typeClose').click(); true`);
+await ev(`document.getElementById('btnStep').click(); true`);
+await frames();
+await frames();
+eq(await typeLabel(), '屬性 (2/15)', 'after both die the collection is unchanged — it is 「曾經」');
+const washed = await typeDrawer();
+ok(/活體 0 隻/.test(washed.summary) && /合計 2 格/.test(washed.summary),
+  `and the list is now wash-only (${washed.summary})`);
+
+// The erasure asymmetry, which is the one a snapshot-only implementation gets wrong.
+await ev(`document.getElementById('typeClose').click();
+  document.querySelector('[data-tool="eraser"]').click(); true`);
+await sleep(150);
+await brushCell(0, 0);
+await brushCell(1, 0);
+eq(await typeLabel(), '屬性 (2/15)',
+  'erasing every cell of both types does NOT un-collect them — the button only grows');
+const erased = await typeDrawer();
+eq(erased.summary, '盤面尚無寶可夢。', 'while the list is a snapshot and is empty again');
+eq(erased.segs, 0, 'with no bar segments left');
+
+// The generation switch re-bases BOTH halves: the denominator changes and the
+// collection starts over, or the reader would be 15/18 on a board that has only
+// ever held Gen 1's 15.
+await ev(`document.getElementById('typeClose').click(); true`);
+// 草 was erased earlier and STAYS collected, so adding it again cannot move the
+// number. That is the collection working, not a counter failing to update — and it
+// is the reason the assertion below re-checks 2 rather than 1.
+await pickSpecies('0001');
+await brushCell(2, 0);
+eq(await typeLabel(), '屬性 (2/15)',
+  'a further 妙蛙種子 adds nothing — 草 was collected before the erase, and a collection does not un-collect');
+// The tab only SELECTS; 鎖定世代並開始模擬 is what commits it. Driving the tab
+// alone is the §3.I mistake in a new place — the click lands, no error is
+// raised, and the page is still on Gen 1, so every generation assertion after it
+// would have been testing the wrong board.
+await ev(`document.getElementById('btnOpenSetup').click(); true`);
+await sleep(200);
+await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 2 世代/.test(b.textContent)).click(); true`);
+await sleep(300);
+await ev(`document.getElementById('setupSubmit').click(); true`);
+await sleep(600);
+await ev(`document.getElementById('chkWild').checked && document.getElementById('chkWild').click(); true`);
+await frames();
+const gen2 = await typeDrawer();
+eq(gen2.rows.length, 17, `a Gen 2 drawer lists 17 rows (${gen2.rows.length})`);
+ok(/妖精/.test(gen2.eraNote) && !/鋼/.test(gen2.eraNote),
+  `and only Fairy is still missing — Dark and Steel arrived with it: "${gen2.eraNote}"`);
+
+// Locking a generation SEEDS a fresh board, so the collection is not 0 here and
+// asserting 0/17 would have been asserting that the page does not seed. What
+// matters is the DENOMINATOR re-basing, and then that clearing drops it to 0/17 —
+// which is what proves the Gen 1 collection did not carry across the switch.
+ok(/^屬性 \(\d+\/17\)$/.test(await typeLabel()),
+  `the button's denominator re-bases to Gen 2's 17 (${await typeLabel()})`);
+await ev(`document.getElementById('typeClose').click();
+  document.getElementById('btnClear').click(); true`);
+await sleep(300);
+eq(await typeLabel(), '屬性 (0/17)',
+  'and clearing a Gen 2 board reads 0/17 — the Gen 1 collection did not carry over');
+
+await ev(`document.getElementById('typeClose').click(); true`);
+
+/* --- Let's Go: the same Gen 1 ROSTER at a 2018 type era. ------------------
+   The modes are named after the Dex they draw from, not the year the game
+   shipped, so a Let's Go board is Gen 1's 151 species read at era 7. Both halves
+   are observable: the denominator opens to 18, and a species that changed type
+   in Gen 6 reports its MODERN typing. Without the mode change the 24-row
+   override table decides a 2018 board from a table about games before 1990. */
+await ev(`document.getElementById('btnOpenSetup').click(); true`);
+await sleep(250);
+// BACK TO GEN 1 FIRST. The Let's Go radios are built by renderSetupModal() and
+// only for a generation that has letsGoStarters — the previous block left this
+// page on Gen 2, where they do not exist, so querying one returns null. The
+// failure reads as "Cannot read properties of null" and says nothing about modes.
+await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 1 世代/.test(b.textContent)).click(); true`);
+await sleep(300);
+const letsGoRadio = await ev(`(() => {
+  const r = document.querySelector('input[name="letsGoMode"][value="letsgo"]');
+  if (!r) return false;
+  r.click();
+  return true;
+})()`);
+eq(letsGoRadio, true, 'the Gen 1 setup modal offers a Let\'s Go mode at all');
+await sleep(250);
+await ev(`document.getElementById('setupSubmit').click(); true`);
+await sleep(700);
+await ev(`const b = document.getElementById('btnPlay'); if (/暫停/.test(b.textContent)) b.click(); true`);
+await ev(`document.getElementById('chkWild').checked && document.getElementById('chkWild').click();
+  document.getElementById('btnClear').click(); true`);
+await sleep(400);
+
+const lg = await typeDrawer();
+eq(lg.rows.length, 18, `a Let's Go Gen 1 drawer lists all 18 types (${lg.rows.length})`);
+ok(/2018/.test(lg.eraNote),
+  `and the note says why the era moved: "${lg.eraNote}"`);
+eq(await typeLabel(), '屬性 (0/18)', 'and the button counts against 18');
+
+// The species-level half: place a 皮皮 and read its CLAIM back off the wash.
+// 皮皮 is Fairy in the data; classic Gen 1 says 一般 and Let's Go must say 妖精, or
+// the mode changed nothing a reader can see.
+//
+// CLOSE THE DRAWER FIRST. `typeDrawer()` above left the type drawer open, and it
+// is a fixed overlay: the press went to the drawer rather than to the canvas, the
+// cell was never placed, and the assertion reported 「nothing has a share」 — a
+// failure with no mention of the drawer that caused it.
+await ev(`document.getElementById('typeClose').click(); true`);
+await sleep(200);
+// AND the brush tool, which the erasure block above switched to and never
+// switched back. A press with 抹除 active deletes nothing and places nothing, so
+// the cell never existed and the share was 「nothing」 — a failure whose message
+// named neither the tool nor the drawer.
+await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
+await ev(`document.getElementById('btnClear').click(); true`);
+await sleep(200);
+await pickSpecies('0035');
+await brushCell(0, 0);
+await ev(`document.getElementById('btnStep').click(); true`);
+await frames();
+await frames();
+const lgClefairy = await typeDrawer();
+const lgTop = lgClefairy.rows.filter(r => !r.empty);
+eq(lgTop.length, 1, `exactly one type holds a share after the 皮皮 died (${lgTop.length})`);
+ok(lgTop[0] && lgTop[0].text.startsWith('妖精'),
+  `and it is 妖精 — the 2018 typing, not the 一般 a classic Gen 1 board claims (got "${lgTop[0] ? lgTop[0].text : 'nothing'}")`);
+
+await ev(`document.getElementById('typeClose').click(); true`);
+
+/* ==========================================================================
+   9. NO CONSOLE ERRORS
    ========================================================================== */
 eq(logs, [], 'no console errors or uncaught exceptions during the whole run');
 

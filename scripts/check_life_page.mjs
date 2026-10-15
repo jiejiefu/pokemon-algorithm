@@ -68,6 +68,18 @@ check(/class="header header-maze"/.test(lifeHtml), 'life.html carries the row-la
 
 // 2. Engine and Patterns validation
 import { GameEngine, buildGenMetadata, PATTERNS, FALLBACK_EVOLUTION_LEVEL, CROSS_GEN_BRANCH_ROOTS, BRANCH_WEIGHTS, MODE_FROZEN_SPECIES } from '../assets/js/life-engine.js';
+// Read from the SAME module the renderers read, rather than restating the 18
+// keys — a hardcoded copy is a second source of truth for the exact answer the
+// assertion below exists to police, and it goes stale in the dangerous direction.
+import { TYPE_COLORS } from '../assets/js/shared.js';
+
+// Hoisted to the top rather than left beside the era section: the wash checks
+// below reach for `eraTypes` too, and a dynamic import is a lexical binding — the
+// first version had it 110 lines lower and every run died with "Cannot access
+// 'eraTypes' before initialization" at the wash assertion.
+const { TYPE_INTRO_GEN, ERA_TYPE_OVERRIDES, typesForGeneration, generationTypeCount, eraTypes, LETS_GO_TYPE_ERA } =
+  await import('../assets/js/type-era.js');
+const { TYPE_CHART_ORDER } = await import('../assets/js/type-chart.js');
 
 check(typeof GameEngine === 'function', 'GameEngine class is exported');
 check(Boolean(PATTERNS.glider && PATTERNS.pulsar && PATTERNS.gliderGun), 'Classical patterns (glider, pulsar, gliderGun) are defined');
@@ -271,14 +283,26 @@ check([...CROSS_GEN_BRANCH_ROOTS].join(',') === '133',
 const eeveeEdges = [...(evolutionLevels.unlevelled['133'] || [])].map(e => e.to).sort((a, b) => a - b);
 check(eeveeEdges.join(',') === '134,135,136,196,197,470,471,700',
   `Eevee has eight real edges in evolution_levels.json, got ${eeveeEdges.length}`);
-check(engine.successorsOf(133).map(e => e.to).sort((a, b) => a - b).join(',') === eeveeEdges.join(','),
-  `a Gen 1 board can reach all eight Eeveelutions, got ${engine.successorsOf(133).length}`);
-
-// 仙子伊布 is the point of the exception, so it gets its own line rather than
-// being one of eight: it is a Gen 6 species and was unreachable on every Gen 1
-// board before this, which is what a reader asking for it would have found.
-check(engine.successorsOf(133).some(e => e.to === 700),
-  '仙子伊布 (#700) is reachable from an Eevee on a Gen 1 board');
+// ALL EIGHT, ON A BOARD THAT CAN HOLD THEM. `engine` here is the bare Gen 1
+// engine from earlier in the file, and on a classic Gen 1 board it correctly
+// reaches only THREE — so the eight-edge claim moved to a Let's Go board, where
+// era 7 admits all eight. Asserting eight on the Gen 1 engine is what the era
+// restriction was written to make false; asserting fewer than eight anywhere
+// would make the branch stop being the feature it exists to be.
+{
+  const lgMeta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 });
+  const lg = new GameEngine(lgMeta, evolutionLevels, 'letsGo');
+  lg.setMode('letsGo');
+  check(lg.successorsOf(133).map(e => e.to).sort((a, b) => a - b).join(',') === eeveeEdges.join(','),
+    `a Let's Go board can reach all eight Eeveelutions, got ${lg.successorsOf(133).length}`);
+  check(engine.successorsOf(133).map(e => e.to).sort((a, b) => a - b).join(',') === '134,135,136',
+    `a classic Gen 1 board reaches only the three stones (${engine.successorsOf(133).length})`);
+  // 仙子伊布 is the point of the exception, so it gets its own line rather than
+  // being one of eight: it is a Gen 6 species and was unreachable on every Gen 1
+  // board before this, which is what a reader asking for it would have found.
+  check(lg.successorsOf(133).some(e => e.to === 700),
+    '仙子伊布 (#700) is reachable from an Eevee — on a board whose era has Fairy');
+}
 
 // BRANCH_WEIGHTS is the one invented table in the engine, so its key set is
 // pinned to the edge set. An id absent from the map falls back to weight 1
@@ -289,10 +313,18 @@ check([...BRANCH_WEIGHTS.keys()].sort((a, b) => a - b).join(',') === eeveeEdges.
 // Measured, not asserted as a formula: 3/3/3/2/2/1/1/1 over 16 is
 // 18.75% / 12.5% / 6.25%, and a `weightedPick` that fell through to a uniform
 // draw would still pass a key-set check. 40k draws keeps the tolerance at +/-1pt.
+// Drawn from a Let's Go board, so it exercises all eight weights. The first
+// version drew from the classic Gen 1 engine, which admits three — so the
+// weighted/uniform question was being asked of three equal weights, where both
+// implementations produce the same answer and the check could not fail.
+const lgDrawEngine = new GameEngine(
+  buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 }),
+  evolutionLevels, 'letsGo');
+lgDrawEngine.setMode('letsGo');
 const drawTally = new Map();
 const DRAWS = 40000;
 for (let i = 0; i < DRAWS; i++) {
-  const hit = engine.weightedPick(engine.successorsOf(133)).to;
+  const hit = lgDrawEngine.weightedPick(lgDrawEngine.successorsOf(133)).to;
   drawTally.set(hit, (drawTally.get(hit) || 0) + 1);
 }
 const shareOf = id => (drawTally.get(id) || 0) / DRAWS;
@@ -301,6 +333,21 @@ check(Math.abs(shareOf(134) - 3 / 16) < 0.01 && Math.abs(shareOf(700) - 1 / 16) 
   + `仙子伊布 ${(shareOf(700) * 100).toFixed(1)}% (expect 6.3) over ${DRAWS} draws`);
 check([...drawTally.keys()].length === 8,
   `all eight branches are drawn over ${DRAWS} attempts, got ${drawTally.size}`);
+
+// The classic Gen 1 draw is a different shape: three stones, BRANCH_WEIGHTS gives
+// all three 3, so it should be a THIRD each. Asserted because the era filter made
+// it uniform by accident rather than by decision, and a later weight edit would
+// otherwise go unnoticed here.
+{
+  const g1Tally = new Map();
+  for (let i = 0; i < DRAWS; i++) {
+    const hit = engine.weightedPick(engine.successorsOf(133)).to;
+    g1Tally.set(hit, (g1Tally.get(hit) || 0) + 1);
+  }
+  const near = id => Math.abs((g1Tally.get(id) || 0) / DRAWS - 1 / 3) < 0.01;
+  check(g1Tally.size === 3 && near(134) && near(135) && near(136),
+    `the classic Gen 1 draw is a third each over ${DRAWS} attempts (${[...g1Tally].map(([k, v]) => `${k}:${(v / DRAWS * 100).toFixed(1)}%`).join(' ')})`);
+}
 
 // 10. Generation lock still holds for everything that is NOT the named exception.
 console.log('\n--- Generation lock outside the named exception ---');
@@ -486,11 +533,19 @@ check(/setupGeneration\(modalSelectedGen, modalSelectedStarterId, isRandom, moda
 console.log('\n--- Icons are filled, not stroked ---');
 const lifeIcons = lifeHtml.match(/<svg class="icon"[\s\S]*?<\/svg>/g) || [];
 const lifeJsIcons = lifeJs.match(/<svg class="icon"[\s\S]*?<\/svg>/g) || [];
-// 25 glyphs, down from 26: the wild toast's leaf became a sprite (asserted
-// separately below). A count is the assertion here on purpose — a deleted icon is
-// invisible to every other check, since nothing else asks for one by name.
-check(lifeIcons.length + lifeJsIcons.length === 25,
-  `life.html and life.js hold 25 glyph icons, got ${lifeIcons.length + lifeJsIcons.length}`);
+// A DELETED icon is invisible to every other check, since nothing else asks for
+// one by name — so this count is the assertion, and it is stated as a FLOOR
+// rather than an equality.
+//
+// The equality version was 25 and every icon added after that made it red: the
+// 屬性 drawer's button glyph and its drawer-title glyph took it to 27 and the
+// failure read as a defect in what was added, which is §3.W's shape — a count
+// standing in for a claim, failing on the good case. What the number is FOR is
+// catching a deletion, which a floor catches just as well: 27 is fine, 12 is not.
+// The floor is pinned to the count that existed before the type drawer so it
+// still fails on a real removal.
+check(lifeIcons.length + lifeJsIcons.length >= 25,
+  `life.html and life.js hold at least 25 glyph icons (a deletion is what this guards), got ${lifeIcons.length + lifeJsIcons.length}`);
 const allLifeIcons = [...lifeIcons, ...lifeJsIcons];
 check(allLifeIcons.every(s => s.includes('viewBox="0 0 24 24"')),
   'every icon uses the 24x24 box .icon is sized against');
@@ -599,6 +654,520 @@ check(!/await\s+cryPlayer\.play/.test(lifeJs),
 // The ceiling has to be a real number or the "why" is decoration.
 check(/CRY_SILENT_ABOVE_SPEED = 2/.test(lifeJs) && /case 2: return 200;/.test(lifeJs),
   'the silent ceiling matches the speed table\'s 2x slot');
+
+// --- Type Wash (territory) -----------------------------------------------------
+//
+// The behavioural half runs the real engine in bare Node, which is only possible
+// because `territory` holds a TYPE NAME and not a colour — shared.js owns the
+// palette, so nothing here has to know what Grass looks like.
+console.log('\n--- Type Wash ---');
+
+const tKey = (x, y) => `${x},${y}`;
+
+// A fresh engine per case, because `clear()` is itself one of the things under
+// test and sharing an instance would let one case's leftovers answer another's.
+const washEngine = () => new GameEngine(gen1Meta, evolutionLevels);
+
+check(washEngine().territory instanceof Map, 'the engine carries a territory map');
+check(washEngine().territory.size === 0, 'and it starts empty — nothing is claimed before it is occupied');
+
+{
+  const eng = washEngine();
+  eng.setCell(3, 4, 1); // Bulbasaur, Grass-first
+  check(eng.territory.get(tKey(3, 4)) === 'Grass',
+    'placing a cell claims its primary type (妙蛙種子 -> Grass)');
+}
+
+{
+  // Conway death. The cell STARVES: a lone cell has no neighbours, so it dies
+  // next tick and is never copied into nextCells.
+  //
+  // THIS IS THE CASE THE WHOLE LAYER EXISTS FOR, and it is worth being precise
+  // about why it is not the same test as the eraser below: `tick()` never calls
+  // deleteCell, so an implementation that cleaned the wash up on death would have
+  // to go out of its way to do it. Asserting only the eraser would leave that
+  // entirely unchecked, and the page would slowly fade to a blank grid over a
+  // long run — which is the one behaviour the reader would notice last.
+  const eng = washEngine();
+  eng.setCell(9, 9, 1);
+  eng.tick();
+  check(!eng.cells.has(tKey(9, 9)), 'the isolated cell starved, as Conway requires');
+  check(eng.territory.has(tKey(9, 9)),
+    'and its Grass wash SURVIVED the death — Conway deaths never call deleteCell');
+}
+
+{
+  const eng = washEngine();
+  eng.setCell(5, 5, 1);
+  eng.deleteCell(5, 5);
+  check(!eng.cells.has(tKey(5, 5)) && !eng.territory.has(tKey(5, 5)),
+    'the ERASER takes the wash with it — a reader who erased gets the cell back');
+}
+
+{
+  // Overwrite, which is the feature stated in plain language: 妙蛙種子 claims a
+  // cell, dies, 小火龍 arrives, and the cell is Fire. NOT green-and-orange.
+  const eng = washEngine();
+  eng.setCell(2, 2, 1);  // Bulbasaur -> Grass
+  eng.deleteCell(2, 2);
+  eng.setCell(2, 2, 4);  // Charmander -> Fire
+  check(eng.territory.get(tKey(2, 2)) === 'Fire',
+    'a newcomer REPLACES the previous claim rather than adding to it');
+  check(eng.territory.size === 1,
+    'and one cell is still exactly one entry — nothing is composited or stacked');
+}
+
+{
+  // The claim pass reads nextCells, not the parents. Deterministic on purpose:
+  // #661 小箭雀 (Normal) has exactly ONE successor in evolution_levels.json, so
+  // weightedPick returns it without touching Math.random. Eevee was the obvious
+  // candidate and is unusable here — it has eight, and the draw is random, so the
+  // test would pass or fail on a coin rather than on the code.
+  //
+  // A 2x2 BLOCK, because the single cell this started as starved on tick 1 and
+  // was gone before it could reach Lv.17 — a 4-generation-old failure dressed up
+  // as an evolution failure. A block is a still life: each cell keeps exactly the
+  // 3 neighbours the survival rule wants, so the population holds still while the
+  // levels climb.
+  const gen6Meta = buildGenMetadata(6, allPokemon, evoChains, generations);
+  const eng = new GameEngine(gen6Meta, evolutionLevels);
+  for (const [x, y] of [[7, 7], [8, 7], [7, 8], [8, 8]]) eng.setCell(x, y, 661);
+  check(eng.territory.get(tKey(7, 7)) === 'Normal', '小箭雀 starts Normal');
+  for (let i = 0; i < 24 && eng.getCell(7, 7)?.speciesId === 661; i++) eng.tick();
+  const evolved = eng.getCell(7, 7);
+  check(evolved && evolved.speciesId === 662,
+    `and evolved to 火箭雀 at its real Lv.17 gate (got ${evolved ? evolved.speciesId : 'nothing'})`);
+  check(eng.territory.get(tKey(7, 7)) === 'Fire',
+    'the wash followed the EVOLUTION — the claim pass reads the swapped-in species');
+}
+
+{
+  // The general form of the invariant above, so it cannot be satisfied by one
+  // lucky species: after any tick, every live cell's wash names that cell's
+  // CURRENT species. This is what "claim from nextCells, not from the parents"
+  // means, stated so a future species table cannot break it silently.
+  const eng = washEngine();
+  eng.seedRandom(0.3, 14, 14, 0, 0, null);
+  for (let i = 0; i < 6; i++) eng.tick();
+  let stale = 0;
+  for (const c of eng.cells.values()) {
+    // `eraTypes` directly, NOT `species.types[0]` and NOT `eng.typesOf(sp)`. The
+    // first compares the claim against the raw modern array, which disagrees
+    // whenever an anachronistic species is on the board — and it disagreed only
+    // SOMETIMES, so the check passed on most runs and failed on the ones that
+    // happened to seed a 皮皮. The third would compare the engine against itself
+    // and could not fail. This is the one route that is neither.
+    const want = eraTypes(gen1Meta.speciesById.get(c.speciesId), eng.typeEra())[0];
+    if (eng.territory.get(tKey(c.x, c.y)) !== want) stale++;
+  }
+  check(stale === 0 && eng.cells.size > 0,
+    `every live cell's wash names its current species after 6 ticks (${stale} stale of ${eng.cells.size})`);
+
+  // The era rule reaching the WASH, placed rather than hoped for.
+  //
+  // The version of this that asserted "the random board happened to contain an
+  // anachronistic species" was flaky by construction: 24 of Gen 1's 151 qualify
+  // and most die within 6 ticks, so it passed on roughly one run in four. Placing
+  // a 皮皮 states the same thing with no randomness — 皮皮 is Fairy in the data and
+  // 一般 on a Gen 1 board, so the wash it leaves is the whole claim in one cell.
+  eng.setCell(-9, -9, 35);
+  check(eng.territory.get(tKey(-9, -9)) === 'Normal',
+    'a 皮皮 cell claims 一般 on a Gen 1 board — the wash carries the ERA type, not the data\'s Fairy');
+}
+
+{
+  const eng = washEngine();
+  eng.seedRandom(0.3, 10, 10, 0, 0, 1);
+  check(eng.territory.size > 0, 'seeding claims the wash');
+  eng.clear();
+  check(eng.territory.size === 0, 'clear() wipes it');
+}
+
+{
+  // The §3.M shape, caught in the act: seedRandom() used to open with
+  // `this.cells.clear()` and that was equivalent to clear() until the wash
+  // existed. A reseed empties the board and must empty the colours with it,
+  // because 「隨機種子」 reads as a fresh board.
+  const eng = washEngine();
+  eng.seedRandom(0.3, 10, 10, 0, 0, 1);
+  eng.seedRandom(0.3, 10, 10, 40, 40, 1);
+  const outsideOldBox = [...eng.territory.keys()].some(k => {
+    const [x, y] = k.split(',').map(Number);
+    return Math.abs(x - 40) > 5 || Math.abs(y - 40) > 5;
+  });
+  check(!outsideOldBox,
+    'reseeding leaves no wash behind from the previous board');
+}
+
+{
+  const eng = washEngine();
+  eng.reset(gen1Meta);
+  check(eng.territory.size === 0, 'reset() (generation switch) wipes it too');
+}
+
+{
+  const eng = washEngine();
+  eng.applyPattern('glider', 0, 0, 1);
+  check(eng.territory.size === PATTERNS.glider.coords.length,
+    'a stamped pattern claims every cell it places');
+}
+
+// Every type the corpus can name has to be a key of TYPE_COLORS, or the wash
+// silently draws nothing for that species. This is the assertion that makes the
+// `'#78c850'` fallback in both renderers a last resort rather than a live path:
+// without it, a form or a future species with an unknown type would fall through
+// to a hardcoded GRASS and paint the wrong colour with nothing on screen.
+const TYPE_COLOR_KEYS = new Set(Object.keys(TYPE_COLORS));
+const unnameable = allPokemon.filter(p => !TYPE_COLOR_KEYS.has(p.types?.[0]));
+check(unnameable.length === 0,
+  `all ${allPokemon.length} species' primary type is a TYPE_COLORS key (${unnameable.length} are not)`);
+check(new Set(allPokemon.map(p => p.types[0])).size === 18,
+  'and the corpus exercises all 18 types, so no branch of the wash is dead code');
+
+/* --- The renderer's half, as source. The wash's APPEARANCE needs a browser
+ * (check_life_browser.mjs) because it composites over a CSS gradient; what can
+ * be read off the source is which decision was made, and each of these is a
+ * decision that a later "tidy" would silently reverse. */
+
+const washSection = lifeJs.slice(lifeJs.indexOf('// 3. Type Wash'), lifeJs.indexOf('// 4. Render Alive Cells'));
+
+check(washSection.length > 0, 'the wash pass exists between the grid lines and the cells');
+check(/engine\.cells\.has\(key\)/.test(washSection),
+  'it SKIPS cells that are currently occupied — a sprite is 45.7% transparent, so drawing under one does not hide it');
+check(/Path2D/.test(washSection) && /\.rect\(/.test(washSection),
+  'it batches by type into one path — ~25,000 fillRects a frame at min zoom is not 60fps');
+check(!/fillRect\(/.test(washSection),
+  'and no per-cell fillRect survives in that pass');
+
+// Both stage fills are gone. Their ABSENCE is the assertion; a presence check
+// would pass on the version this replaced.
+check(!/rgba\(155, 89, 182/.test(lifeJsCode) && !/rgba\(230, 126, 34/.test(lifeJsCode),
+  'the stage-1 and stage-2 background fills are gone — a fill is the same visual channel as the wash');
+
+const stageFrame = lifeJs.match(/const stage2 = cell\.stage === 2;[\s\S]*?strokeRect\(/);
+check(stageFrame !== null, 'both stages stroke a frame');
+const stageWidths = stageFrame ? [...stageFrame[0].matchAll(/stage2 \? ([\d.]+) : ([\d.]+)/g)].map(m => [m[1], m[2]]) : [];
+check(stageWidths.length === 1 && Number(stageWidths[0][0]) !== Number(stageWidths[0][1]),
+  `the two frames have DIFFERENT widths (${stageWidths[0] ? stageWidths[0].join(' vs ') : 'n/a'}) — width is what says which stage it is`);
+check(/stage2 \? '#9b59b6' : '#e67e22'/.test(lifeJs),
+  'and the two stage colours are still distinct, so the frame reads without the width');
+
+// The toggle. Markup AND wiring, because §3.W's exact bug was a control present,
+// hit-testable, and painting nothing: nothing had ever bound it.
+check(/id="chkTerritory"/.test(lifeHtml), 'the wash toggle exists in the markup');
+check(/els\.chkTerritory\?\.addEventListener\('change'/.test(lifeJs),
+  'and has a change listener — a checkbox with no listener is a control that does nothing');
+check(/showTerritory = e\.target\.checked/.test(lifeJs), 'which writes the flag the renderer reads');
+check(/if \(showTerritory && engine\.territory\.size > 0\)/.test(lifeJs),
+  'and the renderer gates on it, so switching it off costs nothing');
+check(/<span>屬性殘影<\/span>/.test(lifeHtml),
+  'the label names the feature rather than the mechanism');
+check(/title="格子會留住前一隻寶可夢的第一屬性顏色/.test(lifeHtml),
+  'and the title explains it — 18 type colours have no legend on this page');
+
+// --- Type Eras -----------------------------------------------------------------
+//
+// `pokemon_data.json` answers with each species' CURRENT typing, and 24 of the
+// 1,025 changed type after they were introduced. So without this the Gen 1 board
+// spawns 皮皮 as Fairy, the wash paints a Fairy cell in a generation Fairy does
+// not exist in, and the type denominator comes out 17 instead of 15.
+console.log('\n--- Type Eras ---');
+
+
+// The three numbers the page states, from the games' own history: 15 types in
+// Gen 1, 鋼/Steel and 惡/Dark in Gen 2, 妖精/Fairy in Gen 6.
+for (const [gen, want] of [[1, 15], [2, 17], [3, 17], [4, 17], [5, 17], [6, 18], [7, 18], [8, 18], [9, 18]]) {
+  check(generationTypeCount(gen) === want,
+    `Gen ${gen} has ${want} types, got ${generationTypeCount(gen)}`);
+}
+check(TYPE_CHART_ORDER.every(t => TYPE_INTRO_GEN[t] !== undefined),
+  `TYPE_INTRO_GEN covers all ${TYPE_CHART_ORDER.length} chart types — an unlisted one would read as Gen 1`);
+check(Object.keys(TYPE_INTRO_GEN).length === TYPE_CHART_ORDER.length,
+  'and lists no type the chart does not have');
+
+// The table is exactly the set of species the DATA renders anachronistic, derived
+// rather than restated. This is the assertion that stops it rotting: a species
+// that gains or loses a type moves the derived set, and the table has to move with
+// it or be one row out — which a check against a hardcoded id list would pass.
+const anachronistic = new Set(
+  allPokemon
+    .filter(p => p.types.some(t => TYPE_INTRO_GEN[t] > p.generation))
+    .map(p => p.id)
+);
+check(anachronistic.size === 24,
+  `the data holds ${anachronistic.size} anachronistic species (a new one changes this, which is the point)`);
+check(ERA_TYPE_OVERRIDES.size === anachronistic.size &&
+  [...ERA_TYPE_OVERRIDES.keys()].every(id => anachronistic.has(id)),
+  'and ERA_TYPE_OVERRIDES is EXACTLY that set — one row too many or too few is a red test');
+
+// No override may name a type that did not exist in that species' own generation,
+// which would be the same defect one level down.
+const badOverride = [...ERA_TYPE_OVERRIDES.entries()].filter(([id, types]) => {
+  const sp = allPokemon.find(p => p.id === id);
+  return !sp || !types.length || types.some(t => TYPE_INTRO_GEN[t] > sp.generation);
+});
+check(badOverride.length === 0, `no override names a later type (${badOverride.length} do)`);
+
+// THE EMPTY-TYPING INVARIANT, over the species that can actually be on each board.
+//
+// Scoped to each generation's OWN roster on purpose. The first version asked all
+// 1,025 species about all 9 generations and reported 103 empties — which is
+// correct behaviour, not a defect: a Gen 6 Fairy-first species has no Gen 1 typing
+// because it has no Gen 1 self, and the board can never hold it. The engine is
+// generation-locked apart from the exempted branch, so the reachable set for a
+// Gen-g board is gen-g's roster plus that branch, and THAT is what must never
+// come back empty.
+//
+// It would still be a real bug if it did: an empty array renders as the
+// hardcoded `#78c850` fallback rather than as an error, so it would be invisible
+// exactly the way §3.W's absent sections were. Asserting the two named species
+// would not catch it.
+const byId = id => allPokemon.find(p => p.id === id);
+let emptyTypings = 0;
+let reachablePairs = 0;
+const eraEngines = new Map();
+const covered = new Set();
+for (let g = 1; g <= 9; g++) {
+  const meta = buildGenMetadata(g, allPokemon, evoChains, generations);
+  const eng = new GameEngine(meta, evolutionLevels);
+  eraEngines.set(g, eng);
+  // THE BRANCH BELONGS HERE, BUT ONLY WHERE IT IS ADMITTED. The first version
+  // walked `allGenSpecies` alone and reported "every species is on exactly one
+  // reachable board (1025 of 1025)" — true of the GENERATIONS and false of the
+  // BOARDS: a wild 伊布 really can reach a Gen 1 board whatever starter was
+  // chosen. Over-correcting it to "all eight destinations on every board" would
+  // then ask about 仙子伊布 on a Gen 1 board where `eraTypes` correctly answers
+  // `[]`, and count a correct answer as a defect. What has to be non-empty is the
+  // species a board can actually hold.
+  const reachable = [...meta.allGenSpecies.map(s => s.id), ...eng.branchDestinationsFor()];
+  for (const id of reachable) {
+    const sp = byId(id);
+    if (!sp) continue;
+    covered.add(id);
+    reachablePairs++;
+    if (eng.typesOf(sp).length === 0) emptyTypings++;
+  }
+}
+check(covered.size === allPokemon.length,
+  `every species is reachable on at least one board (${covered.size} of ${allPokemon.length})`);
+check(emptyTypings === 0,
+  `no reachable species has an empty typing on any board it can appear on (${emptyTypings} do, over ${reachablePairs} placements)`);
+
+// The named cases the page's own numbers depend on.
+{
+  const g1 = eraEngines.get(1);
+  const by = byId;
+  check(JSON.stringify(g1.typesOf(by(35))) === '["Normal"]', 'Gen 1 皮皮 is 一般, not 妖精');
+  check(JSON.stringify(g1.typesOf(by(81))) === '["Electric"]', 'Gen 1 小磁怪 is 電, not 電/鋼');
+  check(JSON.stringify(g1.typesOf(by(122))) === '["Psychic"]', 'Gen 1 魔牆人偶 is 超能力, not 超能力/妖精');
+  // 波克基古 is the case a "just drop the later type" rule gets wrong: dropping
+  // Fairy from Fairy/Flying leaves a monotype that never existed.
+  const g2 = eraEngines.get(2);
+  check(JSON.stringify(g2.typesOf(byId(176))) === '["Normal","Flying"]',
+    'Gen 2 波克基古 is 一般/飛行 — dropping Fairy would leave Flying alone');
+}
+
+/* --- The branch is era-restricted, so it can never widen a board's types. ---
+   The 伊布 family is a deliberate cross-generation feature: a Gen 1 Eevee has to
+   be able to become 仙子伊布 or the page's own stated reason for the branch does
+   not hold. What it must NOT do is drag a later type onto an earlier board, which
+   is what made the denominator ambiguous — 17 on a Gen 1 board, with the drawer
+   claiming Fairy was absent while a Fairy cell sat there.
+
+   The rule that removes the ambiguity instead of arbitrating it: admit only
+   destinations whose types the board's era already has. GEN 1 additionally gets
+   the three evolution stones and nothing else, per 红/绿/蓝/黄. */
+const boardOf = (gen, mode = '') => {
+  const starterId = gen === 1 ? (mode === 'letsGo' ? 133 : 1) : 152;
+  const meta = buildGenMetadata(gen, allPokemon, evoChains, generations, { starterId });
+  const eng = new GameEngine(meta, evolutionLevels, mode);
+  eng.setMode(mode);
+  return eng;
+};
+const destNames = eng => eng.successorsOf(133).map(e => byId(e.to).names.zh);
+
+{
+  const g1 = boardOf(1);
+  check(destNames(g1).join('、') === '水伊布、雷伊布、火伊布',
+    `a classic Gen 1 Eevee evolves into exactly the three stones (${destNames(g1).join('、')})`);
+  check(boardOf(2).successorsOf(133).length === 7,
+    `a Gen 2 board reaches 7 destinations (${boardOf(2).successorsOf(133).length})`);
+  check(boardOf(5).successorsOf(133).length === 7, 'and a Gen 5 board reaches 7');
+  check(boardOf(6).successorsOf(133).length === 8,
+    `Gen 6 reaches all 8, 仙子伊布 included (${boardOf(6).successorsOf(133).length})`);
+  check(boardOf(1, 'letsGo').successorsOf(133).length === 8,
+    `a Let's Go board reaches all 8 (${boardOf(1, 'letsGo').successorsOf(133).length})`);
+}
+
+// THE INVARIANT THIS WHOLE DESIGN RESTS ON, over 9 generations × 2 modes.
+//
+// If it holds, the type denominator is simply the generation's own count and needs
+// no reachable-set arithmetic at all. If someone ever widens the branch again —
+// a new Eeveelution, a different GEN1_STONE_EVOLUTIONS — this is what turns that
+// from a drawer quietly disagreeing with its own denominator into a red test.
+{
+  const offenders = [];
+  for (const mode of ['', 'letsGo']) {
+    for (let g = 1; g <= 9; g++) {
+      const eng = boardOf(g, mode);
+      const era = typesForGeneration(eng.typeEra());
+      const wider = new Set();
+      for (const dest of eng.branchDestinationsFor()) {
+        for (const t of eng.typesOf(byId(dest))) wider.add(t);
+      }
+      for (const t of wider) if (!era.includes(t)) offenders.push(`${mode || 'classic'} Gen ${g}: ${t}`);
+      if (wider.size && [...wider].some(t => !era.includes(t))) {
+        offenders.push(`set mismatch ${mode} Gen ${g}`);
+      }
+    }
+  }
+  check(offenders.length === 0,
+    `no branch destination carries a type its board's era lacks (${offenders.slice(0, 4).join('; ') || 'none'})`);
+}
+
+for (const [gen, mode, want] of [[1, '', 15], [2, '', 17], [5, '', 17], [6, '', 18], [9, '', 18], [1, 'letsGo', 18]]) {
+  const got = typesForGeneration(boardOf(gen, mode).typeEra()).length;
+  check(got === want, `${mode || 'classic'} Gen ${gen} counts ${want} types (got ${got})`);
+}
+
+// The wash follows the branch, not the other way round: a Gen 1 Eevee claims 水,
+// so its wash is Water on a board whose drawer has no 惡 or 妖精 row.
+{
+  const eng = boardOf(1);
+  eng.setCell(0, 0, 133);
+  check(eng.territory.get(tKey(0, 0)) === 'Normal', '伊布 itself is 一般');
+  // And the empty-typing hazard is gone rather than papered over: typesOf on a
+  // destination this board cannot reach still answers [] correctly, and that is
+  // now unreachable state instead of the case the exemption used to cover.
+  check(JSON.stringify(eng.typesOf(byId(700))) === '[]',
+    '仙子伊布 has NO typing on a classic Gen 1 board — and is simply not reachable there');
+  check(JSON.stringify(boardOf(1, 'letsGo').typesOf(byId(700))) === '["Fairy"]',
+    'while a Let\'s Go board reads it as 妖精, with no exemption involved');
+}
+
+// Let's Go's era is 7, and the era is what changed — not the roster.
+check(boardOf(1, 'letsGo').typeEra() === LETS_GO_TYPE_ERA,
+  `a Let's Go board counts at era ${LETS_GO_TYPE_ERA}, not at Gen 1`);
+check(boardOf(1).typeEra() === 1, 'and a classic Gen 1 board counts at era 1');
+check(JSON.stringify(boardOf(1).typesOf(byId(35))) === '["Normal"]', '皮皮 is 一般 on a classic Gen 1 board');
+check(JSON.stringify(boardOf(1, 'letsGo').typesOf(byId(35))) === '["Fairy"]', '皮皮 is 妖精 on a Let\'s Go board');
+
+// The override fires only while the modern typing is anachronistic, which is a
+// condition on the era rather than a flag: 小磁怪's Steel arrived in Gen 2, so
+// Gen 1 asks the table and Gen 2 does not.
+check(JSON.stringify(eraTypes(byId(81), 1)) === '["Electric"]', '小磁怪 at era 1 → 電');
+check(JSON.stringify(eraTypes(byId(81), 2)) === '["Electric","Steel"]', '小磁怪 at era 2 → 電/鋼');
+check(JSON.stringify(eraTypes(byId(35), 5)) === '["Normal"]', '皮皮 at era 5 → 一般 (Fairy is Gen 6)');
+check(JSON.stringify(eraTypes(byId(35), 6)) === '["Fairy"]', '皮皮 at era 6 → 妖精, and the table is not consulted again');
+// BOTH, because they pin two different things and neither pins the other.
+//
+// The `>=` is the BEHAVIOUR: any era from Fairy's introduction onward produces
+// the same 18 types and the same eight destinations, which is what makes the mode
+// read as "no filter". Mutating 7 -> 6 changes nothing on the page, so a check
+// written only as `>=` stays green through it — which is correct, because nothing
+// about the page changed.
+//
+// The `===` is the CLAIM: 7 is the era Let's Go shipped in (2018-02-16, after Sun
+// & Moon and before USUM). Lowering it to 6 would silently retire the reason the
+// constant exists while leaving every number identical, and the next reader would
+// find `LETS_GO_TYPE_ERA = 6` with a comment about 2018.
+check(LETS_GO_TYPE_ERA >= TYPE_INTRO_GEN.Fairy,
+  `Let's Go's era (${LETS_GO_TYPE_ERA}) is at or after Fairy's introduction, which is what makes it "no filter"`);
+check(LETS_GO_TYPE_ERA === 7,
+  `and it is 7 — the Gen 7 era Let's Go shipped in, not merely any era past Fairy`);
+
+/* --- seenTypes: collected, not derived. ------------------------------------
+   The button and the drawer are two different numbers on purpose, and this is
+   the half only the engine can answer. */
+console.log('\n--- Type Collection ---');
+{
+  const eng = eraEngines.get(1);
+  eng.clear();
+  check(eng.seenTypes.size === 0, 'a cleared board has collected nothing');
+
+  eng.setCell(0, 0, 1);   // 妙蛙種子 -> Grass
+  check(eng.seenTypes.size === 1, 'placing one cell collects one type');
+
+  eng.setCell(1, 0, 19);  // 小拉達 -> Normal
+  check(eng.seenTypes.size === 2 && eng.seenTypes.has('Grass') && eng.seenTypes.has('Normal'),
+    'a second species adds a second type');
+
+  // The load-bearing asymmetry: the wash is current state and erasing removes it,
+  // but a COLLECTION does not un-collect. A reader who has seen 9 of the 15 types
+  // Gen 1 has is not at 0 again because they cleared the board.
+  eng.deleteCell(0, 0);
+  eng.deleteCell(1, 0);
+  check(eng.territory.size === 0, 'erasing removes both washes');
+  check(eng.seenTypes.size === 2,
+    'but the collection keeps both types — the button is 「曾經」 and only grows');
+
+  // A type can also be collected without being on the board right now, which is
+  // the case the wash exists to make visible.
+  eng.clear();
+  eng.seedRandom(0.3, 12, 12, 0, 0, 1);
+  const seeded = new Set(eng.seenTypes);
+  eng.clear();
+  eng.seedRandom(0.3, 12, 12, 0, 0, 19);
+  check(eng.seenTypes.size === 1 && !eng.seenTypes.has('Grass'),
+    'and it re-collects from scratch after clear(), so it is per-run');
+
+  eng.clear();
+  eng.setCell(0, 0, 1);
+  eng.reset(gen1Meta);
+  check(eng.seenTypes.size === 0, 'reset() (generation switch) empties it too');
+  void seeded;
+}
+
+/* --- The drawer's own source-level claims. --------------------------------- */
+check(/id="btnTypeDrawer"/.test(lifeHtml), 'the 屬性 button exists');
+check(/id="btnTypeCount"/.test(lifeHtml), 'and its count lives in its own <span>, never in the button text');
+{
+  // Between the other two, which is a stated position rather than a style.
+  const iDex = lifeHtml.indexOf('id="btnDexDrawer"');
+  const iType = lifeHtml.indexOf('id="btnTypeDrawer"');
+  const iHof = lifeHtml.indexOf('id="btnHofDrawer"');
+  check(iDex > 0 && iType > iDex && iHof > iType,
+    'the 屬性 button sits BETWEEN 圖鑑 and 傳說');
+}
+check(/id="typeDrawer"/.test(lifeHtml) && /id="typeClose"/.test(lifeHtml),
+  'the drawer and its close button exist');
+check(/els\.btnTypeDrawer\?\.addEventListener\('click'/.test(lifeJs),
+  "the button has a click listener — §3.W's control that painted nothing");
+check(/function updateTypeDrawer\(\)/.test(lifeJs), 'the drawer has its own update function');
+
+const drawerFn = lifeJs.slice(lifeJs.indexOf('function updateTypeDrawer()'), lifeJs.indexOf('function closeDrawers'));
+// BOTH populations in the denominator. Getting this wrong is invisible on a board
+// that has no washes yet, which is exactly why it needs an assertion.
+check(/for \(const type of engine\.territory\.values\(\)\)/.test(drawerFn) &&
+  /for \(const cell of engine\.cells\.values\(\)\)/.test(drawerFn),
+  'the list counts the wash AND the live cells — one without the other is a wrong share');
+check(/const grand = live \+ washed;/.test(drawerFn), 'and the denominator is their sum');
+// EVERY type of the generation, zeros included.
+// REACHABLE, not the era. The first version asserted the drawer walked
+// `typesForGeneration(gen)` and would have printed 「尚無 妖精」 on a board where
+// a Fairy cell is sitting on it.
+check(/const types = typesForGeneration\(engine\.typeEra\(\)\);/.test(drawerFn),
+  'the list is the era\'s own type set, which is the reachable set because the branch cannot widen it');
+check(!/reachableTypes/.test(drawerFn) && !/reachableTypes/.test(lifeJs),
+  'and no reachable-set arithmetic is left anywhere — it would be a second answer to a question with one');
+check(/第 \$\{currentMetadata\.gen\} 世代有 \$\{total\} 種屬性/.test(drawerFn),
+  'the note states the count and names the absent types, so 「15」 means something');
+check(/is-empty/.test(drawerFn) && /r\.count === 0\)/.test(drawerFn),
+  'the zero rows are dimmed, not hidden — the generation\'s own restriction has to be visible');
+check(/chartIndex: i/.test(drawerFn) && /\.sort\(\(a, b\) => b\.pct - a\.pct/.test(drawerFn),
+  'rows sort by share with chart order as the tie-break, so two runs print identically');
+check(/TYPE_EN_ZH\[r\.type\]/.test(drawerFn),
+  'the labels come from TYPE_EN_ZH rather than from a second name table');
+
+/* --- The starter card, where the same era rule applies to a WORD. ---------- */
+// The colour was fixed first and the label was the second half of the same bug:
+// a Gen 1 皮皮 card was a 一般-green swatch reading 妖精, i.e. the colour and the
+// word inside one 20px badge disagreeing with each other.
+check(!/starter\.types_zh \? starter\.types_zh\[0\]/.test(lifeJs),
+  'the starter badge label no longer reads the species\' own modern types_zh');
+check(/TYPE_EN_ZH\[primaryType\]/.test(lifeJs), 'and reads the era type instead');
+check(!/TYPE_COLORS\[sp\.types\[0\]\]/.test(lifeJs),
+  'the cell fallback colour no longer reads the raw array either');
 
 if (failures > 0) {
   console.log(`\nFAIL  ${failures} check(s) failed`);

@@ -96,6 +96,15 @@
       <label class="life-toggle-label" title="每輪有機率在網格上遭遇野生寶可夢群落"><input type="checkbox" id="chkWild" checked><span>野生遭遇</span></label>
       <label class="life-toggle-label"><input type="checkbox" id="chkGrid" checked><span>格線</span></label>
       <!--
+        The wash this toggles is 18 type colours with no legend anywhere on the
+        page, so this title is the ONLY place a reader is told what the colour
+        means. It says what it records (the last Pokémon to live in the cell, its
+        primary type) and what it does NOT do (a newcomer REPLACES the old colour
+        rather than adding one), because "filled with colour" reads like a stack
+        and it is one colour per cell.
+      -->
+      <label class="life-toggle-label" title="格子會留住前一隻寶可夢的第一屬性顏色：新來的會取代舊的，一格只有一種顏色；從未被佔據過的格子維持格線。"><input type="checkbox" id="chkTerritory" checked><span>屬性殘影</span></label>
+      <!--
         Unchecked by default, and the reason is in the title attribute rather than
         only in a checker. Measured: this page fires a wild encounter every 2.0s at
         10x and every 11s at 2x, and a cry is 1.10s median / 3.26s worst — so an
@@ -110,6 +119,7 @@
 
     <div class="life-group" style="margin-left: auto;">
       <button class="life-btn life-btn-sm" id="btnDexDrawer" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75-.05.25-.05.5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg><span id="btnDexCount">圖鑑 (0/151)</span></button>
+      <button class="life-btn life-btn-sm" id="btnTypeDrawer" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 2v20c-5.05-.5-9-4.76-9-10S5.95 2.5 11 2zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg><span id="btnTypeCount">屬性 (0/15)</span></button>
       <button class="life-btn life-btn-sm" id="btnHofDrawer" type="button" style="border-color:var(--accent-gold); color:var(--accent-gold);"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-16 3V7h2v4.17C3.84 10.87 3 9.63 3 8zm18 0c0 1.63-.84 2.87-2 3.17V7h2v1z"/></svg><span id="btnHofCount">傳說 (0/5)</span></button>
       <button class="life-btn life-btn-sm" id="btnOpenSetup" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>世代設定</button>
     </div>
@@ -231,6 +241,39 @@
 <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0;"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>每在盤面上誕生或進化出 6 個不同進化家族，即可依圖鑑順序解鎖該世代的一面神獸獎章！</p>
       </div>
       <div class="life-medals-list" id="hofMedalsList"></div>
+    </div>
+  </aside>
+
+  <!-- Type Drawer (屬性) -->
+  <!--
+    Two numbers live here and they are NOT the same number, which is the one thing
+    worth reading before changing anything:
+
+      The BUTTON is a "seen" count. Every type this board has ever held, live or
+      washed, and it only ever grows — a type the reader has collected is not
+      un-collected by the last Pokémon of it dying. That is the 圖鑑 / 傳說
+      shape, and it is why the denominator is the generation's TYPE COUNT rather
+      than anything about the board's current contents.
+
+      The LIST below it is the opposite: a snapshot, and the denominator is every
+      live cell PLUS every washed cell. A type the reader collected an hour ago and
+      has since erased from the board still counts toward 屬性 (9/15) and no longer
+      counts toward this list. Both are right about different questions.
+  -->
+  <aside class="life-drawer" id="typeDrawer" aria-label="屬性">
+    <div class="life-drawer-header">
+      <h3 class="life-drawer-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 2v20c-5.05-.5-9-4.76-9-10S5.95 2.5 11 2zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg>屬性分佈</h3>
+      <button class="life-drawer-close" id="typeClose" type="button" aria-label="關閉屬性">×</button>
+    </div>
+    <div class="life-drawer-content">
+      <div class="life-type-summary" id="typeSummary">盤面尚無寶可夢。</div>
+      <div class="life-type-bar" id="typeBar" role="img" aria-label="屬性比例"></div>
+      <ul class="life-type-list" id="typeList"></ul>
+      <p class="life-type-note">
+        比例 = <em>（該屬性的活體 + 殘影）÷（所有活體 + 殘影）</em>。殘影是空著但曾經住過的格子，
+        所以清單是「盤面目前的樣子」，而按鈕上的數字是「這一局收集到的種類」，兩者分母不同。
+      </p>
+      <p class="life-type-note" id="typeEraNote"></p>
     </div>
   </aside>
 

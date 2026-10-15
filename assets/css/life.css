@@ -855,6 +855,100 @@
   padding: 16px;
 }
 
+/* Type Drawer
+   ---------------------------------------------------------------------------
+   Every rule is `life-type-`-prefixed and mounted only by #typeDrawer. The type
+   BAR looks a lot like the stage bar above it and is deliberately NOT the same
+   classes: that one is three fixed segments whose widths are set by an id, this
+   one has one segment per type in the generation (15, 17 or 18) with widths
+   rebuilt every open, so sharing `.life-stage-seg-*` would make a "sort the rows
+   by share" change depend on a colour rule written for evolution stages.
+
+   `--text-secondary` / `--hairline` rather than literals: this drawer inherits
+   the theme the way the rest of the page does, and a hardcoded grey here would
+   be a second theme that nothing switches. */
+.life-type-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.life-type-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--hairline);
+  margin-bottom: 14px;
+}
+
+.life-type-seg {
+  height: 100%;
+  /* No gap and no border between segments: they are shares of one whole, and a
+     1px separator at a 3% share would be wider than the segment it divides. */
+  flex: 0 0 auto;
+}
+
+.life-type-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+
+.life-type-row {
+  display: grid;
+  /* swatch | name | count | pct — the two numeric columns are fixed-width so the
+     percentages form a right-aligned column instead of drifting with the name. */
+  grid-template-columns: 10px 1fr 44px 52px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.life-type-row.is-empty {
+  /* The zero rows stay. A Gen 1 reader is looking at a board that CANNOT hold a
+     Fairy cell, and hiding the empty rows hides that generation's own
+     restriction — so they are dimmed rather than removed. */
+  color: var(--text-muted);
+}
+
+.life-type-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.life-type-count,
+.life-type-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.life-type-row.is-empty .life-type-count,
+.life-type-row.is-empty .life-type-pct {
+  color: var(--text-muted);
+}
+
+.life-type-note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+/* `em` is emphasised prose here, not italics on a number, so it is styled
+   rather than left to the browser's default italic — the surrounding sentence is
+   already at 11px and italic would read as a quotation. */
+.life-type-note em {
+  font-style: normal;
+  color: var(--text-secondary);
+}
+
 /* Hall of Fame Progress & Medals */
 .life-hof-progress-box {
   padding: 14px;

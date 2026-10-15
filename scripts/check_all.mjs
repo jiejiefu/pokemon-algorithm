@@ -755,6 +755,17 @@ const CHECKERS = [
     inputs: [
       'life.html', 'assets/js/life.js', 'assets/js/life-engine.js',
       'assets/css/life.css',
+      // type-era.js is imported by BOTH the engine and the checker directly, and
+      // type-chart.js by type-era.js — the era table's ordering comes from the
+      // chart rather than from a restated list. shared.js is imported for
+      // TYPE_COLORS/TYPE_EN_ZH, and it in turn imports form-names.js (which
+      // imports form-names-zh.js) and shiny-index.js, so those are read too:
+      // `--prove-inputs` follows the whole graph and an undeclared one means this
+      // entry is skipped after that file changes, which looks like coverage and
+      // verifies nothing.
+      'assets/js/type-era.js', 'assets/js/type-chart.js', 'assets/js/shared.js',
+      'assets/js/form-names.js', 'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
       'assets/data/pokemon_data.json', 'assets/data/evolution_chains.json',
       'assets/data/generations.json', 'assets/data/evolution_levels.json',
       'scripts/extract_generations.py',
@@ -767,7 +778,11 @@ const CHECKERS = [
   // make an edit to the engine look like it invalidated the table.
   {
     script: 'scripts/check_evolution_levels.mjs', group: 'algo',
-    inputs: ['assets/data/evolution_levels.json', 'assets/data/pokemon_data.json', 'assets/js/life-engine.js'],
+    // type-era.js and type-chart.js are here for the same reason they are in the
+    // page checker: the engine imports both, so a change to either one changes
+    // what this entry is asserting even though the table under test did not move.
+    inputs: ['assets/data/evolution_levels.json', 'assets/data/pokemon_data.json',
+             'assets/js/life-engine.js', 'assets/js/type-era.js', 'assets/js/type-chart.js'],
   },
   // manual: true for the same reason as the other CDP checkers — its pages
   // arrive over HTTP from Live Server, so `--prove-inputs` would record it
@@ -775,7 +790,8 @@ const CHECKERS = [
   {
     script: 'scripts/check_life_browser.mjs', group: 'algo', browser: true, needsServer: true, manual: true,
     inputs: ['life.html', 'assets/css/life.css', 'assets/css/shared.css', 'assets/js/life.js',
-             'assets/js/life-engine.js', 'assets/js/shared.js'],
+             'assets/js/life-engine.js', 'assets/js/shared.js', 'assets/js/type-era.js',
+             'assets/js/type-chart.js'],
   },
 
   /* ---- maze ---- */

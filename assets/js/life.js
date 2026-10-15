@@ -7,7 +7,9 @@ import {
   initThemeToggle,
   loadPokemonData,
   loadEvolutionChains,
-  TYPE_COLORS
+  TYPE_COLORS,
+  TYPE_EN_ZH,
+  hexToRgb
 } from './shared.js';
 
 import {
@@ -17,6 +19,18 @@ import {
   PATTERNS,
   cellKey
 } from './life-engine.js';
+
+/* Which types exist in this generation, in chart order. The drawer prints them
+ * all — including the ones at 0% — so the list it walks is this one rather than
+ * whatever the board happens to hold today. */
+import { typesForGeneration } from './type-era.js';
+/* The era note lists the types a generation is MISSING by walking the full chart
+ * and subtracting the ones it has, so it needs the unfiltered order too. It is
+ * imported rather than reconstructed because a hardcoded 18-name array is the
+ * second source of truth §3.I is about — and the first version of this line
+ * omitted the import entirely, threw a ReferenceError halfway down
+ * updateTypeDrawer(), and left the list half-built with the note blank. */
+import { TYPE_CHART_ORDER } from './type-chart.js';
 
 /* The encounter cry player. `play()` takes the SPECIES ID and builds the URL
  * itself from `cryUrl()`, so this file never spells an `assets/cries/` path — the
@@ -38,6 +52,54 @@ let activeTool = 'brush'; // 'pan', 'brush', 'eraser', 'stamp'
 let activeStamp = 'glider';
 let activeSpeciesId = 1;
 let showGrid = true;
+let showTerritory = true;
+
+/**
+ * Alpha of the type wash, per theme.
+ *
+ * TWO VALUES BECAUSE THE GROUNDS HAVE OPPOSITE ENDS, and the wash composites
+ * over a CSS `radial-gradient` (life.css:229 / :234) rather than over a flat
+ * colour: dark runs #111832 -> #0b1020, light runs #ffffff -> #e9edf7. A near-white
+ * ground has no headroom to spare and a near-black one has plenty, so one value
+ * cannot serve both — the number that reads on #0b1020 is close to invisible on
+ * #ffffff.
+ *
+ * MEASURED off the live canvas, not chosen. check_life_browser.mjs brushes a
+ * cell, steps the simulation once so Conway kills the isolated cell, and reads
+ * back the alpha the wash actually painted: **41/255 in the dark theme and
+ * 77/255 in the light one**, which is 0.16 and 0.30 as written. It asserts light
+ * > dark and both > a visible floor, so collapsing this to one value — the tidy
+ * that looks like a simplification — fails.
+ *
+ * WHAT IS NOT MEASURED, named rather than implied: what the wash composites to
+ * once the gradient is under it. That needs a screenshot and a PNG decode, this
+ * file has neither, and an offline decoder would be §3.Q's lesson about a
+ * measurement taken with a different implementation than the one under test. So
+ * the numbers above are what the renderer WRITES, and whether they read well
+ * against both ends of each gradient is a look at the page — which is why the
+ * toggle is there.
+ *
+ * DECORATIVE. 3:1 is SC 1.4.11's figure for a graphical object whose meaning is
+ * carried by shape, and nothing here has to be read to play — the colour records
+ * what used to live in a cell and no control depends on recovering it. The
+ * toggle's title is the one place a reader is told what the colour means,
+ * because 18 type colours have no legend anywhere on this page.
+ */
+const TERRITORY_ALPHA = { light: 0.30, dark: 0.16 };
+
+/**
+ * `#78C850` + 0.16 -> `rgba(120, 200, 80, 0.16)`.
+ *
+ * Built on shared.js's `hexToRgb` rather than parsing the hex here: colour
+ * parsing is that module's job, and a second copy is §3.B1's rule waiting to be
+ * broken. Unparseable input falls back to the same `#78c850` the cell renderer
+ * already uses, so a type outside TYPE_COLORS cannot paint nothing — and
+ * `check_life_page.mjs` asserts no record ever needs that fallback.
+ */
+const withAlpha = (hex, alpha) => {
+  const rgb = hexToRgb(hex) || [120, 200, 80];
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+};
 
 // Camera State
 const camera = {
@@ -135,12 +197,15 @@ function cacheDOMElements() {
   els.btnDexDrawer = document.getElementById('btnDexDrawer');
   els.btnDexCount = document.getElementById('btnDexCount');
   els.btnHofCount = document.getElementById('btnHofCount');
+  els.btnTypeCount = document.getElementById('btnTypeCount');
   els.btnHofDrawer = document.getElementById('btnHofDrawer');
+  els.btnTypeDrawer = document.getElementById('btnTypeDrawer');
   els.stampSelect = document.getElementById('stampSelect');
   els.speedSeg = document.getElementById('speedSeg');
   els.toolSeg = document.getElementById('toolSeg');
   els.chkWild = document.getElementById('chkWild');
   els.chkGrid = document.getElementById('chkGrid');
+  els.chkTerritory = document.getElementById('chkTerritory');
   els.chkEncounterCry = document.getElementById('chkEncounterCry');
   els.genBadge = document.getElementById('genBadge');
   els.brushPreview = document.getElementById('brushPreview');
@@ -181,6 +246,12 @@ function cacheDOMElements() {
   els.hofProgressFill = document.getElementById('hofProgressFill');
   els.hofMedalsList = document.getElementById('hofMedalsList');
   els.dexDrawer = document.getElementById('dexDrawer');
+  els.typeDrawer = document.getElementById('typeDrawer');
+  els.typeClose = document.getElementById('typeClose');
+  els.typeSummary = document.getElementById('typeSummary');
+  els.typeBar = document.getElementById('typeBar');
+  els.typeList = document.getElementById('typeList');
+  els.typeEraNote = document.getElementById('typeEraNote');
   els.dexClose = document.getElementById('dexClose');
   els.dexSearch = document.getElementById('dexSearch');
   els.dexGrid = document.getElementById('dexGrid');
@@ -391,7 +462,63 @@ function renderCanvas(timestamp) {
   const minWorldY = Math.floor(-camera.y / effCell) - 1;
   const maxWorldY = Math.ceil((height - camera.y) / effCell) + 1;
 
-  // 3. Render Alive Cells
+  // 3. Type Wash — what last lived in each now-empty cell.
+  //
+  // DRAWN UNDER THE SPRITES AND NOT UNDERNEATH THEM.
+  //
+  // The wash is painted before the cells, so z-order alone looks like it is
+  // doing the job — and it is not. A sprite is an RGBA PNG and 45.7% of its
+  // pixels are transparent (measured on 1.png, 475x475), so a Grass wash under a
+  // Bulbasaur reads through the gap around its body. Cells that are currently
+  // OCCUPIED are skipped outright instead; that skip is the whole requirement.
+  //
+  // BATCHED BY TYPE, which is a performance requirement rather than tidiness.
+  // CELL_SIZE is 36 and the smallest zoom is 0.2, so `effCell` can be 7.2px and a
+  // 1440x900 viewport then holds ~25,000 cells. One `fillRect` per cell is
+  // 25,000 draw calls a frame at 60fps; grouping the same type into one path
+  // makes it 18 fills, one per type that is actually on screen.
+  if (showTerritory && engine.territory.size > 0) {
+    const alpha = TERRITORY_ALPHA[document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'];
+
+    // type -> path. Built fresh each frame because the camera moves between
+    // frames; a retained set would have to be invalidated on every pan anyway.
+    const byType = new Map();
+    for (const [key, type] of engine.territory) {
+      // Occupied cells are excluded, and `cells` is the only thing that knows
+      // that. It is also the cheaper test to ask first: the wash outlives the
+      // population, so most entries here ARE occupied and the Map lookup is
+      // doing the work.
+      if (engine.cells.has(key)) continue;
+
+      const comma = key.indexOf(',');
+      const x = Number(key.slice(0, comma));
+      const y = Number(key.slice(comma + 1));
+      if (x < minWorldX || x > maxWorldX || y < minWorldY || y > maxWorldY) continue;
+
+      let path = byType.get(type);
+      if (!path) byType.set(type, path = new Path2D());
+      // World -> screen. `camera.x`/`camera.y` are the load-bearing half and they
+      // are the same two the cell pass gets from worldToScreen(); leaving them
+      // off draws every wash at the canvas origin instead of its cell, which at
+      // the default centred camera means world (0,0) is the ONLY cell that
+      // lands correctly and every other one is silently stacked into the top-left
+      // corner. Inset by a hair so adjacent washes leave the grid line readable
+      // between them rather than reading as one solid field.
+      path.rect(
+        x * effCell + camera.x + 0.5,
+        y * effCell + camera.y + 0.5,
+        effCell - 1,
+        effCell - 1
+      );
+    }
+
+    for (const [type, path] of byType) {
+      ctx.fillStyle = withAlpha(TYPE_COLORS[type] || '#78c850', alpha);
+      ctx.fill(path);
+    }
+  }
+
+  // 4. Render Alive Cells
   const isHighLOD = camera.zoom >= 0.55;
 
   for (const cell of engine.cells.values()) {
@@ -401,19 +528,35 @@ function renderCanvas(timestamp) {
 
     const scr = worldToScreen(cell.x, cell.y);
     const sp = currentMetadata.speciesById.get(cell.speciesId);
-    const typeColor = (sp && sp.types && TYPE_COLORS[sp.types[0]]) || '#78c850';
+    // typesOf(), not sp.types — on a Gen 1 board 皮皮 is 一般 and 小磁怪 is 電, and
+    // this colour is what a low-LOD cell and a failed sprite load both fall back
+    // to. Reading the raw array here would paint a Fairy cell the one colour
+    // that generation does not have.
+    const typeColor = TYPE_COLORS[engine.typesOf(sp)?.[0]] || '#78c850';
 
     if (isHighLOD) {
-      // Cell background glow based on evolution stage
-      if (cell.stage === 2) {
-        ctx.fillStyle = 'rgba(155, 89, 182, 0.22)';
-        ctx.fillRect(scr.x, scr.y, effCell, effCell);
-        ctx.strokeStyle = '#9b59b6';
-        ctx.lineWidth = 1.5;
+      // Evolution stage: a FRAME, and the frame's WIDTH is what says which
+      // stage it is.
+      //
+      // Both fills are gone (`rgba(155,89,182,0.22)` for stage 2 and
+      // `rgba(230,126,34,0.18)` for stage 1). The reason is the wash, not taste:
+      // an alpha fill over a cell is the same visual channel as the type wash,
+      // so a stage-2 cell on a Fire claim read as a purple Fire cell and the two
+      // encodings sat on top of each other. A stroke sits on the cell's edge, so
+      // the sprite covers its middle and the two never fight.
+      //
+      // Stage 1 HAD no frame at all — fill only — so removing the fill would have
+      // silently deleted the stage-1 marker at high LOD and left the stage
+      // readable only on the HUD bar and at low zoom. Both stages now stroke, and
+      // the widths differ enough (1 vs 2.5) to read apart at CELL_SIZE 36 without
+      // reading as a colour. `check_life_page.mjs` asserts the two widths are
+      // unequal, because making them equal is the obvious "tidy" that would put
+      // both stages back to one signal.
+      if (cell.stage > 0) {
+        const stage2 = cell.stage === 2;
+        ctx.strokeStyle = stage2 ? '#9b59b6' : '#e67e22';
+        ctx.lineWidth = stage2 ? 2.5 : 1;
         ctx.strokeRect(scr.x + 0.5, scr.y + 0.5, effCell - 1, effCell - 1);
-      } else if (cell.stage === 1) {
-        ctx.fillStyle = 'rgba(230, 126, 34, 0.18)';
-        ctx.fillRect(scr.x, scr.y, effCell, effCell);
       }
 
       // Veteran single-stage aura (golden corners / glow).
@@ -460,7 +603,7 @@ function renderCanvas(timestamp) {
     }
   }
 
-  // 4. Render Evolution Shockwaves / Particle Rings
+  // 5. Render Evolution Shockwaves / Particle Rings
   if (visualEffects.length > 0) {
     ctx.save();
     visualEffects = visualEffects.filter(fx => {
@@ -496,7 +639,7 @@ function renderCanvas(timestamp) {
     ctx.restore();
   }
 
-  // 5. Tool Cursor Hover Previews
+  // 6. Tool Cursor Hover Previews
   if (hoveredWorld.valid) {
     const scr = worldToScreen(hoveredWorld.x, hoveredWorld.y);
 
@@ -636,6 +779,19 @@ function updateHUD(stats = null) {
   if (els.btnHofCount) {
     els.btnHofCount.textContent = `傳說 (${engine.unlockedMedals.length}/${currentMetadata.legendaries.length})`;
   }
+  if (els.btnTypeCount) {
+    // The denominator is the GENERATION's type count — 15 in Gen 1, 17 in Gens
+    // 2-5, 18 from Gen 6 — not the number of types on the board. That is what
+    // makes the numerator a collection rather than a snapshot: a reader who has
+    // seen 9 of the 15 types Gen 1 has is 60% through that generation, and the
+    // same 9 on a Gen 6 board would be 50% of 18 with two eras of types still
+    // out of reach. `seenTypes` only grows within a board, and clear()/reset()
+    // empty it, so the fraction always describes one run of one generation.
+    els.btnTypeCount.textContent = `屬性 (${engine.seenTypes.size}/${typesForGeneration(engine.typeEra()).length})`;
+  }
+  // The drawer's list is a snapshot, so it is refreshed only while it is open.
+  // Rebuilding 15 rows every tick on a closed drawer is work nobody can see.
+  if (els.typeDrawer?.classList.contains('is-open')) updateTypeDrawer();
 }
 
 function updateCamHUD() {
@@ -923,9 +1079,121 @@ function updateDexDrawerSelection() {
   });
 }
 
+/**
+ * The type drawer: one distribution over every cell the board can point at —
+ * live AND washed — as a share of all of them.
+ *
+ * THE DENOMINATOR IS THE WASH TOO, and that is the whole difference from the
+ * button. `屬性 (9/15)` counts what has ever been here and only grows; this list
+ * is a photograph of the board right now, and a wash the reader erased is gone
+ * from it while staying on the button. Two numbers, two questions, one drawer's
+ * title has to disambiguate — which is what the note under the list does.
+ *
+ * EVERY TYPE OF THE GENERATION IS LISTED, including the ones at 0%. A Gen 1
+ * reader is looking at a board that cannot hold a Fairy cell at all, and a list
+ * that hid the empty rows would make the generation's own restriction invisible.
+ * Sorted by share so the common types read first, ties broken by chart order so
+ * two runs of the same board print in the same order.
+ */
+function updateTypeDrawer() {
+  if (!currentMetadata || !els.typeList) return;
+
+  // The era's own type set, and the branch cannot widen it: `branchDestinationsFor`
+  // admits only destinations whose types the era already has, so the 伊布 family
+  // never contributes a type its board could not already hold. That is a verified
+  // property rather than an assumption — `check_life_page.mjs` asserts the two
+  // sets are equal across all 9 generations and both modes, so a future loosening
+  // of the branch is a red test rather than a drawer that quietly disagrees with
+  // its own denominator.
+  const types = typesForGeneration(engine.typeEra());
+  const total = types.length;
+
+  // One pass over both populations. `territory` and `cells` are separate maps on
+  // purpose — a wash never overlaps a live cell — so they can simply be added.
+  const counts = new Map(types.map(t => [t, 0]));
+  for (const type of engine.territory.values()) {
+    if (counts.has(type)) counts.set(type, counts.get(type) + 1);
+  }
+  for (const cell of engine.cells.values()) {
+    const t = engine.typesOf(currentMetadata.speciesById.get(cell.speciesId))?.[0];
+    if (t && counts.has(t)) counts.set(t, counts.get(t) + 1);
+  }
+
+  const live = engine.cells.size;
+  const washed = engine.territory.size;
+  const grand = live + washed;
+
+  if (els.typeSummary) {
+    els.typeSummary.textContent = grand === 0
+      ? '盤面尚無寶可夢。'
+      : `活體 ${live} 隻 · 殘影 ${washed} 格 · 合計 ${grand} 格`;
+  }
+
+  const rows = types.map((type, i) => ({
+    type,
+    chartIndex: i,
+    count: counts.get(type),
+    pct: grand === 0 ? 0 : (counts.get(type) / grand) * 100
+  }));
+  rows.sort((a, b) => b.pct - a.pct || a.chartIndex - b.chartIndex);
+
+  // The bar is rebuilt rather than resized, because the set of types with a
+  // non-zero share changes from tick to tick and there is no fixed segment to
+  // grow. Each segment carries the same number the row prints, so the bar and the
+  // list cannot disagree — and both are written from `rows`.
+  if (els.typeBar) {
+    els.typeBar.innerHTML = '';
+    for (const r of rows) {
+      if (r.count === 0) continue;
+      const seg = document.createElement('div');
+      seg.className = 'life-type-seg';
+      seg.style.width = `${r.pct}%`;
+      seg.style.background = TYPE_COLORS[r.type] || '#78c850';
+      seg.title = `${TYPE_EN_ZH[r.type] || r.type} ${r.count} 格 ${r.pct.toFixed(1)}%`;
+      els.typeBar.appendChild(seg);
+    }
+    // The bar's own label, because a 0x0 bar reads as a broken element rather
+    // than as an empty board.
+    els.typeBar.setAttribute('aria-label', grand === 0 ? '屬性比例：尚無資料' : '屬性比例');
+  }
+
+  if (els.typeList) {
+    els.typeList.innerHTML = '';
+    for (const r of rows) {
+      const li = document.createElement('li');
+      li.className = 'life-type-row' + (r.count === 0 ? ' is-empty' : '');
+      li.innerHTML = `
+        <span class="life-type-swatch" style="background:${TYPE_COLORS[r.type] || '#78c850'}"></span>
+        <span class="life-type-name">${TYPE_EN_ZH[r.type] || r.type}</span>
+        <span class="life-type-count">${r.count}</span>
+        <span class="life-type-pct">${grand === 0 ? '0' : r.pct.toFixed(1)}%</span>
+      `;
+      els.typeList.appendChild(li);
+    }
+  }
+
+  if (els.typeEraNote) {
+    // WHY THE DENOMINATOR IS WHAT IT IS, stated where the reader sees the number.
+    const missing = TYPE_CHART_ORDER.filter(t => !types.includes(t));
+    const zh = t => TYPE_EN_ZH[t] || t;
+
+    // TWO SHAPES, and the difference is the mode rather than the number: a Let's
+    // Go board is a 2018 game playing Gen 1's roster, so its denominator comes
+    // from the game's era and there is nothing left to explain. A classic board's
+    // comes from its own generation, and naming the absent types is what makes
+    // 「15」 mean something — the reader can see that a Fairy cell is not
+    // missing from the simulation but from the games.
+    els.typeEraNote.textContent = engine.mode === 'letsGo'
+      ? `Let's Go 是 2018 年的遊戲，${total} 種屬性全開。`
+      : `第 ${currentMetadata.gen} 世代有 ${total} 種屬性` +
+        (missing.length ? `（尚無 ${missing.map(zh).join('、')}）。` : '。');
+  }
+}
+
 function closeDrawers() {
   if (els.hofDrawer) els.hofDrawer.classList.remove('is-open');
   if (els.dexDrawer) els.dexDrawer.classList.remove('is-open');
+  if (els.typeDrawer) els.typeDrawer.classList.remove('is-open');
 }
 
 // --- Setup Modal --------------------------------------------------------------
@@ -1039,13 +1307,18 @@ function renderSetupStarters(gen) {
   starters.forEach(starter => {
     const card = document.createElement('div');
     card.className = `life-starter-card ${starter.id === modalSelectedStarterId ? 'is-selected' : ''}`;
-    const primaryType = starter.types ? starter.types[0] : 'Normal';
+    const primaryType = (engine.typesOf(starter) || [])[0] || 'Normal';
     const typeColor = TYPE_COLORS[primaryType] || '#78c850';
+    // TYPE_EN_ZH keyed off the ERA type, never `starter.types_zh[0]`. Both halves
+    // of that matter: the data's own label is the modern one, so on a Gen 1
+    // screen a 皮皮 card would have been a green swatch reading 妖精 — the
+    // colour and the word disagreeing with each other inside one 20px badge.
+    const typeLabel = TYPE_EN_ZH[primaryType] || '';
 
     card.innerHTML = `
       <img class="life-starter-img" src="assets/images/pokemon/${starter.id}.png" alt="${starter.names.zh}">
       <div class="life-starter-name">${starter.names.zh}</div>
-      <div class="life-starter-type" style="background:${typeColor}">${starter.types_zh ? starter.types_zh[0] : ''}</div>
+      <div class="life-starter-type" style="background:${typeColor}">${typeLabel}</div>
     `;
 
     card.addEventListener('click', () => {
@@ -1137,6 +1410,10 @@ function bindEvents() {
     showGrid = e.target.checked;
   });
 
+  els.chkTerritory?.addEventListener('change', e => {
+    showTerritory = e.target.checked;
+  });
+
   /* The encounter cry. The page's DEFAULT is a view mute, applied once here, and
    * only the reader's own tick writes the shared preference — that split is the
    * whole of §3.G6's bug: `cryPlayer.muted = true` persists to the site-wide key,
@@ -1180,6 +1457,18 @@ function bindEvents() {
   });
   els.hofClose?.addEventListener('click', () => {
     els.hofDrawer?.classList.remove('is-open');
+  });
+
+  // The type drawer, wired exactly like the other two: close the others, rebuild
+  // the content ON OPEN (it is a snapshot, and a stale one is a wrong one), then
+  // show it. The rebuild-on-open is what lets updateHUD() skip it while closed.
+  els.btnTypeDrawer?.addEventListener('click', () => {
+    closeDrawers();
+    updateTypeDrawer();
+    els.typeDrawer?.classList.add('is-open');
+  });
+  els.typeClose?.addEventListener('click', () => {
+    els.typeDrawer?.classList.remove('is-open');
   });
 
   els.btnDexDrawer?.addEventListener('click', () => {
