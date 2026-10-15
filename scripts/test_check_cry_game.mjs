@@ -271,6 +271,65 @@ const CASES = [
     expect: 'and never the 475px official artwork',
   },
 
+  /* ---- The autoplay switch. §3.G: one preference, one piece of markup. ---- */
+  {
+    name: 'the switch is reimplemented as a local checkbox, so the site-wide preference is a second thing',
+    mutate: (dir) => {
+      editJs(dir, "import { mountAutoplay } from './cry-autoplay.js';", '');
+      editJs(dir, '  autoplay = mountAutoplay(els.autoplaySlot, {\n    className: \'cg-autoplay\',',
+        '  els.autoplaySlot.innerHTML = \'<input type="checkbox" checked>\';\n  autoplay = { get on() { return true; }, set() {} };\n  if (0) mountAutoplay(els.autoplaySlot, {\n    className: \'cg-autoplay\',');
+    },
+    expect: 'the page imports mountAutoplay from cry-autoplay.js',
+  },
+  {
+    /* The module builds its markup from `className`, so cries.css's
+     * `.cy-autoplay` rules cannot reach a switch mounted as `cy-autoplay` here —
+     * and §3.B1 says this page's rules are its own. */
+    name: 'the switch is mounted with cries.html\'s class prefix, so cry-game.css styles none of it',
+    mutate: (dir) => editJs(dir, "className: 'cg-autoplay',", "className: 'cy-autoplay',"),
+    expect: "with a `cg-` className",
+  },
+  {
+    name: 'the slot is given content in the markup, which mountAutoplay never removes',
+    mutate: (dir) => editHtml(dir,
+      '<div class="cg-autoplay-slot" id="cg-autoplay-slot"></div>',
+      '<div class="cg-autoplay-slot" id="cg-autoplay-slot"><span>舊的開關</span></div>'),
+    expect: 'the slot div is empty in the markup',
+  },
+  {
+    /* THE MEASURED ONE. `cryPlayer.play()` with no prior gesture leaves the
+     * promise PENDING forever — three seconds measured, no rejection, onStart
+     * never fires. Removing the guard turns the flag from load-bearing into a
+     * nicety and the page starts calling a play that can only hang. */
+    name: 'the activation guard is dropped, so the page attempts plays the browser can never resolve',
+    mutate: (dir) => editJs(dir,
+      '  if (!autoplay || !autoplay.on || !audioUnlocked) return;',
+      '  if (!autoplay || !autoplay.on) return;'),
+    expect: 'refuses unless the switch is on AND the document has been activated',
+  },
+  {
+    name: 'the unlock listener is a bubble-phase one, so a swallowed first click disables autoplay forever',
+    mutate: (dir) => editJs(dir, "document.addEventListener('click', once, true);", "document.addEventListener('click', once);"),
+    expect: 'the unlock is a CAPTURE-phase one-shot listener',
+  },
+  {
+    /* `renderAll()` runs on a theme flip, a resize and every state write. */
+    name: 'renderAll() auto-plays, so a theme change replays the cry',
+    mutate: (dir) => editJs(dir, '  renderFoot();\n  lastAnnouncement = null;', '  renderFoot();\n  lastAnnouncement = null;\n  maybeAutoPlay();'),
+    expect: 'renderAll() does not auto-play',
+  },
+  {
+    /* THE ORDER IS REVERSED, NOT A CALL REMOVED. The first version of this case
+     * deleted `installUnlock()`, which left `mountAutoplay()` exactly where it was
+     * — so the assertion about ordering stayed green while the case claimed to
+     * break it. A case that removes a side effect is not a case about order. */
+    name: 'the first round is drawn before the switch is mounted, so question 1 ignores the stored preference',
+    mutate: (dir) => editJs(dir,
+      '  autoplay = mountAutoplay(els.autoplaySlot, {',
+      "  if (!restoreDaily()) newRound();\n  autoplay = mountAutoplay(els.autoplaySlot, {"),
+    expect: 'the switch is mounted BEFORE the first round is drawn',
+  },
+
   /* ---- The four the browser found, pinned as shapes. ---- */
   {
     name: 'advance() closes the round from the derived index, ending one question early',

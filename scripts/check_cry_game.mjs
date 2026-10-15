@@ -876,6 +876,87 @@ console.log('\nthe answer\'s dossier link is built by the canonical helper');
 }
 
 // ---------------------------------------------------------------------------
+/* §3.G: ONE PREFERENCE, ONE DEFAULT, ONE PIECE OF MARKUP. `cry-autoplay.js`
+ * exists so that cries.html, spectrum.html and cries-gen1.html do not each grow
+ * their own; this page is the fourth consumer and writes none of it. The class
+ * prefix is `cg-` because `mountAutoplay` builds its markup from `className`, so
+ * every rule it needs belongs to cry-game.css and not one to cries.css. */
+console.log('\nthe autoplay switch is mounted, not reimplemented');
+{
+  check(/from '\.\/cry-autoplay\.js'/.test(jsCode), 'the page imports mountAutoplay from cry-autoplay.js');
+  check(/mountAutoplay\(els\.autoplaySlot, \{/.test(jsCode), 'and mounts it into its own slot');
+  check(/className:\s*'cg-autoplay'/.test(jsCode),
+    'with a `cg-` className — the module builds its markup from this, so cries.css\'s `.cy-autoplay` rules cannot reach it');
+
+  /* THE SLOT IS EMPTY IN THE MARKUP AND STAYS THAT WAY. `mountAutoplay` appends,
+   * so anything written between the tags is a second control that no code
+   * removes. The three sibling pages' slots are empty for the same reason. */
+  const slot = (htmlCode.match(/<div class="cg-autoplay-slot" id="cg-autoplay-slot">([\s\S]*?)<\/div>/) || [])[1];
+  check(slot !== undefined && slot.trim() === '',
+    'the slot div is empty in the markup — mountAutoplay appends to it',
+    () => `it contains ${JSON.stringify(slot)}`);
+
+  /* THE FIVE NAMES THE MODULE QUERIES ARE AN INTERFACE, not our selectors. It
+   * writes `className` onto the element and then reads `.${className}-track` and
+   * `.${className}-text` back out, so a missing rule here is an unstyled switch
+   * rather than an error anywhere. */
+  for (const part of ['-track', '-track::after', '-text', '-text span', '[aria-checked="true"]']) {
+    check(cssCode.includes(`.cg-autoplay${part}`) || cssCode.includes(`.cg-autoplay${part.replace('"', "'")}`),
+      `cry-game.css styles .cg-autoplay${part}, which the mounted markup needs`,
+      () => `no rule for .cg-autoplay${part}`);
+  }
+  check(cssCode.includes('.cg-autoplay-text span'), 'and the hint line specifically, because the switch states its own position before the reader touches it');
+
+  /* THE THREE CONDITIONS ARE ALL NECESSARY, and `audioUnlocked` is the one that
+   * reads as an optimisation and is not. Measured: `cryPlayer.play()` before any
+   * user gesture leaves the promise PENDING FOREVER — three seconds measured, no
+   * rejection, `onStart` never fires. So the flag is what stops the page
+   * attempting a play that can only hang. */
+  const maybe = fnBody(jsCode, 'maybeAutoPlay') || '';
+  check(/if \(!autoplay \|\| !autoplay\.on \|\| !audioUnlocked\) return;/.test(maybe),
+    'maybeAutoPlay() refuses unless the switch is on AND the document has been activated',
+    () => maybe.trim().split('\n').slice(0, 3).join(' '));
+  check(/if \(cryPlayer\.playing\) return;/.test(maybe), 'and unless something is already sounding');
+  const install = fnBody(jsCode, 'installUnlock') || '';
+  check(/document\.addEventListener\('click', once, true\)/.test(install),
+    'the unlock is a CAPTURE-phase one-shot listener — a first click swallowed by whatever handled it would leave auto-play permanently off with nothing wrong on screen');
+  check(/document\.removeEventListener\('click', once, true\)/.test(install),
+    'and it removes itself, so the handler does not run for the rest of the session');
+  check(/cryPlayer\.unlock\(\)/.test(install), 'calling cryPlayer.unlock() rather than reaching into the context');
+
+  /* IT IS CALLED FROM THE TWO TRANSITIONS AND NOWHERE ELSE. `renderAll()` runs on
+   * a theme flip, a resize and every state write, so an auto-play there would
+   * replay the cry on a theme change. */
+  const callers = [...jsCode.matchAll(/maybeAutoPlay\(\)/g)].map((m) => m.index);
+  check(callers.length === 3,
+    'maybeAutoPlay() is called three times: its definition and the two transitions',
+    () => `${callers.length} references`);
+  for (const name of ['newRound', 'advance']) {
+    check(/maybeAutoPlay\(\);/.test(fnBody(jsCode, name) || ''), `and it is called from ${name}()`);
+  }
+  for (const name of ['renderAll', 'renderChoices', 'renderResult', 'answer', 'useHint']) {
+    check(!/maybeAutoPlay\(\)/.test(fnBody(jsCode, name) || ''), `${name}() does not auto-play`);
+  }
+
+  /* MOUNTED BEFORE THE FIRST ROUND IS DRAWN. `maybeAutoPlay()` reads `autoplay`,
+   * and a default-constructed `null` there means the first question silently
+   * ignores a preference the reader set on a different page. */
+  const init2 = fnBody(jsCode, 'init') || '';
+  const mountAt = init2.indexOf('mountAutoplay(');
+  const newRoundAt = init2.indexOf('if (!restoreDaily()) newRound();');
+  check(mountAt > 0 && newRoundAt > 0 && mountAt < newRoundAt,
+    'the switch is mounted BEFORE the first round is drawn',
+    () => `mount at ${mountAt}, first round at ${newRoundAt}`);
+  check(/if \(!on\) \{[\s\S]{0,200}?cryPlayer\.stop\(\)/.test(init2),
+    'and turning it OFF stops whatever is sounding, copied from cries-gen1.html — a switch that turns autoplay off while the cry keeps playing does not mean its label');
+
+  /* AN AUTO-PLAY FAILURE IS SILENT. The convenience raising an alarm about a
+   * question the reader never chose to play is a second thing to react to. */
+  check(/lastAnnouncement = fromAutoPlay\s*\? null/.test(jsCode),
+    'a failed auto-play falls back to silence rather than announcing a decode error');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\nthe four defects a static checker could not have found');
 // ---------------------------------------------------------------------------
 {

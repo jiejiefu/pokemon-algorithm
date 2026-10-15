@@ -76,6 +76,7 @@
 import { TYPE_COLORS, TYPE_EN_ZH, pokemonDetailUrl } from './shared.js';
 import { spriteUrl } from './color-palette.js';
 import { cryPlayer } from './cry-player.js';
+import { mountAutoplay } from './cry-autoplay.js';
 import {
   MAX_QUESTIONS, CHOICES, DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES,
   SIMILARITY_CEILING, FEATURE_SET, DEFAULT_GENERATION,
@@ -168,6 +169,69 @@ let resultRevealed = false;
  * function.
  */
 let lastAnnouncement = null;
+
+/** `cry-autoplay.js`'s handle. Mounted in `init()`, read by `maybeAutoPlay()`. */
+let autoplay = null;
+
+/**
+ * HAS THIS DOCUMENT BEEN ACTIVATED?
+ *
+ * **THE WHOLE AUTOPLAY FEATURE RESTS ON THIS FLAG, and it is not an optimisation.
+ * Measured, not assumed: calling `cryPlayer.play()` before the page has had any
+ * user gesture leaves the promise **PENDING forever** — three seconds measured,
+ * no rejection, `onStart` never fires — because `unlock()` awaits `ctx.resume()`
+ * and Chrome holds that promise open until the document is activated. The audio
+ * never plays, the play button never flips to its pause glyph, and the caller
+ * learns nothing: not an error, a hang.
+ *
+ * So the page never *attempts* an auto-play before it knows it can. The unlock
+ * itself is a one-shot document listener calling `cryPlayer.unlock()` on the
+ * reader's first click of ANY kind — including a click on a choice card, which is
+ * what makes this seamless: a reader who guesses question 1 blind has still
+ * activated the document, so question 2 auto-plays.
+ *
+ * Measured after a single card press: unawaited `play()` calls start within
+ * 1.2 s with **no further gesture**, repeatedly.
+ *
+ * A reload resets it, so a reader who reloads mid-round gets one ▶ on the next
+ * question. That is correct rather than a workaround, and the rules section says
+ * so in the open rather than leaving them to wonder.
+ */
+let audioUnlocked = false;
+
+/**
+ * Install the one-shot unlock. Capture phase, because the reader's first click
+ * may be stopped or swallowed by whatever handled it — and a listener that never
+ * runs leaves the page permanently in the "no auto-play" state with nothing
+ * wrong-looking on screen.
+ */
+function installUnlock() {
+  const once = () => {
+    document.removeEventListener('click', once, true);
+    cryPlayer.unlock()
+      .then(() => { audioUnlocked = true; })
+      .catch(() => { /* Web Audio unavailable; the play button reports it */ });
+  };
+  document.addEventListener('click', once, true);
+}
+
+/**
+ * Play the current question once, if that is both wanted and possible.
+ *
+ * Called from `newRound()` and `advance()` only — never from `renderAll()`, which
+ * runs on a theme flip, a resize and every state write. The three conditions are
+ * all necessary:
+ *
+ *   `autoplay.on`     the reader's own preference
+ *   `audioUnlocked`   the browser will actually produce sound; see above
+ *   `!playing`        a replay mid-cry is not an auto-play, it is a re-listen
+ */
+function maybeAutoPlay() {
+  if (!autoplay || !autoplay.on || !audioUnlocked) return;
+  if (cryPlayer.playing) return;
+  if (state.status !== 'playing') return;
+  playCurrent({ fromAutoPlay: true });
+}
 
 // ---------------------------------------------------------------------------
 // localStorage, entirely inside a try/catch
@@ -325,6 +389,7 @@ function newRound() {
   if (state.mode === 'daily') persistDaily();
   renderAll();
   loadWave();
+  maybeAutoPlay();
 }
 
 /**
@@ -533,6 +598,7 @@ function advance() {
   lastAnnouncement = null;
   renderAll();
   loadWave();
+  maybeAutoPlay();
 }
 
 /**
@@ -566,7 +632,7 @@ Object.defineProperty(state, 'indexOfCurrent', {
 // Playback
 // ---------------------------------------------------------------------------
 
-async function playCurrent() {
+async function playCurrent({ fromAutoPlay = false } = {}) {
   const q = state.questions[state.indexOfCurrent];
   if (!q) return;
   stopProgress();
@@ -584,8 +650,16 @@ async function playCurrent() {
      * it sitting in the field until some later render consumes it — so a failed
      * play would surface as a message about a different question, several clicks
      * later. The first version of this catch only assigned, and nothing anywhere
-     * said so. */
-    lastAnnouncement = `這一段叫聲播不出來（${e && e.reason ? e.reason : 'unknown'}），可以跳過這一題。`;
+     * said so.
+     *
+     * AND AN AUTO-PLAY FAILURE FALLS BACK TO SILENCE, not to an error. A
+     * background question whose cry 404s or fails to decode should not tell the
+     * reader 「可以跳過這一題」 about a question they never chose to play — the
+     * auto-play is a convenience, and a convenience that raises an alarm is a
+     * second thing to react to. */
+    lastAnnouncement = fromAutoPlay
+      ? null
+      : `這一段叫聲播不出來（${e && e.reason ? e.reason : 'unknown'}），可以跳過這一題。`;
     renderAll();
   }
 }
@@ -1178,6 +1252,7 @@ async function init() {
   els.choices = document.getElementById('cg-choices');
   els.progress = document.getElementById('cg-progress');
   els.difficultyNote = document.getElementById('cg-difficulty-note');
+  els.autoplaySlot = document.getElementById('cg-autoplay-slot');
   els.hintRow = document.getElementById('cg-hint-row');
   els.hintBtn = document.getElementById('cg-hint-btn');
   els.genRow = document.getElementById('cg-gen-row');
@@ -1224,6 +1299,32 @@ async function init() {
     ? normalizeGeneration(store.get(`${STORE_PREFIX}gen`, 0), generations)
     : DEFAULT_GENERATION[state.difficulty];
   state.mode = store.get(`${STORE_PREFIX}mode`, state.mode) === 'unlimited' ? 'unlimited' : 'daily';
+
+  /* THE SWITCH IS MOUNTED BEFORE THE FIRST ROUND IS DRAWN, because `maybeAutoPlay()`
+   * reads `autoplay` and a default-constructed `null` there would mean the very
+   * first question never honours the reader's preference — on a page whose
+   * preference is stored site-wide by a module that has had this preference since
+   * before this page existed. */
+  autoplay = mountAutoplay(els.autoplaySlot, {
+    className: 'cg-autoplay',
+    label: '自動播放',
+    hint: '換題時自動播一次',
+    onChange: (on) => {
+      /* Switching it OFF stops whatever is sounding, copied from
+       * `cries-gen1.html`: the control has to mean what its label says at the
+       * moment it is pressed, and a switch that turns autoplay off while the
+       * current cry keeps playing does not. */
+      if (!on) {
+        stopProgress();
+        cryPlayer.stop();
+        setPlayState(false);
+      }
+      lastAnnouncement = `自動播放已${on ? '開啟' : '關閉'}。`;
+      renderAll();
+    },
+  });
+
+  installUnlock();
 
   els.genLabel.textContent = '出題範圍';
   setRevealed(els.gen, true);

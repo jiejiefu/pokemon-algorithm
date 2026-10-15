@@ -102,6 +102,15 @@
       </div>
       <div class="cg-card-body">
         <div class="cg-player" id="cg-player" role="status" aria-live="polite"></div>
+        <!-- `mountAutoplay` APPENDS to this, so it ships empty and stays that way
+             in the markup forever. Same shape as `cries.html`'s `#autoplay-slot`
+             and `spectrum.html`'s `#sp-autoplay-slot` — §3.G: one preference, one
+             default, one piece of markup, and writing it twice is how a page
+             quietly stops remembering the reader's choice.
+             The class prefix is `cg-` because the switch's markup is built from the
+             `className` option, so every rule it needs lands in cry-game.css and
+             not one lands in cries.css. -->
+        <div class="cg-autoplay-slot" id="cg-autoplay-slot"></div>
         <div class="cg-hint-row" id="cg-hint-row">
           <button type="button" class="cg-btn cg-btn-hint" id="cg-hint-btn">
             <span class="cg-btn-hint-label">排除一個選項</span>
@@ -146,6 +155,7 @@
       <ol>
         <li>每天十題，四個選項，點一隻就算作答。同一輪不會出現同一隻寶可夢兩次。</li>
         <li>叫聲可以重播不限次數。排除選項的提示每題一次，而且永遠不會排除掉正確答案。</li>
+        <li>自動播放打開時，換到新的一題會自己播一次。<strong>只有第一題需要按一下播放</strong>——瀏覽器規定沒有任何點擊過的頁面不能自己出聲，那是規則不是本頁的選擇。</li>
         <li>「每日」全站同一天同一組題目，看完可以直接把成績貼給別人比。</li>
         <li>難度決定的是<strong>干擾者有多像</strong>，不是題目來自哪一代。世代只是出題範圍的篩選。</li>
       </ol>

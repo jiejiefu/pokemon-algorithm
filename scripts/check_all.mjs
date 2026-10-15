@@ -378,7 +378,7 @@ const CHECKERS = [
      * 斷言看得見的錯誤。所以這個檢查器最後有一節**逐一把它們釘住**——第二個
      * 相同的缺陷至少會被形狀斷言擋下。 */
     script: 'scripts/check_cry_game.mjs', group: 'cry-page',
-    note: 'the shell contract, the §3.M hidden/display pairing, and the four defects a browser found',
+    note: 'the shell contract, the §3.M pairing, the autoplay unlock gate, and the four defects a browser found',
     inputs: [
       'cry-game.html',
       'assets/css/cry-game.css',
@@ -397,7 +397,7 @@ const CHECKERS = [
      * 的斷言全是形狀主張，一個 mutation harness 證明不了「形狀正確但行為錯誤」，
      * 那需要瀏覽器。所以這 0.8 秒不是湊數，它是誠實地涵蓋它能涵蓋的那一半。 */
     script: 'scripts/test_check_cry_game.mjs', checker: 'scripts/check_cry_game.mjs', group: 'cry-page',
-    note: '36 cases in child trees — shape claims only, and the header says what that cannot cover',
+    note: '43 cases in child trees — shape claims only, and the header says what that cannot cover',
     inputs: [
       'cry-game.html',
       'assets/css/cry-game.css',
@@ -419,7 +419,36 @@ const CHECKERS = [
       'assets/js/game-similarity.js',
       'assets/js/game-hints.js',
       'assets/js/game-tips.js',
+'assets/js/shared.js',
+    ],
+  },
+  {
+    /* §3.W 的 rendered half，與上面那條 static 是同一個 split（§3.G4）。
+     *
+     * `check_color_game.mjs` 已經把 strip 的 140px、≤640px 的 100px、結果圖的
+     * 200px 與「沒有 image-rendering」都當 CSS 文字斷言過了，那些斷言留下——讀
+     * stylesheet 就該讀 stylesheet，而且只要 0.2s。這裡量的是那份文字實際**產生**
+     * 了什麼，所以每個 breakpoint 都量兩個方向。
+     *
+     * `manual: true` 是必須的，不是客氣：它一個 repo 檔案都不讀，頁面全部從 HTTP
+     * 來，狀態跟 `check_cry_mobile_layout.mjs` 一樣。§4 說 `manual` 不影響執行，
+     * 只讓 `--prove-inputs` 印出那條誠實警告。 */
+    script: 'scripts/check_color_game_browser.mjs', group: 'color',
+    browser: true, needsServer: true, manual: true,
+    note: 'page inputs read off the HTML, not recorded',
+    inputs: [
+      'color-game.html',
+      'assets/css/color-game.css',
+      'assets/css/shared.css',
+      'assets/js/color-game.js',
+      'assets/js/game-similarity.js',
+      'assets/js/game-hints.js',
+      'assets/js/game-tips.js',
+      'assets/js/color-palette.js',
+      'assets/js/color-match.js',
       'assets/js/shared.js',
+      'assets/data/color_palettes.json',
+      'assets/data/pokemon_data.json',
     ],
   },
   {
