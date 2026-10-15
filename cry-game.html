@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>叫聲猜謎 · 寶可夢演算法</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="聽叫聲猜是哪一隻寶可夢。每日十題，全站同題，四選一，三檔難度由音色相似度決定。">
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/cry-game.css">
+  <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
+       after the first paint is a visible flash, and a module cannot run early
+       because module scripts are deferred. Identical on all five themed pages
+       and kept in sync with THEME_COLORS in shared.js. See AGENTS.md gotcha 31. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+</head>
+<body>
+  <!-- `header-cries` is the row-layout modifier shared.js owns. `check_nav_pages.mjs`
+       reads the six modifier names OUT OF shared.css rather than restating them, and
+       requires each header to carry exactly one: a bare `.header` is the MOBILE
+       layout and renders a valid, wrong page (§3.G2). The theme toggle ships EMPTY —
+       `initThemeToggle()` injects `.icon-sun`/`.icon-moon` and its guard only tests
+       for `.icon-sun`, so a hand-authored pair is doubled, not replaced. -->
+  <header class="header header-cries">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="cg-page">
+    <div class="cg-intro">
+      <h1>叫聲猜謎</h1>
+      <p>
+        每一題播一段叫聲，四張圖裡選一隻。聽不出來就按<strong>再看一次</strong>——
+        叫聲可以無限次重播，沒有人會因為你重聽而扣分。
+      </p>
+      <p class="cg-intro-note">
+        全部 1,025 隻的叫聲都在<strong>叫聲總覽</strong>裡，連同 34 個音色特徵與相似搜尋；
+        本頁的「像不像」用的就是那 34 維，難度也是照它算出來的。
+      </p>
+    </div>
+
+    <div class="cg-controls">
+      <div class="cg-tabs" role="radiogroup" aria-label="模式">
+        <button type="button" class="cg-tab" role="radio" aria-checked="true" data-mode="daily">每日</button>
+        <button type="button" class="cg-tab" role="radio" aria-checked="false" data-mode="unlimited">無限</button>
+      </div>
+      <div class="cg-tabs" role="radiogroup" aria-label="難度">
+        <button type="button" class="cg-tab" role="radio" aria-checked="true" data-difficulty="easy">簡單</button>
+        <button type="button" class="cg-tab" role="radio" aria-checked="false" data-difficulty="hard">困難</button>
+        <button type="button" class="cg-tab" role="radio" aria-checked="false" data-difficulty="hell">地獄</button>
+      </div>
+    </div>
+
+    <!-- The generation filter is a POOL, not a difficulty axis, so it is a chip
+         row rather than a third tab. The list is written by the page from
+         `availableGenerations()`, not by hand: a tab list and the pool filter that
+         has to agree with it are one value, not two (§3.P). `.cg-gen[hidden]` needs
+         its own display rule — see the [hidden] pairing note in cry-game.css. -->
+    <div class="cg-gen" id="cg-gen" hidden>
+      <span class="cg-gen-label" id="cg-gen-label">出題範圍</span>
+      <div class="cg-gen-row" id="cg-gen-row" role="radiogroup" aria-labelledby="cg-gen-label"></div>
+    </div>
+
+    <p class="cg-note" id="cg-difficulty-note"></p>
+
+    <!-- The target card. The waveform is the card's HEADER for the same reason
+         colour-game.html's palette bar is: the clue is what the eye should land
+         on, and `padding: 0` + `overflow: hidden` on the card plus no radius on
+         the wave is what lets it be flush. `.cg-card-body` is the only reason that
+         wrapper exists (§3.W). -->
+    <section class="cg-target" aria-labelledby="cg-target-title">
+      <h2 id="cg-target-title" class="sr-only">本題的叫聲</h2>
+      <div class="cg-wave">
+        <canvas class="cg-wave-canvas" id="cg-wave" role="img" aria-label="這一題叫聲的波形"></canvas>
+        <button type="button" class="cg-wave-play" id="cg-play" aria-label="播放這一段叫聲"></button>
+        <div class="cg-wave-progress" id="cg-wave-progress" aria-hidden="true"></div>
+      </div>
+      <div class="cg-card-body">
+        <div class="cg-player" id="cg-player" role="status" aria-live="polite"></div>
+        <div class="cg-hint-row" id="cg-hint-row">
+          <button type="button" class="cg-btn cg-btn-hint" id="cg-hint-btn">
+            <span class="cg-btn-hint-label">排除一個選項</span>
+          </button>
+        </div>
+        <div class="cg-target-foot" id="cg-target-foot">
+          <button type="button" class="cg-btn" id="cg-next" hidden>下一題</button>
+          <button type="button" class="cg-btn cg-btn-ghost" id="cg-again" hidden>再一輪</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The four options. Delegated from this container, never bound per card:
+         every card is re-rendered when the question changes, so a listener
+         attached to one would be sitting on a detached node — §3.I, and the shape
+         `graph-header.js` hit by rewriting its own button. -->
+    <section class="cg-board" aria-labelledby="cg-board-title">
+      <h2 id="cg-board-title" class="sr-only">四個選項</h2>
+      <p class="cg-progress" id="cg-progress"></p>
+      <div class="cg-choices" id="cg-choices" role="group" aria-label="從四張圖裡選一隻"></div>
+    </section>
+
+    <section class="cg-result" id="cg-result" hidden aria-labelledby="cg-result-title">
+      <div class="cg-result-card">
+        <h2 id="cg-result-title" class="cg-result-title"></h2>
+        <div class="cg-grid" id="cg-grid" aria-label="十題的結果"></div>
+        <p class="cg-result-band" id="cg-result-band"></p>
+        <p class="cg-result-detail" id="cg-result-detail"></p>
+        <div class="cg-share">
+          <h3 class="cg-share-title">成績</h3>
+          <pre class="cg-share-text" id="cg-share-text" tabindex="0"></pre>
+          <button type="button" class="cg-btn" id="cg-share-copy">複製成績</button>
+        </div>
+        <div class="cg-result-actions">
+          <a class="cg-btn cg-btn-ghost" id="cg-listen" href="cries.html">回叫聲總覽聽全部</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cg-rules" aria-labelledby="cg-rules-title">
+      <h2 id="cg-rules-title">怎麼玩</h2>
+      <ol>
+        <li>每天十題，四個選項，點一隻就算作答。同一輪不會出現同一隻寶可夢兩次。</li>
+        <li>叫聲可以重播不限次數。排除選項的提示每題一次，而且永遠不會排除掉正確答案。</li>
+        <li>「每日」全站同一天同一組題目，看完可以直接把成績貼給別人比。</li>
+        <li>難度決定的是<strong>干擾者有多像</strong>，不是題目來自哪一代。世代只是出題範圍的篩選。</li>
+      </ol>
+      <p class="cg-rules-note">
+        三檔難度各有一個相似度上限：簡單 0.35、困難 0.65、地獄不設上限（直接拿音色最接近的三隻來冒充）。
+        這不是隨便訂的數字——`scripts/check_cry_game_similarity.mjs` 每次都會重新量一次全語料的分布，
+        所以資料一改，門檻與分布對不上的時候會紅。
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>寶可夢演算法 · 資料來自 PokéAPI 與 PokeAPI cries，音色特徵為本站實測</p>
+  </footer>
+
+  <!-- Required scripts -->
+  <!-- Both mounts live HERE and not in cry-game.js, and the reason is the one
+       color-game.html already learned the hard way: `check_nav_pages.mjs` reads
+       `initHeaderNav(` off the HTML by design, because a grep over `assets/js`
+       cannot answer "which pages mount the nav". An external module would pass
+       the import and fail the mount, and the failure is a header with an empty
+       nav container rather than an exception. The same mount was found MISSING
+       from color-game.html for a commit — §3.G1a's shape exactly. -->
+  <script type="module">
+    import { initHeaderNav, initThemeToggle } from './assets/js/shared.js';
+    initThemeToggle();
+    initHeaderNav('cry-game.html');
+  </script>
+  <script type="module" src="assets/js/cry-game.js"></script>
+</body>
+</html>

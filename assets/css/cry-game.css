@@ -1,0 +1,716 @@
+/* ===========================================================================
+   叫聲猜謎 — cry-game.html
+   ---------------------------------------------------------------------------
+   EVERY RULE HERE CARRIES A `cg-` PREFIX, and that is not tidiness (§3.B1).
+   `cries.html` owns `.cy-*`, `spectrum.html` owns `.sp-*`, `color-game.html`
+   owns `.gm-*`, and none of those three pages may ever acquire a rule written
+   for this one. A reader who needs to change a colour-game rule to make a cry
+   game work has made two pages that cannot be reasoned about separately.
+
+   For the same reason this file declares no `.cy-`, `.sp-` or `.gm-` rule at
+   all, and it adds NO shared token of its own except `--cg-accent`, which is
+   declared ON `.cg-page` (see the note at its definition). The one thing it
+   must not do is restate a token `shared.css` already owns.
+
+   ---------------------------------------------------------------------------
+   THE `[hidden]` PAIRING, EIGHT TIMES, AND WHY EVERY ONE IS NEEDED
+   ---------------------------------------------------------------------------
+   `.cg-gen[hidden] { display: none }` and its seven siblings are not
+   redundancy. An author `display: flex` or `display: grid` beats the user
+   agent's `[hidden] { display: none }` regardless of specificity, because the UA
+   sheet loses to ANY author declaration. `element.hidden === true` still reads
+   true while the box paints — which is how `.of-readout` shipped as a 40px
+   empty card, and how `spectrum.html`'s `.sp-picker` shipped a 5,300px roster
+   on a phone (§3.M, §3.X).
+
+   So every element this page hides, whose own `display` is set by a rule below,
+   needs the pairing. `check_cry_game.mjs` DERIVES the list the same way
+   `check_color_game.mjs` does — by walking the `hidden` writes in cry-game.js,
+   resolving the id, and reading its class out of this file — so adding an
+   element without the pairing fails the suite rather than shipping.
+
+   ---------------------------------------------------------------------------
+   NOTHING IN HERE IS THE WAVEFORM'S DATA
+   ---------------------------------------------------------------------------
+   The wave is drawn on a `<canvas>` by cry-game.js, and the CSS only gives it a
+   box, a colour and a cursor. Colour was the tempting one: a waveform that takes
+   its ink from `--text-primary` is legible in both themes and needs no per-theme
+   rule, and `species-ramp.js` exists precisely because that is not always the
+   answer. It is not the answer here — the wave is an IDENTITY CUE drawn on every
+   pixel, not a thin line whose meaning is carried by its shape, so the contrast
+   floor that module enforces at 3:1 would be the wrong contract to borrow.
+   =========================================================================== */
+
+/* --- tokens ------------------------------------------------------------- */
+
+.cg-page {
+  /* `--page-accent` is declared by shared.css on six `.header-*` modifiers and
+     NOWHERE else. colour-game.html uses it 13 times in its body — which is a
+     SIBLING of the header, so nothing inherits it — and an invalid `var()`
+     computes to the inherited value, so its hint button rendered white on a
+     white card in light theme. One value cannot fix that: the `--rule-*` tokens
+     are `:root`-level and identical in both themes, and no single cyan clears
+     4.5:1 against both a white card and a `#161e38` one.
+
+     So the accent is declared HERE, on the page's own root, per theme, and the
+     two values differ — which is the assertion, not an accident. */
+  --cg-accent: #4cc9f0;
+}
+[data-theme="light"] .cg-page {
+  --cg-accent: #0e7490;
+}
+
+/* --- page shell --------------------------------------------------------- */
+
+.cg-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 24px 72px;
+}
+
+.cg-intro h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.cg-intro p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* `.cg-intro-note` is the paragraph that links out. It is NOT `aria-hidden` and
+   not decorative: it is where a reader who wants the 34 dimensions goes. */
+.cg-intro-note {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.cg-intro a,
+.cg-rules a {
+  color: var(--cg-accent);
+}
+
+/* --- mode and difficulty tabs ------------------------------------------- */
+
+.cg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.cg-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+}
+
+.cg-tab {
+  min-height: 36px;
+  padding: 6px 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cg-tab:hover {
+  color: var(--text-primary);
+}
+
+/* `.is-on` is written by renderAll() alongside `aria-checked`, and BOTH are
+   asserted: a tab that is visually selected but reports aria-checked="false" is
+   a radio group a screen reader will let you leave. */
+.cg-tab.is-on {
+  background: var(--cg-accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* 地獄's own colour, because a difficulty is not a selection state and the
+   selected-state blue on it would read as "this is the default". */
+.cg-tab[data-difficulty="hell"].is-on {
+  background: var(--rule-red);
+  color: var(--on-accent);
+}
+
+.cg-tab:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+/* --- generation filter --------------------------------------------------- */
+
+.cg-gen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.cg-gen[hidden] { display: none; }
+
+.cg-gen-label {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.cg-gen-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cg-gen-btn {
+  min-height: 34px;
+  padding: 5px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cg-gen-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.cg-gen-btn.is-on {
+  border-color: var(--cg-accent);
+  background: var(--cg-accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.cg-gen-btn:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+/* --- the one line under the tabs ---------------------------------------- */
+
+.cg-note {
+  margin: 0;
+  min-height: 1.6em;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+/* --- the target card ----------------------------------------------------- */
+
+/* `padding: 0` and `overflow: hidden` here, with the card's own radius doing the
+   clipping, is what lets the waveform be the card's header with no sliver of
+   card between it and the edge. `check_cry_game.mjs` asserts both, because the
+   alternative — padding on the card and a radius on the wave — looks identical in
+   review and renders an 8px band on the longest side. */
+.cg-target {
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.cg-wave {
+  position: relative;
+  height: 132px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.cg-wave-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: var(--text-primary);
+}
+
+/* THE PLAY BUTTON IS OVER THE WAVE, NOT BESIDE IT, and that is a thumb decision.
+   48x48 is below the 44px minimum touch target only in spirit; it is exactly at
+   it, and a separate row for it would put the one control a phone reader needs
+   between the clue and the answers. */
+.cg-wave-play {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: transparent;
+}
+
+/* The play triangle is drawn with a border, so it needs no icon font and no
+   SVG file, and it inherits `currentColor` — which is why the button's own
+   `color: transparent` is scoped to the button and the triangle lives on the
+   ::after. */
+.cg-wave-play::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-top: 16px solid transparent;
+  border-bottom: 16px solid transparent;
+  border-left: 26px solid var(--text-primary);
+  opacity: 0.9;
+  transition: transform 0.15s ease;
+}
+
+.cg-wave-play:hover::after {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.cg-wave-play:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: -4px;
+}
+
+/* WHILE PLAYING the triangle becomes two bars. The glyph and the state come
+   from ONE variable: writing the button's `innerHTML` for the icon is what
+   detached `#cg-wave-progress` and made a hint bar that never appeared
+   (§3.W), and a play/pause label drawn by hand beside a button whose icon was
+   drawn separately is the same defect one level down. */
+.cg-wave-play[data-state="playing"]::after {
+  width: 22px;
+  height: 26px;
+  border: 0;
+  background: linear-gradient(
+    to right,
+    var(--text-primary) 0 7px,
+    transparent 7px 15px,
+    var(--text-primary) 15px 22px
+  );
+  transform: translate(-50%, -50%);
+}
+
+/* The playback wipe. `scaleX` on a transform rather than a `width` write, so the
+   progress does not relayout the card every frame, and `transform-origin: left`
+   so 0 is the start rather than the middle. Under reduced motion the duration
+   is 0ms and it simply jumps — which is the point of reading the query here
+   rather than caching it at mount. */
+.cg-wave-progress {
+  position: absolute;
+  inset: 0;
+  background: var(--cg-accent);
+  opacity: 0.14;
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.cg-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+/* THE PLAYER STATUS LINE IS A `role="status"` REGION, and it is not decoration.
+   A round's outcome has to reach a screen-reader user the moment it happens; the
+   alternative — a panel that appears below the fold — is a sighted reader's
+   problem and colour-game.html solved it by reusing the one live region the page
+   already had (§3.W). This page has exactly one such region and one only. */
+.cg-player {
+  min-height: 1.6em;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.cg-hint-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cg-hint-row[hidden] { display: none; }
+
+.cg-target-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Its LAST child is pinned right, not `justify-content: space-between`. With two
+   children `space-between` strands 下一題 on the left and 再一輪 on the right,
+   which is fine — but with ONE of them hidden the remaining control snaps to the
+   START, so 「再一輪」 in daily mode would sit flush left on a row it is alone on
+   and 「下一題」 in unlimited mode would sit where 再一輪 used to be. Pinning the
+   last child keeps one control and two controls in the same place. */
+.cg-target-foot > :last-child {
+  margin-left: auto;
+}
+
+.cg-target-foot[hidden] { display: none; }
+
+/* --- buttons ------------------------------------------------------------ */
+
+.cg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--cg-accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+
+.cg-btn:hover { filter: brightness(1.08); }
+
+.cg-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  filter: none;
+}
+
+.cg-btn:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+.cg-btn[hidden] { display: none; }
+
+.cg-btn-ghost {
+  background: transparent;
+  border-color: var(--hairline-strong);
+  color: var(--text-primary);
+}
+
+/* `cg-btn-hint` is a SEPARATE CLASS and never also carries `cg-btn`. Two rules
+   claiming the same properties is the bug, not the fix — it is how colour-game
+   ended up with a filled background at min-height 40px where the reference has a
+   small outlined button (§3.W). */
+.cg-btn-hint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cg-btn-hint:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.cg-btn-hint:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cg-btn-hint:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+/* --- the four options ---------------------------------------------------- */
+
+/* Four across on desktop, TWO across below 560px — not one, because a
+   single-column stack of four 96px sprites pushes the last option below the fold
+   on a 390x844 phone and the question becomes a scroll. Two rows of two keeps
+   every option within one thumb's reach of the play button above it. */
+.cg-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cg-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 132px;
+  padding: 14px 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.cg-choice:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--cg-accent);
+  background: var(--surface-hover);
+}
+
+.cg-choice:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+.cg-choice:disabled {
+  cursor: default;
+}
+
+.cg-choice-sprite {
+  display: block;
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+/* THE NAME IS HIDDEN UNTIL THE QUESTION IS ANSWERED, and that is the whole
+   difference between this page and the reference it is ported from. The
+   reference prints the name on every card, which makes the game 「remember which
+   cry belongs to which name」 — a memory test that fails outright for anyone who
+   has not memorised the dex, and nothing to do with recognition. Here the card
+   is a picture and a number; the name is what the answer reveals.
+
+   So `#cg-choice-name` renders EMPTY while playing and is filled by
+   `renderChoices()` once `state.revealed` is true. An empty element still holds
+   its line, which is what keeps the four cards the same height whether or not
+   the round is over. */
+.cg-choice-name {
+  min-height: 1.4em;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cg-choice-id {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The type band, borrowed from the reference's card: one full-bleed colour for a
+   mono-type, two equal halves for a dual-type, behind everything at
+   `z-index: -1`. It is the one hint a reader gets before answering — the card
+   still says nothing about the CRY, only about what the species is. */
+.cg-choice-types {
+  position: relative;
+  z-index: -1;
+  display: flex;
+  align-self: stretch;
+  height: 6px;
+  margin: 0 -10px -12px;
+  overflow: hidden;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.cg-choice-types span {
+  flex: 1 1 0;
+}
+
+/* --- answer states ------------------------------------------------------- */
+
+.cg-choice.is-correct {
+  border-color: var(--rule-green);
+  background: var(--surface-hover);
+}
+
+.cg-choice.is-wrong {
+  border-color: var(--rule-red);
+}
+
+.cg-choice.is-eliminated {
+  opacity: 0.32;
+}
+
+.cg-choice.is-eliminated .cg-choice-sprite {
+  filter: grayscale(1);
+}
+
+/* --- the result panel ---------------------------------------------------- */
+
+.cg-result {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 0;
+}
+
+.cg-result[hidden] { display: none; }
+
+.cg-result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+  padding: 22px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.cg-result-title {
+  margin: 0;
+  font-size: 26px;
+}
+
+/* TEN CELLS, ONE ROW, and it never wraps — it is the thing two readers compare.
+   A share grid that reflows is not comparable, so it is one `grid-template-
+   columns: repeat(10, 1fr)` with no media query against it. */
+.cg-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.cg-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cg-cell.is-right { background: var(--rule-green); }
+.cg-cell.is-wrong { background: var(--rule-red); }
+
+.cg-result-band {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.cg-result-detail {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.cg-share {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.cg-share-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.cg-share-text {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.cg-share-text:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+}
+
+.cg-result-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* --- rules --------------------------------------------------------------- */
+
+.cg-rules {
+  padding: 18px 20px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.cg-rules h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.cg-rules ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.cg-rules-note {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  font-size: 14px;
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+
+/* --- responsive --------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .cg-page { padding: 20px 14px 56px; }
+  .cg-intro h1 { font-size: 26px; }
+  .cg-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cg-choice { min-height: 112px; }
+  .cg-wave { height: 104px; }
+  .cg-cell { font-size: 13px; }
+}
+
+/* The 640px question this page had to answer is the one colour-game.html's
+   §3.W entry records: below this, a 96px sprite is 44px and five cells of any
+   strip inside it stop being distinguishable. Here the grid is ten fixed
+   columns and never changes, because it is a COMPARISON SURFACE rather than a
+   readout — reflowing it at a breakpoint would make two readers' grids
+   incomparable, which is the one thing a share block must not do. What changes
+   at 720px instead is the gap and the cell font, and the cells stay square
+   through `aspect-ratio`. */
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-tab,
+  .cg-gen-btn,
+  .cg-btn,
+  .cg-btn-hint,
+  .cg-choice,
+  .cg-wave-play::after {
+    transition: none;
+  }
+  .cg-choice:hover:not(:disabled) {
+    transform: none;
+  }
+}

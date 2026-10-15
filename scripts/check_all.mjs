@@ -359,6 +359,55 @@ const CHECKERS = [
     ],
   },
   {
+    /* 叫聲猜謎的頁面。132 個斷言，0.2 秒，全部讀檔。
+     *
+     * 為什麼沒有瀏覽器版：`color-game.html` 到今天為止沒有，`check_cry_game.mjs`
+     * 的檔頭寫明了這件事，而 §3.W 的結尾正是那個缺口（stateless 的頁面缺陷全部
+     * 看起來不可見）。**這個頁面是在瀏覽器裡跑過才叫做完成的**——不過那是因為我
+     * 記得要去跑，不是因為有東西逼我跑。
+     *
+     * 瀏覽器找到的四個缺陷沒有一個是這支檢查器抓得到的，而且不是巧合：
+     *
+     *   - 答完第 9 題（10 題裡）就結束回合，第 10 題從來沒有發生過
+     *   - 存的作答紀錄用「題目物件」當索引還原，結果每題都還原成 null
+     *   - `findIndex` 全部命中時回傳 -1，被 `first < MAX_QUESTIONS` 接走了
+     *   - 波形在解碼完成前是空的，而每一題（第一題之後）都要等一次網路往返
+     *
+     * 四個都是「形狀正確、行為錯誤」的頁面。mutation harness 證明的是「改了原始碼
+     * 有沒有被發現」，而這四個從來不是原始碼的改動，它們是從來沒有以任何 shape
+     * 斷言看得見的錯誤。所以這個檢查器最後有一節**逐一把它們釘住**——第二個
+     * 相同的缺陷至少會被形狀斷言擋下。 */
+    script: 'scripts/check_cry_game.mjs', group: 'cry-page',
+    note: 'the shell contract, the §3.M hidden/display pairing, and the four defects a browser found',
+    inputs: [
+      'cry-game.html',
+      'assets/css/cry-game.css',
+      'assets/js/cry-game.js',
+      'assets/js/cry-game-similarity.js',
+      'assets/js/daily-pick.js',
+      'assets/js/shared.js',
+    ],
+  },
+  {
+    /* 36 個 case，四個 worker，0.8 秒。
+     *
+     * 與 `test_check_cry_game_similarity.mjs` 的關鍵差別：那一支的 35 秒買到的是
+     * 「三個常數、一個種子、一個排序」——都是讀者看得見的行為，而且它的斷言多半
+     * 是量測出來的。**這一支買不到同樣的東西，而它的檔頭直接寫明了**：頁面檢查器
+     * 的斷言全是形狀主張，一個 mutation harness 證明不了「形狀正確但行為錯誤」，
+     * 那需要瀏覽器。所以這 0.8 秒不是湊數，它是誠實地涵蓋它能涵蓋的那一半。 */
+    script: 'scripts/test_check_cry_game.mjs', checker: 'scripts/check_cry_game.mjs', group: 'cry-page',
+    note: '36 cases in child trees — shape claims only, and the header says what that cannot cover',
+    inputs: [
+      'cry-game.html',
+      'assets/css/cry-game.css',
+      'assets/js/cry-game.js',
+      'assets/js/cry-game-similarity.js',
+      'assets/js/daily-pick.js',
+      'assets/js/shared.js',
+    ],
+  },
+  {
     /* 頁面本身。static 與 shell contract，不需要瀏覽器。 */
     script: 'scripts/check_color_game.mjs', group: 'color',
     note: 'the shell contract, the §3.M hidden/display pairing, and the §3.G node captures',
