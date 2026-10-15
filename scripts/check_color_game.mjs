@@ -123,9 +123,6 @@ function indicesOf(hay, needle) {
   for (let i = hay.indexOf(needle); i >= 0; i = hay.indexOf(needle, i + 1)) out.push(i);
   return out;
 }
-
-// ---------------------------------------------------------------------------
-console.log('\nthe page shell');
 // ---------------------------------------------------------------------------
 {
   const headerTag = (html.match(/<header\b[^>]*>/) || [''])[0];
@@ -1261,6 +1258,77 @@ console.log('\nwhile the list is open, Enter SELECTS — it never guesses');
     'Escape closes the list and redraws the button with it');
   check(/if \(!e\.target\.closest\('\.gm-search-wrap'\)\)[\s\S]{0,200}?renderSubmit\(\)/.test(jsCode),
     'and so does a click on empty space');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nthe round ends below the fold, so the reader is taken there — once');
+// ---------------------------------------------------------------------------
+{
+  /* Measured, not assumed: with the document at scrollY 0 and 放棄 pressed, the
+   * search row sits at y 653 (1440×900) / y 791 (390×844) and `#gm-result`'s top at
+   * y 1117 / y 1247. On 放棄 with no guesses NOTHING in view changes at all, so the
+   * panel is the round's only feedback and it starts 217px and 403px off-screen. */
+  const reveal = blockBody(jsCode, 'function revealResult()');
+  check(!!reveal, 'revealResult() exists');
+
+  /* §3.G4's "re-measure AFTER you write", one level down. This was the defect in
+   * the first version: the call sat right after `setRevealed()`, so it measured a
+   * half-built panel. Smooth scrolling hid it — the animation outlasted the writes —
+   * and `behavior: 'auto'` did not, landing 37px past the title at 390×844.
+   *
+   * COUNTED, not "is the last one". An insertion above the real call satisfies
+   * `lastIndexOf()` — the mutation moved the call up, left the original in place, and
+   * this assertion passed, because the question was asked about the last call rather
+   * than about how many there are. §3.P's shape: the check described a position and
+   * the defect was an extra statement. */
+  const rr = blockBody(jsCode, 'function renderResult()');
+  const calls = rr ? indicesOf(rr, 'revealResult();') : [];
+  const stats = rr ? rr.indexOf('els.resultStats.innerHTML') : -1;
+  const share = rr ? rr.indexOf('els.shareText.textContent') : -1;
+  check(calls.length === 1 && stats >= 0 && share >= 0 && calls[0] > stats && calls[0] > share,
+    'and renderResult() calls it exactly once, LAST, after the panel\'s contents exist',
+    () => `${calls.length} call(s) at [${calls}], stats at ${stats}, share at ${share} — measuring a half-written panel missed by 37px on the phone`);
+
+  /* Once per round, not once per render. `newGame()`'s half is the load-bearing one
+   * — switching to a daily that was already finished restores a non-playing status
+   * while the viewport is still parked on the PREVIOUS round's panel. */
+  check(/if \(resultScrolled\) return;/.test(reveal || ''),
+    'the one-shot latch is checked before anything moves');
+  check(/function newGame[\s\S]*?resultScrolled = false;/.test(jsCode),
+    'and newGame() clears it, so the next round is taken to its own panel');
+
+  /* §3.C: reduced motion is honoured, and the query is read at the moment of the
+   * scroll rather than cached at boot — a reader who changes the setting mid-session
+   * is obeyed. `initTip()`'s copy exists for a `change` listener, which this has no
+   * use for. */
+  check(/prefers-reduced-motion/.test(reveal || '') && /reduced \? 'auto' : 'smooth'/.test(reveal || ''),
+    'smooth becomes auto under prefers-reduced-motion, read at the moment of the scroll',
+    () => 'an animated viewport move is exactly what a reduced-motion reader asked not to have');
+
+  /* And it does not move a reader who is already looking at it, or who has scrolled
+   * past it — the latter having found it themselves.
+   *
+   * The BRANCH is asserted, not the two expressions it is built from. Deleting the
+   * `if` left both booleans computed and unused, and the first version of this check
+   * looked for `box.top < window.innerHeight` — which a line that feeds a discarded
+   * value still satisfies. §3.P's third shape: an assertion made of a substring where
+   * the claim is about a control-flow edge. */
+  check(/getBoundingClientRect/.test(reveal || '') && /box\.top < window\.innerHeight/.test(reveal || '') && /box\.bottom <= 0/.test(reveal || ''),
+    'and it measures `#gm-result` itself rather than a cached position');
+  check(/if \(aboveFold && !scrolledAway\) return;/.test(reveal || ''),
+    'it declines to move a reader whose viewport already shows the panel, or who has scrolled past it',
+    () => 'a scroll that lands nowhere reads as the page seizing up');
+
+  /* One scroll site for the round-end, and it is the ONLY one besides the arrow-key
+   * row's `block: 'nearest'`. Counting `els.result.scrollIntoView(` alone was the
+   * first version, and a mutation that added `gm-giveup.scrollIntoView(...)` left
+   * that count at 1 — the assertion was about a receiver rather than about the
+   * page's ability to move. */
+  const allScrolls = indicesOf(jsCode, '.scrollIntoView(');
+  const nearest = allScrolls.filter((i) => /scrollIntoView\(\{ block: 'nearest' \}\)/.test(jsCode.slice(i, i + 60)));
+  check(allScrolls.length === 2 && nearest.length === 1,
+    'and the result panel\'s scroll is the only one on the page besides the arrow-key row\'s `block: nearest`',
+    () => `found ${allScrolls.length} scrollIntoView call(s), ${nearest.length} of them the row scroll — a third would be a second place the viewport moves from`);
 }
 
 // ---------------------------------------------------------------------------

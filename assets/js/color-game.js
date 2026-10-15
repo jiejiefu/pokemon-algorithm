@@ -140,6 +140,76 @@ let pendingPick = null;
  */
 let composing = false;
 
+/**
+ * Has THIS round already taken the reader to its result panel?
+ *
+ * A latch, not a flag read from `state`, because the thing being latched is a
+ * one-shot EVENT and `state` cannot say "already scrolled".
+ *
+ * **WHICH HALF OF THIS IS LOAD-BEARING, MEASURED RATHERTHAN ASSUMED.** `renderAll()`
+ * has exactly three callers — `newGame()`, `submitGuess()`, `giveUp()` — and after a
+ * round ends none of the three can run again: `giveUp()` returns on a status that is
+ * not `playing`, `submitGuess()` refuses a finished round, and `newGame()` hides the
+ * panel, so `renderResult()` early-returns before reaching this function at all. So
+ * the latch itself guards a path that **does not currently exist**: `revealResult()`
+ * is reached exactly once per round today. It stays because §3.W's rule is about the
+ * re-render, not about today's call graph, and a viewport that moves on a re-render
+ * is a defect waiting for whoever adds the fourth caller.
+ *
+ * **`newGame()`'s reset is the other half, and that one IS load-bearing.** The
+ * sequence is a real one: finish an unlimited round (the viewport is parked on its
+ * result panel), then switch to a daily that was ALREADY finished — `newGame()`
+ * restores that status from storage, `renderResult()` takes the early-return path it
+ * takes on a live round, and without the reset the panel would appear 1,248px below
+ * a viewport that is still sitting on the PREVIOUS round's panel.
+ */
+let resultScrolled = false;
+
+/**
+ * Take the reader to the round's payoff, which is measured to be OFF-SCREEN.
+ *
+ * Measured with the document at `scrollY 0`, right after 放棄:
+ *
+ * |                    | search row (where the eye is) | `#gm-result` top | below the fold by |
+ * | ------------------ | ----------------------------: | ----------------: | -----------------: |
+ * | desktop 1440 × 900 |                         y 653 |           y 1117 |            217px |
+ * | phone     390 × 844 |                         y 791 |           y 1247 |            403px |
+ *
+ * So a round can end with nothing changing where the reader is looking — and on
+ * 放棄 with no guesses at all, NOTHING in view changes: the field greys out and the
+ * four slots were already empty. The panel is the only feedback the round produces,
+ * and it was 217px and 403px off-screen.
+ *
+ * **THREE THINGS THIS IS NOT, each of which is the way the obvious version goes
+ * wrong.**
+ *
+ *   - **It does not move a reader already looking at it.** The test is the panel's
+ *     own box, measured at the moment of the call. A scroll that lands nowhere reads
+ *     as the page seizing up, which is worse than not scrolling — and "already on
+ *     screen" includes the reader having scrolled PAST it, which is them having
+ *     found it themselves.
+ *   - **It is not smooth when the reader asked for less motion.** §3.C: `smooth`
+ *     becomes `auto` under `prefers-reduced-motion`. The query is read HERE, at the
+ *     moment of the scroll, rather than cached at boot — `initTip()`'s copy exists
+ *     because it needs a `change` LISTENER and re-enters a half-typed sentence; a
+ *     one-shot read has no reason to hold a second stale copy of the answer.
+ *   - **It does not move focus.** Focus is on a disabled input by this point, and
+ *     yanking it to a heading would be a louder interruption than the one being
+ *     fixed. What a screen reader gets instead is nothing — see the open question
+ *     in §3.W; `els.searchStatus` is already an `aria-live` region and writes `''`
+ *     on a win, which is the place a round-end announcement would belong.
+ */
+function revealResult() {
+  if (resultScrolled) return;
+  resultScrolled = true;
+  const box = els.result.getBoundingClientRect();
+  const aboveFold = box.top < window.innerHeight;
+  const scrolledAway = box.bottom <= 0;
+  if (aboveFold && !scrolledAway) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  els.result.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}
+
 // ---------------------------------------------------------------------------
 // Storage
 // ---------------------------------------------------------------------------
@@ -182,6 +252,12 @@ function newGame({ keepTarget = false } = {}) {
    * armed pick refers to a round that no longer exists, and Enter after a reset
    * would submit it. */
   pendingPick = null;
+  /* Same lifetime as `pendingPick`, and for a related reason: both are per-ROUND
+   * latches about something that happened once. Without the reset, 下一題 would hand
+   * the next round a viewport already parked on the PREVIOUS round's result panel
+   * and refuse to move — `revealResult()` reads the box first and sees a panel that
+   * is on screen, so the latch has to be the thing that says "not yet". */
+  resultScrolled = false;
   if (!keepTarget || !state.target) {
     state.target = currentTarget();
     state.guesses = [];
@@ -1042,6 +1118,21 @@ function renderResult() {
    * looked wrong, and the day one of them grows a second condition the two will
    * disagree about where the button is. The button also MOVED out of this panel, so
    * this function no longer has any business writing it. */
+
+  /* LAST, and it has to be. §3.G4's "re-measure AFTER you write", one level down.
+   *
+   * The first version of this called `revealResult()` right after `setRevealed()`,
+   * before the title, the answer, the stats and the share block existed — and
+   * MEASURED that half-built panel. Smooth scrolling hid it, because the animation
+   * outlasted the writes; `behavior: 'auto'` did not, and it landed **37px past**
+   * the panel's top at 390×844, so the reader's first view of the answer started
+   * with the title already scrolled off the screen.
+   *
+   * The 200×200 artwork below is the one thing that CAN still move the layout, and
+   * `width`/`height` are attributes on the element, so the box is reserved before
+   * the bytes arrive. `getBoundingClientRect()` inside the call forces layout, so
+   * the number read is the number the browser will use. */
+  revealResult();
 }
 
 function bestDistance() {
@@ -1410,10 +1501,17 @@ async function init() {
 
   /* The button submits through the SAME chain as Enter, by synthesising the key —
    * rather than calling `submitPendingPick()` itself. Two entry points that each
-   * re-implement "armed pick, then sole candidate, then whole name" is how they come to
-   * disagree, and the disagreement is invisible: one of them quietly accepts
-   * something the other refuses. A `KeyboardEvent` with `key: 'Enter'` is what the
-   * reader's own keyboard produces, so there is one implementation of the rule. */
+   * re-implement "armed pick, then sole candidate, then whole name" is how they
+   * come to disagree, and the disagreement is invisible: one of them quietly
+   * accepts something the other refuses. A `KeyboardEvent` with `key: 'Enter'` is
+   * what the reader's own keyboard produces, so there is one implementation of the
+   * rule.
+   *
+   * **The synthetic event must survive the IME guard above.** A constructed
+   * `KeyboardEvent` reports `isComposing === false` and `keyCode === 0`, so a
+   * guard written as `e.keyCode !== 229 → proceed` passes it — but one written as
+   * `if (e.keyCode === 0) return` to catch untrusted events would swallow the whole
+   * mobile route, where this button is the ONLY way to answer. */
   els.submit.addEventListener('click', () => {
     els.search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   });
