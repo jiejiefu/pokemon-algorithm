@@ -1166,6 +1166,20 @@ console.log('\nthe IME\'s 選字 key is Enter too, and it is not the game\'s');
     'and the guard returns without cancelling the key, so the composition still commits',
     () => 'the guard cancelled the IME keydown, so the character never reaches the field');
 
+  /* A finished round cannot be answered, and `dispatchEvent` reaches a DISABLED
+   * element's listeners anyway — which is how the 作答 button works. The measured
+   * symptom without this: the fall-through printed 「先輸入名稱或全國編號。」 on a round
+   * that can never be answered, overwriting the outcome a line earlier. */
+  check(/if \(state\.status !== 'playing'\) return;/.test(kdBody || ''),
+    'and the handler answers nothing on a round that has ended',
+    () => 'a dispatched Enter still runs the handler on a disabled input, and tells the reader to type a name');
+  /* Asked of the BODY, not of the file: `canSubmit()` does not appear inside itself,
+   * so the first version of this searched the body for its own name and passed a
+   * `[]` against a pattern it could never match — a guard that was green for the
+   * wrong reason rather than a guard that failed loudly. */
+  check(/state\.status !== 'playing'/.test(blockBody(jsCode, 'function canSubmit()') || ''),
+    'which the 作答 button cannot reach anyway, because canSubmit() requires the round to be playing');
+
   /* THE TRAP, and the reason this assertion exists rather than a comment: the 作答
    * button submits by DISPATCHING a synthetic `new KeyboardEvent('keydown', {key:
    * 'Enter'})`. A constructed event has `isTrusted === false` and `keyCode === 0`.
@@ -1261,7 +1275,7 @@ console.log('\nwhile the list is open, Enter SELECTS — it never guesses');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe round ends below the fold, so the reader is taken there — once');
+console.log('\nthe round ends below the fold: the reader is taken there, and told');
 // ---------------------------------------------------------------------------
 {
   /* Measured, not assumed: with the document at scrollY 0 and 放棄 pressed, the
@@ -1292,10 +1306,10 @@ console.log('\nthe round ends below the fold, so the reader is taken there — o
   /* Once per round, not once per render. `newGame()`'s half is the load-bearing one
    * — switching to a daily that was already finished restores a non-playing status
    * while the viewport is still parked on the PREVIOUS round's panel. */
-  check(/if \(resultScrolled\) return;/.test(reveal || ''),
+  check(/if \(resultRevealed\) return;/.test(reveal || ''),
     'the one-shot latch is checked before anything moves');
-  check(/function newGame[\s\S]*?resultScrolled = false;/.test(jsCode),
-    'and newGame() clears it, so the next round is taken to its own panel');
+  check(/function newGame[\s\S]*?resultRevealed = false;/.test(jsCode),
+    'and newGame() clears it, so the next round is revealed on its own');
 
   /* §3.C: reduced motion is honoured, and the query is read at the moment of the
    * scroll rather than cached at boot — a reader who changes the setting mid-session
@@ -1319,7 +1333,69 @@ console.log('\nthe round ends below the fold, so the reader is taken there — o
     'it declines to move a reader whose viewport already shows the panel, or who has scrolled past it',
     () => 'a scroll that lands nowhere reads as the page seizing up');
 
-  /* One scroll site for the round-end, and it is the ONLY one besides the arrow-key
+  /* THE ANNOUNCEMENT, which is the same event seen from the other side. The panel is
+   * a plain `<section>`: nothing tells a screen-reader user it appeared, and by the
+   * time they go looking for it the round is over and gone.
+   *
+   * Asserted against the REGION rather than against a new element, because the
+   * region already exists and a second `.sr-only` live region would be the one
+   * message they cannot afford to miss being the one they have to go find. */
+  const announce = blockBody(jsCode, 'function announceResult()');
+  check(!!announce && /els\.searchStatus\.textContent/.test(announce),
+    'the outcome is announced into #gm-search-status, the page\'s existing live region',
+    () => 'the panel is a plain section; a screen-reader user is never told the round ended');
+  check(/<p class="gm-search-status" id="gm-search-status" role="status" aria-live="polite">/.test(htmlCode),
+    'and that region really is role="status" aria-live="polite" in the markup',
+    () => 'writing into a plain <p> announces nothing');
+  check(indicesOf(htmlCode, 'aria-live').length === 2 && indicesOf(jsCode, 'els.searchStatus.textContent').length >= 5,
+    'while the page still has exactly TWO live regions — this one and the tip\'s',
+    () => 'a third region for the round would mean two polite regions talking over each other');
+
+  /* One title for the outcome, read by BOTH channels. Two copies of one string is a
+   * second thing to keep right rather than a comparison (§3.B1). */
+  const titleTable = /const RESULT_TITLE = \{[^}]*\}/.exec(jsCode);
+  check(!!titleTable && /won: '答對了'/.test(titleTable[0]) && /lost: '這次沒猜到'/.test(titleTable[0]),
+    'the won/lost titles live in one table both channels read');
+  const rr2 = blockBody(jsCode, 'function renderResult()');
+  check(!!rr2 && /els\.resultTitle\.textContent = RESULT_TITLE\[state\.status\]/.test(rr2),
+    'the panel heading reads it');
+  check(!!announce && /RESULT_TITLE\[state\.status\]/.test(announce),
+    'and so does the announcement');
+
+  /* The 異色 marker is one function, for the same reason — and it is the only place
+   * `variantSuffix()` may be bypassed. */
+  check(!!rr2 && /\$\{variantSuffix\(\)\}/.test(rr2) && !!announce && /\$\{variantSuffix\(\)\}/.test(announce),
+    'and so is the 異色 marker, which both channels call');
+  check(indicesOf(jsCode, '（異色）').length === 1,
+    'with the （異色） marker written exactly once',
+    () => 'a second copy of the shiny test is a second thing to keep right');
+  /* Two mutations found this pair inadequate: changing the flag `variantSuffix()` reads
+   * left both assertions green, because neither asks WHAT the single copy decides —
+   * only that there is one of it. A helper asserted to be the only writer is a claim
+   * about duplication, not about correctness. */
+  check(/variant === 's' \? '（異色）' : ''/.test(blockBody(jsCode, 'function variantSuffix()') || ''),
+    'and that one copy decides on the shiny flag',
+    () => 'the marker is still written once, from the wrong test');
+
+  /* EXACTLY two states, because a third is a claim nothing can reach. Same shape as
+   * §3.H's three literal category lists: `state.status` only ever holds these two off
+   * the playing path, so a key nobody sets is a string nothing reads. */
+  check(!!titleTable && /\{ won: '答對了', lost: '這次沒猜到' \}/.test(titleTable[0]),
+    'and the table has EXACTLY those two states — a third would be a key nothing can reach');
+
+  /* The latch covers BOTH consequences, and it is called before either — so a reader
+   * whose viewport already showed the panel is still told. */
+  check(!!reveal && reveal.indexOf('announceResult()') < reveal.indexOf('getBoundingClientRect'),
+    'the announcement happens before the scroll decision, so it is unconditional',
+    () => 'tying a screen reader\'s feedback to a layout question means the reader who can already see it is told nothing');
+
+  /* ONE-SHOT LATCH GUARDING A PATH THAT DOES NOT CURRENTLY EXIST, and the panel's
+   * title table is not an excuse to re-announce on a re-render. */
+  check(/resultRevealed = true;/.test(reveal || '') && (reveal || '').indexOf('resultRevealed = true;') < reveal.indexOf('announceResult()'),
+    'and it is latched BEFORE announcing, not after',
+    () => 'a re-render would re-announce the same round to a screen reader, which reads as the round ending twice');
+
+  /* ONE scroll site for the round-end, and it is the ONLY one besides the arrow-key
    * row's `block: 'nearest'`. Counting `els.result.scrollIntoView(` alone was the
    * first version, and a mutation that added `gm-giveup.scrollIntoView(...)` left
    * that count at 1 — the assertion was about a receiver rather than about the
@@ -1329,6 +1405,41 @@ console.log('\nthe round ends below the fold, so the reader is taken there — o
   check(allScrolls.length === 2 && nearest.length === 1,
     'and the result panel\'s scroll is the only one on the page besides the arrow-key row\'s `block: nearest`',
     () => `found ${allScrolls.length} scrollIntoView call(s), ${nearest.length} of them the row scroll — a third would be a second place the viewport moves from`);
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nnothing can answer, arm or clear a round that has ended');
+// ---------------------------------------------------------------------------
+{
+  /* Three writers of the round-end outcome that can reach a FINISHED round. All three
+   * are guarded, and all three were reachable rather than theoretical. */
+  const pick = blockBody(jsCode, 'function pickFromSearch(id)');
+  check(!!pick && /if \(state\.status === 'playing'\) \{[\s\S]{0,320}?els\.searchStatus\.textContent/.test(pick),
+    'pickFromSearch() only clears the status line while the round is still going',
+    () => 'it cleared the line on the exact frame the announcement was written — the round ending silently, which is what the announcement exists to prevent');
+  check(!!pick && /if \(state\.status === 'playing'\)/.test(pick),
+    'and the guard is a BRANCH around both of its writes, not one of them',
+    () => 'guarding only the clear still lets 「這次已經結束了。」 overwrite the outcome');
+
+  const choose = blockBody(jsCode, 'function chooseFromSearch(id)');
+  check(!!choose && /if \(state\.status !== 'playing'\)/.test(choose),
+    'chooseFromSearch() refuses to arm a pick on a finished round',
+    () => 'giveUp() does not dismiss the list — its click handler returns before the click-outside branch — so live rows survive the ending');
+  /* BRACE-MATCHED, and that is a correction rather than a style. The first version
+   * used `if (state.status !== 'playing') \{[\s\S]{0,240}?pendingPick = null;`, and a
+   * mutation that deleted the clear left it GREEN — the lazy match ran straight past
+   * the branch's closing brace and found the `pendingPick = null` in the
+   * already-guessed branch below it. §3.P's second vacuous shape, written from memory
+   * by the person who had just recorded it. */
+  const deadBranch = choose ? blockBody(choose, "if (state.status !== 'playing')") : null;
+  check(!!deadBranch && /pendingPick = null;/.test(deadBranch),
+    'and it clears anything already armed rather than leaving it',
+    () => 'the reader is told the round is over while Enter still submits the old pick');
+
+  const all = blockBody(jsCode, 'function renderAll()');
+  check(!!all && /if \(!playing\) pendingPick = null;/.test(all),
+    'renderAll() drops an armed pick when the round ends',
+    () => 'arm a row, press 放棄 instead of Enter, then Enter — submitPendingPick() returns true and the round ends with nothing on screen and nothing said');
 }
 
 // ---------------------------------------------------------------------------

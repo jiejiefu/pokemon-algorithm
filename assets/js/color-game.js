@@ -71,6 +71,9 @@ const STORE_PREFIX = 'pokemon-colorgame:';
 /** Seconds between hints. The reference says 5. */
 const HINT_COOLDOWN_S = 5;
 
+/** The round's outcome, in the two channels it is stated in. See `announceResult()`. */
+const RESULT_TITLE = { won: '答對了', lost: '這次沒猜到' };
+
 const state = {
   mode: 'daily',
   difficulty: 'easy',
@@ -141,10 +144,12 @@ let pendingPick = null;
 let composing = false;
 
 /**
- * Has THIS round already taken the reader to its result panel?
+ * Has THIS round's result already been REVEALED — announced, and possibly scrolled to?
  *
  * A latch, not a flag read from `state`, because the thing being latched is a
- * one-shot EVENT and `state` cannot say "already scrolled".
+ * one-shot EVENT and `state` cannot say "already revealed". One latch rather than
+ * two, because both consequences hang off the same event: a reader who was already
+ * looking at the panel still has to be told the round is over.
  *
  * **WHICH HALF OF THIS IS LOAD-BEARING, MEASURED RATHERTHAN ASSUMED.** `renderAll()`
  * has exactly three callers — `newGame()`, `submitGuess()`, `giveUp()` — and after a
@@ -163,7 +168,7 @@ let composing = false;
  * takes on a live round, and without the reset the panel would appear 1,248px below
  * a viewport that is still sitting on the PREVIOUS round's panel.
  */
-let resultScrolled = false;
+let resultRevealed = false;
 
 /**
  * Take the reader to the round's payoff, which is measured to be OFF-SCREEN.
@@ -195,19 +200,65 @@ let resultScrolled = false;
  *     one-shot read has no reason to hold a second stale copy of the answer.
  *   - **It does not move focus.** Focus is on a disabled input by this point, and
  *     yanking it to a heading would be a louder interruption than the one being
- *     fixed. What a screen reader gets instead is nothing — see the open question
- *     in §3.W; `els.searchStatus` is already an `aria-live` region and writes `''`
- *     on a win, which is the place a round-end announcement would belong.
+ *     fixed.
+ *
+ * **AND IT SAYS SO OUT LOUD, which is the same event seen from the other side.**
+ * The panel is a plain `<section>`: a screen-reader user browsing the page finds it
+ * by going looking for it, and nothing tells them it appeared. `#gm-search-status` is
+ * already a `role="status" aria-live="polite"` region — the page's one visible status
+ * line — so the round's outcome is announced there, in the channel the reader is
+ * already listening to, rather than in a third region that would then talk over this
+ * one.
+ *
+ * **TWO THINGS THAT ARE NOT SYMMETRIC, and both were measured rather than reasoned.**
+ * It is announced whether or not the viewport moves: the round ending is news
+ * either way, and making the utterance conditional on a scroll would tie a screen
+ * reader's feedback to a layout question. And it is announced on a RESTORED round
+ * too — arriving at today's daily that you already finished is exactly when 「這次沒
+ * 猜到，答案是 X。」 is the most useful sentence the page could say.
  */
 function revealResult() {
-  if (resultScrolled) return;
-  resultScrolled = true;
+  if (resultRevealed) return;
+  resultRevealed = true;
+  announceResult();
   const box = els.result.getBoundingClientRect();
   const aboveFold = box.top < window.innerHeight;
   const scrolledAway = box.bottom <= 0;
   if (aboveFold && !scrolledAway) return;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   els.result.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}
+
+/**
+ * Say the round's outcome into the page's one live region.
+ *
+ * **WHY THIS REGION AND NOT A NEW ONE.** `#gm-search-status` is a
+ * `role="status" aria-live="polite"` region and is already where the page says what
+ * just happened — 找不到「…」, 本回合只從第 I 世代出題, 成績已複製. A round ending is the
+ * largest thing that ever happens on this page, and a dedicated `.sr-only` region for
+ * it would mean the one message a screen-reader user cannot afford to miss is the
+ * only one they have to go looking for. It reuses `#gm-tip-live`'s reasoning — an
+ * announcement belongs in a live region, not attached to a moving part — and the
+ * page already has one of those, so this is the second and not the third.
+ *
+ * **THE TITLE IS SHARED, not retyped.** The panel's heading and this sentence are
+ * the same claim in two channels, so both read `RESULT_TITLE`; §3.B1's rule is that
+ * two copies of one string is a second thing to keep right rather than a comparison.
+ *
+ * **SHORT ON PURPOSE.** A `role="status"` region is read verbatim, so this is the
+ * round's outcome and the answer — nothing else. The distance, the attempt count and
+ * the hint count are all in the panel the reader is being scrolled to, and adding
+ * them here would make the one utterance that has to land the one that is longest.
+ */
+function announceResult() {
+  const t = byId.get(state.target.id);
+  if (!t) return;
+  els.searchStatus.textContent = `${RESULT_TITLE[state.status]}。答案是 ${t.names.zh}${variantSuffix()}。`;
+}
+
+/** The target's variant marker — shared by the panel's answer line and the announcement. */
+function variantSuffix() {
+  return state.target && state.target.variant === 's' ? '（異色）' : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -257,7 +308,7 @@ function newGame({ keepTarget = false } = {}) {
    * the next round a viewport already parked on the PREVIOUS round's result panel
    * and refuse to move — `revealResult()` reads the box first and sees a panel that
    * is on screen, so the latch has to be the thing that says "not yet". */
-  resultScrolled = false;
+  resultRevealed = false;
   if (!keepTarget || !state.target) {
     state.target = currentTarget();
     state.guesses = [];
@@ -1054,7 +1105,7 @@ function renderResult() {
   if (!on || !state.target) return;
   const t = byId.get(state.target.id);
   const won = state.status === 'won';
-  els.resultTitle.textContent = won ? '答對了' : '這次沒猜到';
+  els.resultTitle.textContent = RESULT_TITLE[state.status];
   els.resultTitle.className = `gm-result-title${won ? ' is-won' : ''}`;
   /* OFFICIAL ARTWORK for the reveal, not the 96x96 sprite.
    *
@@ -1076,7 +1127,7 @@ function renderResult() {
    * Flabébé. §3.A forbids assembling either URL by hand, and a bare `nidoran` slug is
    * strictly disallowed. Verified over the 1,025 records this page can reach: 1,025
    * distinct slugs, no collisions, all resolvable by `detail.html:445`. */
-  els.resultAnswer.innerHTML = `<a href="${pokemonDetailUrl(t)}">${escapeHtml(t.names.zh)}</a>${state.target.variant === 's' ? '（異色）' : ''}`;
+  els.resultAnswer.innerHTML = `<a href="${pokemonDetailUrl(t)}">${escapeHtml(t.names.zh)}</a>${variantSuffix()}`;
   /* The button below the answer is a SECOND route to the same page, so it has to
    * be re-pointed at the target too. It shipped with a hardcoded
    * `href="color.html"` and nothing ever rewrote it: finishing a game and
@@ -1194,6 +1245,14 @@ function renderAll() {
   renderSlots();
   renderResult();
   const playing = state.status === 'playing';
+  /* The round is over, so an armed pick names a round that no longer exists — the
+   * same argument as `newGame()`'s reset, at the OTHER end of the round, and
+   * reachable there too: arm a row, then press 放棄 instead of Enter, then press
+   * Enter. Without this the pick survives into a round `submitGuess()` refuses, and
+   * `submitPendingPick()` has already returned `true` by then, so the round ends
+   * with nothing on screen and nothing said. §3.W's rule that a re-render must not
+   * carry state the reader did not ask to keep. */
+  if (!playing) pendingPick = null;
   els.search.disabled = !playing || !state.target;
   renderSubmit();
   /* 放棄 is available in BOTH modes.
@@ -1269,6 +1328,18 @@ function wire() {
      * method, not to the game. Preventing the default here is what stops some
      * IMEs committing at all, which loses the character rather than the guess. */
     if (e.isComposing || e.keyCode === 229 || composing) return;
+
+    /* And nothing here answers a round that has ended.
+     *
+     * The input is disabled from that moment, so a real key cannot arrive — but
+     * `dispatchEvent` DELIVERS to a disabled element's listeners anyway, and the
+     * 作答 button works that way. It is gated on `canSubmit()`, so the button cannot
+     * get here today, which is exactly why this is worth stating: measured, the
+     * fall-through below printed 「先輸入名稱或全國編號。」 for a finished round, which
+     * is the one message on this page that is definitely wrong — the reader is not
+     * being asked to type anything. §3.I's shape one level down: a route assumed to
+     * be unreachable, found by dispatching to it. */
+    if (state.status !== 'playing') return;
 
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1396,6 +1467,23 @@ function chooseFromSearch(id) {
   setRevealed(els.searchList, false);
   els.search.setAttribute('aria-expanded', 'false');
 
+  /* A finished round cannot be answered, so a row still on screen from before the
+   * ending fills the field and SAYS SO instead of arming anything.
+   *
+   * Found by asking how a `.gm-search-item` can be clicked at all once the round is
+   * over: `giveUp()` does not dismiss the list, because the click handler
+   * `return`s on `#gm-giveup` before reaching the click-outside branch. So 放棄 with
+   * the list open leaves live rows on a finished round, and the reader's next click
+   * armed a species that Enter then fed to `submitGuess()`, which refuses — a click
+   * that appeared to arm something and then silently did nothing. */
+  if (state.status !== 'playing') {
+    pendingPick = null;
+    els.searchStatus.textContent = `這次已經結束了。答案是 ${p.names.zh}。`;
+    renderSubmit();
+    els.search.focus();
+    return;
+  }
+
   if (state.guesses.some((g) => g.id === id)) {
     /* Already guessed. Fill the field so the reader can see which one they hit,
      * but arm nothing: Enter would only be told no, and a click that appears to
@@ -1428,8 +1516,20 @@ function pickFromSearch(id) {
   pendingPick = null;
   setRevealed(els.searchList, false);
   renderSubmit();
-  els.searchStatus.textContent = ok ? '' : '這一隻已經猜過了。';
-  if (!ok && !state.guesses.some((g) => g.id === id)) els.searchStatus.textContent = '這次已經結束了。';
+  /* Only while the round is still going, and that guard is the whole reason the
+   * round-end announcement survives.
+   *
+   * `submitGuess()` above can END the round, and by the time it returns
+   * `renderResult()` has already put the outcome into this same live region — so
+   * the clear that belongs to a still-playing round would delete the announcement
+   * on the exact frame it is most wanted. Nothing writes it back: the search input
+   * is disabled from here, so no keystroke can re-run `renderSearchResults()`
+   * either. To a screen-reader user the round would then end silently, which is
+   * the one thing the announcement exists to prevent. */
+  if (state.status === 'playing') {
+    els.searchStatus.textContent = ok ? '' : '這一隻已經猜過了。';
+    if (!ok && !state.guesses.some((g) => g.id === id)) els.searchStatus.textContent = '這次已經結束了。';
+  }
   els.search.focus();
 }
 
