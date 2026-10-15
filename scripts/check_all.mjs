@@ -397,7 +397,7 @@ const CHECKERS = [
      * 的斷言全是形狀主張，一個 mutation harness 證明不了「形狀正確但行為錯誤」，
      * 那需要瀏覽器。所以這 0.8 秒不是湊數，它是誠實地涵蓋它能涵蓋的那一半。 */
     script: 'scripts/test_check_cry_game.mjs', checker: 'scripts/check_cry_game.mjs', group: 'cry-page',
-    note: '43 cases in child trees — shape claims only, and the header says what that cannot cover',
+    note: '49 cases in child trees — shape claims only, and the header says what that cannot cover',
     inputs: [
       'cry-game.html',
       'assets/css/cry-game.css',
