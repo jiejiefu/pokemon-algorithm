@@ -394,6 +394,37 @@ const CASES = [
     expect: 'an unknown tier falls back to 簡單',
   },
 
+  /* ---- DEFAULT_GENERATION: a default the reader can override ---- */
+  {
+    name: 'every difficulty opens on 第I世代, so the table is a constant wearing a lookup\'s clothes',
+    mutate: (dir) => editModule(dir,
+      'export const DEFAULT_GENERATION = { easy: 1, hard: 0, hell: 0 };',
+      'export const DEFAULT_GENERATION = { easy: 1, hard: 1, hell: 1 };'),
+    expect: 'and 困難 and 地獄 both open on the whole dex',
+  },
+  {
+    /* The floor is `MIN_POOL + MAX_QUESTIONS - 1`, because each answer is withdrawn
+     * from the pool its own distractors come out of. The mutation moves the floor
+     * rather than the pool — the pool sizes are the corpus's, and pinning one to
+     * something it is not would be asserting a number about `pokemon_data.json`
+     * that this module has no business knowing. */
+    /* A DEFAULT POINTING AT A GENERATION THE CORPUS DOES NOT HAVE. This is the
+     * mutation the floor assertion is for, and the arithmetic version — raising
+     * `MIN_POOL` — could not reach it, because no generation is within forty
+     * members of the floor and the size check keeps passing.
+     *
+     * And it is a REAL defect rather than a contrived one: the page assigns
+     * `state.gen = DEFAULT_GENERATION[next]` without normalising, so a table
+     * naming a generation this corpus lacks yields an empty pool, and the page
+     * reports 「這個範圍沒有足夠的寶可夢出題」 on a tier that should have opened on
+     * the whole dex. */
+    name: 'a difficulty opens on a generation the corpus does not have, so the pool is empty',
+    mutate: (dir) => editModule(dir,
+      'export const DEFAULT_GENERATION = { easy: 1, hard: 0, hell: 0 };',
+      'export const DEFAULT_GENERATION = { easy: 1, hard: 99, hell: 0 };'),
+    expect: 'a round needs',
+  },
+
   /* =======================================================================
      THE FOUR THAT DID NOT GO RED. Recorded rather than deleted, because a
      harness that only lists the cases that worked reports a sweep it never ran.

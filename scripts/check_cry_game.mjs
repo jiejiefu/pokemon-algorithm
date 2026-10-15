@@ -661,6 +661,59 @@ console.log('\nthe choices really are nameless until the answer is given');
 }
 
 // ---------------------------------------------------------------------------
+/* §3.P: A DIFFICULTY TAB THAT SILENTLY RE-NARROWS THE POOL. `game-similarity.js`
+ * gives its own `easy` one generation and `hard` the dex; this page does the same
+ * through `DEFAULT_GENERATION`. The dangerous half is not the table — it is a
+ * difficulty change that takes a filter the reader chose away from them, with
+ * nothing in the interface saying the pool moved. §3.W's shape. */
+console.log('\nthe opening generation is a DEFAULT, not an override');
+{
+  check(/DEFAULT_GENERATION/.test(jsCode) && /from '\.\/cry-game-similarity\.js'/.test(jsCode),
+    'the page reads DEFAULT_GENERATION from the module rather than writing its own lookup');
+  check(!/\{\s*easy:\s*1\s*,/.test(jsCode),
+    'and holds no copy of it — a second table is a second thing to keep right');
+  /* THE PAGE DOES NOT NORMALISE THE VALUE ON ASSIGN. It runs the STORED value
+   * through `normalizeGeneration`, which falls back to 全部世代, but assigns the
+   * table's value raw — so a table naming a generation this corpus lacks would
+   * hand `poolFor()` an absent generation and the page would report
+   * 「這個範圍沒有足夠的寶可夢出題」 on a tier that should have opened on the whole
+   * dex. The module checker asserts the values exist; this is the other end. */
+  const setDiffRaw = fnBody(jsCode, 'setDifficulty') || '';
+  check(!/state\.gen = normalizeGeneration\(DEFAULT_GENERATION/.test(jsCode),
+    'and note that the table is assigned RAW rather than through normalizeGeneration — stated here because the module side is what actually guarantees the value is valid',
+    () => 'this page now normalises the default; if that is deliberate, the module check is redundant and one of the two should go');
+  const setDiff = fnBody(jsCode, 'setDifficulty') || '';
+  check(/if \(!state\.genTouched\) state\.gen = DEFAULT_GENERATION\[next\];/.test(setDiff),
+    'setDifficulty() applies the default ONLY while the reader has not chosen a generation',
+    () => setDiff.trim().slice(0, 200));
+  check(!/state\.gen = DEFAULT_GENERATION/.test(setDiff.replace(/if \(!state\.genTouched\) state\.gen = DEFAULT_GENERATION\[next\];/, '')),
+    'and never applies it unconditionally anywhere else in that function');
+
+  /* `genTouched` IS SET BEFORE THE EARLY RETURN, and that placement is the whole
+   * defect this assertion exists for. Re-clicking the chip that is already
+   * selected returns before the flag is written, so a reader who opened on 簡單
+   * — where 第I世代 IS the default — and clicked it has made no recorded choice,
+   * and their next real pick is treated as the first click rather than the
+   * second. */
+  const setGen = fnBody(jsCode, 'setGeneration') || '';
+  const touchAt = setGen.indexOf('state.genTouched = true;');
+  const returnAt = setGen.indexOf('if (next === state.gen) return;');
+  check(touchAt > 0 && returnAt > touchAt,
+    'setGeneration() records the choice BEFORE its early return — re-clicking the already-selected chip is a no-op for the pool and is exactly the moment the reader has chosen',
+    () => `flag at ${touchAt}, early return at ${returnAt}`);
+  check(/store\.set\(`\$\{STORE_PREFIX\}genTouched`, true\)/.test(setGen),
+    'and persists it — a flag that resets on reload hands a deliberate choice back to a default');
+  check(/store\.get\(`\$\{STORE_PREFIX\}genTouched`, false\)/.test(jsCode),
+    'and it is read back on boot, strictly === true, so a hand-edited localStorage cannot make it truthy');
+  check(!/genTouched:\s*[^,\n]*store\.get/.test(jsCode),
+    'and it is not inferred from the stored generation: landing on 簡單 and never touching the chips stores gen: 1 exactly as choosing it deliberately does');
+
+  /* The chips are still the reader's to change — a default that cannot be
+   * overridden is not a default. */
+  check(/els\.genRow\.addEventListener|closest\('\[data-gen\]'\)/.test(jsCode),
+    'and the chips remain bound, so the default is overridable in one click');
+}
+
 console.log('\nthe difficulty the page prints is the one the module measured');
 // ---------------------------------------------------------------------------
 {

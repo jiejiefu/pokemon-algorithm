@@ -220,6 +220,35 @@ export const GAME_SEED = 'pokemon-crygame:';
 /** Below this a pool cannot produce four distinct options, so it is refused. */
 export const MIN_POOL = CHOICES;
 
+/**
+ * The generation each difficulty OPENS ON, and `0` — 「全部世代」 — is a real
+ * answer here rather than a placeholder.
+ *
+ * `easy` is 第I世代 and the other two are the whole dex, which is the same
+ * relationship `game-similarity.js` has between its own `easy` and `hard`: a
+ * single-generation pool is the beginner's round, and the difficulty ceiling
+ * still does the work of separating the three tiers. **The two axes are
+ * independent by design** — narrowing the pool does not make 地獄 easier, because
+ * 地獄's three distractors are chosen among whatever pool it is given, and a
+ * 151-species pool still has three near neighbours in it. Measured: 第六世代's
+ * hardest distractor under 地獄 is p50 0.738, against 第I世代's 0.879.
+ *
+ * IT LIVES HERE RATHER THAN IN THE PAGE, because it is pool policy and this is
+ * the module that owns pools. A page-local `{ easy: 1 }` would be a second
+ * source of truth for which pool a round draws from, and `check_cry_game.mjs`
+ * reads this table rather than restating it — §3.S's rule, the same one that
+ * makes the chips derive from `availableGenerations()` instead of being written
+ * into the markup.
+ *
+ * **IT IS A DEFAULT, NOT AN OVERRIDE.** The page applies it only while the reader
+ * has not chosen a generation themselves; once they click a chip, that is theirs
+ * and a difficulty change leaves it alone. A difficulty tab that silently
+ * re-narrows the pool a reader just widened is §3.W's shape — a control changing
+ * something the reader was not told about — and it is why `state.genTouched`
+ * exists rather than this table being applied unconditionally.
+ */
+export const DEFAULT_GENERATION = { easy: 1, hard: 0, hell: 0 };
+
 // ---------------------------------------------------------------------------
 // Score bands
 // ---------------------------------------------------------------------------

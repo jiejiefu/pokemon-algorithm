@@ -78,7 +78,7 @@ import { spriteUrl } from './color-palette.js';
 import { cryPlayer } from './cry-player.js';
 import {
   MAX_QUESTIONS, CHOICES, DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES,
-  SIMILARITY_CEILING, FEATURE_SET,
+  SIMILARITY_CEILING, FEATURE_SET, DEFAULT_GENERATION,
   cryIndex, poolFor, availableGenerations,
   buildRound, buildDailyRound, eliminateIndex,
   scoreRound, shareText,
@@ -118,6 +118,24 @@ const state = {
   mode: 'daily',        // 'daily' | 'unlimited'
   difficulty: 'easy',   // 'easy' | 'hard' | 'hell'
   gen: 0,               // 0 is 全部世代
+  /**
+   * Has the reader ever clicked a generation chip?
+   *
+   * This is what separates 「簡單 opens on 第I世代」 from 「clicking 簡單 yanks the
+   * pool back to 第I世代」. The second reading is defensible on paper and hostile
+   * in use: a reader who picked 第六世代 to hear sixth-generation cries would have
+   * it taken away by the difficulty tab, with nothing in the interface saying the
+   * filter moved — §3.W's shape, a control changing something the reader was not
+   * told about.
+   *
+   * So the module's `DEFAULT_GENERATION` applies only while this is false, and the
+   * first chip click makes it true forever. It is PERSISTED rather than inferred
+   * from the stored generation, because the two are indistinguishable afterwards:
+   * a reader who lands on 簡單 and never touches the chips stores `gen: 1` exactly
+   * as one who chose it deliberately does, and inferring one from the other would
+   * hand a deliberate choice to a default on the next visit.
+   */
+  genTouched: false,    // the reader has chosen a generation themselves
   questions: [],        // the round
   picks: [],            // one entry per answered question, null until then
   revealed: false,      // the current question has resolved
@@ -1034,12 +1052,22 @@ function setDifficulty(difficulty) {
   if (next === state.difficulty) return;
   state.difficulty = next;
   store.set(`${STORE_PREFIX}difficulty`, next);
+  /* THE DEFAULT FOLLOWS THE DIFFICULTY ONLY WHILE THE READER HAS NOT CHOSEN. */
+  if (!state.genTouched) state.gen = DEFAULT_GENERATION[next];
   resultRevealed = false;
   restoreDaily() || newRound();
 }
 
 function setGeneration(gen) {
   const next = normalizeGeneration(gen, generations);
+  /* `genTouched` IS SET BEFORE THE EARLY RETURN, not after it. Re-clicking the chip
+   * that is already selected is a no-op for the pool and is the one moment the
+   * reader has unambiguously chosen a generation, so returning first would leave a
+   * reader who opened on 簡單 and clicked 第I世代 — which is exactly the default they
+   * were given — permanently in the "no choice made" state, and their first real
+   * pick of 第六世代 would be treated as the first click rather than the second. */
+  state.genTouched = true;
+  store.set(`${STORE_PREFIX}genTouched`, true);
   if (next === state.gen) return;
   state.gen = next;
   store.set(`${STORE_PREFIX}gen`, next);
@@ -1188,7 +1216,13 @@ async function init() {
   }
 
   state.difficulty = normalizeDifficulty(store.get(`${STORE_PREFIX}difficulty`, state.difficulty));
-  state.gen = normalizeGeneration(store.get(`${STORE_PREFIX}gen`, state.gen), generations);
+  state.genTouched = store.get(`${STORE_PREFIX}genTouched`, false) === true;
+  /* THE DEFAULT IS APPLIED ONLY ON THE UNTOUCHED PATH, so a reader who chose a
+   * generation keeps it even across a difficulty change that happened while they
+   * were away. */
+  state.gen = state.genTouched
+    ? normalizeGeneration(store.get(`${STORE_PREFIX}gen`, 0), generations)
+    : DEFAULT_GENERATION[state.difficulty];
   state.mode = store.get(`${STORE_PREFIX}mode`, state.mode) === 'unlimited' ? 'unlimited' : 'daily';
 
   els.genLabel.textContent = '出題範圍';

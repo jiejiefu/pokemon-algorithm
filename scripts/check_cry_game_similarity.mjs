@@ -50,7 +50,7 @@ import { dirname, join } from 'node:path';
 
 import {
   MAX_QUESTIONS, CHOICES, DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_NOTES, MATRIX_BREAK_EVEN,
-  SIMILARITY_CEILING, SCORE_BANDS, FEATURE_SET, LEGACY_SET, GAME_SEED, MIN_POOL,
+  SIMILARITY_CEILING, SCORE_BANDS, FEATURE_SET, LEGACY_SET, GAME_SEED, MIN_POOL, DEFAULT_GENERATION,
   cryIndex, similarity, neighbours,
   genIdMap, allIds, poolFor, availableGenerations,
   buildQuestion, buildRound, buildDailyRound,
@@ -972,6 +972,77 @@ console.log('\nthe share text describes the round that was actually played');
   check(shareText({ questions: round, picks, mode: 'daily', difficulty: 'hard', gen: 0, dateKey: '2026-10-14' }).split('\n')[1]
     === shareText({ questions: round, picks, mode: 'daily', difficulty: 'hard', gen: 0, dateKey: '2026-10-13' }).split('\n')[1],
     'and the grid does not depend on which day produced the round');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nevery difficulty OPENS ON a pool that can hold a round');
+// ---------------------------------------------------------------------------
+{
+  /* `DEFAULT_GENERATION` is a default the page applies only while the reader has
+   * not chosen a generation. What has to hold about it is arithmetic: every tier's
+   * opening pool must be able to produce `MAX_QUESTIONS` questions, and the floor
+   * is `MIN_POOL + MAX_QUESTIONS - 1` because each answer is withdrawn from the
+   * pool its own distractors come out of. A default of, say, generation 8 (96
+   * members) is fine and a default of a generation with 12 members would build a
+   * round of five and render 「5 / 10」. */
+  for (const d of DIFFICULTIES) {
+    const gen = DEFAULT_GENERATION[d];
+    const pool = poolFor(index, data, gen);
+    const floor = MIN_POOL + MAX_QUESTIONS - 1;
+    check(pool.length >= floor,
+      `${DIFFICULTY_LABELS[d]} opens on ${gen === 0 ? '全部世代' : `第${gen}世代`} — ${pool.length} members, and a round needs ${floor}`,
+      () => `${pool.length} members, ${floor} needed`);
+    const round = buildRound(index, pool, d, makeRand(7));
+    check(round.length === MAX_QUESTIONS,
+      `and it really produces ${MAX_QUESTIONS} questions from that pool`,
+      () => `${round.length}`);
+  }
+
+  /* 簡單 IS THE NARROW ONE AND THE OTHER TWO ARE NOT, and that is the whole
+   * point of the table: `game-similarity.js` gives its own `easy` one generation
+   * and `hard` the dex, and this is the same relationship. A table where all
+   * three matched would be a constant wearing a lookup's clothes. */
+  check(DEFAULT_GENERATION.easy !== 0,
+    '簡單 opens on a single generation rather than all 1,025 — the same relationship game-similarity.js has between its easy and hard',
+    () => `easy is ${DEFAULT_GENERATION.easy}`);
+  check(DEFAULT_GENERATION.hard === 0 && DEFAULT_GENERATION.hell === 0,
+    'and 困難 and 地獄 both open on the whole dex, because narrowing the pool is not what makes a question hard');
+
+  /* EVERY DEFAULT NAMES A GENERATION THAT EXISTS. The page assigns
+   * `state.gen = DEFAULT_GENERATION[next]` WITHOUT normalising — it does not run
+   * the value through `normalizeGeneration` — so a table naming a generation this
+   * corpus lacks hands the page an empty pool and it reports
+   * 「這個範圍沒有足夠的寶可夢出題」 on a tier that should have opened on the whole
+   * dex. Asserting existence here is the cheap end of that; the page checker
+   * asserts the normalise-on-assign side as well. */
+  const gmap = new Set(genIdMap(data, index).keys());
+  for (const d of DIFFICULTIES) {
+    const g = DEFAULT_GENERATION[d];
+    check(g === 0 || gmap.has(g),
+      `${DIFFICULTY_LABELS[d]}'s opening generation exists in this corpus`,
+      () => `generation ${g} is not among 1..9`);
+  }
+  check(Object.keys(DEFAULT_GENERATION).sort().join(',') === [...DIFFICULTIES].sort().join(','),
+    'and the table covers exactly the three difficulties, so adding a tier cannot be forgotten here',
+    () => `the table has ${Object.keys(DEFAULT_GENERATION).join(', ')}`);
+
+  /* THE TWO AXES REALLY ARE INDEPENDENT, which is the claim the table's docblock
+   * makes and the reason a difficulty change is allowed to leave the pool alone.
+   * If narrowing the pool changed the measured difficulty, 簡單 on 第I世代 would be
+   * a fourth thing and the three tabs would not be the same axis. */
+  const narrow = [];
+  const wide = [];
+  for (let i = 0; i < 60; i++) {
+    for (const x of buildRound(index, poolFor(index, data, 1), 'hell', rand)) narrow.push(x.hardestSim);
+    for (const x of buildRound(index, poolFor(index, data, 0), 'hell', rand)) wide.push(x.hardestSim);
+  }
+  narrow.sort((a, b) => a - b); wide.sort((a, b) => a - b);
+  check(q(narrow, 0.5) > 0.5,
+    `地獄 on 第I世代 is still 地獄 — its hardest distractor is p50 ${q(narrow, 0.5).toFixed(3)} over 600 questions, so a narrow pool does not soften the tier`,
+    () => `p50 ${q(narrow, 0.5)}`);
+  check(q(narrow, 0.5) > q(wide, 0.5),
+    `and it is HARDER than 地獄 on the full dex — p50 ${q(narrow, 0.5).toFixed(3)} against ${q(wide, 0.5).toFixed(3)} — because a smaller pool means closer neighbours, not weaker ones`,
+    () => `${q(narrow, 0.5)} vs ${q(wide, 0.5)}`);
 }
 
 // ---------------------------------------------------------------------------
