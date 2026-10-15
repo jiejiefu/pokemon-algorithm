@@ -312,6 +312,53 @@ const CHECKERS = [
     ],
   },
   {
+    /* 叫聲猜謎的出題模組。放 cry-page 而不是 color，因為 `--only=cry` 是讀者
+     * 記得住的那一個前綴，而這個模組的輸入是 `cry_features.json`。
+     *
+     * 這支檢查器 4.3 秒，是本群最貴的一項非瀏覽器檢查，而且它值得——它量的是
+     * 「三個難度真的有分開」這件事，而那件事的第一版設計**量出來是沒分開的**：
+     * 原本用「相似度排名區間」定義難度，困難與地獄在全部十個池子裡都重疊
+     * （`p90(困難) − p10(地獄)` 從 -0.09 到 -0.26 全是負的），等於兩個難度
+     * 標籤指向同一件事。改成「相似度上限」之後，30 個池 × 難度組合、6,150 次
+     * 物種檢查裡 **0 次違規、0 次降級**，而且分開了 0.30 / 0.65 / 0.84。
+     *
+     * 那些數字是這支檢查器存在的理由。它每次都重新量一次，所以資料一改就會紅，
+     * 而不是安靜地變成一個仍然通過但已經不代表任何東西的門檻。 */
+    script: 'scripts/check_cry_game_similarity.mjs', group: 'cry-page',
+    note: 'the ceiling, re-measured across 10 pools x 3 tiers — 0 violations, 0 degraded',
+    inputs: [
+      'assets/data/cry_features.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/*',
+    ],
+  },
+  {
+    /* 31 個 case，四個 worker，約 30 秒淨跑（量到 27 秒，分頁與別的 tier 同跑時
+     * 量到 46 秒）——是本群最貴的 harness，也是刻意保留的。
+     *
+     * 為什麼不是 §3.G5 那種「移除而不是標記」：這個模組就是這個頁面的**設計**。
+     * 它的三個常數（0.35 / 0.65 / Infinity）、它的種子字串、它的排序
+     * （相似度相同時按 id 升冪）每一個都是頁面上讀者看得見的行為，而
+     * `check_cry_game_similarity.mjs` 的斷言大多是**量測**出來的——一個量測型
+     * 斷言有兩種死法，一種是真的過不了，另一種是**怎麼改都過**，後者回報 PASS
+     * 而 PASS 這個字對它量到什麼毫無資訊。
+     *
+     * 這支 harness 就是在找後者，而且找到過：四個 case 在第一版就沒被抓到，
+     * 其中兩個的缺陷是真的，修的是檢查器不是 mutation（降級分支在這個語料上是
+     * 死碼，於是檢查器現在用一個合成的小池子去走它；排序的並列規則在生產路徑
+     * 上永遠看不出來，因為每個池子都是升冪而 V8 的 sort 是穩定的，於是斷言改成
+     * 反轉池子再比一次）。另外五個 case 刪掉了而不是留成 `expect: null`：
+     * 每個都要跑滿 4.3 秒而一個都抓不到，這是 harness 的反面。刪了哪些、
+     * 為什麼，寫在檔頭。 */
+    script: 'scripts/test_check_cry_game_similarity.mjs', checker: 'scripts/check_cry_game_similarity.mjs', group: 'cry-page',
+    note: '31 cases in child trees, four at a time — the module IS this page\'s design',
+    inputs: [
+      'assets/data/cry_features.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/*',
+    ],
+  },
+  {
     /* 頁面本身。static 與 shell contract，不需要瀏覽器。 */
     script: 'scripts/check_color_game.mjs', group: 'color',
     note: 'the shell contract, the §3.M hidden/display pairing, and the §3.G node captures',
