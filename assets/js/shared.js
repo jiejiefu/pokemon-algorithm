@@ -837,13 +837,23 @@ export const NAV = [
     id: 'cries',
     label: '叫聲',
     icon: 'waveform',
-    pages: ['cries.html', 'cries-gen1.html', 'spectrum.html'],
+    // cry-game.html is FOURTH, not first. The three reporting pages answer
+    // 「這隻叫聲是什麼」 and the game asks 「這是誰」, so it reads the same way
+    // 猜謎遊戲 sits fourth in 色彩 — after explore / generator / color. And it
+    // MUST be in `pages` as well as in `items`: a child page whose header is
+    // identical to its parent's cannot be told apart by href, and the one rule
+    // is "aria-current goes on the exact row".
+    pages: ['cries.html', 'cries-gen1.html', 'spectrum.html', 'cry-game.html'],
     groups: [
       {
         items: [
           { href: 'cries.html', label: '叫聲總覽', desc: '1025 隻的音色特徵與相似搜尋' },
           { href: 'spectrum.html', label: '叫聲頻譜', desc: 'mel 頻譜圖與即時能量分布' },
           { href: 'cries-gen1.html', label: '第一世代叫聲實驗室', desc: '38 個 base cry 的 APU 合成' },
+          // 叫聲猜謎 names the THING rather than the mechanism, for the same
+          // reason 猜謎遊戲 does: 「叫聲辨識」 would name the technique, and the
+          // desc already says what the reader is asked to do.
+          { href: 'cry-game.html', label: '叫聲猜謎', desc: '聽叫聲猜是哪一隻' },
         ],
       },
     ],

@@ -32,13 +32,16 @@
   </script>
 </head>
 <body>
-  <!-- `header-cries` is the row-layout modifier shared.js owns. `check_nav_pages.mjs`
+  <!-- `header-colors` is the row-layout modifier shared.js owns, and it is the
+       one cries.html, spectrum.html and cries-gen1.html already use — the 叫聲
+       group's headers are identical, so this page joins them rather than
+       inventing a fourth name for the same layout. `check_nav_pages.mjs`
        reads the six modifier names OUT OF shared.css rather than restating them, and
        requires each header to carry exactly one: a bare `.header` is the MOBILE
        layout and renders a valid, wrong page (§3.G2). The theme toggle ships EMPTY —
        `initThemeToggle()` injects `.icon-sun`/`.icon-moon` and its guard only tests
        for `.icon-sun`, so a hand-authored pair is doubled, not replaced. -->
-  <header class="header header-cries">
+  <header class="header header-colors">
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
       <div class="header-title header-title-large">寶可夢演算法</div>

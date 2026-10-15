@@ -94,6 +94,13 @@ const css = readFileSync(join(ROOT, 'assets/css/cry-game.css'), 'utf8');
 const js = readFileSync(join(ROOT, 'assets/js/cry-game.js'), 'utf8');
 const moduleSrc = readFileSync(join(ROOT, 'assets/js/cry-game-similarity.js'), 'utf8');
 const sharedSrc = readFileSync(join(ROOT, 'assets/js/shared.js'), 'utf8');
+/* The CSS is read SEPARATELY and on purpose. The first version pulled the
+ * row-layout modifier list out of `assets/js/shared.js`, which is JavaScript and
+ * contains no selectors at all — so the list came back empty and the membership
+ * assertion reported 「not one of the 0」 while the page carried a modifier that
+ * does not exist. The list lives in `assets/css/shared.css`, next to the rules
+ * that give those classes their layout. */
+const sharedCss = readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8');
 
 const htmlCode = stripHtmlComments(html);
 const cssCode = stripCssComments(css);
@@ -132,14 +139,41 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
   // §3.G2: a bare `.header` is the MOBILE layout and renders a valid, wrong page.
   // `check_nav_pages.mjs` reads the six modifier names out of shared.css; this
   // only asserts that EXACTLY ONE is present and that it is this page's.
-  const modifiers = [...sharedSrc.matchAll(/^\s*\.header-([a-z0-9-]+)\s*[,{]/gm)].map((m) => m[1]);
+  /* Read the modifier list out of the COMBINED selector at the row layout, not
+   * out of the per-modifier `--page-accent` rules at the top. Both name the same
+   * six classes, but only the combined one is the list that means "these are the
+   * row layouts" — and the first regex here matched neither, returning an empty
+   * list that made the membership assertion below report `0`. */
+  const rowLayout = (sharedCss.match(/\.header-dex,\s*\.header-3d,[\s\S]{0,200}?\{/) || [])[0] || '';
+  const modifiers = [...rowLayout.matchAll(/\.header-([a-z0-9-]+)/g)].map((m) => m[1]);
+  check(modifiers.length >= 6,
+    `shared.css's combined row-layout selector names ${modifiers.length} modifiers — ${modifiers.join(', ')}`,
+    () => `found no combined .header-* selector; the list read was ${rowLayout.length} chars`);
   const onHeader = (htmlCode.match(/<header class="header([^"]*)"/) || [])[1] || '';
   const used = [...onHeader.matchAll(/header-([a-z0-9-]+)/g)].map((m) => m[1]);
   check(used.length === 1, `the header carries exactly one row-layout modifier — found ${used.length}`,
     () => `header class is "header${onHeader}"; shared.css defines ${modifiers.length}: ${modifiers.join(', ')}`);
-  check(used[0] === 'cries',
-    'and it is header-cries, the modifier the 叫聲 group shares with cries.html',
-    () => `found header-${used[0]}`);
+  /* MEMBERSHIP, not a name. The first version asserted `used[0] === 'cries'` —
+   * a modifier that does not exist — and passed, because the assertion was about
+   * the string this page happened to carry rather than about whether shared.css
+   * defines it. So the page shipped with `header-cries`, which `.header` on its
+   * own then rendered: the mobile column layout, the nav on a second row, and
+   * the theme toggle in the corner. `check_nav_pages.mjs` caught it on its very
+   * next run, which is the argument for asserting MEMBERSHIP here rather than
+   * restating a name — and for the fact that this checker is not the only one
+   * reading shared.css. */
+  check(modifiers.includes(used[0]),
+    `and shared.css actually defines header-${used[0]}`,
+    () => `header-${used[0]} is not one of the ${modifiers.length}: ${modifiers.join(', ')}`);
+  /* AND it is the SAME modifier the rest of the 叫聲 group uses, read out of
+   * those files rather than remembered — three headers for one group and a
+   * fourth invented name is how a page ends up looking like a different family. */
+  const siblings = ['cries.html', 'spectrum.html', 'cries-gen1.html']
+    .map((f) => (readFileSync(join(ROOT, f), 'utf8').match(/<header class="header header-([a-z0-9-]+)"/) || [])[1])
+    .filter(Boolean);
+  check(siblings.length === 3 && siblings.every((m) => m === used[0]),
+    `and it is the one all three sibling 叫聲 pages use — ${siblings.join(', ')}`,
+    () => `this page uses header-${used[0]}`);
 
   // §3.G2 again: the toggle SHIPS EMPTY. `initThemeToggle()` guards on
   // `.icon-sun`, so a hand-authored pair of any other class is doubled.

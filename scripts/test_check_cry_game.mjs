@@ -61,6 +61,18 @@ const JS_TREE = readdirSync(join(ROOT, 'assets/js'))
 const SRC = [
   'cry-game.html',
   'assets/css/cry-game.css',
+  // The checker reads shared.css to learn which row-layout modifiers EXIST, which
+  // is the assertion that caught this page carrying a `header-cries` that no rule
+  // ever defined. A scratch tree without it gets an empty list, and the
+  // membership check passes against nothing — a §3.B2 shape one level up.
+  'assets/css/shared.css',
+  // The three sibling 叫聲 pages, because the checker asserts this page's header
+  // modifier is the SAME one they use — read out of those files rather than
+  // remembered, so a fourth invented name for one group cannot pass. A scratch
+  // tree without them dies on ENOENT, and ENOENT is not a FAIL line.
+  'cries.html',
+  'spectrum.html',
+  'cries-gen1.html',
   ...JS_TREE,
   CHECKER,
 ];
@@ -86,7 +98,7 @@ const CASES = [
   /* ---- The header. §3.G2's shape, twice. ---- */
   {
     name: 'the row-layout modifier is dropped, so the header renders the mobile column',
-    mutate: (dir) => editHtml(dir, 'class="header header-cries"', 'class="header"'),
+    mutate: (dir) => editHtml(dir, 'class="header header-colors"', 'class="header"'),
     expect: 'the header carries exactly one row-layout modifier',
   },
   {
