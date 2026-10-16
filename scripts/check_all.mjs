@@ -844,6 +844,30 @@ const CHECKERS = [
       'assets/js/categories.js', 'scripts/enhance_pokemon_data.py',
     ],
   },
+  {
+    /* §3.J 的 prefix 規則，終於有一個東西量它。
+     *
+     * 這一條規則從寫下來到現在都是人手審，而且已經錯過兩次：cry-game 的
+     * `cgpage-neg-` 落在別人選的 `cgpage-` 命名空間裡（§3.J 自己記了那一段），
+     * 然後 AGENTS.md 裡的總數被改了三次 —— 30、31、33 —— 沒有一次是程式量的。
+     *
+     * 唯一的斷言是**互為前綴的對數為 0**，而另外兩條存在的理由是讓它不能空洞地
+     * 通過：每一個 `tmpdir()` 參照都要被分類（掃描器認不出的形狀是紅的，不是
+     * 看不見的），以及掃描確實有找到東西。
+     *
+     * 掃描器的正則本身寫錯過兩次 —— `join(tmpdir(),'cr-')` 逗號後沒空格、
+     * `tree-` 巢狀在一個也是 `join(tmpdir(), …)` 的 BASE 底下 —— 然後開心地
+     * 回報「零重疊」。所以 inputs 是整個 `scripts/*.mjs`：**任何一支 script 改
+     * 動都讓這條失效**，因為任何一支 script 都可能帶著新的前綴回來。 */
+    script: 'scripts/check_tmp_prefixes.mjs', group: 'data',
+    note: 'every tmpdir() reference classified, and zero overlapping prefixes — §3.J, which was enforced by hand',
+    inputs: ['scripts/*.mjs'],
+  },
+  {
+    script: 'scripts/test_check_tmp_prefixes.mjs', checker: 'scripts/check_tmp_prefixes.mjs', group: 'data',
+    note: '8 cases in child trees — the historical collision, four unrecognised call shapes, and the scanner narrowed until only the floor could notice',
+    inputs: ['scripts/*.mjs'],
+  },
 
   /* ---- sorting ----
      * Its own group for one reason: this is the only group whose cost is dominated by
