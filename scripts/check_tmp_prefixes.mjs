@@ -62,9 +62,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPTS = join(ROOT, 'scripts');
 
 /**
- * The floor for assertion 3. It is the number of `tmpdir()` references one
- * below what the suite has today, because a floor that equals the current
- * count is a tripwire on the next commit rather than on the next typo.
+ * The floor for assertion 3. It sits several below what the suite has today,
+ * because a floor that equals the current count is a tripwire on the next
+ * commit rather than on the next typo.
  */
 const MIN_TMPDIR_REFS = 30;
 
@@ -315,7 +315,8 @@ check(
 console.log(`\n  ${prefixes.length} prefixes derived: ${prefixes.map((p) => `\`${p}\``).join(' ')}`);
 console.log('  (AGENTS.md §3.J states this total; this line is where it is checked by eye —\n' +
             '   parsing prose for a number is a hardcoded copy that goes stale in the\n' +
-            '   dangerous direction, and the assertion worth keeping is the zero above.)');
+            '   dangerous direction, and the assertion worth keeping is the zero above.\n' +
+            '   Adding a harness changes this number, which is why it is not asserted.)');
 
 console.log(`\n${failures ? `FAIL  ${failures} of ${total} checks failed` : `PASS  all ${total} checks passed`}`);
 process.exit(failures ? 1 : 0);

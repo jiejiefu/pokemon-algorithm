@@ -8,15 +8,23 @@
  * every shape of the defect §3.J exists to prevent — including the one that
  * actually shipped.
  *
- * **Five of the eight cases break the TREE and three break the CHECKER, and the
- * split is the point.** A checker that is only ever attacked through its input
- * cannot distinguish "the rule is enforced" from "the checker is currently
- * green" — so three cases here break the checker's own logic and require it to
- * notice *itself*. Case 8 is the one that matters most: it narrows the scanner
- * to `check_*` so it sees 10 of the 34 `tmpdir()` references, and the
- * non-vacuity floor is the only assertion standing between that and a silent
- * zero. Without the floor, case 8 would report "no unclassified references" and
- * "no overlaps" about a tenth of the suite and exit 0.
+ * **Seven of the eight cases break the TREE and ONE breaks the CHECKER, and that
+ * one is why the file is worth more than a coverage number.** A checker only ever
+ * attacked through its input cannot distinguish "the rule is enforced" from "the
+ * checker is currently green" — the seven tree cases prove the RULE is caught, and
+ * they would all still pass with every assertion in the checker deleted. Case 8
+ * breaks the checker's own logic: it narrows the scanner to `check_*` so it sees
+ * 10 of the `tmpdir()` references, and the non-vacuity floor is the only
+ * assertion standing between that and a silent zero. Without the floor, case 8
+ * would report "no unclassified references" and "no overlaps" about a tenth of
+ * the suite and exit 0.
+ *
+ * `expect` is a COPY of the checker's assertion text, not a reference to it —
+ * `caughtBy` matches it against the FAIL block of a subprocess whose source is
+ * the mutated tree, so the two files cannot share a constant by construction.
+ * That is 8 strings copied from 4 descriptions, and it is the reason every
+ * harness in this repo does the same. **Do not "de-duplicate" them**: the copy
+ * is what fails loudly when an assertion is renamed and the expectation is not.
  *
  * Case 1 is the historical defect, verbatim: a cry-game harness holding
  * `cgpage-neg-` inside the `cgpage-` namespace another session had chosen.
@@ -160,7 +168,7 @@ const CASES = [
     expect: 'no two files hand the same prefix',
   },
   {
-    name: 'the scanner is narrowed to check_*, leaving 10 of 34 references — only the non-vacuity floor can catch it',
+    name: 'the scanner is narrowed to check_*, leaving ten of the tmpdir() references — only the non-vacuity floor can catch it',
     mutate: (dir) => {
       edit(dir, CHECKER,
         "readdirSync(SCRIPTS).filter((f) => f.endsWith('.mjs')).sort()",
