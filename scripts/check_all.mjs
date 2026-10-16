@@ -333,7 +333,7 @@ const CHECKERS = [
     ],
   },
   {
-    /* 31 個 case，四個 worker，約 30 秒淨跑（量到 27 秒，分頁與別的 tier 同跑時
+    /* 33 個 case，四個 worker，約 30 秒淨跑（量到 27 秒，分頁與別的 tier 同跑時
      * 量到 46 秒）——是本群最貴的 harness，也是刻意保留的。
      *
      * 為什麼不是 §3.G5 那種「移除而不是標記」：這個模組就是這個頁面的**設計**。
@@ -351,7 +351,7 @@ const CHECKERS = [
      * 每個都要跑滿 4.3 秒而一個都抓不到，這是 harness 的反面。刪了哪些、
      * 為什麼，寫在檔頭。 */
     script: 'scripts/test_check_cry_game_similarity.mjs', checker: 'scripts/check_cry_game_similarity.mjs', group: 'cry-page',
-    note: '31 cases in child trees, four at a time — the module IS this page\'s design',
+    note: '33 cases in child trees, four at a time — the module IS this page\'s design',
     inputs: [
       'assets/data/cry_features.json',
       'assets/data/pokemon_data.json',
@@ -382,16 +382,28 @@ const CHECKERS = [
     inputs: [
       'cry-game.html',
       'assets/css/cry-game.css',
+      /* The row-layout modifier list is read OUT of shared.css rather than restated,
+       * because restating it is what let `header-cries` ship — the page carried a
+       * modifier no rule ever defined, and a checker that knew the six names would
+       * have called it a valid one. Undeclared, editing shared.css leaves this entry's
+       * cache key unchanged and the runner SKIPS the checker: green having verified
+       * nothing, which §4 calls out as strictly worse than no cache. */
+      'assets/css/shared.css',
       'assets/js/cry-game.js',
       'assets/js/cry-game-similarity.js',
       'assets/js/daily-pick.js',
       'assets/js/shared.js',
+      /* The three sibling 叫聲 pages, because the assertion is that this page's header
+       * modifier is the SAME one they use. */
+      'cries.html',
+      'spectrum.html',
+      'cries-gen1.html',
     ],
   },
   {
-    /* 36 個 case，四個 worker，0.8 秒。
+    /* 49 個 case，四個 worker，0.8 秒。
      *
-     * 與 `test_check_cry_game_similarity.mjs` 的關鍵差別：那一支的 35 秒買到的是
+     * 與 `test_check_cry_game_similarity.mjs` 的關鍵差別：那一支的 33 秒買到的是
      * 「三個常數、一個種子、一個排序」——都是讀者看得見的行為，而且它的斷言多半
      * 是量測出來的。**這一支買不到同樣的東西，而它的檔頭直接寫明了**：頁面檢查器
      * 的斷言全是形狀主張，一個 mutation harness 證明不了「形狀正確但行為錯誤」，
@@ -401,10 +413,26 @@ const CHECKERS = [
     inputs: [
       'cry-game.html',
       'assets/css/cry-game.css',
+      /* The `SRC` list below IS what this harness copies into the child tree, and
+       * shared.css has to be one of them: without it the modifier list comes back
+       * empty and the membership check passes against nothing. Same four files as
+       * the checker above, because a harness and the checker it attacks share one
+       * SRC list — two copies of that list are two things to keep right. */
+      'assets/css/shared.css',
+      /* `SRC` ends in `...JS_TREE`, which is `readdirSync('assets/js')` — so this
+       * harness copies and re-opens all 37 modules, not the four the checker cares
+       * about. §4's own rule: a harness that copies a whole directory declares the
+       * glob, because the glob is what `--prove-inputs` compares the recording
+       * against. Missing it is the same defect as a missing literal, and
+       * `--prove-inputs` is what found it — after four I had already fixed. */
+      'assets/js/*',
       'assets/js/cry-game.js',
       'assets/js/cry-game-similarity.js',
       'assets/js/daily-pick.js',
       'assets/js/shared.js',
+      'cries.html',
+      'spectrum.html',
+      'cries-gen1.html',
     ],
   },
   {
@@ -436,6 +464,16 @@ const CHECKERS = [
     script: 'scripts/check_color_game_browser.mjs', group: 'color',
     browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
+    /* 這條 entry 是 ee5f126（叫聲猜謎：換題自動播放）順手帶進來的，不是 color-game
+     * 這個 session 寫的 —— 那一個 commit 對 `check_all.mjs` 跑了整檔 `git add`，於是
+     * 一段 29 行的陌生 entry 混進了 cry-game 的 commit。檔案本身由 36bda44 補上，
+     * suite 現在一致，但**歸屬是錯的**：revert 或 rebase ee5f126 會把這支 checker
+     * 從 manifest 裡靜靜刪掉，而刪掉時不報錯。
+     *
+     * 記在這裡而不是靠 git log，是因為 §4 的形狀：一個 commit 裡混進來的東西，
+     * 只有在**下一次有人動這個檔案**時才會被看見，而那個人看到的是一個
+     * 「color-game 一直都有這條」的 manifest。歷史不動（改寫它要重寫 4 個 SHA
+     * 底下所有人的東西），歸屬寫在它現在待著的地方。 */
     inputs: [
       'color-game.html',
       'assets/css/color-game.css',
