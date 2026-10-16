@@ -1008,6 +1008,39 @@ const CHECKERS = [
   // opening NO repo file at all.
   {
     script: 'scripts/check_life_browser.mjs', group: 'algo', browser: true, needsServer: true, manual: true,
+    /* `serial: true` — the SECOND entry with this flag, and for the same class of reason
+     * as `check_graph_browser.mjs` below, measured rather than assumed.
+     *
+     * 10 runs of this checker alongside a concurrent full suite: 3 failed, 7 passed, with
+     * THREE different symptoms — which is what "flaky" looks like when nobody isolates
+     * the variable:
+     *
+     *   - the Let's Go block read 15 types where 18 was expected, with the radio reverted
+     *     to 經典模式. Instrumented before and after the submit: `checked:true / Let's Go
+     *     模式 / starters:2` became `checked:false / 經典模式 / starters:3`, and nothing in
+     *     `setupSubmit` rewrites the modal — so the modal had been REBUILT by a late
+     *     `openSetupModal()`.
+     *   - `屬性 (0/15)` where `屬性 (2/15)` was expected, the canvas presses landing on an
+     *     overlay. `check_maze_page.mjs` is the only other entry in this group and it is
+     *     static, so in practice this is a browser against two sibling browsers.
+     *   - `-32000 "Inspected target navigated or closed"`, which is the byte-identical
+     *     string `check_graph_browser.mjs` measured to Chrome's `CVDisplayLinkCreateWith-
+     *     CGDisplay failed. CVReturn: -6670` — the compositor giving up, not the page moving.
+     *
+     * ONE OF THE THREE WAS A REAL DEFECT IN THE CHECKER and is fixed in the file rather
+     * than tolerated here: `LIFE_READY` waited on `#statPop` reading something other than
+     * "0", which `life.js` emits from `updateHUD()` — before `openSetupModal()`, the last
+     * statement of its init. The gate now waits for the modal to be OPEN, which is the
+     * destination's own last boot act and cannot become true early. Its docblock records
+     * that this same trap caught the first version of the file too, and was recorded as
+     * fixed by moving the gate later, which is why it stayed broken.
+     *
+     * What is left after that fix is contention, and §3.G9's argument is the one that
+     * applies: the retired port-collision rationale says nothing about CPU or GPU, and a
+     * red that appears only when the pool's draw puts a second full-viewport canvas game
+     * beside it trains a reader that red can mean nothing. life.html is the most CPU-bound
+     * page in tier B — a continuous rAF loop over a 40×40 board. */
+    serial: true,
     inputs: ['life.html', 'assets/css/life.css', 'assets/css/shared.css', 'assets/js/life.js',
              'assets/js/life-engine.js', 'assets/js/shared.js', 'assets/js/type-era.js',
              'assets/js/type-chart.js'],
@@ -1073,15 +1106,18 @@ const CHECKERS = [
    * assets/js/ at that moment would see the mutation. */
   {
     script: 'scripts/check_graph_browser.mjs', group: 'model', browser: true, needsServer: true, manual: true,
-    /* `serial: true` — the ONLY entry in the manifest with this flag, and the reason is
+    /* `serial: true` — was the only entry with this flag until `check_life_browser.mjs`
+     * took it for the same measured reason on a canvas rAF page. The reason is
      * measured rather than assumed: 3 of 3 failures pooled against 3 of 3 passes
      * standalone, same tree, same server, same machine. Chrome's stderr under contention
      * is a repeating `CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670` and the
      * CDP side reports it as `Inspected target navigated or closed` — byte-identical to
      * what a real navigation looks like, so the run cannot tell "the page moved" from
-     * "the compositor gave up". Full rationale and what it costs: the tier-B block at
-     * line 1467. The harness below stays pooled and passes there every run, because it
-     * serves a trimmed fixture; only the full 1,346-node page contends. */
+     * "the compositor gave up". **`check_life_browser.mjs` hits that same -32000**, which
+     * is the observation that makes this a class rather than one unlucky page; see the
+     * tier-B block above for the shared rationale. The harness below stays pooled and
+     * passes there every run, because it serves a trimmed fixture; only the full
+     * 1,346-node page contends. */
     serial: true,
     note: 'page inputs read off the HTML; graph_data.json is recorded',
     inputs: [
@@ -1475,6 +1511,13 @@ const TIER_A_CONCURRENCY = 3;
 /**
  * How many browser entries run at once. Three, like Tier A.
  *
+ * TWO ENTRIES OPT OUT with `serial: true` — `check_graph_browser.mjs` and
+ * `check_life_browser.mjs` — and each says so in its own manifest entry with its
+ * measurement. Both are full-viewport canvas or WebGL pages running a continuous rAF
+ * loop, and both fail under a pool of three while passing alone. See those entries for
+ * the numbers; what belongs here is why the flag exists at all, since the paragraph
+ * below retires the argument that retired it.
+ *
  * THIS TIER WAS SERIAL UNTIL 2026-10-10, and the reason it could not be parallel is
  * gone. cdpPort() hands out `base + (pid % 120)`, so two browsers in flight collide
  * about once in 120, and assertPortFree() turned that into a loud abort — correct, and
@@ -1483,6 +1526,13 @@ const TIER_A_CONCURRENCY = 3;
  * the collision class is deleted rather than tolerated. assertPortFree() is no longer
  * called anywhere: its job was to stop a checker driving a browser it did not start, and
  * a port assigned for this browser cannot already be serving someone else's.
+ *
+ * THAT ARGUMENT WAS ENTIRELY ABOUT PORTS and says nothing about CPU or GPU, which is
+ * what the two serial entries are for. §4 accepts contention as a COST — measured, the
+ * tier went ~99 s of wall clock to ~68 s while the reported checker time went UP by
+ * about 10 s, because concurrent browsers contend and `check_life_browser.mjs` is 5.1 s
+ * alone and 13 s in a pool of three. A cost is a trade; a FAILURE is not, and that is
+ * the line these two are on.
  *
  * Measured: the browser tier was 80.8 s of a 99 s run, and it is now the shortest tier
  * despite holding nine of the eleven most expensive entries.

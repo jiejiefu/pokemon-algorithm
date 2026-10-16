@@ -124,18 +124,43 @@ const ev = async (expression) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * life.html's real boot signal.
+ * life.html's real boot signal: its boot has FINISHED, not merely started.
  *
  * `#statPop` exists in the static markup reading "0", so waiting for its PRESENCE
  * is satisfied before a line of life.js has run — which is how the first version
  * of this file hid the generation modal and then had `openSetupModal()` turn it
  * straight back on, so every hit-test point landed on the modal backdrop instead
- * of on the dropdown. Waiting for it to read something else means updateHUD() has
- * run, which happens before openSetupModal().
+ * of on the dropdown.
+ *
+ * Waiting for `statPop` to read something else moved the gate later, and the note
+ * above recorded the move as the fix: `updateHUD()` runs before `openSetupModal()`.
+ * That is true, and it is why this gate still lost the race — it waits for a signal
+ * the page emits BEFORE the line it needs to be past. Measured at 10 runs alongside
+ * a concurrent full suite, 2 failed and 9 did not, with three different symptoms:
+ *
+ *   - the Let's Go block read 15 types where 18 was expected, the radio having
+ *     reverted to 經典模式. Instrumented: before the submit the radio read
+ *     `checked:true / Let's Go 模式` and after it, `checked:false / 經典模式 /
+ *     starters:3`. Nothing in `setupSubmit` rewrites the modal, so the modal had
+ *     been REBUILT by a second `openSetupModal()` landing late.
+ *   - the type drawer read `屬性 (0/15)` where `屬性 (2/15)` was expected, because
+ *     the modal was open over the canvas and both `brushCell` presses hit its
+ *     backdrop — §3.G's rule that a checker must confirm a press landed, with the
+ *     same shape.
+ *   - one run died with `-32000 Inspected target navigated or closed`, which
+ *     §3.G9 records as byte-identical to Chrome's display-link failure.
+ *
+ * The signal that IS the destination's own last boot act is the modal being open:
+ * `openSetupModal()` is the final statement of life.js's init, so
+ * `setupModal.hidden === false` cannot become true until init is done. That is
+ * §3.G5's rule — a wait must be gated on something only the DESTINATION has — and
+ * `#statPop` is not it, because the destination emits it early.
  */
 const LIFE_READY = `(() => {
   const el = document.getElementById('statPop');
-  return !!el && el.textContent !== '' && el.textContent !== '0';
+  const modal = document.getElementById('setupModal');
+  return !!el && el.textContent !== '' && el.textContent !== '0'
+    && !!modal && modal.hidden === false;
 })()`;
 
 /** Navigate and wait for the page's own boot, not for a duration (§3.G). */
