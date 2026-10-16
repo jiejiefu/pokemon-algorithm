@@ -228,7 +228,7 @@ const cases = [
     // category.html or the group renders collapsed on that page, taking the
     // aria-current it just gained with it — claimed and invisible at once.
     mutate: (f, s) => f.endsWith('shared.js')
-      ? s.replace("pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],", "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html'],")
+      ? s.replace("pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],", "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html'],")
       : undefined,
     expect: 'the group does not list',
   },

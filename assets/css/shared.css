@@ -671,10 +671,82 @@ summary:focus-visible,
    `text-align: center` it replaced put it — `justify-content: center` is the
    same intent by a different mechanism, not a redesign they have to opt into.
 
-   `.home-footer-grid/-title/-list` are still homepage-only (its link-column
-   block, which `initFooterNav()` fills from NAV) and deliberately stay there. */
+   The link-column block and the GitHub mark moved in from index.html with the
+   rest of the footer, because index.html no longer has a footer of its own
+   shape: the homepage kept the hero and the feature grid and gave everything
+   else to today.html, so there are now TWO pages carrying a full footer and
+   the rules would otherwise have to be copied into the second one. §3.B1's rule
+   is the reason they are here rather than in a third stylesheet — a component
+   with two users is not a page's private rule. `.home-footer-grid/-title/-list`
+   was homepage-only until today.html shipped; the `-github` rules were
+   index.html-only until both pages carried the mark. */
 .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
 .home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+/* The columns are NOT hand-written. `.home-footer-grid` is an empty mount point
+   and `initFooterNav()` fills it from NAV, for the reason the nav is rendered
+   rather than transcribed: the previous hand-written grid listed three 演算法
+   pages and none of 色彩, 叫聲 or 3D 模型, because nothing re-derived it once
+   those pages shipped. What it listed that this drops is written down in
+   `footerColumns()`'s own docblock — the 對戰資源 column of six dead `<span>`s,
+   three 特殊分類 children that collections.html already lists, and 首頁 itself.
+
+   The ladder is 1 → 3 → 5, because `footerColumns()` returns one column per NAV
+   group and there are five (圖鑑 / 演算法 / 色彩 / 叫聲 / 3D 模型). Five at the
+   1180px inner column is ~209px each, measured, and holds the longest label
+   (排序演算法視覺化, 8 chars at 14px) on one line. */
+.home-footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+@media (min-width: 640px) { .home-footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .home-footer-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.home-footer-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px; }
+/* `<a>` only, where this used to say `a, span`. `initFooterNav()` is the sole
+   producer of this list and filters on `i.href`, and a planned NAV row has no
+   href — so no span can reach here today. The rule is dropped rather than left
+   as insurance: a selector with no producer is a claim about a component that
+   does not exist. */
+.home-footer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.home-footer-list a { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
+.home-footer-list a:hover { color: var(--accent-gold); }
+
+/* Secondary placement, per GitHub's brand terms: the mark must sit LESS
+   prominently than our own name, which is why it is 24px beside a 13px
+   copyright line rather than beside the 14px link columns. It is an `<img>`,
+   and it cannot be an ICON_PATHS entry — `.icon` is `fill: currentColor`,
+   which would tint the mark on every theme, and the Invertocat's terms forbid
+   changing its colour. `width`/`height` are the HTML attributes, so this only
+   sets the box the already-reserved space uses.
+
+   THE CLASS NAMES ARE THE COLOUR, ON PURPOSE. They were the THEME at first, and
+   the two rules then read "dark hides the dark one", which is false —
+   `.gh-dark` pointed at the BLACK file and was hidden on `light`, so each
+   theme showed the mark that vanishes into it: white on #f7f9fc measured
+   1.05:1, black on #0b1220 measured 1.12:1. It passed every check in the suite
+   because all of them asked whether a swap HAPPENED (`naturalWidth`, a non-zero
+   box, exactly one visible) and none asked whether the surviving one was
+   VISIBLE; a white logo on white satisfies all three perfectly. Naming the
+   class for its colour makes each rule say what it does — "hide the black one
+   on dark" is checkable by reading.
+
+   A THIRD THEME RENDERS BOTH MARKS, SIDE BY SIDE. That is left loud rather than
+   defaulted away: a missing icon is silent, two octocats are not. */
+.home-footer-github {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.home-footer-github img { width: 24px; height: 24px; display: block; }
+[data-theme='dark'] .home-footer-github .gh-black { display: none; }
+[data-theme='light'] .home-footer-github .gh-white { display: none; }
+/* A focus ring the keyboard can actually see, since the mark is pure black or
+   white and carries no colour of its own to outline against. */
+.home-footer-github:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
 .home-footer-line {
   margin: 28px 0 0;
   display: flex;

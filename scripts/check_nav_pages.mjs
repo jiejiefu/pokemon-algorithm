@@ -428,13 +428,53 @@ check(!/\.home-footer\s*\{/.test(indexHtml), 'index.html does not re-declare .ho
 check(!/\.home-footer-line\s*\{/.test(indexHtml), 'index.html does not re-declare .home-footer-line either — one definition of it',
   () => 'index.html carries its own .home-footer-line rule, which currently wins on stylesheet order alone; shared.css owns that rule');
 
+/* Both pages own a footer now, so BOTH are asked. Asserting only index.html is
+ * the shape this file already caught twice on a different rule: a page that
+ * inherits a shared component can re-declare its private copy without anything
+ * in the suite noticing, because the assertion names one file and the second
+ * page did not exist when it was written. Derived from the page set rather than
+ * listed, so a third footer page is covered the day it is written. */
+const footerPages = sitePages.filter((p) => new RegExp(`class="home-footer[\\s"]`).test(read(p)));
+check(footerPages.length >= 2, 'the footer is not one page\'s private component any more',
+  () => `only ${footerPages.join(', ')} mount a .home-footer — today.html was supposed to carry the same footer index.html does, and a component with one user can live in that page's <style>`);
+for (const page of footerPages) {
+  const html = read(page);
+  check(!/\.home-footer\s*\{/.test(html) && !/\.home-footer-line\s*\{/.test(html),
+    `${page} does not re-declare .home-footer or .home-footer-line — one definition of each`,
+    () => `${page} carries its own copy of a rule shared.css owns, and its <style> is linked after shared.css so it wins the cascade`);
+  const marks = [...html.matchAll(/<img\b[^>]*class="(gh-[a-z]+)"/g)];
+  /* ONE mark is the defect, zero is not. The swap rules hide exactly one per
+   * theme, so a page carrying a single mark renders a logo that vanishes into
+   * whichever theme shows it — and four pages genuinely have no mark at all,
+   * which shared.css's own comment records. A "both or neither" assertion got
+   * that backwards and failed four correct pages. */
+  check(marks.length !== 1, `${page} does not carry exactly one GitHub mark`,
+    () => `${page} carries only ${marks[0][1]} — the theme that shows it is the theme that hides the other one, so this is the logo that disappears into its own background`);
+}
+/* The floor the per-page rule above cannot supply on its own: every page passes
+ * when none of them carries a mark, so "nothing is broken" and "nothing is
+ * there" are the same green. Counted from index.html rather than written down,
+ * which is the same list the swap rules are checked against. */
+const markPages = sitePages.filter((p) => /class="gh-[a-z]+"/.test(read(p)));
+check(markPages.length >= 2 && markPages.includes('today.html'),
+  `the GitHub mark is on ${markPages.length} page(s): ${markPages.join(', ')}`,
+  () => `only ${markPages.join(', ') || 'no page'} carries the mark — index.html and today.html both have a full footer, and dropping one leaves a footer that is not identical to the other`);
+
 /* Which mark survives on a theme: the one the theme's rule does NOT hide. Both
  * rules must exist, or a theme renders both marks side by side — which is the
  * loud failure the page's own comment says is deliberate, so it is a fact worth
- * reading off the file rather than discovering in a browser. */
+ * reading off the file rather than discovering in a browser.
+
+ * Read from shared.css because that is where the two swap rules LIVE. They were
+ * index.html's until today.html shipped a second footer with the mark in it, and
+ * a check that reads a rule out of a file that no longer declares it matches
+ * nothing: `hidden` came back null, "shown" stayed at 2 for both themes, and the
+ * red line it printed was the only evidence anything was wrong. A stylesheet
+ * assertion made of the wrong file's text is the same disease as §3.S — the
+ * answer is in the source, and the file has to be the source. */
 const hiddenBy = (theme) => {
   const re = new RegExp(`\\[data-theme=["']${theme}["']\\][^{]*\\.home-footer-github\\s+\\.(gh-[a-z]+)\\s*\\{\\s*display:\\s*none`, 'm');
-  return (indexHtml.match(re) || [null, null])[1];
+  return (sharedCss.match(re) || [null, null])[1];
 };
 
 /* A LOCAL counter, never the file's `failures`. The summary below used to be

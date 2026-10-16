@@ -172,7 +172,11 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // 16fe543 and the count did not move. It is recorded here rather than left to the
 // commit log because the message below now names WHICH pages are in the table, so
 // the diagnosis is one line of output instead of a re-derivation.
-const EXPECTED_NAV_PAGES = 20;
+// 20 -> 21 when today.html became the first row of 圖鑑, the day index.html gave
+// its content sections away. The bump being VISIBLE is the point: this pin is
+// what turns "a page quietly stopped being mentioned by NAV" into a red line
+// instead of a table of claims that quietly stopped covering it.
+const EXPECTED_NAV_PAGES = 21;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

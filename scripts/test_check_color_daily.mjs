@@ -41,7 +41,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // the whole graph rather than the three files that happen to be mutated. Listing
 // dependencies by hand is how a test harness starts failing with ERR_MODULE_NOT_FOUND
 // the next time someone adds an import.
-const SRC = ['assets/data/pokemon_data.json', 'assets/data/color_palettes.json', 'index.html', 'color.html'];
+const SRC = ['assets/data/pokemon_data.json', 'assets/data/color_palettes.json', 'today.html', 'color.html'];
 const JS_DIR = 'assets/js';
 const CHECKER = 'scripts/check_color_daily.mjs';
 
@@ -207,8 +207,8 @@ const cases = [
     expect: 'redefines DAILY_BUCKETS',
   },
   {
-    name: 'index.html transcribes its own 熱門 list, so 今日推薦 can feature an unlisted Pokémon',
-    mutate: (f, s) => f.endsWith('index.html')
+    name: 'today.html transcribes its own 熱門 list, so 今日推薦 can feature an unlisted Pokémon',
+    mutate: (f, s) => f.endsWith('today.html')
       ? s.replace('const POPULAR_IDS = DAILY_POPULAR_IDS;', 'const POPULAR_IDS = [1, 2, 3];')
       : undefined,
     expect: 'keeps its own 熱門 id list',

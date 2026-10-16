@@ -53,7 +53,7 @@ const check = (cond, ok, bad) => (cond ? pass(ok) : fail(bad));
 
 const pokemon = json('assets/data/pokemon_data.json');
 const palettes = json('assets/data/color_palettes.json');
-const indexHtml = read('index.html');
+const todayHtml = read('today.html');
 const colorHtml = read('color.html');
 
 /** Days exercised. 10 years — long enough that a rare bucket cannot hide. */
@@ -173,7 +173,7 @@ const today = pickDailyPokemon(pokemon);
 console.log(`       today (${taipeiDateKey(new Date())}) draws #${today.id} ${today.names.zh}`);
 
 console.log('\n--- the two pages feature the SAME Pokémon ---');
-// The homepage card advertises the colour page. An earlier version gave each page
+// The 今日推薦 card advertises the colour page. An earlier version gave each page
 // its own seed prefix and the two agreed on only 1.9% of days, so a reader who
 // saw 今日推薦 = 班基拉斯 was shown 厄鬼椪 with nothing explaining the switch.
 //
@@ -182,7 +182,7 @@ console.log('\n--- the two pages feature the SAME Pokémon ---');
 // twice would be circular — it would agree with itself while both pages diverged,
 // which is precisely the bug being guarded.
 const CALL_SITES = Object.fromEntries(
-  [['index.html', indexHtml], ['color.html', colorHtml]].map(([name, html]) => {
+  [['today.html', todayHtml], ['color.html', colorHtml]].map(([name, html]) => {
     const at = html.indexOf('pickDailyPokemon(');
     if (at < 0) return [name, null];
     let depth = 0;
@@ -218,7 +218,7 @@ let firstDivergence = null;
 for (let i = 0; i < DAYS; i++) {
   clock = day(i);
   ctx.now = clock;
-  const a = callPage(CALL_SITES['index.html']);
+  const a = callPage(CALL_SITES['today.html']);
   const b = callPage(CALL_SITES['color.html']);
   if (a !== b) {
     diverged++;
@@ -241,7 +241,7 @@ check(
 );
 
 console.log('\n--- one implementation, two callers ---');
-for (const [name, html] of [['index.html', indexHtml], ['color.html', colorHtml]]) {
+for (const [name, html] of [['today.html', todayHtml], ['color.html', colorHtml]]) {
   check(
     /from ['"]\.\/assets\/js\/daily-pick\.js['"]/.test(html),
     `${name} imports the shared draw from assets/js/daily-pick.js`,
@@ -259,17 +259,17 @@ for (const [name, html] of [['index.html', indexHtml], ['color.html', colorHtml]
   );
 }
 check(
-  /POPULAR_IDS as DAILY_POPULAR_IDS/.test(indexHtml),
-  'index.html reuses daily-pick.js POPULAR_IDS for the 熱門 grid',
-  'index.html no longer imports the shared 熱門 list, so the two can disagree',
+  /POPULAR_IDS as DAILY_POPULAR_IDS/.test(todayHtml),
+  'today.html reuses daily-pick.js POPULAR_IDS for the 熱門 grid',
+  'today.html no longer imports the shared 熱門 list, so the two can disagree',
 );
 // The import alone is not enough: `const POPULAR_IDS = [1, 2, 3]` next to the
 // import shadows it silently, and the grid would render three cards while the
 // daily draw still featured the module's ten.
 check(
-  !/const POPULAR_IDS\s*=\s*\[/.test(indexHtml),
-  'index.html declares no second copy of the 熱門 id list',
-  'index.html keeps its own 熱門 id list, so 今日推薦 can feature a Pokémon the grid below never shows',
+  !/const POPULAR_IDS\s*=\s*\[/.test(todayHtml),
+  'today.html declares no second copy of the 熱門 id list',
+  'today.html keeps its own 熱門 id list, so 今日推薦 can feature a Pokémon the grid below never shows',
 );
 
 console.log('\n--- color.html: the fallback fires only for an absent id ---');
@@ -294,9 +294,9 @@ check(
   "color.html passes a per-page stream/seed to pickDailyPokemon, so it can feature a different Pokémon than the homepage's 今日推薦",
 );
 check(
-  !/pickDailyPokemon\([^)]*\bstream\b/.test(indexHtml) && !/pickDailyPokemon\([^)]*\bseed\b/.test(indexHtml),
-  "index.html asks for the day's pick with no per-page seed or stream override",
-  "index.html passes a per-page stream/seed to pickDailyPokemon, so it can feature a different Pokémon than the colour page's default",
+  !/pickDailyPokemon\([^)]*\bstream\b/.test(todayHtml) && !/pickDailyPokemon\([^)]*\bseed\b/.test(todayHtml),
+  "today.html asks for the day's pick with no per-page seed or stream override",
+  "today.html passes a per-page stream/seed to pickDailyPokemon, so it can feature a different Pokémon than the colour page's default",
 );
 check(
   /<div class="cp-empty"><p>找不到這個寶可夢。<\/p>/.test(colorHtml),

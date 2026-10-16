@@ -425,9 +425,9 @@ ok(
 );
 
 // ---------------------------------------------------------------------------
-// The homepage's 精選系列 grid.
+// today.html's 精選系列 grid.
 //
-// These nine `.home-link-card[data-cat]` cards are the ONLY place a category's
+// These nine `.today-link-card[data-cat]` cards are the ONLY place a category's
 // member count is shown as static markup — the COLLECTION_TINTS loop tints a card
 // by slug but never writes its number, so a count here is a hand-typed copy of
 // whatever `members()` returned the day the card was written. Four of them had
@@ -435,9 +435,12 @@ ok(
 // vs 22) behind a 敬請期待 badge that no longer had anything to do with the number
 // being wrong. Comparing each against the live selector is the whole guard.
 // ---------------------------------------------------------------------------
-console.log('\n首頁精選系列 cards: links + counts');
+console.log('\n今日推薦 · 精選系列 cards: links + counts');
 
-const indexHtmlRaw = readFileSync(join(ROOT, 'index.html'), 'utf8');
+// Read from today.html: index.html gave its content sections to that page and
+// kept only the hero and the feature grid, so the 精選系列 grid and the 熱門搜尋
+// tags the NON_HUB_SLUGS check below looks for are both there now.
+const indexHtmlRaw = readFileSync(join(ROOT, 'today.html'), 'utf8');
 // Strip what a reader never sees before matching on markup. This is not
 // tidiness: the CSS comment above `.home-link-badge` and the markup comment above
 // the first card both *quote* `<span class="home-link-card is-planned">`, and a
@@ -448,13 +451,13 @@ const indexHtml = indexHtmlRaw
   .replace(/<style\b[\s\S]*?<\/style>/gi, '')
   .replace(/<script\b[\s\S]*?<\/script>/gi, '');
 // Card blocks, whole: tag name, extra classes, remaining attributes, body.
-const homeCards = [...indexHtml.matchAll(/<(a|span) class="home-link-card([^"]*)"([^>]*)>([\s\S]*?)<\/\1>/g)];
-ok(homeCards.length > 0, 'no .home-link-card blocks matched in index.html — the markup shape changed');
+const homeCards = [...indexHtml.matchAll(/<(a|span) class="today-link-card([^"]*)"([^>]*)>([\s\S]*?)<\/\1>/g)];
+ok(homeCards.length > 0, 'no .today-link-card blocks matched in today.html — the markup shape changed');
 
 const homeCatCards = homeCards
   .map((m) => {
     const slug = m[3].match(/data-cat="([^"]+)"/)?.[1] ?? null;
-    const num = m[4].match(/class="home-link-num">([^<]+)</)?.[1] ?? null;
+    const num = m[4].match(/class="today-link-num">([^<]+)</)?.[1] ?? null;
     return { tag: m[1], planned: /\bis-planned\b/.test(m[2]), slug, num, body: m[4], href: m[3].match(/href="([^"]+)"/)?.[1] ?? null };
   })
   .filter((c) => c.slug);

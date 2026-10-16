@@ -298,9 +298,9 @@ const cases = [
      * one" was false and each theme displayed the mark that vanishes into it —
      * white on #f3f5fa and black on #0b1020, both under 1.2:1. */
     name: "the mark's two swap rules are wired to each other, so both themes show the invisible mark",
-    mutate: (f, s) => f === 'index.html'
+    mutate: (f, s) => f === SHARED_CSS
       ? s.replace(".home-footer-github .gh-black { display: none; }", ".home-footer-github .gh-white { display: none; }")
-        .replace(".home-footer-github .gh-white { display: none; }\n", ".home-footer-github .gh-white { display: none; }\n    [data-theme='light'] .home-footer-github .gh-black { display: none; }\n")
+        .replace(".home-footer-github .gh-white { display: none; }\n", ".home-footer-github .gh-white { display: none; }\n[data-theme='light'] .home-footer-github .gh-black { display: none; }\n")
       : undefined,
     expect: 'the mark shown on each theme is visible against that theme',
   },
@@ -325,8 +325,8 @@ const cases = [
   },
   {
     name: "one theme's swap rule is deleted, so both marks render side by side",
-    mutate: (f, s) => f === 'index.html'
-      ? s.replace("    [data-theme='light'] .home-footer-github .gh-white { display: none; }\n", '')
+    mutate: (f, s) => f === SHARED_CSS
+      ? s.replace("[data-theme='light'] .home-footer-github .gh-white { display: none; }\n", '')
       : undefined,
     expect: 'BOTH marks render',
   },
@@ -340,11 +340,23 @@ const cases = [
   {
     /* M5b, which was green until it was added to the checker. A second copy of a
      * shared rule wins on stylesheet order alone until the day it does not. */
-    name: 'index.html re-declares .home-footer-line, so two definitions exist and only the cascade decides',
-    mutate: (f, s) => f === 'index.html'
-      ? s.replace('    .home-footer-title {', '    .home-footer-line { text-align: left; }\n    .home-footer-title {')
+    name: 'today.html re-declares .home-footer-line, so two definitions exist and only the cascade decides',
+    mutate: (f, s) => f === 'today.html'
+      ? s.replace('    .today-section {', '    .home-footer-line { text-align: left; }\n    .today-section {')
       : undefined,
-    expect: 'index.html does not re-declare .home-footer-line either',
+    expect: 'today.html does not re-declare .home-footer or .home-footer-line',
+  },
+  {
+    /* The one-mark defect, which is NOT the same as the zero-mark case four
+     * other footers are in: the swap rules hide exactly one per theme, so a
+     * page carrying a single mark renders the logo that disappears into its own
+     * background. today.html is where the mutation goes because index.html is
+     * no longer the only footer that could carry it. */
+    name: 'today.html loses one of its two GitHub marks, so one theme shows a logo that vanishes into itself',
+    mutate: (f, s) => f === 'today.html'
+      ? s.replace('<img class="gh-black" src="assets/images/github-invertocat-black.svg" alt="" width="24" height="24">', '')
+      : undefined,
+    expect: 'today.html does not carry exactly one GitHub mark',
   },
   {
     /* The path's fill, not the clipPath's `<rect fill="white">`: a naive first-

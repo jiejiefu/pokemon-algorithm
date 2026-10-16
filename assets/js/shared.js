@@ -740,10 +740,17 @@ export const NAV = [
     // has a header identical to collections.html, so it needs a row either way.
     // 色彩's three pages each have a row for the same reason; none of them ride
     // along on a group.
-    pages: ['pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],
+    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],
     groups: [
       {
         items: [
+          // FIRST because it is the entry point the homepage now points at, and
+          // a nav whose first row is not where the reader was sent is a nav they
+          // have to read before they can use. It carries no `pages` of its own —
+          // `href: 'today.html'` is already an exact match for navRowHtml's
+          // first term, and a second copy of the same answer is a second place
+          // for it to be wrong.
+          { href: 'today.html', label: '今日推薦', desc: '每天抽一隻，附熱門與分類清單' },
           { href: 'pokedex.html', label: '所有寶可夢', desc: '完整 1025 隻全國圖鑑' },
           { href: 'generations.html', label: '按世代', desc: '第 1 到第 9 世代對照表' },
           // `pages` on a ROW, not a category.html row of its own: category.html?cat=

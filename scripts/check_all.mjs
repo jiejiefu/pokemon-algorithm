@@ -670,7 +670,7 @@ const CHECKERS = [
   {
     script: 'scripts/check_color_daily.mjs', group: 'color',
     inputs: [
-      'color.html', 'index.html',
+      'color.html', 'today.html',
       'assets/data/color_palettes.json',
       'assets/data/pokemon_data.json',
       'assets/js/categories.js',
@@ -685,7 +685,7 @@ const CHECKERS = [
     script: 'scripts/test_check_color_daily.mjs', checker: 'scripts/check_color_daily.mjs', group: 'color',
     note: 'runs the above in child trees',
     inputs: [
-      'color.html', 'index.html',
+      'color.html', 'today.html',
       'assets/data/color_palettes.json',
       'assets/data/pokemon_data.json',
       'assets/js/*',
@@ -816,7 +816,7 @@ const CHECKERS = [
   {
     script: 'scripts/check_categories.mjs', group: 'nav',
     inputs: [
-      'category.html', 'index.html',
+      'category.html', 'today.html',
       'assets/css/shared.css',
       'assets/data/evolution_chains.json',
       'assets/data/generations.json',
