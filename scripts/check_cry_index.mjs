@@ -187,15 +187,66 @@ const frontend = [
    failure rather than a stack trace. */
 ok(frontend.length >= 3, `the frontend scan found files to check (found ${frontend.length})`);
 ok(frontend.includes('detail.html'), 'the frontend scan reached detail.html');
-const remote = frontend.filter((f) =>
-  /raw\.githubusercontent\.com\/PokeAPI\/cries/.test(readFileSync(join(root, f), 'utf8')));
+
+/* COMMENTS ARE NOT CODE, and scanning raw text reads a comment as a use.
+ *
+ * This is the same false positive `check_color_page.mjs` found in its own
+ * stylesheet scan and §3.S recorded for it: a file that EXPLAINS a rule in prose
+ * that names the rule's shape gets reported for breaking it. `check_page_module_api.mjs`
+ * masks for the same reason — and there the difference was only that the false
+ * positive appeared in the checker written to catch the real thing.
+ *
+ * Here it was a false positive in the other direction, and a real one:
+ * `cry-game-similarity.js` documents what its `legacy` flag selects as
+ * "`false` = `assets/cries/latest/`, `true` = `legacy/`", and one line of
+ * explanatory prose was reported as a hand-built cry path. The module builds no
+ * URL at all. `cry-index.js` carries the same string twice in comments in its
+ * generated header, and survives only because it is the one file the scan excludes.
+ *
+ * So: strip HTML `<!-- -->`, CSS/JS `/* … *\/`, and JS `// …` before both scans
+ * below. Not for one of them — the remote-host scan has the identical exposure and
+ * would have been the next false positive, on a comment explaining the migration.
+ */
+const stripComments = (file, src) => (file.endsWith('.html')
+  ? src.replace(/<!--[\s\S]*?-->/g, ' ')
+  : src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^[ \t]*\/\/.*$/gm, ' '));
+
+const remote = frontend.filter((f) => /raw\.githubusercontent\.com\/PokeAPI\/cries/.test(
+  stripComments(f, readFileSync(join(root, f), 'utf8'))));
 eq(remote, [], 'frontend files still pointing at the remote cry host');
 
 /* 9. And no page may hand-assemble the path: the prefix exists in one generated
    module, and a literal `assets/cries/` outside it is a URL that will drift. */
 const handBuilt = frontend.filter((f) => f !== 'assets/js/cry-index.js'
-  && /assets\/cries\/(latest|legacy)\//.test(readFileSync(join(root, f), 'utf8')));
+  && /assets\/cries\/(latest|legacy)\//.test(stripComments(f, readFileSync(join(root, f), 'utf8'))));
 eq(handBuilt, [], 'frontend files that hand-build a cry path instead of using cryUrl()');
+
+/* THE FLOOR, and this is the half that makes the two assertions above non-vacuous.
+ *
+ * Masking comments is a new way for this file to be green over nothing: a `strip`
+ * that over-matched — one that ate string literals, or that a stray `/` in a
+ * regex turned into an unterminated block that swallowed the rest of the file —
+ * would erase every real occurrence and report a clean scan. That is §3.B2's shape
+ * exactly, and it is the reason the comment in `check_tmp_prefixes.mjs` about "the
+ * scan must have found something" exists at all.
+ *
+ * So the masker is measured against a file where the answer is known and is the
+ * OPPOSITE of the case that motivated it: `cry-index.js` is excluded from the scan
+ * precisely because it is the one file allowed to hold the literal, and it holds it
+ * in CODE — `CRY_PATH_PREFIX` and `LEGACY_CRY_PATH_PREFIX` are string literals, not
+ * comments. If masking ate those, the masker is too greedy and the floor says so.
+ */
+const cryIndexCode = stripComments('assets/js/cry-index.js', readFileSync(join(root, 'assets/js/cry-index.js'), 'utf8'));
+ok(/assets\/cries\/latest\//.test(cryIndexCode) && /assets\/cries\/legacy\//.test(cryIndexCode),
+  'the comment mask keeps the two CRY_PATH_PREFIX literals that are real code in cry-index.js, so it is not eating string literals');
+/* And it removes the header's two comment copies of the same string, which is the
+   behaviour it was added for. Without this the mask could be a no-op and the floor
+   above would still pass — the two assertions prove the mask removes comments and
+   keeps code, which together are the only claim being made. */
+ok(!/\/\/ Source of truth: the filenames present in/.test(cryIndexCode),
+  'and it does remove cry-index.js\'s own commented copy, so the mask is doing the work it claims');
 
 /* 10. Page wiring. A correct roster that no page consults still fetches nothing,
    so the consumer is asserted too. */
