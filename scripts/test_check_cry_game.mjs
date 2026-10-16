@@ -458,7 +458,7 @@ function ok(name, pass, detail = '') {
 }
 
 function makeTree() {
-  const dir = mkdtempSync(join(tmpdir(), 'cgpage-neg-'));
+  const dir = mkdtempSync(join(tmpdir(), 'crygame-neg-'));
   for (const rel of SRC) {
     const dest = join(dir, rel);
     mkdirSync(dirname(dest), { recursive: true });

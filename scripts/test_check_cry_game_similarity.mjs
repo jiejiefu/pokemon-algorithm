@@ -504,7 +504,7 @@ function ok(name, pass, detail = '') {
 }
 
 function makeTree() {
-  const dir = mkdtempSync(join(tmpdir(), 'cg-sim-neg-'));
+  const dir = mkdtempSync(join(tmpdir(), 'crygamesim-neg-'));
   for (const rel of SRC) {
     const dest = join(dir, rel);
     mkdirSync(dirname(dest), { recursive: true });
