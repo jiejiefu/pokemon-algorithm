@@ -7,8 +7,8 @@ but unbuilt renders as a non-focusable `<span>` carrying a
 control that does nothing when activated is worse than a non-focusable one
 (AGENTS.md gotcha 37).
 
-**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 16 entries
-are registered there and **all 16 are missing as files**; the `data` field
+**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 15 entries
+are registered there and **all 15 are missing as files**; the `data` field
 records whether the site's own data would already support the page, and the
 `why` field carries the specific gap. This file is the human-readable
 companion — do not treat it as authoritative, and if the two disagree, the
@@ -21,6 +21,15 @@ its gap read 「缺瀏覽頁」, which is the page that now exists. Both were co
 and the count stayed where it was. A companion table whose whole job is to mirror
 an array has to be checked against it rather than
 read; nothing in the suite reads this file.
+
+`color-game.html` was then removed from both — on the user's instruction, at the
+same commit that renamed the page to 顏色猜謎. The array means "linked or
+advertised but not built", and this slug was the only one of the sixteen that was
+built: its `why` had gone stale the same commit, claiming 「色帶已足夠作答，缺出題、
+計分與難度」 for three gaps the page closed at once. **The count is 15 and all 15
+really are absent as files** — re-checked with a loop over the slugs rather than
+trusted, because that sentence is the table's one load-bearing numeric claim and
+nothing in the suite reads this file to keep it honest.
 
 | Slug | 標題 | Data | Gap |
 |---|---|---|---|
@@ -39,7 +48,6 @@ read; nothing in the suite reads this file.
 | `about.html` | 關於我們 | present | 頁尾連結 |
 | `privacy.html` | 隱私權政策 | present | 頁尾連結 |
 | `sitemap.html` | Sitemap | present | 頁尾連結 |
-| `color-game.html` | 猜謎遊戲 | present | 色帶已足夠作答，缺出題、計分與難度 |
 
 Three of these — `about.html`, `privacy.html`, `sitemap.html` — exist in
 InfoPoke's footer and **are not transcribed into our footer**: a static site

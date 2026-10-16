@@ -821,13 +821,16 @@ export const NAV = [
           { href: 'colors-explore.html', label: '探索色盤', desc: '1025 隻 × 一般/異色的色帶' },
           { href: 'colors-generator.html', label: '色彩生成器', desc: '輸入一個顏色，找出最接近的寶可夢' },
           { href: 'color.html', label: '單一寶可夢色盤', desc: '一隻寶可夢的 6 色色盤與 11 階色階' },
-          // Was 配色遊戲, which named the MECHANISM (matching a colour) rather than
-          // the thing a reader is asked to do. 猜謎遊戲 names the latter, and the
-          // `desc` already described it that way — 看色帶猜是哪一隻. It sat under
-          // 計劃中 with `planned: 'color-game.html'` until the page existed, and
-          // `planned` renders as a <span> with 敬請期待, never an <a> (see NAV).
-          // Moving it up here is what makes it reachable at all.
-          { href: 'color-game.html', label: '猜謎遊戲', desc: '看色帶猜是哪一隻' },
+          // Three names in three commits: 配色遊戲 (the MECHANISM — matching a
+          // colour), 猜謎遊戲 (the THING the reader is asked to do, but bare
+          // 「猜謎」 is ambiguous the moment 叫聲猜謎 shipped), and 顏色猜謎 —
+          // which keeps the second win AND makes the pair readable in one glance.
+          // The `desc` has always said the same thing the title now says: 看色帶猜
+          // 是哪一隻. It sat under 計劃中 with `planned: 'color-game.html'` until
+          // the page existed, and `planned` renders as a <span> with 敬請期待,
+          // never an <a> (see NAV). Moving it up here is what makes it reachable
+          // at all.
+          { href: 'color-game.html', label: '顏色猜謎', desc: '看色帶猜是哪一隻' },
           { href: 'outfit.html', label: '寶可夢穿搭', desc: '上傳穿搭照片，算出 6 色並比對是哪一隻' },
         ],
       },
@@ -839,7 +842,7 @@ export const NAV = [
     icon: 'waveform',
     // cry-game.html is FOURTH, not first. The three reporting pages answer
     // 「這隻叫聲是什麼」 and the game asks 「這是誰」, so it reads the same way
-    // 猜謎遊戲 sits fourth in 色彩 — after explore / generator / color. And it
+    // 顏色猜謎 sits fourth in 色彩 — after explore / generator / color. And it
     // MUST be in `pages` as well as in `items`: a child page whose header is
     // identical to its parent's cannot be told apart by href, and the one rule
     // is "aria-current goes on the exact row".
@@ -850,9 +853,13 @@ export const NAV = [
           { href: 'cries.html', label: '叫聲總覽', desc: '1025 隻的音色特徵與相似搜尋' },
           { href: 'spectrum.html', label: '叫聲頻譜', desc: 'mel 頻譜圖與即時能量分布' },
           { href: 'cries-gen1.html', label: '第一世代叫聲實驗室', desc: '38 個 base cry 的 APU 合成' },
-          // 叫聲猜謎 names the THING rather than the mechanism, for the same
-          // reason 猜謎遊戲 does: 「叫聲辨識」 would name the technique, and the
-          // desc already says what the reader is asked to do.
+          // 叫聲猜謎 names the THING rather than the mechanism — 「叫聲辨識」 would
+          // name the technique, and the desc already says what the reader is asked
+          // to do — and it is a MATCHED PAIR with 顏色猜謎 above: four characters,
+          // one shared suffix, differing only in the medium. That parallel is the
+          // reason the colour game was renamed off the bare 猜謎遊戲, and it is
+          // the part a third game page (or a rename of either one) breaks
+          // silently: nothing renders wrong, the nav just stops reading as a set.
           { href: 'cry-game.html', label: '叫聲猜謎', desc: '聽叫聲猜是哪一隻' },
         ],
       },
@@ -918,7 +925,15 @@ export const PLANNED_PAGES = [
   { slug: 'about.html', title: '關於我們', why: '頁尾連結', data: 'present' },
   { slug: 'privacy.html', title: '隱私權政策', why: '頁尾連結', data: 'present' },
   { slug: 'sitemap.html', title: 'Sitemap', why: '頁尾連結', data: 'present' },
-  { slug: 'color-game.html', title: '猜謎遊戲', why: '色帶已足夠作答，缺的是出題、計分與難度', data: 'present' },
+  // `color-game.html` WAS here, as 猜謎遊戲, and was removed rather than renamed
+  // when the page shipped — because this table means "linked or advertised but
+  // not built", and it was the only one of its 16 that was built. Its `why` had
+  // gone stale the same commit: 「色帶已足夠作答，缺出題、計分與難度」 names three
+  // gaps the page closed at once. A live slug in this array is a broken promise in
+  // the one direction that has a reader: the array is the source of truth for
+  // docs/missing-pages.md, and nothing renders from it (collections.html reads
+  // COLLECTION_GROUPS), so a stale row is invisible until someone reads the doc.
+  // The page's own name now lives in NAV's 色彩 group — see the 顏色猜謎 row.
 ];
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
