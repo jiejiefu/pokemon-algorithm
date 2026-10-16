@@ -22,7 +22,7 @@
 | `detail.html` | 物種詳情頁：三欄英雄區塊、Canvas 雷達圖、雙屬性矩陣、進化鏈及 4 個招式標籤頁。 |
 | `color.html` | 單種寶可夢的專屬配色：支援 `?slug=` 參數、色階尺度展示與主題導出功能。 |
 | `colors-generator.html` | 逆向色彩生成器：輸入任意 Hex 顏色，透過 OKLab 演算法找出最接近的寶可夢，並自動生成調色板。 |
-| `color-game.html` | 每日／無限色盤猜謎遊戲：涵蓋全 1,025 隻的實測色盤。三種難度、三格固定提示、OKLab 計分。 |
+| `color-game.html` | 顏色猜謎：每日／無限的色盤猜謎，涵蓋全 1,025 隻的實測色盤。三種難度、三格固定提示、OKLab 計分。 |
 | `colors-explore.html` | 收錄全部 1,025 個寶可夢調色板，支援無限捲動與 URL 篩選。 |
 | `sorting.html` | 在 1,025 個 Sprite 畫布上展示 6 種排序演算法，並提供 2 至 6 車道競速模式。 |
 | `maze.html` | BFS / DFS 路徑尋找視覺化，具備 40×40 網格與種子可控（Seedable RNG）隨機地圖。 |

@@ -283,7 +283,7 @@ const CHECKERS = [
     ],
   },
   {
-    /* 猜謎遊戲的出題與計分。兩個純函式模組在裸 Node 裡跑得完，所以這個檢查器
+    /* 顏色猜謎的出題與計分。兩個純函式模組在裸 Node 裡跑得完，所以這個檢查器
      * 不需要瀏覽器——那正是它們被拆出去的直接原因（game-similarity.js 的檔頭）。
      * 整個 `assets/js` 是 glob，因為兩個模組都 import 到 shared.js /
      * color-match.js / daily-pick.js 的鏈。 */

@@ -679,7 +679,7 @@ function shareText() {
     : state.guesses.length;
   const mark = state.status === 'won' ? `${attempted}/${state.mode === 'daily' ? MAX_ATTEMPTS : attempted}` : 'X';
   const variant = state.target.variant === 's' ? ' · 異色' : '';
-  const head = `寶可夢演算法 猜謎${variant} · ${DIFFICULTY_LABELS[state.difficulty]} · ${mark}`;
+  const head = `寶可夢演算法 顏色猜謎${variant} · ${DIFFICULTY_LABELS[state.difficulty]} · ${mark}`;
   const hints = state.hintsShown.length ? `（${state.hintsShown.length} 則提示）` : '';
   const legend = '圖例：🟩 接近 · 🟨 普通 · 🟧 偏遠 · 🟥 差很遠';
   const blank = (state.mode === 'daily' ? MAX_ATTEMPTS : attempted) - attempted;
