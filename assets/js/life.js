@@ -155,8 +155,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     // failed fetch would silently flatten all 489 distinct thresholds to one.
     evolutionLevels = levelRes;
 
-    // Default to Generation 1 with Bulbasaur
-    setupGeneration(1, 1, true);
+    /* Default to Generation 1 with Bulbasaur — or to what this reader last chose.
+     *
+     *  `setupGeneration()` REMEMBERS what it is handed (see `rememberSetup()`), so
+     *  seeding unconditionally wrote `{gen:1}` over the stored choice before the
+     *  modal below ever read it: the remembered default was unreachable by
+     *  construction, and the board behind the modal was always Gen 1 no matter what
+     *  the reader had last played. Measured with a stored `{gen:4}` — the modal came
+     *  back on 第 1 世代.
+     *
+     *  Read once and used for both, so the board and the modal cannot disagree:
+     *  a reader whose last board was Gen 4 lands on a Gen 4 board with the Gen 4 tab
+     *  already marked, and confirming is one click rather than a re-pick. The starter
+     *  is validated against the chosen generation below rather than trusted, because a
+     *  remembered 鳳王 carried into a generation without one would select nothing. */
+    const remembered = readRememberedSetup();
+    const bootGen = remembered?.gen ?? 1;
+    const bootStarters = generationsData.find(g => g.gen === bootGen)?.starters ?? [];
+    const bootStarter = remembered?.starter && bootStarters.includes(remembered.starter)
+      ? remembered.starter : bootStarters[0] ?? 1;
+    setupGeneration(bootGen, bootStarter, true,
+      remembered?.letsGo && supportsLetsGo(bootGen) ? 'letsGo' : '');
 
     // Initial canvas sizing
     resizeCanvas();
@@ -171,7 +190,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       els.loadingOverlay.style.display = 'none';
     }
 
-    // Show initial generation setup modal on first launch if not configured
+    /* Show the generation setup modal on boot. It used to carry 「on first launch if
+       not configured」 and there was no "if not configured" — nothing on this page is
+       persisted except the theme, so there is no configured state to test for, and
+       `engine` is null until a generation is chosen. It opens on every load because
+       it has to; what is remembered is the CHOICE, which `openSetupModal()` reads
+       back as the modal's default. See `readRememberedSetup()` for why the other two
+       answers — ask once ever, ask once a day — are both a dead page. */
     openSetupModal();
   } catch (err) {
     console.error('Failed to initialize Pokémon Life Game:', err);
@@ -294,6 +319,14 @@ function setupGeneration(gen, starterId, isRandomSeed = true, mode = '') {
     `括號內為當前盤面最常見的實際進化等級。`;
   if (els.stageLevel1 && els.stageLevel1.parentElement) els.stageLevel1.parentElement.title = legendNote;
   if (els.stageLevel2 && els.stageLevel2.parentElement) els.stageLevel2.parentElement.title = legendNote;
+
+  /* Remember the choice, HERE and not in the submit handler, because this is the
+     only function that decides what a board actually IS. The handler could be
+     reached by a path that never reaches this — the stored value would then describe
+     a board the reader never got. Written after `setMode`, so what is stored is the
+     mode the ENGINE accepted rather than the one the modal believed it was sending;
+     those differ whenever the generation cannot express it. */
+  rememberSetup(gen, starterId, mode);
 
   // Center camera
   centerCamera();
@@ -1201,9 +1234,108 @@ let modalSelectedGen = 1;
 let modalSelectedStarterId = 1;
 let modalLetsGoMode = false;
 
+/** The generation and mode this reader last confirmed, or null.
+ *
+ *  WHY THIS EXISTS. The comment beside the init call used to read 「Show initial
+ *  generation setup modal on first launch **if not configured**」 and there was no
+ *  "if not configured" — `openSetupModal()` ran unconditionally, so every reload
+ *  asked again. The obvious fixes are all worse than the problem:
+ *
+ *    - only ever ask once → the page is DEAD. Nothing here is persisted except the
+ *      theme, so `currentMetadata` and `engine` are both null on a fresh load and
+ *      every consumer guards for that (`if (!currentMetadata …)`, `currentMetadata?…`).
+ *      Suppressing the modal would be suppressing the only way the page becomes
+ *      functional. It is a setup gate wearing a nag's clothes.
+ *    - ask once a day → the same dead page on day two, plus an invented boundary. A
+ *      daily cut-off is also the exact shape §3.W removed from `PLANNED_PAGES`: a
+ *      row that reads like the truth while describing nothing.
+ *
+ *  So the question is not "should we ask" but "should we make the reader re-decide".
+ *  The answer is no: the modal still opens every load, and the last choice arrives as
+ *  its DEFAULT, so confirming is one click instead of a re-pick. That is strictly
+ *  better than either alternative — no dead page, no invented cadence, and a reader
+ *  who wants a different generation still gets the nine tabs.
+ *
+ *  Only the CHOICE is stored, never the board. A Conway board is the one thing here
+ *  that genuinely cannot be recalled, and pretending otherwise would be worse than
+ *  re-asking.
+ *
+ *  `pokemon-life:setup` matches `pokemon-colorgame:` and `pokemon-crygame:` — the
+ *  page-scoped prefixes, not `pokemon-algorithm:` which is for site-wide preferences
+ *  such as the cry volume.
+ */
+const SETUP_KEY = 'pokemon-life:setup';
+
+/** Can this generation carry the Let's Go mode at all?
+ *
+ *  One helper because the rule now lives in two places — the boot seed and
+ *  `renderSetupStarters()` — and a rule written twice is a rule that can disagree.
+ *  It did: the modal's renderer cleared `modalLetsGoMode` for a generation without
+ *  the switch, while the seed below still handed `letsGo` to `setupGeneration()`,
+ *  and a stored `{gen:4, letsGo:true}` produced a Gen 4 board drawing 18 types.
+ *  That value is reachable — a hand-edited or older stored one — and it failed
+ *  silently, since the only symptom is a type drawer with two extra rows.
+ *
+ *  Keyed off `letsGoStarters` rather than `gen === 1` because that is the field
+ *  the starter list actually reads, so the two cannot drift. */
+const supportsLetsGo = (gen) => !!generationsData.find((g) => g.gen === gen)?.letsGoStarters?.length;
+
+const readRememberedSetup = () => {
+  try {
+    const raw = localStorage.getItem(SETUP_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    /* Validated rather than trusted: a stale or hand-edited value must not be able
+       to reach `modalSelectedGen`, where `renderSetupGenTabs()` compares it against
+       1..9 and would simply select nothing — a modal that opens with no tab marked
+       and a board the reader has to re-pick anyway. Same reason cry-player.js
+       validates what it reads back out of storage.
+       `starter` is validated by the CALLER, against the generation's own list: a
+       remembered 鳳王 cannot exist in a generation that never had one, and the check
+       belongs next to the list it is checked against. */
+    if (!v || typeof v.gen !== 'number' || !Number.isInteger(v.gen) || v.gen < 1 || v.gen > 9) return null;
+    return { gen: v.gen, letsGo: v.letsGo === true, starter: Number.isInteger(v.starter) ? v.starter : null };
+  } catch {
+    /* Private mode, disabled storage, or a corrupt value. The page must still boot:
+       this is a DEFAULT, so the fallback is the initial state, not an error. */
+    return null;
+  }
+};
+
+const rememberSetup = (gen, starterId, mode) => {
+  try {
+    localStorage.setItem(SETUP_KEY, JSON.stringify({ gen, starter: starterId, letsGo: mode === 'letsGo' }));
+  } catch {
+    /* Nothing depends on this having been written. A reader who gets asked again
+       next load is mildly annoyed; a boot that throws is a broken page. */
+  }
+};
+
 function openSetupModal() {
   if (!els.setupModal) return;
-  modalSelectedGen = currentMetadata ? currentMetadata.gen : 1;
+  /* One source of truth, read fresh rather than inferred from `currentMetadata`.
+   *
+   *  Inferring from the live board looks tidier and is wrong: `currentMetadata` is
+   *  non-null on a COLD boot, because the page seeds a board before the modal opens,
+   *  so `currentMetadata.gen` cannot tell "the reader chose this" from "the page
+   *  defaulted to Gen 1" — and those are exactly the two states worth distinguishing.
+   *  `setupGeneration()` remembers whatever it is handed, so the stored value already
+   *  tracks the most recent board no matter which path built it, and a reader who
+   *  changed generation this session has already updated it. There is no case the
+   *  stored value answers wrongly. */
+  const remembered = readRememberedSetup();
+  if (remembered) {
+    modalSelectedGen = remembered.gen;
+    /* Set BEFORE the first render rather than by clicking the radio afterwards: the
+       switch does not exist for eight of the nine generations, so there would be
+       nothing to click. `renderSetupStarters()` clears it again for any generation
+       that cannot express it, so a remembered Let's Go cannot leak onto a Gen 2 board
+       through the seed. */
+    modalLetsGoMode = remembered.letsGo;
+  }
+  const starters = generationsData.find(g => g.gen === modalSelectedGen)?.starters ?? [];
+  modalSelectedStarterId = remembered?.starter && starters.includes(remembered.starter)
+    ? remembered.starter : starters[0] ?? 1;
   renderSetupGenTabs();
   renderSetupStarters(modalSelectedGen);
   els.setupModal.hidden = false;
@@ -1250,7 +1382,7 @@ function renderSetupStarters(gen) {
 
   // For Gen 1, determine which starter list to use based on Let's Go mode
   let starterIds = genDef.starters;
-  if (gen === 1 && modalLetsGoMode && genDef.letsGoStarters) {
+  if (supportsLetsGo(gen) && modalLetsGoMode) {
     starterIds = genDef.letsGoStarters;
   }
   const starters = starterIds.map(id => allPokemon.find(p => p.id === id)).filter(Boolean);
@@ -1269,7 +1401,7 @@ function renderSetupStarters(gen) {
   const titleEl = els.stepStarter;
   if (titleEl) {
     const existingToggle = titleEl.querySelector('.life-lets-go-toggle');
-    if (gen === 1 && genDef.letsGoStarters) {
+    if (supportsLetsGo(gen)) {
       if (!existingToggle) {
         const toggleDiv = document.createElement('div');
         toggleDiv.className = 'life-lets-go-toggle';
@@ -1296,11 +1428,29 @@ function renderSetupStarters(gen) {
           renderSetupStarters(gen);
         });
       });
-    } else if (existingToggle) {
-      // Remove the switch for every other generation. `.life-modal-section-title`
-      // is the class all three steps' titles carry, so this cannot be expressed as
-      // a selector that only ever matches step 2.
-      existingToggle.remove();
+    } else {
+      /* Remove the switch for every other generation. `.life-modal-section-title`
+       * is the class all three steps' titles carry, so this cannot be expressed as
+       * a selector that only ever matches step 2.
+       *
+       *  Optional-chained rather than guarded on the element existing, because the
+       *  next three lines are about the VALUE and have nothing to do with the
+       *  control: a reader who turns on Let's Go on Gen 1, switches to Gen 2 and
+       *  confirms gets a Gen 2 board at the 2018 type era, because the submit
+       *  handler passes `modalLetsGoMode` through unfiltered and `typesOf()` returns
+       *  `LETS_GO_TYPE_ERA` for `this.mode === 'letsGo'` without consulting the
+       *  generation. Pikachu reads 電/幽靈 and every Gen 2 species is drawn from a
+       *  table about a generation that did not exist yet; the type drawer showing 18
+       *  rows on a Gen 2 board is the only symptom.
+       *
+       *  Clearing it in the `else` rather than inside the removal is what makes it
+       *  hold for Gen 2 → Gen 3 as well, where the control is already gone and an
+       *  `else if (existingToggle)` would skip the assignment entirely. It is also
+       *  why the remembered default below cannot simply restore the flag: a
+       *  returning reader arrives with it already true, having never seen the switch
+       *  for the generation they land on. */
+      existingToggle?.remove();
+      modalLetsGoMode = false;
     }
   }
 
