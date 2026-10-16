@@ -272,14 +272,14 @@ console.log(`  ${files.length} files scanned, ${tmpdirRefs} tmpdir() references,
 
 check(
   unclassified.length === 0,
-  '每一個 tmpdir() 參照都被分類（literal / template / nested BASE）',
-  () => `${unclassified.length} 個未分類：\n` + unclassified.map((u) => `         ${u.file}:${u.line}  ${u.text}`).join('\n')
+  'every tmpdir() reference is classified (literal / template / nested BASE)',
+  () => `${unclassified.length} unclassified:\n` + unclassified.map((u) => `         ${u.file}:${u.line}  ${u.text}`).join('\n')
 );
 
 check(
   tmpdirRefs >= MIN_TMPDIR_REFS,
-  `掃描確實有找到東西（${tmpdirRefs} >= ${MIN_TMPDIR_REFS} 個 tmpdir() 參照）`,
-  () => '掃描器可能已經壞掉，而「沒有人未分類」會空洞地通過 —— §3.B2 的形狀'
+  `the scan found something (${tmpdirRefs} >= ${MIN_TMPDIR_REFS} tmpdir() references)`,
+  () => 'the scanner may be broken, and "nothing is unclassified" would then pass vacuously — §3.B2\'s shape'
 );
 
 /* The property. Both directions, because a sweep for A* is one-directional and
@@ -296,8 +296,8 @@ for (const a of prefixes) {
 
 check(
   overlaps.length === 0,
-  '沒有任何一個 prefix 是另一個的前綴（sweep 的 ${prefix}* 因此不會吃掉別人的樹）',
-  () => `${overlaps.length} 對重疊：\n` + overlaps.map((o) => `         \`${o.shorter}\` 是 \`${o.longer}\` 的前綴`).join('\n')
+  'no prefix is a prefix of another, so no `${prefix}*` sweep eats another tool\'s trees',
+  () => `${overlaps.length} overlapping pairs:\n` + overlaps.map((o) => `         \`${o.shorter}\` is a prefix of \`${o.longer}\``).join('\n')
 );
 
 /* Duplicates are not an overlap — two tools may legitimately share a namespace
@@ -308,8 +308,8 @@ const dupes = [...new Set(sites.map((s) => s.prefix).filter((p, _i, arr) => arr.
 
 check(
   dupes.length === 0,
-  '沒有兩個檔案交出同一個 prefix',
-  () => `${dupes.length} 個重複：${dupes.map((d) => `\`${d}\``).join(', ')}`
+  'no two files hand the same prefix',
+  () => `${dupes.length} duplicates: ${dupes.map((d) => `\`${d}\``).join(', ')}`
 );
 
 console.log(`\n  ${prefixes.length} prefixes derived: ${prefixes.map((p) => `\`${p}\``).join(' ')}`);

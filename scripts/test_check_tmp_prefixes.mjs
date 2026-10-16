@@ -95,34 +95,34 @@ const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
 const CASES = [
   {
-    name: '把 cry-game 的 prefix 放回 cgpage- 的命名空間（歷史上真的發生過的那一次）',
+    name: 'a cry-game prefix back inside the cgpage- namespace — the collision that actually shipped',
     mutate: (dir) => {
       edit(dir, 'scripts/test_check_cry_game.mjs',
         "mkdtempSync(join(tmpdir(), 'crygame-neg-'))",
         "mkdtempSync(join(tmpdir(), 'cgpage-neg-'))");
     },
-    expect: '沒有任何一個 prefix 是另一個的前綴',
+    expect: 'no prefix is a prefix of another',
   },
   {
-    name: 'prefix 改成識別字而非字面值，掃描器認不出形狀',
+    name: 'the prefix becomes an identifier instead of a literal, so the scanner cannot read the shape',
     mutate: (dir) => {
       edit(dir, 'scripts/check_spectrum_browser.mjs',
         "mkdtempSync(join(tmpdir(), 'spx-'))",
         'mkdtempSync(join(tmpdir(), SPX_PREFIX))');
     },
-    expect: '每一個 tmpdir() 參照都被分類',
+    expect: 'every tmpdir() reference is classified',
   },
   {
-    name: 'tmpdir() 不再是 join() 的第一個參數',
+    name: 'tmpdir() is no longer the first argument of a join()',
     mutate: (dir) => {
       edit(dir, 'scripts/check_gen1_page.mjs',
         "mkdtempSync(join(tmpdir(), 'cdp-'))",
         "mkdtempSync((tmpdir(), 'cdp-'))");
     },
-    expect: '每一個 tmpdir() 參照都被分類',
+    expect: 'every tmpdir() reference is classified',
   },
   {
-    name: '新增一支用 cgpage（無尾端 hyphen）的 script —— 一個命名空間吃掉另一個',
+    name: 'a new script using cgpage with no trailing hyphen — one namespace swallowing another',
     mutate: (dir) => {
       writeFileSync(join(dir, 'scripts', 'zz_probe.mjs'),
         "import { mkdtempSync } from 'node:fs';\n" +
@@ -130,43 +130,43 @@ const CASES = [
         "import { join } from 'node:path';\n" +
         "mkdtempSync(join(tmpdir(), 'cgpage'));\n");
     },
-    expect: '沒有任何一個 prefix 是另一個的前綴',
+    expect: 'no prefix is a prefix of another',
   },
   {
-    name: '巢狀的 BASE 不再是 tmpdir() BASE，tree- 變成無來源的前綴',
+    name: 'the nested BASE is no longer a tmpdir() BASE, leaving tree- a prefix with no source',
     mutate: (dir) => {
       edit(dir, 'scripts/test_check_spectrogram_port.mjs',
         "const BASE = join(tmpdir(), 'spectrogram-neg');",
         "const BASE = '/tmp/spectrogram-neg';");
     },
-    expect: '每一個 tmpdir() 參照都被分類',
+    expect: 'every tmpdir() reference is classified',
   },
   {
-    name: 'template 的 prefix 變成以 ${} 開頭，沒有可當命名空間的字面頭',
+    name: 'the template prefix starts with ${}, so it has no literal head to be a namespace',
     mutate: (dir) => {
       edit(dir, 'scripts/test_check_color_daily.mjs',
         '`ccd-neg-${Math.random().toString(36).slice(2)}`',
         '`${PFX}neg-`');
     },
-    expect: '每一個 tmpdir() 參照都被分類',
+    expect: 'every tmpdir() reference is classified',
   },
   {
-    name: '兩個檔案交出同一個 prefix（重複不是重疊，但也是要維護的兩個名字）',
+    name: 'two files hand over the same prefix — a duplicate is not an overlap, and still two names to keep',
     mutate: (dir) => {
       edit(dir, 'scripts/test_check_mmcq_anatomy.mjs',
         "mkdtempSync(join(tmpdir(), 'mmcq-neg-'))",
         "mkdtempSync(join(tmpdir(), 'spectrum-neg-'))");
     },
-    expect: '沒有兩個檔案交出同一個 prefix',
+    expect: 'no two files hand the same prefix',
   },
   {
-    name: '掃描器被改窄到只看 check_* —— 只剩 10 個參照，非空洞門檻必須擋下來',
+    name: 'the scanner is narrowed to check_*, leaving 10 of 34 references — only the non-vacuity floor can catch it',
     mutate: (dir) => {
       edit(dir, CHECKER,
         "readdirSync(SCRIPTS).filter((f) => f.endsWith('.mjs')).sort()",
         "readdirSync(SCRIPTS).filter((f) => f.startsWith('check_')).sort()");
     },
-    expect: '掃描確實有找到東西',
+    expect: 'the scan found something',
   },
 ];
 
