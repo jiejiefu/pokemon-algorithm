@@ -170,6 +170,12 @@
     import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
     import { cryPlayer } from './assets/js/cry-player.js';
     import { mountAutoplay } from './assets/js/cry-autoplay.js';
+    /* The 24 cover Pokémon, ids only. This page narrows by them and prints no
+       edition, so it imports `COVER_IDS` rather than the pairs — an edition label
+       nothing renders would be a second field in this page to keep right. The same
+       array backs `spectrum.html`'s quick-pick grid and `colors-generator.html`'s
+       legendary row. */
+    import { COVER_IDS } from './assets/js/cover-roster.js';
 
     initThemeToggle();
     initHeaderNav();
@@ -257,6 +263,15 @@
        * as if the reader had picked a deeper generation. A filter and a scroll
        * position are different quantities; sharing one made both meaningless. */
       gen: 0,
+      /* 封面神獸 is the OTHER independent filter, and it is independent for the
+       * same reason `legacy` is: `legacy` chooses which RECORDING the numbers
+       * describe, `gen` chooses which rows are on screen, and a roster of 24 that
+       * spans all nine generations is a third axis rather than a tenth generation.
+       * So 封面神獸 + 第 3 世代 is 3 rows, and 封面神獸 with no generation is all 24.
+       * It is a separate field rather than a tenth value of `gen` because a single
+       * numeric field cannot hold "gen 3 AND cover", and a filter that cannot
+       * express its own composition has to drop one of the two halves. */
+      covers: false,
       pages: 1,
       probeId: null,
       playingId: null,
@@ -393,16 +408,23 @@
       return v.toLocaleString('zh-TW', { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
 
-    /** The active set, narrowed to one generation when `state.gen` names one.
+    /** The active set, narrowed by whichever filters are on.
      *
      *  Narrowing happens HERE and nowhere else, so every consumer — the count,
      *  the axis ranges the meters are scaled against, and the grid itself — reads
      *  the same set. `computeAxisRange()` walks `state.ids` directly, so a filter
      *  applied only in `sortedIds()` would have left every meter scaled against
-     *  all 1,025 species while the cards showed one generation. */
+     *  all 1,025 species while the cards showed three cover legendaries.
+     *
+     *  The copy on the unfiltered path is not defensive. `sortedIds()` sorts what
+     *  it is given IN PLACE, so returning `state.ids` itself sorted the ACTIVE SET
+     *  as a side effect of choosing 名稱 or an axis — which was invisible while id
+     *  order was the only sort that ran first, and becomes visible the moment a
+     *  reader toggles 封面神獸 on, sorts by an axis, and toggles it off again. */
     function filteredIds() {
-      if (!state.gen) return state.ids;
-      return state.ids.filter((id) => state.meta.get(id)?.generation === state.gen);
+      let ids = state.covers ? state.ids.filter((id) => COVER_IDS.has(id)) : [...state.ids];
+      if (!state.gen) return ids;
+      return ids.filter((id) => state.meta.get(id)?.generation === state.gen);
     }
 
     function sortedIds() {
@@ -500,8 +522,17 @@
       const gens = [...new Set(state.pokemon.filter((p) => p.id <= 1025).map((p) => p.generation))].sort();
       const chip = (key, label, pressed, extra = '') =>
         `<button type="button" class="cy-chip${extra}" data-filter="${key}" aria-pressed="${pressed}">${escapeHtml(label)}</button>`;
+      /* The count is the number of covers IN THE ACTIVE SET, not the roster's 24,
+       * because 舊版錄音 is ids 1–649 (Gen 1–5) and eleven of the cover legendaries
+       * postdate it. Printing the roster size would be a chip that says 24 and
+       * yields 13 — the reader picks it, gets a third of what was promised, and
+       * has no way to tell a broken filter from a smaller recording. Recomputed
+       * here because `renderFilters()` already redraws on every state change and
+       * `indexSet()` is what swaps `state.ids` between the two recordings. */
+      const coverCount = state.ids.reduce((n, id) => n + (COVER_IDS.has(id) ? 1 : 0), 0);
       el('filters').innerHTML = [
         chip('legacy', '舊版錄音 (649)', state.legacy, ' is-warning'),
+        chip('covers', `封面神獸 (${coverCount})`, state.covers),
         ...gens.map((g) => chip(`gen${g}`, `第 ${g} 世代`, state.gen === g)),
         chip('clear', '清除篩選', false),
       ].join('');
@@ -947,28 +978,36 @@
         state.legacy = !state.legacy;
         indexSet(state.legacy ? features.legacy : features.latest);
         el('legacy-warning').hidden = !state.legacy;
-        if (state.probeId !== null && !state.rows.has(state.probeId)) state.probeId = null;
-        render();
-        renderProbe();
       } else if (key === 'clear') {
         state.gen = 0;
+        state.covers = false;
         state.legacy = false;
         indexSet(features.latest);
         el('legacy-warning').hidden = true;
-        renderFilters();
-        render();
-        renderProbe();
+      } else if (key === 'covers') {
+        state.covers = !state.covers;
       } else {
         const g = Number(key.replace('gen', ''));
         state.gen = state.gen === g ? 0 : g;
-        /* A generation's cry set is a subset, so a species outside it cannot stay
-         * on screen: the panel would keep describing something the grid no longer
-         * shows. `render()` replaces the whole grid, so the selection cannot be
-         * found there either. */
-        if (state.probeId !== null && !filteredIds().includes(state.probeId)) state.probeId = null;
       }
+      /* A species filtered out of the grid cannot stay on screen: the panel would
+       * keep describing something the grid no longer shows. `render()` replaces
+       * the whole grid, so the selection cannot be found there either.
+       *
+       *  ONE writer for all four filters, placed after the whole chain rather
+       *  than inside the generation branch where it used to live. Two copies of
+       *  one rule is two places to forget — the new filter would have been a third
+       *  — and the legacy branch's own `state.rows.has()` check is the same
+       *  question asked differently: `indexSet()` has already repointed `state.ids`
+       *  by the time any of this runs, so `filteredIds()` reads that same set. */
+      if (state.probeId !== null && !filteredIds().includes(state.probeId)) state.probeId = null;
       renderFilters();
       render();
+      /* And the PANEL is redrawn here for the same reason, which the generation
+       * branch never did: it nulled `probeId` and then left the probe describing
+       * a species the grid had stopped showing. `renderProbe()` early-returns to
+       * the hint on a null id, so the one line covers both outcomes. */
+      renderProbe();
     });
 
     el('sort').addEventListener('change', (e) => {

@@ -927,8 +927,29 @@ console.log('\nthe page wire');
 
   // The legend roster is 24 ids, no duplicates, and every one is legendary or
   // mythical. The ids are the only thing stored; the names come from the data.
-  const block = src.match(/const LEGENDS = \[([\s\S]*?)\];/);
-  check(block, 'the LEGENDS roster is present');
+  //
+  // SLICED FROM THE MODULE, not from this page. `colors-generator.html`,
+  // `spectrum.html` and `cries.html` all want these 24 and the array now lives in
+  // `assets/js/cover-roster.js`; `check_cover_roster.mjs` owns its content. What
+  // remains here is the page half — that this page imports it under the name it
+  // uses — because a grid of 24 built from an unbound `LEGENDS` renders nothing
+  // and looks like a styling failure. §3.I's shape.
+  const rosterSrc = readFileSync(new URL('../assets/js/cover-roster.js', import.meta.url), 'utf8');
+  const pageBare = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  check(/import\s*\{[^}]*COVER_ROSTER as LEGENDS[^}]*\}\s*from\s*'\.\/assets\/js\/cover-roster\.js'/.test(pageBare),
+    'the page imports the shared cover roster rather than declaring its own',
+    () => 'no `import { COVER_ROSTER as LEGENDS } from \'./assets/js/cover-roster.js\'` in the page script');
+  check(/\bLEGENDS\b/.test(pageBare.replace(/import[^;]*cover-roster\.js';/g, ' ')),
+    'and builds its grid from it, so the alias is not a dead binding');
+
+  /* `Object.freeze(` and not a bare `[`: the roster is exported frozen so no page
+     can reorder the array every other page is iterating. The pattern therefore
+     matches through it rather than assuming `= [`, which is the kind of shape
+     assumption that makes an assertion vacuous — with the bare `[` form this
+     sliced nothing, `ids` was `[]`, and the join assertions below passed on an
+     EMPTY list while the count assertion was the only thing holding the line. */
+  const block = rosterSrc.match(/export const COVER_ROSTER = Object\.freeze\(\[([\s\S]*?)\n\]\);/);
+  check(block, 'the shared cover roster is present');
   const ids = [...(block ? block[1] : '').matchAll(/\[(\d+),/g)].map(m => Number(m[1]));
   check(ids.length === 24, `the roster holds 24 ids, the number the grid is built for (${ids.length})`);
   check(new Set(ids).size === ids.length, 'and no id appears twice');

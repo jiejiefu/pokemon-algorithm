@@ -458,6 +458,7 @@
   <script type="module">
     import { initThemeToggle, initHeaderNav, formatPokemonId, iconSvg, ASSETS, contrast, hexToRgb } from './assets/js/shared.js';
     import { speciesInk } from './assets/js/species-ramp.js';
+    import { COVER_ROSTER as COVERS } from './assets/js/cover-roster.js';
     import { hasCry, hasLegacyCry } from './assets/js/cry-index.js';
     import { cryPlayer } from './assets/js/cry-player.js';
     import { mountAutoplay } from './assets/js/cry-autoplay.js';
@@ -654,47 +655,22 @@ const RARITY = [
     /**
      * The three rosters, and the 24 chips.
      *
-     * The chips are IDS and nothing else. `colors-generator.html` keeps its legendary grid
-     * as `[id, edition]` pairs for the same reason — a second copy of an official
-     * name is a second thing to keep right, and `pokemon_data.json` already has
-     * it. Two of them (Alolan Exeggutor, Hisuian Samurott) would also need form
-     * artwork this page has no reason to load.
+     * The chips are IDS AND EDITIONS and no names, because `pokemon_data.json`
+     * already carries the official zh name for every one of them and a second copy
+     * is a second thing to keep right. Two box legendaries (Alolan Exeggutor,
+     * Hisuian Samurott) are absent from the 24 for the same kind of reason: they
+     * would need form artwork this page has no reason to load.
      */
     const ROSTERS = {
       latest: { label: '最新錄音', desc: '1,025 隻', ids: [] },
       legacy: { label: '舊錄音', desc: '649 隻 · Gen 1–5', ids: [] },
       gen1: { label: '第一世代合成', desc: '151 隻 · 重新合成', ids: [] },
     };
-    /**
-     * The 24 cover Pokémon, and the reason for that particular 24.
-     *
-     * The names come from `colors-generator.html`'s LEGENDS grid — the same list, because the
-     * two pages were asked for the same thing and one list of the cover roster is a
-     * better answer than two that can disagree. The edition label is kept and shown,
-     * since 383 and 382 are different species AND different games and a grid of 24
-     * identical-looking sprites with no edition would not say why those 24.
-     *
-     * IDS AND EDITIONS ONLY, never names. `pokemon_data.json` has the official zh
-     * name, and a second copy of one is a second thing to keep right — the same
-     * reasoning `colors-generator.html` records for the same list.
-     *
-     * The source filter still applies, and it bites: on 最新錄音 all 24 are offered,
-     * on 舊錄音 (ids 1–649) thirteen survive, and on 第一世代合成 only 150 and 151 do.
-     * That is the same behaviour `colors-generator.html` has when a species has no palette, and
-     * it is honest — a grid of two is a real answer for "what can I see here", not a
-     * layout failure.
-     */
-    const COVERS = [
-      [150, '關都 · 銀'], [151, '關都 · 金'],
-      [250, '城都 · 金'], [249, '城都 · 銀'],
-      [383, '豐緣 · 紅寶石'], [382, '豐緣 · 藍寶石'], [384, '豐緣 · 綠寶石'],
-      [483, '神奧 · 鑽石'], [484, '神奧 · 珍珠'], [487, '神奧 · 白金'],
-      [643, '合眾 · 黑'], [644, '合眾 · 白'], [646, '合眾 · 黑2／白2'],
-      [716, '卡洛斯 · X'], [717, '卡洛斯 · Y'], [718, '卡洛斯 · Z'],
-      [791, '阿羅拉 · 太陽'], [792, '阿羅拉 · 月亮'], [800, '阿羅拉 · 究極之日'],
-      [888, '伽勒爾 · 劍'], [889, '伽勒爾 · 盾'], [890, '伽勒爾 · 劍／盾'],
-      [1007, '帕底亞 · 朱'], [1008, '帕底亞 · 紫'],
-    ];
+    /* `COVERS` is imported at the top of this module from `cover-roster.js`,
+     * aliased to the name this page has always used. Both other pages that show
+     * these 24 read the same array, so the roster can no longer disagree with
+     * itself — which is what this page's previous copy of it could do, while its
+     * own comment said one list was the better answer. */
 
     // ---------------------------------------------------------------------
     // Colour ramp

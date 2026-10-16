@@ -222,6 +222,7 @@
     import {
       loadSpritePixels, mmcqPalette, RSHIFT, hexOf as maHexOf,
     } from './assets/js/mmcq-anatomy.js';
+    import { COVER_ROSTER as LEGENDS } from './assets/js/cover-roster.js';
 
     initThemeToggle();
     // The third arg is the current page, so the 色彩 trigger marks itself
@@ -253,37 +254,11 @@
       maBoxesGrid: document.getElementById('ma-boxes-grid'),
     };
 
-    /**
-     * The 24 legendaries, in generation order and then by the game that put them
-     * on a box, as `[id, edition]` pairs. The id is the join key and the name is
-     * NOT stored here: `pokemon_data.json` already carries the official zh-TW
-     * name for every one of them, and a second copy of a name is a second thing
-     * to keep right. `checkLegendIds` below pins that each id is legendary or
-     * mythical, which is the property that makes this list what it claims to be.
-     *
-     * Ordering matters and is not alphabetical. It reads the way someone who
-     * played them remembers them — Mewtwo then Mew, the Box legendaries by
-     * version, Groudon/Kyogre/Rayquaza by game — and it is why the 8-wide grid
-     * lands where it does: gen 1's two are followed by gen 2's two, so the first
-     * row is Kanto, Johto and Hoenn rather than three of Hoenn.
-     *
-     * Two of the 24 have a near-white primary (Reshiram #FFFFFF at 36.5%, Solgaleo
-     * #FBF7EE at 37.8%) and the page says so under the grid. They are here
-     * because a cover Pokémon is a cover Pokémon, not because their palette is a
-     * good demo — dropping the two that flattered the page would be curating the
-     * evidence.
-     */
-    const LEGENDS = [
-      [150, '關都 · 銀'], [151, '關都 · 金'],
-      [250, '城都 · 金'], [249, '城都 · 銀'],
-      [383, '豐緣 · 紅寶石'], [382, '豐緣 · 藍寶石'], [384, '豐緣 · 綠寶石'],
-      [483, '神奧 · 鑽石'], [484, '神奧 · 珍珠'], [487, '神奧 · 白金'],
-      [643, '合眾 · 黑'], [644, '合眾 · 白'], [646, '合眾 · 黑2／白2'],
-      [716, '卡洛斯 · X'], [717, '卡洛斯 · Y'], [718, '卡洛斯 · Z'],
-      [791, '阿羅拉 · 太陽'], [792, '阿羅拉 · 月亮'], [800, '阿羅拉 · 究極之日'],
-      [888, '伽勒爾 · 劍'], [889, '伽勒爾 · 盾'], [890, '伽勒爾 · 劍／盾'],
-      [1007, '帕底亞 · 朱'], [1008, '帕底亞 · 紫'],
-    ];
+    /* `LEGENDS` is the shared 24-cover roster, imported at the top of this module
+     * under this page's own name. The reason for that particular 24 — the ordering,
+     * the edition labels, why the two near-white ones are here anyway — lives with
+     * the array in `cover-roster.js`, and so does the record of the second copy that
+     * used to sit here. */
 
     /** The id behind a legend cell, resolved to its species record.
      *  Returns null rather than a placeholder, because a cell that renders a

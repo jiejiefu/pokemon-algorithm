@@ -79,13 +79,48 @@ const run = (dir) => new Promise((res) => {
     (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
 });
 
+/* A `.replace()` THAT MATCHES NOTHING IS A MUTATION THAT CANNOT BE APPLIED, and
+ * it prints exactly what a mutation the assertion survives prints. `String#replace`
+ * returns its receiver unchanged when the needle is absent and never complains, so
+ * a case whose target string has since been reworded leaves the page healthy, the
+ * checker passes, and the case reports green — having tested nothing.
+ *
+ * That is not hypothetical here: adding 封面神獸 rewrote `filteredIds()`'s one-liner
+ * into a two-step chain, and the case below had that exact line as its needle. It
+ * would have gone green for a week. `test_check_spectrum_page.mjs` has had
+ * `replaceOrThrow` since; this file did not, and the guard is what it took for the
+ * difference to show up.
+ *
+ * `edited()` catches the whole chain at once, which is the common case (36 of the 42
+ * cases below are a single `.replace()`). A chain of two or more can still lose one
+ * link silently, so those cases go through `mustReplace` per string. */
+const edited = (src, out, where) => {
+  if (out === src) {
+    throw new Error(
+      `mutation target not found in ${where}: the case left the file untouched, so the checker `
+      + 'passed on an unmutated page and the case proves nothing. Update the needle — this is '
+      + 'exactly what happens when a mutation outlives the line it was written against.');
+  }
+  return out;
+};
+
+/** Per-string guard, for the cases that chain more than one replacement. */
+const mustReplace = (src, from, to) => {
+  if (!src.includes(from)) throw new Error(`mutation target not found: ${JSON.stringify(from)}`);
+  const out = src.replace(from, to);
+  if (out === src) throw new Error(`mutation replaced nothing: ${JSON.stringify(from)}`);
+  return out;
+};
+
 const editPage = (dir, fn) => {
   const p = join(dir, 'cries.html');
-  writeFileSync(p, fn(readFileSync(p, 'utf8')));
+  const src = readFileSync(p, 'utf8');
+  writeFileSync(p, edited(src, fn(src), 'cries.html'));
 };
 const editCss = (dir, fn) => {
   const p = join(dir, 'assets/css/cries.css');
-  writeFileSync(p, fn(readFileSync(p, 'utf8')));
+  const src = readFileSync(p, 'utf8');
+  writeFileSync(p, edited(src, fn(src), 'assets/css/cries.css'));
 };
 
 const CASES = [
@@ -162,9 +197,9 @@ const CASES = [
      1,609px of panel on a 390x844 screen, and #probe-play 5,309px above the fold) ---- */
   {
     name: 'the summary is shown on a desktop too, where nothing is collapsed',
-    mutate: (dir) => editCss(dir, (s) => s
-      .replace('.cy-more-summary {\n  display: none;\n}', '.cy-more-summary {\n  display: flex;\n}')
-      .replace('  .cy-more-summary {\n    display: flex;', '  .cy-more-summary {\n    display: block;')),
+    mutate: (dir) => editCss(dir, (s) => mustReplace(
+      mustReplace(s, '.cy-more-summary {\n  display: none;\n}', '.cy-more-summary {\n  display: flex;\n}'),
+      '  .cy-more-summary {\n    display: flex;', '  .cy-more-summary {\n    display: block;')),
     expect: 'the summary is `display: none` above the breakpoint',
   },
   {
@@ -180,10 +215,10 @@ const CASES = [
   },
   {
     name: 'the page collapses at 820px while the stylesheet does it at 900px',
-    mutate: (dir) => editPage(dir, (s) => s
-      .replace("const PANEL_COLLAPSE_MQ = '(max-width: 900px)';", "const PANEL_COLLAPSE_MQ = '(max-width: 820px)';")
-      .replace('function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (!collapsed())',
-        'function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (innerWidth > 820)')),
+    mutate: (dir) => editPage(dir, (s) => mustReplace(
+      mustReplace(s, "const PANEL_COLLAPSE_MQ = '(max-width: 900px)';", "const PANEL_COLLAPSE_MQ = '(max-width: 820px)';"),
+      'function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (!collapsed())',
+      'function syncProbeDisclosure() {\n      const more = el(\'probe-more\');\n      if (innerWidth > 820)')),
     expect: "the page's `PANEL_COLLAPSE_MQ` is that block's width",
   },
   {
@@ -216,7 +251,7 @@ const CASES = [
   },
   {
     name: 'the measured figures are deleted, leaving a confident claim with no evidence',
-    mutate: (dir) => editPage(dir, (s) => s.replace('12.6%', '很高').replace('3.2%', '很低')),
+    mutate: (dir) => editPage(dir, (s) => mustReplace(mustReplace(s, '12.6%', '很高'), '3.2%', '很低')),
     expect: 'carries the measured top-20 figure',
   },
   {
@@ -245,10 +280,12 @@ const CASES = [
   },
   {
     name: 'playback goes back to a remote cry host',
-    mutate: (dir) => editPage(dir, (s) => s
-      .replace("await cryPlayer.play(id, {\n          legacy: state.legacy,",
-        "await cryPlayer.play(id, {\n          legacy: false,")
-      .replace("cryPlayer.play(id, {", "new Audio('https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg').play(); cryPlayer.play(id, {")),
+    mutate: (dir) => editPage(dir, (s) => mustReplace(
+      mustReplace(s,
+        "await cryPlayer.play(id, {\n          legacy: state.legacy,",
+        "await cryPlayer.play(id, {\n          legacy: false,"),
+      "cryPlayer.play(id, {",
+      "new Audio('https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/' + id + '.ogg').play(); cryPlayer.play(id, {")),
     expect: 'does not reach for a remote cry host',
   },
   {
@@ -293,9 +330,9 @@ const CASES = [
   },
   {
     name: 'the autoplay switch is mounted outside the panel that owns it',
-    mutate: (dir) => editPage(dir, (s) => s
-      .replace('<aside class="cy-panel"', '<div id="autoplay-slot"></div>\n      <aside class="cy-panel"')
-      .replace('        <div id="autoplay-slot"></div>\n', '')),
+    mutate: (dir) => editPage(dir, (s) => mustReplace(
+      mustReplace(s, '<aside class="cy-panel"', '<div id="autoplay-slot"></div>\n      <aside class="cy-panel"'),
+      '        <div id="autoplay-slot"></div>\n', '')),
     expect: 'a mount point INSIDE the timbre panel',
   },
 
@@ -323,10 +360,72 @@ const CASES = [
     expect: 'nothing after the IntersectionObserver writes state.gen',
   },
   {
+    /* The needle is the CURRENT generation line, which `filteredIds()` grew when
+     * 封面神獸 became a second filter: it is now applied to the cover-narrowed
+     * local rather than straight to `state.ids`. The original needle — the old
+     * one-liner — stopped matching the moment that edit landed, and this harness
+     * used a bare `String#replace`, so it would have no-opped and reported green
+     * for a week. See `edited()` and `mustReplace` at the top. */
     name: 'the filter stops narrowing the id list, so a generation chip only changes the count',
     mutate: (dir) => editPage(dir, (s) => s
-      .replace('return state.ids.filter((id) => state.meta.get(id)?.generation === state.gen);', 'return state.ids;')),
+      .replace('return ids.filter((id) => state.meta.get(id)?.generation === state.gen);', 'return ids;')),
     expect: "the filter narrows by the pokemon record's own generation",
+  },
+  {
+    name: 'the unfiltered path hands back `state.ids` itself, so sorting reorders the active set',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace(': [...state.ids];', ': state.ids;')),
+    expect: 'copies `state.ids`',
+  },
+
+  /* ---- 封面神獸: a chip whose label can promise more than it delivers ---- */
+  {
+    name: 'the 封面神獸 chip hardcodes the roster size, so 舊版錄音 says 24 and shows 13',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('chip(\'covers\', `封面神獸 (${coverCount})`, state.covers)',
+        "chip('covers', '封面神獸 (24)', state.covers)")),
+    expect: 'the number it will actually produce',
+  },
+  {
+    name: 'the chip counts the whole roster rather than the active set, so the number never moves',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('const coverCount = state.ids.reduce((n, id) => n + (COVER_IDS.has(id) ? 1 : 0), 0);',
+        'const coverCount = 24;')),
+    expect: 'counts covers IN THE ACTIVE SET',
+  },
+  {
+    name: 'the filter narrows nothing, so 封面神獸 only changes the count',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('state.ids.filter((id) => COVER_IDS.has(id))', 'state.ids')),
+    expect: 'narrows the id list by the shared roster',
+  },
+  {
+    name: '清除篩選 forgets 封面神獸, so a reader can enter the filter and never leave it',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('        state.covers = false;\n', '')),
+    expect: 'turns 封面神獸 off',
+  },
+  {
+    /* The third copy. This one was a duplicate rather than a bug — `legacy` had
+     * its own `state.rows.has()` spelling and `gen` had `filteredIds().includes()`,
+     * and adding a third filter to that arrangement is how one of the three ends
+     * up missing. The assertion counts writers so it names the rule, not an edit. */
+    name: 'a filter grows its own copy of the probe reset, so the branches can disagree',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace('      } else if (key === \'covers\') {\n        state.covers = !state.covers;',
+        '      } else if (key === \'covers\') {\n        state.covers = !state.covers;\n'
+        + '        if (state.probeId !== null && !filteredIds().includes(state.probeId)) state.probeId = null;')),
+    expect: 'exactly one statement drops a filtered-out selection',
+  },
+  {
+    /* The roster the filter narrows by. A page-local copy would be a third thing
+     * to keep right, and `check_cover_roster.mjs` is what says so for all three
+     * pages — here the page merely has to read the shared one. */
+    name: 'the filter narrows by a page-local list of ids instead of the shared roster',
+    mutate: (dir) => editPage(dir, (s) => s
+      .replace("import { COVER_IDS } from './assets/js/cover-roster.js';",
+        "const COVER_IDS = new Set([150, 151]);")),
+    expect: 'one roster, not four',
   },
   {
     name: 'the meter ranges ignore the filter, so every bar is scaled against all 1,025',

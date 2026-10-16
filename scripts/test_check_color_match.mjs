@@ -112,6 +112,17 @@ const editPage = (dir, fn) => {
   writeFileSync(p, fn(readFileSync(p, 'utf8')));
 };
 
+/** Rewrite the shared cover roster in the scratch tree.
+ *
+ *  Not the same file as `editModule` above, which is `color-match.js`: two modules
+ *  needing mutated is not a reason to share one name, and a single `editJs(dir,
+ *  name, fn)` would have meant the file argument is the thing that differs, which
+ *  is exactly the part worth being unable to confuse. */
+const editRoster = (dir, fn) => {
+  const p = join(dir, 'assets/js/cover-roster.js');
+  writeFileSync(p, fn(readFileSync(p, 'utf8')));
+};
+
 /** Rewrite the generator stylesheet in the scratch tree. */
 const editCss = (dir, fn) => {
   const p = join(dir, 'assets/css/colors-generator.css');
@@ -494,8 +505,18 @@ const CASES = [
     expect: 'the legendary grid is 8 across on desktop',
   },
   {
+    /* The roster moved out of the page into `assets/js/cover-roster.js`, so this
+     * case mutates the MODULE. The needle is the same pair it always was — which
+     * is why it is a mutation at all rather than a deletion: #175 is Unown, a real
+     * species with a real name, so the page still builds a 24-cell grid and every
+     * count on it still says 24. Only the join against `pokemon_data.json` can tell
+     * that one of the 24 is neither legendary nor mythical.
+     *
+     * `replaceOrThrow` is what surfaced the move: the case was written against the
+     * page's literal, and it threw rather than reporting green having edited
+     * nothing. */
     name: 'a legendary that is neither legendary nor mythical is on the roster',
-    mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
+    mutate: (dir) => editRoster(dir, (s) => replaceOrThrow(
       s, "[150, '關都 · 銀']", "[175, '關都 · 銀']")),
     expect: 'and every one is legendary or mythical, as the heading says',
   },

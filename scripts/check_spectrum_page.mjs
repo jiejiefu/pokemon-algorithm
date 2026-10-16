@@ -905,20 +905,32 @@ ok(/最高 \$\{Math\.round\(hi\)\} dB/.test(drawLive),
 
 /* The 24 chips are the COVER roster, and the edition label is part of the answer.
  *
- * SCOPED TO THE `COVERS` LITERAL, and that scoping is the fix rather than a nicety.
- * This counted `/\[\d+, '…'\]/g` over the WHOLE file, which is the shape §4 calls out:
- * an assertion that reads like the guard and measures the page. The rail added
- * nine generation chips, and building them from `[1, '第 1 世代']`-shaped pairs —
- * the obvious way to write a `{value, label}` table — would have taken this count
- * to 25 and turned an honest red into an inexplicable one. Verified: one such
- * literal takes 24 to 25. Slicing to the array the assertion is actually about
- * makes it survive an unrelated table gaining a shape it shares. */
-const coversStart = page.indexOf('const COVERS = [');
-const coversEnd = page.indexOf('];', coversStart);
+ * The array moved to `assets/js/cover-roster.js` — `spectrum.html`, `colors-
+ * generator.html` and `cries.html` were asking for the same 24 and two of them
+ * had already written it out separately — so the slicing below is over the
+ * MODULE's literal rather than the page's, and what this file asserts about the
+ * page is the part that is the page's: that it imports the roster and builds its
+ * chips from it. `check_cover_roster.mjs` owns the list's content.
+ *
+ * SCOPED TO THAT ONE LITERAL, and that scoping was a fix rather than a nicety.
+ * This used to count `/\[\d+, '…'\]/g` over the WHOLE page file, which is the shape
+ * §4 calls out: an assertion that reads like the guard and measures the page. The
+ * rail added nine generation chips, and building them from `[1, '第 1 世代']`-shaped
+ * pairs — the obvious way to write a `{value, label}` table — would have taken the
+ * count to 25 and turned an honest red into an inexplicable one. Verified: one such
+ * literal takes 24 to 25. Those nine were later written as bare numbers for this
+ * same reason, so the shape now appears nowhere in the page outside the module. */
+/* Anchored on `Object.freeze([`, not on `[`. A slice assuming `= [` returns the
+   empty string, `coverPairs` becomes `[]`, and the count below is the only thing
+   between that and a green that measured nothing — §3.B2's shape. Same anchor as
+   the two other checkers that slice this module. */
+const coverModule = read('assets/js/cover-roster.js');
+const coversStart = coverModule.indexOf('export const COVER_ROSTER = Object.freeze([');
+const coversEnd = coverModule.indexOf('\n]);', coversStart);
 ok(coversStart > 0 && coversEnd > coversStart,
-  `the COVERS literal is locatable, so the 24-pair assertion has something to slice (chars ${coversStart}..${coversEnd})`);
+  `the COVER_ROSTER literal is locatable, so the 24-pair assertion has something to slice (chars ${coversStart}..${coversEnd})`);
 const coversBlock = coversStart > 0 && coversEnd > coversStart
-  ? page.slice(coversStart, coversEnd)
+  ? coverModule.slice(coversStart, coversEnd)
   : '';
 const coverPairs = (coversBlock.match(/\[\d+, '[^']+'\]/g) || []);
 ok(coverPairs.length === 24,
@@ -928,6 +940,18 @@ for (const [id, edition] of [[150, '關都 · 銀'], [384, '豐緣 · 綠寶石'
   ok(coverPairs.includes(`[${id}, '${edition}']`),
     `and ${id} carries its edition 「${edition}」 — 383/382 and 888/889/890 are different species AND different games`);
 }
+
+/* The page half, now that the array is not in the page. Stripped, because an
+   import-shaped string inside a comment would otherwise satisfy this — §3.W's
+   `<datalist>` finding, where the comment explaining the removal was the
+   evidence that the removal had not happened. */
+const pageBare = page
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '');
+ok(/import\s*\{[^}]*COVER_ROSTER as COVERS[^}]*\}\s*from\s*'\.\/assets\/js\/cover-roster\.js'/.test(pageBare),
+  'and the page imports that roster under the name it uses, so the 24 it renders cannot drift from the 24 anywhere else');
+ok(/\bCOVERS\b/.test(pageBare.replace(/import[^;]*cover-roster\.js';/g, ' ')),
+  'and builds its chips from it rather than importing and never reading the binding');
 
 ok(/setAttribute\('aria-label', `\$\{meta\?\.names\?\.zh \?\? id\}，\$\{edition\}`\)/.test(page),
   'and each chip names the SPECIES for a screen reader, not the game twenty-four times over');

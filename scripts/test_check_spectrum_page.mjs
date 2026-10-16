@@ -58,6 +58,11 @@ const SRC = [
      A harness tree without it fails its own BASELINE — the harness telling the truth
      about its inputs rather than a mutation being caught. */
   'assets/js/species-ramp.js',
+  /* Same reason, for the 24-cover roster: the checker slices the literal out of
+     this file rather than out of spectrum.html, which now imports it. Declared in
+     `check_all.mjs` is not the same as copied here — a missing copy fails the
+     harness's own BASELINE, which is loud but means the 40 cases measure nothing. */
+  'assets/js/cover-roster.js',
   'assets/data/cry_features.json',
   'assets/data/gen1_cries.json',
   /* The checker reads this for the 傳說/幻之 facet counts AND, now, to sweep the live

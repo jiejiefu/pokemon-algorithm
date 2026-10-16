@@ -268,16 +268,75 @@ ok(/pages:\s*1,/.test(page) && /state\.pages/.test(page),
 /* The narrowing itself, and specifically that it reads the pokemon record's
  * generation rather than a range of ids — a gen filter built on id arithmetic is
  * wrong for every generation after the third, because the ranges are not
- * contiguous (Gen 4 starts at 387, not at 252+1). */
+ * contiguous (Gen 4 starts at 387, not at 252+1).
+ *
+ * The source is a LOCAL named `ids` rather than `state.ids`, because 封面神獸 is a
+ * second independent filter and the generation narrowing now runs on whatever the
+ * first one left. The assertion is deliberately written against the RECURSION
+ * rather than against the old one-liner: matching `state.ids.filter(...)` again
+ * would have been a second copy of a shape, and the shape is what changed. */
 const genFilter = page.slice(page.indexOf('function filteredIds'), page.indexOf('function sortedIds'));
-ok(/state\.ids\.filter\(\(id\) => state\.meta\.get\(id\)\?\.generation === state\.gen\)/.test(genFilter),
+ok(/\.filter\(\(id\) => state\.meta\.get\(id\)\?\.generation === state\.gen\)/.test(genFilter),
   "the filter narrows by the pokemon record's own generation, not by an id range");
+ok(/state\.ids\.filter\(\(id\) => COVER_IDS\.has\(id\)\)/.test(genFilter),
+  'and 封面神獸 narrows the id list by the shared roster, before the generation is applied — so the two compose instead of one replacing the other');
+/* The copy on the unfiltered path. `sortedIds()` sorts what it hands it IN PLACE, so
+ * returning `state.ids` itself sorted the ACTIVE SET as a side effect of choosing
+ * 名稱 or an axis. That was invisible while id order was the only sort that ran
+ * first, and a second filter makes it reachable: on, sort by axis, off. */
+ok(/: \[\.\.\.state\.ids\]/.test(genFilter),
+  'the unfiltered path copies `state.ids`, because `sortedIds()` sorts in place and would otherwise reorder the active set');
 ok(/ordered\.slice\(0, state\.pages \* PAGE_SIZE\)/.test(page),
   'and the grid is sliced by the scroll position, not by the generation');
 ok(/filteredIds\(\)\.includes/.test(page),
   'a species filtered out of the grid is dropped from the probe panel too');
 ok(/computeAxisRange/.test(page) && /for \(const id of pool\)/.test(page),
   'the meter ranges are computed from the filtered set, not from all 1,025');
+
+/* 封面神獸 — the third filter, and the one whose chip can lie.
+ *
+ * The chip label is the interesting part. 舊版錄音 is ids 1–649 (Gen 1–5) and
+ * eleven of the cover legendaries postdate it, so a chip hardcoded to the
+ * roster's 24 promises twenty-four and delivers thirteen under a different
+ * recording, with no way for the reader to tell a broken filter from a smaller
+ * one. The count therefore has to be read OFF THE ACTIVE SET rather than off the
+ * roster — which is an assertion about the expression, not about the number, since
+ * the number legitimately changes if the legacy recording ever grows. */
+const filtersBlock = page.slice(page.indexOf('function renderFilters'), page.indexOf('function renderWeights'));
+ok(/chip\('covers',\s*`封面神獸 \(\$\{coverCount\}\)`/.test(filtersBlock),
+  'the 封面神獸 chip prints the number it will actually produce, not the roster size');
+ok(/state\.ids\.reduce\(\(n, id\) => n \+ \(COVER_IDS\.has\(id\) \? 1 : 0\), 0\)/.test(filtersBlock),
+  'and that number counts covers IN THE ACTIVE SET, so switching to 舊版錄音 says 13 rather than 24');
+
+/* The roster is a MODULE, not a local. Asserted here because the filter above is
+ * otherwise perfectly happy narrowing by any Set called `COVER_IDS` — including
+ * one a page wrote itself, which is a fourth thing to keep right and the exact
+ * duplication `check_cover_roster.mjs` exists to prevent. Stripped source, because
+ * an import-shaped string inside a comment satisfies the pattern otherwise.
+ *
+ * Ids only, not the `[id, edition]` pairs: this page prints no per-species edition
+ * label, so importing one would be a field nothing here renders. */
+ok(/import\s*\{\s*COVER_IDS\s*\}\s*from\s*'\.\/assets\/js\/cover-roster\.js'/.test(stripComments(page)),
+  'the 24 come from cover-roster.js, which spectrum.html and colors-generator.html read too — one roster, not four');
+
+/* The `clear` chip is the only thing that resets a filter, so a filter the clear
+   path forgot is a filter a reader can enter and never leave. Asserted for
+   `covers` on its own rather than as "clear resets everything", because that
+   phrasing would be satisfied by resetting any one of them. */
+const clearBranch = page.slice(page.indexOf("key === 'clear'"), page.indexOf("key === 'covers'"));
+ok(/state\.covers = false/.test(clearBranch),
+  'and 清除篩選 turns 封面神獸 off — a filter the clear path forgot is one the reader cannot leave');
+
+/* ONE writer for the probe reset, serving all four filters.
+ *
+ * It used to live inside the generation branch, with a second, differently-spelled
+ * copy in the legacy branch (`state.rows.has`). Two copies of one rule is two
+ * places to forget, and the new filter would have been a third. Placed after the
+ * whole branch chain, so a branch that forgets to clear the selection is caught by
+ * this count rather than by a reader staring at a panel describing a species the
+ * grid stopped showing. */
+eq([...stripComments(page).matchAll(/if \(state\.probeId !== null && !filteredIds\(\)\.includes\(state\.probeId\)\) state\.probeId = null;/g)].length, 1,
+  'exactly one statement drops a filtered-out selection, and it runs for every filter rather than for one branch');
 
 /* Every `state.gen` write, so the count is checkable rather than asserted.
  *

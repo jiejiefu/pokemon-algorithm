@@ -218,6 +218,9 @@ const CHECKERS = [
       'assets/js/gb-apu.js', 'scripts/analyze_cries.py',
       /* LIFTED OUT OF ITS FILE AND RUN over all 1,025 records, not shape-checked. */
       'assets/js/species-ramp.js',
+      /* The 24-cover roster, sliced out of this module rather than out of the page —
+       * the page imports it, and `check_cover_roster.mjs` owns its content. */
+      'assets/js/cover-roster.js',
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
       /* The 傳說/幻之 claims are read against the data rather than asserted from
        * memory — 71 / 23 / and zero records carrying both flags. Found by
@@ -237,8 +240,9 @@ const CHECKERS = [
       /* Copied into the tree because the checker reads them there, not in the repo.
        * species-ramp.js is here for the same reason: the checker lifts the function
        * out of its TEXT and runs it, so a harness tree without the file cannot test
-       * the live curve's ink at all. */
+       * the live curve's ink at all. cover-roster.js is the third of that kind. */
       'assets/js/species-ramp.js',
+      'assets/js/cover-roster.js',
       'assets/data/cry_features.json', 'assets/data/gen1_cries.json',
       /* The 傳說/幻之 claims are read against the data rather than asserted from
        * memory — 71 / 23 / and zero records carrying both flags. Found by
@@ -518,7 +522,15 @@ const CHECKERS = [
   /* ---- cry: the pages ---- */
   {
     script: 'scripts/check_cries_page.mjs', group: 'cry-page',
-    inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json', 'assets/js/shared.js'],
+    /* `cover-roster.js` is deliberately NOT declared, and `--prove-inputs` reports
+     * it every run as "declared but not read" if you add it — which is the correct
+     * report for a file this checker does not open. It asserts that cries.html
+     * IMPORTS the shared roster, reading the page's own source, so the cross-file
+     * half of the claim lives in `check_cover_roster.mjs`, which declares and reads
+     * BOTH the module and this page. Declaring it here would have meant a cache
+     * entry that moved on a roster edit while the checker had measured nothing. */
+    inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json',
+      'assets/js/shared.js'],
   },
   {
     /* A bare-Node unit test of the player rather than a page check, because its
@@ -534,7 +546,8 @@ const CHECKERS = [
   {
     script: 'scripts/test_check_cries_page.mjs', checker: 'scripts/check_cries_page.mjs', group: 'cry-page',
     note: 'runs the above in child trees',
-    inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json', 'assets/js/shared.js'],
+    inputs: ['cries.html', 'assets/css/cries.css', 'assets/data/cry_features.json',
+      'assets/js/shared.js'],
   },
   {
     /* §3.X. BOTH pages at 390x844, and both in one browser, because the two defects
@@ -695,6 +708,9 @@ const CHECKERS = [
       'assets/js/form-names.js',
       'assets/js/form-names-zh.js',
       'assets/js/shiny-index.js',
+      /* The 24-cover roster, read here because the checker slices the legend grid's
+       * ids out of it rather than out of colors-generator.html, which imports it. */
+      'assets/js/cover-roster.js',
       'assets/css/shared.css',
       'assets/css/colors-generator.css',
       'colors-generator.html',
@@ -816,6 +832,22 @@ const CHECKERS = [
   },
 
   /* ---- data ---- */
+  {
+    /* The 24 cover legendaries, in `data` rather than in any of the three page
+     * groups that read them, because the roster is not a page's property any more.
+     * `spectrum.html`, `colors-generator.html` and `cries.html` all import it, and
+     * two of them had already written their own copy — a disagreement that no page
+     * checker can see, since each page's list is internally consistent and still
+     * has 24 real species in it. Its sharpest assertion is an ABSENCE: no page may
+     * declare `[id, edition]` pairs of its own. */
+    script: 'scripts/check_cover_roster.mjs', group: 'data',
+    note: 'one roster, three pages; asserts no page holds a second copy',
+    inputs: [
+      'assets/js/cover-roster.js',
+      'assets/data/pokemon_data.json', 'assets/data/cry_features.json',
+      'spectrum.html', 'colors-generator.html', 'cries.html',
+    ],
+  },
   {
     script: 'scripts/check_evolution_chains.mjs', group: 'data',
     inputs: ['assets/data/evolution_chains.json', 'assets/data/pokemon_data.json', 'assets/images/pokemon/*'],
