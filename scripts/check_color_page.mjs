@@ -151,17 +151,28 @@ console.log('NAV integrity');
 // Every href a NAV row can send the user to must resolve, or be registered as
 // planned. A typo'd href is a dead link that renders identically to a good one.
 const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
-// 14 site pages reach the nav: the 6 top-level hrefs, pokedex / generations /
-// collections / category / types under 圖鑑, sorting / maze / life / graph under
-// 演算法, cries / spectrum / cries-gen1 under 叫聲, and the 色彩 quintet. A
-// NUMBER, not a list on purpose — a list here would be a fourth copy of NAV that
-// could be edited to agree with a broken NAV, whereas a count can only be changed
-// by someone deciding the site's page set changed. It went 15 -> 16 when
-// spectrum.html joined the 叫聲 group, 16 -> 17 when life.html joined the 演算法
-// group, 17 -> 18 when graph.html joined 演算法, and 18 -> 19 when color-game.html
-// replaced its `planned: 'color-game.html'` placeholder in the 色彩 group with a
-// real row — which is what the `planned` branch of `navRowHtml` exists for.
-const EXPECTED_NAV_PAGES = 19;
+// The site pages that reach the nav. A NUMBER, not a list on purpose — a list here
+// would be a fourth copy of NAV that could be edited to agree with a broken NAV,
+// whereas a count can only be changed by someone deciding the site's page set
+// changed, and a stale one is a red line rather than a silently smaller table.
+//
+// Derived once, measured, rather than described in prose that goes stale: TWO
+// top-level hrefs (index.html, model3d.html) plus 18 pages under the five groups,
+// whose union is 20 — the groups' `pages[]` and their rows name 18 each, and the
+// two sets overlap in everything except model3d.html, which is top-level only.
+// Three planned rows (abilities.html, moves.html, natures.html) are NOT counted,
+// because a `planned` entry is a badge promising a page nothing links to yet.
+//
+// It went 15 -> 16 when spectrum.html joined the 叫聲 group, 16 -> 17 when
+// life.html joined 演算法, 17 -> 18 when graph.html joined 演算法, 18 -> 19 when
+// color-game.html replaced its `planned: 'color-game.html'` placeholder in the 色彩
+// group with a real row — which is what the `planned` branch of `navRowHtml` exists
+// for — and 19 -> 20 when cry-game.html joined 叫聲 as a real row. **That last bump
+// was missed**, so this assertion has been red since: the row landed in commit
+// 16fe543 and the count did not move. It is recorded here rather than left to the
+// commit log because the message below now names WHICH pages are in the table, so
+// the diagnosis is one line of output instead of a re-derivation.
+const EXPECTED_NAV_PAGES = 20;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;
@@ -207,7 +218,7 @@ check(
 // together, and it is deliberately computed over EVERY page rather than
 // special-cased for the colour trio, because a per-page assertion passes for
 // exactly the page it was written for.
-const everyPage = [...new Set(rowTargets.map((t) => t.href))];
+const everyPage = [...new Set(rowTargets.map((t) => t.href))].sort();
 // The table must not SHRINK. Every check below is computed over `everyPage`,
 // which is built from what NAV mentions — so a page that quietly stops being
 // mentioned leaves the table and turns every claim check green while marking
@@ -216,10 +227,18 @@ const everyPage = [...new Set(rowTargets.map((t) => t.href))];
 // one-token edit that no other assertion here would notice. Pinning the size
 // is the blunt instrument that turns that silence into a failure, and the count
 // only moves when a page is genuinely added to or removed from the site.
+/* The message NAMES THE PAGES, sorted, because a bare count difference is a
+ * re-derivation rather than a diagnosis. This assertion went red on a real
+ * omission — cry-game.html had been a 叫聲 row for a commit — and the report was
+ * "everyPage has 20 entries, expected 19", which says that something changed and
+ * nothing about what. The next person to bump this has to answer one question
+ * ("which page?") and the answer should be in the output they already have. */
 check(
   everyPage.length === EXPECTED_NAV_PAGES,
   `the claim table holds all ${EXPECTED_NAV_PAGES} site pages`,
-  () => `everyPage has ${everyPage.length} entries, expected ${EXPECTED_NAV_PAGES} — a page has stopped being mentioned by NAV, so the checks below no longer cover it`
+  () => `everyPage has ${everyPage.length} entries, expected ${EXPECTED_NAV_PAGES}`
+    + ` — a page has stopped being mentioned by NAV, so the checks below no longer cover it.\n`
+    + `      the table now holds: ${everyPage.join(' ')}`
 );
 const claims = new Map();
 const triggerPages = new Map();
