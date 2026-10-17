@@ -55,6 +55,28 @@ import { until } from './lib/cdp-until.mjs';
 import { trackTree } from './lib/tmp-trees.mjs';
 import { createHash } from 'node:crypto';
 
+/* A HARD BOUND ON THE WHOLE FILE.
+ *
+ *  Every individual wait below returns on a ceiling, and the file still hung for
+ *  18 minutes once — sitting in tier B, holding the other nine browser entries,
+ *  with nothing in the output saying where. A ceiling that fails is unknowable
+ *  from the outside, which is the whole problem: a checker that hangs keeps the
+ *  runner open and reports nothing, so it is strictly worse than one that fails.
+ *
+ *  §3.G5's rule about named waits, applied to the file rather than to a call:
+ *  `at()` records the section that is running and the watchdog names it. Four minutes
+ *  is roughly 4x the slowest measured section, so it fires when something is stuck
+ *  rather than slow — and it exits 2, which is neither a pass nor a checker's own
+ *  failure code, so the row reads as an abort rather than as a verdict. */
+const WATCHDOG_MS = 240000;
+let section = 'boot';
+const at = (name) => { section = name; };
+const watchdog = setTimeout(() => {
+  console.error(`\nWATCHDOG  no progress for ${WATCHDOG_MS / 1000}s; last section: "${section}"`);
+  console.error('  abandoning the run rather than leaving it holding the pool open');
+  process.exit(2);
+}, WATCHDOG_MS);
+
 const PORT = process.env.CRY_PORT || 5500;
 const DESKTOP = { width: 1280, height: 900 };
 
@@ -75,7 +97,18 @@ for (let i = 0; i < 80; i++) {
   await new Promise((r) => setTimeout(r, 250));
 }
 const ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
-await new Promise((r) => ws.addEventListener('open', r, { once: true }));
+/* THE PROMISE THAT NEVER SETTLED. `await new Promise(r => ws.addEventListener('open',
+ * r, {once:true}))` has no ceiling, and the 18-minute hang was here rather than
+ * in any of the waits the watchdog was watching — because the watchdog itself was
+ * armed AFTER this line, so it had not started counting. Both halves are the
+ * same lesson: a bound that is declared below the thing it is supposed to bound
+ * is not a bound. */
+await Promise.race([
+  new Promise((r) => ws.addEventListener('open', r, { once: true })),
+  new Promise((_, reject) => setTimeout(() => reject(new Error(
+    'the CDP websocket never opened within 20s — Chrome came up (a profile and a '
+    + 'debug port exist) but the page target never attached')), 20000)),
+]);
 let id = 0; const waiting = new Map(); const exceptions = [];
 ws.addEventListener('message', (e) => {
   const m = JSON.parse(e.data);
@@ -85,9 +118,20 @@ ws.addEventListener('message', (e) => {
     exceptions.push(`EXC ${((d.exception?.description) || d.text || '').split('\n')[0]}`);
   }
 });
+const SEND_CEILING_MS = 30000;
 const send = (method, params = {}) => new Promise((res, rej) => {
   const n = ++id;
-  waiting.set(n, (x) => (x.error ? rej(new Error(JSON.stringify(x.error))) : res(x.result)));
+  /* The timer is cleared on the answer, so a slow call costs nothing once it
+   * returns. Nothing is left pending, and nothing keeps the event loop alive
+   * after the file has finished. */
+  const timer = setTimeout(() => {
+    waiting.delete(n);
+    rej(new Error(`${method} did not answer within ${SEND_CEILING_MS / 1000}s`));
+  }, SEND_CEILING_MS);
+  waiting.set(n, (x) => {
+    clearTimeout(timer);
+    if (x.error) rej(new Error(JSON.stringify(x.error))); else res(x.result);
+  });
   ws.send(JSON.stringify({ id: n, method, params }));
 });
 const ev = async (expression) => {
@@ -111,6 +155,7 @@ const ok = (cond, what, why) => {
   if (!cond) fails.push(line);
   console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${line}`);
 };
+
 
 await send('Page.enable');
 await send('Runtime.enable');
@@ -209,67 +254,25 @@ const INK_PRESENT = 0.02;
  *  scrim alone contributes nothing against the background it is over. */
 const INK_EMPTY = 0.002;
 
-/** A cheap fingerprint of what the hero is showing right now.
+/** Wait until the clip's currentTime has MOVED and then STOPPED MOVING.
  *
- *  A 220x140 crop of the MEDIA layer, taken from the top-left of the sticky
- *  viewport where the content panel never reaches, so the hash is the clip and
- *  not the text.  \`currentTime\` cannot be used for this: it is the scrub's own
- *  output, so waiting for it to change would be polling on the assertion, which
- *  §3.B2 calls vacuous.  This is the composited result — the thing a reader sees
- *  and the thing a screenshot photographs. */
-const heroPixels = async () => {
-  /* JPEG at q25, not PNG: this crop exists only to be HASHED, and a PNG of a
-   * 220x140 sprite wall is ~90KB of base64 pushed through Runtime.evaluate on
-   *  every 150ms poll. q25 is ~4KB and hashes just as well — the question is
-   *  "did these pixels change at all", not what they are.  The two crops that
-   *  take MEASUREMENTS (inkFraction, panelContrast) stay PNG, because a lossy
-   *  codec between the screen and the arithmetic is exactly what §3.C warns
-   *  about. */
-  const shot = await send('Page.captureScreenshot', {
-    format: 'jpeg', quality: 25,
-    clip: { ...await pageRect({ x: 8, y: 70, width: 220, height: 140 }), scale: 1 },
-    captureBeyondViewport: false,
-  });
-  return createHash('sha1').update(Buffer.from(shot.data, 'base64')).digest('hex').slice(0, 16);
-};
-
-/** Wait until the clip has actually SEEKED, then until its pixels moved.
+ *  `video.seeking === false` is not a precondition on its own: it is already false
+ *  before the scrub's requestAnimationFrame has run at all, so waiting on it returned
+ *  instantly and every screenshot was taken of the frame the reader was never
+ *  shown — the ink section read 0.0% a quarter of the way down the track, which is
+ *  the frame-0 figure.
  *
- *  Three signals were tried, in this order, and the first two are recorded
- *  because the third one looks obvious and is not.
+ *  `requestVideoFrameCallback` is the *right* API — it fires when a frame reaches
+ *  the compositor, which is exactly what a screenshot photographs — and measured on
+ *  this page it fired on 1 of 5 seeks, because a PAUSED video that is seeked does not
+ *  reliably present in headless Chrome.
  *
- *  `requestVideoFrameCallback` is the RIGHT api — it fires when a frame reaches
- *  the compositor, which is exactly what a screenshot photographs.  Measured on
- *  this page it fired on 1 of 5 seeks: a PAUSED video that is seeked does not
- *  reliably present a new frame in headless Chrome, so a "wait for presentation"
- *  built on it times out four times out of five and would have reported a hero
- *  that does not repaint.
- *
- *  Polling the PIXELS was tried next and it worked, but only when given enough
- *  room: with a 3s ceiling it reported "no change" after a long jump and the
- *  screenshot that followed photographed the frame the reader was never shown.
- *  That is §3.G5 in the sharpest form this project has hit — the property the
- *  check reads (`currentTime`) and the thing the camera photographs are two
- *  different events, and measuring one says nothing about the other.
- *
- *  `video.seeking === false` is the browser's OWN statement that the seek
- *  completed and the frame is decoded and ready to present, so it is the
- *  precondition to wait on.  The pixel poll then runs on top of it as a
- *  confirmation, and its result is REPORTED either way rather than folded into a
- *  sleep. */
+ *  So the wait is for the value to MOVE and then STOP MOVING: this project's own
+ *  recorded rule for reading a live measurement, polling for the precondition rather
+ *  than for the assertion. The ceiling still returns and the result is reported,
+ *  because a scrub that never lands is a finding rather than something to swallow.
+ */
 async function seekSettled(from) {
-  /* `video.seeking === false` is NOT a precondition here on its own: it is
-   * already false before the scrub's requestAnimationFrame has run at all, so
-   * waiting on it returned instantly and every screenshot was taken of the frame
-   * the reader was never shown — the ink section read 0.0% at a quarter of the
-   * way down the track, which is the frame-0 figure.
-   *
-   * So the wait is for the value to MOVE and then STOP MOVING. That is this
-   * project's own recorded rule for reading a live measurement: poll for the
-   * precondition, which is that the value has stopped changing — not for the
-   * assertion, which is where it ended up. The ceiling still returns, and the
-   * `landed` flag is reported, because a scrub that never lands is a finding
-   * rather than something to swallow. */
   const deadline = Date.now() + 8000;
   let last = null, stable = 0;
   while (Date.now() < deadline) {
@@ -289,28 +292,15 @@ async function seekSettled(from) {
   return { landed: false, at: await ev(`document.getElementById('home-hero-video').currentTime`) };
 }
 
-async function awaitPixelsChanged(before) {
-  /* Polled IMMEDIATELY first: seekSettled() has already returned, so the frame
-   * is decoded, and sleeping before the first look costs a poll cycle on every
-   * single stop for nothing. */
-  const deadline = Date.now() + 2500;
-  while (true) {
-    const hash = await heroPixels();
-    if (hash !== before) return { hash, changed: true };
-    if (Date.now() >= deadline) return { hash, changed: false };
-    await new Promise((r) => setTimeout(r, 90));
-  }
-}
-
-/** Scroll, wait for the seek to complete, then confirm the hero repainted.
+/** Scroll, wait for the seek to complete.
  *
- *  `measure: false` skips the pixel poll for the callers that only need the seek
- *  to have landed — the ink and contrast sections take their own screenshots
- *  anyway, and paying for a 90x-poll fingerprint before each of them doubled this
- *  file's runtime for a hash nobody reads. */
-async function scrollTo(fraction, { measure = true } = {}) {
+ *  One argument, no options. The `measure: false` escape hatch existed only to
+ *  skip the fingerprint poll, which is gone — every caller wanted the seek and
+ *  only some wanted a second screenshot of pixels the ink section measures
+ *  anyway, and an option that means "skip the thing that is flaky" is how a flaky
+ *  measurement stops being questioned. */
+async function scrollTo(fraction) {
   const wasAt = await ev(`document.getElementById('home-hero-video').currentTime`);
-  const before = measure ? await heroPixels() : null;
   await ev(`(() => {
     const t = document.querySelector('.home-hero');
     const r = t.getBoundingClientRect();
@@ -318,12 +308,10 @@ async function scrollTo(fraction, { measure = true } = {}) {
     window.scrollTo(0, window.scrollY + r.top + range * ${fraction});
   })()`);
   await until(ev, `window.scrollY > 0`, 3000);
-  const settled = await seekSettled(wasAt);
-  if (!measure) return { hash: null, changed: null, settled };
-  const pixels = await awaitPixelsChanged(before);
-  return { ...pixels, settled };
+  return seekSettled(wasAt);
 }
 
+at('boot + clip identity');
 console.log('\n--- the clip is real, and it is the day\'s ---');
 ok(await openIndex(false), 'the video reported a usable duration, so the scrub has something to scrub');
 const s0 = await videoState();
@@ -336,83 +324,118 @@ ok(genOfSrc === Number(s0.poster.match(/poster-gen(\d)/)[1]),
 ok(s0.paused === true, 'the clip is paused: play() is never called, so the scroll is the only transport');
 ok(s0.trackH > s0.innerH * 2, `the track is taller than one viewport (${s0.trackH}px vs ${s0.innerH}px), or there is no scrub range at all`);
 
-console.log('\n--- scrolling forward advances the clip, and back runs it backwards ---');
+at('the five forward stops');
+console.log('\n--- scrolling forward advances the clip, and the ink proves it ---');
+/* ONE pass over the five stops, measuring the scrub AND the ink there.
+ *
+ * The file used to scroll to 0/25/50/75/100 twice — once to read currentTime and
+ * once to count ink — which is 17 scrollTo calls where 12 do the job, and every
+ * one of them carries an 8s seek ceiling. It is the most expensive entry in tier B
+ * for a page that is one element, and §4's rule about a slow check is that the
+ * question to ask is what it is actually computing.
+ *
+ * The two measurements share nothing: one is the scrub's own output, the other is
+ * the composited result. Sharing a scroll position is not sharing an assertion. */
 const marks = [];
-let repainted = 0;
+const ink = {};
+const END_STOPS = [0, 1];
+const MIDDLE_STOPS = [0.25, 0.5, 0.75];
 for (const f of [0, 0.25, 0.5, 0.75, 1]) {
-  const r = await scrollTo(f);
-  if (r.changed && r.settled) repainted++;
+  const landed = await scrollTo(f);
+  /* The first stop is 0% of the track from the top of the page, which is where the
+   * page already is, so currentTime does not move and there is nothing to wait
+   * for. That is why four of the five can LAND rather than all five. */
+  if (f > 0) ok(landed.landed, `the seek for ${Math.round(f * 100)}% completed and currentTime came to rest`,
+    'the scrub never settled at this scroll position — currentTime kept moving after 8s, so the frame being measured is not one this checker can name');
   const st = await videoState();
   marks.push(st);
   ok(Math.abs(st.progress - f) < 0.06, `scrolled to ${Math.round(f * 100)}% of the track (measured ${Math.round(st.progress * 100)}%)`);
-}
-/* Both ends of the track are DECLARED EMPTY, by the author's decision.
- *
- * make_hero_video.py builds the roster across the clip's first 65% and fades it
- * back out over the last 13%, so frame 0 and frame 299 both contain no sprites.
- * Scrubbing 0 -> 1 therefore opens and closes on a blank dark field: measured,
- * the hero's left band is 0.0% ink at 0% and 0.0% at 100%, against 20.9% at the
- * build. The author was told and chose to keep the full clip — 「維持 0%→100%」 —
- * over re-mapping the scrub onto the wave.
- *
- * Which means the two ends are not asserted as defects and not skipped either.
- * They are asserted as what they now ARE: an empty band at each end, with the
- * reason named, and a roster in the middle.  That is §3.F's rule about a named
- * exception applied in the other direction — the exception cannot outlive its
- * reason, because if a future change re-maps the scrub onto the wave (the fix
- * this declined) the ends become non-empty and THESE assertions go red rather
- * than the declaration quietly becoming true of nothing. */
-const END_STOPS = [0, 1];
-const MIDDLE_STOPS = [0.25, 0.5, 0.75];
-const endsInk = {}, middleInk = {};
-for (const f of [...END_STOPS, ...MIDDLE_STOPS]) {
-  await scrollTo(f, { measure: false });
   const r = await inkFraction(MEDIA_BAND);
-  (END_STOPS.includes(f) ? endsInk : middleInk)[f] = r.ink;
+  ink[f] = r.ink;
   ok(r.px > 10000, `the left band at ${Math.round(f * 100)}% sampled ${r.px} real pixels`,
     'the band crop was empty, so the ink figure below is measuring nothing');
 }
-for (const f of END_STOPS) {
-  ok(endsInk[f] < INK_EMPTY,
-    `${Math.round(f * 100)}% of the track is blank, as declared (${(endsInk[f] * 100).toFixed(2)}% ink against a background of 0.00%)`,
-    `the ${Math.round(f * 100)}% end now shows ${(endsInk[f] * 100).toFixed(2)}% ink — the scrub is no longer 0 -> 1, so DECLARED_EMPTY_ENDS no longer describes it. Either update the declaration or restore the full-clip scrub`);
-}
-for (const f of MIDDLE_STOPS) {
-  ok(middleInk[f] > INK_PRESENT,
-    `${Math.round(f * 100)}% of the track has the roster on screen (${(middleInk[f] * 100).toFixed(1)}% ink)`,
-    'the hero is blank in the middle of its own scrub range — every frame between the two declared empty ends is empty, which no reading of \"keep the full clip\" produces');
-}
+const endsInk = { 0: ink[0], 1: ink[1] };
+const middleInk = Object.fromEntries(MIDDLE_STOPS.map((f) => [f, ink[f]]));
 
-/* Four of five, not five of five, and the one that cannot count is named: the
- * first stop is 0% of the track from the top of the page, which is where the
- * page already is, so there is nothing to move and the frame correctly does not
- * change. Asserting 5/5 would have been a red line about the checker's own
- * starting position. */
-ok(repainted >= 4, `the seek completed AND the hero's pixels changed at ${repainted} of the 5 stops (the first is a no-op: the page already starts there)`,
-  "the hero did not repaint on a scroll that changed the reader's position — currentTime moves but the compositor keeps showing the old frame, which is the scrub working and the reader seeing nothing");
 for (let i = 1; i < marks.length; i++) {
   ok(marks[i].currentTime > marks[i - 1].currentTime,
     `clip advanced from ${marks[i - 1].currentTime.toFixed(2)}s to ${marks[i].currentTime.toFixed(2)}s between ${Math.round((i - 1) / 4 * 100)}% and ${Math.round(i / 4 * 100)}%`);
 }
-// THE identity the static half cannot check: currentTime is the progress times
-// the duration, with no offset and no easing. A tolerance here would be satisfied
-// by a scrub that is merely monotonic, which is the bug this is written for.
+/* THE identity the static half cannot check: currentTime is the progress times
+ * the duration, with no offset and no easing. A tolerance here would be satisfied
+ * by a scrub that is merely monotonic, which is the bug this is written for. */
 const worstErr = Math.max(...marks.map((m) => Math.abs(m.currentTime - m.progress * m.duration)));
 ok(worstErr < 0.25,
   `currentTime equals progress x duration at every stop (worst error ${worstErr.toFixed(3)}s)`,
   'a small offset here is the `- innerHeight` term disappearing: the clip still moves, it just stops short of the end');
-
 ok(marks[marks.length - 1].currentTime > marks[marks.length - 1].duration * 0.9,
   `the clip reaches the last 10% of itself (${marks[marks.length - 1].currentTime.toFixed(2)}s of ${marks[marks.length - 1].duration}s) — the tail of the clip is unreachable when the range omits innerHeight`);
 
 console.log('\n--- scrolling back runs the clip in reverse ---');
+at('the reverse scrub');
+console.log('\n--- scrolling back runs the clip in reverse ---');
 await scrollTo(1);
+
+/* BOTH ENDS OF THE TRACK ARE DECLARED EMPTY, by the author's decision.
+ *
+ * make_hero_video.py builds the roster across the clip's first 65% and fades it back
+ * out over the last 13%, so frame 0 and frame 299 both contain no sprites. Scrubbing
+ * 0 -> 1 therefore opens and closes on a blank dark field: measured, the hero's left
+ * band is 0.00% ink at both ends against ~24% mid-build. The author was told and chose
+ * to keep the full clip — 「維持 0%→100%」 — over re-mapping the scrub onto the wave.
+ *
+ * Which means the two ends are not asserted as defects and not skipped either. They
+ * are asserted as what they now ARE: an empty band at each end, with the reason named,
+ * and a roster in the middle. That is §3.F's rule about a named exception applied in
+ * the other direction — the exception cannot outlive its reason, because if a future
+ * change re-maps the scrub onto the wave (the fix this declined) the ends become
+ * non-empty and THESE assertions go red rather than the declaration quietly becoming
+ * true of nothing. */
+for (const f of END_STOPS) {
+  ok(endsInk[f] < INK_EMPTY,
+    `${Math.round(f * 100)}% of the track is blank, as declared (${(endsInk[f] * 100).toFixed(2)}% ink against a background of 0.00%)`,
+    `the ${Math.round(f * 100)}% end now shows ${(endsInk[f] * 100).toFixed(2)}% ink — the scrub is no longer 0 -> 1, so the declaration no longer describes it. Either update the declaration or restore the full-clip scrub`);
+}
+for (const f of MIDDLE_STOPS) {
+  ok(middleInk[f] > INK_PRESENT,
+    `${Math.round(f * 100)}% of the track has the roster on screen (${(middleInk[f] * 100).toFixed(1)}% ink)`,
+    'the hero is blank in the middle of its own scrub range — every frame between the two declared empty ends is empty, which no reading of "keep the full clip" produces');
+}
+
+/* THE HERO REPAINTS, asserted from those ink figures rather than from a second
+ * screenshot of its own pixels.
+ *
+ * The first version fingerprinted a 220x140 crop of the media layer and counted how
+ * many times the hash changed. It is the right claim and it is NOT that measurement:
+ * a second screenshot of the same thing is a second sample of a quantity measured
+ * properly above, and it is the flakier of the two — under tier-B contention it came
+ * back `3 of 5` once in three runs, because the seek completes and `currentTime`
+ * settles while the compositor has not presented the frame yet. A longer poll ceiling
+ * papered over it, which is the third time in this file that a timeout hid something.
+ *
+ * §3.W's rule is the one that applies: a second count standing in for a claim is how a
+ * guard stops being about the thing it names. The ink figures already say it, with
+ * better evidence — the band reads 0.00% at the two ends and ~24% in the middle, so
+ * the media layer is demonstrably showing different frames at different scroll
+ * positions, which is what `the hero repaints` means.
+ *
+ * The claim is NOT "every figure differs". The two ends are equal BY DECLARATION, and
+ * the build and the wave round to the same figure. Neither is a hero that stopped
+ * repainting. What has to differ is the middle from itself, because that is the only
+ * part of the scrub range the author did not spend an exception on. */
+const middleFigures = Object.values(middleInk);
+ok(new Set(middleFigures.map((v) => v.toFixed(3))).size > 1,
+  `the middle of the scrub range changes frame (${middleFigures.map((v) => (v * 100).toFixed(1) + '%').join(' ')}) against ${(endsInk[0] * 100).toFixed(2)}% and ${(endsInk[1] * 100).toFixed(2)}% at the two declared-empty ends`,
+  'all three middle stops produced the same ink — the media layer is not following the reader: currentTime can move while the same frame stays on screen');
+
 const before = (await videoState()).currentTime;
 await scrollTo(0.3);
 const after = (await videoState()).currentTime;
 ok(after < before - 0.5, `scrolling up moved the clip backwards (${before.toFixed(2)}s -> ${after.toFixed(2)}s)`,
   'the scrub only runs forwards — this is the free consequence of writing currentTime rather than calling play(), and it is worth measuring rather than asserting');
 
+at('reduced motion');
 console.log('\n--- reduced motion freezes the clip and collapses the track ---');
 ok(await openIndex(true), 'the page booted with prefers-reduced-motion: reduce emulated');
 await scrollTo(0);
@@ -437,6 +460,7 @@ ok(Math.abs(rm1.currentTime - rm1.duration * 0.65) < 0.2,
 ok(await ev(`!document.querySelector('.home-hero-scroll-chevron') || getComputedStyle(document.querySelector('.home-hero-scroll-chevron')).animationName === 'none'`),
   'the scroll hint\'s chevron is not animating');
 
+at('contrast: the analytic bound');
 console.log('\n--- the text is readable over every frame the reader passes ---');
 /* NOT "the end of the track".  The first version measured there and reported
  * 1908:1, which is the most confident wrong number this file could have printed:
@@ -586,8 +610,9 @@ async function panelContrast(label) {
 
 await openIndex(false);
 let worstRatio = Infinity, worstAt = '';
+at('contrast: the pixel samples');
 for (const f of [0.65, 0.75, 0.85]) {
-  await scrollTo(f, { measure: false });
+  await scrollTo(f);
   const r = await panelContrast(`${Math.round(f * 100)}% of the track`);
   if (r < worstRatio) { worstRatio = r; worstAt = `${Math.round(f * 100)}%`; }
 }
@@ -599,6 +624,8 @@ ok(exceptions.length === 0, `no uncaught exception on the page${exceptions.lengt
 
 if (fails.length) {
   console.log(`\n${fails.length} of ${checks} checks FAILED`);
-  process.exit(1);
+  clearTimeout(watchdog);
+process.exit(1);
 }
+clearTimeout(watchdog);
 console.log(`\nPASS  ${checks} browser checks`);

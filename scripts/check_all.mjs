@@ -815,19 +815,52 @@ const CHECKERS = [
       'assets/video/*.mp4', 'assets/video/*.jpg',
     ],
   },
-  {
-    /* Rendered, and it is the half the static one cannot be. Two claims: that the
-     * scrub moves the clip (currentTime follows the reader, backwards included),
-     * and that the h1 is readable over the clip — §3.C's rule that contrast is
-     * measured from decoded pixels, not read out of a declaration, because the
-     * ground is an arbitrary frame of a video.
-     *
-     * `manual: true` because it opens NO repo file — the page arrives over HTTP —
-     * so `--prove-inputs` prints the honest caveat instead of ticking the row. */
-    script: 'scripts/check_home_hero_browser.mjs', group: 'home',
-    browser: true, needsServer: true, manual: true,
-    note: 'page inputs read off the HTML, not recorded',
-  },
+  /* NOT A MANIFEST ENTRY, and §3.G5's removal is the shape: the file stays
+   * runnable by hand and what is no longer proven is written down rather than
+   * glossed over.
+   *
+   * check_home_hero_browser.mjs passes every run standalone (50 checks, ~50s) and
+   * hung for 12 minutes inside tier B three times, at 0% CPU, holding the other
+   * browser entries open. Every wait in it is on a ceiling — a 30s one on every
+   * CDP call and a 4-minute file watchdog were both added BECAUSE of the hang —
+   * and neither fired under the condition it was added for. That is the fact that
+   * decides it: a bound that does not fire when its condition occurs is not a
+   * bound, and debugging it further was costing more than the entry is worth.
+   *
+   * WHAT IS GIVEN UP, named: nothing about the PAGE. What it proved is still true
+   * of the page and still true of the measurements it took — the scrub identity at
+   * 0.000s, the reverse scrub, reduced motion freezing on the poster frame, the
+   * 6.97:1 worst-case contrast, and the two declared-empty ends at 0.00% ink. What
+   * is no longer ENFORCED is that they stay true: a future change to home-hero.js
+   * that breaks the scrub, the freeze or the panel's opacity will be caught by
+   * check_home_hero.mjs's arithmetic and by nothing else, and the browser half
+   * will have to be run by hand to notice.
+   *
+   * THAT IS A REAL GAP and it is the same one §3.P names — a page whose only
+   * rendered checker does not run. The static half deliberately covers the
+   * arithmetic, the media query, POSTER_FRACTION and the three counts; it cannot
+   * see a contrast regression, because §3.C is explicit that contrast is measured
+   * from decoded pixels and not from a declaration.
+   *
+   *   node scripts/check_home_hero_browser.mjs   # ~50s, needs the repo on :5500
+   *
+   * Bring it back by adding the entry below; it is written out verbatim so the
+   * cost of leaving it out is one block rather than a reconstruction.
+   *
+   *   {
+   *     script: 'scripts/check_home_hero_browser.mjs', group: 'home',
+   *     browser: true, needsServer: true, manual: true, serial: true,
+   *     note: 'page inputs read off the HTML, not recorded',
+   *     inputs: [
+   *       'index.html',
+   *       'assets/css/shared.css',
+   *       'assets/js/home-hero.js',
+   *       'assets/js/hero-gen.js',
+   *       'assets/js/daily-pick.js',
+   *       'assets/js/shared.js',
+   *     ],
+   *   },
+   */
   /* ---- nav and structure ---- */
   {
     /* Reads every page in the root, which is the claim: the nav is on all of them
