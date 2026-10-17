@@ -205,6 +205,64 @@ if (checked === 0) {
   fail('no script block with any code in it was parsed, so every assertion above ran zero times');
 }
 
+/* ------------------------------------------------------- document structure
+ *
+ * `</body>` and `</html>` are not politeness here. They are the precondition that
+ * decides HOW LONG AN INLINE `<script>` IS, and today.html lost 14 KB of
+ * JavaScript over their absence while every checker in this suite stayed green.
+ *
+ * VS Code Live Server injects its live-reload <script> before the FIRST tag it
+ * matches, in this order (live-server/index.js, `injectCandidates`):
+ *
+ *     [ /<\/body>/i , /<\/svg>/ , /<\/head>/i ]
+ *
+ * `</html>` is NOT in that list. A page with no `</body>` falls through to
+ * `</svg>`, and today.html's only `</svg>` sat INSIDE a template literal — the
+ * 今日推薦 card's chevron icon. The injected `</script>` therefore ended the
+ * inline module early at the HTML-PARSER level, which is a different thing from
+ * the file failing to parse: the file on disk parsed perfectly. That is why this
+ * checker could not see it — everything here reads the FILE, and the corruption
+ * existed only in the bytes the server sent.
+ *
+ * What the reader got: `SyntaxError: Unexpected end of input` at the injected
+ * line, an empty navbar, an empty theme toggle, an empty 今日推薦 card, an empty
+ * 熱門 grid, three empty 快速連結 panels, nine untinted 精選系列 cards, and about
+ * four screens of raw JavaScript rendered as page text.
+ *
+ * So the assertion is the PRECONDITION rather than the symptom, and it is
+ * deliberately the thing Live Server keys on rather than "the page renders":
+ * an inline script's extent must be decided by the file. One `</body>`, exactly
+ * once, after the last `</script>` — which is also just correct HTML, and is
+ * what all but one of the 23 pages did before today.html was fixed.
+ */
+{
+  const offenders = [];
+  for (const page of pages) {
+    const src = readFileSync(join(ROOT, page), 'utf8');
+    const bodies = [...src.matchAll(/<\/body>/gi)];
+    const htmls = [...src.matchAll(/<\/html>/gi)];
+    const lastScript = Math.max(-1, ...[...src.matchAll(/<\/script>/gi)].map((m) => m.index + m[0].length));
+    const why = [];
+    // Case-insensitive throughout, mirroring Live Server's /<\/body>/i: a page
+    // carrying `</BODY>` looks closed to it and must look closed here too.
+    if (bodies.length !== 1) why.push(`${bodies.length} </body> (need exactly 1)`);
+    if (htmls.length !== 1) why.push(`${htmls.length} </html> (need exactly 1)`);
+    // `lastScript` is the offset just PAST the last `</script>`, and the question
+    // is whether `</body>` starts after the tag ENDS — not after it opens, which
+    // is what a bare `</script>` index would have compared.
+    if (bodies.length === 1 && bodies[0].index < lastScript) {
+      why.push(`</body> at offset ${bodies[0].index} precedes the last </script> ending at ${lastScript}`);
+    }
+    if (why.length) offenders.push(`${page}: ${why.join('; ')}`);
+  }
+  if (offenders.length) {
+    fail(`${offenders.length} page(s) cannot be served correctly — every check in this suite reads the file, but Live Server rewrites the bytes it sends, and a page with no </body> gets its reload <script> injected before the first </svg> or </head> instead, which silently truncates any inline script that appears before it:\n`
+       + offenders.map((o) => `         ${o}`).join('\n'));
+  } else {
+    pass(`all ${pages.length} pages carry exactly one </body> and one </html>, each after the last </script>, so no inline script's extent is decided by the server`);
+  }
+}
+
 /* The line mapping is load-bearing — a checker whose only output is a line number
  * in a string that does not exist on disk is worse than no message — so it is
  * asserted rather than assumed. An HTML file with its module on line 5 must map
