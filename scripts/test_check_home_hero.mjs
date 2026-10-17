@@ -280,7 +280,108 @@ const CASES = [
     name: 'the hero claims 1,025 species while the roster holds 1,026',
     mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
       '>1,025</span>', '>1,026</span>')),
-    expect: "the 1,025 in the hero is pokemon_data.json's own length",
+    expect: "the 1,025 in the counts is pokemon_data.json's own length",
+  },
+
+  {
+    /* THE MUTATION FOR §3.P'S OWN FINDING. The panel used to carry the lede, the
+     * generation line and the three counts, and the check that was supposed to
+     * police that read `home-hero-stats` out of the STYLESHEET — so putting an
+     * element back in the panel changed nothing it could see. This is that
+     * mutation, and it is aimed at the one assertion that now reads nesting
+     * instead of a stylesheet string.
+     *
+     * The block ends on `\n {8}</div>` rather than the first `</div>`: the CTA's
+     * closes at ten spaces, so a lazier delimiter reports the CTA's children and
+     * the assertion passes on a panel with a lede in it — §3.P's second vacuous
+     * shape, written by the person who had just recorded it. */
+    name: 'the generation line moves back onto the clip, inside the title card',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      '<h1 id="hero-title" class="home-hero-title">寶可夢演算法</h1>\n',
+      '<h1 id="hero-title" class="home-hero-title">寶可夢演算法</h1>\n          <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>\n')),
+    expect: 'the panel carries the title, the two ways out and the scroll hint — and nothing else',
+  },
+
+  {
+    /* The other half of the same split, and the direction that is easier to
+     * reintroduce by accident: someone tidying the moved block reaches for the
+     * same white the panel uses, because it was the same colour two rules away
+     * and every other theme-coloured block on the site uses tokens. On
+     * --bg-primary in light theme #ffffff measures ~1.05:1 — three counts that
+     * exist and are invisible, which no dark-theme screenshot can answer. */
+    name: 'the three counts go back to the panel\'s own white instead of a theme token',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'display: block; font-size: 26px; font-weight: bold; color: var(--text-primary);',
+      'display: block; font-size: 26px; font-weight: bold; color: #ffffff;')),
+    expect: 'the moved rules carry no panel literal',
+  },
+
+  {
+    /* The separator above the three counts. A literal white at 14% over a white
+     * page is not a subtle border, it is no border — and the rule that removed it
+     * was one line in a five-rule block, so nothing else notices its absence. */
+    name: 'the rule above the counts is a literal white 14% again',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'border-top: 1px solid var(--hairline);\n      list-style: none;',
+      'border-top: 1px solid rgba(255, 255, 255, 0.14);\n      list-style: none;')),
+    expect: 'the rule above the three counts is --hairline',
+  },
+
+  {
+    /* The moved block inherits `text-align: center` from `.home-hero-sticky`
+     * today. Delete it and every rule still exists, nothing throws, and the
+     * paragraph simply sits left-aligned under a centred title — invisible to
+     * every assertion in the suite and obvious on the page. */
+    name: 'the intro block loses the centering it used to inherit from the sticky layer',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'padding: 48px 20px 0;\n      text-align: center;',
+      'padding: 48px 20px 0;')),
+    expect: 'the intro block declares its own centering',
+  },
+
+  {
+    /* The panel's alpha is the one number on this page whose failure mode is INVISIBLE in the
+     * dark theme, and the rendered half of this checker is not a manifest entry — so nothing
+     * that runs would catch a drop. §3.P's gap, pointed at a colour.
+     *
+     * 0.65 is the first alpha under WCAG AA's 4.5:1 for the gold title on this panel; 0.4 puts
+     * it at 1.67:1. Over a dark frame the title still reads as gold on a dark wash, which is
+     * why a screenshot of dark theme answers nothing. The assertion derives the bound from the
+     * two declarations rather than restating 0.7, so this case cannot pass by a magic number
+     * agreeing with itself. */
+    name: 'the hero panel is made transparent enough to lose the title',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'background: rgba(6, 9, 20, 0.7);',
+      'background: rgba(6, 9, 20, 0.4);')),
+    expect: 'the h1 reads at 1.67:1 against the WORST frame the clip can show',
+  },
+
+  {
+    /* The blur radius is the OTHER half of "can I see the Pokémon behind the panel", and unlike
+     * the alpha it costs no contrast at all — so nothing about a contrast assertion can police
+     * it. A checker that only guards what it can measure would let this be removed silently. */
+    name: 'the hero panel\'s blur is restored to 10px, hiding every sprite behind it',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'backdrop-filter: blur(3px);\n      -webkit-backdrop-filter: blur(3px);',
+      'backdrop-filter: blur(10px);\n      -webkit-backdrop-filter: blur(10px);')),
+    expect: 'the hero panel blurs at most 3px',
+  },
+
+  {
+    /* The one that made this assertion necessary, reproduced. An extra closing delimiter in
+     * index.html's <style> ends the comment early, the prose after it becomes live CSS, and the
+     * browser discards every rule from there to the end of the block — so the panel loses its
+     * fill, the h1 loses its accent, and the hero renders unstyled while every other check in
+     * this file keeps reading the text the browser already threw away.
+     *
+     * The name of the assertion deliberately avoids spelling the delimiters: a CSS comment does
+     * not nest, so writing them inside this file's own docblock ended that comment early too and
+     * the checker did not parse. The reason is recorded there. */
+    name: 'a comment in the hero stylesheet is closed one delimiter early',
+    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+      'levers and why both were pulled together.',
+      'levers and why both were pulled together. */')),
+    expect: 'has its closer',
   },
 
   {

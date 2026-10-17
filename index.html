@@ -87,14 +87,56 @@
       inset: 0;
       background: linear-gradient(180deg, rgba(6, 9, 20, 0.22) 0%, rgba(6, 9, 20, 0.10) 45%, #0b1020 97%);
     }
-    /* THIS is what keeps the text legible, not the scrim above: a panel that
+    /* THIS is what keeps the title legible, not the scrim above: a panel that
        is dark in BOTH themes, so the claim does not depend on which frame the
        clip happens to be showing.  --accent-gold is crimson in light theme
        (measured 1.63:1 on this panel), so the accent is a fixed amber here
        rather than the shared token.  Contrast against a fully-white sprite
        showing through the 20% that is not opaque is asserted by
        check_home_hero_browser.mjs by sampling decoded pixels, not by reading
-       this declaration — which is §3.C's rule. */
+       this declaration — which is §3.C's rule.
+
+       IT IS A TITLE CARD AND NOTHING ELSE.  `max-width: 760px` was already not
+       the cap that decided this panel's width — the lede's own `max-width:
+       660px` was, which is what took it to 736 — and with the lede gone the
+       panel shrink-to-fits its widest child, the 42px h1 at 264px.  So the
+       760 binds only above ~300% browser zoom, where the title alone is 756px.
+       Measured before and after, through a live box at both widths:
+       736x436 at 1280x900 (27.9% of the viewport) and 350x421 at 390x844
+       (44.8%) became 340x238 (7.0%) and 262x207 (16.5%).  The phone was the
+       worse case in both states, which is why the second number is the one
+       that decided it.
+
+       THE FILL IS 0.7 AND NOT 0.8, and 0.7 IS A FLOOR RATHER THAN A TASTE.
+       The title is #f5c542 on this panel, and a sprite can be any colour up to
+       pure white, so the ground behind it can be no darker than this fill
+       composited over white — a figure that depends on no frame and no scroll
+       position. Measured across every ink in this panel against that bound:
+
+         0.85  h1 8.36   0.80  h1 6.98   0.75  h1 5.73   0.70  h1 4.73
+         0.65  h1 3.93 ✗ 0.60  h1 3.27 ✗ 0.50  h1 2.30 ✗ 0.40  h1 1.67 ✗
+
+       0.65 is the first value under WCAG AA's 4.5:1, so 0.70 is the most
+       transparent this panel can be.  The primary button is unaffected either
+       way: it paints --home-hero-accent at full alpha over its own fill, so
+       its #1a1405 ink sits at a fixed 11.30:1 whatever this does.
+       check_home_hero.mjs derives this bound from the two declarations rather
+       than restating 0.7, and check_home_hero_browser.mjs measures it from
+       decoded pixels as well (§3.C).
+
+       THE BLUR IS 3px AND NOT 10px, and the reason is that alpha alone cannot do
+       what a reader looking through the panel wants.  At 0.8 with blur(10px)
+       the panel was a colour wash: nothing of a Pokémon's shape survived it, so
+       lowering the alpha to 0.7 moved rgb(56,58,67) to rgb(81,83,91) and bought
+       a slightly lighter wash.  The blur radius is what was hiding the sprites,
+       and it costs no contrast at all — which is why this is the safer of the two
+       levers and why both were pulled together.
+
+       The four colours below are deliberately PANEL colours and not tokens —
+       this ground is rgba(6,9,20,0.7) over an arbitrary frame in BOTH themes.
+       The lede, the counts and the generation line moved out of here to
+       `.home-intro` and took theme tokens with them; check_home_hero.mjs
+       asserts both directions so neither half can start borrowing the other. */
     .home-hero-content {
       position: relative;
       z-index: 2;
@@ -103,9 +145,9 @@
       padding: 34px 38px 30px;
       border-radius: 26px;
       --home-hero-accent: #f5c542;
-      background: rgba(6, 9, 20, 0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(6, 9, 20, 0.7);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
     }
     .home-hero-title {
       font-size: 42px;
@@ -114,17 +156,39 @@
       margin: 0 0 14px;
       letter-spacing: 2px;
     }
+
+    /* ===== Below the clip =====
+       What the panel no longer carries.  Every colour here is a token and
+       that is the whole reason the block had to be rewritten rather than moved:
+       on `rgba(6,9,20,0.8)` these four hexes were legible, and on the page's own
+       --bg-primary they measure ~1.05:1 in light theme — a paragraph and three
+       counts that exist and are invisible.
+
+       `text-align: center` is declared, not inherited.  `.home-hero-lede` used to
+       centre itself off `.home-hero-sticky { text-align: center }`, and losing an
+       inherited declaration when an element moves throws nothing: every rule
+       still exists, the paragraph is simply left-aligned.
+
+       max-width matches `.feature-grid`'s so the paragraph and the five cards
+       share one measure, and the 48px of top padding is the gap the hero track
+       no longer provides for itself. */
+    .home-intro {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 20px 0;
+      text-align: center;
+    }
     .home-hero-lede {
       font-size: 18px;
-      color: #f4f6fc;
+      color: var(--text-primary);
       max-width: 660px;
       margin: 0 auto;
       line-height: 1.7;
     }
-    .home-hero-updated { font-size: 12px; color: #d7dbee; margin: 12px 0 0; }
+    .home-hero-updated { font-size: 12px; color: var(--text-secondary); margin: 12px 0 0; }
 
-    /* Three counts, so the hero stands on its own rather than introducing a
-       page that is two sections long.  All three are hand-written because
+    /* Three counts, so the homepage states its own size rather than making a
+       reader count the cards to learn it.  All three are hand-written because
        all three are claims about OTHER pages, and they are the kind that go
        quietly stale: sorting.html could grow a seventh sorter and nothing
        here would notice.  check_home_hero.mjs derives the roster size from
@@ -136,11 +200,11 @@
       gap: 34px;
       margin: 24px 0 0;
       padding: 18px 0 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      border-top: 1px solid var(--hairline);
       list-style: none;
     }
-    .home-hero-stat-num { display: block; font-size: 26px; font-weight: bold; color: #ffffff; line-height: 1.2; }
-    .home-hero-stat-label { display: block; font-size: 12px; color: #cfd6e8; margin-top: 3px; }
+    .home-hero-stat-num { display: block; font-size: 26px; font-weight: bold; color: var(--text-primary); line-height: 1.2; }
+    .home-hero-stat-label { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
 
     /* Two ways out of a full-viewport clip.  A hero that only ends by
        scrolling leaves a keyboard reader and anyone who has landed here from
@@ -164,6 +228,16 @@
     .home-hero-btn.is-primary { background: var(--home-hero-accent); border-color: var(--home-hero-accent); color: #1a1405; }
     .home-hero-btn.is-primary:hover, .home-hero-btn.is-primary:focus-visible { color: #1a1405; filter: brightness(1.08); }
 
+    /* Stays INSIDE the panel, deliberately, and it is the last thing in there
+       for two reasons.  It describes the clip — 「向下捲動播放」 is a claim about
+       the video, so moving it below the track would make it describe something
+       the reader can no longer see.  And it is the only route onward from a
+       full-viewport hero, which is the reason it exists at all: a hero that only
+       ends by scrolling leaves a keyboard reader with no visible way anywhere.
+
+       Keeping it on the panel also means it inherits the panel's legibility
+       rather than needing a surface of its own — #d7dbee here is a PANEL colour,
+       which is why it did not become a token with the three that moved. */
     .home-hero-scroll-hint {
       display: inline-flex;
       align-items: center;
@@ -217,15 +291,6 @@
         <div class="home-hero-scrim" aria-hidden="true"></div>
         <div class="home-hero-content">
           <h1 id="hero-title" class="home-hero-title">寶可夢演算法</h1>
-          <p class="home-hero-lede">
-            以 1,025 隻寶可夢為教材的演算法視覺化 — 排序、路徑尋找、資料結構，附完整圖鑑資料。
-          </p>
-          <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>
-          <ul class="home-hero-stats">
-            <li><span class="home-hero-stat-num">1,025</span><span class="home-hero-stat-label">隻寶可夢</span></li>
-            <li><span class="home-hero-stat-num">9</span><span class="home-hero-stat-label">個世代</span></li>
-            <li><span class="home-hero-stat-num">6</span><span class="home-hero-stat-label">種排序演算法</span></li>
-          </ul>
           <div class="home-hero-cta">
             <a class="home-hero-btn is-primary" href="pokedex.html">開始探索</a>
             <a class="home-hero-btn" href="today.html">今日推薦</a>
@@ -235,6 +300,33 @@
           </p>
         </div>
       </div>
+    </section>
+
+    <!-- What the panel no longer carries.  It was 760x420 of `rgba(6,9,20,0.8)`
+         over a full-bleed roster grid — measured ~30% of a 1280x900 viewport, and
+         dead centre on the densest part of the frame.  This is a plain themed
+         text block instead, which is also why every colour in it is a token and
+         not one of the panel's dark-panel literals.
+
+         `text-align: center` is DECLARED here rather than inherited: the lede used
+         to centre itself off `.home-hero-sticky { text-align: center }`, and a
+         moved element that loses an inherited declaration does not throw — every
+         rule still exists, the paragraph is simply left-aligned.
+
+         It sits BELOW the 240vh track, so a reader sees it only after the whole
+         10s clip has scrubbed.  That is the two-act page and not an oversight:
+         h1 + the two ways out are above the fold, and the sentence saying what
+         the site IS comes after the thing it is about. -->
+    <section class="home-intro" aria-label="這個網站在做什麼">
+      <p class="home-hero-lede">
+        以 1,025 隻寶可夢為教材的演算法視覺化 — 排序、路徑尋找、資料結構，附完整圖鑑資料。
+      </p>
+      <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>
+      <ul class="home-hero-stats">
+        <li><span class="home-hero-stat-num">1,025</span><span class="home-hero-stat-label">隻寶可夢</span></li>
+        <li><span class="home-hero-stat-num">9</span><span class="home-hero-stat-label">個世代</span></li>
+        <li><span class="home-hero-stat-num">6</span><span class="home-hero-stat-label">種排序演算法</span></li>
+      </ul>
     </section>
 
     <section class="feature-grid" id="features" aria-label="功能區塊">
