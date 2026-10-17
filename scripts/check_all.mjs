@@ -819,18 +819,24 @@ const CHECKERS = [
    * runnable by hand and what is no longer proven is written down rather than
    * glossed over.
    *
-   * check_home_hero_browser.mjs passes every run standalone (50 checks, ~50s) and
-   * hung for 12 minutes inside tier B three times, at 0% CPU, holding the other
-   * browser entries open. Every wait in it is on a ceiling — a 30s one on every
-   * CDP call and a 4-minute file watchdog were both added BECAUSE of the hang —
-   * and neither fired under the condition it was added for. That is the fact that
-   * decides it: a bound that does not fire when its condition occurs is not a
-   * bound, and debugging it further was costing more than the entry is worth.
+   * IT WAS RETIRED FOR A HANG THAT WAS NOT A HANG, and both of the ceilings added to fight
+   * that hang were aimed at nothing. The file never called `chrome.kill()` or `process.exit()`,
+   * so the CDP WebSocket and the spawned child kept its event loop alive after it had printed its
+   * verdict — the checks finished in well under a minute and the PROCESS then sat there forever,
+   * which from outside is exactly what a hang looks like: a running row, no cache write, a pool
+   * that never drains. That is why it "hung for 12 minutes inside tier B three times, at 0% CPU"
+   * with three 30s ceilings and a 4-minute watchdog in the file and none of them firing. A bound
+   * that does not fire when its condition occurs is not a bound, and here the condition was the
+   * only thing that was wrong.
+   *
+   * The retirement still stands — but on a different and now much weaker ground. At 53 checks
+   * and ~4s this is no longer expensive, and §3.P's objection (a page whose only rendered checker
+   * does not run) is the reason to put it back rather than the reason to leave it out.
    *
    * WHAT IS GIVEN UP, named: nothing about the PAGE. What it proved is still true
    * of the page and still true of the measurements it took — the scrub identity at
    * 0.000s, the reverse scrub, reduced motion freezing on the poster frame, the
-   * 6.97:1 worst-case contrast, and the two declared-empty ends at 0.00% ink. What
+   * 6.97:1 worst-case contrast, and the blank end at 0.00% ink. What
    * is no longer ENFORCED is that they stay true: a future change to home-hero.js
    * that breaks the scrub, the freeze or the panel's opacity will be caught by
    * check_home_hero.mjs's arithmetic and by nothing else, and the browser half
@@ -842,7 +848,7 @@ const CHECKERS = [
    * see a contrast regression, because §3.C is explicit that contrast is measured
    * from decoded pixels and not from a declaration.
    *
-   *   node scripts/check_home_hero_browser.mjs   # ~50s, needs the repo on :5500
+   *   node scripts/check_home_hero_browser.mjs   # ~4s, needs the repo on :5500
    *
    * Bring it back by adding the entry below; it is written out verbatim so the
    * cost of leaving it out is one block rather than a reconstruction.
