@@ -791,6 +791,43 @@ const CHECKERS = [
     script: 'scripts/check_js_syntax.mjs', group: 'nav',
     inputs: ['*.html'],
   },
+  /* ---- index.html's hero ----
+     A group of its own, which makes eleven. The hero is the first thing every
+     visitor sees and until this commit nothing in the suite read any of it —
+     §3.P's shape, where maze.html shipped a patrol that had never drawn a path
+     because no entry mentioned the string `maze`. It is its own group rather than
+     a member of `nav` because one half is static and one boots Chrome, and
+     putting a ~34s browser checker inside `nav` would make the cheapest group in
+     the suite the most expensive one to reason about. */
+  {
+    /* Static: the progress arithmetic, the day-to-generation mapping, the track
+     * height read out of the module rather than restated, and the three numbers
+     * in the hero re-derived from pokemon_data.json and sorting-algorithms.js.
+     * 0.2s, and it imports both modules so it can RUN them — which is what makes
+     * the pre-epoch wrap and the period-9 ring measurements rather than claims. */
+    script: 'scripts/check_home_hero.mjs', group: 'home',
+    inputs: [
+      'index.html', 'today.html',
+      'scripts/make_hero_video.py',
+      'assets/data/pokemon_data.json',
+      'assets/js/daily-pick.js', 'assets/js/hero-gen.js',
+      'assets/js/home-hero.js', 'assets/js/sorting-algorithms.js',
+      'assets/video/*.mp4', 'assets/video/*.jpg',
+    ],
+  },
+  {
+    /* Rendered, and it is the half the static one cannot be. Two claims: that the
+     * scrub moves the clip (currentTime follows the reader, backwards included),
+     * and that the h1 is readable over the clip — §3.C's rule that contrast is
+     * measured from decoded pixels, not read out of a declaration, because the
+     * ground is an arbitrary frame of a video.
+     *
+     * `manual: true` because it opens NO repo file — the page arrives over HTTP —
+     * so `--prove-inputs` prints the honest caveat instead of ticking the row. */
+    script: 'scripts/check_home_hero_browser.mjs', group: 'home',
+    browser: true, needsServer: true, manual: true,
+    note: 'page inputs read off the HTML, not recorded',
+  },
   /* ---- nav and structure ---- */
   {
     /* Reads every page in the root, which is the claim: the nav is on all of them
