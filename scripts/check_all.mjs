@@ -791,6 +791,24 @@ const CHECKERS = [
     script: 'scripts/check_js_syntax.mjs', group: 'nav',
     inputs: ['*.html'],
   },
+  {
+    /* The document-structure guard's own negative suite. Five cases break the TREE
+     * and one breaks the CHECKER (the case-insensitivity, which mirrors Live
+     * Server's /<\/body>/i), plus a PAIRING that asserts the checker exits 0 once the
+     * ordering comparison is deleted — which is what proves the too-early-</body>
+     * case rests on that one comparison and not on something the same fixture
+     * happens to satisfy.
+     *
+     * `inputs` is the attacked checker and nothing else, and that is unusual: this
+     * harness writes its own one-page fixture rather than copying the 23 real ones,
+     * so declaring `*.html` would make `--prove-inputs` fail on "declared but not
+     * read" — and would skip the entry whenever any page changed, for a page it
+     * never looks at. The checker it attacks is already in the cache key
+     * unconditionally, so this list is documentation rather than mechanism. */
+    script: 'scripts/test_check_js_syntax.mjs', checker: 'scripts/check_js_syntax.mjs', group: 'nav',
+    note: '6 cases in child trees — the shipped defect verbatim, three count shapes, the too-early </body>, the dropped case-insensitivity, an empty tree — plus one pairing',
+    inputs: ['scripts/check_js_syntax.mjs'],
+  },
   /* ---- index.html's hero ----
      A group of its own, which makes eleven. The hero is the first thing every
      visitor sees and until this commit nothing in the suite read any of it —

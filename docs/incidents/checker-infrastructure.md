@@ -279,6 +279,61 @@ The healthy path is **unchanged** — the polls return on their first tick, so 6
 **Verified by mutation, in both directions, on two different modules:** renaming `muteForView` reports `sorting.html: cryPlayer.muteForView — cryPlayer (assets/js/cry-player.js) has no "muteForView"`, and renaming `astarSolve` reports the missing export from `maze.html` with the module's real export list attached. Neither is visible anywhere else in the suite.
 
 
+<a id="i1"></a>
+## I1. `today.html` Served 14 KB Less JavaScript Than It Contains, And Every Checker Read The File
+
+`today.html` was the only one of 23 pages carrying no `</body>` and no `</html>`. The file parsed perfectly — 14,083 characters of valid module that `node --check` accepted without complaint — and the whole suite was green. Served over the project's own Runtime Server it arrived as **62,801 bytes against 61,308 on disk, a different md5**, and the browser reported `Uncaught SyntaxError: Unexpected end of input today.html:1002`.
+
+**WHAT THE READER GOT:** an empty navbar (0 of 20 links), an empty theme toggle (0 of 2 icons), an empty 今日推薦 card in a 56px section, an empty 熱門 grid (0 of 10), three empty 快速連結 panels (0/0/0), nine untinted 精選系列 cards (0 of 9), and about four screens of raw JavaScript rendered as page text — the truncated tail re-parsed as HTML, including two stray `<a>` elements inside 快速連結.
+
+**THE INJECTION RULE IS THREE LINES, AND THE SECOND ONE IS THE TRAP.** VS Code Live Server rewrites every HTML response before sending it, inserting its live-reload `<script>` before the first tag it matches. From `live-server/index.js`:
+
+```js
+var injectCandidates = [
+    new RegExp("</body>", "i"),
+    new RegExp("</svg>"),
+    new RegExp("</head>", "i")
+];
+```
+
+Three things about that list, each of which had to be read rather than guessed:
+
+- **`</html>` IS NOT IN IT.** So "add the two closing tags" would have sounded like a complete fix and left the page broken; `</body>` is the only one of the two that matters to the server. Both were added, because all 22 other pages carry both and the file should be valid HTML — but the load-bearing one is `</body>`.
+- **THE FALLTHROUGH IS `</svg>`, AND THE PAGE HAD EXACTLY ONE.** `today.html`'s sole `</svg>` sits at offset 49839, inside a JavaScript template literal — the 今日推薦 card's chevron icon, `today.html:965`. So the injection landed *inside a string in the module*.
+- **THE INJECTED `</script>` ENDS THE INLINE SCRIPT AT THE HTML-PARSER LEVEL**, which is a different event from the file failing to parse. Measured line by line in the served bytes: `<!-- Code injected by live-server -->` on **965**, the injected `</script>` on **1002** — which is precisely the line the console named — and the original `` </svg>` + `` resuming on **1003**, where the HTML parser starts treating JavaScript as markup. That is where the visible source code came from.
+
+**THE FAILURE MODE NO CHECKER COULD REACH, AND IT IS NOT ABOUT LIVE SERVER.** `check_js_syntax.mjs` parses each inline block off disk and it was correct: the disk bytes are valid. `check_page_module_api.mjs` verified 333 bindings across 22 pages and was correct. `check_nav_pages.mjs` asserted the nav markup and was correct — `initHeaderNav()` simply never ran. Every one of them reads the FILE; the defect existed only in the bytes the SERVER sent. This is §3.I's shape one level out: there, ESM verified the imported binding and not the member; here, a checker verified the file and not the response. **A check's reach was narrower than the defect, and nothing in the suite printed the difference.**
+
+**THE FIX IS TWO LINES AND NOTHING ELSE.** `</body>` then `</html>`, appended after the module's `</script>`. Measured after, against the real server on :5500, at 1440×900 and 390×844, zero exceptions and zero console errors:
+
+| | broken | after |
+| --- | --- | --- |
+| nav links / drawer links | 0 / 0 | 20 / 20 |
+| theme-toggle icons | 0 | 2 |
+| 今日推薦 card | empty, 56px section | 謝米 #492, 498px |
+| 熱門 grid | 0 | 10 |
+| 快速連結 move/ability/starter | 0 / 0 / 0 | 8 / 8 / 8 |
+| 精選系列 tinted | 0 of 9 | 9 of 9 |
+| raw JS rendered as page text | ~4 screens | none |
+| module length in the DOM | 7,953 chars | 14,083 chars |
+
+The mobile drawer was opened with a real `Input.dispatchMouseEvent` press at the hamburger's measured centre rather than `element.click()`, per §3.W's finding that the synthetic call passes where a real press fails: 20 links, `display: flex`, 331px.
+
+**THE GUARD IS THE PRECONDITION, NOT THE SYMPTOM.** Asserting "no raw JS is visible" would need a browser and would miss every other page that trips the same rule. Asserting *an inline script's extent must be decided by the file* is 0.0 s of static text and is exactly the property Live Server depends on: every page carries exactly one `</body>` and one `</html>`, both after the last `</script>`. Case-insensitive throughout, mirroring Live Server's own `/<\/body>/i`, so a page closing with `</BODY>` is not silently unprotected.
+
+**A NEW GUARD IN AN EXISTING CHECKER IS THE ONE PLACE A VACUOUS ASSERTION IS MOST LIKELY, AND §3.P SAYS WHY.** That section records four of `check_maze_page.mjs`'s 23 mutations staying green, all of them regex shapes that ran past the construct they named. This guard is a count and a comparison over document text — the same shape. So `test_check_js_syntax.mjs` exists, and it is split the way `test_check_tmp_prefixes.mjs` is: **five cases break the TREE and one breaks the CHECKER**, because a checker only ever attacked through its input cannot distinguish "the rule is enforced" from "the checker is currently green" — all five tree cases would still pass with the guard's body deleted. The tree cases are the shipped defect verbatim, three count shapes, and the too-early `</body>`; the checker case drops the `i` from the regex, because that flag is deliberate and therefore the first thing someone would "simplify".
+
+**THE PAIRING IS INVERTED ON PURPOSE.** The too-early-`</body>` case is caught by ONE comparison, and every other assertion in the guard is satisfied by that same fixture — one `</body>`, one `</html>`, both counts right. Delete the ordering term and that case stops firing, silently, with a green baseline. So the harness's last block asserts the checker **exits 0** once the term is gone. Mechanism and outcome, separately, because either alone can be right about the wrong thing.
+
+**MEASURED BOTH WAYS, because a harness nobody has seen fail is a claim.** Neutering the guard's reporting (`if (offenders.length)` → `if (false)`, so offenders are still collected and never surfaced) turns **5 of the 8 checks red**, each naming the assertion it expected. The two that stay green are correct and instructive: the baseline (its fixture is valid) and the pairing (which expects exit 0 either way). The empty-tree case stays green too, because it is caught by the companion `pages.length === 0` floor rather than by this guard — which is why it is filed as a case about the *suite* and not about the rule.
+
+**FOUR NAMED LIMITS, because a receipt that only records successes is a press release.**
+
+- **THE PAGE SET IS `.html` ONLY, AND THE SERVER SERVES MORE.** Live Server's `possibleExtensions` is `["", ".html", ".htm", ".xhtml", ".php", ".svg"]`. A page served as `.htm` or `.xhtml` would be parsed by no checker and guarded by none. All 23 pages here are `.html` today; widening the derivation is a change to the *parse* loop's page set too, and is not done.
+- **`manual` IS NOT SET, AND THAT IS CORRECT — BUT READ THE LINE.** The harness writes its own one-page fixture rather than copying the 23 real ones, so it opens no repo file at all. `--prove-inputs` reports `opens no repo file — 1 declared input(s) are hand-maintained`, which is §4's honest-unverifiable caveat now applying to a third entry. `inputs` names only the attacked checker, which §4 already keys on unconditionally; declaring `*.html` would have made `--prove-inputs` fail on "declared but not read" *and* skipped the entry whenever any page changed, for a page it never looks at.
+- **THE FIX WAS VERIFIED BY INTERCEPTING THE RESPONSE BEFORE THE EDIT EXISTED, and that is worth recording as a method.** Adding the two tags and then reloading proves the fix; it does not prove the *cause*. The cause was established by stripping the injection from the served bytes and watching the same page come up complete — 20 nav links, 20 drawer links, 2 toggle icons, 謝米 #492 — with nothing else changed. A confirmation that only shows the good state is compatible with a wrong explanation.
+- **LIVE SERVER IS NOT NECESSARY FOR THE DEFECT, ONLY FOR THE PROOF.** With no rewriting server the page renders correctly, because browsers synthesise `body` and `html` at EOF — which is exactly why this shipped. Any tool that injects before `</body>` reproduces it: a CSP meta, an analytics snippet, an A/B-testing tag, a different preview server. **The guard closes the `</body>` instance; nothing here closes the class.**
+
 <a id="j"></a>
 ## J. Every CDP Checker Leaked A Chrome Profile, And 28 GB of tmpdir Proved It
 
