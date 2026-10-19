@@ -9,6 +9,7 @@
 > - **DO NOT RUN BROWSER CHECKERS UNLESS THE CHANGE DEMANDS THEM.** This machine cannot absorb them — they are the reason it gets hot enough to be noticed, and that was measured, not estimated. **A headless Chrome is a browser rendering pages forever; §3.J's incident was a machine running hot long before anything was wrong.**
 >   - **What counts as a browser checker:** any entry with `browser: true` in `check_all.mjs` — 13 of them, plus `test_check_sorting_page.mjs`, which boots Chrome 25 times *inside* a `sort`-group harness and so is reached by `--only=sort` even though the flag is absent. So `--only=nav`, `--only=sort`, `--only=model`, `--only=algo`, `--only=type` and `--only=cry-page` are **not** cheap groups: `color` contains `check_color_game_browser.mjs`, and `cry-page` contains four CDP entries.
 >   - **The default is therefore: run the affected checkers BY NAME, not a group.** `node scripts/check_moves_page.mjs`, `node scripts/check_learnsets.mjs` — a tier-A entry is 0.1–2 s of pure Node and costs nothing.
+>   - **When the edit spans a group, filter `check_all.mjs` with `--only=<group>` rather than running it bare** — `--only` is a repeatable prefix match, runs one group and nothing else, and the §4 table is the price list. It is a time-and-heat lever, never a correctness claim: it does not excuse a browser the change genuinely needs (next bullet, and §4).
 >   - **`node scripts/check_all.mjs` with no `--only` is NOT the way to verify a change on this machine.** Tier B is 10 pooled entries plus 2 serial, and `test_check_graph_browser.mjs` alone is 40 s of four sequential Chrome boots. This overrides every 「the suite is cheap because of the skip cache」 argument below — the cache makes the *second* run free, and the first run after an unrelated edit still boots thirteen browsers.
 >   - **When a browser checker genuinely is the right tool** — the change is a rendered claim, or a browser half is the only half that can see it (§3.G4, §3.X, §3.AA) — **run it alone, never inside a group**: `node scripts/check_moves_page_browser.mjs`. One Chrome, one page pair, no pool contention.
 >   - **§4's「ONE RUN CONFIRMS A FIX」 rule is unchanged and matters more here**: one run of the affected checker is the evidence, and a second run proves nothing about the change.
@@ -494,6 +495,8 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
 **Running the whole suite is forbidden on this machine: a full cold run boots thirteen headless Chromes.** One *cached* run is 0.0 s, but the first run after an unrelated edit pays for every browser whose inputs moved. Map by **what you edited**, not by group — the rows are derived from the `inputs` lists, which is why `--prove-inputs` matters:
+
+**So filter, don't run the suite.** `--only=<group>` runs one group and nothing else, and naming a checker (`node scripts/check_moves_page.mjs`) skips the runner entirely — on this machine that is the difference between ~88 s and a hot laptop. Take the narrowest option that covers your edit, from the table below, chosen by *what you edited* rather than by convenience. `--only` decides what runs, never what is true: a green filtered run says nothing about the checkers it skipped.
 
 | you edited | run this | why this and not that |
 | :--- | :--- | :--- |
