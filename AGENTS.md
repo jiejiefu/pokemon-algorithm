@@ -4,13 +4,13 @@
 > - **Python Virtualenv**: `/Users/jiejiefu/Documents/Visual_Studio_Code/.venv` (i.e. `../.venv` from the repo root; a repo-local `.venv` also works)
 > - **Execution Style**: `i-have-adhd` (High scannability, concise chunks, explicit bullet points, actionable commands)
 >   - This project is developed with **opencode**. Every session must load the `i-have-adhd` skill before the first reply and keep its formatting for the whole session, without waiting to be asked again.
->   - The trigger is the user naming the skill at all — e.g. typing `skill：i-have-adhd`, 「使用skill」, or just「使用skill」with no argument. Treat any mention of「使用skill」as a request to load `i-have-adhd` specifically, since it is the only skill this project pins.
+>   - The trigger is the user naming the skill at all — e.g. typing `skill：i-have-adhd`, 「使用skill」, or just「使用skill」with no argument. Treat any mention of「使用skill」 as a request to load `i-have-adhd` specifically, since it is the only skill this project pins.
 >   - It turns off only when the user says「stop adhd mode」or「normal mode」, confirmed in one line. Nothing else — a topic change, a new task, a mode change in the harness — does not turn it off.
 > - **DO NOT RUN BROWSER CHECKERS UNLESS THE CHANGE DEMANDS THEM.** This machine cannot absorb them — they are the reason it gets hot enough to be noticed, and that was measured, not estimated. **A headless Chrome is a browser rendering pages forever; §3.J's incident was a machine running hot long before anything was wrong.**
 >   - **What counts as a browser checker:** any entry with `browser: true` in `check_all.mjs` — 11 of them, plus `test_check_sorting_page.mjs`, which boots Chrome 25 times *inside* a `sort`-group harness and so is reached by `--only=sort` even though the flag is absent. So `--only=nav`, `--only=sort`, `--only=model`, `--only=algo` and `--only=cry-page` are **not** cheap groups: `color` contains `check_color_game_browser.mjs`, and `cry-page` contains four CDP entries.
 >   - **The default is therefore: run the affected checkers BY NAME, not a group.** `node scripts/check_moves_page.mjs`, `node scripts/check_learnsets.mjs` — a tier-A entry is 0.1–2 s of pure Node and costs nothing.
 >   - **`node scripts/check_all.mjs` with no `--only` is NOT the way to verify a change on this machine.** Tier B is 10 pooled entries plus 2 serial, and `test_check_graph_browser.mjs` alone is 40 s of four sequential Chrome boots. This overrides every 「the suite is cheap because of the skip cache」 argument below — the cache makes the *second* run free, and the first run after an unrelated edit still boots eleven browsers.
->   - **When a browser checker genuinely is the right tool** — the change is a rendered claim, or a browser half is the only half that can see it (§3.G4, §3.X) — **run it alone, never inside a group**: `node scripts/check_moves_page_browser.mjs`. One Chrome, one page pair, no pool contention.
+>   - **When a browser checker genuinely is the right tool** — the change is a rendered claim, or a browser half is the only half that can see it (§3.G4, §3.X, §3.AA) — **run it alone, never inside a group**: `node scripts/check_moves_page_browser.mjs`. One Chrome, one page pair, no pool contention.
 >   - **§4's「ONE RUN CONFIRMS A FIX」 rule is unchanged and matters more here**: one run of the affected checker is the evidence, and a second run proves nothing about the change.
 >   - **After a browser run, check for orphans — §3.J's sweep.** A killed run leaves headless Chrome alive, which is a *correctness* defect, not disk clutter: `check_gen1_page.mjs` once drove a stranger's 1246×87 window and failed 4 of its 74 checks on a perfect page.
 >     ```bash
@@ -54,6 +54,8 @@
 | `spectrum.html` | Mel spectrogram over every cry, revealed left to right — §3.G1 |
 | `cry-game.html` | 10-question, 4-option cry-guessing game; difficulty is a measured similarity ceiling — §3.Y |
 | `types.html` | Type chart + per-type browser. The ONLY place the effectiveness matrix appears — §3.D, §3.H |
+| `moves.html` | All 919 moves, searchable + filterable, every filter in the URL — §3.AA |
+| `move.html` | One move: stats, effect text, and which of the 1,025 learn it — §3.AA |
 | `category.html` | Collection-list template, `?cat=<slug>`. Never links to `types.html` — §3.H |
 | `collections.html` | Collections hub: 11 cards in 4 groups, 2 `upcoming` |
 | `outfit.html` | Garment colour → MMCQ → OKLab against all 1,025 palettes — §3.L |
@@ -88,6 +90,8 @@ pokemon-algorithm/
 | `extract_glb_index.py` / `extract_sv_index.py` / `extract_cry_index.py` | `glb-index.js`, `sv-index.js`, `cry-index.js` (§3.E) |
 | `fetch_gen1_cries.py` | `gen1_cries.json`, `gen1_cry_sfx.json` |
 | `fetch_evolution_levels.py` | `evolution_levels.json` (§3.K) |
+| `fetch_moves.py` | `moves_zh.json`, `learnsets.json`, `move_learners.json`, `move_learners_count.json` (§3.AA). The two learner indexes are written **compactly** while the other two are `indent=2`, for the reason the script's own comment gives: neither is ever hand-edited, and the formatting tax would make the index a quarter the size of the 4.4 MB file it exists to avoid fetching |
+| `analyze_cries.py` | `cry_features.json` (§3.G1) |
 | `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
 | `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 8.9 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (28 `*.py`) already include it |
@@ -895,6 +899,27 @@ The homepage used to be nine content sections. It is now a hero and five cards, 
 
 ---
 
+### AA. `moves.html` / `move.html` — 919 招式, And The Four Bugs Only A Browser Could See
+
+`moves_zh.json` shipped **782** moves for a year, because `fetch_moves.py` only emitted the ones the 1,025 reference. PokeAPI has **919** non-shadow moves, and the missing 137 are Z-moves, Max Moves, Hisuian 四季之符 and 掙扎 — a move no Pokémon learns is still a catalogue entry, and a 招式 page is a database. `move.html` carries **no nav row and no `pages` entry**, exactly as `detail.html` does; `moves.html` has both, because `check_color_page.mjs` requires a row-claimed page to appear in its group's `pages` or the aria-current lands inside a `[hidden]` panel.
+
+- **EFFECT TEXT HAS TWO PROVENANCES AND THE BOUNDARY IS A GENERATION LINE.** 826 rows are PokeAPI's `flavor_text_entries` in zh-hant — the same sentence InfoPoke publishes, already in Traditional. The 93 that are ids 827–919, the whole of Generation 9, have no zh-hant flavour entry and are InfoPoke's Simplified run through OpenCC `s2twp`. **InfPoke's NUMBERS AND NAMES ARE NOT READ AT ALL**, measured against PokeAPI across all 937 rows: type disagrees on 126, power on 104, PP on 122, and its name column is mixed script and differs from the official zh-hant on 64 (`力量转换` vs `力量轉換`). Two columns are read out of its 8-column table: the id and the effect.
+- **CONVERTING THE 826 WOULD MAKE THEM WORSE, and this is why the split is a boundary rather than a convenience.** `s2twp` would change **18** of them away from official Taiwanese wording — 起風's `刮起狂風` → `颳起狂風`, 污泥攻擊's `投擲污泥` → `投擲汙泥`, 念力's `發送` → `傳送`. **So the checker asserts IDEMPOTENCE, not 「contains no Simplified characters」.** A hand-written Simplified set flags 手, 岩 and 污 — all correct Traditional in this corpus — and fires on 565 of 919 rows, which is §3.S's vacuity shape wearing a correctness hat. `s2twp(shipped) === shipped` is satisfied by exactly one condition: the conversion ran to completion on the rows it was meant to run on.
+- **`total` COUNTS DISTINCT POKÉMON AND 473 OF 782 MOVES NEED THAT.** `learnsets.json` is a union over every generation, so a move that was a TM in Gen 4 and a level-up in Gen 5 is counted twice for that Pokémon. 拍擊 has 89 method slots for **87** species. Summing prints 「89 隻可學」 for a move 87 Pokémon can learn and the reader cannot tell which number was meant; the four tab counts stay raw, which is what makes them add up to more than the total.
+- **FOUR BUGS THAT NO STATIC CHECKER COULD HAVE FOUND, and one of them was in the checker.** §3.G4's split is the reason this page has both halves. `check_moves_page.mjs` (155 checks, 0.2 s) reads the files and **runs** `filterMoves`/`movePowerText`/`moveUrl` over the real 919; `check_moves_page_browser.mjs` (73 checks, 28 s) presses things. The rendered half's first run found:
+  - **`wireRoving`'s `apply` receives the SELECTED BUTTON, not its key.** Passing the element where a string was expected made `panel.dataset.learnTab !== element` true for every panel, so a tab click hid the one already hidden and unhid none: **0 panels shown while `aria-selected` read perfectly.** The signature is in the docblock (`(active: Element) => void`) and the caller got it wrong anyway — which is why the assertion reads the **box**, not the attribute.
+  - **`Number('true')` is `NaN`, and the learnability chip went through `Number()`.** The filter matched every row and the page looked unfiltered, because 「nothing was excluded」 is exactly what an unfiltered list looks like.
+  - **A row taken out of `Object.entries(moves)` has no `.id` of its own**, so `learners[String(move.id)]` was `learners["undefined"]` and the entire learner panel rendered empty. **No exception, no console output, and every static assertion about the file passed** — §3.I's shape one indirection down.
+  - **The "default viewport" was captured lazily, while the 390px override was still in force**, so the restore asserted 「back to 390」 and failed on a correct page. §4 records the same mistake in `check_spectrum_browser.mjs`; capture it at module load, before any override exists.
+- **THE FILE HUNG AFTER PRINTING `PASS`, which is §3.Z's exact symptom.** The CDP WebSocket and the spawned Chrome keep the event loop alive, so falling off the end is not exiting. `check_home_hero_browser.mjs` hung 12 minutes in tier B three times for this, and the watchdog added to fix it never fired under the condition it was written for. The fix is one `process.exit(0)`.
+- **`power: 0` IS A SENTINEL IN 16 ROWS AND A NUMBER IN ONE.** 硬壓 is physical and its power scales with the target's remaining HP from 0 to 100; the other sixteen are status moves where `null` would read the same. **Normalising 0 to null would have erased a documented mechanic** — §3.B1's rule applied to a sentinel that is a sentinel in 16 places and a value in 1. Named as `VARIABLE_POWER_MOVES` so a second one goes red. **`accuracy: 0` is 必中**, and 迅子利刃's own effect text says 「必定命中」 two lines below, so it renders as 必中 and never as 0%.
+- **THE 92 MOVES POKEAPI HAS NO `meta` FOR PRINT NO ROW AT ALL.** `category`/`ailment`/`drain`/`heal` are null together because they share one upstream cause; `drain: 0` would assert 「this move does not heal you」 for a move PokeAPI never looked up, and a team builder would act on it. The fact rows are ABSENT rather than 無 — §3.B2's distinction, enforced by `fact()` returning `''` for null.
+- **THE PAYLOAD SPLIT IS ASSERTED IN BOTH DIRECTIONS.** `moves.html` loads `move_learners_count.json` (54 KB) for 「N 隻可學」 on 919 rows; `move.html` loads `move_learners.json` (424 KB) for the list. Asserting only the half that saves bytes would pass on a `moves.html` that also pulls the index.
+- **`indent=2` IS NOT APPLIED TO THE TWO NEW INDEXES, and that is a decision with a reason.** Neither is ever hand-edited — both are inverted out of `learnsets.json` by the pass that just ran — so the diff-readability the other two files buy does not apply, while the cost does: it puts every Pokémon id on its own line and inflates `move_learners.json` from 409 KB to 1130 KB. **A file whose whole reason to exist is to be smaller than another file should not pay a 2.8× formatting tax to look like its neighbours.**
+- **THE SHADOW BLOCK IS EXCLUDED BY ID, AND THE SCRIPT ASSERTS THE REASON RATHER THAN THE EXCLUSION.** A `startsWith('shadow-')` test is wrong — 剪刀黑星 Shadow Claw, 暗影 punches Shadow Punch, 暗影球 Shadow Ball and 暗影之力 Shadow Force are ordinary moves that begin with the same four letters. What is asserted is that the excluded block is still unnameable, unlearnable and unflavoured, so it goes red the moment one of those stops being true.
+
+**Guarded by:** `check_moves_data.mjs` (127,868 checks, 0.1 s — the split, both inversions, every field's range, and the variable-power exception) + `check_moves_page.mjs` (155, 0.2 s) + `check_moves_page_browser.mjs` (73, 28 s). **Neither moves checker has a mutation harness**, and that is the same trade §3.Z priced: each browser case would boot its own Chrome. The static half is where a harness would go.
+
 ---
 
 ## 4. Verification & Testing Commands
@@ -944,6 +969,10 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 17 entries, and **nothing above 5 s** — this group used to be one 42 s harness and is now seventeen small ones |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color` | same group, named separately because `colors*.css` above does **not** match `color-game.css` — that glob needs the `colors` prefix, so a maintainer editing the game had no row and would have fallen through to the last one |
 | `today.html` (今日推薦) | `--only=nav` **plus** `--only=color` **plus** `--only=home` | the daily pick, the 熱門 grid and the 精選系列 counts are enforced by `check_color_daily.mjs` and `check_categories.mjs`, both of which read this file rather than index.html — **and `check_home_hero.mjs` reads it too**, which is the reason this row was wrong until §3.I1: two of the three groups that own a page are not the ones its own table suggests |
+| `moves.html`, `move.html`, `assets/js/moves.js`, `assets/css/moves.css` | `node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs` | **name them, not `--only=nav`** — §3.AA, and `nav` now contains a 28 s browser checker. The two named entries are 0.1 s and 0.2 s and cover the data and the source; add `node scripts/check_moves_page_browser.mjs` (28 s, one Chrome) **only when the change is a rendered claim** — a filter, a `[hidden]`, a tab |
+| `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `node scripts/check_moves_data.mjs` | 127,868 checks at 0.1 s. `scripts/fetch_moves.py` writes all four in one pass, so they are never out of step with each other |
+| `types.html`, `assets/css/types*` | `--only=type` | four entries, none of them a browser. `types.html` now filters its per-type move list to moves something can learn and links out to `moves.html?type=<slug>` (§3.AA) |
+| `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo` | four entries, and only `check_life_browser.mjs` costs anything — **§3.P.** This row is new because the page had **no checker at all** until then, so the mapping itself was missing rather than the entry |
 | `sv-index.js`, `sv-sources.json`, `types.html`, any `assets/images/**` | `--only=type` | |
 | `graph_data.json`, `graph.js`, `graph.html`, `data-sources/pokeapi_form_stats.json` | `--only=model` | **§3.V.** the static chip checker is 0.1 s; the CDP checker and its 40 s harness are `manual`/`serial` and only needed for a layout question |
 | `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read by `check_page_module_api.mjs` over every page, and by the nav checker. It is also the one file whose glob coverage matters: `assets/js/*` is declared as a glob because harnesses copy the whole directory |
@@ -984,7 +1013,7 @@ A for-loop over the affected names is equally acceptable and is what a session s
 | `algo` | 10.2 | 4 | B | `check_life_browser.mjs` is the group (CDP, needs :5500); the three static halves are 0.1 s each, the newest being `check_maze_page.mjs` (§3.P) **It is 5.1 s alone and 13 s in a pool of three** — the clearest single illustration of why the wall-clock figure is the one to read |
 | `cry-data` | 8.4 | 8 | A | `test_check_cry_index.mjs` 4.7 s, then `test_check_spectrogram_port.mjs` 1.4 s (was 5.0 s before §3.G7) |
 | `cry-apu` | 5.6 | **1** | A | `check_gen1_apu.mjs` alone, 4.5 s of it one pass over the 151-species corpus. Its 39-case harness is no longer an entry — §3.G5 explains what was traded for it |
-| `nav` | ~35 | 7 | **A+B** | `test_check_nav_pages.mjs` 2.5 s, `test_check_js_syntax.mjs` 0.8 s (§3.I1 — six cases plus a pairing, in trees of one checker and one synthetic page, which is why it opens no repo file at all), **`check_js_syntax.mjs` 2.2 s — almost all of it one `node` spawn per `<script>` block, 46 of them, because that is the only route to V8's own line numbers. A `vm.SourceTextModule` version would be 0.2 s and was declined: it throws SyntaxError with no `lineNumber`**, `check_page_module_api.mjs` 0.1 s over 370 bindings in 24 pages. **`check_moves_page_browser.mjs` (28 s) joined this group, so it now boots a browser — see the warning below the table.** The seven cheap entries still do not |
+| `nav` | ~35 | 7 | **A+B** | `test_check_nav_pages.mjs` 2.5 s, `test_check_js_syntax.mjs` 0.8 s (§3.I1 — six cases plus a pairing, in trees of one checker and one synthetic page, which is why it opens no repo file at all), **`check_js_syntax.mjs` 2.2 s — almost all of it one `node` spawn per `<script>` block, 46 of them, because that is the only route to V8's own line numbers. A `vm.SourceTextModule` version would be 0.2 s and was declined: it throws SyntaxError with no `lineNumber`**, `check_page_module_api.mjs` 0.1 s over 370 bindings in 24 pages. **§3.AA added `check_moves_page_browser.mjs` at 28 s, so this group now boots a browser — see the warning below the table.** The seven cheap entries still do not |
 | `type` | 3.0 | 4 | A | `test_check_sv_index.mjs` 2.9 s, was 22 s when it copied 2,250 images into a tree per case |
 | `data` | 0.4 | 4 | A | `check_learnsets.mjs` 0.2 s |
 
@@ -993,7 +1022,7 @@ A for-loop over the affected names is equally acceptable and is what a session s
 | group | the browser entries it contains |
 | :--- | :--- |
 | `model` | `check_graph_browser.mjs` (`serial: true`), `test_check_graph_browser.mjs` |
-| `nav` | `check_moves_page_browser.mjs` |
+| `nav` | `check_moves_page_browser.mjs` (§3.AA) |
 | `sort` | `check_sorting_page.mjs`, `test_check_sorting_page.mjs` (**25 Chrome boots**) |
 | `color` | `check_outfit_browser.mjs`, `check_color_game_browser.mjs` |
 | `cry-page` | `check_spectrum_browser.mjs`, `check_cry_mobile_layout.mjs`, `check_cries_browser.mjs`, `check_gen1_page.mjs` |
@@ -1039,8 +1068,23 @@ python scripts/fetch_abilities.py
 # 6. Form Names: Scrape official zh-TW names for Pokémon forms
 python scripts/fetch_form_names.py
 
-# 7. Moves & Learnsets: Union move data across all generations
+# 7. Moves & Learnsets: Union move data across all generations.
+#    Writes FOUR files in one pass — moves_zh.json, learnsets.json,
+#    move_learners.json (move -> who learns it) and move_learners_count.json
+#    (the 54 KB counts-only companion moves.html loads). They cannot be out of
+#    step because one pass writes them; check_moves_data.mjs re-inverts
+#    learnsets.json and compares, so a divergence is caught rather than assumed.
+#
+#    The effect sentence has TWO provenances and the boundary is a generation
+#    line: 826 rows from PokeAPI's zh-hant flavour text, 93 (ids 827-919, all of
+#    Generation 9) from InfoPoke's Simplified run through OpenCC s2twp. InfoPoke
+#    is read for those two columns ONLY — its numbers and names are less
+#    trustworthy than PokeAPI's (§3.AA). Its response is cached at the gitignored
+#    data-sources/infopoke-moves.html, so delete that file to refetch.
+#
+#    Ships all 919 non-shadow moves, not only the ones our 1025 reference.
 python scripts/fetch_moves.py
+node scripts/check_moves_data.mjs
 
 # 8. Chinese Descriptions: Fill descriptions.zh / zh_text2 from tw.portal-pokemon.com
 #    MUST run after step 1 — enhance_pokemon_data.py writes zh: "" for every
