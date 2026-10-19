@@ -617,6 +617,36 @@ eq(
   'the neutral pressed state must survive — three of the four rows have no colour'
 );
 
+/* ===== the footer credits the source ===== */
+
+/*
+ * Both pages name PokeAPI, because 919 moves of numbers and 919 zh-hant names
+ * come from it and a reader is owed the provenance. This is the `.footer-note`
+ * shape types.html and generations.html use — a bare <p>, no runtime mount, one
+ * CSS class from shared.css — rather than index.html's `data-footer-nav` grid,
+ * which exists to re-derive NAV's columns and would be five more link lists on a
+ * page whose own nav row already points at everything it links to.
+ *
+ * The position assertion is that the note is a SIBLING of the footer content and
+ * not inside the module block, matching types.html's order exactly: </main>, the
+ * note, then the script. The `</body>`/`</html>` extent is check_js_syntax.mjs's
+ * (§3.I1) and is not restated here.
+ */
+for (const [name, code] of [['moves.html', LIST], ['move.html', DETAIL]]) {
+  ok(
+    /<p class="footer-note">[^<]*PokeAPI/.test(code),
+    `${name} should credit PokeAPI in a footer note`
+  );
+  ok(
+    code.lastIndexOf('footer-note') > code.lastIndexOf('</main>'),
+    `${name}'s footer should sit after </main>, not inside it`
+  );
+  ok(
+    code.lastIndexOf('footer-note') < code.lastIndexOf('<script'),
+    `${name}'s footer should precede the module block, the way types.html does it`
+  );
+}
+
 if (failures === 0) {
   console.log(`PASS ${checks} checks`);
 } else {
