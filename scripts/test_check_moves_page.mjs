@@ -360,6 +360,37 @@ const cases = [
     expect: 'learnable:false',
   },
 
+  // ---------------------------------------------------------------- the artwork
+  {
+    name: 'the SV branch is deleted and every card falls back to the 96px sprite',
+    mutate: (f, s) => f === 'move.html'
+      ? s.replace('const src = sv ? svUrl(species.id) : ASSETS.sprites + species.filename;',
+        'const src = ASSETS.sprites + species.filename;')
+      : undefined,
+    expect: 'should ask whether the artwork exists BEFORE building the src',
+  },
+  {
+    name: 'object-fit without object-position scales the art to fill and lifts it off the baseline',
+    mutate: (f, s) => f === 'assets/css/moves.css'
+      ? s.replace('  object-position: bottom;\n', '')
+      : undefined,
+    expect: 'and be pinned to the bottom',
+  },
+  {
+    name: 'a vertical offset is added to line the SV art up with a name that is on another row',
+    mutate: (f, s) => f === 'assets/css/moves.css'
+      ? s.replace('.mv-learner img {', '.mv-learner.is-sv img { transform: translateY(-25%); }\n.mv-learner img {')
+      : undefined,
+    expect: 'should NOT lift the SV artwork',
+  },
+  {
+    name: 'nearest-neighbour is turned back on for two image sets that are drawn down',
+    mutate: (f, s) => f === 'assets/css/moves.css'
+      ? s.replace('  object-fit: contain;', '  object-fit: contain;\n  image-rendering: pixelated;')
+      : undefined,
+    expect: 'should declare no image-rendering',
+  },
+
   // ---------------------------------------------------------------- the type chips
   {
     name: 'the type chips lose the colour and become three identical neutral rows',

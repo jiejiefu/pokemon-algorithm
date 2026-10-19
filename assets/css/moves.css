@@ -384,17 +384,73 @@
 }
 .mv-learner:hover { background: var(--surface-hover); border-color: var(--hairline-strong); }
 .mv-learner:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+/*
+ * `object-fit: contain` WITH `object-position: bottom`, and both are load-bearing.
+ *
+ * The Scarlet/Violet set is 120×112, the 96px sprite is 96×96, and the box is
+ * 56×56. Setting `width`/`height` — which is what `.chip-item img` does on
+ * types.html, and what this rule used to do — stretches the SV art by 6%
+ * horizontally and, worse, scales it to fill the box, which destroys the thing
+ * the SV set is for: its subject is BOTTOM-ANCHORED with the empty space above,
+ * so a Pokémon that should sit on the card's baseline sits 3.7px above it.
+ *
+ * `contain` scales the 120×112 down to 56×52.3 and `object-position: bottom`
+ * puts the 3.7px of slack at the TOP, where the artwork's own padding already
+ * is. The subject therefore lands on the box's bottom edge — which is the
+ * framing this page wants — without a `transform` and without distortion.
+ *
+ * That is also why there is NO `translateY` here. types.html's `.chip-thumb.is-sv`
+ * carries one at 28px, because that page's chips pair a thumbnail with a name on
+ * one line and the offset lines the two up against each other. These cards put
+ * the image on its own row above the name, so there is nothing to line up and the
+ * offset would only move the subject off the card's own baseline. Measured at
+ * 28/56/96px and three alpha thresholds, the SV subject sits 25–26% of the box low
+ * against the sprite set — that number is what the transform is FOR, and this
+ * page chooses not to need it.
+ */
 .mv-learner img {
   display: block;
   width: 56px;
   height: 56px;
   margin: 0 auto 4px;
-  image-rendering: pixelated;
+  object-fit: contain;
+  object-position: bottom;
 }
+
+/*
+ * `image-rendering` is deliberately absent.
+ *
+ * The house convention is `crisp-edges` (shared.css:947, detail.css:344) and it
+ * appears only on UPSCALES — the 96px sprite drawn at 140px in a pokedex card.
+ * Both sets here are drawn DOWN (96→56 and 120→56) by a non-integer factor, where
+ * nearest-neighbour drops pixels unevenly and reads worse than smooth. The rule
+ * that was here said `pixelated`, which is the legacy alias for the same thing
+ * and had the same problem one declaration further from the project's naming.
+ */
 .mv-learner-name {
   display: block;
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/*
+ * The stand-in marker, for a species with no official Scarlet/Violet artwork.
+ *
+ * DORMANT TODAY AND THE CODE STAYS: `hasSv` is true for all 1,025 species, so
+ * `.is-sub` is never applied. It is kept because §3.E's rule is that an upstream
+ * removal must degrade to the 96px sprite rather than to a broken image, and
+ * because the case is real — it is what a species added to `pokemon_data.json`
+ * looks like on the day before its artwork lands. The ring is on the CARD rather
+ * than the image so it reads at a glance, and the `.sr-only` text in the markup
+ * is what a screen reader announces — `title` alone would not be read by one.
+ */
+.mv-learner.is-sub {
+  border-color: var(--hairline-strong);
+  border-style: dashed;
+}
+.mv-learner.is-sub img {
+  filter: grayscale(1);
+  opacity: 0.72;
 }
 
 /*

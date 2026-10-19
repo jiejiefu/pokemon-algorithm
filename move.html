@@ -80,6 +80,7 @@
       pokemonDetailUrl, loadPokemonData,
       wireRoving, initThemeToggle, initHeaderNav
     } from './assets/js/shared.js';
+    import { hasSv, svUrl } from './assets/js/sv-index.js';
     import {
       MOVE_TARGET_ZH, MOVE_CATEGORY_ZH, MOVE_AILMENT_ZH,
       MOVE_LEARN_METHODS, MOVE_LEARN_METHODS_ZH, MOVE_EFFECT_SOURCE_ZH,
@@ -316,13 +317,26 @@
       a.className = 'mv-learner';
       // §3.A: the one helper, never `detail.html?slug=` assembled here.
       a.href = pokemonDetailUrl(species);
-      // ASSETS.images + filename is the species-sprite idiom, and it is
-      // detail.html's expression verbatim (detail.html:683). There is no shared
-      // spriteUrl() for species — the one in color-palette.js is colour-page
-      // territory — so this is the same construction, not a second convention.
+
+      // The Scarlet/Violet artwork is the official set; the 96px sprite is the
+      // stand-in. `hasSv()` is asked BEFORE the request rather than after a 404,
+      // which would leave a console error and nothing else to trace on a card
+      // that otherwise renders fine (§3.E).
+      //
+      // Dormant today — hasSv() is true for all 1,025 — and kept anyway: it is
+      // what an upstream removal degrades into rather than into a broken image.
+      const sv = hasSv(species.id);
+      const src = sv ? svUrl(species.id) : ASSETS.sprites + species.filename;
+      if (!sv) a.classList.add('is-sub');
+
+      const alt = '';
+      const note = sv ? '' : '<span class="sr-only">（官方 Scarlet/Violet 圖尚未釋出，暫用 96px 替代圖）</span>';
+      // width/height are set so the browser reserves the box before the PNG
+      // arrives; `object-fit`/`object-position` are what make the 120×112 SV art
+      // sit on the card's bottom edge undistorted — see moves.css.
       a.innerHTML =
-        `<img src="${ASSETS.images}${species.filename}" alt="" loading="lazy" width="56" height="56">` +
-        `<span class="mv-learner-name">${esc(species.names?.zh || `#${species.id}`)}</span>`;
+        `<img src="${src}" alt="${alt}" loading="lazy" width="56" height="56">` +
+        `<span class="mv-learner-name">${esc(species.names?.zh || `#${species.id}`)}${note}</span>`;
       return a;
     }
   </script>

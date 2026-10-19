@@ -647,6 +647,94 @@ for (const [name, code] of [['moves.html', LIST], ['move.html', DETAIL]]) {
   );
 }
 
+/* ===== the learner cards use the official artwork ===== */
+
+/*
+ * `hasSv()` is asked BEFORE the request rather than after a 404. §3.E's rule is
+ * that the check exists so an upstream removal degrades to the 96px sprite
+ * instead of leaving a console error and nothing else to trace, and the code
+ * stays even though `hasSv` is true for all 1,025 today — that dormancy IS the
+ * case the branch exists for.
+ *
+ * The frontend credits PokeAPI only (§3.E), so nothing here names InfoPoke.
+ */
+ok(
+  detailCode.includes("from './assets/js/sv-index.js'") &&
+    /import\s*\{\s*hasSv,\s*svUrl\s*\}/.test(DETAIL),
+  'move.html should import hasSv() and svUrl() from the generated index'
+);
+ok(
+  detailCode.includes('hasSv(species.id)') && detailCode.includes('svUrl(species.id)'),
+  "and should ask whether the artwork exists BEFORE building the src"
+);
+ok(
+  detailCode.includes('ASSETS.sprites + species.filename'),
+  'the stand-in path must remain — §3.E requires a graceful degradation, not a broken image'
+);
+ok(
+  detailCode.includes("classList.add('is-sub')"),
+  'a species without official artwork should be marked, so a stand-in is never mistaken for it'
+);
+ok(
+  /\.mv-learner\.is-sub\s*\{/.test(cssCode),
+  'moves.css should style that mark'
+);
+// `title` alone is not read by a screen reader; types.html pairs it with an
+// `.sr-only` span and so does this.
+ok(
+  detailCode.includes('sr-only'),
+  'the stand-in should be announced, not only titled'
+);
+
+/*
+ * object-fit WITH object-position, and both.
+ *
+ * The SV set is 120×112, the sprite is 96×96 and the box is 56×56. Setting
+ * width/height — which is what `.chip-item img` does on types.html and what this
+ * rule used to do — stretches the SV art 6% horizontally AND scales it to fill
+ * the box, which moves the subject 3.7px UP off the card's bottom edge. The SV
+ * subject is bottom-anchored with its empty space above; `contain` scales to
+ * 56×52.3 and `object-position: bottom` puts the 3.7px of slack at the top,
+ * where the artwork's own padding already is.
+ *
+ * Asserting `object-fit` without `object-position` would pass on a page that
+ * undoes the anchoring, which is the same defect in the other order.
+ */
+ok(
+  /\.mv-learner img\s*\{[^}]*object-fit:\s*contain/.test(cssCode),
+  'the learner image should scale without distorting the 120x112 SV art'
+);
+ok(
+  /\.mv-learner img\s*\{[^}]*object-position:\s*bottom/.test(cssCode),
+  'and be pinned to the bottom, which is where the SV subject belongs'
+);
+// THIS PAGE DELIBERATELY HAS NO VERTICAL OFFSET, and the reason is worth
+// pinning: types.html's `.chip-thumb.is-sv` carries `translateY(-23%)` because
+// its thumbnail shares a line with a name and the two have to line up. These
+// cards put the image on its own row above the name, so there is nothing to line
+// up against and the offset would only lift the subject off the card's baseline.
+ok(
+  !/\.mv-learner[^{}]*is-sv[^{]*\{[^}]*translateY/.test(cssCode),
+  "move.html's cards should NOT lift the SV artwork — the bottom-anchored framing is the intent"
+);
+
+/*
+ * No `image-rendering` on the learner image at all.
+ *
+ * The house convention is `crisp-edges` and it appears only on UPSCALES — the
+ * 96px sprite drawn at 140px in a pokedex card. Both sets here are drawn DOWN
+ * (96→56 and 120→56) by a non-integer factor, where nearest-neighbour drops
+ * pixels unevenly and reads worse than smooth. The rule that was here said
+ * `pixelated`, the legacy alias for the same thing, with the same problem one
+ * declaration further from the project's naming.
+ */
+const learnerImgRule = cssCode.match(/\.mv-learner img\s*\{([^}]*)\}/);
+ok(Boolean(learnerImgRule), 'moves.css should still declare .mv-learner img');
+ok(
+  Boolean(learnerImgRule) && !/image-rendering/.test(learnerImgRule[1]),
+  'the learner image should declare no image-rendering — both art sets are drawn DOWN, not up'
+);
+
 if (failures === 0) {
   console.log(`PASS ${checks} checks`);
 } else {

@@ -568,6 +568,107 @@ ok(learnerCards > 0, 'the learner grid has cards', `${learnerCards} cards`);
 const firstHref = await ev(`document.querySelector('.mv-learner')?.getAttribute('href') || ''`);
 ok(firstHref.startsWith('detail.html?slug='), 'each card links through the shared species URL helper', firstHref);
 
+/*
+ * THE CARDS SHOW THE OFFICIAL SCARLET/VIOLET ARTWORK.
+ *
+ * Asserted on `naturalWidth`, which is the only thing that distinguishes "the
+ * browser decoded the PNG we asked for" from "the element exists" — a card whose
+ * src is wrong still has an `<img>`, still occupies its box, and still renders
+ * its name. `naturalHeight` is asserted alongside it because the two sets have
+ * different ASPECT RATIOS (120×112 against 96×96), so a height of 96 would mean
+ * the sprite answered a request that named the SV file.
+ */
+const artInfo = await ev(`(() => {
+  const img = document.querySelector('.mv-learner img');
+  if (!img) return null;
+  const r = img.getBoundingClientRect();
+  const cs = getComputedStyle(img);
+  return JSON.stringify({
+    src: img.getAttribute('src'),
+    natural: [img.naturalWidth, img.naturalHeight],
+    box: [Math.round(r.width), Math.round(r.height)],
+    fit: cs.objectFit,
+    position: cs.objectPosition,
+    rendering: cs.imageRendering,
+    complete: img.complete && img.naturalWidth > 0
+  });
+})()`);
+if (artInfo === null) {
+  ok(false, 'a learner card should carry an <img>');
+} else {
+  const art = JSON.parse(artInfo);
+  ok(art.complete, 'the learner artwork actually decoded', `${art.src}`);
+  ok(
+    art.src.startsWith('assets/images/scarlet-violet/'),
+    'and it came from the Scarlet/Violet set, not the 96px sprite directory',
+    art.src
+  );
+  ok(
+    art.natural[0] === 120 && art.natural[1] === 112,
+    'the file is the 120x112 SV icon — a 96x96 natural size would mean the sprite answered',
+    `${art.natural[0]}x${art.natural[1]}`
+  );
+  ok(art.fit === 'contain', 'it is scaled without distortion', `object-fit: ${art.fit}`);
+  /*
+   * `bottom` is the AUTHORED keyword; getComputedStyle returns the computed
+   * form, `50% 100%`. Asserting one spelling rather than the other is the same
+   * mistake as checking for `color: red` when the computed value is
+   * `rgb(255, 0, 0)` — §3.G1a's pixel check, in a property instead of a colour.
+   * Both are accepted, and the behavioural assertion below is the one that would
+   * actually catch a card whose subject is off its own baseline.
+   */
+  ok(
+    art.position === 'bottom' || art.position === '50% 100%',
+    'and pinned to the bottom of its box',
+    `object-position: ${art.position}`
+  );
+  ok(art.rendering === 'auto', 'with no image-rendering — both art sets are drawn DOWN here', art.rendering);
+
+  /*
+   * THE SUBJECT SITS ON THE BOX'S BOTTOM EDGE, which is the whole point of the
+   * artwork set and the reason there is no `translateY` on this page. Measured
+   * from the live canvas rather than asserted from the CSS, because the
+   * assertion "object-position is bottom" is about the declaration and this is
+   * about where the Pokémon actually lands.
+   *
+   * The SVG subject is bottom-ANCHORED with the empty space above, so a card
+   * whose subject stops short of its own bottom edge has been moved off it —
+   * which is what `contain` without `object-position: bottom` would do, by
+   * 3.7px.
+   */
+  const subjectBottom = await ev(`(() => {
+    const img = document.querySelector('.mv-learner img');
+    const box = img.getBoundingClientRect();
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+    let last = -1;
+    for (let y = 0; y < c.height; y++) {
+      for (let x = 0; x < c.width; x++) {
+        if (data[(y * c.width + x) * 4 + 3] > 16) { last = y; break; }
+      }
+    }
+    if (last === -1) return JSON.stringify({ last, drawn: false });
+    // naturalHeight is where the subject ends; the box bottom is one natural
+    // height lower. A zero gap means the subject touches the box edge.
+    const gapNatural = c.height - 1 - last;
+    return JSON.stringify({
+      drawn: true,
+      gapNatural,
+      gapBox: Math.round(gapNatural * (box.height / c.height) * 10) / 10
+    });
+  })()`);
+  const subject = JSON.parse(subjectBottom);
+  ok(subject.drawn, 'the artwork has visible pixels');
+  ok(
+    subject.gapBox < 1,
+    'the Pokémon reaches the card\'s bottom edge — no offset, by design',
+    `${subject.gapBox}px of gap below the subject`
+  );
+}
+
 // -- a move nobody can learn -------------------------------------------------
 await open('move.html?move=max-flare', DESKTOP);
 await until(ev, MOVE_READY, 25000);
