@@ -15,9 +15,11 @@
  *    have no detail page, plus 54 species whose CSV spelling drifted from
  *    pokemon_data.json's names.en) resolved to a URL that 404s. `base_name_en`
  *    is the field that fixes it, so it is asserted to resolve for all 1350.
- *    That count is now 376, after the Nidoran split gave both halves a slug of
- *    their own and the Flabebe accent fix stopped the mark becoming a separator;
- *    see the assertions in this file for why each of those is not drift.
+ *    That count is now 364, after the Nidoran split gave both halves a slug of
+ *    their own, the Flabebe accent fix stopped the mark becoming a separator,
+ *    and correcting twelve misspelled EN names made the roster's slugs agree
+ *    with these nodes again; see the assertions in this file for why each of
+ *    those is the fix working rather than the count drifting.
  *  - All 1025 species must answer to a distinct slug. Nidoran♀ and Nidoran♂
  *    differed by nothing but a symbol, and ♀/♂ are stripped by the slug filter,
  *    so both resolved to `nidoran` and first-match-wins sent every request to
@@ -257,12 +259,24 @@ eq(unresolvable.map(n => n.id), [], 'nodes whose base_name_en has no detail page
 // The old field must still be broken, or this check has stopped testing anything.
 const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
 // 379 before the Nidoran split, 378 after, 377 after ♀ became `nidoran-f`, 376
-// after the Flabébé accent fix. All four are the fixes working, not the count
-// drifting -- 325 form nodes plus the species whose CSV spelling drifted from
-// pokemon_data.json is where the rest come from. The two that are worth
-// spelling out are not obvious, because this probe calls slugName() and so
-// bypasses SYMBOL_SLUGS while the *key set* it tests against is built by
-// pokemonSlug(), which does not.
+// after the Flabébé accent fix, 364 after the twelve EN-name corrections. All
+// five are the fixes working, not the count drifting -- 325 form nodes plus the
+// species whose CSV spelling drifted from pokemon_data.json is where the rest
+// come from. The two that are worth spelling out are not obvious, because this
+// probe calls slugName() and so bypasses SYMBOL_SLUGS while the *key set* it
+// tests against is built by pokemonSlug(), which does not.
+//
+// The fifth step is worth its own paragraph because it is the only one
+// where the two tables DISAGREED rather than one being internally broken:
+// pokemon_data.json spelled 12 species wrongly (Amoongus, Houndoor, Taillow,
+// Minun, Scoliopede, Gumshoos, Palossand, Thwackey, Skwovet, Zamazenta,
+// Meowscarda, Toadscruel) while these nodes' own name_en was already correct,
+// because that field came from PokeAPI's species name. So `slugToId` held
+// `amoongus` while the nodes asked for `amoonguss`, and 12 nodes counted as
+// dead purely because the roster's slug had a typo in it. Correcting the source
+// XLSX and the roster made the two agree, and 376 -> 364 is the count getting
+// BETTER. A count that only ever goes up is drift; this one fell by exactly the
+// number of names fixed.
 //
 // Nidoran: nodes 29 and 32 both spell themselves with ASCII hyphens, so
 // slugName() derived `nidoran-f` / `nidoran-m` for them all along. While ♀
@@ -275,7 +289,7 @@ const deadByNameEn = nodes.filter(n => !slugToId.has(slugName(n.name_en)));
 // species table said `flabe-be`, and the two halves disagreed about the same
 // species. Fixing the species slug repaired the node for free, which is the
 // payoff of checking the derived name rather than the stored one.
-eq(deadByNameEn.length, 376, 'nodes still unresolvable via name_en (the bug being fixed)');
+eq(deadByNameEn.length, 364, 'nodes still unresolvable via name_en (the bug being fixed)');
 // Form nodes must point at their base, not at themselves.
 eq(linkable.filter(n => n.form !== null
       && slugToId.get(slugFor(n.base_name_en)) !== n.base_id).map(n => n.id),
@@ -310,8 +324,8 @@ eq(badHref.map(n => n.id), [], 'nodes whose rendered href would 404');
 // And prove the probe is live: the same expression over the old field must still
 // fail, otherwise this section has stopped testing anything.
 const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n.name_en } })));
-// Same 379 -> 378 -> 377 -> 376 as above, for the same reason.
-eq(badIfNameEn.length, 376, 'nodes that would 404 if the renderer used name_en');
+// Same 379 -> 378 -> 377 -> 376 -> 364 as above, for the same reason.
+eq(badIfNameEn.length, 364, 'nodes that would 404 if the renderer used name_en');
 // The URL must be the ?slug= form the local dev server can actually serve, not
 // the clean /detail/<slug> path that Live Server 404s (gotcha 8).
 eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,

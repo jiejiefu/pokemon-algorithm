@@ -1083,6 +1083,33 @@ const CHECKERS = [
     ],
   },
   {
+    script: 'scripts/check_pokemon_names.mjs', group: 'data',
+    /* The English name is the site's primary key: pokemonSlug() derives every
+     * cross-page link from it, so a typo is a dead link rather than a cosmetic
+     * mistake. Twelve such typos shipped in the source XLSX and were found by a
+     * reader, not by a checker — this entry is why the next one is caught here.
+     *
+     * It deliberately does NOT compare against PokeAPI: 193 names disagree
+     * across all 1025 species and nine languages, and a good share of the
+     * disagreements are PokeAPI being wrong (#956/#983 zh, and its German and
+     * Korean columns). Pinning twelve corrections plus two zh values PokeAPI
+     * disagrees with is what keeps a "sync to upstream" pass from breaking two
+     * correct names. shared.js is in the list because pokemonSlug comes from
+     * there and the slug assertions run it. */
+    inputs: [
+      'assets/data/pokemon_data.json',
+      'assets/data/graph_data.json',
+      'assets/data/ability_species.json',
+      'assets/js/shared.js',
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      // Transitive through shared.js, found by --prove-inputs rather than by
+      // reading. §4's rule: a missing entry means the checker is skipped after
+      // that file changed, so the run is green having verified nothing.
+      'assets/js/shiny-index.js',
+    ],
+  },
+  {
     script: 'scripts/check_learnsets.mjs', group: 'data',
     inputs: [
       'assets/data/learnsets.json', 'assets/data/moves_zh.json', 'assets/data/pokemon_data.json',
