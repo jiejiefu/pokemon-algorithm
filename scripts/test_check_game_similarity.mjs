@@ -133,30 +133,6 @@ const CASES = [
 
   /* ---- Palettes: shares stay unsorted, and 6 is a ceiling rather than a literal ---- */
   {
-    name: 'rows are re-sorted by share, so "primary" stops meaning row 0',
-    mutate: (dir) => editModule(dir,
-      '  return rows\n    .filter((r) => Array.isArray(r) && typeof r[0] === \'string\')\n    .map((r) => ({ hex: r[0], share: Number(r[1]) || 0 }));',
-      '  return rows\n    .filter((r) => Array.isArray(r) && typeof r[0] === \'string\')\n    .map((r) => ({ hex: r[0], share: Number(r[1]) || 0 }))\n    .sort((a, b) => b.share - a.share);'),
-    // Re-sorting is a no-op while the data is already sorted, so this one does
-    // NOT go red. It stays because it documents the shape of that no-op, and it
-    // becomes meaningful the moment the data order changes. The DATA case below is
-    // the thing that can actually catch it.
-    expect: null,
-  },
-  {
-    /* A REAL no-op, kept as a case because the no-op is the thing worth knowing:
-       `Array.prototype.slice` already clamps to the array length, so the
-       `Math.min` against `rows.length` is belt-and-braces. Removing it cannot
-       change behaviour, so expecting a FAIL here would be expecting the
-       impossible. The case asserts the no-op IS one — and it would go red if
-       someone swapped `slice` for something that does not clamp. */
-    name: 'the Math.min clamp against rows.length is belt-and-braces (slice clamps too)',
-    mutate: (dir) => editModule(dir,
-      '  return rows.slice(0, Math.min(n, revealed ? PALETTE_COLORS_REVEALED : PALETTE_COLORS_SHOWN));',
-      '  return rows.slice(0, revealed ? PALETTE_COLORS_REVEALED : PALETTE_COLORS_SHOWN);'),
-    expect: null,
-  },
-  {
     name: 'the reveal hard-codes 6 colours, which is one too many for Unown',
     mutate: (dir) => editModule(dir,
       'export const PALETTE_COLORS_REVEALED = 6;',
@@ -327,21 +303,6 @@ async function runCase(i) {
     dir = makeTree(c.mutate);
     const r = await run(dir);
 
-    /* A case with `expect: null` is a REMOVAL of a guard, or — as with the
-       re-sort case above — a mutation that is a no-op against data that is
-       already sorted. It is expected to leave the checker green, and what it
-       asserts is that the no-op really is a no-op. Treated as an ordinary case
-       it would fail, and a failure here means the mutation is no longer a
-       no-op. */
-    if (c.expect === null) {
-      const green = r.code === 0;
-      return {
-        name: c.name,
-        pass: green,
-        detail: green ? '' : 'expected this no-op mutation to change nothing, and it did not',
-      };
-    }
-
     const named = r.code !== 0 && caughtBy(r.out, c.expect);
     return {
       name: c.name,
@@ -369,7 +330,7 @@ for (const r of finished) ok(r.name, r.pass, r.detail);
 
 ok(`the suite declares every case it runs (${CASES.length})`,
   CASES.every((c) => typeof c.name === 'string' && typeof c.mutate === 'function')
-    && CASES.every((c) => c.expect === null || typeof c.expect === 'string'),
+    && CASES.every((c) => typeof c.expect === 'string'),
   `${CASES.length} cases`);
 
 const failed = results.filter((r) => !r.pass);

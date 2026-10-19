@@ -32,7 +32,8 @@
  * promises something it does not do.
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import {
   cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync,
 } from 'node:fs';
@@ -41,6 +42,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caughtBy } from './lib/negative.mjs';
 import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_spectrum_page.mjs';
@@ -99,14 +101,16 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
+const runAsync = promisify(execFile);
+
+async function run(dir) {
   try {
-    const stdout = execFileSync('node', [join(dir, CHECKER)], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    const { stdout } = await runAsync(process.execPath, [join(dir, CHECKER)], {
+      encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
     });
     return { code: 0, out: `${stdout}` };
   } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
+    return { code: typeof e.code === 'number' ? e.code : 1, out: `${e.stdout || ''}${e.stderr || ''}` };
   }
 }
 
@@ -709,25 +713,34 @@ const CASES = [
 
 console.log(`check_spectrum_page.mjs — ${CASES.length - 1} mutations + 1 baseline\n`);
 
-const trees = [];
-try {
-  for (const c of CASES) {
-    const dir = makeTree(c.mutate);
-    trees.push(dir);
-    const { code, out } = run(dir);
+/* Each case is its own temp tree and its own checker process, so the cases are
+ * independent. Pool them, but print after the drain in declaration order (§3.G7). */
+const verdicts = await pool(CASES.map((c) => async () => {
+  let dir;
+  try {
+    dir = makeTree(c.mutate);
+    const { code, out } = await run(dir);
     if (c.baseline) {
       const passed = code === 0 && /PASS  \d+ checks/.test(out);
-      ok(c.name, passed, passed ? out.match(/PASS  (\d+) checks/)[1] + ' checks'
-        : out.split('\n').filter((l) => /FAIL/.test(l)).slice(0, 2).join(' | '));
-      continue;
+      return {
+        name: c.name,
+        pass: passed,
+        detail: passed ? out.match(/PASS  (\d+) checks/)[1] + ' checks'
+          : out.split('\n').filter((l) => /FAIL/.test(l)).slice(0, 2).join(' | '),
+      };
     }
-    ok(c.name, code !== 0 && caughtBy(out, c.expect),
-      code === 0 ? 'the checker still passed'
-        : caughtBy(out, c.expect) ? '' : `caught, but not by "${c.expect}"`);
+    return {
+      name: c.name,
+      pass: code !== 0 && caughtBy(out, c.expect),
+      detail: code === 0 ? 'the checker still passed'
+        : caughtBy(out, c.expect) ? '' : `caught, but not by "${c.expect}"`,
+    };
+  } finally {
+    if (dir) releaseTree(dir);
   }
-} finally {
-  for (const d of trees) releaseTree(d);
-}
+}));
+
+for (const r of verdicts) ok(r.name, r.pass, r.detail);
 
 const failed = results.filter((r) => !r.pass);
 console.log('');

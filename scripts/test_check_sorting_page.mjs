@@ -38,12 +38,14 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy } from './lib/negative.mjs';
 import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_sorting_page.mjs';
@@ -149,12 +151,16 @@ function makeTree(mutate, { strip = false } = {}) {
   return dir;
 }
 
-function run(dir) {
+const runAsync = promisify(execFile);
+
+async function run(dir) {
   try {
-    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return { code: 0, out };
+    const { stdout } = await runAsync(process.execPath, [join(dir, CHECKER)], {
+      encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
+    });
+    return { code: 0, out: stdout };
   } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
+    return { code: typeof e.code === 'number' ? e.code : 1, out: `${e.stdout || ''}${e.stderr || ''}` };
   }
 }
 
@@ -180,7 +186,7 @@ function run(dir) {
  * The full checker has no such flag and never will. */
 if (process.argv.includes('--static')) {
   const dir = makeTree(null, { strip: true });
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   releaseTree(dir);
   console.log(out.trimEnd());
   console.log('\n(static half only — the browser half is NOT run. For that: node scripts/check_sorting_page.mjs)');
@@ -198,14 +204,14 @@ if (process.argv.includes('--static')) {
 let fullTotal = null;
 {
   const dir = makeTree(null);
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   if (code === 0) { pass('baseline: the full checker passes on an unmutated copy of the tree'); fullTotal = countChecks(out); }
   else fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
   releaseTree(dir);
 }
 {
   const dir = makeTree(null, { strip: true });
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   const strippedTotal = countChecks(out);
   if (code !== 0) fail(`the STRIPPED copy does not pass, so every fast case below is measuring a broken checker:\n${out}`);
   else if (fullTotal === null) fail('cannot compare strip sizes: the full baseline did not report a check count');
@@ -665,11 +671,13 @@ const cases = [
 ];
 
 const t0 = Date.now();
-for (const c of cases) {
+/* Every case is its own temp tree and its own checker process, so they are
+ * independent. The pool returns them in declaration order (§3.G7). */
+const results = await pool(cases.map((c) => async () => {
   let dir;
   try {
     dir = makeTree(c.mutate, { strip: true });
-    const { code, out } = run(dir);
+    const { code, out } = await run(dir);
     /* A checker that reports NO assertion at all is not "failed for the wrong
      * reason" — it did not run. §4 calls this out for the loader-error case, and this
      * harness hit it for real while being written: a syntax error in the checker
@@ -679,19 +687,27 @@ for (const c of cases) {
      * the two is mechanical: a real mislabel prints the checker's own FAIL line. */
     if (code !== 0 && !/\bFAIL\b/.test(out)) {
       const first = out.split('\n').filter(Boolean).slice(0, 3).join(' | ');
-      fail(`${c.name} — the checker produced NO assertion (exit ${code}), so this case measured nothing. First output: ${first}`);
+      return { name: c.name, pass: false, detail: `the checker produced NO assertion (exit ${code}), so this case measured nothing. First output: ${first}` };
     } else if (code === 0) {
-      fail(`${c.name} — the checker PASSED, so the guard does not exist`);
+      return { name: c.name, pass: false, detail: 'the checker PASSED, so the guard does not exist' };
     } else if (caughtBy(out, c.expect)) {
-      pass(c.name);
-    } else {
-      fail(`${c.name} — failed, but not on the assertion it claims.\n    expect: ${c.expect}\n    output:\n${out.split('\n').filter(l => /FAIL|PASS|checks/.test(l)).map(l => '      ' + l).join('\n')}`);
+      return { name: c.name, pass: true, detail: '' };
     }
+    return {
+      name: c.name,
+      pass: false,
+      detail: `failed, but not on the assertion it claims.\n    expect: ${c.expect}\n    output:\n${out.split('\n').filter(l => /FAIL|PASS|checks/.test(l)).map(l => '      ' + l).join('\n')}`,
+    };
   } catch (e) {
-    fail(`${c.name} — harness error: ${e.message}`);
+    return { name: c.name, pass: false, detail: `harness error: ${e.message}` };
   } finally {
     if (dir) releaseTree(dir);
   }
+}));
+
+for (const r of results) {
+  if (r.pass) pass(r.name);
+  else fail(`${r.name} — ${r.detail}`);
 }
 
 console.log(`\n  ${cases.length} cases, ${((Date.now() - t0) / 1000).toFixed(1)}s`);

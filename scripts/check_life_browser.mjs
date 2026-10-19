@@ -106,6 +106,16 @@ const ev = async (expression) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Poll a page precondition. Never poll the assertion itself — §3.G5. */
+async function waitForTrue(expr, timeoutMs = 4000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try { if (await ev(expr)) return; } catch { /* mid-render */ }
+    await sleep(50);
+  }
+  throw new Error(`precondition never became true: ${expr}`);
+}
+
 /**
  * life.html's real boot signal: boot has FINISHED, not merely started.
  *
@@ -149,7 +159,7 @@ console.log('--- nav dropdown hit-test ---');
 // z-index 100 and would be the topmost element at every probe point.
 await openPage('life.html', LIFE_READY);
 await ev(`document.getElementById('setupModal').hidden = true; document.getElementById('loadingOverlay').hidden = true; true`);
-await sleep(200);
+await waitForTrue(`document.getElementById('setupModal').hidden && document.getElementById('loadingOverlay').hidden`);
 
 const navProbe = `(() => {
   const trigger = document.querySelector('.site-nav-trigger');
@@ -205,7 +215,6 @@ ok(Number(s.modalZ) > Number(s.headerZ) && Number(s.drawerZ) > Number(s.headerZ)
 // The control, on the same browser with the same probe: without it, "zero blocked
 // points" could mean the probe is broken and finds nothing anywhere.
 await openPage('maze.html', `document.readyState === 'complete' && !!document.querySelector('.site-nav-trigger')`);
-await sleep(400);
 const mazeNav = JSON.parse(await ev(navProbe));
 eq(mazeNav.blocked, [], 'control page: maze.html dropdown also fully clickable');
 eq(mazeNav.samples, lifeNav.samples, 'the control probed the same number of points (the probe is not silently inert)');
@@ -216,7 +225,7 @@ eq(mazeNav.samples, lifeNav.samples, 'the control probed the same number of poin
 console.log('--- wild encounter feedback ---');
 await openPage('life.html', LIFE_READY);
 await ev(`document.getElementById('setupModal').hidden = true; true`);
-await sleep(300);
+await waitForTrue(`document.getElementById('setupModal').hidden`);
 
 // Force the rate to 1 and step until one lands. A fixed number of steps would be a
 // guess about the rate; polling for the event is the claim.
@@ -315,7 +324,7 @@ await ev(`(() => {
   document.getElementById('loadingOverlay').hidden = true;
   return true;
 })()`);
-await sleep(250);
+await waitForTrue(`document.getElementById('setupModal').hidden === false && !!document.querySelector('.life-lets-go-toggle')`);
 
 const toggleBox = JSON.parse(await ev(`(() => {
   const t = document.querySelector('.life-lets-go-toggle');
@@ -376,7 +385,7 @@ eq(switchedBack.n, 3, 'the switch still works after a second use');
  * drives the real modal and picks 伊布 rather than reading whatever the default setup
  * left behind. */
 await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
-await sleep(300);
+await waitForTrue(`document.getElementById('setupModal').hidden === false`);
 const dexForEevee = JSON.parse(await ev(`(() => {
   // 伊布 is reachable only through the Let's Go switch, so this drives that too. A
   // check that just looked for a #133 card would assert about a list that does not
@@ -393,7 +402,7 @@ const dexForEevee = JSON.parse(await ev(`(() => {
 })()`));
 ok(!dexForEevee.noToggle, "the Let's Go switch is reachable from the modal");
 ok(!dexForEevee.noEevee, `Let's Go offers 伊布 alongside 皮卡丘: ${JSON.stringify(dexForEevee.ids || [])}`);
-await sleep(700);
+await waitForTrue(`document.getElementById('setupModal').hidden === true`);
 
 const dexCounter = JSON.parse(await ev(`(() => {
   document.getElementById('btnDexDrawer').click();
@@ -412,7 +421,7 @@ ok(/\/156\)$/.test(dexCounter.label || ''),
  * counter agrees. Asserting only the 156 would pass a page that shows the section to
  * everybody. */
 await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
-await sleep(300);
+await waitForTrue(`document.getElementById('setupModal').hidden === false`);
 await ev(`(() => {
   document.querySelector('input[name="letsGoMode"][value="classic"]').click();
   const cards = [...document.querySelectorAll('#setupStarters .life-starter-card img')];
@@ -421,7 +430,7 @@ await ev(`(() => {
   document.getElementById('setupSubmit').click();
   return true;
 })()`);
-await sleep(700);
+await waitForTrue(`document.getElementById('setupModal').hidden === true`);
 const dexForBulba = JSON.parse(await ev(`(() => {
   document.getElementById('btnDexDrawer').click();
   const tiles = document.querySelectorAll('#dexGrid .life-dex-item').length;
@@ -492,7 +501,10 @@ for (const theme of ['dark', 'light']) {
     t.classList.add('is-wild', 'is-visible');
     return true;
   })()`);
-  await sleep(220);
+  await waitForTrue(`(() => {
+    const t = document.getElementById('celebrationToast');
+    return getComputedStyle(t).opacity === '1' && t.getAnimations().every(a => a.playState !== 'running');
+  })()`);
   toastPerTheme[theme] = JSON.parse(await ev(`(() => {
     const t = document.getElementById('celebrationToast');
     const ico = t.querySelector('.life-toast-icon');
@@ -840,7 +852,7 @@ const brushCell = async (wx, wy) => {
 /** Change the brush species the way a reader does: open 圖鑑, click the tile. */
 const pickSpecies = async (dexNum) => {
   await ev(`document.getElementById('btnDexDrawer').click(); true`);
-  await sleep(250);
+  await waitForTrue(`document.getElementById('dexDrawer').classList.contains('is-open') && document.querySelectorAll('#dexGrid .life-dex-item').length > 0`);
   const picked = await ev(`(() => {
     const tile = [...document.querySelectorAll('#dexGrid .life-dex-item')]
       .find(e => e.querySelector('.life-dex-num').textContent === '#${dexNum}');
@@ -849,7 +861,7 @@ const pickSpecies = async (dexNum) => {
     return true;
   })()`);
   eq(picked, true, `the Pokédex drawer has a tile for #${dexNum}, so the brush species is reachable`);
-  await sleep(150);
+  await waitForTrue(`!document.getElementById('dexDrawer').classList.contains('is-open')`);
 };
 
 const empty1 = await typeDrawer();
@@ -899,7 +911,6 @@ ok(/活體 0 隻/.test(washed.summary) && /合計 2 格/.test(washed.summary),
 // The erasure asymmetry, which is the one a snapshot-only implementation gets wrong.
 await ev(`document.getElementById('typeClose').click();
   document.querySelector('[data-tool="eraser"]').click(); true`);
-await sleep(150);
 await brushCell(0, 0);
 await brushCell(1, 0);
 eq(await typeLabel(), '屬性 (2/15)',
@@ -921,11 +932,11 @@ eq(await typeLabel(), '屬性 (2/15)',
 // the page on Gen 1 (§3.I's mistake in a new place), and every generation assertion
 // after it tests the wrong board.
 await ev(`document.getElementById('btnOpenSetup').click(); true`);
-await sleep(200);
+await waitForTrue(`document.getElementById('setupModal').hidden === false`);
 await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 2 世代/.test(b.textContent)).click(); true`);
-await sleep(300);
+await waitForTrue(`!![...document.querySelectorAll('.life-gen-tab-btn.is-selected')].find(b => /第 2 世代/.test(b.textContent))`);
 await ev(`document.getElementById('setupSubmit').click(); true`);
-await sleep(600);
+await waitForTrue(`document.getElementById('setupModal').hidden === true`);
 await ev(`document.getElementById('chkWild').checked && document.getElementById('chkWild').click(); true`);
 await frames();
 const gen2 = await typeDrawer();
@@ -940,7 +951,6 @@ ok(/^屬性 \(\d+\/17\)$/.test(await typeLabel()),
   `the button's denominator re-bases to Gen 2's 17 (${await typeLabel()})`);
 await ev(`document.getElementById('typeClose').click();
   document.getElementById('btnClear').click(); true`);
-await sleep(300);
 eq(await typeLabel(), '屬性 (0/17)',
   'and clearing a Gen 2 board reads 0/17 — the Gen 1 collection did not carry over');
 
@@ -951,12 +961,12 @@ await ev(`document.getElementById('typeClose').click(); true`);
    so a Let's Go board is Gen 1's 151 species read at era 7. The denominator opens to
    18, and a species that changed type in Gen 6 reports its modern typing. */
 await ev(`document.getElementById('btnOpenSetup').click(); true`);
-await sleep(250);
+await waitForTrue(`document.getElementById('setupModal').hidden === false`);
 // Back to Gen 1 first. The Let's Go radios are built by renderSetupModal() and only
 // for a generation that has letsGoStarters; the previous block left this page on
 // Gen 2, where they do not exist.
 await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 1 世代/.test(b.textContent)).click(); true`);
-await sleep(300);
+await waitForTrue(`!!document.querySelector('input[name="letsGoMode"][value="letsgo"]')`);
 const letsGoRadio = await ev(`(() => {
   const r = document.querySelector('input[name="letsGoMode"][value="letsgo"]');
   if (!r) return false;
@@ -964,13 +974,12 @@ const letsGoRadio = await ev(`(() => {
   return true;
 })()`);
 eq(letsGoRadio, true, 'the Gen 1 setup modal offers a Let\'s Go mode at all');
-await sleep(250);
+await waitForTrue(`document.querySelector('input[name="letsGoMode"][value="letsgo"]').checked`);
 await ev(`document.getElementById('setupSubmit').click(); true`);
-await sleep(700);
+await waitForTrue(`document.getElementById('setupModal').hidden === true`);
 await ev(`const b = document.getElementById('btnPlay'); if (/暫停/.test(b.textContent)) b.click(); true`);
 await ev(`document.getElementById('chkWild').checked && document.getElementById('chkWild').click();
   document.getElementById('btnClear').click(); true`);
-await sleep(400);
 
 const lg = await typeDrawer();
 eq(lg.rows.length, 18, `a Let's Go Gen 1 drawer lists all 18 types (${lg.rows.length})`);
@@ -984,12 +993,11 @@ eq(await typeLabel(), '屬性 (0/18)', 'and the button counts against 18');
 // Close the drawer first: `typeDrawer()` above left it open, and it is a fixed
 // overlay, so the press would go to the drawer rather than the canvas.
 await ev(`document.getElementById('typeClose').click(); true`);
-await sleep(200);
+await waitForTrue(`!document.getElementById('typeDrawer').classList.contains('is-open')`);
 // Also select the brush: the erasure block switched to 抹除 and never switched
 // back, and a press with 抹除 active places nothing.
 await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
 await ev(`document.getElementById('btnClear').click(); true`);
-await sleep(200);
 await pickSpecies('0035');
 await brushCell(0, 0);
 await ev(`document.getElementById('btnStep').click(); true`);

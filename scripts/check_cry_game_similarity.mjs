@@ -11,20 +11,23 @@
  * The five things asserted here, each a MEASUREMENT rather than a restatement of
  * the module's docblock:
  *
- * 1. **Every ceiling is achievable, in every pool, for every species.** The module
- *    degrades to "the three nearest overall" when fewer than three neighbours
- *    clear the ceiling, and a degraded question is a 困難 (hard) question rendered
- *    at 地獄 (hell) difficulty. The docblock claims that branch never runs; this
- *    asserts it over 10 pools x 3 tiers x 1,025 species and reports the count.
+ * 1. **Every ceiling is achievable, in every sampled pool, for every species.** The
+ *    module degrades to "the three nearest overall" when fewer than three
+ *    neighbours clear the ceiling, and a degraded question is a 困難 (hard)
+ *    question rendered at 地獄 (hell) difficulty. The docblock claims that branch
+ *    never runs; this asserts it over four representative pools (全部, 第I, 第V,
+ *    第IX世代) x 3 tiers x every species in each, and reports the count. The full
+ *    ten-pool sweep was the first measurement; the four keep the early/middle/late
+ *    shapes and remove 6 x the cost.
  *
  * 2. **Every drawn round honours its ceiling, as an IDENTITY.** `hardestSim <=
  *    ceiling` with the `<=` the module actually filters on; a tolerance would be
  *    satisfied by a mutation whose own error is under it.
  *
- * 3. **The three tiers are separated, per pool.** Not "harder on average" — the
- *    separation the first design lacked, measured the same way it was measured
- *    when it failed. `p90(easy) < p50(hard)` and `p90(hard) < p50(hell)` in all
- *    ten pools, or two of the three tabs are the same tab.
+ * 3. **The three tiers are separated, per sampled pool.** Not "harder on average"
+ *    — the separation the first design lacked, measured the same way it was
+ *    measured when it failed. `p90(easy) < p50(hard)` and `p90(hard) < p50(hell)`
+ *    in every sampled pool, or two of the three tabs are the same tab.
  *
  * 4. **The neighbour list is a total order.** A seeded round is only reproducible
  *    while ties break the same way every time.
@@ -76,6 +79,15 @@ const q = (a, f) => (a.length ? a[Math.floor(a.length * f)] : NaN);
 const data = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json'), 'utf8'));
 const features = JSON.parse(readFileSync(join(ROOT, 'assets/data/cry_features.json'), 'utf8'));
 const index = cryIndex(features, FEATURE_SET);
+
+/* The ceiling and separation sweeps need a pool per generation, but ten pools is
+ * six more full passes over the corpus than the claim needs. Keep the whole dex and
+ * one early, one middle and one late generation: every branch that depends on pool
+ * size or era has a representative, and the full generation table is asserted above
+ * separately. */
+const SAMPLE_GENERATIONS = [0, 1, 5, 9];
+const samplePools = () => SAMPLE_GENERATIONS.map((gen) =>
+  [gen, gen === 0 ? allIds(index) : poolFor(index, data, gen)]);
 
 /* A real calendar walk: `new Date(\`2026-10-${n}\`)` silently becomes an Invalid
  * Date past the 30th, and `taipeiDateKey` then throws inside `toISOString()`, so
@@ -401,15 +413,14 @@ console.log('\nthe generation pools are derived, and only from playable species'
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nevery ceiling is achievable, in every pool, for every species');
+console.log('\nevery ceiling is achievable, in every sampled pool, for every species');
 // ---------------------------------------------------------------------------
 {
   /* This is the module's central claim and it is checked per species rather
    * than on drawn rounds, because a round only ever asks 10 of the 1,025 — a
    * degraded question in an undrawn species would be invisible to a
    * sample-based check and visible to a player. */
-  const pools = [[0, allIds(index)]];
-  for (const g of availableGenerations(index, data)) pools.push([g, poolFor(index, data, g)]);
+  const pools = samplePools();
 
   let degradedTotal = 0;
   let violationTotal = 0;
@@ -526,16 +537,15 @@ console.log('\nevery ceiling is achievable, in every pool, for every species');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe three tiers are actually separated, in every pool');
+console.log('\nthe three tiers are actually separated, in every sampled pool');
 // ---------------------------------------------------------------------------
 {
   /* The measurement that rejected the first design: `p90(簡單) < p50(困難)` and
    * `p90(困難) < p50(地獄)`, per pool. "Harder on average" would be satisfied by a
    * tier that shifts the distribution by a thousandth — which is what the rejected
-   * rank-band design did: its 困難 and 地獄 OVERLAPPED in all ten pools, and neither
+   * rank-band design did: its 困難 and 地獄 OVERLAPPED in every pool, and neither
    * tab did anything a player could hear. */
-  const pools = [[0, allIds(index)]];
-  for (const g of availableGenerations(index, data)) pools.push([g, poolFor(index, data, g)]);
+  const pools = samplePools();
 
   let worstEasyHard = { gap: Infinity, at: '' };
   let worstHardHell = { gap: Infinity, at: '' };

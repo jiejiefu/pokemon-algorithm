@@ -488,7 +488,7 @@ const CHECKERS = [
      * all; the pages all arrive over HTTP, the same state as
      * `check_cry_mobile_layout.mjs`. §4 says `manual` does not affect execution;
      * it only makes `--prove-inputs` print that honest caveat. */
-    script: 'scripts/check_color_game_browser.mjs', group: 'color',
+    script: 'scripts/check_color_game_browser.mjs', group: 'game-browser',
     browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     /* This entry was dragged in incidentally by ee5f126 (叫聲猜謎: autoplay on
@@ -525,7 +525,7 @@ const CHECKERS = [
      * the list below is read off the HTML by hand. Same caveat as the two cry
      * page checkers, and `manual: true` is what makes check_all print that
      * rather than tick it. */
-    script: 'scripts/check_outfit_browser.mjs', group: 'color', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_outfit_browser.mjs', group: 'outfit-browser', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'outfit.html',
@@ -585,7 +585,7 @@ const CHECKERS = [
      *
      * No mutation harness, deliberately and expensively — see the file's own header for
      * what that costs. The mutations live in the two static checkers beside it. */
-    script: 'scripts/check_cry_mobile_layout.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_cry_mobile_layout.mjs', group: 'audio-browser', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'cries.html',
@@ -605,7 +605,7 @@ const CHECKERS = [
      * human reading, not a recording, and it is the one place in this manifest where
      * a missed entry would be silent — mitigated only by the fact that editing the
      * page itself invalidates the entry. */
-    script: 'scripts/check_gen1_page.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_gen1_page.mjs', group: 'audio-browser', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'cries-gen1.html',
@@ -620,7 +620,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/check_spectrum_browser.mjs', group: 'cry-page', browser: true,
+    script: 'scripts/check_spectrum_browser.mjs', group: 'audio-browser', browser: true,
     needsServer: true, manual: true,
     inputs: [
       'spectrum.html', 'assets/css/spectrum.css', 'assets/css/shared.css',
@@ -632,7 +632,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/check_cries_browser.mjs', group: 'cry-page', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_cries_browser.mjs', group: 'audio-browser', browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
     inputs: [
       'cries.html',
@@ -837,7 +837,7 @@ const CHECKERS = [
     inputs: ['scripts/check_js_syntax.mjs'],
   },
   /* ---- index.html's hero ----
-     A group of its own, which makes eleven. The hero is the first thing every
+     A group of its own, one of eighteen. The hero is the first thing every
      visitor sees and until this commit nothing in the suite read any of it —
      §3.P's shape, where maze.html shipped a patrol that had never drawn a path
      because no entry mentioned the string `maze`. It is its own group rather than
@@ -857,7 +857,31 @@ const CHECKERS = [
       'assets/data/pokemon_data.json',
       'assets/js/daily-pick.js', 'assets/js/hero-gen.js',
       'assets/js/home-hero.js', 'assets/js/sorting-algorithms.js',
+      'assets/js/categories.js', 'assets/js/form-names.js',
+      'assets/js/form-names-zh.js', 'assets/js/shared.js',
+      'assets/js/shiny-index.js',
       'assets/video/*.mp4', 'assets/video/*.jpg',
+    ],
+  },
+  {
+    /* The two demos below the intro, and the payload split they exist to keep:
+     * home_roster.json (90 KB) instead of pokemon_data.json (2.8 MB), fetched
+     * only when an IntersectionObserver says the reader is 400px away. Also
+     * guards the reference's own `#game-subtitle` bug, the game's admissible
+     * 4-directional heuristic, and the below-fold stylesheet staying out of the
+     * hero's inline block. 0.1s, and it imports the modules for their exported
+     * key/algorithm ids rather than restating them. */
+    script: 'scripts/check_home_sections.mjs', group: 'home',
+    inputs: [
+      'index.html',
+      'assets/css/home-sections.css',
+      'assets/data/pokemon_data.json', 'assets/data/home_roster.json',
+      'assets/js/home-sections.js', 'assets/js/home-showcase.js',
+      'assets/js/home-maze-game.js', 'assets/js/home-sprite-grid.js',
+      'assets/js/sorting-algorithms.js', 'assets/js/sort-keys.js',
+      'assets/js/maze-pathfinding.js', 'assets/js/shared.js',
+      'assets/js/form-names.js', 'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js', 'assets/js/type-chart.js',
     ],
   },
   /* NOT A MANIFEST ENTRY, and §3.G5's removal is the shape: the file stays
@@ -1043,7 +1067,7 @@ const CHECKERS = [
     ],
   },
   {
-    script: 'scripts/check_moves_page_browser.mjs', group: 'nav',
+    script: 'scripts/check_moves_page_browser.mjs', group: 'moves-browser',
     browser: true, needsServer: true, manual: true,
     inputs: [
       'moves.html', 'move.html',
@@ -1374,7 +1398,7 @@ const CHECKERS = [
   // arrive over HTTP from Live Server, so `--prove-inputs` would record it
   // opening NO repo file at all.
   {
-    script: 'scripts/check_life_browser.mjs', group: 'algo', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_life_browser.mjs', group: 'life-browser', browser: true, needsServer: true, manual: true,
     /* `serial: true` — the SECOND entry with this flag, and for the same class of reason
      * as `check_graph_browser.mjs` below, measured rather than assumed.
      *
@@ -1472,7 +1496,7 @@ const CHECKERS = [
    * graph.js in place, because Tier A runs three entries at once and a checker reading
    * assets/js/ at that moment would see the mutation. */
   {
-    script: 'scripts/check_graph_browser.mjs', group: 'model', browser: true, needsServer: true, manual: true,
+    script: 'scripts/check_graph_browser.mjs', group: 'graph-browser', browser: true, needsServer: true, manual: true,
     /* `serial: true` — was the only entry with this flag until `check_life_browser.mjs`
      * took it for the same measured reason on a canvas rAF page. The reason is
      * measured rather than assumed: 3 of 3 failures pooled against 3 of 3 passes
@@ -1502,7 +1526,7 @@ const CHECKERS = [
   {
     script: 'scripts/test_check_graph_browser.mjs',
     checker: 'scripts/check_graph_browser.mjs',
-    group: 'model', browser: true, needsServer: true, manual: true,
+    group: 'graph-browser', browser: true, needsServer: true, manual: true,
     note: 'serves a mutated tree per case, so it never writes to the repo',
     inputs: [
       'graph.html',
@@ -1550,7 +1574,7 @@ const CHECKERS = [
      * list the cache would never invalidate it when types.html changed, and a
      * browser checker that cannot be re-run by editing the page is a claim.
      */
-    script: 'scripts/check_types_browser.mjs', group: 'type',
+    script: 'scripts/check_types_browser.mjs', group: 'types-browser',
     browser: true, needsServer: true, manual: true,
     inputs: [
       'types.html',
@@ -1871,7 +1895,7 @@ function help() {
   One harness carries its own filter, and it is much cheaper than anything above —
   it is the whole point of the sorting checker's split (§3.G4):
 
-    node scripts/test_check_sorting_page.mjs --static    # the 31 static checks, ~0.5s
+    node scripts/test_check_sorting_page.mjs --static    # the 89 static checks, ~0.3s
 `);
 }
 
@@ -1936,7 +1960,7 @@ const TIER_A_CONCURRENCY = 3;
  * the line these two are on.
  *
  * Measured: the browser tier was 80.8 s of a 99 s run, and it is now the shortest tier
- * despite holding nine of the eleven most expensive entries.
+ * despite holding most of the most expensive entries.
  */
 const TIER_B_CONCURRENCY = 3;
 

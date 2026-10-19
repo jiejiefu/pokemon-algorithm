@@ -26,12 +26,14 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { caughtBy, failLines } from './lib/negative.mjs';
 import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
+import { pool } from './lib/pool.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_nav_pages.mjs';
@@ -82,12 +84,16 @@ function makeTree(mutate) {
   return dir;
 }
 
-function run(dir) {
+const runAsync = promisify(execFile);
+
+async function run(dir) {
   try {
-    const out = execFileSync(process.execPath, [join(dir, CHECKER)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return { code: 0, out };
+    const { stdout } = await runAsync(process.execPath, [join(dir, CHECKER)], {
+      encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+    });
+    return { code: 0, out: stdout };
   } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout || ''}${e.stderr || ''}` };
+    return { code: typeof e.code === 'number' ? e.code : 1, out: `${e.stdout || ''}${e.stderr || ''}` };
   }
 }
 
@@ -95,7 +101,7 @@ function run(dir) {
 // the harness rather than the checker.
 {
   const dir = makeTree(null);
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   code === 0 ? pass('baseline: the checker passes on an unmutated copy of the tree')
              : fail(`baseline FAILED — the harness is wrong, not the checker:\n${out}`);
   releaseTree(dir);
@@ -345,14 +351,28 @@ const cases = [
 ];
 
 // Text and filesystem mutations are independent hooks; one loop over the merged
-// list, so a `files` hook cannot ship without being called.
-for (const c of cases) {
-  const dir = makeTree(c.mutate);
-  if (c.files) c.files(dir);
-  const { code, out } = run(dir);
-  if (code !== 0 && caughtBy(out, c.expect)) pass(c.name);
-  else fail(`${c.name}\n      exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`);
-  releaseTree(dir);
+// list, so a `files` hook cannot ship without being called. Cases are pooled and
+// printed after the drain in declaration order (§3.G7).
+const results = await pool(cases.map((c) => async () => {
+  let dir;
+  try {
+    dir = makeTree(c.mutate);
+    if (c.files) c.files(dir);
+    const { code, out } = await run(dir);
+    const passed = code !== 0 && caughtBy(out, c.expect);
+    return {
+      name: c.name,
+      pass: passed,
+      detail: passed ? '' : `exit ${code}, expected the checker to fail with "${c.expect}"\n${failLines(out).map((l) => `      ${l.trim()}`).join('\n') || out.split('\n').slice(-8).join('\n')}`,
+    };
+  } finally {
+    if (dir) releaseTree(dir);
+  }
+}));
+
+for (const r of results) {
+  if (r.pass) pass(r.name);
+  else fail(`${r.name}\n      ${r.detail}`);
 }
 
 /* Opposite direction. A page that mounts the nav correctly must not read as a
@@ -376,7 +396,7 @@ for (const c of cases) {
   </script>
 </body>
 </html>`);
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   code === 0 ? pass('a new page that mounts the nav correctly is not reported as a defect')
              : fail(`a correctly-mounted new page was reported as a defect — the checker is hardcoding the current page set:\n${out}`);
   releaseTree(dir);
@@ -387,7 +407,7 @@ for (const c of cases) {
 {
   const dir = makeTree(null);
   writeFileSync(join(dir, 'infopoke_net_new.html'), '<!DOCTYPE html><html><body>upstream capture</body></html>');
-  const { code, out } = run(dir);
+  const { code, out } = await run(dir);
   code === 0 ? pass('an InfoPoke capture with no nav is ignored, not failed')
              : fail(`an InfoPoke capture was treated as a page of this site:\n${out}`);
   releaseTree(dir);
