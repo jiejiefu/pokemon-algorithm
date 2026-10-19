@@ -505,7 +505,6 @@ export async function initTeamPage() {
     button.type = 'button';
     button.dataset.id = String(pokemon.id);
     button.setAttribute('aria-pressed', state.ids.includes(pokemon.id) ? 'true' : 'false');
-    button.setAttribute('aria-label', `${pokemon.names.zh}（${idText(pokemon.id)}）`);
 
     const img = el('img');
     img.src = spriteUrl(pokemon.id);
@@ -515,9 +514,22 @@ export async function initTeamPage() {
     img.loading = 'lazy';
     img.decoding = 'async';
 
+    const types = el('span', 'tm-card-types');
+    for (const type of pokemon.types) {
+      const badge = el('span');
+      badge.innerHTML = typeBadgeSmHtml(type);
+      types.append(badge.firstElementChild);
+    }
+    const typeLabels = [...types.children].map((badge) => badge.textContent).join('／');
+    button.setAttribute(
+      'aria-label',
+      `${pokemon.names.zh}（${idText(pokemon.id)}，${typeLabels}）`,
+    );
+
     button.append(
       img,
       el('span', 'tm-card-name', pokemon.names.zh),
+      types,
       el('span', 'tm-card-id', idText(pokemon.id)),
     );
     item.append(button);

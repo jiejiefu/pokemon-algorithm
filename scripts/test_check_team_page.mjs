@@ -6,9 +6,10 @@
  *
  * Each case breaks one thing the checker claims to guard, then requires the
  * exact assertion named in `expect` to fire. The cases are the claims a reader
- * cannot verify by reading: that the slot's split is horizontal, that the cap
- * and the duplicate rule survive, that the region list and the records are the
- * same set, and that the URL parser still refuses an out-of-range id.
+ * cannot verify by reading: that the ball's split is horizontal and round, that
+ * every roster card names its types, that the cap and the duplicate rule
+ * survive, that the region list and the records are the same set, and that the
+ * URL parser still refuses an out-of-range id.
  *
  * `expect` is a COPY of the checker's assertion text, not a shared constant.
  * The copy is what fails when an assertion is renamed and the expectation is
@@ -94,12 +95,44 @@ const ok = (name, pass, detail) => {
 
 const CASES = [
   {
-    name: 'the slot split turns diagonal',
-    why: 'the reference planner splits on the horizontal; 135deg is the obvious wrong way to read a two-colour background and still looks deliberate',
+    name: 'the ball split turns diagonal',
+    why: 'the reference planner splits on the horizontal; 135deg is the obvious wrong way to read a two-colour ball and still looks deliberate',
     mutate: (dir) => edit(dir, 'assets/css/team.css',
       'linear-gradient(180deg, var(--tm-c1) 0 50%, var(--tm-c2) 50% 100%)',
       'linear-gradient(135deg, var(--tm-c1) 0 50%, var(--tm-c2) 50% 100%)'),
-    expect: 'the slot is not a diagonal split',
+    expect: 'the ball is not a diagonal split',
+  },
+  {
+    name: 'the ball loses its circular clipping',
+    why: 'a 14px rounded rectangle behind the sprite still shows both type colours, so the circle is the only thing that says Poké Ball',
+    mutate: (dir) => edit(dir, 'assets/css/team.css',
+      '  border-radius: 50%;\n  background-image:\n    radial-gradient(circle at 50% 50%,',
+      '  border-radius: 14px;\n  background-image:\n    radial-gradient(circle at 50% 50%,'),
+    expect: 'the ball is a circle',
+  },
+  {
+    name: 'the ball loses its button ring',
+    why: 'without the centre button the disc is a two-tone circle, which is a colour key, not the reference planner\'s ball',
+    mutate: (dir) => edit(dir, 'assets/css/team.css',
+      'radial-gradient(circle at 50% 50%,',
+      'radial-gradient(closest-side at 50% 50%,'),
+    expect: 'the ball keeps the centre button and its ring',
+  },
+  {
+    name: 'a roster card stops mounting its type row',
+    why: 'the grid is where a player picks by type; a sprite alone does not say whether it is Poison or Fire',
+    mutate: (dir) => edit(dir, 'assets/js/team.js',
+      "const types = el('span', 'tm-card-types');",
+      "const types = el('span', 'tm-card-types-off');"),
+    expect: 'every roster card mounts a type row',
+  },
+  {
+    name: 'the card label drops the types',
+    why: 'the badges are visible but the accessible name is not, so a screen reader hears a species with no type',
+    mutate: (dir) => edit(dir, 'assets/js/team.js',
+      '`${pokemon.names.zh}（${idText(pokemon.id)}，${typeLabels}）`',
+      '`${pokemon.names.zh}（${idText(pokemon.id)}）`'),
+    expect: 'the card label speaks the types the badges show',
   },
   {
     name: 'team.js stops feeding the second colour',

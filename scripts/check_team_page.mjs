@@ -85,20 +85,27 @@ ok(/from '\.\/assets\/js\/team\.js'/.test(HTML), 'the page imports the feature m
 ok(/^\s*initTeamPage\(\);$/m.test(HTML), 'the page actually starts the planner');
 ok(/^\s*initHeaderNav\('team\.html'\);$/m.test(HTML), 'the page marks team.html current in the nav');
 
-/* ===== the stylesheet's two-tone slot ===== */
+/* ===== the stylesheet's Poké Ball slot ===== */
 
-const twoTone = cssCode.match(/\.tm-slot\.is-filled::before\s*\{([^}]*)\}/);
-ok(Boolean(twoTone), 'team.css still declares the two-tone slot body');
+const ball = cssCode.match(/\.tm-slot-render::before\s*\{([^}]*)\}/);
+ok(Boolean(ball), 'team.css still draws the type ball behind the sprite');
+ok(Boolean(ball) && /border-radius:\s*50%/.test(ball[1]), 'the ball is a circle');
+ok(Boolean(ball) && /aspect-ratio:\s*1/.test(ball[1]), 'the ball stays square');
 ok(
-  Boolean(twoTone) && /linear-gradient\(180deg,\s*var\(--tm-c1\)\s+0\s+50%,\s*var\(--tm-c2\)\s+50%\s+100%\)/.test(twoTone[1]),
-  'the slot splits on the horizontal: primary top half, secondary bottom half',
-  twoTone ? twoTone[1].replace(/\s+/g, ' ').trim() : 'rule missing',
+  Boolean(ball) && /linear-gradient\(180deg,\s*var\(--tm-c1\)\s+0\s+50%,\s*var\(--tm-c2\)\s+50%\s+100%\)/.test(ball[1]),
+  'the ball splits on the horizontal: primary top half, secondary bottom half',
+  ball ? ball[1].replace(/\s+/g, ' ').trim() : 'rule missing',
 );
 ok(
-  Boolean(twoTone) && !/(135deg|45deg|to bottom right|to top right|to right bottom|to left bottom)/.test(twoTone[1]),
-  'the slot is not a diagonal split',
+  Boolean(ball) && !/(135deg|45deg|to bottom right|to top right|to right bottom|to left bottom)/.test(ball[1]),
+  'the ball is not a diagonal split',
 );
-ok(/\.tm-slot\.is-filled::after\s*\{/.test(cssCode), 'the slot draws the Poké Ball seam between the halves');
+ok(Boolean(ball) && /radial-gradient\(circle at 50% 50%/.test(ball[1]),
+  'the ball keeps the centre button and its ring');
+ok(Boolean(ball) && /calc\(50% - 2px\)[\s\S]*?var\(--bg-secondary\)/.test(ball[1]),
+  'the waist between the halves is the card colour, so it flips with the theme');
+ok(/\.tm-slot-sprite\s*\{[^}]*z-index:\s*1/.test(cssCode),
+  'the sprite paints above the ball, not behind it');
 ok(/var\(--tm-c1\)/.test(cssCode) && /var\(--tm-c2\)/.test(cssCode),
   'both type colours are consumed as custom properties');
 ok(/\.tm-tally-head\s*\{[^}]*grid-template-columns:\s*92px 38px 1fr/.test(cssCode),
@@ -108,8 +115,8 @@ ok(/@media \(max-width: 560px\)[\s\S]*?\.tm-tally,\s*\.tm-tally-head\s*\{\s*grid
 
 ok(/--tm-weak:\s*#[0-9a-f]{6}/i.test(cssCode), 'the weak mark colour is a named token');
 ok(/--tm-resist:\s*#[0-9a-f]{6}/i.test(cssCode), 'the resist mark colour is a named token');
-ok(/\[data-theme="light"\]\s*\{[^}]*--tm-tint/.test(cssCode),
-  'the light theme re-declares the slot tint instead of inheriting the dark one');
+ok(!/--tm-(tint|seam)/.test(cssCode),
+  'the retired full-card tint and seam are gone, not merely unused');
 ok(/\.tm-status\[hidden\]\s*\{\s*display:\s*none/.test(cssCode),
   'the status line pairs [hidden] with an author display rule');
 
@@ -120,6 +127,8 @@ ok(/@media \(max-width: 560px\)[\s\S]*?\.tm-slots\s*\{\s*grid-template-columns:\
 ok(/@media \(prefers-reduced-motion: reduce\)/.test(cssCode), 'reduced motion is honoured');
 ok(/\.tm-card:focus-visible/.test(cssCode) && /\.tm-search:focus-visible/.test(cssCode),
   'the cards and the search field have visible focus rings');
+ok(/grid-template-columns:\s*repeat\(auto-fill,\s*minmax\(112px, 1fr\)\)/.test(cssCode),
+  'the grid track leaves room for two three-character type badges');
 
 const selectors = [...cssCode.matchAll(/([^{}]+)\{/g)].map((match) => match[1]).join(',');
 const classes = [...new Set([...selectors.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((match) => match[1]))];
@@ -135,7 +144,7 @@ const NEEDED = [
   'tm-slot-render', 'tm-slot-sprite', 'tm-slot-remove', 'tm-slot-info',
   'tm-slot-name', 'tm-slot-types', 'tm-card', 'tm-card-name', 'tm-card-id',
   'tm-summary-card', 'tm-chips', 'tm-tally', 'tm-tally-type', 'tm-tally-score',
-  'tm-marks', 'tm-mark', 'tm-empty', 'tm-more', 'tm-tint', 'tm-seam',
+  'tm-marks', 'tm-mark', 'tm-empty', 'tm-more', 'tm-card-types',
   'tm-tally-head', 'tm-tally-member',
 ];
 for (const name of NEEDED) {
@@ -167,6 +176,16 @@ ok((HTML.match(/id="tm-(defense|coverage)-head"/g) || []).length === 2,
 ok(/renderTallyHeads\(\)/.test(JS) && /chip\.dataset\.slot/.test(JS),
   'the header chips are rebuilt from the team and carry the mark column index');
 ok(/typeBadgeSmHtml/.test(JS), 'type chips come from the shared badge helper');
+
+const cardFn = JS.slice(JS.indexOf('function cardItem'), JS.indexOf('function renderGrid'));
+ok(cardFn.length > 0, 'the roster still renders through cardItem()');
+ok(/el\('span', 'tm-card-types'\)/.test(cardFn), 'every roster card mounts a type row');
+ok(/typeBadgeSmHtml\(type\)/.test(cardFn),
+  'the card badges come from the same helper as the slots');
+ok(/\.map\(\(badge\) => badge\.textContent\)\.join\('／'\)/.test(cardFn),
+  'the card label reads the badge text rather than re-deriving the type names');
+ok(/setAttribute\(\s*'aria-label',?[\s\S]{0,120}typeLabels/.test(cardFn),
+  'the card label speaks the types the badges show');
 ok(/export function typePair\b/.test(SHARED) && /export function typeBadgeSmHtml\b/.test(SHARED),
   'the shared helpers team.js calls still exist in shared.js');
 ok(/export function pokemonDetailUrl\b/.test(SHARED),

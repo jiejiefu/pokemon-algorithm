@@ -1,22 +1,17 @@
 /* 組隊規劃 (team.html) — `tm-` prefixed, mounted on this page only.
    -----------------------------------------------------------------------
-   The slot's two-tone body is the one visual carried over from the reference
-   planner: the primary type paints the top half and the secondary the bottom,
-   split on the horizontal (a Poké Ball seam, not a diagonal). The raw type
-   colours are too loud to sit behind text, so the layer stack is
-   tint -> colour halves -> a hairline seam, and the name/type bar uses the
-   AA fill/ink pair from `shared.js`'s `typePair()`, not a hand-picked white. */
+   The type statement is a Poké Ball drawn behind the sprite, the one visual
+   carried over from the reference planner: the primary type paints the top
+   half and the secondary the bottom, split on the horizontal, with a
+   card-coloured waist and the button ring between them. It is three CSS
+   gradients rather than the reference's 1,152px sprite sheet, so a new type
+   needs no new asset and --bg-secondary flips with the theme on its own. The
+   name/type bar keeps the AA fill/ink pair from `shared.js`'s `typePair()`,
+   not a hand-picked white. */
 
 :root {
   --tm-weak: #b3323f;
   --tm-resist: #1f5f8b;
-  --tm-tint: rgba(11, 16, 32, 0.18);
-  --tm-seam: rgba(238, 241, 251, 0.28);
-}
-
-[data-theme="light"] {
-  --tm-tint: rgba(243, 245, 250, 0.22);
-  --tm-seam: rgba(15, 23, 48, 0.14);
 }
 
 .tm-page {
@@ -130,7 +125,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 164px;
+  min-height: 180px;
   border: 1px dashed var(--hairline-strong);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
@@ -142,26 +137,30 @@
   border-color: var(--hairline-strong);
 }
 
-/* Two tone body. Layer 1 is the theme tint that keeps text legible, layer 2
-   is the Poké Ball seam the reference planner draws (top/bottom, never skew). */
-.tm-slot.is-filled::before {
+/* The ball. Layer order is paint order: the button and its ring on top, then
+   the waist the halves part on, then the primary/secondary split itself. 86%
+   keeps the desktop 112px disc inside the render box and still leaves a ring
+   of type colour around the 76px sprite. */
+.tm-slot-render::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--tm-tint), var(--tm-tint)),
-    linear-gradient(180deg, var(--tm-c1) 0 50%, var(--tm-c2) 50% 100%);
-}
-
-.tm-slot.is-filled::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
   top: 50%;
-  height: 1px;
-  transform: translateY(-0.5px);
-  background: var(--tm-seam);
+  width: min(112px, 86%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-image:
+    radial-gradient(circle at 50% 50%,
+      var(--tm-c1) 0 9px,
+      var(--bg-secondary) 9px 12px,
+      transparent 12px),
+    linear-gradient(180deg,
+      transparent calc(50% - 2px),
+      var(--bg-secondary) calc(50% - 2px) calc(50% + 2px),
+      transparent calc(50% + 2px)),
+    linear-gradient(180deg, var(--tm-c1) 0 50%, var(--tm-c2) 50% 100%);
+  z-index: 0;
 }
 
 .tm-slot > * {
@@ -206,6 +205,7 @@
 }
 
 .tm-slot-render {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -214,13 +214,16 @@
 }
 
 .tm-slot-sprite {
-  width: 72px;
-  height: 72px;
+  position: relative;
+  z-index: 1;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
 }
 
 .tm-slot-remove {
   position: absolute;
+  z-index: 2;
   top: 6px;
   right: 6px;
   width: 24px;
@@ -524,7 +527,7 @@
 
 .tm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 10px;
   margin: 0;
   padding: 0;
@@ -569,6 +572,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tm-card-types {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1;
 }
 
 .tm-card-id {

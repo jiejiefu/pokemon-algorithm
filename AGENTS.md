@@ -459,13 +459,13 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 **Guarded by:** `check_abilities_data.mjs` (18,849, 0.1 s) + `check_abilities_page.mjs` (133, RUNS the filters) + `test_check_abilities_page.mjs` (12) + `check_pokemon_names.mjs` (94). **No browser entry (a priced trade).** · **Background:** [pages.md#ac](docs/incidents/pages.md#ac)
 
 ### AD. `team.html` — Six Slots, Two Tallies, One Roster
-The slot body is **horizontal, not diagonal**: `--tm-c1` top half, `--tm-c2` bottom half, a 1px seam, and `typePair(primary)` on the name bar rather than white.
+The slot's type statement is a **112px Poké Ball behind the sprite** (`.tm-slot-render::before`), **horizontal not diagonal**: `--tm-c1` top half, `--tm-c2` bottom half, a `--bg-secondary` waist and button ring; the name bar keeps `typePair(primary)` rather than white.
 - **`TEAM_LIMIT` lives once, in `team-state.js`**; the analysis module takes ids, not a cap.
 - **The id search is an exact padded match** — `025` must not match `0250`.
 - **`?team=` keeps literal commas:** `searchParams.set` writes `%2C`; only `team-state.js` parses and writes the parameter.
 - **Each tally header chip sits over its own mark column** — same grid, same gap; a chip is not a separate legend.
-- **The roster is 145 KB of ids, names, types, generation and regions**, never `pokemon_data.json`.
-**Guarded by:** `check_team_page.mjs` (154) + `test_check_team_page.mjs` (15). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
+- **The roster is 145 KB of ids, names, types, generation and regions**, never `pokemon_data.json`; **every card states its type** in a `tm-card-types` row of `typeBadgeSmHtml()` badges, repeated in its `aria-label`.
+**Guarded by:** `check_team_page.mjs` (163) + `test_check_team_page.mjs` (19). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
 
 
 ## 4. Verification & Testing Commands
