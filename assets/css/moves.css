@@ -76,6 +76,14 @@
 
 .mv-search {
   width: 100%;
+  /* The same 520px cap abilities.css puts on .ab-search. The two list pages
+   * have near-identical containers (1200 vs 1180), so without it the move box
+   * renders at 1160px against the abilities page's 520px for a two-character
+   * query. A percentage is NOT interchangeable here: 50% of the 350px phone
+   * container is 175px, which trips the >200px assertion in
+   * check_moves_page_browser.mjs. Width, only — padding/background/border and
+   * the focus ring still differ between the two pages by decision. */
+  max-width: 520px;
   padding: 9px 12px;
   font: inherit;
   font-size: 0.9375rem;
