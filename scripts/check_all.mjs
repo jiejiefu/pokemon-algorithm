@@ -948,6 +948,19 @@ const CHECKERS = [
     ],
   },
   {
+    script: 'scripts/test_check_moves_page.mjs', checker: 'scripts/check_moves_page.mjs', group: 'nav',
+    note: 'runs the above in child trees',
+    inputs: [
+      'moves.html', 'move.html',
+      'assets/css/moves.css',
+      'assets/js/moves.js',
+      'assets/js/shared.js',
+      'assets/data/moves_zh.json',
+      'assets/data/move_learners_count.json',
+      'types.html',
+    ],
+  },
+  {
     script: 'scripts/check_moves_page_browser.mjs', group: 'nav',
     browser: true, needsServer: true, manual: true,
     inputs: [

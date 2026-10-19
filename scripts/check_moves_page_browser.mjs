@@ -214,6 +214,111 @@ ok(chipCounts === '[18,3,9,2]', 'the chip rows offer 18 types, 3 classes, 9 gene
 const activeType = await ev(`document.querySelectorAll('.mv-chip[aria-pressed="true"]').length`);
 ok(activeType === 0, 'nothing is pressed on a first load', `${activeType} pressed`);
 
+/*
+ * THE TYPE CHIPS CARRY THEIR OWN COLOUR, and the dot is that same fill rather
+ * than the raw TYPE_COLORS hex — pressing a chip then spreads the dot across the
+ * pill instead of swapping one colour for another, so the row does not reflow
+ * around the button the reader just pressed.
+ *
+ * Read from the COMPUTED style, not from the class name: an unstyled `.mv-chip--type`
+ * and a styled one are the same markup, and this file's whole argument is that
+ * a rendered claim needs a rendered check. The fill is compared against
+ * `typePair()` re-derived in the page, which is the same lookup the chips were
+ * built with — so this asserts the CSS applied the value, not that two copies
+ * of a colour table agree.
+ */
+const chipPaint = await ev(`(() => {
+  const chips = [...document.querySelectorAll('.mv-chip--type')];
+  const fire = chips.find(c => c.textContent.trim() === '火');
+  if (!fire) return null;
+  const dot = fire.querySelector('.mv-chip-dot');
+  const cs = getComputedStyle(fire);
+  return JSON.stringify({
+    count: chips.length,
+    fill: cs.getPropertyValue('--mv-type-fill').trim(),
+    ink: cs.getPropertyValue('--mv-type-ink').trim(),
+    dotBg: dot ? getComputedStyle(dot).backgroundColor : null,
+    // parseFloat, not Math.round: getComputedStyle().width returns '9px', and
+    // Math.round('9px') is NaN, which JSON.stringify turns into null — a failed
+    // assertion that reported as "nullpx" and named nothing.
+    dotW: dot ? parseFloat(getComputedStyle(dot).width) : 0,
+    text: fire.textContent.trim()
+  });
+})()`);
+if (chipPaint === null) {
+  ok(false, 'the 屬性 chips should be findable on the page');
+} else {
+  const chip = JSON.parse(chipPaint);
+  ok(chip.count === 18, 'all 18 type chips are decorated', `${chip.count}`);
+  // 「火屬性」 would be the group label's word repeated 18 times; the dot
+  // already carries the type.
+  ok(chip.text === '火', 'the chip text is the bare type name', `"${chip.text}"`);
+  ok(/^rgb\(/.test(chip.fill) && chip.fill !== chip.ink, 'the chip carries a fill distinct from its ink', `${chip.fill} on ${chip.ink}`);
+  ok(chip.dotW === 9, 'the dot is 9px', `${chip.dotW}px`);
+  // Compared NORMALISED. getComputedStyle returns `rgb(240, 128, 48)` with
+  // spaces while the custom property the page wrote is `rgb(240,128,48)`
+  // without, so a raw string comparison reports a difference in punctuation.
+  const norm = s => (s || '').replace(/\s+/g, '');
+  ok(
+    norm(chip.dotBg) === norm(chip.fill),
+    'the dot is painted with the same fill the chip was given',
+    `dot ${chip.dotBg} vs fill ${chip.fill}`
+  );
+}
+
+/*
+ * THE INK CLEARS 4.5:1 AGAINST ITS OWN FILL — for all eighteen, measured.
+ *
+ * The first version of this assertion was 「the fill is not the raw TYPE_COLORS
+ * hex」, which is UNSATISFIABLE and therefore vacuous: `badgePair()` corrects
+ * zero of the 18, because every type colour already clears 4.5:1 against the ink
+ * it picks and so is returned unchanged. Asserting a difference that does not
+ * exist is §3.B2's shape, and the mutation that would catch it — swapping the
+ * dot for the raw hex — is indistinguishable from correct today.
+ *
+ * The contrast is the claim that survives whether or not a future palette entry
+ * needs correcting, so that is what is asserted, over every chip rather than one.
+ */
+const chipContrast = await ev(`(() => {
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = s => {
+    const [r, g, b] = s.match(/\\d+/g).map(Number);
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  };
+  const ratio = (a, b) => {
+    const [hi, lo] = L(a) >= L(b) ? [L(a), L(b)] : [L(b), L(a)];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const chips = [...document.querySelectorAll('.mv-chip--type')];
+  return JSON.stringify(chips.map(c => {
+    const cs = getComputedStyle(c);
+    const fill = cs.getPropertyValue('--mv-type-fill').trim();
+    const ink = cs.getPropertyValue('--mv-type-ink').trim();
+    return { label: c.textContent.trim(), ratio: Math.round(ratio(fill, ink) * 100) / 100 };
+  }));
+})()`);
+const contrasts = JSON.parse(chipContrast);
+ok(contrasts.length === 18, 'every type chip was measured', `${contrasts.length} measured`);
+const worst = contrasts.reduce((a, b) => (b.ratio < a.ratio ? b : a), contrasts[0]);
+ok(
+  contrasts.every(c => c.ratio >= 4.5),
+  'every chip label clears WCAG AA 4.5:1 against its own fill',
+  `worst is ${worst.label} at ${worst.ratio}:1`
+);
+
+// The other three rows stay neutral: a modifier is what leaves them untouched,
+// and a chipRow that coloured every row would look identical on the page.
+const neutralChips = await ev(`(() => {
+  const groups = [...document.querySelectorAll('.mv-chipgroup')];
+  const nonType = groups.slice(1).flatMap(g => [...g.querySelectorAll('.mv-chip')]);
+  return JSON.stringify({
+    nonType: nonType.length,
+    decorated: nonType.filter(c => c.classList.contains('mv-chip--type')).length
+  });
+})()`);
+const neutral = JSON.parse(neutralChips);
+ok(neutral.decorated === 0, 'only the 屬性 row is decorated — the other three rows carry no colour', `${neutral.nonType} chips checked, ${neutral.decorated} decorated`);
+
 // -- the search box narrows the rows -----------------------------------------
 await ev(`(() => {
   const input = document.getElementById('mv-search');
@@ -260,7 +365,7 @@ ok((await rows()) === 919, 'clearing the box restores all 919', `${await rows()}
  * go through `Input.dispatchMouseEvent` so the same defect cannot hide here. */
 async function pressChip(label) {
   const box = await ev(`(() => {
-    const chip = [...document.querySelectorAll('.mv-chip')].find(c => c.textContent.includes(${JSON.stringify(label)}));
+    const chip = [...document.querySelectorAll('.mv-chip')].find(c => c.textContent.trim() === ${JSON.stringify(label)});
     if (!chip) return null;
     const r = chip.getBoundingClientRect();
     return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
@@ -273,7 +378,7 @@ async function pressChip(label) {
   return true;
 }
 
-const FIRE = '火屬性';
+const FIRE = '火';   // the bare type name — the 屬性 suffix was removed from the chip text
 const fireCount = await ev(`(async () => {
   const moves = await (await fetch('assets/data/moves_zh.json')).json();
   return Object.entries(moves).filter(([k, v]) => k !== '_meta' && v.type === 'fire').length;
