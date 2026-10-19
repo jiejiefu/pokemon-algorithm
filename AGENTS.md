@@ -500,7 +500,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
 | `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
-| `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 17 entries, no browser; the team pair is 154 + 15 |
+| `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 18 entries, no browser; the team pair is 154 + 15 |
 | `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |
 | `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `check_moves_data.mjs` | 127,868 checks, 0.1 s; one pass writes all four |
 | `abilities.html`, `ability.html`, `abilities.js`, `abilities.css` | `check_abilities_page.mjs` | 133 checks, 0.1 s; no browser entry |
@@ -510,6 +510,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo`, then `--only=life-browser` | three static at 0.4 s; §3.P |
 | `graph_data.json`, `graph.js`, `graph.html`, `pokeapi_form_stats.json` | `--only=model`, then `--only=graph-browser` | §3.V; browser only for layout |
 | `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read over every page; `assets/js/*` is a glob |
+| `SITE_VERSION`, `CHANGELOG.md`, `docs/RELEASING.md`, `scripts/release.mjs` | `node scripts/check_version.mjs` | one declaration, one changelog entry, two footer slots; no browser |
 | `*.json` under `assets/data/` | the group that owns the table | `data` owns learnsets/categories/evolution; cry tables `cry-data`, palettes `color` |
 | anything in `scripts/` | `--force --only=<its group>` | editing a checker does not invalidate a prior entry |
 | a file in no row above | `--help` first, then `--only` on what it names | `--prove-inputs` names the readers |
@@ -538,7 +539,7 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 | `color` | 21.4 | 16 | B | sixteen small entries, none above 5 s (the two CDP halves moved out) |
 | `life-browser` | 7.1 | 1 | B | `serial: true`, a 40×40 rAF page; one Chrome |
 | `cry-data` | 8.4 | 8 | A | `test_check_cry_index.mjs` 4.7 s, `test_check_spectrogram_port.mjs` 1.4 s |
-| `nav` | 9.3 | 17 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
+| `nav` | 9.3 | 18 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
 | `outfit-browser` | 6.8 | 1 | B | one Chrome |
 | `cry-apu` | 5.6 | **1** | A | `check_gen1_apu.mjs` alone, 4.5 s of it one pass over the 151-species corpus |
 | `game-browser` / `types-browser` | 4.3 / 5 | 1 each | B | one Chrome each |
@@ -702,11 +703,13 @@ node scripts/check_cry_features.mjs
 
 ### Commit Messages
 
-- **Subject** — `<scope>: <imperative summary>`; lowercase scope, ≤72 chars,
-  no period or `and`. Scope names the page or module (`index`, `moves`,
-  `scripts`, `docs`). Name the outcome, not the edit; `add`/`fix`/`guard`, not
-  `added`/`fixes`; `scope!:` marks a break and the body says what breaks and
-  how to migrate.
+- **Subject** — `<type>(<scope>): <imperative summary>`. Type is one of `feat`,
+  `fix`, `perf`, `docs`, `refactor`, `test`, `chore`, `build`, `ci` or `data`,
+  and it drives `scripts/release.mjs`'s SemVer bump: an untyped commit is not
+  releasable. Lowercase scope, ≤72 chars, no period or `and`; scope names the
+  page or module (`index`, `moves`, `scripts`, `docs`). Name the outcome, not
+  the edit; `add`/`fix`/`guard`, not `added`/`fixes`; a `!` before the colon
+  marks a break and the body says what breaks and how to migrate.
 - **Body** — blank line after the subject, wrap 72–76; state the problem, what
   changed, and the measurement, then the verification command and result. A
   number turns a claim into evidence; say when nothing was run.

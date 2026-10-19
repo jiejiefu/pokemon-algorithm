@@ -959,6 +959,22 @@ const CHECKERS = [
     inputs: ['*.html', 'assets/css/shared.css', ...MARK_FILES],
   },
   {
+    /* One declaration, one changelog heading, two footer slots. `release.mjs`
+     * writes all of them in one pass, but a hand edit can desync them, and a
+     * footer claiming a version the changelog never shipped is a release note
+     * that lies. 0.1 s, no browser — the tag itself is NOT checked, because a
+     * checker that goes red between every release would be red most of the time. */
+    script: 'scripts/check_version.mjs', group: 'nav',
+    inputs: [
+      'assets/js/shared.js',
+      'index.html',
+      'today.html',
+      'CHANGELOG.md',
+      'docs/RELEASING.md',
+      'scripts/release.mjs',
+    ],
+  },
+  {
     script: 'scripts/check_categories.mjs', group: 'nav',
     inputs: [
       'category.html', 'today.html',
