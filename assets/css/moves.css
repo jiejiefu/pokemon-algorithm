@@ -123,7 +123,7 @@
    state is in the accessibility tree, and the visual cannot drift from what is
    announced. Same rule colors-explore.html's `.cp-chip` uses. */
 .mv-chip[aria-pressed="true"] {
-  color: var(--text-primary);
+  color: var(--on-accent);
   border-color: var(--accent-gold);
   background: var(--accent-gold-surface);
 }

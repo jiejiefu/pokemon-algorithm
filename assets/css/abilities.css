@@ -126,10 +126,29 @@
   color: var(--text-primary);
 }
 
+/*
+ * `--on-accent`, NOT `--text-primary`, and the difference is the whole rule.
+ *
+ * `--accent-gold-surface` is a SOLID fill — in dark theme amber #f5c542, in light
+ * theme Poké Ball red #b3122a — and shared.css documents that it is meant to
+ * carry `--on-accent` text (measured there: 6.92:1 white on the red). `--text-primary`
+ * is the worst possible partner in BOTH themes, because it is near-black in light
+ * and near-white in dark, and the fill inverts with the theme:
+ *
+ *     light  #0f1730 on #b3122a ->  2.56:1   ✗
+ *     dark   #eef1fb on #f5c542 ->  1.44:1   ✗
+ *     light  #ffffff on #b3122a ->  6.92:1   ✓
+ *     dark   #14110a on #f5c542 -> 11.62:1   ✓
+ *
+ * Both fills are solid with no alpha, gradient or backdrop-filter, so the computed
+ * ratio IS the rendered one — §3.C's "measure from decoded pixels" rule has
+ * nothing to add on a solid-on-solid pair. Same pairing as algo.css's
+ * `.al-chip[data-checked="true"]`.
+ */
 .ab-chip[aria-pressed='true'] {
   background: var(--accent-gold-surface);
   border-color: var(--accent-gold);
-  color: var(--text-primary);
+  color: var(--on-accent);
 }
 
 .ab-chip:focus-visible {
@@ -259,10 +278,15 @@
   border: 1px solid var(--hairline);
 }
 
+/* The 「有隱藏特性」 badge. `--on-accent` for the reason spelled out on
+   `.ab-chip[aria-pressed='true']` above: this rule shipped with
+   `--text-primary`, which measured 2.56:1 in light and 1.44:1 in dark against
+   this fill — black on red, then near-white on gold. Neither clears WCAG AA
+   4.5:1, and a reader reported the light one as unreadable. */
 .ab-badge-hidden {
   background: var(--accent-gold-surface);
   border-color: var(--accent-gold);
-  color: var(--text-primary);
+  color: var(--on-accent);
 }
 
 .ab-empty {
@@ -389,13 +413,32 @@
 }
 
 .ab-holder img {
+  display: block;
   width: 56px;
   height: 56px;
-  /* Deliberately absent: `crisp-edges` is the house convention for UPSCALES
-     only (shared.css draws the 96px sprite at 140px). This is a 56px downscale
-     by a non-integer factor, where nearest-neighbour drops pixels unevenly and
-     reads worse than smooth — §3.E's rule, applied to this page. */
+  /*
+   * `object-fit: contain` WITH `object-position: bottom`, and both are
+   * load-bearing. The Scarlet/Violet set is 120×112 and its subject is
+   * BOTTOM-ANCHORED with the empty space above; `contain` scales it to 56×52.3
+   * and `bottom` puts the 3.7px of slack at the TOP, where the artwork's own
+   * padding already is. The subject therefore lands on the box's bottom edge
+   * undistorted. Without `object-position`, the subject floats ~3.7px above the
+   * card's own baseline — measured at 25–26% of the box low against the sprite
+   * set (§3.E).
+   *
+   * That is also why there is NO `translateY` here. types.html's
+   * `.chip-grid--roster .chip-thumb.is-sv` carries one, because that page's chips
+   * pair a thumbnail with a name on ONE line and the offset lines the two up.
+   * These cards put the image on its own row above the name, so there is nothing
+   * to line up against and the offset would only move the subject off the card's
+   * baseline. Same as `.mv-learner img`.
+   *
+   * `image-rendering` is deliberately absent: the house convention is for
+   * UPSCALES only, and this is a 56px downscale by a non-integer factor, where
+   * nearest-neighbour drops pixels unevenly and reads worse than smooth.
+   */
   object-fit: contain;
+  object-position: bottom;
 }
 
 .ab-holder-name {
