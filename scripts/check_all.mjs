@@ -961,6 +961,12 @@ const CHECKERS = [
     script: 'scripts/check_agents_size.mjs', group: 'nav',
     inputs: ['AGENTS.md', 'docs/incidents/*'],
   },
+  {
+    script: 'scripts/test_check_agents_size.mjs', checker: 'scripts/check_agents_size.mjs',
+    group: 'nav',
+    note: '5 cases break the tree/checker — a CJK heading in AGENTS.md and in a doc, the budget blown, the docs scan narrowed to nothing, the size ceiling — and 5 green cases hold the other direction: a 「」-quoted UI name in a heading and in prose, a fenced block, an unquoted species name, and an H1 title all stay green',
+    inputs: ['AGENTS.md', 'docs/incidents/*', 'scripts/check_agents_size.mjs'],
+  },
   /* ---- Repo-wide §3 citations, and the retired numbered gotcha list ---------
    *
    * check_agents_size.mjs guards AGENTS.md's OWN §3 citations. This is the other

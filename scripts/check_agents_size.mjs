@@ -21,16 +21,28 @@
  *      is reachable;
  *   5. every '§3.X' reference in the file names a §3 heading, so a rewrite that
  *      drops or renames a section leaves no dangling citation behind.
+ *   6. Chinese in a heading is a DEFECT — every '##'-'####' heading is English.
+ *      The only exception is AGENTS.md's H1, which is the site's name;
+ *   7. unwrapped Chinese in the body is BUDGETED per file, not banned. Prose is
+ *      English and Chinese survives as 「」-quoted UI labels, species / form
+ *      names and code spans — but a name or an eyebrow may still appear unquoted
+ *      mid-sentence, so a flat "no Chinese" rule would be false.
  *
  * The ceiling is not a taste. The floors are real: §3 is ~47 KB of load-bearing
  * rules and the guard exists to stop growth, not to force a rewrite. If a future
  * change genuinely needs more room, raise CEILING_CHARS in the same commit and
  * say why — the same discipline §4 asks of any threshold.
+ *
+ * The language rules exist because AGENTS.md and docs/incidents/ are the
+ * project's reading surface: a heading carrying Chinese is not greppable, while
+ * a 「」-quoted UI name is load-bearing (it is the label the page renders) and
+ * must stay verbatim. The budget bounds incidental Chinese; it does not claim
+ * there is none.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTS = join(ROOT, 'AGENTS.md');
@@ -131,6 +143,65 @@ ok(
   dangling.length === 0,
   `every §3.x reference resolves${dangling.length ? ` (dangling: ${dangling.join(', ')})` : ''}`
 );
+
+// ---- 6/7. Heading language + per-file unwrapped-CJK budget -----------------
+
+/** The reading surface: AGENTS.md plus every docs/incidents/ narrative. */
+const DOCS_DIR = join(ROOT, 'docs', 'incidents');
+const docFiles = existsSync(DOCS_DIR)
+  ? readdirSync(DOCS_DIR)
+      .filter((f) => f.endsWith('.md'))
+      .sort()
+      .map((f) => join(DOCS_DIR, f))
+  : [];
+const langFiles = [AGENTS, ...docFiles];
+
+/** Non-vacuity floor (§4): a scan that finds nothing proves nothing. */
+const EXPECTED_LANG_FILES = 7;
+ok(
+  langFiles.length >= EXPECTED_LANG_FILES,
+  `language scan covers ${langFiles.length} files (expected at least ${EXPECTED_LANG_FILES})`
+);
+
+/** Strip fenced blocks, 「…」 UI names and `code spans` before counting. */
+function maskCjk(s) {
+  return s
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/「[^」]*」/g, '')
+    .replace(/`[^`]*`/g, '');
+}
+const countCjk = (s) => (s.match(/[\u4e00-\u9fff]/g) || []).length;
+
+/**
+ * Per-file budget for UNWRAPPED Chinese in prose. Measured today: the largest
+ * file is docs/incidents/color.md at 161, so 250 leaves real headroom without
+ * letting a second language creep back into the narratives.
+ */
+const PROSE_CJK_BUDGET = 250;
+
+for (const file of langFiles) {
+  const rel = relative(ROOT, file);
+  const text = readFileSync(file, 'utf8');
+
+  const cjk = countCjk(maskCjk(text));
+  ok(
+    cjk <= PROSE_CJK_BUDGET,
+    `${rel} carries ${cjk} unwrapped CJK (budget ${PROSE_CJK_BUDGET})`
+  );
+
+  // Headings are exempt only at H1 (AGENTS.md's own title). Every other heading
+  // is pure English, so the section map stays greppable and searchable.
+  const badHeads = [];
+  text.split('\n').forEach((line, i) => {
+    if (/^#{2,4}\s/.test(line) && countCjk(maskCjk(line)) > 0) {
+      badHeads.push(`${rel}:${i + 1} "${line.trim()}"`);
+    }
+  });
+  ok(
+    badHeads.length === 0,
+    `headings are English in ${rel}${badHeads.length ? `: ${badHeads.join(' | ')}` : ''}`
+  );
+}
 
 // ---- Summary ---------------------------------------------------------------
 
