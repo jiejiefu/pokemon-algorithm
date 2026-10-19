@@ -28,7 +28,7 @@
  *      names and code spans — but a name or an eyebrow may still appear unquoted
  *      mid-sentence, so a flat "no Chinese" rule would be false.
  *
- * The ceiling is not a taste. The floors are real: §3 is ~47 KB of load-bearing
+ * The ceiling is not a taste. The floors are real: §3 is ~40 KB of load-bearing
  * rules and the guard exists to stop growth, not to force a rewrite. If a future
  * change genuinely needs more room, raise CEILING_CHARS in the same commit and
  * say why — the same discipline §4 asks of any threshold.
@@ -47,10 +47,10 @@ import { dirname, join, relative } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTS = join(ROOT, 'AGENTS.md');
 
-/** Whole-file budget. Current: ~84 KB. Original (pre-§3 move): ~313 KB. */
+/** Whole-file budget. Current: ~74 KB. Original (pre-§3 move): ~313 KB. */
 const CEILING_CHARS = 90_000;
 const CEILING_LINES = 720;
-/** One §3 section. Largest real section today is '#AC' at 1,873 chars. */
+/** One §3 section. Largest real section is under 2 KB. */
 const SECTION_CEILING = 3_500;
 
 let failures = 0;

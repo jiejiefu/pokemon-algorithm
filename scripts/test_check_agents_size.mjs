@@ -134,7 +134,7 @@ const CASES = [
   },
   {
     name: 'AGENTS.md slips over its whole-file ceiling',
-    mutate: (dir) => poke(dir, 'AGENTS.md', 'x'.repeat(7000)),
+    mutate: (dir) => poke(dir, 'AGENTS.md', 'x'.repeat(20000)),
     expect: 'chars (ceiling',
   },
 ];

@@ -117,7 +117,7 @@ Each subsection is a **rule** with the **checker that guards it** and a **Backgr
 - **URLs:** internal nav uses query params (`detail.html?slug=bulbasaur`).
 - **Nidoran disambiguation:** `nidoran-f` (#029) and `nidoran-m` (#032) are distinct slugs; a bare `nidoran` must not resolve.
 - **Form links** return to the base species' detail page.
-- **detail ⇄ color reciprocity:** both cross-page URLs come only from the canonical helpers — `pokemonDetailUrl()` (`shared.js`) and `paletteUrl()` (`color-palette.js`). Never assemble either by hand or string-replace `detail.html`: `color.html` deliberately does not inherit detail's clean-URL contract.
+- **detail ⇄ color reciprocity:** both URLs come only from `pokemonDetailUrl()` (`shared.js`) and `paletteUrl()` (`color-palette.js`). Never assemble either by hand or string-replace `detail.html`.
 **Guarded by:** nothing · **Background:** [page-defects.md#a](docs/incidents/page-defects.md#a)
 
 ### B. Color Extraction & MMCQ
@@ -125,22 +125,20 @@ Each subsection is a **rule** with the **checker that guards it** and a **Backgr
 **Guarded by:** `check_outfit_page.mjs` re-derives all 2,050 palettes through `mmcq.js` and requires byte-equality · **Background:** [color.md#b](docs/incidents/color.md#b)
 
 ### B1. `colors-generator.html` Is Not A Smaller `color.html`
-Shares a component library with `color.html` but not a layout: one reports a species' measured palette, the other generates a theme from a colour supplied.
-- **Five sections were DELETED, not merged** (對照·實測色盤 / 生成明暗階 / 套用展示 / 生成組成 / 匯出主題). This page's job ends at the generated palette. Its own copy must not describe what was removed.
+Shares components, not layout: one reports a measured palette, the other generates a theme from a colour.
+- **Five sections were DELETED, not merged** (對照·實測色盤 / 生成明暗階 / 套用展示 / 生成組成 / 匯出主題). Copy must not describe what was removed.
 - **`generatedRows()` IS the input colour plus the matched species' real colours.**
 - **`colors-generator.css` is `cg-`-prefixed and mounted here only** — never edit a `.cp-*`, `.sc-*` or shared token for a generator-only need.
-- **The 24-cell legendary grid pins the species, not the colour** (`matchOf(id, hex)` → `rank: -1`, eyebrow 你選的). A pin survives re-ranking only while the input is one of that species' six colours. The grid is built ONCE in `init()`; only its highlight moves (a re-render detaches nodes, which do not bubble).
-- **The colour field parses HEX/RGB/HSL regardless of the toggle** (display only); `inputFormat` never round-trips through the text. Strict ranges, never clamped; three states — parse commits, a possible prefix says nothing, neither flags and leaves the previous result.
-**Expect this shape on any short element id:** every id is a named `document` property, so a missing `const` is not a `ReferenceError` and an `obj[key] || fallback` quietly becomes `fallback` for every key.
+- **The 24-cell legendary grid pins the species, not the colour** (`matchOf(id, hex)` → `rank: -1`, eyebrow 你選的). A pin survives re-ranking only while the input is one of that species' six colours. The grid is built ONCE; only its highlight moves.
+- **The colour field parses HEX/RGB/HSL regardless of the toggle** (display only); `inputFormat` never round-trips through the text. Strict ranges, never clamped; three states — parse commits, a possible prefix says nothing, neither changes the result.
 **Guarded by:** `check_color_match.mjs` (220, asserts the ABSENCE of the five removed sections, containers, leftover code and dangling ids) and `check_color_page.mjs`; 28 + 20 mutation cases · **Background:** [color.md#b1](docs/incidents/color.md#b1)
 
 ### B2. Three Colour Namers, One Chroma Gate
-`color.html` prints two namers side by side for the same hex (`describeHex(primary)` and `chineseColorName(hex)`); before the gate they disagreed on 97.6% of primaries.
-- **Every namer is gated on `chroma()` = max−min, below `NEUTRAL_CHROMA = 16` → `neutralName()`.** Measured over 12,297 swatches: 0 chromatic swatches changed.
+`color.html` prints two namers side by side for the same hex (`describeHex(primary)` and `chineseColorName(hex)`).
+- **Every namer is gated on `chroma()` = max−min, below `NEUTRAL_CHROMA = 16` → `neutralName()`.**
 - **Chroma is absolute, never HSL saturation.** `s` is a ratio against lightness, so near-whites (the largest grey bucket) measure `s = 100%`.
 - **The threshold sits in a gap:** corpus chroma is empty between the grey and coloured clusters, so 16–31 behave identically; raising it cannot be caught by a "greys are named greys" check.
 - **`chineseColorNameWithEn()` is gated identically** and returns the zh-only grey name.
-**Expect this shape when a guard can be satisfied vacuously:** raising `NEUTRAL_CHROMA` to 255 satisfies every "must not be chromatic" assertion at once.
 **Guarded by:** `check_color_palettes.mjs` + 9 mutation cases against a scratch copy of the module · **Background:** [color.md#b2](docs/incidents/color.md#b2)
 
 ### C. Contrast & Accessibility
@@ -152,52 +150,49 @@ Shares a component library with `color.html` but not a layout: one reports a spe
 **Guarded by:** nothing · **Background:** [page-defects.md#c](docs/incidents/page-defects.md#c)
 
 ### D. Type Profiles & Scoped Translations
-`assets/data/type_profiles.json` (from `scripts/fetch_type_profiles.py`, InfoPoke `/types/[id]`) mixes three provenances kept in separate fields: `blurbEn`/`battleTipsEn`/`categoryNoteEn`/`entriesEn[].effect` are **English upstream** shown in a collapsed block; `entries[].effect` is **Simplified Chinese upstream** via OpenCC `s2twp` (the only zh-TW effect text); `trainers[].roleZh` is **this project's own** translation.
-- **Ability names come from our data** (`pokemon_data.json[].abilities` + `abilities_zh.json`), 59 of 74 scraped names join; the join floor is pinned at 70%.
+`assets/data/type_profiles.json` (from `scripts/fetch_type_profiles.py`, InfoPoke `/types/[id]`) keeps three provenances in separate fields: `blurbEn`/`battleTipsEn`/`categoryNoteEn`/`entriesEn[].effect` are **English upstream** in a collapsed block; `entries[].effect` is **Simplified Chinese upstream** via OpenCC `s2twp` (the only zh-TW effect text); `trainers[].roleZh` is **this project's own** translation.
+- **Ability names come from our data** (`pokemon_data.json[].abilities` + `abilities_zh.json`); the join floor is pinned at 70%.
 - **Type relationships come only from `type-chart.js`** — never InfoPoke, never `type_profiles.json`. `Electric → Water` is `2×`.
 **Guarded by:** `check_type_profiles.mjs`, including the 70% join floor · **Background:** [page-defects.md#d](docs/incidents/page-defects.md#d)
 
 ### E. Scarlet/Violet Artwork & Provenance
-`assets/js/sv-index.js` is generated by `scripts/extract_sv_index.py` from the PNGs on disk — never hand-edit. 1,225 PNGs (1,025-ID roster + 200 unclaimed variants, counted but never added).
-- **PokeAPI first**, InfoPoke only when the primary returns no valid PNG; per-file host lives in `data-sources/sv-sources.json`, deliberately outside `assets/`. The frontend credits PokeAPI only.
-- **The SW/SV set (120×112) is bottom-anchored:** `move.html` draws it at 56px with `object-fit: contain` AND `object-position: bottom` — `types.html`'s `translateY(-23%)` correction must not be copied here (its chip pairs image and name on one line; this card does not). `contain` without `object-position` passes a fit assertion and still misplaces the subject ~3.7px.
-- **`image-rendering` is absent from `.mv-learner img`** — the house `crisp-edges` is for upscales; both art sets here are drawn down by non-integer factors.
+`assets/js/sv-index.js` is generated by `scripts/extract_sv_index.py` from the PNGs on disk — never hand-edit. 1,225 PNGs (1,025 roster + 200 unclaimed variants).
+- **PokeAPI first**, InfoPoke only when the primary returns no valid PNG; per-file host lives in `data-sources/sv-sources.json`, deliberately outside `assets/`. Frontend credits PokeAPI only.
+- **The SW/SV set (120×112) is bottom-anchored:** `move.html` draws it at 56px with `object-fit: contain` AND `object-position: bottom`; do not copy `types.html`'s `translateY(-23%)` (its chip pairs image and name; this card does not). `contain` without `object-position` passes a fit assertion and still misplaces the subject ~3.7px.
+- **`image-rendering` is absent from `.mv-learner img`** — `crisp-edges` is for upscales; both art sets here are drawn down by non-integer factors.
 **Guarded by:** `check_sv_index.mjs` + 15 cases; `check_moves_page.mjs` + 4, and the rendered half by `check_moves_page_browser.mjs` · **Background:** [page-defects.md#e](docs/incidents/page-defects.md#e)
 
 ### F. Cry Audio — `gb-apu.js` Is Transcribed, Not Reasoned
-`assets/js/gb-apu.js` re-synthesises pokered's 38 base cries as a pure module (no DOM/Web Audio/fetch). **Verified against the reference's own OUTPUT, not a description:** `gen1_conformance.json` holds per-species length + 48 sampled values; all 151 lengths match, 98.7% of samples byte-identical, the rest within one 8-bit step. *This is the whole point of the section — a description can be wrong in self-consistent ways.*
-- Length parameter is the stored byte **MINUS `0x80`** (signed reading makes every note 1.5× too long).
+`gb-apu.js` re-synthesises pokered's 38 base cries as a pure module. **Verified against the reference's own OUTPUT, not a description:** `gen1_conformance.json` holds per-species length + 48 sampled values; 151 lengths match; 98.7% of samples byte-identical, rest within one 8-bit step.
+- Length parameter is the stored byte **MINUS `0x80`** (signed reading makes notes 1.5× too long).
 - The duty register holds the **packed byte** (`duty & 3`), not the pattern array.
-- The mix is **not peak-normalised**; **every register is scaled to the output rate — including the noise LFSR clock** (this was the missing hiss).
-- **Rate-dependent checks must be rate-independent:** at 1,048,576 Hz the conversion is 1 and the bug vanishes; expected shape for anything that only matters on the way to the speakers.
-- `sliderToMaster()` is removed; the page presents 0..15 directly (default 3). `sound_loop` IS applied; `count` is the play count.
-- **A bounded ring-out applies only where the envelope can empty** (sweep 0 → 16 frames); a universal cap truncated seven species.
-- Synthesis rate is **65,536 Hz** (Web Audio caps at 96,000), ratio exactly 1/16.
+- The mix is **not peak-normalised**; **every register is scaled to the output rate — including the noise LFSR clock.**
+- **Rate-dependent checks must be rate-independent:** at 1,048,576 Hz the conversion is 1 and the bug vanishes.
+- `sliderToMaster()` is removed; the page presents 0..15 (default 3). `sound_loop` is applied; `count` is the play count.
+- **A bounded ring-out applies only where the envelope can empty** (sweep 0 → 16 frames).
+- Synthesis rate is **65,536 Hz** (Web Audio caps at 96,000).
 **Guarded by:** `check_gen1_apu.mjs` (92) and `check_gen1_cries.mjs` (40) · **Background:** [cry.md#f](docs/incidents/cry.md#f)
 
 ### G. The Two Cry Pages
-Driven over CDP.
 - **A playback cursor's guard is `!== null`, never `> 0`** — `currentTime` is exactly 0 on the first play.
-- **The waveform caches in an offscreen canvas** bound with `const` from the first line.
+- **The waveform caches offscreen** bound with `const`.
 - **`cryPlayer.play()` resolves when a cry ENDS**; an additive `onStart` hook carries duration + clock.
 - **Both pages share ONE autoplay switch (`cry-autoplay.js`) that must never fire on load.**
-- **A mute nothing verifies is not a mute:** `scripts/lib/mute-tap.mjs` is injected before any page script and asserted by reading the live `AudioParam`.
+- **A mute nothing verifies is not a mute:** `scripts/lib/mute-tap.mjs` is injected before any page script and asserted on the live `AudioParam`.
 - **Count drawn pixels by ALPHA, and let the assertion return false.**
-- **A slider's id is not the state field's name** (three sliders silently created a fourth property; the Length slider did nothing).
-- Recorded and synthesised cries play at the SAME loudness (`DEFAULT_VOLUME = 3/15` in the player).
+- **A slider's id is not the state field's name** (three sliders created a fourth property; Length did nothing).
+- Recorded and synthesised cries play at the SAME loudness (`DEFAULT_VOLUME = 3/15`).
 - **A filter and a scroll position are different quantities** and must not share a field.
-- **A checker that presses play must CONFIRM the press landed** (a re-render detaches the node and the click is a no-op).
+- **A checker that presses play must CONFIRM the press landed** (a re-render detaches the node).
 **Guarded by:** `check_gen1_page.mjs` (74), `check_cries_browser.mjs` (25), `check_cries_page.mjs` (64) + `test_cry_overlap.mjs` (6) · **Background:** [cry.md#g](docs/incidents/cry.md#g)
 
 ### G1. The Spectrum Page — A Port Checked Against Its Own Extractor
-**No spectrogram is stored** — `analyze_cries.py`'s band already exists, and a port can be checked against the thing it ports.
-- **`analyze_cries.py`'s `resample()` has TWO recorded bugs:** amplitude scale should be 1.0 (keeps `n_out/n_fft`, so a 100 Hz tone returns at 0.1465), and it keeps `n_out/2` bins of an `n_fft` transform (top bin duration-dependent). Cost: 31 of 34 features differ by `0.00e+00`; `m0` alone shifts by `log(n_out/n_fft)·√26`.
-- **The module does NOT copy either bug** and exports `UNCOMPARABLE = [peak, rms, m0]` and `M0_SCALE_OFFSET = √26`; the m0 relationship is asserted as an **IDENTITY, not a tolerance**.
-- **`UNCOMPARABLE` has TWO causes** and the page says so: `peak`/`rms` are a browser limit, `m0` is an upstream defect.
-- **Five features are reported** (`dur`, `zcr`, `centroid`, `rolloff85`, `flux`); `flatness` was removed (scale-invariant, ill-conditioned, measured 31%).
-- **The live curve is a second measurement** — 1024 linear bins at device rate. **THE REVEAL IS NOT STREAMING; the intro says so.**
-- **The plot is NEAREST-NEIGHBOUR on both axes; the colour ramp is theme-INDEPENDENT.**
-- **The live line/fill is the species' `rgb` lifted only to the plot ground** (§3.G8); the 3:1 floor is because this is a GRAPHICAL OBJECT. `contrast` must be `shared.js`'s own, passed in.
+**No spectrogram is stored** — the port is checked against its source.
+- **`analyze_cries.py`'s `resample()` has TWO recorded bugs:** amplitude scale should be 1.0 (it keeps `n_out/n_fft`; a 100 Hz tone returns at 0.1465), and it keeps `n_out/2` bins of an `n_fft` transform (top bin duration-dependent). `m0` shifts by `log(n_out/n_fft)·√26`.
+- **The port does NOT copy either bug.** It exports `UNCOMPARABLE = [peak, rms, m0]` and `M0_SCALE_OFFSET = √26`, and asserts m0 as an **IDENTITY, not a tolerance**. `peak`/`rms` are a browser limit; `m0` is upstream.
+- **Five features are reported** (`dur`, `zcr`, `centroid`, `rolloff85`, `flux`); `flatness` was removed (ill-conditioned).
+- **The live curve is a second measurement** — 1024 bins at device rate; **the reveal is not streaming**. The plot is **nearest-neighbour** on both axes; the ramp is **theme-independent**.
+- **The live line/fill is the species' `rgb` lifted to the plot ground** (§3.G8). The 3:1 floor is because it is a **graphical object**; `contrast` is `shared.js`'s own.
 **Guarded by:** `check_spectrogram_port.mjs` (55), `check_spectrum_page.mjs` (196), `check_spectrum_browser.mjs` (77) + 11 and 41 mutation cases · **Background:** [cry.md#g1](docs/incidents/cry.md#g1)
 
 ### G2. The Header Is Not One Thing
@@ -206,8 +201,7 @@ Driven over CDP.
 **Guarded by:** `check_nav_pages.mjs`, which reads the six modifier names **out of `shared.css`** · **Background:** [checker-infrastructure.md#g2](docs/incidents/checker-infrastructure.md#g2)
 
 ### G3. Race Mode — Six Lanes
-Shipped with every lane blank: `paint()`/`ring()`/`sweep()` closed over the module-level `ctx`.
-- All three now take context + timestamp from the caller; `sweep()` returns whether it is still running.
+- All three painters take context + timestamp from the caller; `sweep()` returns whether it is still running.
 - **Count ink by ALPHA, and let the assertion return false** (min ink per lane 24,573 → 110,893).
 - **The lane layout is `data-lanes` on the container, spelled out rather than derived** (4 = 2×2, not 3+1); `buildRace()` **appends** `.al-result`.
 - **`align-content: stretch` is load-bearing** (a centred row track sizes to content).
@@ -217,27 +211,27 @@ Shipped with every lane blank: `paint()`/`ring()`/`sweep()` closed over the modu
 
 ### G4. The Sorting Page Finally Has A Checker
 - **STATIC** (89 checks, ~0.3 s) reads `sorting.html` / `algo.css` / `sort-run.js` / `shared.js`; **RENDERED** (54, ~12 s) drives CDP and counts ink by alpha.
-- **The rendered half answers every sprite with a 71-byte stub** — catches §3.G3 in full; gives up that sprite paths resolve and PNGs decode. The PNG is built, not pasted.
-- **THE STUB IS PROVEN LIVE:** intercepted requests asserted `>= 1,025`, glob read out of `ASSETS.images`.
-- **The fast loop is `--static` on the HARNESS** (`test_check_sorting_page.mjs --static`, 0.3 s), placed above its two baselines.
+- **The rendered half answers every sprite with a 71-byte stub** — catches §3.G3 in full; gives up path/PNG resolution.
+- **THE STUB IS PROVEN LIVE:** intercepted requests asserted `>= 1,025` from `ASSETS.images`.
+- **The fast loop is `--static` on the HARNESS** (`test_check_sorting_page.mjs --static`, 0.3 s).
 - **The strip is guarded by a CHECK COUNT** — the harness deletes the RENDERED half and requires exactly **54** dropped (hardcoded on purpose).
-- **`Network.setCacheDisabled` is not what keeps a run fresh** (a concurrent session had reverted the file).
+- **`Network.setCacheDisabled` is not what keeps a run fresh.**
 **Guarded by:** `check_sorting_page.mjs` + 34 mutation cases. **Known:** the finish poll reads `.al-result` through a named `RESULT_PANEL_STATE` helper; a residual second flake exists under pool contention only · **Background:** [checker-infrastructure.md#g4](docs/incidents/checker-infrastructure.md#g4)
 
 ### G5. The Cry Suite Was Slow For Three Unrelated Reasons
-- **CPU:** `test_check_gen1_apu` (54.4 s) is pure rendering — **removed from the manifest**, not flagged; the file stays runnable.
-- **Payload:** `test_check_cry_index` (22.6 → 6.1 s) — build the tree once, each case restores what it touched via its own recorded path (no hand-maintained list).
-- **Fixed sleeps:** the three CDP checkers (42.6 → 12 s, 35.5 s of it sleeping). **A fixed sleep is a guess; every ceiling exceeds the sleep it replaced.**
-- **A CDP command resolving is not the page having applied it** — poll the precondition, and see §3.J for the `clear`-then-read race.
-- **A wait and a sampling interval look identical and mean opposite things** (the 130 ms canvas-movement window stays).
+- **CPU:** `test_check_gen1_apu` is pure rendering — **removed from the manifest**; the file stays runnable.
+- **Payload:** `test_check_cry_index` — build the tree once, each case restores what it touched via its own recorded path (no hand-maintained list).
+- **Fixed sleeps:** the three CDP checkers (42.6 → 12 s). **A fixed sleep is a guess; every ceiling exceeds the sleep it replaced.**
+- **A CDP command resolving is not the page applying it** — poll the precondition; see §3.J for the `clear`-then-read race.
+- **A wait and a sampling interval look identical and mean opposite things** (the 130 ms canvas window stays).
 - **Two edits found real bugs in opposite directions** (a too-early poll turned a red green; a check named an END state and never read the START state).
-- **The replacement is a four-row audit in the runner** (`check_all.mjs`), which reads the retired harness and fails if any of its 39 `expect` strings no longer names an assertion the checker contains — it lives in the runner, not a fixture.
+- **The replacement is a four-row audit in the runner** (`check_all.mjs`): it reads the retired harness and fails if any of its 39 `expect` strings no longer names a checker assertion — in the runner, not a fixture.
 **Background:** [checker-infrastructure.md#g5](docs/incidents/checker-infrastructure.md#g5)
 
 ### G6. State Shared Through Storage Is Not State a Per-Page Test Can See
-`sorting.html` set `cryPlayer.muted = true` on load, persisting `{muted: true}` and silencing `cries.html`, `detail.html`, `spectrum.html` — no test could see it (visit order).
+`sorting.html` set `cryPlayer.muted = true` on load, persisting `{muted: true}` and silencing every other page; no test could see it.
 - **One field cannot carry both decisions:** `#storedMuted` is the reader's choice and the only one written; `#viewMuted` is a page default in memory. **`#applyGain()` and `get muted()` must both read the OR.**
-- **A wait for navigation must be gated on something only the destination has** (the shared origin makes anything in common evidence of nothing).
+- **A wait for navigation must be gated on something only the destination has.**
 - **The measurement must distinguish "muted by the checker" from "silent"** — discard the output, measure upstream of it.
 **Guarded by:** `check_cries_browser.mjs`'s cross-page cry-volume regression · **Background:** [cry.md#g6](docs/incidents/cry.md#g6)
 
@@ -246,21 +240,21 @@ Independent cases, each its own `node` process against its own temp tree. **Ever
 - **Declaration order out is part of the contract** — `pool()` returns results in task order; the caller prints after the drain.
 - **`POOL` is capped at 4, not core count.**
 - **A pool's premise is independence; four harnesses cannot use it** (shared tree, restored between cases) — no assertion can express this.
-- Eleven now pooled; two also fixed leaked stderr; seven now use `process.execPath`; each case removes its own tree in a `finally`.
+- Each case removes its own tree in a `finally`.
 **Background:** [checker-infrastructure.md#g7](docs/incidents/checker-infrastructure.md#g7)
 
 ### G8. The Live Curve's Floor Is Not A Taste
 `assets/js/species-ramp.js` holds `speciesInk(rgb, ground, contrast, min)` — a module because it takes the contrast ratio as a parameter, so the checker can run it over all 1,025 records in bare Node.
 - **The floor is 3:1 (SC 1.4.11) because it is a GRAPHICAL OBJECT; 68 of 1,025 species need it** (273 fall below 4.5:1). The colour is identity; the curve's meaning is its shape.
 - **A floor and a ceiling are both required:** `hueOf()` returns null for greys, so the second ceiling is on **relative luminance (≤ ×4)**.
-- **The page states the ink it draws (`data-ink`); the browser checker measures the canvas against it.** Three wrong pixel checks are recorded (all passed); what remains is per-channel ±4 with claim `> 0`.
-- **The mel ramp is deliberately NOT species-derived** — a ramp is a scale, only one of which may change per selection.
+- **The page states the ink it draws (`data-ink`); the browser checker measures the canvas against it** (per-channel ±4, claim `> 0`).
+- **The mel ramp is deliberately NOT species-derived** — a ramp is a scale.
 **Guarded by:** `check_spectrum_browser.mjs` (measures the canvas against the page's own `data-ink`) · **Background:** [checker-infrastructure.md#g8](docs/incidents/checker-infrastructure.md#g8)
 
 ### G9. The Graph Checker Failed 100% Pooled, 0% Alone
-- **The three failures were one:** a 500 ms sleep against a **150 ms debounce** (`graph.js:638`) — a cascading failure prints as N reds, only the first worth reading. `renderDossier()` is synchronous; the 600 ms wait before it was useless.
+- **The three failures were one:** a 500 ms sleep against a **150 ms debounce** (`graph.js:638`); `renderDossier()` is synchronous, so the 600 ms wait before it was useless.
 - **Both became polls on a PRECONDITION, never on the assertion.**
-- **`-32000 "Inspected target navigated or closed"` said nothing about where** — `lastMethod` (never reset on success) plus Chrome's stderr on a pipe gave `CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670`. A display-link failure and a navigation are the byte-identical string.
+- **`-32000 "Inspected target navigated or closed"` said nothing about where** — `lastMethod` plus Chrome's stderr on a pipe gave `CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670`.
 - **The fix was a scheduling change — `serial: true`, the first such flag in the manifest.**
 - **The cost is real:** harness 32.8 → 40 s, all of it ONE case waiting out an 8 s search ceiling; the message quotes the named constant or it quotes a lie.
 **Background:** [checker-infrastructure.md#g9](docs/incidents/checker-infrastructure.md#g9)
@@ -271,102 +265,96 @@ Independent cases, each its own `node` process against its own temp tree. **Ever
 **Guarded by:** `check_categories.mjs`, which asserts the three literal lists are equal as written · **Background:** [page-defects.md#h](docs/incidents/page-defects.md#h)
 
 ### H1. `types.html`'s Roster Grid — Equal Tracks Are Not Equal Cards
-The grid reported 12 correct columns while every card was 60px in a 96.7px track: **the grid item is the `<li>`, and the anchor inside it is `inline-flex`, which sizes to content.** Fix: `.chip-grid--roster > li { display: flex }` + `flex: 1` on the card. **The assertion that matters is `fill > 0.98` over every card** — the column count is reported, not asserted.
-- **Scope is asserted in both directions:** 招式/特性 stay content-sized flex rows (their card widths differ by 56px) behind a `--roster` modifier; `check_moves_page.mjs` asserts the mechanism.
-- **`-25%` is the measured SV offset** (25.0/25.4/25.8 across 28/56/96px); **size needs no correction.** `move.html` keeps the opposite framing deliberately (§3.E).
+The grid reported 12 columns while every card was 60px in a 96.7px track: **the grid item is the `<li>`, and the anchor inside it is `inline-flex`, which sizes to content.** Fix: `.chip-grid--roster > li { display: flex }` + `flex: 1` on the card. **The assertion that matters is `fill > 0.98` over every card** — the column count is reported.
+- **Scope is asserted in both directions:** 招式/特性 stay content-sized flex rows behind a `--roster` modifier; `check_moves_page.mjs` asserts the mechanism.
+- **`-25%` is the measured SV offset**; **size needs no correction.** `move.html` deliberately uses the opposite framing (§3.E).
 - **`ctx.drawImage(img)` cannot see a CSS transform** — the shift comes from `getBoundingClientRect()`.
-- Watch for a regex that names a selector matching a different rule; collect every rule on the selector.
 **Guarded by:** `check_types_browser.mjs` (51, ~5 s, one Chrome, group `type`) + `check_moves_page.mjs` (191) + `test_check_moves_page.mjs` (33) · **Background:** [page-defects.md#h1](docs/incidents/page-defects.md#h1)
 
 ### I. The Page/Module Boundary
 `sorting.html` called `cryPlayer.muteForView()` before the module defined it — every load threw a TypeError that took every other control listener with it. **ESM verifies the imported BINDING, not the member.**
 - **`check_page_module_api.mjs`** — 314 bindings across 19 pages, 0.1 s. The page set is **self-selecting** (imports from `assets/js`).
 - **A comment is a false positive** (mask comments and strings; keep `${…}` holes).
-- **`GbApu` assigns nineteen instance properties in its constructor** — collect `this.x =` too, over-approximating on purpose.
+- **`GbApu` assigns nineteen instance properties in its constructor** — collect `this.x =` too.
 - **`export const cryPlayer = new CriesPlayer()` is an INSTANCE** — resolving members from class exports alone returns nothing.
 **Guarded by:** `check_page_module_api.mjs` · **Background:** [checker-infrastructure.md#i](docs/incidents/checker-infrastructure.md#i)
 
 ### I1. `today.html` Served 14 KB Less JavaScript Than It Contains
-The only page missing `</body>`/`</html>`. The file parsed (14,083 chars) but Live Server rewrote the response: `injectCandidates = [ /<\/body>/i , /<\/svg>/ , /<\/head>/i ]` (**no `</html>`**) and the page's only `</svg>` sat inside a template literal (today.html:965).
+The only page missing `</body>`/`</html>`. Live Server rewrote the response: `injectCandidates = [ /<\/body>/i , /<\/svg>/ , /<\/head>/i ]` (**no `</html>`**) and the page's only `</svg>` sat inside a template literal.
 - **This is §3.I one level out:** a checker verified the *file*, not the *response*.
-- **The fix is two lines; the guard asserts the precondition** — exactly one `</body>` and one `</html>`, both after the last `</script>`, case-insensitive throughout (cost 2.7 ms).
+- **The fix is two lines; the guard asserts the precondition** — exactly one `</body>` and one `</html>`, both after the last `</script>`, case-insensitive throughout.
 - **Splits like `test_check_tmp_prefixes.mjs`:** five cases break the TREE and one breaks the CHECKER.
-- **Live Server is necessary only for the proof** (browsers synthesise `body` at EOF). One named limit: the page set is `.html` only.
+- **Live Server is necessary only for the proof** (browsers synthesise `body`); the page set is `.html` only.
 **Guarded by:** `check_js_syntax.mjs`'s document-structure assertion (all 23 pages) + `test_check_js_syntax.mjs` (6 cases + 1 pairing) · **Background:** [checker-infrastructure.md#i1](docs/incidents/checker-infrastructure.md#i1)
 
 ### J. Every CDP Checker Leaked A Chrome Profile
-Three of six removed their `--user-data-dir`; tmpdir held 3,229 entries / 28 GB. **Check for orphans after a browser run — a clean run leaves zero.**
-- **Cleanup is a `process.on('exit')` handler, and removing the profile is not killing the browser** — all now `chrome.kill()` from the same handler (SIGINT/SIGTERM mapped). **SIGKILL cannot be caught.**
-- **An orphan is a CORRECTNESS defect** — `check_gen1_page.mjs` once drove a stranger's 1246×87 window. Only defence: the port guard plus a zero count.
-- **The sweep's key is OWNERSHIP, derived from the source across BOTH `tmpdir()` call shapes; `check_tmp_prefixes.mjs` (0.1 s) asserts zero overlapping prefixes**, with two companions: every reference classified, and the scan found something.
-- **Eleven negative harnesses cleaned up in a `finally` and nothing else** — `scripts/lib/tmp-trees.mjs` is the one registry (exit + SIGINT + SIGTERM).
-- **The browser checkers had the same leak for a different reason:** exit handlers run in REGISTRATION order, so `tmp-trees.mjs` swept the profile *before* Chrome was signalled and Chrome recreated it; all three now `await` Chrome's exit on a 3 s ceiling, then `releaseTree()`, on both paths.
+Three of six removed their `--user-data-dir`; tmpdir held 28 GB. **Check for orphans after a browser run — a clean run leaves zero.**
+- **Cleanup is a `process.on('exit')` handler, and removing the profile is not killing the browser** — all now `chrome.kill()` from the same handler. **SIGKILL is uncatchable.**
+- **An orphan is a CORRECTNESS defect** — `check_gen1_page.mjs` once drove a stranger's window. Only defence: the port guard and a zero count.
+- **The sweep's key is OWNERSHIP, derived from the source across both `tmpdir()` shapes; `check_tmp_prefixes.mjs` (0.1 s) asserts zero overlapping prefixes**, with two companions: every reference classified; the scan found something.
+- **Eleven negative harnesses now clean up in a `finally`** — `scripts/lib/tmp-trees.mjs` is the one registry (exit + SIGINT + SIGTERM).
+- **The browser checkers leaked for a different reason:** exit handlers run in REGISTRATION order, so `tmp-trees.mjs` swept the profile *before* Chrome was signalled and Chrome recreated it; all three now `await` Chrome's exit on a 3 s ceiling, then `releaseTree()`.
 **Background:** [checker-infrastructure.md#j](docs/incidents/checker-infrastructure.md#j)
 
 ### K. life.html — Conway, Genetics, And The Evolution Gate
-`evolution_levels.json` is the engine's topology, not just its level numbers.
-- **The wild encounter had a moat, not a smarter pack:** `pickWildSite()` requires every pack cell and a 1-cell ring empty (500 re-rolls, else null = no encounter). Median life 4 → 24 generations.
-- **Evolution is gated on the REAL in-game level, which is why the cell field is `level`:** 348 of 489 pairs carry a real level; 141 fall back to the corpus median Lv.30. Evolution is **strictly sequential**. Five pairs appear in both halves (the games, not a bug); the real level wins.
-- **`backdrop-filter` turns an inert `z-index` into a real one:** `.life-toolbar` (`position: static; z-index: 20` + `backdrop-filter`) made the nav dropdown unclickable across its top 55px. `filter`/`transform`/`perspective`/`contain`/`will-change` each do it.
-- **The evolution graph is the EDGE LIST, not the stage columns** (`stage` is DEX ORDER, not depth): the stage-based path produced 208 evolutions with no real edge. `unlevelled` was the topology all along.
-- **Fixes belong in the generator** — three hand-edits to generated files, one already RED.
-- **`nth-of-type(2)` resolves to step 1**; step 2 now has `id="stepStarter"` and the checker asserts the BOX.
-- **All 26 icons are filled paths** (lucide strokes rendered as silhouettes); the glyph and the label must come from ONE boolean.
-- **The toast card's background is themed tokens**, and the icon is an `<img>` (carries its own pixels, cannot inherit a theme); measure against the **worse of the card's two gradient stops**.
+`evolution_levels.json` is the topology, not level numbers.
+- **Evolution is gated on the REAL in-game level, hence the cell field `level`:** 348 of 489 pairs carry a real level; 141 fall back to the corpus median Lv.30. Evolution is **strictly sequential**. Five pairs appear in both halves; the real level wins.
+- **`backdrop-filter` turns an inert `z-index` into a real one:** `.life-toolbar` (`position: static; z-index: 20` + `backdrop-filter`) made the nav dropdown unclickable. `filter`/`transform`/`perspective`/`contain`/`will-change` too.
+- **The evolution graph is the EDGE LIST, not the stage columns** (`stage` is DEX ORDER, not depth): a stage-based path produced 208 evolutions with no real edge; `unlevelled` is the topology.
+- **`nth-of-type(2)` resolves to step 1**; step 2 has `id="stepStarter"`, which the checker asserts.
+- **All 26 icons are filled paths**; the glyph and label must come from ONE boolean.
+- **The toast card's background is themed tokens**; the icon is an `<img>`; measure against the **worse gradient stop**.
 **Guarded by:** `check_life_page.mjs` (117), `check_life_browser.mjs` (61), `check_evolution_levels.mjs` (55) · **Background:** [life.md#k](docs/incidents/life.md#k)
 
 ### L. `outfit.html` — Two Ways In, And A Dropped MIME Type
 - **`new File(parts, name)` DOES NOT inherit `blob.type`** (defaults `""`), so a good JPEG was rejected by `loadFile()`'s `startsWith('image/')` guard.
 - **The preset row is a SIBLING of `.of-drop`, never a child** (the file input covers the zone at `inset: 0; opacity: 0`).
 - **A pasted URL is not ours to decide:** `loadUrl()` distinguishes four failure outcomes (not a URL, non-`http(s)` scheme, fetched-but-not-`image/*`, CORS-blocked).
-- **Only the rejection path is checked in the browser suite**, on purpose (a success needs a second CORS origin).
+- **Only the rejection path is checked in the browser suite**, on purpose.
 - **The privacy note gained a clause** — a URL fetch leaves the device.
 **Guarded by:** `check_outfit_page.mjs` (130, parses `SAMPLES` out of the HTML) + `check_outfit_browser.mjs` (120) · **Background:** [page-defects.md#l](docs/incidents/page-defects.md#l)
 
 ### M. An Author `display` Beats `[hidden]`
-`.of-readout` opened as an empty 40px card. `hidden` on the wrapper does not fix it — an author `display: grid` beats the UA sheet. Fix: `.of-readout[hidden] { display: none }` (as `shared.css` already does for `.site-nav-drawer[hidden]`). Grid/flex/`inline-flex` all silently defeat the attribute while `element.hidden` still reads `true`.
-- **The guard asserts the COMPUTED BOX, not the attribute** (both halves separately load-bearing).
+`.of-readout` opened as an empty 40px card. `hidden` on the wrapper does not fix it — an author `display: grid` beats the UA sheet. Fix: `.of-readout[hidden] { display: none }`. Grid/flex/`inline-flex` all silently defeat the attribute while `element.hidden` still reads `true`.
+- **The guard asserts the COMPUTED BOX, not the attribute.**
 - **The wrapper is written inside the same contiguous group as its children** and the gate pairs it mutually.
 **Guarded by:** `check_outfit_browser.mjs` (computed `display` + rect height on a fresh load) · **Background:** [page-defects.md#m](docs/incidents/page-defects.md#m)
 
 ### N. `graph.html`'s Collapsing Header
-The nav is hidden by default; three ways to close (toggle, empty-space click, Escape); never persisted.
-- **`.header-3d` is shared with `model3d.html`, so every rule hangs on a new `.graph-header` class.** The rule it replaced was DEAD (matched no page).
-- **Never declare `position` on this header** (`.header`'s `relative` anchors `.theme-toggle`).
-- **Forced dark is one rule because custom properties inherit** (re-declare `--btn-*`, `--bg-card`, `--surface-hover`, `--text-primary` at dark values, no `[data-theme="light"]` twin).
-- **The hidden group is split in two:** `.theme-toggle`/`.site-nav-toggle` fade and never translate (`translateY(-50%)`); `visibility: hidden` is not a second copy of `opacity: 0` (tab order).
-- **A full-width invisible header is a click trap** (`pointer-events: none`, only `> *` opts in).
+Nav is hidden; three ways to close (toggle, empty-space, Escape); never persisted.
+- **`.header-3d` is shared with `model3d.html`, so every rule hangs on a new `.graph-header` class.**
+- **Never declare `position` on this header** (anchors `.theme-toggle`).
+- **Forced dark is one rule because custom properties inherit** (re-declare the four tokens; no light twin).
+- **The hidden group is split in two:** `.theme-toggle`/`.site-nav-toggle` fade and never translate (`translateY(-50%)`); `visibility: hidden` is not a second `opacity: 0` (tab order).
+- **A full-width invisible header is a click trap** (`pointer-events: none`; only `> *` opts in).
 - **A click on the canvas must not close the nav** — `pointerdown` records the press start; close only if moved under 6px.
-- **`open` initialises to `null`, not `false`** (a `false` early-returns before the first glyph).
-- **The hamburger closed itself:** a handler rewrote the pressed button's `innerHTML`, so `e.target` was `isConnected === false` and `header.contains(e.target)` inverted. The guard now records `inside` at `pointerdown`. **`element.click()` passes where a real press fails.**
+- **The hamburger closed itself:** a handler rewrote the pressed button's `innerHTML`; `e.target` detached and `header.contains(e.target)` inverted. The guard records `inside` at `pointerdown`; **`element.click()` passes where a real press fails.**
 **Guarded by:** `check_graph_browser.mjs` now drives real `Input.dispatchMouseEvent` presses (reverting the fix fails 8 assertions) · **Background:** [page-defects.md#n](docs/incidents/page-defects.md#n)
 
 ### P. `maze.html` Had No Checker At All
-The page had ZERO coverage.
 - **The markers described a run the page was not doing** (`drawMarkers()` called `endpoints()` and never `starPoints()`).
-- **Every successful patrol threw:** `starRun` returned no `cost`; a TypeError inside a rAF callback killed the frame loop. **A return shape is a claim.**
+- **Every successful patrol threw:** `starRun` returned no `cost`; a TypeError inside a rAF callback killed the frame loop.
 - **Only the last leg was painted** (each leg cleared `searchVisited`).
-- **`starRun` moved to `maze-pathfinding.js` to be checkable** — the module never touches `searchVisited`.
+- **`starRun` moved to `maze-pathfinding.js` to be checkable** — the module never touches it.
 - **`PATROL_LEGS` is the one table**; `legs` is rebuilt in `PATROL_LEGS` order; **`explored` is the union, `settled` the total.**
 - **點亮整張圖 never touches `onPath`/`searchVisited`;** `setLitAll()` is the only writer.
-- **A load is the product of two independent axes** (species, walls), each with its own 「固定」 toggle; `decideId()`/`decideSeed()` are the symmetric pair; the id check left `loadPokemonMaze`.
-- **Revealing a field is not filling it** (`bindAxisToggle()` writes `seed`); **換種子 must not route through `decideSeed`** (it rerolled the same maze 4242 → 4242).
-**Guarded by:** `check_maze_page.mjs` (211). **Four of its own 23 mutations stayed green, all vacuous** — every shape assertion is now brace-matched to its own block · **Background:** [page-defects.md#p](docs/incidents/page-defects.md#p)
+- **A load has two independent axes** (species, walls), each with its own 「固定」 toggle; `decideId()`/`decideSeed()` are symmetric.
+- **Revealing a field is not filling it** (`bindAxisToggle()` writes `seed`); **換種子 must not route through `decideSeed`.**
+**Guarded by:** `check_maze_page.mjs` (211); every shape assertion is brace-matched · **Background:** [page-defects.md#p](docs/incidents/page-defects.md#p)
 
 ### O. The Drawer Is A Column But Its Children Were Not
-Every grouped drawer item laid its trigger out beside its panel (748×366 pill, 120px panel) on all twelve pages: a `flex-direction` does not cascade to flex items' own children. **The fix is one line in `shared.css`, not `graph.css`** — `.site-nav-drawer .site-nav-item-has-panel { flex-direction: column; }`.
-- **A 20px `--radius-pill` is a chip radius, not a menu-row radius** (now `--radius-sm`, 12px).
-- **`max-width: 420px` is inert below 420px** (left-anchored, existing `box-shadow`).
-- **A non-scrolling body propagates to the viewport** — `graph.css` gives the drawer `max-height`/`overflow-y` under `.graph-header`, not by widening the shared selector (`.header-3d` is shared with `model3d.html`).
+Every grouped drawer item laid its trigger beside its panel (748×366 pill): `flex-direction` does not cascade to flex items' own children. **The fix is one line in `shared.css`, not `graph.css`** — `.site-nav-drawer .site-nav-item-has-panel { flex-direction: column; }`.
+- **A 20px `--radius-pill` is a chip radius, not a menu-row radius** (`--radius-sm`).
+- **`max-width: 420px` is inert below 420px** (left-anchored).
+- **A non-scrolling body propagates to the viewport** — `graph.css` gives the drawer `max-height`/`overflow-y` under `.graph-header`, not by widening the shared selector.
 - **A forced-dark subtree can be incomplete in one token:** `--hairline`/`--hairline-strong` derive from `--hairline-rgb`; override the INPUT.
-- **The accordion removes the problem:** groups toggle independently; `initNavDropdowns()` must skip drawer items (`closest('.site-nav-drawer')`). 1130px → 331px collapsed.
+- **The accordion removes the problem:** groups toggle independently; `initNavDropdowns()` must skip drawer items (`closest('.site-nav-drawer')`).
 **Guarded by:** nothing — a drawer that renders a 748×366 pill passes every check · **Background:** [page-defects.md#o](docs/incidents/page-defects.md#o)
 
 ### Q. Terrain Cost Is Rec.709 Luma
 `computeTerrainCost()` (`maze-pathfinding.js:342`): `alpha < 50 → Infinity`; `luminance = 0.2126R + 0.7152G + 0.0722B`; `cost = 1 + (255 − luminance)/255 · (maxCost − 1)`. **The reason is an invariant, not colour science** — cost is a strictly monotonic function of the brightness the renderer draws, so a reader can predict where A* goes.
 - **The three weaknesses are named in the source** (Y′ over-weights the darks; steps are not perceptually uniform; blue is nearly invisible).
-- Alternatives B (OKLab L, `rgbToOklab()` already exists), C (slope), D (local contrast). **What would justify moving off A is evidence a reader cannot predict the route — not "which looks nicer".**
-- **Expect this shape whenever a measurement uses a different implementation than the one under test** (an offline decoder vs the page's own `drawImage`).
+- Alternatives B (OKLab L), C (slope), D (local contrast). **Moving off A needs evidence a reader cannot predict the route — not "which looks nicer".**
 **Guarded by:** nothing for the model; `check_maze_page.mjs` asserts `computeTerrainCost` is the single cost function and the page reads its alpha threshold from the module · **Background:** [page-defects.md#q](docs/incidents/page-defects.md#q)
 
 ### T. The Terrain Endpoints Were The Extent Of The Specks
@@ -374,101 +362,98 @@ Every grouped drawer item laid its trigger out beside its panel (748×366 pill, 
 - **The single-run fix is surgical:** the old rule is tried first and returned untouched whenever `terrainReachable(start, end)` holds — 248 of 257 keep byte-identical endpoints.
 - **The patrol is not surgical:** its points are the Pokémon's centre and corners; the body's bbox leaves zero unreachable legs (the all-passable bbox leaves 28 legs unreachable on 22 sprites).
 - **`largestComponent()` lives in the module; tie-break is scan order, first wins** (strict `>`, the contract).
-- **Expect this shape when a fix is defended by a single number** (the first measurement looked at leg LENGTH, not REACHABILITY). **A scratch harness is a checker with no assertions.**
 **Guarded by:** `check_maze_page.mjs` (211) — a fake 7×7 with a detached single cell and an **unfiltered** neighbourFn · **Background:** [page-defects.md#t](docs/incidents/page-defects.md#t)
 
 ### S. `color.html` Has No Header
-The frame is three columns and the viewport is the frame. The brand moved into the rail's top row.
-- **The brand name reuses `.cp-rail-label`** so the existing collapse rule hides it — zero new CSS for the collapse state. It is not `.header-title` (28px).
-- **The casualty was one line:** the mobile button was mounted on `.header` via `?.`; below 768px the rail is `display: none` so that 34×34 button is the only route to the nav. Now mounted on `#cp-panel` behind an explicit `throw`.
+The frame is three columns; the brand moved into the rail's top row.
+- **The brand name reuses `.cp-rail-label`** so the collapse rule hides it. Not `.header-title`.
+- **The casualty was one line:** the mobile button was mounted on `.header` via `?.`; below 768px the rail is hidden; that 34×34 button is the only route to the nav. Now mounted on `#cp-panel` behind an explicit `throw`.
 - **`OPEN_BUTTON_MOUNT` is a named constant** `check_color_page.mjs` reads rather than restating.
-- **Absolute on the panel, not fixed on the viewport** (`.cp-panel`'s ≤1023px `position: static` hands an absolutely-positioned child the initial containing block — §3.B1's shape).
-- **A dead declaration that only started mattering when the brand arrived:** `.cp-rail-top` was a row (where `justify-content` did nothing); now a column box, so it needed `align-items: center`.
-- **The checker found its own false positive first** — every rule-shaped assertion now reads the comment-stripped CSS.
-- **Two dead rules deleted; the 3px `--page-accent` did NOT move to the rail** (asked for explicitly).
+- **Absolute on the panel, not fixed on the viewport** (`.cp-panel`'s ≤1023px `position: static` gives the child the initial containing block — §3.B1's shape).
+- **`.cp-rail-top` is a column box**, so it needs `align-items: center`.
+- **Every rule-shaped assertion reads the comment-stripped CSS.**
+- **The 3px `--page-accent` did NOT move to the rail.**
 **Guarded by:** `check_color_page.mjs` + 8 mutation cases (`test_check_color_page.mjs` at 61) · **Background:** [page-defects.md#s](docs/incidents/page-defects.md#s)
 
 ### V. `graph.html`'s 「精選分類」 Filtered A Pile
 超級進化 drew 93 sprites with **0 edges**; 超極巨化 34. `graph.js:399-403` is not the bug: **every `mega`/`gmax` link is `base → form`, cross-category by construction.** Do not keep 1-hop neighbours in the filter.
-- **A copied value is a plausible value:** form nodes had their base's `types`/`generation`/`stats` (17 of 93 mega forms change type). Fixed by `scripts/fetch_form_stats.py` (`/pokemon/{id}`, not `/pokemon-form/{id}` — no `stats` key).
-- **A 200 is not evidence that a form exists** (id 10314 answers as a different form); the test is the form NAME. `order == -1` rejects 79 legitimate forms — written, measured, deleted.
-- **`linkColors` had eight keys for ten link types** (61% rendered as the starter-trio colour); all thirteen are now counted and coloured.
+- **A copied value is a plausible value:** form nodes had their base's `types`/`generation`/`stats`. Fixed by `scripts/fetch_form_stats.py` (`/pokemon/{id}`, which has `stats`).
+- **A 200 is not evidence that a form exists** (id 10314 answers as a different form); the test is the form NAME. `order == -1` rejects 79 forms.
+- **`linkColors` now covers all thirteen link types.**
 - **The placeholder assertion became unsatisfiable, not false** — it reads the placeholder out of the served HTML.
-- `graph.html`'s relation row carries both rows' chips on purpose.
+- Both relation rows' chips are intentional.
 **Guarded by:** `check_graph_chip_network.mjs` (127, ~0.1 s, static; tightest chip 幻之 at 52%) · **Background:** [page-defects.md#v](docs/incidents/page-defects.md#v)
 
 ### W. `color-game.html` Is A Static Game
-Ported from `pokemonpalette`; each interesting part is a decision.
 - **THE NAME IS ONE HALF OF A PAIR** (§3.Y) — 顏色猜謎 / 叫聲猜謎. A rename is **four sites** (`<title>`, `<h1>`, NAV label, **share text**).
-- **THE THREE HINTS ARE FIXED, not shuffled** (the category machine was 40% of the port; slot 2 is the whole palette).
-- **THE SCORE IS OKLAB BIDIRECTIONAL AND PERCENT-WEIGHTED** (`color-match.js`); nothing renders a percentage.
-- **THE THIRD HINT MASKS EVERY RUN OF THE NAME, LONGEST FIRST** (131 of 1,025 descriptions carry it; longest-first is a correctness requirement).
-- **TWO AUTOCOMPLETE LAYERS; the `<datalist>` is gone** (browser UI could not be fixed). Enter selects, never submits, except a sole candidate; a Chinese IME's 選字 Enter is guarded (do not reject untrusted events). `canSubmit()` asks the same three questions.
+- **THE THREE HINTS ARE FIXED, not shuffled** (slot 2 is the whole palette).
+- **THE SCORE IS OKLAB BIDIRECTIONAL AND PERCENT-WEIGHTED** (`color-match.js`).
+- **THE THIRD HINT MASKS EVERY RUN OF THE NAME, LONGEST FIRST.**
+- **TWO AUTOCOMPLETE LAYERS; the `<datalist>` is gone.** Enter selects, never submits, except a sole candidate; a Chinese IME's 選字 Enter is guarded. `canSubmit()` asks the same three.
 - **THE ROUND ENDED BELOW THE FOLD AND SILENTLY** — `revealResult()` is called LAST and announced in `#gm-search-status`.
 - **`[hidden]` ↔ `display` pairing** and **`role="img"` masking the strip link** are checked as absences.
-- The ≤640px strip is `100px × 40px` on its own line; `flex: 1 1 0` (a mutation no pixel can see).
+- The ≤640px strip is `100px × 40px` on its own line; `flex: 1 1 0`.
 **Guarded by:** `check_game_similarity.mjs` (101 + 24), `check_game_hints.mjs` (36), `check_color_game.mjs` (260, mutation cases run by hand and NOT committed) + `check_color_game_browser.mjs` (182, 4.2 s) · **Background:** [color.md#w](docs/incidents/color.md#w)
 
 ### X. On A Phone, The Control Rail Sits Above The Main Content
-`cries.html` and `spectrum.html` flip to one column below 900px with the control bar first and `position: static`. **Nothing measured the mobile width** (`check_spectrum_browser.mjs` widens past the breakpoint; `check_cries_browser.mjs` is `manual: true`).
+`cries.html` and `spectrum.html` flip to one column below 900px with the control bar first and `position: static`. **Nothing measured the mobile width.**
 - **`<details>` broke spectrum's desktop layout** (inserts `::details-content`); disclosure is now `<button aria-expanded>` + `<div hidden>` with `.sp-picker { display: contents }`.
-- **`getBoundingClientRect()` lies about descendants of a collapsed `<details>`** (returns the remembered size).
-- **On mobile the document scrolls, not the roster** (`state.rosterScroll` would always be 0); field is `state.pickerReturnY`.
-- **「desktop open, mobile closed」 is not expressible in CSS** — `syncPicker()`/`syncProbeDisclosure()` apply it; the width is written twice and the checkers read it from the stylesheet.
+- **`getBoundingClientRect()` lies about descendants of a collapsed `<details>`.**
+- **On mobile the document scrolls, not the roster**; field is `state.pickerReturnY`.
+- **「desktop open, mobile closed」 is not expressible in CSS** — `syncPicker()`/`syncProbeDisclosure()` apply it; the width is written twice.
 - **Scroll to `.cy-panel`, not `.cy-probe-head`.**
-- **The play control is duplicated (rail + plot), both directions tested.**
+- **Play control is duplicated (rail + plot).**
 **Guarded by:** `check_cry_mobile_layout.mjs` (36, both pages at 390×844 in one browser); static halves in `check_spectrum_page.mjs` (234, +17) and `check_cries_page.mjs` (78, +7) · **Background:** [page-defects.md#x](docs/incidents/page-defects.md#x)
 
 ### Y. `cry-game.html` — 「叫聲猜謎」
-Ported from `pokemoncries.com`; ten questions, four nameless sprites each. The design was measured twice and rejected twice.
-- **DIFFICULTY IS A CEILING ON ONE NUMBER** (`easy 0.35 · hard 0.65 · hell Infinity`); rank bands did not separate 困難 and 地獄. The ceiling is asserted as an identity.
+Ported from `pokemoncries.com`; ten questions, four sprites.
+- **DIFFICULTY IS A CEILING ON ONE NUMBER** (`easy 0.35 · hard 0.65 · hell Infinity`); rank bands did not separate 困難/地獄; the ceiling is an identity.
 - **THE GENERATION FILTER IS A POOL, NOT A DIFFICULTY** (derived from `availableGenerations()`).
-- **ALL 34 DIMENSIONS**, not `cries.html`'s `ROBUST` five (cosine over five saturates at 0.996). **`cry-game.js` contains no `Math.random` at all.**
+- **ALL 34 DIMENSIONS**, not `cries.html`'s `ROBUST` five (cosine saturates at 0.996). **`cry-game.js` contains no `Math.random` at all.**
 - **THE NAMES ARE HIDDEN UNTIL THE ANSWER.**
-- **FOUR DEFECTS FOUND BY DRIVING THE PAGE** (134 shape assertions green throughout): the round ended one question early; saved picks restored as nothing (`indexOfCurrent` indexed by the question object); `findIndex`'s −1 fell into the mid-round branch; the waveform was blank until decode.
+- **Four defects only driving found:** the round ended one question early; saved picks restored as nothing; `findIndex`'s −1 hit the mid-round branch; the waveform was blank until decode.
 - **§3.M in both directions** (`setRevealed()` writes both `style.display` and the attribute); the header modifier is `header-cries`; `pokemonDetailUrl()` builds the URL.
 - **AUTOPLAY needs an `audioUnlocked` flag set by a one-shot capture-phase listener.**
 - **THE RESULT PANEL LISTS ALL FORTY, every one plays itself** (not a `<details>`); `DEFAULT_GENERATION` is a default, not an override.
 **Guarded by:** `check_cry_game_similarity.mjs` (177, re-measures the ceiling every run) + its 31 cases; `check_cry_game.mjs` (134) + its 36 cases. **No browser checker.** · **Background:** [cry.md#y](docs/incidents/cry.md#y)
 
 ### Z. `index.html` Is A Clip, An Intro, And Two Demos
-- **SCRUB AND PROGRESS ARE SEPARATE CONTRACTS.** The scrub writes `currentTime` and never calls `play()`; progress divides by `rect.height - innerHeight` (drop the second term and the clip tops out at 0.583).
-- **BOTH ENDS OF THE CLIP ARE BLANK, AND THE POSTER IS NOT A PRE-PLAY FLASH.** Declared, not fixed; author kept 0%→100%. `POSTER_FRACTION` is read out of `make_hero_video.py`; `hero-gen.js` imports `taipeiDateKey`, and the epoch is in the future so the day wraps both ways.
-- **THE HERO IS A DARK BAND IN LIGHT THEME, AND THE PANEL IS A DARK TITLE CARD IN BOTH.** The scrim fades to the clip's own `#0b1020`; `--home-hero-accent: #f5c542`, fill `rgba(6,9,20,0.7)`, blur ≤3px; alpha is a WCAG floor computed, never restated. `max-width: 760px` is a zoom guard; `text-align: center` on `.home-intro` is declared, not inherited; the three counts are re-derived (1,025 / 9 / 6).
-- **THE TWO DEMOS ARE BELOW THE FOLD AND NEVER LOAD `pokemon_data.json`.** They fetch the 90 KB `home_roster.json` (1,025 records, 19 KB gzip) only within a named `400px` margin, draw 96 px sprites, pause off-screen, and keep their CSS in `home-sections.css` so the hero inline block stays the only critical CSS (`check_home_hero.mjs` reads the first `<style>`).
-- **SORT IS PACED; THE GAME IS BEATABLE.** Sort advances one step per `SORT_STEP_MS = 40` ms; A* moves at `AI_TICK_MS = 420` ms with an `AI_PAUSE_CHANCE = 0.18` one-second breather, on a 4-direction grid with `manhattanHeuristic` (showcase: 8 directions + `octileHeuristic`). The maze re-rolls a random species each run; `suspended` starts true so the keyboard is owned only while visible; reduced motion skips the countdown; `#game-subtitle` exists; the win cry respects `cryPlayer.muted`; `--canvas-wall` is wrapped in `rgba()` before `fillStyle`.
-- Measurement bugs: `captureScreenshot` clip is PAGE coords; a brightest-pixel search inside the text box finds only the text; wait for `currentTime` to move then stop.
-**Guarded by:** `check_home_hero.mjs` (98, 0.2 s, group `home`) + `check_home_sections.mjs` (55, 0.2 s, group `home`) + `test_check_home_hero.mjs` (25). The hero's rendered half is retired for a hang that was a missing `process.exit()` · **Background:** [pages.md#z](docs/incidents/pages.md#z)
+- **SCRUB AND PROGRESS ARE SEPARATE CONTRACTS.** Scrub writes `currentTime`, never `play()`; progress divides by `rect.height - innerHeight`.
+- **BOTH ENDS OF THE CLIP ARE BLANK; THE POSTER IS NOT A PRE-PLAY FLASH.** `POSTER_FRACTION` comes from `make_hero_video.py`; `hero-gen.js` imports `taipeiDateKey`.
+- **THE HERO IS A DARK BAND IN LIGHT THEME; THE PANEL IS A DARK TITLE CARD IN BOTH.** Scrim `#0b1020`; accent `#f5c542`; fill `rgba(6,9,20,0.7)`; blur ≤3px; counts are 1,025 / 9 / 6.
+- **THE TWO DEMOS NEVER LOAD `pokemon_data.json`.** Fetch `home_roster.json` (90 KB, 19 KB gzip) within `400px`, draw 96 px sprites, CSS in `home-sections.css`.
+- **SORT IS PACED; THE GAME IS BEATABLE.** `SORT_STEP_MS = 40`; A* `AI_TICK_MS = 420`, `AI_PAUSE_CHANCE = 0.18`, 4-direction `manhattanHeuristic` (showcase: 8 + `octileHeuristic`). Each run re-rolls; `suspended` starts true; reduced motion skips countdown; win cry respects `cryPlayer.muted`; `--canvas-wall` is wrapped in `rgba()`.
+**Guarded by:** `check_home_hero.mjs` (98, 0.2 s, group `home`) + `check_home_sections.mjs` (55, 0.2 s, group `home`) + `test_check_home_hero.mjs` (25) · **Background:** [pages.md#z](docs/incidents/pages.md#z)
 
 ### AA. `moves.html` / `move.html` — 919 Moves
-- **EFFECT TEXT HAS TWO PROVENANCES, boundary at a generation line:** 826 rows from PokeAPI zh-hant, 93 (ids 827–919) from InfoPoke Simplified via OpenCC `s2twp`. InfoPoke's numbers/names are not read at all.
-- **Converting the 826 would make them worse** (18 diverge from official wording) — the checker asserts IDEMPOTENCE.
+- **EFFECT TEXT HAS TWO PROVENANCES, boundary at a generation line:** 826 rows from PokeAPI zh-hant, 93 (ids 827–919) from InfoPoke Simplified via OpenCC `s2twp`. InfoPoke supplies only that text.
+- **Converting the 826 would make them worse** (18 diverge); the checker asserts IDEMPOTENCE.
 - **`total` counts DISTINCT POKÉMON** (`learnsets.json` is a union over generations).
-- **FOUR BUGS ONLY A BROWSER COULD SEE:** `wireRoving`'s `apply` receives the selected BUTTON; `Number('true')` is `NaN`; a row out of `Object.entries(moves)` has no `.id`; the default viewport was captured lazily.
-- **The file hung after printing PASS** (`process.exit(0)`).
+- **Four browser-only bugs:** `wireRoving`'s `apply` gets the selected BUTTON; `Number('true')` is `NaN`; a row from `Object.entries(moves)` has no `.id`; the viewport was captured lazily.
+- **The file hung after PASS** (`process.exit(0)`).
 - **`power: 0` is a sentinel in 16 rows and a number in one** (`VARIABLE_POWER_MOVES`); `accuracy: 0` is 必中.
-- **The 92 moves PokeAPI has no `meta` for print no row at all.**
-- **The payload split is asserted in both directions**; `indent=2` is not applied to the two new indexes.
-- **The shadow block is excluded by id, and the script asserts the REASON.**
+- **The 92 moves with no PokeAPI `meta` print no row.**
+- **The payload split is asserted both ways**; `indent=2` is not applied to the two new indexes.
+- **The shadow block is excluded by id; the script asserts the REASON.**
 - **Learner cards show SV artwork with NO vertical offset**; no 「顯示全部」 cap.
 **Guarded by:** `check_moves_data.mjs` (127,868, 0.1 s) + `check_moves_page.mjs` (184, 0.2 s) + `check_moves_page_browser.mjs` (89, 30 s) + `test_check_moves_page.mjs` (27) · **Background:** [pages.md#aa](docs/incidents/pages.md#aa)
 
 ### AB. `types.html` Is One Page And Moves Is Two
-**Do not merge `move.html` into `moves.html`, and do not split `types.html`.** The "one file is smaller" intuition runs the wrong way: splitting `types.html` saves 86 KB of 3.4 MB (2.5%); merging the move pages costs +424 KB on the list (77%).
+**Do not merge `move.html` into `moves.html`, and do not split `types.html`.** Splitting `types.html` saves 86 KB of 3.4 MB (2.5%); merging the move pages costs +424 KB on the list (77%).
 - **The deciding variable is CARDINALITY AND SHAPE DIVERGENCE, not file count** (18 types → one template; 919 moves → two).
 - **Both models are full-page reloads today**, so the single file buys no switching speed; **on a deep link the overview is chrome around the detail.**
 - **The nav row is the one thing only a separate document can have.**
 **Guarded by:** nothing (a structural judgement); `check_moves_page.mjs:109,113` guards the split's precondition in both directions · **Background:** [pages.md#ab](docs/incidents/pages.md#ab)
 
 ### AC. `abilities.html` / `ability.html` — 314 Abilities
-- **THE HOLDER MAP IS READ FROM POKEAPI AND CANNOT BE INVERTED FROM `pokemon_data.json`** (30 form-exclusive holders; Groudon/Zacian carry `forms: []`).
-- **The base species is resolved by `species.id`, never by matching names.**
-- **`Farfetch'd`'s ASCII apostrophe is deliberate.** **Twelve species carried a misspelled EN name**, and it was a reader who found it; the defect was in the source XLSX, so the fix was guarded text edits (the generator no longer reproduces the roster).
+- **THE HOLDER MAP IS READ FROM POKEAPI AND CANNOT BE INVERTED FROM `pokemon_data.json`** (30 form-exclusive holders).
+- **Base species is resolved by `species.id`, never by matching names.**
+- **`Farfetch'd`'s ASCII apostrophe is deliberate.** Twelve EN names were misspelled in the XLSX; fix by guarded text edit, not regeneration.
 - **Three counts mean three things** (`holders` 47 / `speciesCount` 37 / `formCount`).
-- **The effect sentence has two provenances** (267 zh-hant, 47 `effectEn`); **one ability ships with no holder** (面影輝映); **a base species can appear under both flags** (Rock Head / Marowak); **hiddenness is `slug === hidden_ability`.**
-- **`abilities.css` is `ab-`-prefixed and mounted here only**; **holder artwork is the SV set** (`object-fit` + `object-position` asserted together, no `translateY`); `64px` art, `minmax(104px, 1fr)` → 9 columns.
-- **A solid accent fill needs `--on-accent`, not `--text-primary`** (the fill inverts with the theme; the same bug on `moves.html`'s pressed chip).
-- **The payload split is asserted in both directions** (`abilities.html` also loads `species_abilities.json`, an 88 KB inverse). **The search box answers the reverse question** with a cap of `SPECIES_RESULT_CAP = 12` (query space is uneven: `a` finds 574). **Twelve species have one ability in both slots** (the baseId merge); **the three labels are not three kinds**.
+- **The effect sentence has two provenances** (267 zh-hant, 47 `effectEn`); one ability has no holder (面影輝映); a base species can appear under both flags (Rock Head / Marowak); hiddenness is `slug === hidden_ability`.
+- **`abilities.css` is `ab-`-prefixed and mounted here only**; holder art is SV (`object-fit` + `object-position`, no `translateY`); `64px` art, `minmax(104px, 1fr)` → 9 columns.
+- **A solid accent fill needs `--on-accent`, not `--text-primary`.**
+- **The payload split is asserted in both directions** (`abilities.html` also loads `species_abilities.json`, 88 KB). Search uses `SPECIES_RESULT_CAP = 12`. Twelve species have one ability in both slots.
 **Guarded by:** `check_abilities_data.mjs` (18,849, 0.1 s) + `check_abilities_page.mjs` (133, RUNS the filters) + `test_check_abilities_page.mjs` (12) + `check_pokemon_names.mjs` (94). **No browser entry (a priced trade).** · **Background:** [pages.md#ac](docs/incidents/pages.md#ac)
 
 
@@ -476,46 +461,46 @@ Ported from `pokemoncries.com`; ten questions, four nameless sprites each. The d
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`node scripts/check_all.mjs` runs the suite and skips whatever cannot have changed.** `.cache/check-state.json` holds one content hash per checker over its declared `inputs` (globs expanded) plus the last green run's duration and timestamp, so a second full run is **0.0 s** rather than 87 s (the gitignored ~10 KB is the cheapest performance work in the project). Three ways the mechanism can be green and wrong:
-- **A FAIL never refreshes an entry** — so a `last 6.0s` is always a green run's measurement — **and a FAIL is not a skip either**, so the next run re-runs it.
-- **`--force` exists for a checker that passed for a reason other than its inputs** (a missing Chrome, a stale server). The cache trusts the last green result on this machine only.
-- **What is always in the key, whatever a checker declares:** the checker itself, any checker a negative harness attacks, every file in `scripts/lib/`, and `check_all.mjs`.
+**`node scripts/check_all.mjs` runs the suite and skips whatever cannot have changed.** `.cache/check-state.json` holds one content hash per checker over its declared `inputs` plus the last green run's duration, so a second full run is **0.0 s** rather than 87 s. Three ways it can be green and wrong:
+- **A FAIL never refreshes an entry** — `last 6.0s` is always a green run's measurement — **and a FAIL is not a skip**; the next run re-runs it.
+- **`--force`** exists for a checker that passed for a reason other than its inputs (missing Chrome, stale server). The cache trusts the last green result on this machine only.
+- **Always in the key, whatever a checker declares:** the checker, any checker a negative harness attacks, every file in `scripts/lib/`, and `check_all.mjs`.
 
-- **The input lists are PROVEN, not reviewed.** `--prove-inputs` runs each checker under `scripts/lib/record-inputs.cjs` — a CJS `-r` preload, not `--import`, because Node snapshots a builtin's ESM named exports at link time so an `--import` patch is never seen — and fails on a disagreement in EITHER direction (`read but not declared` is the dangerous one; a miss means the run is green having verified nothing). A grep cannot answer it. Three entries are honestly unverifiable and print so: `check_gen1_page.mjs` and `check_cries_browser.mjs` (their pages arrive over HTTP) and `test_check_js_syntax.mjs` (writes its own one-page fixture).
-- **`--only` is a REPEATABLE PREFIX MATCH** (`inGroup()`: `group === f || group.startsWith(f + '-')`), so `--only=cry` covers `cry-apu`/`cry-data`/`cry-page`; `--only=a,b` and `--only=a --only=b` select the same entries. `--help` prints every group with its last measured cost.
-- **There is deliberately no `--quick` flag on any checker** — a flag that skips a check is a promise that stops being kept. When `test_check_gen1_apu.mjs` had to leave the suite it was **removed from the manifest**, the file left runnable and the cost written down.
-- **Groups are `algo`, `audio-browser`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `game-browser`, `graph-browser`, `home`, `life-browser`, `model`, `moves-browser`, `nav`, `outfit-browser`, `sort`, `type`, `types-browser`** — eighteen. The seven `*-browser` groups exist so a static group filter is cheap again; `sort` is both entries because both boot Chrome. `home` is separate from `nav`; the hero's rendered half is retired (§3.Z).
-- **Two tiers, both pooled at three; two Tier B entries are `serial: true` and run alone** (`check_graph_browser.mjs`, `check_life_browser.mjs`). Both halves print after the drain **in declaration order** (§3.G7). Read the **wall-clock** figure, not the total: ~166 s of checker time finishes in ~88 s because concurrent browsers contend.
-- **The liveness probe must not be `fetch()`** (undici keep-alive holds the socket ~6 s open) **nor read `res.ok`** (undefined on an `IncomingMessage`). **Twelve** entries need the Runtime Server; all **thirteen** browsers are `manual` — which does NOT skip execution, it only makes the runner print the hand-read-inputs caveat in `--prove-inputs`.
-- **No checker uses a computed debug port.** Every browser launches with `--remote-debugging-port=0` and reads `<profile>/DevToolsActivePort`, so `cdpPort()`/`assertPortFree()` is deleted and §3.J's orphan incident becomes unreachable rather than merely unlikely.
+- **Input lists are PROVEN, not reviewed.** `--prove-inputs` runs each checker under `scripts/lib/record-inputs.cjs` (a CJS `-r` preload, not `--import`, because Node snapshots a builtin's ESM exports at link time) and fails on a disagreement in EITHER direction (`read but not declared` is the dangerous one). Three entries print as unverifiable: `check_gen1_page.mjs`, `check_cries_browser.mjs` (HTTP pages), `test_check_js_syntax.mjs` (own fixture).
+- **`--only` is a REPEATABLE PREFIX MATCH** (`group === f || group.startsWith(f + '-')`), so `--only=cry` covers `cry-apu`/`cry-data`/`cry-page`; `--only=a,b` and `--only=a --only=b` are the same. `--help` prints every group with its last cost.
+- **No `--quick` flag on any checker** — a flag that skips a check is a promise that stops being kept. `test_check_gen1_apu.mjs` was **removed from the manifest**, left runnable and its cost written down.
+- **Groups:** `algo`, `audio-browser`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `game-browser`, `graph-browser`, `home`, `life-browser`, `model`, `moves-browser`, `nav`, `outfit-browser`, `sort`, `type`, `types-browser` — eighteen. The seven `*-browser` groups keep a static filter cheap; `sort` has both entries because both boot Chrome.
+- **Two tiers, pooled at three; two Tier B entries are `serial: true`** (`check_graph_browser.mjs`, `check_life_browser.mjs`). Read **wall-clock**, not total: ~166 s of checker time finishes in ~88 s because browsers contend.
+- **The liveness probe must not be `fetch()`** (undici keep-alive holds the socket ~6 s) **nor read `res.ok`** (undefined on an `IncomingMessage`). **Twelve** entries need the Runtime Server; all **thirteen** browsers are `manual` (execution still happens; only `--prove-inputs` prints the caveat).
+- **No computed debug port.** Every browser launches with `--remote-debugging-port=0` and reads `<profile>/DevToolsActivePort`, so §3.J's orphan incident is unreachable rather than merely unlikely.
 
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
-**Running the whole suite is forbidden on this machine: a full cold run boots thirteen headless Chromes.** One *cached* run is 0.0 s, but the first run after an unrelated edit pays for every browser whose inputs moved. Map by **what you edited**, not by group — the rows are derived from the `inputs` lists, which is why `--prove-inputs` matters:
+**Running the whole suite is forbidden here: a cold run boots thirteen headless Chromes.** One cached run is 0.0 s, but the first run after an unrelated edit pays for every browser whose inputs moved. Filter by **what you edited**:
 
-**So filter, don't run the suite.** `--only=<group>` runs one group and nothing else, and naming a checker (`node scripts/check_moves_page.mjs`) skips the runner entirely — on this machine that is the difference between ~88 s and a hot laptop. Take the narrowest option that covers your edit, from the table below, chosen by *what you edited* rather than by convenience. `--only` decides what runs, never what is true: a green filtered run says nothing about the checkers it skipped.
+**`--only=<group>`** runs one group; naming a checker skips the runner. Take the narrowest option below. `--only` decides what runs, never what is true: a green filtered run says nothing about the checkers it skipped.
 
 | you edited | run this | why this and not that |
 | :--- | :--- | :--- |
-| `index.html`, `assets/css/home-sections.css`, `assets/js/home-*.js`, `assets/js/hero-gen.js` | `--only=home` | §3.Z. two static entries, 153 checks, ~0.2 s. The hero's browser half is retired, so this group never boots Chrome; the demos' rendered half is the manual smoke below |
-| `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data`, then `node scripts/check_spectrum_browser.mjs` | the claims are split four ways: the CDP checker, the page checker, the port checker, and **`check_cry_mobile_layout.mjs` (§3.X), the only phone-width measurement** |
-| `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | `cry` covers `cry-apu`, `cry-data`, `cry-page`; add `--only=audio-browser` for the rendered halves |
-| `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `node scripts/test_check_sorting_page.mjs --static` first, then `--only=sort` | the static half is 89 checks at ~0.3 s; `sort` is the one group whose both entries boot Chrome |
-| `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, **nothing above 5 s**, and no browser; `check_outfit_browser.mjs` is `outfit-browser` |
-| `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `node scripts/check_color_game_browser.mjs` | same static group; the CDP half is `game-browser` |
-| `today.html` (今日推薦) | `--only=nav` **plus** `--only=color` **plus** `--only=home` | the daily pick, 熱門 and 精選系列 counts are enforced by `check_color_daily.mjs` and `check_categories.mjs`, and `check_home_hero.mjs` reads it too — two of the three groups that own the page are not the ones its own table suggests |
-| `moves.html`, `move.html`, `assets/js/moves.js`, `assets/css/moves.css` | `node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs` | **name them, not `--only=nav`** — §3.AA. Add `node scripts/check_moves_page_browser.mjs` (28 s, one Chrome) **only when the change is a rendered claim** |
-| `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `node scripts/check_moves_data.mjs` | 127,868 checks at 0.1 s. `scripts/fetch_moves.py` writes all four in one pass, so they are never out of step |
-| `abilities.html`, `ability.html`, `assets/js/abilities.js`, `assets/css/abilities.css` | `node scripts/check_abilities_page.mjs` | 133 checks at 0.1 s — §3.AC, **which RUNS `filterSpecies()` over all 1,025 species including the `a` bomb case**. **No browser entry**, so nothing can see a card render — the priced trade, not an oversight |
-| `abilities.json`, `ability_species.json`, `species_abilities.json` | `node scripts/check_abilities_data.mjs` | 18,849 checks at 0.1 s. `scripts/fetch_abilities_detail.py` writes all three in one pass |
-| `pokemon_data.json` names, or the source XLSX | `node scripts/check_pokemon_names.mjs` | 94 checks at 0.1 s — §3.AC. **Do NOT regenerate `pokemon_data.json`**: `enhance_pokemon_data.py` currently produces 1,350 records against the committed 1,025, so a regeneration is a roster change, not a name fix |
-| `types.html`, `assets/css/types*`, `sv-index.js`, `sv-sources.json`, any `assets/images/**` | `--only=type`, then `--only=types-browser` | four static entries at 3.3 s; `check_types_browser.mjs` (§3.H1) is the rendered half |
-| `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo`, then `--only=life-browser` for life.html | three static entries at 0.4 s; **§3.P.** the page had **no checker at all** until then |
-| `graph_data.json`, `graph.js`, `graph.html`, `data-sources/pokeapi_form_stats.json` | `--only=model`, then `--only=graph-browser` | **§3.V.** the static chip checker is 0.1 s; only the `graph-browser` pair is needed for a layout question |
-| `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read by `check_page_module_api.mjs` over every page; `assets/js/*` is a glob because harnesses copy the whole directory |
-| `*.json` under `assets/data/` | the group that owns the table | `data` is four cheap checks over learnsets/categories/evolution; the cry tables are `cry-data`, the palettes `color` |
-| anything in `scripts/` | `--force --only=<its group>` | editing a checker does not invalidate an entry written before, and `--force` is the only way to be sure |
-| **a file in no row above** | `--help` first, then `--only` on what it names | `--help` prints every group sorted cheapest first; if still unclear, `--prove-inputs` names the checkers that read it |
+| `index.html`, `home-sections.css`, `home-*.js`, `hero-gen.js` | `--only=home` | §3.Z; 153 checks, 0.2 s, no Chrome |
+| `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data`, then `check_spectrum_browser.mjs` | four-way split; `check_cry_mobile_layout.mjs` (§3.X) is the phone width |
+| `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | covers apu/data/page; add `audio-browser` for rendered halves |
+| `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `test_check_sorting_page.mjs --static`, then `--only=sort` | static 89 checks 0.3 s; `sort` boots Chrome |
+| `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
+| `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
+| `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
+| `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |
+| `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `check_moves_data.mjs` | 127,868 checks, 0.1 s; one pass writes all four |
+| `abilities.html`, `ability.html`, `abilities.js`, `abilities.css` | `check_abilities_page.mjs` | 133 checks, 0.1 s; no browser entry |
+| `abilities.json`, `ability_species.json`, `species_abilities.json` | `check_abilities_data.mjs` | 18,849 checks, 0.1 s; one pass writes all three |
+| `pokemon_data.json` names, or the source XLSX | `check_pokemon_names.mjs` | 94 checks; do NOT regenerate the roster (1,350 vs 1,025) |
+| `types.html`, `types*`, `sv-index.js`, `sv-sources.json`, `assets/images/**` | `--only=type`, then `--only=types-browser` | four static at 3.3 s; browser is the rendered half |
+| `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo`, then `--only=life-browser` | three static at 0.4 s; §3.P |
+| `graph_data.json`, `graph.js`, `graph.html`, `pokeapi_form_stats.json` | `--only=model`, then `--only=graph-browser` | §3.V; browser only for layout |
+| `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read over every page; `assets/js/*` is a glob |
+| `*.json` under `assets/data/` | the group that owns the table | `data` owns learnsets/categories/evolution; cry tables `cry-data`, palettes `color` |
+| anything in `scripts/` | `--force --only=<its group>` | editing a checker does not invalidate a prior entry |
+| a file in no row above | `--help` first, then `--only` on what it names | `--prove-inputs` names the readers |
 
 **`--only` gets you the answer now; it is not a correctness measure.** Verify a change by naming its checkers:
 
@@ -524,12 +509,12 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 ```
 
 **ONE RUN CONFIRMS A FIX; LOOPING IS NOT THE DEFAULT.**
-- **After changing a checker or a page, ONE run is the evidence.** A second run proves nothing about the change — what a repeat measures is the ENVIRONMENT (load, contention, a leftover process), and a pass-then-fail means "flaky", not "fixed". Reading it otherwise is how a real defect gets "fixed" by adding a timeout (§3.Z's history: three timeouts in one browser checker, each papering over the previous).
-- **Loop only for a pass RATE** on a check you know is inherently timing-dependent (`check_graph_browser.mjs`: "3 of 3 failures pooled, 3 of 3 passes standalone", §3.G9). If you cannot name the number the loop produces, do not run it.
+- **After changing a checker or a page, ONE run is the evidence.** A repeat measures the ENVIRONMENT (load, contention, a leftover process); pass-then-fail means "flaky", not "fixed". Adding a timeout papers over it.
+- **Loop only for a pass RATE** on a check you know is timing-dependent (`check_graph_browser.mjs`: "3 of 3 failures pooled, 3 of 3 passes standalone", §3.G9). If you cannot name the number, do not run it.
 - **IF IT FAILED, DO NOT RE-RUN TO SEE IF IT PASSES.** Re-run **only** with `--force`, **only** to conclude regression vs contention, and say which.
-- **A HANG IS NOT A FLAKE.** `check_home_hero_browser.mjs` hung 18 min; it now carries a 4-min watchdog that names its section and exits 2. If a watchdog fires, fix the checker — raising the timeout is certainly wrong.
+- **A HANG IS NOT A FLAKE.** If a watchdog fires, fix the checker — raising the timeout is certainly wrong.
 
-**Know what a group costs before choosing a filter.** Measured from one forced run after both tiers were pooled; the column carries a **tier** because it does not predict wall clock — three entries of a tier are in flight at once, so their durations overlap the clock you wait for. The `entries` column is read from the manifest (`node scripts/check_all.mjs --help`); the `secs` figure is the last measured snapshot, so it drifts as entries are added and should be re-read rather than trusted. `check_spectrogram_port.mjs` prints `SKIP` and **exits 0** when `../.venv` is absent, so read the line, not the exit code, when the venv matters.
+**Know what a group costs before choosing a filter.** `tier` does not predict wall clock — three entries of a tier are in flight at once. `entries` is read from the manifest (`node scripts/check_all.mjs --help`); `secs` is the last measured snapshot, so re-read it rather than trust it. `check_spectrogram_port.mjs` prints `SKIP` and **exits 0** when `../.venv` is absent — read the line, not the exit code.
 
 | group | secs | entries | tier | where its time goes |
 | :--- | ---: | ---: | :---: | :--- |
@@ -550,9 +535,9 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 | `algo` / `model` / `home` | 0.8 | 7 | A | no browser; the life and graph browser pairs have their own groups |
 
 
-**DO NOT USE `--only` AS A WAY TO AVOID A BROWSER.** Every browser now sits in a `*-browser` group, or in `sort`; the other ten groups never boot Chrome. **`--only=cry-page` is still 39 s of pure Node** (`test_check_cry_game_similarity.mjs`), so read the table, not the group name. **Anything you can name directly is cheaper than its group.**
+**DO NOT USE `--only` AS A WAY TO AVOID A BROWSER.** Every browser sits in a `*-browser` group, or in `sort`; the other ten groups never boot Chrome. **`--only=cry-page` is still 39 s of pure Node** (`test_check_cry_game_similarity.mjs`), so read the table, not the group name. **Anything you can name directly is cheaper than its group.**
 
-**What is left is the work itself.** The ten most expensive entries are dominated by Chrome boots and by `test_check_cry_game_similarity.mjs`; §3.G7 removed every removable harness cost, and `test_check_graph_browser.mjs` (40 s, four Chrome boots) is larger than every other entry combined. **A mutation case is only as expensive as the thing it attacks** — `test_check_color_match.mjs` went 42 s → 2.2 s on two unexamined defaults (sequential cases; a full-corpus scan re-deriving a constant). §4's rule about a checker that prints a description whether it passes or fails has a sibling here: **a check's name is a claim about its cost, and the name is not evidence.**
+**A mutation case is only as expensive as the thing it attacks** — `test_check_color_match.mjs` went 42 s → 2.2 s on two unexamined defaults. **A check's name is a claim about its cost, and the name is not evidence.**
 ---
 
 ## 5. Data Pipeline & Regeneration Workflow
