@@ -924,6 +924,17 @@ const CHECKERS = [
       'assets/images/shiny/*',
     ],
   },
+  {
+    script: 'scripts/check_moves_data.mjs', group: 'data',
+    inputs: [
+      'assets/data/moves_zh.json',
+      'assets/data/learnsets.json',
+      'assets/data/move_learners.json',
+      'assets/data/move_learners_count.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/moves.js',
+    ],
+  },
 
   /* ---- data ---- */
   {

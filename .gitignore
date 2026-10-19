@@ -110,3 +110,15 @@ data-sources/pokeapi_evolution_chains.json
 # check_graph_chip_network.mjs refuses to run without it, rather than ENOENTing.
 # A fresh clone still has the correct graph, because graph_data.json is tracked.
 data-sources/pokeapi_form_stats.json
+
+# infopoke-moves.html is the cached copy of https://infopoke.net/zh-tw/moves that
+# fetch_moves.py parses for the 93 effect sentences PokeAPI has no zh-hant
+# flavour entry for (the whole of Generation 9). Same rule as the two files
+# above: the JSON the script PRODUCES is tracked, the raw response is not, and
+# fetch_moves.py re-fetches only when this cache is absent.
+#
+# InfoPoke is a Nuxt SSR page with no version guarantee on its markup, so the
+# cache is what makes a re-run reproducible — and it is why check_moves_data.mjs
+# asserts the 826/93 split rather than only asserting that the text is non-empty:
+# a restructured table reads as "26 fewer effects", not as a crash.
+data-sources/infopoke-moves.html

@@ -313,10 +313,18 @@ for (const [id, move] of dataKeys(MOVES).slice(0, 400).map(id => [id, MOVES[id]]
     /^[a-z]+$/.test(move.type),
     `move ${id} type "${move.type}" should be a lowercase PokeAPI slug`
   );
-  // Not "damaging implies power": 287 of the 782 moves have null power on
+  // Not "damaging implies power": 331 of the 919 moves have null power on
   // purpose — OHKO (guillotine, fissure), fixed damage (sonic-boom, dragon-rage,
   // night-shade) and variable power (return, gyro-ball, natural-gift). Only the
   // weaker invariant is safe to assert.
+  //
+  // The denominator moved 782 → 919 when moves_zh.json began shipping every
+  // non-shadow move rather than only the ones our 1025 reference; the 137 added
+  // are Z-moves, Max Moves, sigils and Struggle, which is why 287 of 782 became
+  // 331 of 919 rather than staying put. `power === 0` is a THIRD state and is
+  // allowed by the assertion below — 16 status moves use it as an absence and
+  // hard-press uses it as a real HP-scaling value; check_moves_data.mjs owns
+  // that distinction.
   ok(move.power === null || (Number.isInteger(move.power) && move.power > 0),
     `move ${id} (${move.en}) power should be null or a positive integer, got ${move.power}`);
   ok(move.accuracy === null || (Number.isInteger(move.accuracy) && move.accuracy >= 0 && move.accuracy <= 100),

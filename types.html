@@ -1128,8 +1128,14 @@
         }))
         .sort((x, y) => y.count - x.count || x.zh.localeCompare(y.zh, 'zh-Hant'));
 
+      /* Only moves a Pokémon can actually learn. moves_zh.json ships all 919
+       * non-shadow moves — a Z-move, a Max Move and a Hisuian sigil are real
+       * catalogue entries and moves.html lists them — but none of them is
+       * learnable by anything in the dex, and this list answers 「火屬性寶可夢
+       * 有哪些招式」, where an unlearnable row is noise at best. The full set is
+       * one chip away on the other page; this one is the species question. */
       const moves = Object.entries(ctx.moves)
-        .filter(([key, m]) => key !== '_meta' && m && m.type === slug)
+        .filter(([key, m]) => key !== '_meta' && m && m.type === slug && m.learners > 0)
         .map(([key, m]) => ({
           key, zh: m.zh, class: m.class, power: m.power,
           effect: ctx.effects.move[m.zh] || ''
@@ -1196,7 +1202,7 @@
 
           <div class="type-detail-block">
             <h3>招式 <span class="fx-item-meta">${moves.length} 個</span></h3>
-            ${chipRow('本站 moves_zh.json 全量，依威力排序。')}
+            ${chipRow('依威力排序，只列有寶可夢學得會的招式。')}
             <ul class="chip-grid">
               ${moves.map(m => `<li><span class="chip-item">
                 <span>${escapeHtml(m.zh)}</span>
