@@ -399,14 +399,18 @@
  * is. The subject therefore lands on the box's bottom edge — which is the
  * framing this page wants — without a `transform` and without distortion.
  *
- * That is also why there is NO `translateY` here. types.html's `.chip-thumb.is-sv`
- * carries one at 28px, because that page's chips pair a thumbnail with a name on
- * one line and the offset lines the two up against each other. These cards put
- * the image on its own row above the name, so there is nothing to line up and the
+ * That is also why there is NO `translateY` here. types.html's `.chip-grid--roster
+ * .chip-thumb.is-sv` carries one, because that page's chips pair a thumbnail with a
+ * name on one line and the offset lines the two up against each other. These cards
+ * put the image on its own row above the name, so there is nothing to line up and the
  * offset would only move the subject off the card's own baseline. Measured at
  * 28/56/96px and three alpha thresholds, the SV subject sits 25–26% of the box low
- * against the sprite set — that number is what the transform is FOR, and this
- * page chooses not to need it.
+ * against the sprite set — that number is what types.html's transform is FOR, and
+ * this page chooses not to need it.
+ *
+ * The offset there is a PERCENTAGE of its own box, not a pixel value, so it stays
+ * correct when the thumbnail changes size; the two pages disagree on purpose and
+ * both measurements are the same one.
  */
 .mv-learner img {
   display: block;

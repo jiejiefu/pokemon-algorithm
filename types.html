@@ -643,21 +643,125 @@
       width: 28px;
       height: 28px;
     }
-    /* The two sets do not agree on where the Pokémon sits, and at 28px it
-       shows. Measured by drawing each image to a 28x28 canvas and taking the
-       alpha bounding box, over 8 types: the SV artwork's subject centres at
-       18-20px (median 20, i.e. flush to the bottom edge -- PokeAPI's SV icons
-       are bottom-anchored with the empty space above), while the 96px sprite
-       set centres at 13.5px in EVERY type, so it is uniformly framed. Left
-       alone, an SV chip's Pokémon hangs ~6.5px low against its own name.
+    /* ===== the Pokémon roster: the ONE block of these three that is a grid ====
+     *
+     * `.chip-grid` and `.chip-item` are shared by three blocks — the roster
+     * (links + a thumbnail), 招式 (a span + a power number) and 特性 (a span +
+     * a count) — and the other two are lists of short pills that want
+     * content-sized widths. Every rule below is scoped to `--roster` and
+     * `.chip-grid` itself is untouched: editing the shared pair would move two
+     * lists nobody asked to move, which is §3.B1's rule facing the other way —
+     * a shared class is a shared claim, and this page's other two blocks do not
+     * make this one.
+     *
+     * EQUAL-WIDTH COLUMNS, AND WHY THE IMAGE GOES ABOVE THE NAME RATHER THAN
+     * BESIDE IT. Beside the name, the track has to fit the widest chip, and the
+     * widest name in the corpus is 5 characters: 40px image + 6px gap + 70px of
+     * text + 16px of padding + 2px of border = 142px, which fits only 8 columns
+     * in the 1,248px this block measures at a 1280px viewport. That is 11 rows
+     * against the 8 it renders now — a 72% longer list bought with a 43% larger
+     * image.
+     *
+     * Above the name the track only has to fit the NAME: 70 + 16 + 2 = 88px, so
+     * `minmax(92px, 1fr)` fits 12 columns and 81 species come out in 7 rows —
+     * FEWER than today, with the image 43% larger. At 736px it is 7 columns × 12
+     * rows against 14, and at 390px the mobile rule below gives 4 × 21 against 27.
+     *
+     * The 92px is measured against the 5-character maximum in the corpus (46
+     * species carry one; 4 of them in 火's 81) rather than chosen for looks: at
+     * 88px the longest name fills its column to within 2px, and that margin is
+     * what a different font metric turns into a wrap.
+     */
+    .chip-grid--roster {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 8px;
+    }
+    /* THE GRID ITEM IS THE <li>, NOT THE CHIP. Both are `.chip-item`'s siblings
+     * in the box model: the grid places the `<li>`, and the anchor inside it is
+     * `inline-flex`, which sizes to its CONTENT. Without this rule the 12 tracks
+     * came out 96.7px each while every chip shrank to 60px inside its own track,
+     * so the columns were equal and the chips were not — which is the half of
+     * "equal-width grid" that a screenshot catches and a measurement of the
+     * column count does not. */
+    .chip-grid--roster > li { display: flex; }
+    .chip-grid--roster .chip-item {
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      /* --radius-sm, not the pill it would inherit: at 97×77 this card is
+       * 1.26× wider than tall, and a 20px radius on that reads as a lozenge
+       * rather than a chip. The two lists that keep the pill are still pills. */
+      border-radius: var(--radius-sm);
+      text-align: center;
+      line-height: 1.35;
+    }
+    .chip-grid--roster .chip-thumb,
+    .chip-grid--roster .chip-item img {
+      width: 40px;
+      height: 40px;
+    }
+    /* `contain` is a correction, not a preference. The SV set is 120×112 and the
+     * rule it corrects set `width`/`height` on both the wrapper and the img, so
+     * `object-fit` computed to `fill` and the artwork was stretched 6%
+     * horizontally. move.html had the same defect and the same fix. */
+    .chip-grid--roster .chip-item img { object-fit: contain; }
+    /* THE VERTICAL OFFSET, and it is scoped with the rest of this block because
+     * `.chip-thumb` now exists in exactly one place on the page — the roster. A
+     * second rule at lower specificity covering the same selector is a rule
+     * nobody maintains (§3.N), so the measurement lives on the rule that wins.
+     *
+     * The two art sets do not agree on where the Pokémon sits. PokeAPI's
+     * Scarlet/Violet icons are BOTTOM-ANCHORED with the empty space above — the
+     * subject's bottom gap measures 0px against a 28px sprite's 11.5px — while
+     * the 96px sprite set is uniformly framed in every type. Left alone, an SV
+     * chip's Pokémon hangs low against its own name.
+     *
+     * -25% is measured, and measured at three box sizes because a percentage is
+     * only correct if the ratio holds across them: drawing each image to a
+     * 28 / 56 / 96px canvas and taking the alpha bounding box puts the SV subject
+     * 25.0 / 25.4 / 25.8% of the box below the sprite's, at three alpha
+     * thresholds. The rule previously said -23%, which came from a single 28px
+     * reading of one image and under-corrects by about 0.7px.
+     *
+     * Size needs no correction: median subject is 15×14px for SV against 16×14
+     * for the sprites, both 27% ink coverage. Only the vertical anchor is off.
+     *
+     * It is `transform` rather than `object-position` because this chip pairs a
+     * thumbnail with a NAME on one line and the goal is to centre the subject
+     * against that text. move.html deliberately does the opposite and carries no
+     * transform at all — §3.E. */
+    .chip-grid--roster .chip-thumb.is-sv img { transform: translateY(-25%); }
+    /* 10px rather than the inherited 8px: the ring marks a stand-in and has to
+     * stay visible in a box that grew from 28px to 40px. */
+    .chip-grid--roster .chip-sub-mark { width: 10px; height: 10px; }
 
-       Size needs no correction: median subject is 15x14px for SV against 16x14px
-       for the sprites, both 27% ink coverage. Only the vertical anchor was off.
+    /* The name is one line, always. `nowrap` alone would let a 5-character name
+       overflow its 92px track instead of wrapping, so the ellipsis is the backstop
+       that makes the track width a promise rather than a hope — and the corpus
+       maximum is 5 characters, so nothing currently reaches it. Asserted by
+       check_types_browser.mjs against the longest name on the page. */
+    .chip-grid--roster .chip-name {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-       -23% of the 28px box is -6.44px, which lands the SV median on 13.56. There
-       is room to move up and nothing to clip -- the SV subject's bottom gap is
-       already 0px and its top gap is 13-14px. */
-    .chip-thumb.is-sv img { transform: translateY(-23%); }
+    @media (max-width: 560px) {
+      .chip-grid--roster { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }
+      .chip-grid--roster .chip-item {
+        gap: 3px;
+        padding: 4px 6px;
+        font-size: 0.75rem;
+      }
+      .chip-grid--roster .chip-thumb,
+      .chip-grid--roster .chip-item img { width: 32px; height: 32px; }
+      .chip-grid--roster .chip-sub-mark { width: 9px; height: 9px; }
+    }
     .chip-sub-mark {
       position: absolute;
       top: 0;
@@ -1199,17 +1303,17 @@
             ${chipRow(subCount
               ? '含此屬性的所有寶可夢，單屬性與雙屬性皆包含。右上角有圓環標記者，官方 Scarlet/Violet 圖尚未釋出，暫以 96px 圖替代。'
               : '含此屬性的所有寶可夢，單屬性與雙屬性皆包含。')}
-            <ul class="chip-grid">
+            <ul class="chip-grid chip-grid--roster">
               ${list.map(p => {
                 const sv = hasSv(p.id);
                 const src = sv ? svUrl(p.id) : ASSETS.sprites + p.filename;
                 return `<li><a class="chip-item" href="${pokemonDetailUrl(p)}">
                 <span class="chip-thumb ${sv ? 'is-sv' : 'is-sub'}"${sv ? '' : ' title="官方 Scarlet/Violet 圖尚未釋出，暫用 96px 替代圖"'}>
-                  <img src="${src}" alt="" loading="lazy" width="28" height="28" decoding="async"
+                  <img src="${src}" alt="" loading="lazy" width="40" height="40" decoding="async"
                        onerror="this.onerror=null;this.src='${ASSETS.sprites}${p.filename}'">
                   ${sv ? '' : '<span class="chip-sub-mark" aria-hidden="true"></span>'}
                 </span>
-                <span>${escapeHtml(p.names.zh)}${sv ? '' : '<span class="sr-only">（官方圖尚未釋出，暫用替代圖）</span>'}</span></a></li>`;
+                <span class="chip-name">${escapeHtml(p.names.zh)}${sv ? '' : '<span class="sr-only">（官方圖尚未釋出，暫用替代圖）</span>'}</span></a></li>`;
               }).join('')}
             </ul>
           </div>

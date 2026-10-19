@@ -343,6 +343,60 @@ const cases = [
     expect: 'should link to the per-type move list',
   },
 
+  // ------------------------------------------- types.html's roster: MECHANISM
+  //
+  // Eight assertions with no case would be a number nobody can check, and this
+  // file's own header says the cases are chosen BY WHERE A VACUOUS ASSERTION CAN
+  // HIDE. All eight below are new, so all eight get one.
+  {
+    name: 'the roster card stops filling its grid track — the 60px-in-96.7px defect',
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace('.chip-grid--roster .chip-item {\n      flex: 1;\n', '.chip-grid--roster .chip-item {\n')
+      : undefined,
+    expect: 'fill the grid track it is placed in',
+  },
+  {
+    name: 'the roster card puts the name back beside the image',
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace('      flex: 1;\n      flex-direction: column;\n', '      flex: 1;\n')
+      : undefined,
+    expect: 'should stack its image above its name',
+  },
+  {
+    name: 'the roster grid loses its modifier and starts styling all three blocks',
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace(/^(\s*)\.chip-grid--roster \{$/m, '$1.chip-grid {')
+      : undefined,
+    expect: 'should scope the rule that turns the roster into a grid behind a --roster modifier',
+  },
+  {
+    name: 'the equal-width declarations leak onto the shared .chip-item, flattening 招式 and 特性',
+    // Added to the shared rule rather than MOVED off the roster's: renaming the
+    // roster's own header would take `flex-direction: column` with it and trip a
+    // different assertion, which is a caught mutation but not proof that the
+    // shared-rule guard is the thing doing the catching.
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace('    .chip-item {\n      display: inline-flex;\n',
+        '    .chip-item {\n      flex: 1;\n      flex-direction: column;\n      display: inline-flex;\n')
+      : undefined,
+    expect: 'must not carry flex or flex-direction',
+  },
+  {
+    name: 'the roster image goes back to stretching the 120x112 art',
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace('.chip-grid--roster .chip-item img { object-fit: contain; }',
+        '.chip-grid--roster .chip-item img { object-fit: fill; }')
+      : undefined,
+    expect: 'should scale without distorting',
+  },
+  {
+    name: 'the offset reverts to the single-sample -23% it was measured off',
+    mutate: (f, s) => f === 'types.html'
+      ? s.replace('translateY(-25%)', 'translateY(-23%)')
+      : undefined,
+    expect: 'should be the measured 25%',
+  },
+
   // ---------------------------------------------------------------- search
   {
     name: 'the search haystack is rebuilt per keystroke instead of once per row',

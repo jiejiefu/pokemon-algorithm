@@ -175,13 +175,107 @@ ok(detailCode.includes('pokemonDetailUrl('), 'move.html should reach the species
 
 /* ===== the deep link types.html now sends ===== */
 
+const typesHtml = read('types.html');
+
 ok(
   LIST.includes("params.get('type')"),
   'moves.html should read ?type= from the URL — types.html links to moves.html?type=<slug>'
 );
 ok(
-  read('types.html').includes('moves.html?type=${slug}'),
+  typesHtml.includes('moves.html?type=${slug}'),
   'types.html should link to the per-type move list it filtered'
+);
+
+/* ===== types.html's roster: MECHANISM, beside the browser checker's OUTCOME ===== */
+
+/*
+ * `.chip-grid` and `.chip-item` are shared by THREE blocks on types.html — the
+ * roster (links + a thumbnail), 招式 (a span + a power number) and 特性 (a span +
+ * a count). The roster was given equal-width columns and a stacked card; the
+ * other two are lists of short pills that want content-sized widths.
+ *
+ * So every one of those declarations has to sit behind the `--roster` modifier.
+ * `check_types_browser.mjs` asserts the CONSEQUENCE — that the other two blocks
+ * are still flex rows whose cards still differ in width — because that is the
+ * half a stylesheet cannot state. This asserts the MECHANISM, because a
+ * mutation that drops the modifier from `flex: 1` is invisible to the browser
+ * checker until the mobile breakpoint, and the two halves fail independently.
+ */
+const typesCss = typesHtml.replace(/\/\*[\s\S]*?\*\//g, '');
+/*
+ * Two of these eight were VACUOUS on arrival and the harness said so, which is
+ * the reason the harness is worth the second it costs.
+ *
+ * The first version asked whether `.chip-grid--roster { … }` exists. Renaming it
+ * to `.chip-grid { … }` left every OTHER `.chip-grid--roster` rule in the file,
+ * so the assertion stayed green — it was satisfied by a page where the grid rule
+ * did not carry the modifier at all, which is §3.B2's shape: a guard that can be
+ * satisfied by the thing it exists to forbid. It now asks which rule declares
+ * `display: grid`, because that is the claim.
+ *
+ * The second asked for `Math.abs(value + 25) < 3`, written to allow for
+ * measurement noise. -23 is 2 away, so the exact pre-fix value passed. A
+ * tolerance wide enough to absorb the regression is not a tolerance. The
+ * measurement spans 25.0 / 25.4 / 25.8 across three box sizes, so 1% covers all
+ * three of them and excludes both neighbours.
+ */
+const rosterGridRule = typesCss.match(/\.chip-grid--roster\s*\{([^}]*)\}/);
+ok(
+  rosterGridRule && /display\s*:\s*grid/.test(rosterGridRule[1]),
+  'types.html should scope the rule that turns the roster into a grid behind a --roster modifier',
+  rosterGridRule ? rosterGridRule[1].trim().replace(/\s+/g, ' ').slice(0, 70) : 'no .chip-grid--roster { … } rule found'
+);
+/*
+ * The bare `.chip-item` rule is shared by all three blocks, so these three
+ * properties are the ones that would equalise 招式 and 特性 if they leaked. They
+ * are asserted ABSENT from the bare rule and PRESENT under the modifier, which
+ * is the pairing §3.M records: asserting only the absence passes on a page where
+ * the roster was never given the properties at all.
+ */
+const bareChipItem = typesCss.match(/\n\s*\.chip-item\s*\{([^}]*)\}/);
+ok(
+  bareChipItem && !/\b(flex\s*:|flex-direction\s*:)/.test(bareChipItem[1]),
+  'the shared .chip-item rule must not carry flex or flex-direction — 招式 and 特性 use it too',
+  bareChipItem ? bareChipItem[1].trim().replace(/\s+/g, ' ').slice(0, 60) : 'no bare .chip-item rule found'
+);
+const rosterChipItem = typesCss.match(/\.chip-grid--roster\s+\.chip-item\s*\{([^}]*)\}/);
+ok(
+  rosterChipItem && /flex-direction\s*:\s*column/.test(rosterChipItem[1]),
+  'and the roster card should stack its image above its name'
+);
+ok(
+  rosterChipItem && /\bflex\s*:\s*1\b/.test(rosterChipItem[1]),
+  'and fill the grid track it is placed in — the rule that was missing when the first measurement found 60px cards in 96.7px tracks'
+);
+/*
+ * The image inside the roster card is a 120×112 icon going into a square box, so
+ * `contain` is load-bearing rather than decorative: `fill` stretches it 7%
+ * horizontally. `check_types_browser.mjs` asserts the computed value and the
+ * measured box; this is the declaration, and the two were written in that order
+ * because the browser checker found the value was `fill` when nobody had looked.
+ */
+/*
+ * `object-fit` lives in its OWN rule, and the first version of this assertion
+ * named the selector and took the first match — which is the rule ABOVE it, the
+ * one that sets width and height. It read `width: 40px; height: 40px;` and failed
+ * on a correct page, which is §3.P's shape with the polarity reversed: the
+ * pattern was not lazy, it was too eager, and it answered about a different
+ * construct than the one it named.
+ *
+ * The harness caught it rather than the author, because `test_check_moves_page`
+ * fails a run whose BASELINE is red before it looks at a single mutation. That is
+ * the one assertion in the file that cannot be attacked through its input, and it
+ * is worth having for exactly this reason.
+ *
+ * So: every rule on that selector is collected and the declaration is required
+ * in one of them, which is also the honest reading — a stylesheet is a set of
+ * rules, and "this selector declares X" is not "the first rule I found does".
+ */
+const rosterImgRules = [...typesCss.matchAll(/\.chip-grid--roster\s+\.chip-item img\s*\{([^}]*)\}/g)].map(m => m[1]);
+ok(
+  rosterImgRules.some(body => /object-fit\s*:\s*contain/.test(body)),
+  'the roster image should scale without distorting the 120x112 SV art',
+  `${rosterImgRules.length} rule(s) on that selector; object-fit in ${rosterImgRules.filter(b => /object-fit/.test(b)).length}`
 );
 
 /* ===== the filter state is the URL ===== */
@@ -709,13 +803,35 @@ ok(
   'and be pinned to the bottom, which is where the SV subject belongs'
 );
 // THIS PAGE DELIBERATELY HAS NO VERTICAL OFFSET, and the reason is worth
-// pinning: types.html's `.chip-thumb.is-sv` carries `translateY(-23%)` because
-// its thumbnail shares a line with a name and the two have to line up. These
-// cards put the image on its own row above the name, so there is nothing to line
-// up against and the offset would only lift the subject off the card's baseline.
+// pinning: types.html's roster chips carry a `translateY` because their thumbnail
+// shares a line with a name and the two have to line up. These cards put the image
+// on its own row above the name, so there is nothing to line up against and the
+// offset would only lift the subject off the card's baseline.
 ok(
   !/\.mv-learner[^{}]*is-sv[^{]*\{[^}]*translateY/.test(cssCode),
   "move.html's cards should NOT lift the SV artwork — the bottom-anchored framing is the intent"
+);
+
+/*
+ * And the counterpart on the page that DOES lift: a percentage of its own box, so
+ * it survives the thumbnail changing size between the desktop and phone figures.
+ *
+ * This reads the value out of types.html rather than restating it. The first
+ * version named `-23%` in a comment beside the assertion above, and when
+ * types.html's roster moved to a 40px/32px thumbnail and the offset was
+ * re-measured, that comment described a declaration that no longer existed —
+ * while every assertion in this file stayed green. A comment is not a check, and
+ * a number copied next to a checker is a number that goes stale in the one
+ * direction a reader cannot see (§3.S).
+ */
+const rosterLift = typesHtml.match(
+  /\.chip-grid--roster\s+\.chip-thumb\.is-sv\s+img\s*\{[^}]*translateY\((-?[\d.]+)%\)/
+);
+ok(rosterLift, 'types.html should lift its roster artwork by a percentage of the box');
+ok(
+  rosterLift && Math.abs(Number(rosterLift[1]) + 25) < 1,
+  'and the percentage should be the measured 25% the SV subject sits low',
+  rosterLift ? `${rosterLift[1]}%` : ''
 );
 
 /*

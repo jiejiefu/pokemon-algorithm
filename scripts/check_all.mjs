@@ -1314,6 +1314,30 @@ const CHECKERS = [
     inputs: ['assets/data/abilities_zh.json', 'assets/data/type_profiles.json', 'assets/js/type-chart.js'],
   },
   {
+    /*
+     * types.html's roster layout, measured rather than read. §3.P's shape: the
+     * page had no browser checker of any kind, and the first measurement of the
+     * layout found a defect that every other number missed — the grid's tracks
+     * were equal and the cards inside them were not.
+     *
+     * `manual: true` is honest here and is NOT a no-op: it is the flag that makes
+     * the runner print the hand-read-inputs caveat instead of ticking the row.
+     * The list below is still DECLARED, and it has to be — this checker opens no
+     * repo file of its own (the page arrives over HTTP), so without a declared
+     * list the cache would never invalidate it when types.html changed, and a
+     * browser checker that cannot be re-run by editing the page is a claim.
+     */
+    script: 'scripts/check_types_browser.mjs', group: 'type',
+    browser: true, needsServer: true, manual: true,
+    inputs: [
+      'types.html',
+      'assets/css/moves.css',
+      'assets/js/shared.js',
+      'assets/js/sv-index.js',
+      'assets/data/pokemon_data.json',
+    ],
+  },
+  {
     script: 'scripts/check_sv_index.mjs', group: 'type',
     inputs: [
       'types.html', 'assets/data/pokemon_data.json',
