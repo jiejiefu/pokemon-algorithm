@@ -951,6 +951,31 @@ The homepage used to be nine content sections. It is now a hero and five cards, 
 
 ---
 
+### AB. `types.html` Is One Page And Moves Is Two — And The Payload Argument Runs The Wrong Way
+
+Asked and answered, so it does not have to be re-litigated: **do not merge `move.html` into `moves.html`, and do not split `types.html` into an overview plus a `type.html?type=`.** Both structures are already right. **The intuition that would change them — 「one file is smaller than two」 — is the one number here that does not measure the thing**, and the measured payload runs the *opposite* way.
+
+**This is a decision record rather than an incident: nothing here has broken, and there is no defect shape behind it.** It is written down because both structures look arbitrary from the outside, and the obvious next question is the wrong one.
+
+| view | loads | bytes |
+| :--- | :--- | ---: |
+| `types.html?type=fire` (one file) | `type_profiles` 67K + `pokemon_data` **2.8M** + `moves_zh` 496K + `abilities_zh` 19K | **~3.4 MB** |
+| `moves.html` (list) | `moves_zh` 496K + `move_learners_count` 54K | **550 KB** |
+| `move.html?move=X` (detail) | `moves_zh` 496K + `move_learners` 424K | **920 KB** |
+
+- **SPLITTING `types.html` SAVES 86 KB OF 3.4 MB — 2.5%.** The detail view needs `pokemon_data.json` (the roster) and `moves_zh.json` (the move chips) either way; `type_profiles.json` + `abilities_zh.json` are the 86 KB. A split would give a 2.87 MB overview and a 3.38 MB detail page, and the only thing bought is a second document. **So `types.html` being one file has never been a bandwidth decision** — which is the premise the merge argument silently rests on.
+- **MERGING THE MOVE PAGES COSTS +424 KB ON THE LIST, A 77% INCREASE.** `moves.html` would load `move_learners.json` for a learner list a reader may never open: 550 KB → 974 KB, 393 → ~730 lines, and two mutually-exclusive render roots in one file.
+- **THE DECIDING VARIABLE IS CARDINALITY AND SHAPE DIVERGENCE, NOT FILE COUNT.** 18 types, all the same block structure (roster / effectiveness / abilities / moves / trainers) → one template applied 18 times. 919 moves, where the list wants filter + search + URL state and the detail wants four learn-method tabs + a learner roster → two templates, two files. **Expect this shape whenever a param'd detail view is proposed or removed: ask how many records there are and whether the list and the detail want the same shape. The byte count is the last question, and here it is the one pointing the wrong way.**
+- **BOTH MODELS ARE FULL-PAGE RELOADS TODAY, so the single file buys no switching speed.** The type links are `<a href="types.html?type=...">` (types.html:1112), not an SPA swap. All a shared document saves is re-downloading markup the HTTP cache already holds — so 「一個檔案切換比較快」 is not a benefit this project has, at either end.
+- **ON A DEEP LINK THE OVERVIEW IS CHROME AROUND THE DETAIL.** `renderTypeDetail()` rewrites the hero — kicker, title, lede and tint all become the type's (types.html:1217-1219) — while all 18 type cards and the 18×18 chart still render underneath. So `types.html?type=fire` is 「整張表包著一個詳情區塊」, and a reader who followed one link paid for the whole chart. **That is the honest cost of this structure and it is a real one**; the measurement above is what says the alternative costs more.
+- **THE NAV ROW IS THE ONE THING ONLY A SEPARATE DOCUMENT CAN HAVE.** `move.html` carries no nav row and no `pages` entry, exactly as `detail.html` does (§3.AA). Merging it would force it into `moves.html`'s navigation structure.
+
+**Guarded by:** nothing, and that is the right state for a structural judgement — it is a decision, not a claim with a threshold. **What IS guarded is the two-file split's precondition**: `check_moves_page.mjs:109,113` asserts each page loads only its own half of the payload, in both directions (§3.AA's "payload split is asserted in both directions"), so the split's *reason* cannot quietly stop being true even though nothing checks the file count. **Nothing would notice `types.html` being split into two files, and that is the intended coverage** — a reviewer is what guards it, and the table is here so they do not have to re-derive it.
+
+**Note that this section is deliberately NOT counted in §3's opening list of unguarded rules.** That list says 「four of the twenty-five」, and §3.J's own rule is that a count typed into prose goes stale; §3.V's 「35 → 36 prefixes」 is the receipt. **So: the count in that sentence was already unreliable before this section, and editing it here would replace one unverified number with another.**
+
+---
+
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
