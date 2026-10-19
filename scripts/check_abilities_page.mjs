@@ -41,6 +41,7 @@ const DETAIL = read('ability.html');
 const LIST_CODE = LIST.replace(/<!--[\s\S]*?-->/g, '');
 const DETAIL_CODE = DETAIL.replace(/<!--[\s\S]*?-->/g, '');
 const CSS = read('assets/css/abilities.css');
+const MOVES_CSS = read('assets/css/moves.css');
 
 let checks = 0;
 let failures = 0;
@@ -132,10 +133,21 @@ ok(
   /loadJson\('ability_species\.json'\)/.test(MODULE),
   'the module should fetch ability_species.json'
 );
-ok(
-  !/pokemon_data\.json/.test(MODULE),
-  'neither page may reach for pokemon_data.json (2.8 MB) — the holder index carries the name and the id it needs'
-);
+/**
+ * The claim is that neither page FETCHES the 2.8 MB roster, so the assertion
+ * looks for the load rather than for the string. The first version tested
+ * `!/pokemon_data\.json/.test(MODULE)` and went red the moment a comment named
+ * the file to explain why it is avoided — §3.S's shape, in JavaScript: a
+ * checker reading prose as code. `loadPokemonData` is shared.js's loader and a
+ * literal `fetch()` is the only other route, so covering both is the whole
+ * claim rather than a proxy for it.
+ */
+for (const [label, src] of [['abilities.js', MODULE], ['ability.html', DETAIL_CODE], ['abilities.html', LIST_CODE]]) {
+  ok(
+    !/loadPokemonData/.test(src) && !/fetch\([^)]*pokemon_data/.test(src),
+    `${label} must not load pokemon_data.json (2.8 MB) — the holder index carries the name and the id it needs`
+  );
+}
 
 ok(
   !LIST_CODE.includes('ability_species.json'),
@@ -291,6 +303,94 @@ ok(
 ok(
   CSS_CODE.includes('.ab-'),
   'every rule should be ab- prefixed so nothing here leaks onto a sibling page'
+);
+
+/* ===== contrast: the fill and its text are ONE token decision ===== */
+
+/**
+ * `--accent-gold-surface` is a SOLID fill that inverts with the theme — amber
+ * #f5c542 in dark, Poké Ball red #b3122a in light — and shared.css documents
+ * that it carries `--on-accent` text. `--text-primary` is the worst possible
+ * partner in both themes, because it is near-black in light and near-white in
+ * dark while the fill does the opposite:
+ *
+ *     light  --text-primary on the red   -> 2.56:1   ✗
+ *     dark   --text-primary on the gold  -> 1.44:1   ✗
+ *     light  --on-accent    on the red   -> 6.92:1   ✓
+ *     dark   --on-accent    on the gold  -> 11.62:1  ✓
+ *
+ * The rule shipped with `--text-primary` and a reader reported the badge as
+ * unreadable. The assertion is a PAIRING, not a single token: a rule may use
+ * either colour, as long as a gold fill does not sit under a primary-text
+ * colour. Read against the comment-stripped copy, because both files' own
+ * comments now name these tokens to explain the rule (§3.S's fix).
+ */
+const accentFillWithPrimary = /\{[^}]*background:\s*var\(--accent-gold-surface\)[^}]*\}/g;
+for (const sheet of [CSS, MOVES_CSS]) {
+  const code = sheet.replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = code.match(accentFillWithPrimary) || [];
+  ok(
+    rules.length > 0,
+    `the scan found at least one --accent-gold-surface fill to check in ${sheet === CSS ? 'abilities.css' : 'moves.css'}`
+  );
+  for (const rule of rules) {
+    ok(
+      /color:\s*var\(--on-accent\)/.test(rule),
+      'a rule filling with --accent-gold-surface must set color: var(--on-accent)',
+      rule.replace(/\s+/g, ' ').slice(0, 120)
+    );
+    ok(
+      !/color:\s*var\(--text-primary\)/.test(rule),
+      'a rule filling with --accent-gold-surface must NOT set color: var(--text-primary) — that is 2.56:1 light and 1.44:1 dark'
+    );
+  }
+}
+
+/* ===== the holder artwork is the official Scarlet/Violet set ===== */
+
+/**
+ * Both `hasSv()` and `svUrl()` take an id, so the holder grid gets official
+ * artwork without loading pokemon_data.json — which is what keeps §3.AB's
+ * payload split intact. Asserted as a FALLBACK SHAPE rather than as the literal
+ * call, so a page that hardcodes `svUrl()` with no way down to the sprite would
+ * fail.
+ */
+ok(
+  /hasSv\(row\.baseId\)\s*\?\s*svUrl\(row\.baseId\)\s*:\s*spriteUrl\(row\.baseId\)/.test(MODULE),
+  'holderSprite() should prefer the SV artwork and fall back to the 96px sprite'
+);
+ok(
+  DETAIL_CODE.includes('holderSprite') && DETAIL_CODE.includes('holderHasSv'),
+  'ability.html should render through both, so the fallback gets the sr-only note'
+);
+ok(
+  DETAIL_CODE.includes('sr-only') && /Scarlet\/Violet 圖尚未釋出/.test(DETAIL_CODE),
+  'the sprite fallback should be announced to a screen reader, as move.html does'
+);
+
+/**
+ * `object-fit` and `object-position` are asserted TOGETHER, never apart. §3.E
+ * records why: the SV set is bottom-anchored with the space above it, so
+ * `contain` alone passes a "does it fit" assertion while leaving the subject
+ * ~3.7px above the card's own baseline — measured 25–26% of the box low.
+ */
+const holderImgRule = (CSS_CODE.match(/\.ab-holder img\s*\{[^}]*\}/) || [''])[0];
+ok(/\.ab-holder img\s*\{/.test(CSS_CODE), '.ab-holder img should declare its own box');
+ok(
+  /object-fit:\s*contain/.test(holderImgRule),
+  '.ab-holder img should use object-fit: contain — width/height alone stretches the 120×112 SV art by 6%'
+);
+ok(
+  /object-position:\s*bottom/.test(holderImgRule),
+  '.ab-holder img should pair object-fit with object-position: bottom, or the bottom-anchored subject floats off the card baseline (§3.E)'
+);
+ok(
+  !/image-rendering/.test(holderImgRule),
+  '.ab-holder img must NOT set image-rendering — the house convention is for upscales, and this is a 56px downscale'
+);
+ok(
+  !/translateY/.test(holderImgRule),
+  '.ab-holder img must NOT carry a vertical offset — types.html needs one because its chips put the image and name on one line; these cards do not'
 );
 
 /* ===== report ===== */
