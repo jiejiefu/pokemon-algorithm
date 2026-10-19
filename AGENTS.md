@@ -387,7 +387,7 @@ The frame is three columns and the viewport is the frame. The brand moved into t
 - **Two dead rules deleted; the 3px `--page-accent` did NOT move to the rail** (asked for explicitly).
 **Guarded by:** `check_color_page.mjs` + 8 mutation cases (`test_check_color_page.mjs` at 61) · **Background:** [page-defects.md#s](docs/incidents/page-defects.md#s)
 
-### V. `graph.html`'s 精選分類 Filtered A Pile
+### V. `graph.html`'s 「精選分類」 Filtered A Pile
 超級進化 drew 93 sprites with **0 edges**; 超極巨化 34. `graph.js:399-403` is not the bug: **every `mega`/`gmax` link is `base → form`, cross-category by construction.** Do not keep 1-hop neighbours in the filter.
 - **A copied value is a plausible value:** form nodes had their base's `types`/`generation`/`stats` (17 of 93 mega forms change type). Fixed by `scripts/fetch_form_stats.py` (`/pokemon/{id}`, not `/pokemon-form/{id}` — no `stats` key).
 - **A 200 is not evidence that a form exists** (id 10314 answers as a different form); the test is the form NAME. `order == -1` rejects 79 legitimate forms — written, measured, deleted.
@@ -408,7 +408,7 @@ Ported from `pokemonpalette`; each interesting part is a decision.
 - The ≤640px strip is `100px × 40px` on its own line; `flex: 1 1 0` (a mutation no pixel can see).
 **Guarded by:** `check_game_similarity.mjs` (101 + 24), `check_game_hints.mjs` (36), `check_color_game.mjs` (260, mutation cases run by hand and NOT committed) + `check_color_game_browser.mjs` (182, 4.2 s) · **Background:** [color.md#w](docs/incidents/color.md#w)
 
-### X. 兩個頁面在手機上，控制欄在主內容之上
+### X. On A Phone, The Control Rail Sits Above The Main Content
 `cries.html` and `spectrum.html` flip to one column below 900px with the control bar first and `position: static`. **Nothing measured the mobile width** (`check_spectrum_browser.mjs` widens past the breakpoint; `check_cries_browser.mjs` is `manual: true`).
 - **`<details>` broke spectrum's desktop layout** (inserts `::details-content`); disclosure is now `<button aria-expanded>` + `<div hidden>` with `.sp-picker { display: contents }`.
 - **`getBoundingClientRect()` lies about descendants of a collapsed `<details>`** (returns the remembered size).
@@ -418,7 +418,7 @@ Ported from `pokemonpalette`; each interesting part is a decision.
 - **The play control is duplicated (rail + plot), both directions tested.**
 **Guarded by:** `check_cry_mobile_layout.mjs` (36, both pages at 390×844 in one browser); static halves in `check_spectrum_page.mjs` (234, +17) and `check_cries_page.mjs` (78, +7) · **Background:** [page-defects.md#x](docs/incidents/page-defects.md#x)
 
-### Y. `cry-game.html` — 叫聲猜謎
+### Y. `cry-game.html` — 「叫聲猜謎」
 Ported from `pokemoncries.com`; ten questions, four nameless sprites each. The design was measured twice and rejected twice.
 - **DIFFICULTY IS A CEILING ON ONE NUMBER** (`easy 0.35 · hard 0.65 · hell Infinity`); rank bands did not separate 困難 and 地獄. The ceiling is asserted as an identity.
 - **THE GENERATION FILTER IS A POOL, NOT A DIFFICULTY** (derived from `availableGenerations()`).
@@ -443,7 +443,7 @@ Ported from `pokemoncries.com`; ten questions, four nameless sprites each. The d
 - Measurement bugs: `captureScreenshot` clip is PAGE coords; a brightest-pixel search inside the text box finds only the text; wait for `currentTime` to move then stop.
 **Guarded by:** `check_home_hero.mjs` (89, 0.2 s, group `home`) + `test_check_home_hero.mjs` (19). The rendered half is retired for a hang that was a missing `process.exit()` · **Background:** [pages.md#z](docs/incidents/pages.md#z)
 
-### AA. `moves.html` / `move.html` — 919 招式
+### AA. `moves.html` / `move.html` — 919 Moves
 - **EFFECT TEXT HAS TWO PROVENANCES, boundary at a generation line:** 826 rows from PokeAPI zh-hant, 93 (ids 827–919) from InfoPoke Simplified via OpenCC `s2twp`. InfoPoke's numbers/names are not read at all.
 - **Converting the 826 would make them worse** (18 diverge from official wording) — the checker asserts IDEMPOTENCE.
 - **`total` counts DISTINCT POKÉMON** (`learnsets.json` is a union over generations).
@@ -463,7 +463,7 @@ Ported from `pokemoncries.com`; ten questions, four nameless sprites each. The d
 - **The nav row is the one thing only a separate document can have.**
 **Guarded by:** nothing (a structural judgement); `check_moves_page.mjs:109,113` guards the split's precondition in both directions · **Background:** [pages.md#ab](docs/incidents/pages.md#ab)
 
-### AC. `abilities.html` / `ability.html` — 314 特性
+### AC. `abilities.html` / `ability.html` — 314 Abilities
 - **THE HOLDER MAP IS READ FROM POKEAPI AND CANNOT BE INVERTED FROM `pokemon_data.json`** (30 form-exclusive holders; Groudon/Zacian carry `forms: []`).
 - **The base species is resolved by `species.id`, never by matching names.**
 - **`Farfetch'd`'s ASCII apostrophe is deliberate.** **Twelve species carried a misspelled EN name**, and it was a reader who found it; the defect was in the source XLSX, so the fix was guarded text edits (the generator no longer reproduces the roster).

@@ -194,11 +194,11 @@ Two details that are contracts rather than implementation:
 - **Legs that finish leave the rotation**, so the remaining ones speed up instead of polling four generators to get one answer.
 - **`legs` is rebuilt in `PATROL_LEGS` order, not completion order.** On a grid whose four corners are all equidistant, completion order already *is* `PATROL_LEGS` order and a completion-ordered result is indistinguishable from a sorted one. The checker therefore uses a 7×7 grid with the centre at `(1,1)`, where the corners are 2, 10, 6 and 6 hops away and the orderings differ.
 
-### 探索格數 is the union, and both numbers are printed
+### 「探索格數」 is the union, and both numbers are printed
 
 `explored` now counts a cell **only when its flag actually flips**, so it equals what the canvas shows; a new `settled` counter totals every settle across all four legs. For a single run the two are identical, which is why the run log's 探索 column keeps meaning the same thing in both rows. **Reporting only the total is how a status line ends up describing a number no reader can see.**
 
-### 點亮整張圖, and why 復原 is not a re-run
+### 「點亮整張圖」, and why 「復原」 is not a re-run
 
 `litAll` forces `alpha` to 1 in `Cell.draw` and makes `drawMarkers` return before drawing anything. It **never touches `onPath` or `searchVisited`** — those stay exactly as the run left them, so 復原 restores the final-path view for free instead of replaying anything. The markers go too, and not S/G only: the patrol's A/B/C/D are the same kind of annotation, and the `litAll` bail-out sits **before** the `runKind` branch precisely so the corner discs cannot survive it.
 
@@ -421,7 +421,7 @@ The read became a named `RESULT_PANEL_STATE` helper reporting `{ shown, present 
 
 <a id="v"></a>
 
-## V. 精選分類 Filtered A Pile, And The Reason Was Three Lines That Are Correct In Isolation
+## V. 「精選分類」 Filtered A Pile, And The Reason Was Three Lines That Are Correct In Isolation
 
 `graph.html`'s 精選分類 row has nine chips. Pressing 傳說寶可夢 draws a web; pressing 超級進化 draws **93 sprites with no edges between them**, scattered by the repulsion force. Measured over `graph_data.json` with the filter's own predicate:
 

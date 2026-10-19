@@ -12,7 +12,7 @@ because in-code comments and runtime messages point at `§3.<letter>`.
 
 <a id="z"></a>
 
-## Z. `index.html` Is Two Sections And A Clip, And 今日推薦 Took The Other Eight
+## Z. `index.html` Is Two Sections And A Clip, And 「今日推薦」 Took The Other Eight
 The homepage used to be nine content sections. It is now a hero and five cards, and everything else moved to `today.html`, which is the first row under 圖鑑. This section records the three decisions that are not derivable from the code, because all three are choices someone could re-litigate from scratch.
 
 - **THE SCRUB WRITES `currentTime` AND NEVER CALLS `play()`.** The hero is a 240vh track whose sticky layer holds one generation's 10 s clip, and the reader's progress through the track is written straight into `video.currentTime`. Autoplay would give the reader a loop they did not ask for and could not stop; scrub gives them a position that is a function of where they are. **Scrolling UP plays the clip backwards**, and that falls out of the mechanism rather than being a feature — `currentTime` is a seek, and a seek to a smaller number goes to a smaller number. A play/pause transport cannot do it without a second implementation of time.
@@ -77,7 +77,7 @@ The homepage used to be nine content sections. It is now a hero and five cards, 
 
 <a id="aa"></a>
 
-## AA. `moves.html` / `move.html` — 919 招式, And The Four Bugs Only A Browser Could See
+## AA. `moves.html` / `move.html` — 919 Moves, And The Four Bugs Only A Browser Could See
 
 `moves_zh.json` shipped **782** moves for a year, because `fetch_moves.py` only emitted the ones the 1,025 reference. PokeAPI has **919** non-shadow moves, and the missing 137 are Z-moves, Max Moves, Hisuian 四季之符 and 掙扎 — a move no Pokémon learns is still a catalogue entry, and a 招式 page is a database. `move.html` carries **no nav row and no `pages` entry**, exactly as `detail.html` does; `moves.html` has both, because `check_color_page.mjs` requires a row-claimed page to appear in its group's `pages` or the aria-current lands inside a `[hidden]` panel.
 
@@ -133,7 +133,7 @@ Asked and answered, so it does not have to be re-litigated: **do not merge `move
 
 <a id="ac"></a>
 
-## AC. `abilities.html` / `ability.html` — 314 特性, And The Holder Map Cannot Come From Our Own Roster
+## AC. `abilities.html` / `ability.html` — 314 Abilities, And The Holder Map Cannot Come From Our Own Roster
 
 Two pages, split because §3.AB's rule says so: 314 records, and the list wants filter + search + URL state while the detail wants an effect and a species roster. **`ability.html` carries no nav row**, exactly as `move.html` and `detail.html` do — it is reached by drilling in from a card, and `check_abilities_page.mjs` asserts that absence, because an assertion that a name is *present* cannot express "must not be" (§3.W's `role="img"` lesson).
 

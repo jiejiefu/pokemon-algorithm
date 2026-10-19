@@ -213,7 +213,7 @@ A page default that reaches storage through an unrelated control is **worse** th
 
 <a id="y"></a>
 
-## Y. `cry-game.html` — 叫聲猜謎, And The Axis That Had To Be Measured Before It Could Be Written
+## Y. `cry-game.html` — 「叫聲猜謎」, And The Axis That Had To Be Measured Before It Could Be Written
 Ported from `pokemoncries.com`. Ten questions a round, four nameless sprites each, one cry to listen to. **The design was measured twice and rejected twice; both rejections are the reason this section exists.**
 
 - **THE NAME IS ONE HALF OF A PAIR, and the pair is why `color-game.html` is 顏色猜謎.** 叫聲猜謎 / 顏色猜謎 — four characters, one shared suffix, differing only in the medium. **This page's name is what made 猜謎遊戲 ambiguous**, so the naming rule and the rule about not renaming one of the four sites without the rest live in **§3.W**, not here. Read them before changing either title, `<h1>`, NAV label, or share string.
