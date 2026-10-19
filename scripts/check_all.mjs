@@ -983,7 +983,7 @@ const CHECKERS = [
    * §3-background anchor is caught by the same run that reads it. */
   {
     script: 'scripts/check_agents_size.mjs', group: 'nav',
-    inputs: ['AGENTS.md', 'docs/incidents/*', 'scripts/check_agents_size.mjs'],
+    inputs: ['AGENTS.md', 'docs/incidents/*'],
   },
   {
     script: 'scripts/test_check_agents_size.mjs', checker: 'scripts/check_agents_size.mjs',
@@ -1123,6 +1123,11 @@ const CHECKERS = [
     inputs: [
       'abilities.html', 'ability.html',
       'assets/css/abilities.css',
+      // Read by check_abilities_page.mjs itself: the shared type-badge rule it
+      // compares against lives in moves.css, and the sprite map it joins is
+      // sv-index.js. Both were found by --prove-inputs, not by reading.
+      'assets/css/moves.css',
+      'assets/js/sv-index.js',
       'assets/js/abilities.js',
       'assets/js/shared.js',
       'assets/js/color-palette.js',
