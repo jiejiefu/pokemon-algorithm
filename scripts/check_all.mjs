@@ -942,6 +942,16 @@ const CHECKERS = [
       'assets/css/moves.css',
       'assets/js/moves.js',
       'assets/js/shared.js',
+      // Transitive through shared.js, found by --prove-inputs rather than by
+      // reading. This under-declaration is PRE-EXISTING, not introduced with
+      // the abilities entries: shared.js has imported form-names.js and
+      // shiny-index.js since before either page. §4's rule is that a missing
+      // entry means the checker is skipped after that file changed, so the run
+      // is green having verified nothing — strictly worse than no cache, because
+      // it looks like coverage.
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
       'assets/data/moves_zh.json',
       'assets/data/move_learners_count.json',
       'types.html',
@@ -955,6 +965,16 @@ const CHECKERS = [
       'assets/css/moves.css',
       'assets/js/moves.js',
       'assets/js/shared.js',
+      // Transitive through shared.js, found by --prove-inputs rather than by
+      // reading. This under-declaration is PRE-EXISTING, not introduced with
+      // the abilities entries: shared.js has imported form-names.js and
+      // shiny-index.js since before either page. §4's rule is that a missing
+      // entry means the checker is skipped after that file changed, so the run
+      // is green having verified nothing — strictly worse than no cache, because
+      // it looks like coverage.
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
       'assets/data/moves_zh.json',
       'assets/data/move_learners_count.json',
       'types.html',
@@ -968,10 +988,68 @@ const CHECKERS = [
       'assets/css/moves.css',
       'assets/js/moves.js',
       'assets/js/shared.js',
+      // Transitive through shared.js, found by --prove-inputs rather than by
+      // reading. This under-declaration is PRE-EXISTING, not introduced with
+      // the abilities entries: shared.js has imported form-names.js and
+      // shiny-index.js since before either page. §4's rule is that a missing
+      // entry means the checker is skipped after that file changed, so the run
+      // is green having verified nothing — strictly worse than no cache, because
+      // it looks like coverage.
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
       'assets/data/moves_zh.json',
       'assets/data/move_learners.json',
       'assets/data/move_learners_count.json',
       'assets/data/pokemon_data.json',
+    ],
+  },
+
+  /* ---- abilities.html / ability.html ----
+   *
+   * Two entries, following §3.G4's split rather than §3.AA's: the data half is
+   * a pure-Node read of two generated tables at ~0.1s, and the page half RUNS the
+   * shared module over all 314 rows instead of reading its source. That is only
+   * possible because the queries live in assets/js/abilities.js — §3.P's lesson
+   * is that a query inside a page's <script type="module"> block can be checked
+   * by nothing but its text, and four vacuous assertions in check_maze_page.mjs
+   * came from exactly that.
+   *
+   * Neither entry is `browser: true`. Unlike the moves pair, neither abilities
+   * page has a rendered half yet — one Chrome smoke run covered both pages and
+   * found nothing the static half could not also assert, so adding a CDP entry
+   * would be a cost with no defect behind it. §3.Z prices that trade and names
+   * what is given up. `nav` because both pages are governed by
+   * check_color_page.mjs's NAV claim table, so they belong with the other page
+   * checkers rather than in `data`. */
+  {
+    script: 'scripts/check_abilities_data.mjs', group: 'nav',
+    inputs: [
+      'assets/data/abilities.json',
+      'assets/data/ability_species.json',
+      'assets/data/abilities_zh.json',
+      'assets/data/pokemon_data.json',
+    ],
+  },
+  {
+    script: 'scripts/check_abilities_page.mjs', group: 'nav',
+    inputs: [
+      'abilities.html', 'ability.html',
+      'assets/css/abilities.css',
+      'assets/js/abilities.js',
+      'assets/js/shared.js',
+      'assets/js/color-palette.js',
+      // Transitive through the two imports above, and found by --prove-inputs
+      // rather than by reading: shared.js pulls form-names.js for the forme
+      // labels and shiny-index.js for the shiny roster, and form-names.js pulls
+      // the generated form-names-zh.js. Declaring only what this file opens
+      // directly is the exact defect §4 describes — the entry would be skipped
+      // after one of those four changed, while looking covered.
+      'assets/js/form-names.js',
+      'assets/js/form-names-zh.js',
+      'assets/js/shiny-index.js',
+      'assets/data/abilities.json',
+      'assets/data/ability_species.json',
     ],
   },
 

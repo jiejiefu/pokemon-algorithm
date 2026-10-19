@@ -1,0 +1,473 @@
+/*
+ * abilities.css — abilities.html and ability.html
+ *
+ * Every rule here is `ab-` prefixed and mounted on this page only. Nothing in
+ * moves.css is edited for an abilities-only need, for the reason §3.B1 records
+ * for colors-generator.css: a shared rule reshaped for one page is a change
+ * that lands on the sibling page as a regression nobody chose.
+ *
+ * `--page-accent` is deliberately NOT used. shared.css declares it on the
+ * `.header-*` modifiers only, so it is undefined on a body descendant — and an
+ * invalid `var()` computes to the INHERITED value, which reads as a colour that
+ * happens to be wrong rather than as a variable nobody declared (§3.W).
+ */
+
+.ab-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.ab-hero {
+  margin-bottom: 26px;
+}
+
+.ab-hero h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+}
+
+.ab-hero-sub {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.75;
+  max-width: 760px;
+  margin: 0 0 18px;
+}
+
+.ab-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ab-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- controls ---- */
+
+.ab-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.ab-search {
+  width: 100%;
+  max-width: 520px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-controls);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+}
+
+.ab-search:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ab-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  align-items: center;
+}
+
+.ab-chipgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ab-chipgroup-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ab-chip {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ab-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.ab-chip[aria-pressed='true'] {
+  background: var(--accent-gold-surface);
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+}
+
+.ab-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ab-resultline {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+
+/* ---- the grid ---- */
+
+.ab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(288px, 1fr));
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ab-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.ab-card:hover {
+  border-color: var(--hairline-strong);
+  transform: translateY(-2px);
+}
+
+.ab-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ab-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ab-card-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The three abilities PokeAPI has no Chinese name for. Marked rather than
+ * hidden, because a card with no marker reads as a page that simply failed to
+ * find the translation. */
+.ab-card-name.is-en {
+  font-style: italic;
+}
+
+.ab-card-en {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ab-gen {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--surface-panel);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.ab-card-effect {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.ab-card-meta {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--hairline);
+}
+
+/* ---- the upstream-English block (§3.D's blurbEn rule) ---- */
+
+.ab-en-note {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  background: var(--surface-panel);
+  border-left: 3px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+}
+
+.ab-en-note-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ab-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  font-size: 11px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  border: 1px solid var(--hairline);
+}
+
+.ab-badge-hidden {
+  background: var(--accent-gold-surface);
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+}
+
+.ab-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* ability.html's not-found panel: same colour and rhythm as the list page's
+   no-results state, because both are the page saying 「not here」. */
+.ab-empty-title {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.ab-status {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.ab-status.is-error {
+  color: var(--error-text);
+}
+
+/* ================= ability.html ================= */
+
+.ab-detail-hero {
+  margin-bottom: 26px;
+}
+
+.ab-detail-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.ab-detail-title h1 {
+  font-size: 34px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ab-detail-en {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.ab-detail-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.ab-effect-body {
+  margin: 0 0 12px;
+  padding: 16px 18px;
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.ab-section {
+  margin-bottom: 34px;
+}
+
+.ab-section > h2 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+}
+
+.ab-section > h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 20px 0 10px;
+  color: var(--text-secondary);
+}
+
+.ab-section-note {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.ab-holders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ab-holder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.ab-holder:hover {
+  background: var(--surface-hover);
+}
+
+.ab-holder:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ab-holder img {
+  width: 56px;
+  height: 56px;
+  /* Deliberately absent: `crisp-edges` is the house convention for UPSCALES
+     only (shared.css draws the 96px sprite at 140px). This is a 56px downscale
+     by a non-integer factor, where nearest-neighbour drops pixels unevenly and
+     reads worse than smooth — §3.E's rule, applied to this page. */
+  object-fit: contain;
+}
+
+.ab-holder-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.ab-formnote {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ab-guide {
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.ab-guide h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.ab-guide dl {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.ab-guide dt {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ab-guide dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+
+.ab-backlink {
+  display: inline-block;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.ab-backlink:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.ab-backlink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .ab-hero h1 { font-size: 26px; }
+  .ab-detail-title h1 { font-size: 28px; }
+  .ab-grid { grid-template-columns: 1fr; }
+  .ab-holders { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+  .ab-holder img { width: 48px; height: 48px; }
+}

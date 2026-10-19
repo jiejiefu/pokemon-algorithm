@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢特性大全 — 314 種特性完整資料庫</title>
+  <meta name="description" content="寶可夢 314 種特性的完整資料庫：效果說明、引入世代、常見特性與隱藏特性，以及擁有每一種特性的寶可夢名單。可搜尋中文名、英文名與編號。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Blocking, inline, and before the stylesheet, same block and same reason as
+       every other page: the sticky controls must not flash the wrong palette. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/abilities.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="ab-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <a href="pokedex.html">圖鑑</a> / <span aria-current="page">特性</span>
+    </nav>
+
+    <section class="ab-hero" aria-labelledby="ab-title">
+      <h1 id="ab-title">寶可夢特性大全</h1>
+      <p class="ab-hero-sub">
+        特性從第三世代開始出現，每隻寶可夢都有，多數有兩種常見特性與一種隱藏特性。
+        這裡收錄 314 種特性的效果說明與持有者名單。點任何一張卡片可以看完整說明，
+        以及哪些寶可夢把它當作常見特性、哪些把它當作隱藏特性。
+      </p>
+      <ul class="ab-stats" id="ab-stats"></ul>
+    </section>
+
+    <div class="ab-controls">
+      <label class="sr-only" for="ab-search">搜尋特性</label>
+      <input
+        class="ab-search"
+        id="ab-search"
+        type="search"
+        placeholder="搜尋中文名、英文名或編號，例如 威嚇、intimidate 或 022"
+        autocomplete="off"
+        spellcheck="false">
+      <div class="ab-chiprow" id="ab-filters"></div>
+    </div>
+
+    <p class="ab-resultline" id="ab-resultline" role="status" aria-live="polite"></p>
+
+    <div id="ab-grid-wrap">
+      <p class="ab-status" id="ab-status">載入中…</p>
+    </div>
+  </main>
+
+  <p class="footer-note">特性資料來自 PokeAPI・共 314 種特性・寶可夢資料共 1,025 隻</p>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import {
+      prepareAbilities, filterAbilities, loadAbilities,
+      abilityName, abilityIsFallbackName, abilityEffect, abilityEffectEn,
+      abilityGenerationText, abilityUrl
+    } from './assets/js/abilities.js';
+
+    initThemeToggle();
+    initHeaderNav('abilities.html');
+
+    /**
+     * The filter state lives in the URL, exactly as it does on moves.html, and
+     * for the same reason: every combination is a link a reader can copy to a
+     * friend, a reload survives it, and `abilities.html?gen=3` is a real
+     * destination. The deep link IS the thing the filters build, not a second
+     * implementation of it.
+     */
+    const params = new URLSearchParams(location.search);
+
+    const state = {
+      q: params.get('q') || '',
+      gen: params.get('gen') ? Number(params.get('gen')) : null,
+      hidden: params.get('hidden') === '1',
+      form: params.get('form') === '1'
+    };
+
+    const els = {
+      search: document.getElementById('ab-search'),
+      filters: document.getElementById('ab-filters'),
+      stats: document.getElementById('ab-stats'),
+      resultLine: document.getElementById('ab-resultline'),
+      wrap: document.getElementById('ab-grid-wrap'),
+      status: document.getElementById('ab-status')
+    };
+
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    let rows = [];
+
+    function setParam(key, value) {
+      if (value === null || value === '' || value === undefined || value === false) {
+        params.delete(key);
+      } else {
+        params.set(key, key === 'gen' ? String(value) : '1');
+      }
+      const query = params.toString();
+      history.replaceState(null, '', query ? `?${query}` : location.pathname);
+    }
+
+    /* ---- filters ---- */
+
+    /**
+     * One filter row. The accepted values are read from the loaded rows rather
+     * than restated, for moves.html's reason: a chip list typed out next to the
+     * filter it filters is a second answer to the same question, and it goes
+     * stale silently because the stale list still parses and still renders.
+     */
+    function chipRow(label, key, values, labelFor) {
+      const group = document.createElement('div');
+      group.className = 'ab-chipgroup';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', label);
+
+      const caption = document.createElement('span');
+      caption.className = 'ab-chipgroup-label';
+      caption.textContent = label;
+      group.appendChild(caption);
+
+      const pressed = () => (key === 'gen' ? String(state.gen) : state[key] ? '1' : '0');
+
+      for (const value of values) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'ab-chip';
+        chip.dataset.filter = key;
+        chip.dataset.value = value == null ? '' : String(value);
+        chip.textContent = labelFor(value);
+        chip.setAttribute('aria-pressed', String(pressed() === chip.dataset.value));
+        chip.addEventListener('click', () => {
+          const next = pressed() === chip.dataset.value ? null : chip.dataset.value;
+          // `gen` is a number and the other two are flags, and getting this
+          // wrong is silent: Number('1') on the flag rows would give a filter
+          // that matches nothing while the chip still looks pressed. moves.html
+          // documents the same trap on its learnability chip.
+          if (key === 'gen') {
+            state.gen = next === null ? null : Number(next);
+          } else {
+            state[key] = next !== null;
+          }
+          setParam(key, state[key]);
+          render();
+        });
+        group.appendChild(chip);
+      }
+      return group;
+    }
+
+    function renderFilters() {
+      const generations = [...new Set(rows.map(a => a.generation))].sort((a, b) => a - b);
+      const frag = document.createDocumentFragment();
+      frag.appendChild(chipRow(
+        '世代', 'gen', generations,
+        gen => `${abilityGenerationText(gen)} · ${rows.filter(a => a.generation === gen).length}`
+      ));
+      frag.appendChild(chipRow('特性種類', 'hidden', [1], () =>
+        `有隱藏特性 · ${rows.filter(a => a.hasHidden).length}`
+      ));
+      frag.appendChild(chipRow('特性種類', 'form', [1], () =>
+        `含形態專屬 · ${rows.filter(a => a.formCount).length}`
+      ));
+      els.filters.replaceChildren(frag);
+    }
+
+    /* ---- stats ---- */
+
+    function renderStats() {
+      const items = [
+        { value: rows.length, label: '特性' },
+        { value: rows.filter(a => a.nameZh).length, label: '已中文化' },
+        { value: new Set(rows.map(a => a.generation)).size, label: '世代' },
+        { value: rows.filter(a => a.hasHidden).length, label: '含隱藏特性' }
+      ];
+      els.stats.replaceChildren(...items.map(item => {
+        const li = document.createElement('li');
+        li.className = 'ab-stat';
+        const value = document.createElement('span');
+        value.className = 'ab-stat-value';
+        value.textContent = item.value.toLocaleString('en-US');
+        const label = document.createElement('span');
+        label.className = 'ab-stat-label';
+        label.textContent = item.label;
+        li.append(value, label);
+        return li;
+      }));
+    }
+
+    /* ---- the grid ---- */
+
+    /**
+     * One card. The Chinese effect is the point of the card, so the English
+     * fallback is not spliced into it — it gets its own labelled block below.
+     * A card that mixed the two languages inside one sentence would be a bug
+     * (AGENTS.md §3.W), and one that printed neither would be a blank rectangle
+     * on a page whose entire subject is the description.
+     */
+    function cardHtml(ability) {
+      const zh = abilityEffect(ability);
+      const en = zh ? '' : abilityEffectEn(ability);
+      return `<a class="ab-card" href="${esc(abilityUrl(ability))}">
+        <span class="ab-card-head">
+          <span class="ab-card-name${abilityIsFallbackName(ability) ? ' is-en' : ''}">${esc(abilityName(ability))}</span>
+          <span class="ab-card-en">${esc(ability.nameEn)}</span>
+          <span class="ab-gen">${esc(abilityGenerationText(ability.generation))}</span>
+        </span>
+        ${zh ? `<p class="ab-card-effect">${esc(zh)}</p>` : ''}
+        ${en ? `<p class="ab-en-note"><span class="ab-en-note-label">英文原文（PokeAPI）</span>${esc(en)}</p>` : ''}
+        <span class="ab-card-meta">
+          <span>${ability.speciesCount} 隻寶可夢</span>
+          ${ability.formCount ? `<span>其中 ${ability.formCount} 個形態</span>` : ''}
+          ${ability.hasHidden ? '<span class="ab-badge ab-badge-hidden">有隱藏特性</span>' : ''}
+        </span>
+      </a>`;
+    }
+
+    function render() {
+      const list = filterAbilities(rows, state);
+
+      if (!list.length) {
+        els.resultLine.textContent = '沒有符合的特性';
+        els.wrap.innerHTML = '<p class="ab-empty">沒有符合的篩選條件，換個關鍵字或放寬世代試試。</p>';
+        return;
+      }
+
+      els.resultLine.textContent =
+        `顯示 ${list.length} / ${rows.length} 種特性`;
+
+      els.wrap.innerHTML =
+        `<ul class="ab-grid">${list.map(cardHtml).join('')}</ul>`;
+    }
+
+    /* ---- boot ---- */
+
+    els.search.addEventListener('input', () => {
+      state.q = els.search.value;
+      setParam('q', state.q);
+      render();
+    });
+
+    function status(message, isError) {
+      els.status.textContent = message;
+      els.status.classList.toggle('is-error', Boolean(isError));
+    }
+
+    loadAbilities().then(data => {
+      rows = prepareAbilities(data);
+      els.search.value = state.q;
+
+      // A deep link can carry anything. An unrecognised value is dropped rather
+      // than rendered as a filter that matches nothing, because 「0 個特性」 with
+      // no reason is indistinguishable from a broken page.
+      if (state.gen && !rows.some(a => a.generation === state.gen)) {
+        console.warn(`[abilities] unknown ?gen=${state.gen}, ignoring it`);
+        state.gen = null;
+        params.delete('gen');
+      }
+
+      renderStats();
+      renderFilters();
+      render();
+      els.status.remove();
+    }).catch(err => {
+      console.error(err);
+      status(
+        `${location.protocol === 'file:' ? '這個頁面需要透過 HTTP 開啟（file:// 會被 CORS 擋下）。' : ''}載入特性資料失敗：${err.message}`,
+        true
+      );
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>特性 — 寶可夢特性資料庫</title>
+  <meta name="description" content="一種寶可夢特性的完整說明：效果、引入世代，以及把它當作常見特性與隱藏特性的寶可夢名單。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/abilities.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="ab-page" id="ab-root">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <a href="pokedex.html">圖鑑</a> /
+      <a href="abilities.html">特性</a> / <span aria-current="page" id="ab-crumb">…</span>
+    </nav>
+
+    <p class="ab-status" id="ab-status">載入中…</p>
+  </main>
+
+  <p class="footer-note">特性資料來自 PokeAPI・共 314 種特性・寶可夢資料共 1,025 隻</p>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import {
+      loadAbilities, loadAbilitySpecies, splitAbilityHolders,
+      abilityName, abilityIsFallbackName, abilityEffect, abilityEffectEn,
+      abilityGenerationText, holderUrl, holderSprite
+    } from './assets/js/abilities.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    /**
+     * Deliberately NO nav row for this page, exactly as move.html and detail.html
+     * carry none. Both are reached by drilling in from a row in abilities.html,
+     * so a trigger here would claim a destination the reader never arrives at
+     * by choosing it — and `check_color_page.mjs` requires a row-claimed page to
+     * appear in its group's `pages`, which would then need this file listed.
+     */
+    const root = document.getElementById('ab-root');
+    const status = document.getElementById('ab-status');
+    const crumb = document.getElementById('ab-crumb');
+
+    /**
+     * The two places a number is rendered from, so the page never restates it.
+     * Both were typed as literals first and both are wrong the moment the table
+     * is regenerated at a different count — §3.AB's rule that a count written
+     * down is a count that will be.
+     */
+    let TOTAL = 0;
+
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    /**
+     * `?ability=` is user input, so it is looked up in the loaded table rather
+     * than trusted to name a row. An unknown slug renders the same 「找不到這個
+     * 特性」 panel a reader deserves, with a link back, instead of a page whose
+     * title says 「undefined」.
+     */
+    const slug = String(new URLSearchParams(location.search).get('ability') || '').toLowerCase();
+
+    /**
+     * The not-found panel. Its first draft was an <h1> plus a note, which meant
+     * it matched none of the page's selectors — so a poll waiting for the real
+     * page's landmarks could not tell "this panel rendered" from "nothing
+     * rendered", and timed out on a perfectly correct response. The `ab-empty`
+     * class is what fixes it, and it is the same treatment the list page gives
+     * its no-results state: both are the page saying 「not here」, and they should
+     * look like it.
+     */
+    function notFound(asked) {
+      return `
+        <h1 class="ab-empty-title">找不到這個特性</h1>
+        <p class="ab-empty">
+          ${asked ? `<code>${esc(asked)}</code> 不是本站收錄的特性。` : '請從特性列表選擇一個特性。'}
+          本站收錄 ${TOTAL} 種特性。
+        </p>
+        <p><a class="ab-backlink" href="abilities.html">← 回特性列表</a></p>`;
+    }
+
+    /** One holder card. Links through holderUrl(), which is pokemonDetailUrl(). */
+    function holderHtml(entry) {
+      const forms = entry.forms.map(f => f.form);
+      return `<li>
+        <a class="ab-holder" href="${esc(holderUrl(entry))}">
+          <img src="${esc(holderSprite(entry))}" alt="" loading="lazy" decoding="async" width="56" height="56">
+          <span class="ab-holder-name">${esc(entry.nameZh || entry.nameEn || entry.name)}</span>
+          ${forms.length ? `<span class="ab-formnote">${esc(forms.join('、'))}</span>` : ''}
+        </a>
+      </li>`;
+    }
+
+    function render(ability, holders) {
+      const zh = abilityEffect(ability);
+      const en = zh ? '' : abilityEffectEn(ability);
+      const { regular, hidden } = splitAbilityHolders(holders);
+
+      crumb.textContent = abilityName(ability);
+      document.title = `${abilityName(ability)} — 寶可夢特性資料庫`;
+
+      const guide = `
+        <section class="ab-section" aria-labelledby="ab-guide-h">
+          <h2 id="ab-guide-h">如何取得與更換特性</h2>
+          <p class="ab-section-note">
+            特性從第三世代開始出現。絕大部分寶可夢天生就有兩種常見特性，
+            少數有第三種隱藏特性，需要特殊方式才能取得或變更。
+          </p>
+          <div class="ab-guide">
+            <dl>
+              <dt>特性膠囊</dt>
+              <dd>
+                可以在第一與第二常見特性之間切換，讓寶可夢保留兩種特性中自己較不需要的那一種，
+                但無法取得原本沒有的特性，也不能變成隱藏特性。
+              </dd>
+              <dt>特性膏藥</dt>
+              <dd>
+                可以把常見特性直接變成該物種的隱藏特性（夢特性）。
+                也就是說，原本只能用特殊活動、太晶團體戰等方式取得隱藏特性的寶可夢，
+                可以用這個道具補齊。
+              </dd>
+              <dt>查看方式</dt>
+              <dd>
+                遊戲內進入該寶可夢的「能力一覽」頁面即可確認目前的常見特性與隱藏特性。
+              </dd>
+            </dl>
+          </div>
+        </section>`;
+
+      root.innerHTML = `
+        <p><a class="ab-backlink" href="abilities.html">← 回特性列表</a></p>
+
+        <section class="ab-detail-hero" aria-labelledby="ab-title">
+          <div class="ab-detail-title">
+            <h1 id="ab-title" class="${abilityIsFallbackName(ability) ? 'is-en' : ''}">${esc(abilityName(ability))}</h1>
+            <span class="ab-detail-en">${esc(ability.nameEn)}</span>
+          </div>
+          <div class="ab-detail-meta">
+            <span class="ab-badge">#${String(ability.id).padStart(3, '0')}</span>
+            <span class="ab-badge">${esc(abilityGenerationText(ability.generation))}</span>
+            <span class="ab-badge">${ability.speciesCount} 隻寶可夢持有</span>
+            ${ability.formCount ? `<span class="ab-badge">其中 ${ability.formCount} 個形態專屬</span>` : ''}
+          </div>
+          ${zh
+            ? `<p class="ab-effect-body">${esc(zh)}</p>`
+            : `<p class="ab-en-note"><span class="ab-en-note-label">英文原文（PokeAPI 尚未提供中文說明）</span>${esc(en)}</p>`}
+          ${abilityIsFallbackName(ability)
+            ? '<p class="ab-section-note">這個特性目前只有英文名稱，中文名稱尚未收錄。</p>'
+            : ''}
+        </section>
+
+        <section class="ab-section" aria-labelledby="ab-regular-h">
+          <h2 id="ab-regular-h">常見特性</h2>
+          <p class="ab-section-note">
+            天生就能持有，不需要特殊方式取得。共 ${regular.length} 隻。
+          </p>
+          ${regular.length
+            ? `<ul class="ab-holders">${regular.map(holderHtml).join('')}</ul>`
+            : '<p class="ab-section-note">沒有寶可夢把它當作常見特性。</p>'}
+        </section>
+
+        <section class="ab-section" aria-labelledby="ab-hidden-h">
+          <h2 id="ab-hidden-h">隱藏特性</h2>
+          <p class="ab-section-note">
+            需要特殊途徑才能取得，例如太晶團體戰、特定活動，或使用特性膏藥。共 ${hidden.length} 隻。
+          </p>
+          ${hidden.length
+            ? `<ul class="ab-holders">${hidden.map(holderHtml).join('')}</ul>`
+            : '<p class="ab-section-note">沒有寶可夢把它當作隱藏特性。</p>'}
+        </section>
+
+        ${guide}`;
+    }
+
+    Promise.all([loadAbilities(), loadAbilitySpecies()]).then(([abilities, species]) => {
+      TOTAL = Object.keys(abilities).length;
+      const ability = abilities[slug];
+      if (!ability) {
+        console.warn(`[ability] unknown ?ability=${slug}`);
+        root.innerHTML = notFound(slug);
+        status.remove();
+        return;
+      }
+      render(ability, species[slug] || []);
+      status.remove();
+    }).catch(err => {
+      console.error(err);
+      status.textContent =
+        `${location.protocol === 'file:' ? '這個頁面需要透過 HTTP 開啟（file:// 會被 CORS 擋下）。' : ''}載入特性資料失敗：${err.message}`;
+      status.classList.add('is-error');
+    });
+  </script>
+</body>
+</html>
