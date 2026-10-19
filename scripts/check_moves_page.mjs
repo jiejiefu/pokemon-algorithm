@@ -57,6 +57,7 @@ const readData = name => JSON.parse(read(`assets/data/${name}`));
 const LIST = read('moves.html');
 const DETAIL = read('move.html');
 const CSS = read('assets/css/moves.css');
+const MOVES_JS = read('assets/js/moves.js');
 
 /* Comments and strings are masked before any stylesheet or source shape test.
  * §3.S records check_color_page.mjs's false positive: a rule-shaped regex over
@@ -306,6 +307,27 @@ eq(
   true,
   'the haystack should survive onto the filtered rows'
 );
+/*
+ * Asserting that a haystack EXISTS says nothing about WHEN it is built, which
+ * is why this reads filterMoves' own body rather than its output. Swapping the
+ * field read for a moveSearchText() call returns byte-identical rows and passes
+ * every other assertion in this file — found by the mutation that did exactly
+ * that, and the reason the "one run confirms a fix" rule (§4) is not a licence
+ * to stop writing the mechanism down next to the outcome.
+ */
+const filterBody = MOVES_JS.match(/export function filterMoves\([\s\S]*?\n}/);
+ok(
+  Boolean(filterBody) && /move\.haystack\.includes\(/.test(filterBody[0]),
+  'filterMoves() should read the precomputed haystack rather than build one per keystroke'
+);
+ok(
+  Boolean(filterBody) && !/moveSearchText\(/.test(filterBody[0]),
+  'and should not call moveSearchText() inside the filter'
+);
+ok(
+  /prepareMoves[\s\S]{0,240}haystack: moveSearchText\(move\)/.test(MOVES_JS),
+  'prepareMoves() should be what builds the haystack'
+);
 
 /* ===== the four formatters, on the rows that are interesting ===== */
 
@@ -536,6 +558,63 @@ ok(
 ok(
   detailCode.includes('new Set(MOVE_LEARN_METHODS.flatMap(') && detailCode.includes('total'),
   'move.html should count DISTINCT species for the total, not sum the four tabs'
+);
+
+/* ===== the type chips carry their own colour ===== */
+
+/*
+ * The 屬性 row is the one the reader scans by hue, and the other three rows stay
+ * neutral. A MODIFIER rather than a change to `.mv-chip` is what leaves those
+ * three untouched; colors-explore.html reaches the same shape under `.cp-`,
+ * because colors.css is not mounted here and §3.B1 says a page's own rules live
+ * in its own prefixed file.
+ *
+ * Asserted on the emitted inline style rather than on `typePair()` being called,
+ * because a call that produced nothing would still satisfy the call.
+ */
+ok(
+  listCode.includes('mv-chip--type') && listCode.includes('mv-chip-dot'),
+  'moves.html should mark the type chips so a rule can colour them'
+);
+ok(
+  listCode.includes('typePair(') && /--mv-type-fill:rgb\(\$\{/.test(listCode),
+  'the chip accent should come from typePair() as inline custom properties, not a second colour calculation'
+);
+ok(
+  /\.mv-chip--type\s*\{/.test(cssCode) && /\.mv-chip--type \.mv-chip-dot\s*\{/.test(cssCode),
+  'moves.css should declare both the type modifier and its dot'
+);
+ok(
+  /\.mv-chip--type \.mv-chip-dot\s*\{[^}]*background:\s*var\(--mv-type-fill/.test(cssCode),
+  "the dot should be painted with the SAME fill, not the raw TYPE_COLORS hex — pressing a chip then spreads it instead of swapping one colour for another"
+);
+// The 屬性 suffix is why the group label exists. Eighteen chips each spelling
+// 屬性 is the word twice, and the dot carries the type already.
+ok(
+  /return TYPE_EN_ZH\[capitalize\(slug\)\] \|\| slug;/.test(listCode),
+  'the type chip label should be the bare type name'
+);
+ok(
+  !/\+ *'屬性'|\}[`'"]屬性/.test(listCode),
+  'and should not append 屬性 — the group label already says it'
+);
+// Only the type row is decorated, so the accent has to be a parameter and not
+// something chipRow applies to every row it builds. The count is on the CALL
+// SITES (`frag.appendChild(chipRow(`), not on the function definition, which
+// shares the same name and would make the count five.
+eq(
+  (listCode.match(/appendChild\(chipRow\(/g) || []).length,
+  4,
+  'all four filter rows should still be built'
+);
+ok(
+  /chipRow\('屬性', 'type', types, typeLabel, typeAccent\)/.test(listCode),
+  'and only the 屬性 row should be passed the accent'
+);
+eq(
+  [...cssCode.matchAll(/\.mv-chip\[aria-pressed="true"\]\s*\{/g)].length,
+  1,
+  'the neutral pressed state must survive — three of the four rows have no colour'
 );
 
 if (failures === 0) {

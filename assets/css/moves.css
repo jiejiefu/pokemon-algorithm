@@ -119,12 +119,56 @@
   cursor: pointer;
 }
 .mv-chip:hover { background: var(--surface-hover); }
+/* aria-pressed, not a class, is the state — so a chip is a toggle button and its
+   state is in the accessibility tree, and the visual cannot drift from what is
+   announced. Same rule colors-explore.html's `.cp-chip` uses. */
 .mv-chip[aria-pressed="true"] {
   color: var(--text-primary);
   border-color: var(--accent-gold);
   background: var(--accent-gold-surface);
 }
 .mv-chip:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+/*
+ * Type chips carry their own colour; the classification, generation and
+ * learnability chips do not. That is why this is a MODIFIER and not a change to
+ * `.mv-chip` — the three neutral rows are left untouched rather than being
+ * neutral-by-default with a colour that has to be switched off again.
+ *
+ * The shape is colors-explore.html's `.cp-chip--type`, renamed rather than
+ * mounted: its rules live in colors.css, which this page does not load and which
+ * §3.B1 says a page should not reach into. `--mv-type-fill` / `--mv-type-ink`
+ * are set from shared.js's own `typePair()`, the same pair every type badge on
+ * the site uses, so the fill clears 4.5:1 against its own ink in both themes by
+ * construction rather than by a second colour calculation in this file.
+ *
+ * The dot is that SAME fill, not the raw TYPE_COLORS hex. Pressing a chip then
+ * spreads the dot across the pill instead of swapping one colour for another,
+ * so the pill keeps its width and the row does not reflow around the button the
+ * reader just pressed — which is the same reason `.cp-chip--type[aria-pressed]`
+ * changes only `color` and `border-color`.
+ */
+.mv-chip--type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mv-chip--type .mv-chip-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--mv-type-fill, var(--hairline-strong));
+}
+
+/* One class MORE specific than the neutral pressed rule above, and later in the
+ * file, so it wins on both counts and needs no !important. */
+.mv-chip--type[aria-pressed="true"] {
+  color: var(--mv-type-ink);
+  border-color: var(--mv-type-fill);
+  background: var(--bg-card);
+}
 
 .mv-resultline {
   margin: 16px 0 12px;

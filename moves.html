@@ -77,7 +77,7 @@
   <script type="module">
     import {
       MOVE_CLASS_ZH, MOVE_COLUMNS, TYPE_EN_ZH,
-      capitalize, typeBadgeSmHtml, initThemeToggle, initHeaderNav
+      capitalize, typePair, typeBadgeSmHtml, initThemeToggle, initHeaderNav
     } from './assets/js/shared.js';
     import {
       prepareMoves, filterMoves, loadMoves, loadMoveLearnersCount,
@@ -127,10 +127,27 @@
 
     const dash = '<span class="mv-dash">—</span>';
 
-    /** PokeAPI's lowercase type slug -> the TitleCase key TYPE_EN_ZH is written with. */
+    /** PokeAPI's lowercase type slug -> the 繁體中文 name, with NO 「屬性」 suffix.
+     *
+     *  The group's own label already says 屬性, so a chip reading 「火屬性」 is
+     *  the word twice — and eighteen of them in a row. The bare name is also what
+     *  the swatch next to it is, so chip text and dot agree.
+     */
     function typeLabel(slug) {
-      const en = TYPE_EN_ZH[capitalize(slug)];
-      return en ? `${en}屬性` : slug;
+      return TYPE_EN_ZH[capitalize(slug)] || slug;
+    }
+
+    /**
+     * A type's own fill and ink, as the two custom properties the chip rule
+     * reads. `typePair()` is shared.js's own lookup and is the pair every type
+     * badge on the site already uses, so the dot clears 4.5:1 against its own
+     * text in both themes by construction rather than by a second calculation
+     * here. `capitalize()` first: TYPE_COLORS is keyed TitleCase and the data
+     * carries lowercase slugs.
+     */
+    function typeAccent(slug) {
+      const pair = typePair(capitalize(slug));
+      return `--mv-type-fill:rgb(${pair.fill.join(',')});--mv-type-ink:rgb(${pair.text.join(',')})`;
     }
 
     function setParam(key, value) {
@@ -145,7 +162,13 @@
 
     /* ---- filters ---- */
 
-    function chipRow(label, key, values, labelFor) {
+    /**
+     * One filter row. `accentFor` is present for the TYPE row only, exactly as
+     * colors-explore.html does it: the classification, generation and
+     * learnability chips stay neutral, so the coloured ones are the ones the
+     * reader is meant to scan by hue rather than read.
+     */
+    function chipRow(label, key, values, labelFor, accentFor) {
       const group = document.createElement('div');
       group.className = 'mv-chipgroup';
       group.setAttribute('role', 'group');
@@ -164,6 +187,21 @@
         chip.dataset.filter = key;
         chip.dataset.value = value == null ? '' : String(value);
         chip.textContent = labelFor(value);
+        if (accentFor) {
+          chip.classList.add('mv-chip--type');
+          // The whole declaration string, set as `style` — which is what
+          // colors-explore.html does and why its accent tuple is a string.
+          // setProperty() would take a name and a value and the name would be
+          // the entire `--a:…;--b:…` text, silently setting nothing.
+          chip.setAttribute('style', accentFor(value));
+          // Inserted AFTER the label is set: `textContent =` on the next line
+          // would otherwise wipe a dot written first, and the dot is the only
+          // thing on the chip that is not its text.
+          const dot = document.createElement('span');
+          dot.className = 'mv-chip-dot';
+          dot.setAttribute('aria-hidden', 'true');
+          chip.insertBefore(dot, chip.firstChild);
+        }
         chip.setAttribute('aria-pressed', String(pressed() === chip.dataset.value));
         chip.addEventListener('click', () => {
           const next = pressed() === chip.dataset.value ? null : chip.dataset.value;
@@ -192,7 +230,7 @@
       const types = [...new Set(rows.map(m => m.type))].sort();
       const generations = [...new Set(rows.map(m => m.generation))].sort((a, b) => a - b);
       const frag = document.createDocumentFragment();
-      frag.appendChild(chipRow('屬性', 'type', types, typeLabel));
+      frag.appendChild(chipRow('屬性', 'type', types, typeLabel, typeAccent));
       frag.appendChild(chipRow(
         '分類', 'class',
         [...new Set(rows.map(m => m.class))].sort(),
