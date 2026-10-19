@@ -1,10 +1,17 @@
-# 📦 專案概覽
+# 📖 寶可夢演算法（`pokemon-algorithm`）
+
+<p align="center">
+  <a href="../README.md">English</a> |
+  <a href="./README.zh-TW.md">繁體中文</a>
+</p>
 
 <p align="center">
   <img src="../assets/images/logo.png" alt="寶可夢演算法 logo" width="120">
 </p>
 
-**寶可夢演算法 (Pokemon Algorithm)** 是一個基於純前端技術、零編譯建構步驟（Zero-build）、完美相容於 **GitHub Pages** 的靜態網頁應用程式。本專案利用 **1,025 隻寶可夢** 作為資料視覺化的核心，深入探索並展示電腦科學演算法、色彩量化與前端互動介面。
+## 📦 專案概覽
+
+**寶可夢演算法 (Pokemon Algorithm)** 是一個基於純前端技術、零編譯建構步驟（Zero-build）、完美相容於 **GitHub Pages** 的靜態網頁應用程式。本專案利用 **1,025 隻寶可夢** 作為資料視覺化的核心，深入探索並展示電腦科學演算法、色彩量化、音訊分析與前端互動介面。
 
 * **技術特點**：無需複雜的 npm 依賴或前端框架建構，純粹透過 HTML5、CSS3 與原生 JavaScript（搭配現代 ES Modules）實現高效能渲染。
 * **部署說明**：可直接託管於 GitHub Pages，所有運算與視覺化邏輯完全在客戶端（Client-side）執行。
@@ -17,7 +24,8 @@
 
 | 頁面檔案 | 核心功能與說明 |
 | --- | --- |
-| `index.html` | 專案歡迎頁、每日推薦寶可夢、分類預覽與全 1,025 隻寶可夢網格總覽。 |
+| `index.html` | 首頁：隨捲動播放的 hero 影片、站點簡介、兩個自動演示（排序與 A* 路徑尋找）、可遊玩的 A* 迷宮，以及 5 張功能卡 — §3.Z。 |
+| `today.html` | 今日推薦：每日抽選的寶可夢、熱門寶可夢、探索圖鑑、精選系列、遊戲、工具、快速連結與 FAQ — §3.Z。 |
 | `pokedex.html` | 可進行模糊搜尋、世代、屬性與顏色過濾的高效能寶可夢圖鑑。 |
 | `detail.html` | 物種詳情頁：三欄英雄區塊、Canvas 雷達圖、雙屬性矩陣、進化鏈及 4 個招式標籤頁。 |
 | `color.html` | 單種寶可夢的專屬配色：支援 `?slug=` 參數、色階尺度展示與主題導出功能。 |
@@ -31,6 +39,11 @@
 | `cries.html` | 收錄全 1,025 種叫聲卡片，具備響應式音色測量、5 個排序軸與即時波形渲染。 |
 | `cries-gen1.html` | 第一世代 151 種叫聲透過 Game Boy APU 進行晶片音樂（Chiptune）重合成。 |
 | `spectrum.html` | 每種叫聲的 Mel 頻譜分析視覺化，支援由左至右動態揭示。 |
+| `cry-game.html` | 叫聲猜謎：10 題四選一的聽聲辨寶可夢遊戲；難度是實測的音色相似度上限 — §3.Y。 |
+| `moves.html` | 全部 919 個招式，可搜尋與篩選，所有篩選狀態都寫進 URL — §3.AA。 |
+| `move.html` | 單一招式：數值、效果說明，以及全 1,025 隻中學得會牠的名單 — §3.AA。 |
+| `abilities.html` | 全部 314 種特性，可搜尋與篩選，並區分常見／隱藏持有者 — §3.AC。 |
+| `ability.html` | 單一特性：效果說明與常見／隱藏持有者名單 — §3.AC。 |
 | `types.html` | 屬性圖表與屬性瀏覽器。全站唯一顯示屬性相剋效果矩陣（Effectiveness Matrix）的地方。 |
 | `category.html` | 集合清單模板頁面（支援 `?cat=<slug>` 參數動態載入）。 |
 | `collections.html` | 集合中心：收錄 11 張主題卡片（分 4 個群組）及 2 個預告（upcoming）項目。 |
@@ -70,15 +83,16 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # 存放 css/, js/, data/, cries/, glbs/, images/ 等前端資產
-├── docs/            # 存放 incidents/（各項技術約定與除錯紀錄文件）
-├── scripts/         # 包含自動化檢查器 (check_*.mjs, test_check_*.mjs, lib/) 與資料處理腳本 (*.py)
-└── data-sources/    # 原始 CSV/XLSX 檔案及溯源紀錄（執行階段不直接讀取）
+├── assets/          # css/、js/、data/（20 個 JSON 資料表）、cries/、glbs/、images/、video/
+├── docs/            # README.zh-TW.md 與 incidents/（技術約定的除錯紀錄）
+├── scripts/         # 自動化檢查器 (check_*.mjs, test_check_*.mjs, lib/) 與資料處理腳本 (*.py)
+└── data-sources/    # 原始 CSV/XLSX 與溯源紀錄（執行階段不直接讀取）
 
 ```
 
 * **無套件肥大問題**：專案無 `package.json`、無 `node_modules`、無複雜的打包編譯步驟。Node.js 僅在開發或執行驗證腳本時作為執行環境（`process.execPath`）。
 * **無 CI 流程**：專案刻意不設定 `.github/workflows/`，所有驗證與測試均由開發者手動執行。
+* **已納入版控的媒體**：`assets/video/` 收錄 9 段自動生成的 hero 循環影片與 9 張海報圖，全部納入版控並由 `index.html` 掛載。兩者都由 `make_hero_video.py` 重新生成，請勿手動編輯。
 
 ---
 
@@ -86,18 +100,24 @@ pokemon-algorithm/
 
 1. **嚴謹的路由與 Slug 規範**：內部導覽統一透過查詢參數（Query Parameters，如 `?slug=bulbasaur`）進行。`nidoran-f` (#029) 與 `nidoran-m` (#032) 必須嚴格區分，不允許使用模糊的 `nidoran` 通用 slug。
 2. **色彩量化系統**：`color_palettes.json` 透過 MMCQ 演算法從 96x96 前視圖精煉出 6 色色盤，並精準對應 OKLab 色彩空間進行視覺比對。
-3. **資料生成守則**：部分核心索引檔案（如 `genus-zh.js`, `glb-index.js`, `cry-index.js`, `color_palettes.json` 等）為自動化 Python 腳本生成之產物，**切勿直接手動編輯這些檔案**，以免下次重新生成時被覆蓋。
+3. **資料生成守則**：核心資料表與索引檔（如 `genus-zh.js`、`glb-index.js`、`cry-index.js`、`color_palettes.json`、`moves_zh.json`、`learnsets.json`、`abilities.json`、`graph_data.json` 等）皆由 `scripts/` 下的腳本生成，**切勿直接手動編輯**，以免下次重新生成時被覆蓋。
 
 ---
 
 ## 🧪 驗證與測試系統
 
-本專案具備完善的自動化檢測與測試機制，涵蓋演算法正確性、色彩運算、音訊合成、網頁介面與路由檢查：
+本專案具備完善的自動化檢測與測試機制，涵蓋演算法正確性、色彩運算、音訊合成、網頁介面與路由檢查。修改資料結構、選擇器或色彩邏輯時，請執行對應的檢查器：
 
-* **執行所有檢查器**：
+* **執行整套檢查**（完整冷啟動會開啟 13 個 headless 瀏覽器）：
 ```bash
 node scripts/check_all.mjs
 
+```
+
+
+* **優先跑最窄的檢查**：直接指定檢查器檔名，或用群組篩選。篩選後的綠燈不代表被跳過的部分沒問題。
+```bash
+node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs
 ```
 
 
@@ -106,9 +126,12 @@ node scripts/check_all.mjs
 
 
 * **命令參數支援**：
-* `--only=<group>`：僅執行特定群組的檢查器（支援的群組包含 `algo`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `model`, `nav`, `sort`, `type`）。
-* `--skip=<group>`：跳過指定群組。
+* `--only=<group>`：僅執行指定群組（前綴比對）。可用群組由便宜到貴依序為 `home`、`model`、`algo`、`types-browser`、`data`、`type`、`game-browser`、`cry-apu`、`outfit-browser`、`life-browser`、`nav`、`cry-data`、`color`、`sort`、`audio-browser`、`moves-browser`、`cry-page`、`graph-browser`。`--only=cry` 會涵蓋 `cry-apu`、`cry-data` 與 `cry-page`。
+* `--skip=<group>`：跳過指定群組，前綴規則與 `--only` 相同。
 * `--force`：強制重新執行所有檢查而不理會快取狀態。
+* `--no-cache`：不讀也不寫快取，回報的秒數才是真實施測值。
+* `--prove-inputs`：驗證每個檢查器實際讀取的檔案與它宣告的 `inputs` 完全一致。
+* `--help`：列出每個群組的項目數與上次實測成本。
 
 ---
 
