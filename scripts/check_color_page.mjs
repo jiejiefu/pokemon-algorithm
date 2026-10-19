@@ -180,7 +180,11 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // reached by drilling in from a row, exactly as detail.html is, and neither
 // carries an aria-current claim for a reason — adding one would have been the
 // only page in the site marked 「current」 while it had no nav row to mark.
-const EXPECTED_NAV_PAGES = 22;
+// 22 -> 23 when abilities.html shipped, and `ability.html` did NOT move it for
+// the same reason `move.html` did not. The pair is deliberate rather than
+// convenient: two drill-in pages with no row means the rule is about HOW a page
+// is reached, not about there being two of them.
+const EXPECTED_NAV_PAGES = 23;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

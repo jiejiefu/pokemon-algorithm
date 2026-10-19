@@ -740,7 +740,7 @@ export const NAV = [
     // has a header identical to collections.html, so it needs a row either way.
     // 色彩's three pages each have a row for the same reason; none of them ride
     // along on a group.
-    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html'],
+    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html'],
     groups: [
       {
         items: [
@@ -768,12 +768,18 @@ export const NAV = [
           // reached by drilling in from a row here and from types.html, exactly
           // as detail.html is absent, so it carries no trigger and no row.
           { href: 'moves.html', label: '招式', desc: '919 個招式完整資料庫' },
+          // Was a 計劃中 row until abilities.html shipped. The count is the real
+          // one — 314, not the 284 the planned row claimed: PokeAPI holds 374 and
+          // 60 of those are an internal block with no name, no description and no
+          // holder, which fetch_abilities_detail.py excludes by id. `ability.html`
+          // is deliberately absent from `pages`, exactly as move.html and
+          // detail.html are — it is reached by drilling in from a card here.
+          { href: 'abilities.html', label: '特性', desc: '314 種特性完整資料庫' },
         ],
       },
       {
         title: '計劃中',
         items: [
-          { label: '特性', desc: '284 種特性資料庫', planned: 'abilities.html' },
           { label: '性格', desc: '25 種性格與能力修正', planned: 'natures.html' },
         ],
       },
@@ -909,7 +915,13 @@ export const NAV = [
  * @type {Array<{slug: string, title: string, why: string, data: 'present'|'absent'}>}
  */
 export const PLANNED_PAGES = [
-  { slug: 'abilities.html', title: '特性', why: '284 種特性散在各筆 abilities 欄位，缺的是彙整頁', data: 'present' },
+  // `abilities.html` WAS here, and was removed when the page shipped. Its `why`
+  // said 「284 種特性散在各筆 abilities 欄位，缺的是彙整頁」 — which described a
+  // real gap at the time and then quietly stopped describing one, the same
+  // shape §3.W records for `color-game.html`. Removing it on the instruction to
+  // ship the page is also the rule the array's docblock states: every slug in
+  // PLANNED_PAGES must be ABSENT as a file, so a row whose page exists is a row
+  // promising something already delivered.
   { slug: 'natures.html', title: '性格', why: '25 種性格，連資料都沒有 — PokeAPI 的 /pokemon-species 不帶 nature', data: 'absent' },
   { slug: 'type-chart.html', title: '屬性相剋表', why: '詳情頁已有相剋計算，缺的是獨立對照頁', data: 'present' },
   { slug: 'evolution-guide.html', title: '進化指南', why: 'evolution_chains.json 已有 541 條鏈，缺的是教學式呈現', data: 'present' },

@@ -484,10 +484,14 @@
       text-decoration: none;
     }
     .today-quick-btn .today-quick-btn-sub { font-size: 12px; font-weight: 400; color: var(--text-muted); }
-    /* The 熱門招式 and 熱門特性 rows are plain <li>, not disabled <a>s: moves.html
-       and abilities.html do not exist. `.is-static` is the same rule as
-       `.today-quick-row` with no hover, so a non-link row and a link row read
-       identically — a muted one would make 8 of them look broken. */
+    /* The 熱門招式 and 熱門特性 rows were plain <li> for as long as moves.html and
+       abilities.html were registered planned pages, where an <a> would have been
+       a dead href. Both pages exist, so both rows are links now and no row here
+       carries `.is-static`; the rule stays because 性格 is the next page to
+       ship and the selector is what it would use until then. `.is-static` is
+       the same rule as `.today-quick-row` with no hover, so a non-link row and
+       a link row read identically — a muted one would make 8 of them look
+       broken. */
     .today-quick-row.is-static { color: var(--text-secondary); }
 
     /* ------------------------------------------------------------------
@@ -617,22 +621,25 @@
           </div>
           <p class="today-explore-desc">探索所有 18 種寶可夢屬性：火、水、草、電、超能力、龍等，附帶屬性表。</p>
         </a>
-        <span class="today-explore-card is-amber">
+        <a class="today-explore-card is-amber" href="abilities.html">
           <div class="today-explore-head">
             <h3 class="today-explore-title">特性</h3>
-            <span class="today-explore-num">284</span>
+            <span class="today-explore-num">314</span>
           </div>
           <p class="today-explore-desc">完整的寶可夢特性資料庫，包括隱藏特性、戰鬥效果以及擁有這些特性的寶可夢。</p>
-          <span class="today-tag-badge">敬請期待</span>
-        </span>
-        <span class="today-explore-card is-red">
+        </a>
+        <!-- Was still a <span> with a 敬請期待 badge and a stale 783 after
+             moves.html shipped — the same un-wiring this row needed, left undone
+             for the page that shipped first. The badge promises a page that has
+             existed for months, and 783 was the count from before moves.html
+             started shipping all 919. -->
+        <a class="today-explore-card is-red" href="moves.html">
           <div class="today-explore-head">
             <h3 class="today-explore-title">招式</h3>
-            <span class="today-explore-num">783</span>
+            <span class="today-explore-num">919</span>
           </div>
           <p class="today-explore-desc">搜尋所有寶可夢招式和攻擊。查看每個招式的威力、命中率、PP、屬性和學習方法。</p>
-          <span class="today-tag-badge">敬請期待</span>
-        </span>
+        </a>
         <span class="today-explore-card is-cyan">
           <div class="today-explore-head">
             <h3 class="today-explore-title">性格</h3>
@@ -776,12 +783,12 @@
         <div class="today-quick-panel">
           <h3 class="today-quick-title">熱門招式</h3>
           <ul class="today-quick-list" id="quick-moves"></ul>
-          <span class="today-quick-more">查看所有 783 個招式<span class="today-tag-badge">敬請期待</span></span>
+          <span class="today-quick-more"><a href="moves.html">查看所有 919 個招式</a></span>
         </div>
         <div class="today-quick-panel">
           <h3 class="today-quick-title">熱門特性</h3>
           <ul class="today-quick-list" id="quick-abilities"></ul>
-          <span class="today-quick-more">查看所有 284 個特性<span class="today-tag-badge">敬請期待</span></span>
+          <span class="today-quick-more"><a href="abilities.html">查看所有 314 個特性</a></span>
         </div>
         <div class="today-quick-panel">
           <h3 class="today-quick-title">最初的夥伴</h3>
@@ -1028,10 +1035,11 @@
     // own data at render time; only the "which eight" decision is copied. This is
     // the same rule as POPULAR_IDS above.
     //
-    // None of the three rows link anywhere, deliberately: moves.html and
-    // abilities.html are registered planned pages, so an <a> would be a dead
-    // href. The 最初的夥伴 rows DO link, to generations.html's per-gen card
-    // anchors, because generations.html exists and emits id="gen-card-name-N".
+    // All three rows link now: moves.html, abilities.html and generations.html
+    // all exist. The two game-data rows were muted for as long as their pages
+    // were registered planned ones, on the rule that an <a> to a page that does
+    // not exist is worse than no link at all — which was correct, and which is
+    // why a stale count sat behind a 敬請期待 badge long after the page shipped.
     const POPULAR_MOVE_IDS = [89, 85, 58, 53, 370, 446, 369, 434];
     const POPULAR_ABILITY_SLUGS = [
       'intimidate', 'levitate', 'protean', 'multiscale',
@@ -1069,8 +1077,14 @@
           const m = moves[String(id)];
           if (!m) { console.error(`[index] 熱門招式 id ${id} not in moves_zh.json`); continue; }
           const li = document.createElement('li');
-          li.className = 'today-quick-row is-static';
-          li.innerHTML = `<span>${m.zh}</span>${typeBadgeSmHtml(m.type)}`;
+          // An <a> now that moves.html exists. The row and the panel footer were
+          // both plain text for as long as the page was a planned one, which
+          // is why the two 783s above outlived the page they described.
+          const row = document.createElement('a');
+          row.className = 'today-quick-row';
+          row.href = `move.html?move=${encodeURIComponent(String(id))}`;
+          row.innerHTML = `<span>${m.zh}</span>${typeBadgeSmHtml(m.type)}`;
+          li.appendChild(row);
           frag.appendChild(li);
         }
         quickMoves.appendChild(frag);
@@ -1085,8 +1099,14 @@
           // would be recognisable rather than blank.
           if (!a) console.error(`[index] 熱門特性 slug ${slug} not in abilities_zh.json`);
           const li = document.createElement('li');
-          li.className = 'today-quick-row is-static';
-          li.textContent = a ? a.zh : slug;
+          // An <a> now that abilities.html exists — these eight were plain <li>
+          // for exactly as long as the page was a registered planned page, and a
+          // dead href would be worse than the muted row they replaced.
+          const row = document.createElement('a');
+          row.className = 'today-quick-row';
+          row.href = `ability.html?ability=${encodeURIComponent(slug)}`;
+          row.textContent = a ? a.zh : slug;
+          li.appendChild(row);
           frag.appendChild(li);
         }
         quickAbilities.appendChild(frag);

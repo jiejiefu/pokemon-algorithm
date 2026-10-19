@@ -7,26 +7,29 @@ but unbuilt renders as a non-focusable `<span>` carrying a
 control that does nothing when activated is worse than a non-focusable one
 (AGENTS.md gotcha 37).
 
-**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 14 entries
-are registered there and **all 14 are missing as files**; the `data` field
+**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 13 entries
+are registered there and **all 13 are missing as files**; the `data` field
 records whether the site's own data would already support the page, and the
 `why` field carries the specific gap. This file is the human-readable
 companion — do not treat it as authoritative, and if the two disagree, the
 array wins.
 
-Two rows had drifted in OPPOSITE directions: `color-game.html` was registered in
+Four rows had drifted in OPPOSITE directions: `color-game.html` was registered in
 the array but had no row here at all, while `types.html` still had one here long
 after it shipped — it is a live `href` in NAV's 圖鑑 group and a 55 KB file, and
-its gap read 「缺瀏覽頁」, which is the page that now exists. Both were corrected,
-and the count stayed where it was. A companion table whose whole job is to mirror
-an array has to be checked against it rather than
-read; nothing in the suite reads this file.
+its gap read 「缺瀏覽頁」, which is the page that now exists. `moves.html` had the
+same shape twice over: it shipped all 919 moves while this table and two
+`today.html` counters still said 783, and both were only corrected when
+`abilities.html` forced a pass over the same scaffolding. All were corrected,
+and the count went 14 → 13 when `abilities.html` left the array. A companion
+table whose whole job is to mirror an array has to be checked against it rather
+than read; nothing in the suite reads this file.
 
 `color-game.html` was then removed from both — on the user's instruction, at the
 same commit that renamed the page to 顏色猜謎. The array means "linked or
 advertised but not built", and this slug was the only one of the sixteen that was
 built: its `why` had gone stale the same commit, claiming 「色帶已足夠作答，缺出題、
-計分與難度」 for three gaps the page closed at once. **The count is 14 and all 14
+計分與難度」 for three gaps the page closed at once. **The count is 13 and all 13
 really are absent as files** — re-checked with a loop over the slugs rather than
 trusted, because that sentence is the table's one load-bearing numeric claim and
 nothing in the suite reads this file to keep it honest.
@@ -43,7 +46,6 @@ together. It is a live `href` in NAV's 圖鑑 group now, alongside
 
 | Slug | 標題 | Data | Gap |
 |---|---|---|---|
-| `abilities.html` | 特性 | present | `abilities_zh.json` 已有 284 筆中文名，缺彙整頁 |
 | `natures.html` | 性格 | **absent** | 連資料都沒有 — PokeAPI `/pokemon-species` 不帶 nature |
 | `type-chart.html` | 屬性相剋表 | present | 詳情頁已有相剋計算，缺獨立對照頁 |
 | `evolution-guide.html` | 進化指南 | present | `evolution_chains.json` 已有 541 條鏈，缺教學式呈現 |
