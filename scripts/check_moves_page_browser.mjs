@@ -61,7 +61,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 import { until } from './lib/cdp-until.mjs';
-import { trackTree } from './lib/tmp-trees.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const PORT = process.env.MOVES_PORT || process.env.CRY_PORT || 5500;
 const DESKTOP = { width: 1280, height: 1000 };
@@ -74,6 +74,45 @@ const chrome = spawn(CHROME, [
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
 let chromeStderr = '';
 chrome.stderr.on('data', d => { chromeStderr += d; });
+
+/*
+ * Order is load-bearing, and the exit handlers were previously registered in the
+ * wrong sequence for what they were asked to do.
+ *
+ * `trackTree()` installs an `exit` handler that removes the profile, and the
+ * handler below kills Chrome. Exit handlers run in REGISTRATION order, so the
+ * sequence was: sweep the directory away, then `chrome.kill()`. Chrome is a
+ * separate process and does not stop the instant it is signalled — for the few
+ * milliseconds between the `SIGTERM` and its actual death it keeps writing to its
+ * profile and RECREATES the directory that was just removed underneath it. What
+ * survives is a bare `Default/` with no `DevToolsActivePort`, which is exactly the
+ * signature §3.W records for a tree left behind rather than swept.
+ *
+ * It is not visible from the code: `trackTree` looks like the net, and it is —
+ * but only for a run that dies before the sweep. Eleven such trees had piled up in
+ * this user's tmpdir, every one of them 4–8 KB, from runs that printed a verdict
+ * and exited 0.
+ *
+ * So on the paths this file actually ends on, Chrome is killed and CONFIRMED dead
+ * before the profile is released. The handlers below remain for a path that never
+ * reaches `shutdown` — an uncaught throw, which is exactly when the run is already
+ * going wrong. Killing Chrome there is what stops it rendering pages forever
+ * (§3.J); the tree is best-effort, and the ordering caveat above is why that is
+ * stated rather than assumed.
+ */
+async function shutdown(code) {
+  try { chrome.kill(); } catch {}
+  // A named ceiling, and a timeout that RETURNS rather than throws: a Chrome that
+  // refuses to die must still exit the checker rather than hang it, which is the
+  // same symptom §3.Z records as indistinguishable from being stuck.
+  await new Promise((resolve) => {
+    if (chrome.exitCode !== null || chrome.signalCode !== null) return resolve();
+    const timer = setTimeout(resolve, 3000);
+    chrome.once('exit', () => { clearTimeout(timer); resolve(); });
+  });
+  releaseTree(profile);
+  process.exit(code);
+}
 
 process.on('exit', () => { try { chrome.kill(); } catch {} });
 for (const sig of ['SIGINT', 'SIGTERM']) {
@@ -729,14 +768,16 @@ at('result');
  * cause it did not have, and the watchdog never fired under the condition it was
  * written for; the one line below is the fix.
  *
- * 0 rather than letting the process end on its own, because the exit handlers
- * above run on an explicit exit too and the profile is swept either way.
+ * `shutdown()` rather than `process.exit()`, because "the profile is swept either
+ * way" was the belief this file was carrying and it was not true — the sweep ran
+ * first and Chrome undid it. The exit code is unchanged, and it is passed in
+ * rather than hard-coded so the FAIL path reaches the same teardown.
  */
 if (fails.length === 0) {
   console.log(`\nPASS ${checks} checks`);
-  process.exit(0);
+  await shutdown(0);
 } else {
   console.error(`\nFAIL ${fails.length} of ${checks} checks`);
   for (const f of fails) console.error(`  · ${f}`);
-  process.exit(1);
+  await shutdown(1);
 }

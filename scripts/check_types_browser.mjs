@@ -59,7 +59,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CHROME, waitForDebugPort } from './lib/cdp-port.mjs';
 import { until } from './lib/cdp-until.mjs';
-import { trackTree } from './lib/tmp-trees.mjs';
+import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 
 const PORT = process.env.TYPES_PORT || process.env.CRY_PORT || 5500;
 const DESKTOP = { width: 1280, height: 1500 };
@@ -75,6 +75,41 @@ const chrome = spawn(CHROME, [
 let chromeStderr = '';
 chrome.stderr.on('data', d => { chromeStderr += d; });
 
+/*
+ * Order is load-bearing and the first version got it wrong.
+ *
+ * `trackTree()` installs an `exit` handler that removes the tree, and this file
+ * installs another that kills Chrome. Exit handlers run in REGISTRATION order, so
+ * the sequence was: sweep the tree away, then `chrome.kill()`. Chrome is a
+ * separate process and does not stop the instant it is signalled — for the few
+ * milliseconds between the `SIGTERM` and its actual death it is still writing to
+ * its profile, and it **recreates the directory that was just removed underneath
+ * it.** What survives is a bare `Default/` with no `DevToolsActivePort`, which is
+ * the signature §3.W records for a tree left behind rather than swept.
+ *
+ * Three runs left three such trees, all of them clean exits including the passing
+ * one. So the net is only a net: on the paths this file actually ends on, the
+ * tree has to be released deliberately and Chrome has to be CONFIRMED dead first.
+ */
+async function shutdown(code) {
+  try { chrome.kill(); } catch {}
+  // Wait for the process to actually be gone, on a named ceiling. A timeout here
+  // returns rather than throws, so a Chrome that refuses to die still exits the
+  // checker instead of hanging it — which §3.Z records as indistinguishable from
+  // a checker that is stuck.
+  await new Promise((resolve) => {
+    if (chrome.exitCode !== null || chrome.signalCode !== null) return resolve();
+    const timer = setTimeout(resolve, 3000);
+    chrome.once('exit', () => { clearTimeout(timer); resolve(); });
+  });
+  releaseTree(profile);
+  process.exit(code);
+}
+
+/* The fallback for a path that never reaches `shutdown` — an uncaught throw, which
+ * is exactly when the run is already going wrong. Killing Chrome here is what stops
+ * it rendering pages forever (§3.J); the tree is best-effort, and the ordering
+ * caveat above is why that is stated rather than assumed. */
 process.on('exit', () => { try { chrome.kill(); } catch {} });
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => { try { chrome.kill(); } catch {} process.exit(sig === 'SIGINT' ? 130 : 143); });
@@ -415,9 +450,9 @@ for (const note of notes) console.log(`\n  note  ${note}`);
 
 if (fails.length === 0) {
   console.log(`\nPASS ${checks} checks`);
-  process.exit(0);
+  await shutdown(0);
 } else {
   console.error(`\nFAIL ${fails.length} of ${checks} checks`);
   for (const f of fails) console.error(`  · ${f}`);
-  process.exit(1);
+  await shutdown(1);
 }
