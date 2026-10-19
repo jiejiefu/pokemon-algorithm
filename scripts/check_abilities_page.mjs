@@ -3,8 +3,6 @@
  *
  *   node scripts/check_abilities_page.mjs
  *
- *   node scripts/test_check_sorting_page.mjs --static
- *
  * This half reads the two pages and RUNS the module over the real data rather
  * than reading the module's source. §3.P's lesson is that logic living inside a
  * page's `<script type="module">` block cannot be imported, so the only thing a
@@ -495,6 +493,105 @@ ok(
   /SPECIES_RESULT_CAP/.test(LIST) && /filterSpecies\([^)]*SPECIES_RESULT_CAP/.test(LIST),
   'the page should pass the shared cap into filterSpecies'
 );
+
+/* ===== the slot labels: geometry, and the one colour pairing that matters ===== */
+
+/** One rule body by RAW selector — it escapes internally, so callers pass `.ab-x`. */
+const ruleBody = (selector) => {
+  const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = CSS_CODE.match(new RegExp(`(?:^|[}{])\\s*${esc}\\s*(?:,[^{]*)?\\{([^}]*)\\}`));
+  return m ? m[1] : '';
+};
+
+/**
+ * The label is a PILL so the three slots read as three things of the same kind.
+ * Its vertical padding is what makes `align-items: center` load-bearing: an
+ * unpadded caption aligns fine on a text baseline and a padded one does not, so
+ * reverting either half alone leaves the row subtly crooked.
+ */
+const slotLabel = ruleBody('.ab-slot-label');
+ok(/padding:/.test(slotLabel), 'the slot label should carry vertical padding — it is a pill, not a caption');
+ok(/border-radius:\s*var\(--radius-pill\)/.test(slotLabel),
+  'the slot label should use the pill radius, the same one .ab-chip uses');
+ok(/background:\s*var\(--surface-raised\)/.test(ruleBody('.ab-slot-label.is-regular')),
+  'the 常見特性 label needs a neutral fill — this is the distinction the reader is meant to see at a glance');
+ok(/align-items:\s*center/.test(ruleBody('.ab-slot')),
+  '.ab-slot should centre its label against its chips; `baseline` pushes a padded label below an unpadded one');
+ok(/align-items:\s*center/.test(ruleBody('.ab-species-slots')),
+  '.ab-species-slots should centre its groups for the same reason');
+ok(/gap:\s*10px 28px/.test(ruleBody('.ab-species-slots')),
+  'the two slot groups should be separated by 28px — a pill carries its own edge, and 20px read as cramped');
+
+/**
+ * **THE GOLD FILL IS ASSERTED AS A PAIR, NOT AS A TOKEN.**
+ *
+ * §3.AC measured what every other choice does to this exact fill, and the reason
+ * is that `--accent-gold-surface` INVERTS between the themes — amber `#f5c542`
+ * dark, Poké Ball red `#b3122a` light — so any `--text-*` token lands on the dark
+ * end of the fill every time: `--text-primary` reads 1.44:1 / 2.56:1, and
+ * `--text-muted` 1.58:1 / 1.24:1. `--on-accent` is 11.62:1 / 6.92:1.
+ *
+ * So a rule may reach for either token, but a gold fill must never end up under a
+ * text colour — which is a statement about the RULE, and cannot be expressed by
+ * asserting one property of it. Read against the comment-stripped copy, because
+ * the comment above names all four of these tokens to explain exactly this.
+ */
+{
+  const gold = ruleBody('.ab-slot-label.is-hidden');
+  ok(/\.ab-slot-label\.is-hidden/.test(CSS_CODE) && gold,
+    'the 隱藏特性 label needs its own rule — it is the one with the accent fill');
+  ok(/background:\s*var\(--accent-gold-surface\)/.test(gold),
+    'the hidden label should fill with the accent surface');
+  ok(/color:\s*var\(--on-accent\)/.test(gold),
+    'a gold fill REQUIRES --on-accent: the accent inverts between themes, so --text-primary reads 1.44:1 dark and --text-muted 1.24:1 light (§3.AC)');
+
+  const textTokens = /--text-(primary|secondary|muted)/;
+  ok(!textTokens.test(gold),
+    'no text token may sit on the accent fill — every one of them fails WCAG AA in at least one theme');
+  const neutralUsesOnAccent = /--on-accent/.test(ruleBody('.ab-slot-label'));
+  ok(!neutralUsesOnAccent,
+    '--on-accent is for the accent fill; the neutral label should not reach for it');
+}
+
+/**
+ * Solid means the slot has abilities, dashed means it does not. That rule is only
+ * worth anything if the three states are actually distinguishable, so it is
+ * asserted as the difference between them rather than as any single declaration.
+ */
+{
+  const shared = ruleBody('.ab-slot-label.is-shared');
+  const none = ruleBody('.ab-slot-none');
+  ok(/border:\s*1px dashed/.test(shared),
+    'the folded-forme label is SOLID — it has abilities, and a dashed treatment would read as the absence it is not');
+  ok(/border:\s*1px dashed/.test(none),
+    '「沒有隱藏特性」 is the dashed one: an empty slot, and it must not look like a filled one');
+  const takesAccent = /accent-gold/.test(shared) || /accent-gold/.test(none);
+  ok(!takesAccent,
+    'neither the ambiguous slot nor the empty one may take the accent — an absence is not a value, and only 隱藏 is rare');
+}
+
+/**
+ * Every modifier the page builds has a rule, and vice versa — neither can drift.
+ *
+ * The class is INTERPOLATED (`is-${key}` inside a template literal), so the
+ * rendered names are not in the source and a checker cannot read them off the
+ * markup. What IS in the source is the three `slot(label, key, …)` calls, and the
+ * second argument of each is exactly the modifier that will be emitted — so that
+ * is what is asserted. A missing key would render `is-undefined` and style
+ * nothing, which no pixel here would explain.
+ */
+{
+  const calls = [...LIST_CODE.matchAll(/slot\(\s*'([^']+)'\s*,\s*'([^']+)'/g)].map(m => ({ label: m[1], key: m[2] }));
+  eq(calls.map(c => c.key).sort().join(','), 'hidden,regular,shared',
+    'the page should build exactly the three slot modifiers the stylesheet styles');
+  for (const { label, key } of calls) {
+    ok(CSS_CODE.includes(`.ab-slot-label.is-${key}`),
+      `.ab-slot-label.is-${key} is emitted for 「${label}」 and should have a rule`);
+  }
+  const usesHas = /:has\(/.test(CSS_CODE);
+  ok(!usesHas,
+    'no :has() in this block — §3.W records a :has() rule that could never match, and none here is readable by an assertion');
+}
 
 /* ===== holders: the forme / hidden fold ===== */
 

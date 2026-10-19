@@ -644,8 +644,14 @@
 .ab-species-slots {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 20px;
+  /* `center`, not `baseline`. The label became a pill with vertical padding, and
+   * a padded box aligned on its text baseline sits LOWER than an unpadded one —
+   * the label's 12px baseline and the chips' 13px baseline are different heights,
+   * so `baseline` pushed a whole group down rather than lining the pills up. */
+  align-items: center;
+  /* 28px between the 常見 / 隱藏 groups, up from 20px. A pill carries its own edge,
+   * so the space that read as generous between bare text now reads as cramped. */
+  gap: 10px 28px;
   flex: 1 1 320px;
   min-width: 0;
 }
@@ -653,14 +659,67 @@
 .ab-slot {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
+/*
+ * The label is a PILL, not a caption, so the three slots read as three things of
+ * the same kind rather than as stray text followed by chips.
+ *
+ * This rule carries GEOMETRY ONLY and every state below sets its own colours.
+ * The alternative — a filled default with two overrides — means the 常見 label
+ * has no rule of its own, so a reader of the stylesheet cannot tell which of the
+ * three states is the intended default and the checker cannot assert that the
+ * page emits a class the stylesheet actually styles.
+ *
+ * `padding: 5px 10px` is sized to match `.ab-chip`'s `5px 12px` at 13px: the
+ * label lands at ~30px against the chips' ~31.5px, which reads as one height
+ * system rather than a small label next to a large one. At 12px it also meets
+ * WCAG AA's 4.5:1 rather than the 3:1 a display size would have been allowed.
+ */
 .ab-slot-label {
+  padding: 5px 10px;
   font-size: 12px;
-  color: var(--text-muted);
   white-space: nowrap;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+}
+
+.ab-slot-label.is-regular {
+  color: var(--text-secondary);
+  background: var(--surface-raised);
+}
+
+/*
+ * 隱藏特性 gets the accent fill, and the accent is placed on the RARE slot
+ * rather than split between the two — which is also the cheaper decision, since
+ * one pairing needs checking rather than two arbitrary hues.
+ *
+ * **`--accent-gold-surface` PAIRED WITH `--on-accent`, and the pairing is the
+ * claim.** §3.AC measured what the other three options do to this exact fill:
+ * gold inverts between the themes (amber `#f5c542` dark, Poké Ball red `#b3122a`
+ * light), so a text token lands on the dark end of the fill every time —
+ * `--text-primary` reads 1.44:1 dark and 2.56:1 light, and `--text-muted` worse
+ * at 1.58:1 and 1.24:1. `--on-accent` gives 11.62:1 and 6.92:1. The checker
+ * asserts the PAIR, so a rule may reach for either token, but a gold fill can
+ * never end up under a text colour.
+ */
+.ab-slot-label.is-hidden {
+  color: var(--on-accent);
+  background: var(--accent-gold-surface);
+  border-color: transparent;
+}
+
+/*
+ * The 12 folded-forme species. Solid and neutral, because it HAS abilities — the
+ * label is 「常見或隱藏（依形態）」 precisely because both are true somewhere, and
+ * a dashed or hollow treatment would read as the absence it is not.
+ */
+.ab-slot-label.is-shared {
+  color: var(--text-secondary);
+  background: var(--surface-raised);
+  border: 1px dashed var(--hairline-strong);
 }
 
 .ab-slot-chips {
@@ -694,10 +753,23 @@
   font-style: italic;
 }
 
+/*
+ * An EMPTY slot, and the rule that makes it readable is the one line above:
+ * **solid means it has abilities, dashed means it does not.** 169 of the 1,025
+ * species have no hidden ability at all, and bare muted text next to two filled
+ * pills reads as something the page forgot to render rather than as the answer.
+ * It is sized like the labels (12px, 5px 10px) so the row keeps one height
+ * system, and it deliberately carries no accent — an absence is not a value.
+ */
 .ab-slot-none {
   margin: 0;
-  font-size: 13px;
+  padding: 5px 10px;
+  font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-pill);
 }
 
 .ab-badge-single {

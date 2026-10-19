@@ -288,9 +288,14 @@
       // another's hidden one, and printing it under either heading alone would
       // be a confident wrong answer. speciesSlots() has already removed those
       // from both lists, so nothing can render twice.
-      const slot = (label, slugs) => (slugs.length
+      // `key` becomes a modifier class on the label. It has to be here and not
+      // derived in CSS: `:has()` cannot see which slot it is in without being
+      // matched on something no assertion can read, and §3.W records a `:has()`
+      // rule that could never match. An explicit class is also what lets the
+      // checker assert that the gold fill is paired with --on-accent.
+      const slot = (label, key, slugs) => (slugs.length
         ? `<div class="ab-slot">
-            <span class="ab-slot-label">${label}</span>
+            <span class="ab-slot-label is-${key}">${label}</span>
             <ul class="ab-slot-chips">${slugs.map(s => slotChipHtml(s, bySlug)).join('')}</ul>
           </div>`
         : '');
@@ -305,9 +310,9 @@
         </a>
         <div class="ab-species-slots">
           ${single ? '<span class="ab-badge ab-badge-single">單一特性</span>' : ''}
-          ${slot('常見特性', reg)}
-          ${slot('隱藏特性', hid)}
-          ${slot('常見或隱藏（依形態）', shared)}
+          ${slot('常見特性', 'regular', reg)}
+          ${slot('隱藏特性', 'hidden', hid)}
+          ${slot('常見或隱藏（依形態）', 'shared', shared)}
           ${!reg.length && !hid.length && !shared.length
             ? '<p class="ab-slot-none">這隻寶可夢沒有可列出的特性。</p>' : ''}
           ${!hid.length && !shared.length && reg.length
