@@ -9702,9 +9702,9 @@
       "id": 228,
       "base_id": 228,
       "name": "戴魯比",
-      "name_en": "Houndoor",
+      "name_en": "Houndour",
       "name_ja": "デルビル",
-      "slug": "houndoor",
+      "slug": "houndour",
       "types": [
         "Dark",
         "Fire"
@@ -11729,9 +11729,9 @@
       "id": 276,
       "base_id": 276,
       "name": "傲骨燕",
-      "name_en": "Tailow",
+      "name_en": "Taillow",
       "name_ja": "スバメ",
-      "slug": "tailow",
+      "slug": "taillow",
       "types": [
         "Normal",
         "Flying"
@@ -13263,9 +13263,9 @@
       "id": 312,
       "base_id": 312,
       "name": "負電拍拍",
-      "name_en": "Minum",
+      "name_en": "Minun",
       "name_ja": "マイナン",
-      "slug": "minum",
+      "slug": "minun",
       "types": [
         "Electric"
       ],
@@ -23102,9 +23102,9 @@
       "id": 545,
       "base_id": 545,
       "name": "蜈蚣王",
-      "name_en": "Scoliopede",
+      "name_en": "Scolipede",
       "name_ja": "ペンドラー",
-      "slug": "scoliopede",
+      "slug": "scolipede",
       "types": [
         "Bug",
         "Poison"
@@ -25062,9 +25062,9 @@
       "id": 591,
       "base_id": 591,
       "name": "敗露球菇",
-      "name_en": "Amoongus",
+      "name_en": "Amoonguss",
       "name_ja": "モロバレル",
-      "slug": "amoongus",
+      "slug": "amoonguss",
       "types": [
         "Grass",
         "Poison"
@@ -31177,9 +31177,9 @@
       "id": 735,
       "base_id": 735,
       "name": "貓鼬探長",
-      "name_en": "Gumchoos",
+      "name_en": "Gumshoos",
       "name_ja": "デカグース",
-      "slug": "gumchoos",
+      "slug": "gumshoos",
       "types": [
         "Normal"
       ],
@@ -32665,9 +32665,9 @@
       "id": 770,
       "base_id": 770,
       "name": "噬沙堡爺",
-      "name_en": "Palosand",
+      "name_en": "Palossand",
       "name_ja": "シロデスナ",
-      "slug": "palosand",
+      "slug": "palossand",
       "types": [
         "Ghost",
         "Ground"
@@ -34378,9 +34378,9 @@
       "id": 811,
       "base_id": 811,
       "name": "啪咚猴",
-      "name_en": "Thwakey",
+      "name_en": "Thwackey",
       "name_ja": "バチンキー",
-      "slug": "thwakey",
+      "slug": "thwackey",
       "types": [
         "Grass"
       ],
@@ -34706,9 +34706,9 @@
       "id": 819,
       "base_id": 819,
       "name": "貪心栗鼠",
-      "name_en": "Skowvet",
+      "name_en": "Skwovet",
       "name_ja": "ホシガリス",
-      "slug": "skowvet",
+      "slug": "skwovet",
       "types": [
         "Normal"
       ],
@@ -37680,9 +37680,9 @@
       "id": 889,
       "base_id": 889,
       "name": "藏瑪然特",
-      "name_en": "Zamazanta",
+      "name_en": "Zamazenta",
       "name_ja": "ザマゼンタ",
-      "slug": "zamazanta",
+      "slug": "zamazenta",
       "types": [
         "Fighting"
       ],
@@ -38477,9 +38477,9 @@
       "id": 908,
       "base_id": 908,
       "name": "魔幻假面喵",
-      "name_en": "Meowscarda",
+      "name_en": "Meowscarada",
       "name_ja": "マスカーニャ",
-      "slug": "meowscarda",
+      "slug": "meowscarada",
       "types": [
         "Grass",
         "Dark"
@@ -40214,9 +40214,9 @@
       "id": 949,
       "base_id": 949,
       "name": "陸地水母",
-      "name_en": "Toadscruel",
+      "name_en": "Toedscruel",
       "name_ja": "リククラゲ",
-      "slug": "toadscruel",
+      "slug": "toedscruel",
       "types": [
         "Ground",
         "Grass"
@@ -48320,7 +48320,7 @@
       "name": "Gumshoos-Totem",
       "name_en": "Gumshoos-Totem",
       "name_ja": "デカグース",
-      "slug": "gumchoos",
+      "slug": "gumshoos",
       "types": [
         "Normal"
       ],
@@ -51060,7 +51060,7 @@
       "name": "Zamazenta-Crowned",
       "name_en": "Zamazenta-Crowned",
       "name_ja": "ザマゼンタ",
-      "slug": "zamazanta",
+      "slug": "zamazenta",
       "types": [
         "Fighting"
       ],
@@ -54895,7 +54895,7 @@
       "name": "超級蜈蚣王",
       "name_en": "Scolipede-Mega",
       "name_ja": "ペンドラー",
-      "slug": "scoliopede",
+      "slug": "scolipede",
       "types": [
         "Bug",
         "Poison"

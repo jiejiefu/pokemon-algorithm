@@ -4640,7 +4640,7 @@
         "stage": 1,
         "filename": "228.png",
         "form": null,
-        "base_name_en": "Houndoor"
+        "base_name_en": "Houndour"
       },
       {
         "id": 229,
@@ -5250,7 +5250,7 @@
         "stage": 1,
         "filename": "276.png",
         "form": null,
-        "base_name_en": "Tailow"
+        "base_name_en": "Taillow"
       },
       {
         "id": 277,
@@ -5793,7 +5793,7 @@
         "stage": 1,
         "filename": "312.png",
         "form": null,
-        "base_name_en": "Minum"
+        "base_name_en": "Minun"
       }
     ],
     "variants": {},
@@ -9076,7 +9076,7 @@
         "stage": 3,
         "filename": "545.png",
         "form": null,
-        "base_name_en": "Scoliopede"
+        "base_name_en": "Scolipede"
       },
       {
         "id": 10288,
@@ -9086,7 +9086,7 @@
         "filename": "10288.png",
         "form": "mega",
         "base_id": 545,
-        "base_name_en": "Scoliopede",
+        "base_name_en": "Scolipede",
         "base_name_zh": "蜈蚣王",
         "qualifier": "Mega",
         "has_art": true
@@ -9858,7 +9858,7 @@
         "stage": 2,
         "filename": "591.png",
         "form": null,
-        "base_name_en": "Amoongus"
+        "base_name_en": "Amoonguss"
       }
     ],
     "variants": {},
@@ -12297,7 +12297,7 @@
         "stage": 2,
         "filename": "735.png",
         "form": null,
-        "base_name_en": "Gumchoos"
+        "base_name_en": "Gumshoos"
       }
     ],
     "variants": {},
@@ -12310,7 +12310,7 @@
           "filename": "10121.png",
           "form": "totem",
           "base_id": 735,
-          "base_name_en": "Gumchoos",
+          "base_name_en": "Gumshoos",
           "base_name_zh": "貓鼬探長",
           "qualifier": "Totem",
           "has_art": true
@@ -12954,7 +12954,7 @@
         "stage": 2,
         "filename": "770.png",
         "form": null,
-        "base_name_en": "Palosand"
+        "base_name_en": "Palossand"
       }
     ],
     "variants": {},
@@ -13903,7 +13903,7 @@
         "stage": 2,
         "filename": "811.png",
         "form": null,
-        "base_name_en": "Thwakey"
+        "base_name_en": "Thwackey"
       },
       {
         "id": 812,
@@ -14035,7 +14035,7 @@
         "stage": 1,
         "filename": "819.png",
         "form": null,
-        "base_name_en": "Skowvet"
+        "base_name_en": "Skwovet"
       },
       {
         "id": 820,
@@ -15193,7 +15193,7 @@
         "stage": 1,
         "filename": "889.png",
         "form": null,
-        "base_name_en": "Zamazanta"
+        "base_name_en": "Zamazenta"
       }
     ],
     "variants": {},
@@ -15206,7 +15206,7 @@
           "filename": "10189.png",
           "form": "other",
           "base_id": 889,
-          "base_name_en": "Zamazanta",
+          "base_name_en": "Zamazenta",
           "base_name_zh": "藏瑪然特",
           "qualifier": "Crowned",
           "has_art": true
@@ -15508,7 +15508,7 @@
         "stage": 3,
         "filename": "908.png",
         "form": null,
-        "base_name_en": "Meowscarda"
+        "base_name_en": "Meowscarada"
       }
     ],
     "variants": {},
@@ -16072,7 +16072,7 @@
         "stage": 2,
         "filename": "949.png",
         "form": null,
-        "base_name_en": "Toadscruel"
+        "base_name_en": "Toedscruel"
       }
     ],
     "variants": {},
