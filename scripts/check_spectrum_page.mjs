@@ -6,68 +6,66 @@
  * Run: node scripts/check_spectrum_page.mjs
  * Test: node scripts/test_check_spectrum_page.mjs  (proves each check can fail)
  *
- * WHAT IS ALREADY GUARDED ELSEWHERE, AND NOT HERE
- * ----------------------------------------------
+ * GUARDED ELSEWHERE, NOT HERE
+ * ---------------------------
  * The maths is settled in `check_spectrogram_port.mjs`, which differences the module
  * against `analyze_cries.py` itself. The nav is settled in `check_nav_pages.mjs`.
- * Playback, ink on the canvases and the mute are settled in
- * `check_spectrum_browser.mjs` over the DevTools Protocol. What is left here is the
- * set of claims that only exist in the source text, and they are claims about
- * honesty rather than about arithmetic.
+ * Playback, canvas ink and the mute are settled in `check_spectrum_browser.mjs` over
+ * the DevTools Protocol. This file covers claims that exist only in the source text,
+ * and they concern honesty rather than arithmetic.
  *
  * THE FOUR THINGS WORTH GUARDING
  * ------------------------------
  *
- * 1. `cry-spectrogram.js` USES NO PLATFORM. Not for tidiness — for the same reason
- *    `gb-apu.js` is pure: a module with no DOM can be run by Node and checked
- *    against the Python, and a module that quietly reaches for `document` cannot.
- *    This is the one assertion that would have caught every portability problem in
- *    one line.
+ * 1. `cry-spectrogram.js` USES NO PLATFORM. For the same reason `gb-apu.js` is pure:
+ *    a module with no DOM can be run by Node and checked against the Python, and a
+ *    module that reaches for `document` cannot. This single assertion covers every
+ *    portability problem at once.
  *
  * 2. THE CONSTANTS ARE NUMERICALLY EQUAL TO THE PYTHON'S, not merely present.
  *    A source-shape regex over `SR = 16000` passes for `SR = 160000`. This parses
- *    both files and compares the values, so a divergence is a red test rather than a
- *    silently different feature vector — which is the failure mode §3.B2 calls "a
- *    change of units that cannot reorder anything".
+ *    both files and compares values, so a divergence is a red test rather than a
+ *    silently different feature vector — the failure mode §3.B2 calls "a change of
+ *    units that cannot reorder anything".
  *
  * 3. THE PAGE'S THREE DISCLOSURES ARE IN THE DOM.
- *    §3.B1 records the shape this exists for: `colors-generator.html` kept promising 「生成明暗階」
- *    in its meta description after the section was deleted, because no shape check
- *    reads a description. Three sentences on this page can go stale the same way:
- *    that the spectrogram is computed BEFORE playback, that the two canvases are
- *    different measurements, and that peak/rms/m0 are excluded for two different
- *    reasons. All three are asserted here as text, not as variables.
+ *    §3.B1 records the shape this exists for: `colors-generator.html` kept promising
+ *    「生成明暗階」 (shade scales) in its meta description after the section was
+ *    deleted, because no shape check reads a description. Three sentences on this
+ *    page can go stale the same way: that the spectrogram is computed BEFORE
+ *    playback, that the two canvases are different measurements, and that
+ *    peak/rms/m0 are excluded for two different reasons. All three are asserted as
+ *    text, not as variables.
  *
  * 4. THE STYLESHEET TOUCHES NOTHING IT DOES NOT OWN. `spectrum.css` exists so this
- *    page's rules are not `cries.css`'s problem, and that guarantee is only real if
- *    no selector outside the `sp-` namespace is written there. `cries.css` is already
- *    shared by two pages and `cp-*` belongs to three.
+ *    page's rules are not `cries.css`'s problem, and that guarantee holds only if no
+ *    selector outside the `sp-` namespace is written there. `cries.css` is shared by
+ *    two pages and `cp-*` belongs to three.
  *
  * AND THE ONE THAT IS EASY TO GET SUBTLY WRONG
  * --------------------------------------------
  * The page reads its colour ramp from CSS custom properties rather than hardcoding
  * six hex values, because `spectrum.css` declares the ramp once and the legend
- * gradient uses the same six. Two copies is two things to keep right, and the
- * failure mode is a legend that has quietly stopped describing the picture. So the
- * checker asserts BOTH halves: the stops are declared in the stylesheet, and the
- * script reads them rather than carrying its own.
+ * gradient uses the same six. Two copies means two things to keep right, and the
+ * failure mode is a legend that has quietly stopped describing the picture. The
+ * checker therefore asserts BOTH halves: the stops are declared in the stylesheet,
+ * and the script reads them rather than carrying its own.
  */
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const readJson = (p) => JSON.parse(read(p));
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+/** `stream` keeps this file's one line per assertion; the defaults match its prefixes. */
+const C = createChecker({ stream: true });
+const { ok } = C;
+/* `eq` keeps its original shape: a detail only on FAILURE, because this checker
+ * streams a line per assertion and a passing line carries no values. */
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -77,7 +75,8 @@ const eq = (got, want, what) => {
 const page = read('spectrum.html');
 const css = read('assets/css/spectrum.css');
 /* Read ONCE: `readJson` does not cache and this table is 2.8 MB, and two sections
- * below now both need it — the 傳說/幻之 facet counts and the live curve's ink sweep. */
+ * below need it — the legendary/mythical (傳說/幻之) facet counts and the live
+ * curve's ink sweep. */
 const pokemon = readJson('assets/data/pokemon_data.json');
 const mod = read('assets/js/cry-spectrogram.js');
 const py = read('scripts/analyze_cries.py');
@@ -89,8 +88,8 @@ const autoplay = read('assets/js/cry-autoplay.js');
 // ---------------------------------------------------------------------------
 
 /* Strip comments first. A docblock that NAMES the forbidden globals in order to
- * explain why they are absent would otherwise be read as a use of them — and this
- * file's own docblock names `document` and `fetch` at least once. */
+ * explain why they are absent would otherwise be read as a use of them, and this
+ * file's own docblock names `document` and `fetch`. */
 const modCode = mod
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/^\s*\/\/.*$/gm, '');
@@ -108,20 +107,18 @@ eq(modImports, [],
 // 2. The constants are numerically equal to the Python's.
 // ---------------------------------------------------------------------------
 
-/** `NAME = value` or `NAME: value = value` in the Python, value read as a number. */
 /**
  * The Python's constants, by VALUE.
  *
- * Three forms have to be handled and the first version handled none of them:
- * `SR = 16_000` carries digit separators, `FRAME = int(round(0.025 * SR))` is a call
- * over another constant, and `EPS = 1e-10` has an exponent. So the expressions are
- * EVALUATED in dependency order with `int(round(` unwrapped, and identifiers are
- * allowed through the pattern test on purpose: it is the `try` that defers an
- * unresolved one, so a pattern that rejected `SR` would defer it forever instead —
- * which is what the second version did, silently, for FRAME and HOP.
- * This is the whole
- * point of comparing by value. A regex matching bare digits would have "compared"
- * all nine constants while checking one, which is the §4 failure shape: a check
+ * Three forms must be handled: `SR = 16_000` carries digit separators,
+ * `FRAME = int(round(0.025 * SR))` is a call over another constant, and `EPS = 1e-10`
+ * has an exponent. Expressions are therefore EVALUATED in dependency order with
+ * `int(round(` unwrapped, and identifiers are allowed through the pattern test on
+ * purpose: the `try` defers an unresolved one, so rejecting `SR` would defer it
+ * forever.
+ *
+ * This is the point of comparing by value. A regex matching bare digits would
+ * "compare" all nine constants while checking one — the §4 failure shape, a check
  * that cannot fail.
  */
 function pyNumbers(source) {
@@ -194,9 +191,9 @@ for (const name of ['SR', 'FRAME', 'HOP', 'N_FFT', 'N_MEL', 'N_MFCC', 'FMIN', 'P
   if (name in pyN && name in jsN) {
     /* By value, with a tolerance of one part in 1e9. `FRAME` is
      * `int(round(0.025 * SR))` in the Python and `Math.round(0.025 * SR)` here, so
-     * the arithmetic has to be evaluated rather than read as text — and it has to be
-     * the SAME number, because a 1-sample difference in FRAME moves the window's
-     * symmetric ends and changes every MFCC row. */
+     * the arithmetic must be evaluated rather than read as text, and it must be the
+     * SAME number: a 1-sample difference in FRAME moves the window's symmetric ends
+     * and changes every MFCC row. */
     eq(jsN[name], pyN[name], `${name} is numerically identical in both implementations`);
   }
 }
@@ -1776,8 +1773,8 @@ ok(/function renderPickerSummary\(\)/.test(page)
   'and it is called from the two writers of its inputs: `renderRoster()` for the count and `select()` for the name');
 
 console.log('');
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

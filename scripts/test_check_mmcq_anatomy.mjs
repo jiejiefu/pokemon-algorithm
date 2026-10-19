@@ -88,7 +88,7 @@ const fail = (m) => { failures++; console.log(`  FAIL ${m}`); };
 
 const CASES = [
   {
-    name: '兩段排序鍵對調（phase1 用 count×volume、phase2 用 count）',
+    name: 'the two sort keys are swapped (phase 1 uses count×volume, phase 2 uses count)',
     mutate: (s) => {
       const before = s;
       const after = s
@@ -97,20 +97,20 @@ const CASES = [
       if (after === before) throw new Error('mutation did not apply');
       return after;
     },
-    expect: 'trace 的 phase 順序',
+    expect: 'trace phase order',
   },
   {
-    name: 'partialsum[i] > total/2 改成 >=',
+    name: 'partialsum[i] > total/2 becomes >=',
     mutate: (s) => {
       const before = s;
       const after = s.replace('if (partialsum[i] > total / 2)', 'if (partialsum[i] >= total / 2)');
       if (after === before) throw new Error('mutation did not apply');
       return after;
     },
-    expect: 'hex 與占比逐隻相符',
+    expect: 'hex and share match for every species',
   },
   {
-    name: '拿掉空區域的 top-up',
+    name: 'the empty-region top-up is removed',
     mutate: (s) => {
       const before = s;
       const after = s.replace(
@@ -120,10 +120,10 @@ const CASES = [
       if (after === before) throw new Error('mutation did not apply');
       return after;
     },
-    expect: '5 色物種的第六格由 top-up 補上',
+    expect: 'the sixth slot of a 5-colour species is filled by top-up',
   },
   {
-    name: '移除 min((-count, rgb)) 的 hex tiebreak',
+    name: 'the hex tiebreak in min((-count, rgb)) is removed',
     mutate: (s) => {
       const before = s;
       const after = s
@@ -132,7 +132,7 @@ const CASES = [
       if (after === before) throw new Error('mutation did not apply');
       return after;
     },
-    expect: '同占比色票的排序是確定性的',
+    expect: 'the ordering of equal-share swatches is deterministic',
   },
 ];
 

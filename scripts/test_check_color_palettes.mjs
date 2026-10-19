@@ -197,7 +197,7 @@ function makeTree(mutate) {
   mkdirSync(join(dir, 'assets/js'), { recursive: true });
   mkdirSync(join(dir, 'assets/data'), { recursive: true });
   mkdirSync(join(dir, 'assets/images'), { recursive: true });
-  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  cpSync(join(ROOT, 'scripts/lib'), join(dir, 'scripts/lib'), { recursive: true });
   for (const f of readdirSync(join(ROOT, 'assets/js'))) {
     cpSync(join(ROOT, 'assets/js', f), join(dir, 'assets/js', f));
   }

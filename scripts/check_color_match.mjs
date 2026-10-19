@@ -11,16 +11,17 @@
  * answer are claims, not consequences, and each is pinned here:
  *
  * 1. THE METRIC IS PERCEPTUAL, and this is not a style choice. §3.B2 of AGENTS.md
- *    records `findClosestChineseColorName()` returning 墨綠 for #414141 because
- *    nearest-in-RGB let a table entry 8 away in one channel beat every grey 20
- *    away in all three. The table there was 100 names. This searches 6,148
- *    sprite colours, 61x more, so the metric decides the page.
+ *    records `findClosestChineseColorName()` returning 墨綠 (dark green) for
+ *    #414141 because nearest-in-RGB let a table entry 8 away in one channel beat
+ *    every grey 20 away in all three. The table there was 100 names. This
+ *    searches 6,148 sprite colours, 61x more, so the metric decides the page.
  *    MEASURED on a 576-point sweep of the sRGB cube: plain RGB Euclidean and
  *    the redmean approximation disagree on the WINNER for 12.8% of inputs, and on
  *    the whole top five for 83.2%. A metric swap here is not a refinement.
  * 2. RANKING IS PRIMARY-FIRST, SECONDARY-AS-TIEBREAK. That is the product rule
- *    ("主色為主、附色輔助"), and it is invisible in the output unless pinned: both
- *    orderings return plausible-looking lists of plausible-looking Pokémon.
+ *    ("主色為主、附色輔助" — primary first, secondary assists), and it is
+ *    invisible in the output unless pinned: both orderings return plausible-
+ *    looking lists of plausible-looking Pokémon.
  * 3. THE RESULT IS DETERMINISTIC. Same input, same order, every time. A tie
  *    broken by Map insertion order is a tie broken by lexicographic id, and the
  *    corpus has real ties: #ffffff is the primary of 29 normal palettes
@@ -240,8 +241,8 @@ console.log('\ndistance');
     () => `red->darker red ${deltaEOk(redish, darkerRed)}, red->darker blue ${deltaEOk(redish, darkerBlue)}`);
 
   // The grey failure from §3.B2, reproduced as a live assertion rather than
-  // left as a story. #414141 came back 墨綠 there because a tinted table entry
-  // 8 away in one channel beat every grey 20 away in all three.
+  // left as a story. #414141 came back 墨綠 (dark green) there because a tinted
+  // table entry 8 away in one channel beat every grey 20 away in all three.
   const grey4141 = hexToOklab('#414141');
   const darkGreen = hexToOklab('#0b3d0b');
   const darkGrey = hexToOklab('#3a3a3a');
@@ -986,7 +987,8 @@ console.log('\nthe page wire');
 /* -------------------------------------------------------------------------
    THE SEED HANDLER, RUN AGAINST BOTH KINDS OF CELL
    -------------------------------------------------------------------------
-   換一個生成起點 shipped dead. The delegated handler read
+   換一個生成起點 ("another starting point") shipped dead. The delegated
+   handler read
 
        const legendId = Number(seed.dataset.cgLegend);
        if (legendId && applyHex(seed.dataset.cgSeed)) { ...pin... }
@@ -1065,10 +1067,11 @@ console.log('\nthe page wire');
       return { calls, currentMatch: captured };
     };
 
-    // PATH A -- 換一個生成起點. No data-cg-legend, exactly as renderAlts() emits.
+    // PATH A -- 換一個生成起點 ("another starting point"). No data-cg-legend,
+    // exactly as renderAlts() emits.
     const alt = drive({ cgSeed: '#62d5b4' });
     check(alt.calls.some(c => c[0] === 'applyHex' && c[1] === '#62d5b4'),
-      'a 換一個生成起點 cell applies its colour even though it names no species',
+      'a 換一個生成起點 (another starting point) cell applies its colour even though it names no species',
       () => `the branch ran but never called applyHex — calls: ${JSON.stringify(alt.calls)}. `
         + '`legendId && applyHex(...)` short-circuits on Number(undefined) === NaN, so the '
         + 'colour is dropped and the return below swallows the click');
@@ -1085,7 +1088,7 @@ console.log('\nthe page wire');
      * regenerated on its own. */
     const applyBody = src.slice(src.indexOf('function applyHex('), src.indexOf('function setFormat('));
     check(applyBody.length > 0 && /\brender\(\)/.test(applyBody.replace(/\/\*[\s\S]*?\*\//g, '')),
-      'applyHex is what regenerates, so reaching it is enough for 換一個生成起點',
+      'applyHex is what regenerates, so reaching it is enough for 換一個生成起點 (another starting point)',
       () => 'applyHex no longer calls render() — the alt path would apply the colour and stop');
     check(!alt.calls.some(c => c[0] === 'render'),
       'and the alt branch does not re-render on its own, which would double-draw',
@@ -1100,7 +1103,7 @@ console.log('\nthe page wire');
       'and still pins the species, so #FFFFFF does not hand the reader a Wingull',
       () => `calls: ${JSON.stringify(legend.calls)}`);
     check(legend.currentMatch && legend.currentMatch.pinned === true,
-      'and the pin is marked, which is what drives the 你選的 eyebrow',
+      'and the pin is marked, which is what drives the 你選的 (your pick) eyebrow',
       () => `currentMatch = ${JSON.stringify(legend.currentMatch)}`);
 
     // vacuity guard, over comment-stripped code. `&&` between the legend test and
@@ -1443,7 +1446,7 @@ console.log('\nthe pin rule, run rather than pattern-matched');
     const grass = matchOf(167, '#00ff00');
     const ranked = matchPokemon('#00ff00', 5);
     check(run('#00ff00', { ...grass, pinned: true }, ranked) === false,
-      'pinning 圓絲蛛 then typing #00ff00 hands the answer back to the ranker',
+      'pinning 圓絲蛛 (Ariados) then typing #00ff00 hands the answer back to the ranker',
       () => `the pin held, so the page would still show #${grass.id}`);
     check(ranked[0].id === 167,
       'and the ranker really does say #167 for that colour, so nothing is lost');
@@ -1455,9 +1458,10 @@ console.log('\nthe format hint');
 {
   const src = readFileSync(new URL('../colors-generator.html', import.meta.url), 'utf8');
 
-  // 「六位十六進位」 says how many digits and nothing about what a digit may be,
-  // so a reader who has never met base 16 does not learn from it that `g` is
-  // invalid. The error hint names the alphabet and the case rule.
+  // 「六位十六進位」 ("six hex digits") says how many digits and nothing about
+  // what a digit may be, so a reader who has never met base 16 does not learn
+  // from it that `g` is invalid. The error hint names the alphabet and the case
+  // rule; 大小寫都收 is the page's own phrase for "either case is accepted".
   check(/0-9/.test(src) && /a-f/.test(src),
     'the error hint names the hex alphabet, not only the length');
   check(/大小寫都收/.test(src), 'and says that either case is accepted');
@@ -1540,9 +1544,10 @@ console.log('\nthe sections this page does NOT own');
     () => 'copy-json button is back');
 
   // THE PAGE'S OWN COPY MUST NOT DESCRIBE WHAT WAS REMOVED. The meta description
-  // and the intro paragraph both claimed 「生成明暗階、套用展示」 and 「同時擺出生成與
-  // 量測兩種東西」 after those sections were gone — a search-result summary and
-  // the first paragraph are the two places a reader is most likely to believe, and
+  // and the intro paragraph both claimed 「生成明暗階、套用展示」 ("shade ramp,
+  // showcase") and 「同時擺出生成與量測兩種東西」 ("generated and measured side
+  // by side") after those sections were gone — a search-result summary and the
+  // first paragraph are the two places a reader is most likely to believe, and
   // nothing in a shape check reads either.
   check(!/套用展示/.test(src), 'the page never promises a component showcase it does not render');
   check(!/生成明暗階/.test(src), 'nor a shade ramp section');

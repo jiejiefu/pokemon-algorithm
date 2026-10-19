@@ -22,10 +22,11 @@
  *
  * and one of the eight is a defect that shipped on the day this file was written:
  *
- *   - a Chinese IME's 選字 key IS `Enter`. Nothing in `assets/` tested `isComposing`,
- *     `keyCode === 229` or a composition flag, so typing 「ㄏㄞˇ」 and pressing Enter to
- *     commit 「海」 spent one of four daily attempts on #86 小海獅 — the first of the 26
- *     species whose name contains 「海」, because `pokemon` is in dex order.
+ *   - a Chinese IME's 選字 (candidate-selection) key IS `Enter`. Nothing in `assets/`
+ *     tested `isComposing`, `keyCode === 229` or a composition flag, so typing
+ *     「ㄏㄞˇ」 and pressing Enter to commit 「海」 spent one of four daily attempts
+ *     on #86 小海獅 (Seel) — the first of the 26 species whose name contains 「海」,
+ *     because `pokemon` is in dex order.
  *
  * ## IT IS THE OUTCOME HALF, NOT A REPLACEMENT (§3.G4's split)
  *
@@ -311,7 +312,7 @@ console.log('\n§3.M: every [hidden] element has NO BOX, not an attribute that s
 }
 
 // ===========================================================================
-console.log('\n§3.F: a Chinese IME 選字 key is Enter too, and it must cost nothing');
+console.log('\n§3.F: a Chinese IME 選字 (candidate-selection) key is Enter too, and it must cost nothing');
 // ===========================================================================
 {
   exceptions.length = 0;

@@ -3,11 +3,10 @@
  * Regression checks for the `regional_dex` field written by
  * scripts/fetch_regional_dex.py. Run: node scripts/check_regional_dex.mjs
  *
- * This asserts the invariants that are cheap to check and expensive to get
- * wrong, in the spirit of the other check_*.mjs scripts. It deliberately does
- * NOT re-derive the numbers from PokeAPI: that is the generator's job and
- * would make this test depend on the network. What it pins is everything a
- * later edit to either file could silently break.
+ * Pins the invariants that are cheap to check and expensive to get wrong. It
+ * deliberately does NOT re-derive the numbers from PokeAPI: that is the
+ * generator's job and would make this test depend on the network. What it pins
+ * is everything a later edit to either file could silently break.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -135,7 +134,7 @@ ok(/Object\.entries\(dex\)/.test(detail), 'the renderer iterates the stored key 
 console.log('enhance_pokemon_data.py carries the key through Phase 1');
 const enhance = readFileSync(join(BASE, 'scripts/enhance_pokemon_data.py'), 'utf8');
 ok(/'regional_dex':\s*dict\(existing\['regional_dex'\]\)\s*if existing\.get\('regional_dex'\)\s+is\s+not\s+None\s+else\s+\{\}/.test(enhance),
-  "the whitelist entry is `is not None`, not truthiness (gotcha 29)");
+  "the whitelist entry is `is not None`, not truthiness");
 
 if (problems.length) {
   for (const p of problems.slice(0, 30)) console.error(`  FAIL ${p}`);

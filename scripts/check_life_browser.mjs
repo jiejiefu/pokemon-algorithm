@@ -4,34 +4,20 @@
  *
  * Run: node scripts/check_life_browser.mjs      (needs the repo served on :5500)
  *
- * WHY THIS FILE EXISTS AND WHAT IT MAY NOT DUPLICATE
+ * `check_life_page.mjs` and `check_evolution_levels.mjs` prove the mechanics over
+ * files. This file proves the page uses them:
  *
- * `check_life_page.mjs` and `check_evolution_levels.mjs` prove the mechanics: that
- * a Bulbasaur block reaches Ivysaur at Lv.16 and Venusaur at Lv.32, that every
- * wild pack lands three cells on a free site, that the levels table matches the
- * games. All of that is pure logic over files and needs no browser.
+ *   1. The nav dropdown is not covered by the toolbar. `.life-toolbar` carries
+ *      `z-index: 20` and `backdrop-filter: blur(18px)`; the filter makes it a
+ *      stacking context, so it outranks `.header`'s 10 while the nav panel's 120 is
+ *      trapped inside that header context. Only a hit-test answers whether the
+ *      dropdown is clickable.
+ *   2. A wild encounter is announced. `tick()` returns `wildSpawnEvent` and the
+ *      renderer reads `isWildSpawn`; otherwise an encounter is a 0.16s flicker
+ *      followed by silence.
  *
- * What it cannot see is whether the page USES any of it, and life.html shipped
- * two defects of exactly that kind:
- *
- *   1. THE TOOLBAR COVERED THE NAV DROPDOWN. `.life-toolbar` carried `z-index: 20`
- *      and `backdrop-filter: blur(18px)`; the filter makes it a stacking context,
- *      so the value stopped being inert and outranked `.header`'s 10 — and the nav
- *      panel's 120 is trapped INSIDE that header context. Measured: 5 of 22
- *      hit-test points along an open 445px panel resolved to the toolbar. No
- *      static check can see this, because both declarations are individually
- *      correct; only a hit-test answers whether the dropdown is clickable.
- *
- *   2. NOTHING CONSUMED `wildSpawnEvent`. tick() returned it, no page code read
- *      it, and `isWildSpawn` was never read by the renderer — so an encounter was
- *      a 0.16s flicker at 10x followed by silence. Also invisible statically: the
- *      event existed and was well-formed.
- *
- * So the claims here are: the dropdown is not covered on THIS page (and, as the
- * control, on a page it never was), the announcer appears for an encounter and
- * says something species-specific, the HUD legend reports a real level rather
- * than the old Age>=5, and evolution happens at the levels the engine was just
- * proven to use.
+ * The HUD legend reports a real level rather than Age>=5, and evolution happens at
+ * the levels the engine was proven to use.
  */
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
@@ -51,14 +37,11 @@ const chrome = spawn(CHROME, [
   `--user-data-dir=${profile}`,
   'about:blank',
 ], { stdio: 'ignore' });
-/* Chrome chose its own debug port; read it back from the profile. See
- * waitForDebugPort's header for why this replaced cdpPort(), and why it makes
- * assertPortFree() unnecessary rather than merely unused. */
+/* Chrome chose its own debug port; read it back from the profile. */
 const PORT_CDP = await waitForDebugPort(profile);
 
-/** §3.J: kill the browser AND remove the profile, from one exit handler.
- *  Removing the profile is not killing the browser — an orphan keeps rendering
- *  pages forever, which is a thermal problem before it is a correctness one. */
+/** §3.J: kill the browser and remove the profile from one exit handler. Removing the
+ *  profile is not killing the browser: an orphan keeps rendering pages forever. */
 function cleanup() {
   try { process.kill(chrome.pid, 'SIGKILL'); } catch { /* already gone */ }
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* best effort */ }
@@ -124,37 +107,20 @@ const ev = async (expression) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * life.html's real boot signal: its boot has FINISHED, not merely started.
+ * life.html's real boot signal: boot has FINISHED, not merely started.
  *
- * `#statPop` exists in the static markup reading "0", so waiting for its PRESENCE
- * is satisfied before a line of life.js has run — which is how the first version
- * of this file hid the generation modal and then had `openSetupModal()` turn it
- * straight back on, so every hit-test point landed on the modal backdrop instead
- * of on the dropdown.
+ * `#statPop` exists in the static markup reading "0", so waiting for its presence is
+ * satisfied before a line of life.js has run. `updateHUD()` runs before
+ * `openSetupModal()`, so waiting for `statPop` to change still loses the race: it
+ * waits for a signal the page emits before the line it needs to be past. A gate on
+ * `#statPop` let a late second `openSetupModal()` rebuild the modal mid-run, sent
+ * brush presses into the backdrop (§3.G's confirm-the-press rule), and produced a
+ * `-32000 Inspected target navigated or closed` (§3.G9).
  *
- * Waiting for `statPop` to read something else moved the gate later, and the note
- * above recorded the move as the fix: `updateHUD()` runs before `openSetupModal()`.
- * That is true, and it is why this gate still lost the race — it waits for a signal
- * the page emits BEFORE the line it needs to be past. Measured at 10 runs alongside
- * a concurrent full suite, 2 failed and 9 did not, with three different symptoms:
- *
- *   - the Let's Go block read 15 types where 18 was expected, the radio having
- *     reverted to 經典模式. Instrumented: before the submit the radio read
- *     `checked:true / Let's Go 模式` and after it, `checked:false / 經典模式 /
- *     starters:3`. Nothing in `setupSubmit` rewrites the modal, so the modal had
- *     been REBUILT by a second `openSetupModal()` landing late.
- *   - the type drawer read `屬性 (0/15)` where `屬性 (2/15)` was expected, because
- *     the modal was open over the canvas and both `brushCell` presses hit its
- *     backdrop — §3.G's rule that a checker must confirm a press landed, with the
- *     same shape.
- *   - one run died with `-32000 Inspected target navigated or closed`, which
- *     §3.G9 records as byte-identical to Chrome's display-link failure.
- *
- * The signal that IS the destination's own last boot act is the modal being open:
- * `openSetupModal()` is the final statement of life.js's init, so
- * `setupModal.hidden === false` cannot become true until init is done. That is
- * §3.G5's rule — a wait must be gated on something only the DESTINATION has — and
- * `#statPop` is not it, because the destination emits it early.
+ * The destination's own last boot act is the modal being open: `openSetupModal()` is
+ * the final statement of life.js's init, so `setupModal.hidden === false` cannot
+ * become true until init is done (§3.G5: gate a wait on something only the destination
+ * has).
  */
 const LIFE_READY = `(() => {
   const el = document.getElementById('statPop');
@@ -179,9 +145,8 @@ async function openPage(path, readyExpr, timeoutMs = 15000) {
    ========================================================================== */
 console.log('--- nav dropdown hit-test ---');
 
-// life.html opens its generation modal on load; the modal is `position: fixed`
-// z-index 100 and would be the topmost element at every probe point, so the
-// dropdown's geometry would be tested against the wrong overlay.
+// life.html opens its generation modal on load; it is `position: fixed` with
+// z-index 100 and would be the topmost element at every probe point.
 await openPage('life.html', LIFE_READY);
 await ev(`document.getElementById('setupModal').hidden = true; document.getElementById('loadingOverlay').hidden = true; true`);
 await sleep(200);
@@ -237,9 +202,8 @@ ok(Number(s.modalZ) > Number(s.headerZ) && Number(s.drawerZ) > Number(s.headerZ)
    && Number(s.toastZ) > Number(s.headerZ),
   'the modal, drawers and toast all still outrank the header after the fix');
 
-// The control, on the same browser with the same probe: a page that never had
-// the bug. Without it, "zero blocked points" could mean the probe is broken and
-// finds nothing anywhere, which is the failure a hit-test checker is most prone to.
+// The control, on the same browser with the same probe: without it, "zero blocked
+// points" could mean the probe is broken and finds nothing anywhere.
 await openPage('maze.html', `document.readyState === 'complete' && !!document.querySelector('.site-nav-trigger')`);
 await sleep(400);
 const mazeNav = JSON.parse(await ev(navProbe));
@@ -254,8 +218,8 @@ await openPage('life.html', LIFE_READY);
 await ev(`document.getElementById('setupModal').hidden = true; true`);
 await sleep(300);
 
-// Force the rate to 1 and step until one lands. A fixed number of steps would be
-// a guess about the rate; polling for the event is the claim.
+// Force the rate to 1 and step until one lands. A fixed number of steps would be a
+// guess about the rate; polling for the event is the claim.
 const wild = JSON.parse(await ev(`(() => {
   const toast = document.getElementById('celebrationToast');
   const before = document.getElementById('statWild').textContent;
@@ -289,8 +253,8 @@ ok(/#\d{4}\s\S/.test(wild.headline || ''),
 ok(wild.isWildTone, 'the announcer uses the wild tone, not the medal tone');
 ok(wild.visible, 'the announcer is actually visible when it fires');
 
-// The counter must count packs that LANDED, not attempts. Proved here by the
-// engine checker on a crowded board; here, only that it is a number that moves.
+// The counter counts packs that landed, not attempts; the engine checker proves that
+// on a crowded board. Here, only that it is a number that moves.
 eq(typeof wild.statNow, 'string', 'the counter is a rendered string, not an object');
 
 /* ==========================================================================
@@ -335,19 +299,17 @@ ok(!evolved.none, 'seeded Gen-1 board reached Stage 1 and the legend filled in')
 ok(/^\(Lv\.\d+\)$/.test(evolved.legend || ''),
   `legend reports a parenthesised level, got "${evolved.legend}"`);
 const legendLevel = Number(String(evolved.legend || '').replace(/[()]/g, '').replace('Lv.', ''));
-// Bulbasaur->Ivysaur is 16, Squirtle->Wartortle 16, Rattata->Rattican 20, Caterpie 7.
+// Bulbasaur->Ivysaur is 16, Squirtle->Wartortle 16, Rattata->Raticate 20, Caterpie 7.
 // A board seeded from one starter therefore cannot first evolve before Lv.7.
 ok(legendLevel >= 7 && legendLevel <= 64, `the reported level is inside the corpus range 7..64 (got ${legendLevel})`);
 
 /* ==========================================================================
    5. THE LET'S GO SWITCH, AND WHERE IT LANDS
    ========================================================================== */
-/* It was mounted with `.life-modal-section-title:nth-of-type(2)`, which matches
- * the element that is both that class AND the dialog's 2nd <div> — and
- * .life-modal-header is the 1st, so the control that swaps the starter list
- * rendered inside 步驟 1 (選擇目標世代). The static checker can only see that the
- * selector is gone; this one reads the RENDERED box, because the bug was never
- * that a selector existed, it was that a real box was in the wrong row. */
+/* The switch was mounted with `.life-modal-section-title:nth-of-type(2)`, which
+ * matches the dialog's 2nd <div> rather than the 2nd section title, so it rendered
+ * inside 步驟 1 (選擇目標世代). The static checker can only see that the selector is
+ * gone; this one reads the rendered box. */
 await ev(`(() => {
   document.getElementById('setupModal').hidden = false;
   document.getElementById('loadingOverlay').hidden = true;
@@ -376,21 +338,18 @@ ok(!toggleBox.missing, "the Let's Go switch rendered for Gen 1");
 ok(toggleBox.selected, "one of 經典模式 / Let's Go 模式 is marked selected");
 ok(/始祖物種/.test(toggleBox.text || ''),
   `the switch sits in step 2's title, got "${toggleBox.text}"`);
-// Box geometry, because "in the title" is a DOM relationship and the bug was a
-// layout one: the switch has to be ON the same row as the starter cards, and
-// must NOT be over the generation tabs.
+// Box geometry: the switch must sit above the starter cards and not over the
+// generation tabs.
 ok(toggleBox.bottom <= toggleBox.startersTop + 40,
   `the switch sits above the starter cards (switch bottom ${toggleBox.bottom}, cards top ${toggleBox.startersTop})`);
-// And BELOW the generation tabs, because step 2 is after step 1. The first
-// version of this assertion had the comparison the other way round and failed on
-// a page that was already correct — a check that cannot be satisfied is not
-// evidence either.
+// And below the generation tabs, because step 2 is after step 1. A check that
+// cannot be satisfied is not evidence either.
 ok(toggleBox.top > toggleBox.genTabsBottom,
   `the switch is below the generation tabs, not in their row (switch top ${toggleBox.top}, tabs bottom ${toggleBox.genTabsBottom})`);
 
-/* The switch has to actually SWITCH. The radios' innerHTML is rewritten on every
- * render, so a listener attached without being re-assigned survives exactly one
- * change event and the control goes dead after a single use. */
+/* The switch has to actually switch. The radios' innerHTML is rewritten on every
+ * render, so a listener attached without being re-assigned survives one change
+ * event and the control goes dead. */
 const switched = JSON.parse(await ev(`(() => {
   const before = [...document.querySelectorAll('#setupStarters .life-starter-card img')]
     .map(i => i.getAttribute('src'));
@@ -412,19 +371,16 @@ const switchedBack = JSON.parse(await ev(`(() => {
 })()`));
 eq(switchedBack.n, 3, 'the switch still works after a second use');
 
-/* The counter divides by the number of tiles, and the number of tiles depends on
- * the STARTER — the 伊布家族 section is the reader's choice, not the generation's.
- * So this drives the real modal and picks 伊布 rather than reading whatever the
- * default setup happened to leave behind: a URL-driven assertion here would
- * silently be asserting about Bulbasaur. */
+/* The counter divides by the number of tiles, and the number of tiles depends on the
+ * starter: the 伊布家族 section is the reader's choice, not the generation's. This
+ * drives the real modal and picks 伊布 rather than reading whatever the default setup
+ * left behind. */
 await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
 await sleep(300);
 const dexForEevee = JSON.parse(await ev(`(() => {
-  // 伊布 is NOT one of the three classic Gen 1 starters — it is reachable only
-  // through the Let's Go switch, so this drives that too. A check that just
-  // looked for a #133 card would be asserting about a list that does not exist
-  // in classic mode, which is how a control in the wrong section can go
-  // unnoticed while every other assertion stays green.
+  // 伊布 is reachable only through the Let's Go switch, so this drives that too. A
+  // check that just looked for a #133 card would assert about a list that does not
+  // exist in classic mode.
   const letsGo = document.querySelector('input[name="letsGoMode"][value="letsgo"]');
   if (!letsGo) return JSON.stringify({ noToggle: true });
   letsGo.click();
@@ -452,9 +408,9 @@ eq(dexCounter.heads, 1, 'and one section header');
 ok(/\/156\)$/.test(dexCounter.label || ''),
   `the counter divides by the tiles it renders, got "${dexCounter.label}"`);
 
-/* And the other half of the condition: back in classic mode the section is gone
- * and the counter agrees. Asserting only the 156 would pass a page that shows
- * the section to everybody, which is what it did before this condition existed. */
+/* The other half of the condition: in classic mode the section is gone and the
+ * counter agrees. Asserting only the 156 would pass a page that shows the section to
+ * everybody. */
 await ev(`(() => { document.getElementById('btnOpenSetup').click(); return true; })()`);
 await sleep(300);
 await ev(`(() => {
@@ -479,14 +435,12 @@ eq(dexForBulba.heads, 0, 'and no branch section');
 ok(/\/151\)$/.test(dexForBulba.label || ''),
   `and the counter agrees again, got "${dexForBulba.label}"`);
 
-/* Every icon must paint. `.icon` is fill-only, so a stroke-drawn glyph renders as
- * a filled silhouette — invisible to a text check and obvious in a screenshot.
+/* Every icon must paint. `.icon` is fill-only, so a stroke-drawn glyph renders as a
+ * filled silhouette, invisible to a text check.
  *
- * The glyphs are serialised into standalone documents and drawn as images
- * because `drawImage` refuses a live SVGElement: it is an SVGElement, not one of
- * the SVGImageElement / HTMLImageElement / canvas types the signature allows.
- * `currentColor` then resolves against the standalone document's default colour,
- * which is fine — the assertion is about ALPHA, not about hue. */
+ * The glyphs are serialised into standalone documents and drawn as images because
+ * `drawImage` refuses a live SVGElement. `currentColor` then resolves against the
+ * standalone document's default colour; the assertion is about alpha, not hue. */
 const iconInk = JSON.parse(await ev(`(async () => {
   const svgs = [...document.querySelectorAll('svg.icon')];
   const painted = async svg => {
@@ -524,12 +478,11 @@ eq(iconInk.painted, iconInk.total,
 /* ==========================================================================
    6. THE TOAST CARD, IN BOTH THEMES
    ========================================================================== */
-/* The card's background was `linear-gradient(135deg, #1f2a4d, #111830)` — the
- * DARK theme's `--surface-raised` and `--bg-controls` written out as literals —
- * and `.life-toast-icon` declared no colour, so the leaf's `fill: currentColor`
- * inherited light-theme `--text-primary` and painted near-black ink on a navy
- * card: **1.03:1**, measured, which is invisible rather than dim. No static check
- * can find that, because both declarations are individually correct. */
+/* The card's background was `linear-gradient(135deg, #1f2a4d, #111830)` — the dark
+ * theme's `--surface-raised` and `--bg-controls` written as literals — and
+ * `.life-toast-icon` declared no colour, so `fill: currentColor` inherited
+ * light-theme `--text-primary` and painted near-black ink on a navy card at 1.03:1.
+ * Both declarations are individually correct, so no static check can find it. */
 const toastPerTheme = {};
 for (const theme of ['dark', 'light']) {
   await ev(`(() => {
@@ -561,9 +514,8 @@ for (const theme of ['dark', 'light']) {
   const px = /rgb\((\d+), (\d+), (\d+)\)/g;
   const rgbOf = s => (s.match(/rgb\((\d+), (\d+), (\d+)\)/) || [0, 0, 0, 0]).slice(1).map(Number);
   const stops = [...t.bg.matchAll(px)].map(m => m.slice(1).map(Number));
-  // The card is a gradient, so there is no single ground: every foreground is
-  // measured against the WORSE of the two stops. A text that clears 4.5:1 on one
-  // end of a card and 2:1 on the other is not a readable card.
+  // The card is a gradient, so every foreground is measured against the worse of the
+  // two stops.
   const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
   const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   const ratio = a => {
@@ -580,11 +532,11 @@ for (const theme of ['dark', 'light']) {
 
 ok(toastPerTheme.dark.bg !== toastPerTheme.light.bg,
   `the toast background follows the theme (dark: ${toastPerTheme.dark.bg.slice(0, 40)}…)`);
-/* NOT asserted here: "the computed background contains no navy hex". In dark
- * theme `--surface-raised` RESOLVES to rgb(31, 42, 77), so a check for the
- * literal cannot tell a token from a typed-in value — which is §3.G's shape
- * again. "The two themes differ" is the claim that is actually falsifiable from
- * the rendered page; "the stylesheet names no literal" is the static check's. */
+/* Not asserted here: "the computed background contains no navy hex" (§3.G's shape).
+ * In dark theme `--surface-raised` resolves to rgb(31, 42, 77), so a check for the
+ * literal cannot tell a token from a typed-in value. "The two themes differ" is
+ * falsifiable from the rendered page; "the stylesheet names no literal" is the static
+ * check's claim. */
 for (const theme of ['dark', 'light']) {
   const g = grounds[theme];
   ok(g.icon >= 4.5, `${theme}: the toast icon reads at ${g.icon}:1 on its card (need 4.5)`);
@@ -594,10 +546,9 @@ for (const theme of ['dark', 'light']) {
   ok(g.border >= 3, `${theme}: the wild border reads at ${g.border}:1 (1.4.11 needs 3)`);
 }
 
-/* The encounter's own sprite, and it must be a DIFFERENT image per encounter.
- * Counting the element is the check that reads like the guard; drawing it and
- * measuring alpha is the guard — an `<img>` with a broken src is still a 44x44
- * box, and `naturalWidth === 0` is what says so. */
+/* The encounter's own sprite, different per encounter. Counting the element reads
+ * like the guard; drawing it and measuring alpha is the guard, because an `<img>`
+ * with a broken src is still a 44x44 box and `naturalWidth === 0` is what says so. */
 const spriteProbe = JSON.parse(await ev(`(async () => {
   const seen = [];
   for (const id of [1, 25, 133, 700, 838]) {
@@ -628,12 +579,10 @@ ok(spriteProbe.seen.every(s => s.ink > 100),
 ok(new Set(spriteProbe.seen.map(s => s.ink)).size === spriteProbe.seen.length,
   'five species draw five different amounts of ink, so the icon is per-encounter');
 
-/* The cry control. Its DEFAULT is the claim, and it is invisible in a
- * screenshot — a muted page and an unmuted one look identical until something
- * plays. What is checked here is that the control exists, that it starts off,
- * and that ticking it clears BOTH mute fields, because `get muted()` is their OR
- * and clearing only the stored one leaves the page silent (sorting.html's
- * handler does both, and this is why). */
+/* The cry control's default is the claim, and it is invisible in a screenshot. The
+ * control exists, starts off, and ticking it clears both mute fields, because
+ * `get muted()` is their OR and clearing only the stored one leaves the page
+ * silent. */
 const cryCtl = JSON.parse(await ev(`(() => {
   const box = document.getElementById('chkEncounterCry');
   if (!box) return JSON.stringify({ missing: true });
@@ -663,47 +612,37 @@ eq(cryOff.muted, true, 'and persists that');
    7. THE TYPE WASH — COUNTED BY ALPHA, ON THE REAL CANVAS
    ==========================================================================
 
-   The wash's whole claim is a PIXEL claim: a freed cell shows its last
-   occupant's primary type, an occupied cell shows nothing, a cell that was
-   never claimed shows nothing, and the toggle makes all of it go away. None of
-   that is answerable by reading life.js, and the alpha value is the measurement
-   that separates the four states — which is §3.G3's rule, for the same reason
-   it applies to sorting.html's lanes.
+   The wash's claim is a pixel claim: a freed cell shows its last occupant's primary
+   type, an occupied cell shows nothing, a never-claimed cell shows nothing, and the
+   toggle removes all of it. Alpha separates the four states (§3.G3's rule, for the
+   same reason it applies to sorting.html's lanes).
 
-   WHY ALPHA AND NOT SCREENSHOT PIXELS. The canvas is transparent where nothing
-   is drawn; the ground behind it is a CSS `radial-gradient` (life.css:229/234).
-   So `getImageData` returns alpha 0 for the ground itself, and the wash is the
-   one thing that puts a PARTIAL alpha on an otherwise untouched canvas. That
-   makes alpha both the discriminator and the quantity: an occupied cell is
-   opaque where its sprite is and 0 where the sprite is not, and the wash sits
-   at TERRITORY_ALPHA*255 — never at either of those. §3.C's "sample decoded
-   pixels rather than getComputedStyle" is satisfied for the colour question by
-   taking the RGB the wash carries; the question it was warning about — what the
-   two themes actually COMPOSITE to — needs a real screenshot and is measured in
-   the comment on TERRITORY_ALPHA instead.
+   The canvas is transparent where nothing is drawn and the ground behind it is a CSS
+   `radial-gradient` (life.css:229/234), so `getImageData` returns alpha 0 for the
+   ground. The wash is the one thing that puts a partial alpha on an otherwise
+   untouched canvas: an occupied cell is opaque where its sprite is and 0 where it is
+   not, and the wash sits at TERRITORY_ALPHA*255. §3.C's "sample decoded pixels rather
+   than getComputedStyle" is satisfied for the colour question by taking the RGB the
+   wash carries.
 
-   REAL MOUSE PRESSES, not `element.click()`: the handlers are `mousedown` on the
-   canvas and `mousemove` on window, so a synthetic `.click()` would place
-   nothing and the whole section would pass vacuously — §3.N's finding exactly,
-   where 0 of 5 dispatched clicks did what 5 of 5 `element.click()` calls did. */
+   Real mouse presses, not `element.click()` (§3.N's finding): the handlers are
+   `mousedown` on the canvas and `mousemove` on window, so a synthetic `.click()` would
+   place nothing and the section would pass vacuously. */
 console.log('--- type wash on the canvas ---');
 
-// CELL_SIZE read out of the source rather than restated (§3.S): a hardcoded 36
-// here is a second copy of the number the mapping below depends on, and it goes
-// stale silently — the brush would land one cell off and every assertion would
-// still be comparing pixels to pixels.
+// CELL_SIZE is read out of the source rather than restated (§3.S): a hardcoded 36
+// here is a second copy of the number the mapping depends on, and it goes stale
+// silently.
 const lifeJsSrc = readFileSync(join(ROOT, 'assets/js/life.js'), 'utf8');
 const CELL_SIZE = Number((lifeJsSrc.match(/const CELL_SIZE = (\d+)/) || [])[1]);
 ok(Number.isFinite(CELL_SIZE) && CELL_SIZE > 0, `CELL_SIZE is readable from life.js (${CELL_SIZE})`);
 
-/** Wait two animation frames — the renderer is a rAF loop, so a state change is
- *  not on the canvas until it has been painted. */
+/** Wait two animation frames: the renderer is a rAF loop, so a state change is not
+ *  on the canvas until it has been painted. */
 const frames = () => ev(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
 
-/** World cell -> viewport point, using the page's own canvas rect.
- *  Assumes the boot-time centred camera, which is asserted below rather than
- *  trusted: if the assumption broke, the sprite would not appear where predicted
- *  and that check fails instead of the wash ones. */
+/** World cell -> viewport point, using the page's own canvas rect. Assumes the
+ *  boot-time centred camera, which is asserted below rather than trusted. */
 const pointFor = async (wx, wy) => JSON.parse(await ev(`(() => {
   const c = document.getElementById('lifeCanvas');
   const r = c.getBoundingClientRect();
@@ -720,9 +659,8 @@ const press = async (x, y) => {
   await frames();
 };
 
-/** Two cells' worth of pixels in one round trip: (0,0) is the cell under test
- *  and (-9,-9) is a control that is never brushed. `home` is where the feature
- *  has to be visible, `far` is the "nothing is painted here" reading. */
+/** Two cells' worth of pixels in one round trip: (0,0) is the cell under test and
+ *  (-9,-9) is a control that is never brushed. */
 const sample = async () => JSON.parse(await ev(`(() => {
   const c = document.getElementById('lifeCanvas');
   const ctx = c.getContext('2d', { willReadFrequently: true });
@@ -736,37 +674,23 @@ const sample = async () => JSON.parse(await ev(`(() => {
   return JSON.stringify({ home: at(0, 0), far: at(-9, -9) });
 })()`));
 
-// Pick the brush explicitly rather than relying on it being the default, so this
-// section cannot start failing because an earlier one left a different tool active.
+// Pick the brush explicitly rather than relying on it being the default.
 await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
 
-// THREE THINGS SET UP BEFORE ANY PIXEL IS READ, and the first two exist only
-// because the first pooled run of this section failed.
+// Three things are set up before any pixel is read.
 //
-// 1. PAUSE. The section above runs the simulation for up to 40 seconds and pauses
-//    it on the way out, but a section that measures "is this cell dead" has no
-//    business assuming whoever ran before it left the clock stopped. Under the
-//    pool the rAF loop was still ticking: the brushed cell was killed by a
-//    background tick rather than by 單步, and a wild pack had taken the cell by
-//    the time it was read — which is why the pixel came back 255 and gold
-//    (235/220/74, the veteran frame #f5c542) instead of green. A section that
-//    inherits its neighbours' state is a section whose result depends on the
-//    order the sections happen to run in.
-//
-// 2. WILD ENCOUNTERS OFF. `pickWildSite` places a three-cell pack on any free
-//    site with a 1-cell moat, and the origin is a free site. 2% per tick is
-//    nothing over a 40-second run — which is the point: rare enough to look
-//    deterministic, often enough to be the reason a run failed once.
-//
-// 3. EMPTY BOARD. life.html seeds a 32x22 box centred on the origin at 20%
-//    density, so world (0,0) — the cell this section brushes, steps and re-reads
-//    — is already occupied before the first click. An isolated-cell test needs an
-//    isolated cell. 清空 clears the cells AND the wash (the two go together, and
-//    seedRandom/reset/clear are the only three paths that empty a board).
+// 1. Pause. A section that measures "is this cell dead" cannot assume the clock is
+//    stopped; a background tick would kill the brushed cell, and a wild pack could
+//    take it before it is read.
+// 2. Wild encounters off. `pickWildSite` places a three-cell pack on any free site
+//    with a 1-cell moat, and the origin is a free site.
+// 3. Empty board. life.html seeds a 32x22 box centred on the origin at 20% density,
+//    so world (0,0) is already occupied before the first click. 清空 clears the cells
+//    and the wash together.
 const setup = JSON.parse(await ev(`(() => {
   const btn = document.getElementById('btnPlay');
-  // The button reads 暫停 while the clock is running (§3.K), so this pauses only
-  // if it has to — clicking it blindly would START the sim.
+  // The button reads 暫停 while the clock is running (§3.K), so this pauses only if
+  // it has to; clicking it blindly would start the sim.
   const wasPlaying = /暫停/.test(btn.textContent || '');
   if (wasPlaying) btn.click();
   const wild = document.getElementById('chkWild');
@@ -792,25 +716,22 @@ ok(occupied.home.a === 0 || occupied.home.a === 255,
 ok(occupied.home.a !== ground.far.a || occupied.home.r !== ground.far.r,
   'and world (0,0) now differs from the untouched control cell');
 
-// 單步 advances exactly one generation, and an isolated cell has no neighbours,
-// so Conway kills it. This is the whole feature in one interaction: place,
-// step, and the colour is left behind.
+// 單步 advances exactly one generation, and an isolated cell has no neighbours, so
+// Conway kills it. Place, step, and the colour is left behind.
 await ev(`document.getElementById('btnStep').click(); true`);
 await frames();
 await frames();
 const freed = await sample();
 
-// The wash's alpha is TERRITORY_ALPHA * 255 and nothing else on this canvas sits
-// in that band — the sprite is 0 or 255, the grid lines are a full-length stroke
-// rather than a cell fill.
+// The wash's alpha is TERRITORY_ALPHA * 255 and nothing else on this canvas sits in
+// that band: the sprite is 0 or 255, and the grid lines are strokes, not cell fills.
 ok(freed.home.a > 8 && freed.home.a < 250,
   `the dead cell paints a PARTIAL alpha — a wash, not a sprite (${freed.home.a}/255)`);
 ok(freed.home.g > freed.home.r && freed.home.g > freed.home.b,
   `and it is GREEN, because 妙蛙種子's primary type is Grass (rgb ${freed.home.r}/${freed.home.g}/${freed.home.b})`);
 eq(freed.far.a, 0, 'while the never-claimed cell beside it is still untouched');
 
-// The occupied-cell rule is the one that cannot be read off the source as a
-// behaviour: it needs the sprite to be there and the wash to be absent at once.
+// The occupied-cell rule needs the sprite present and the wash absent at once.
 await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
 await press((await pointFor(0, 0)).x, (await pointFor(0, 0)).y);
 const reOccupied = await sample();
@@ -827,15 +748,12 @@ await ev(`document.getElementById('chkTerritory').click(); true`);
 await frames();
 
 // The theme pair, measured the way §3.C demands rather than asserted from the
-// constant: put a claim on a cell that is dead, switch the theme the way a
-// reader does, and read the alpha the wash ACTUALLY painted.
+// constant: put a claim on a dead cell, switch the theme the way a reader does, and
+// read the alpha the wash actually painted.
 //
-// The theme is set by writing `dataset.theme` because that is literally the
-// branch the renderer reads — §3.X's lesson was that flipping the attribute and
-// then reading a contrast figure measures the wrong path, but here the attribute
-// IS the input, not a proxy for one. What this cannot measure, and does not
-// claim, is what the wash composites to against the CSS gradient underneath;
-// that needs a screenshot and is stated as unmeasured rather than guessed.
+// The theme is set by writing `dataset.theme` because that is the branch the renderer
+// reads (§3.X). What this cannot measure is what the wash composites to against the
+// CSS gradient underneath; that needs a screenshot.
 const originalTheme = await ev(`document.documentElement.dataset.theme || ''`);
 const p22 = await pointFor(2, 2);
 await press(p22.x, p22.y);
@@ -875,25 +793,23 @@ await frames();
    8. THE TYPE DRAWER — TWO NUMBERS THAT ARE NOT THE SAME NUMBER
    ==========================================================================
 
-   The button and the list answer different questions on purpose:
+   The button and the list answer different questions:
 
-     屬性 (n/15)   types this board has EVER held. Monotonic. Erasing the last
-                   cell of a type does not un-collect it.
+     屬性 (n/15)   types this board has ever held. Monotonic; erasing the last cell
+                   of a type does not un-collect it.
      the list       a snapshot: (that type's live + wash) / (all live + wash).
                    An erased wash leaves the list and stays on the button.
 
-   Both halves are driven through the real UI — a real press on the canvas, and
-   the 圖鑑 drawer to change the brush species, because there is no other control
-   for it. Driving `activeSpeciesId` directly would be §3.N's mistake one field
-   over: it would pass against a page whose picker was broken.
+   Both halves are driven through the real UI: a press on the canvas, and the 圖鑑
+   drawer to change the brush species. Driving `activeSpeciesId` directly would pass
+   against a page whose picker was broken (§3.N's mistake one field over).
 
-   THE ORDER MATTERS and is asserted at each step, because a counter that is
-   right for the wrong reason is still wrong: `>=` would pass for a drawer that
-   showed every type of every generation. */
+   The order matters and is asserted at each step, because a counter that is right for
+   the wrong reason is still wrong. */
 console.log('--- type drawer ---');
 
-// Reuse the section's paused + empty board: a seeded board's population would
-// make "how many types has it collected" depend on how many ticks ran.
+// Reuse the section's paused, empty board: a seeded board's population would make
+// "how many types has it collected" depend on how many ticks ran.
 await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
 await ev(`document.getElementById('btnClear').click(); true`);
 await frames();
@@ -939,10 +855,8 @@ const pickSpecies = async (dexNum) => {
 const empty1 = await typeDrawer();
 eq(empty1.summary, '盤面尚無寶可夢。', 'an empty board says so rather than printing 0/0');
 // 15, the generation's own count. It is not 17 because the 伊布 branch is
-// era-restricted: a classic Gen 1 Eevee reaches only 水/雷/火伊布, all of which are
-// era-1 types, so the family widens nothing. `check_life_page.mjs` asserts that
-// across 9 generations × 2 modes, which is what lets this number be the era's
-// rather than a reachable-set computation.
+// era-restricted: a classic Gen 1 Eevee reaches only 水/雷/火伊布, all era-1 types.
+// `check_life_page.mjs` asserts that across 9 generations × 2 modes.
 eq(empty1.rows.length, 15, `a classic Gen 1 drawer lists 15 rows (${empty1.rows.length})`);
 ok(/鋼、惡、妖精/.test(empty1.eraNote),
   `and names the three types Gen 1 lacks: "${empty1.eraNote}"`);
@@ -961,8 +875,8 @@ ok(/活體 2 隻/.test(two.summary) && /合計 4 格/.test(two.summary),
   `the denominator is live PLUS wash (${two.summary})`);
 eq(two.segs, 2, 'the bar draws one segment per non-zero type');
 {
-  // Exactly two rows carry a share, and together they are 100%. Asserting both
-  // halves: "some row is 100%" would pass if only one type were counted.
+  // Exactly two rows carry a share and together they are 100%: "some row is 100%"
+  // would pass if only one type were counted.
   const nonEmpty = two.rows.filter(r => !r.empty);
   eq(nonEmpty.length, 2, `exactly 2 of the 15 rows are non-empty (${nonEmpty.length})`);
   const pcts = nonEmpty.map(r => Number(r.text.match(/([\d.]+)%$/)[1]));
@@ -994,21 +908,18 @@ const erased = await typeDrawer();
 eq(erased.summary, '盤面尚無寶可夢。', 'while the list is a snapshot and is empty again');
 eq(erased.segs, 0, 'with no bar segments left');
 
-// The generation switch re-bases BOTH halves: the denominator changes and the
-// collection starts over, or the reader would be 15/18 on a board that has only
-// ever held Gen 1's 15.
+// The generation switch re-bases both halves: the denominator changes and the
+// collection starts over.
 await ev(`document.getElementById('typeClose').click(); true`);
-// 草 was erased earlier and STAYS collected, so adding it again cannot move the
-// number. That is the collection working, not a counter failing to update — and it
-// is the reason the assertion below re-checks 2 rather than 1.
+// 草 was erased earlier and stays collected, so adding it again cannot move the
+// number. The assertion below re-checks 2 rather than 1 for this reason.
 await pickSpecies('0001');
 await brushCell(2, 0);
 eq(await typeLabel(), '屬性 (2/15)',
   'a further 妙蛙種子 adds nothing — 草 was collected before the erase, and a collection does not un-collect');
-// The tab only SELECTS; 鎖定世代並開始模擬 is what commits it. Driving the tab
-// alone is the §3.I mistake in a new place — the click lands, no error is
-// raised, and the page is still on Gen 1, so every generation assertion after it
-// would have been testing the wrong board.
+// The tab only selects; 鎖定世代並開始模擬 commits it. Driving the tab alone leaves
+// the page on Gen 1 (§3.I's mistake in a new place), and every generation assertion
+// after it tests the wrong board.
 await ev(`document.getElementById('btnOpenSetup').click(); true`);
 await sleep(200);
 await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 2 世代/.test(b.textContent)).click(); true`);
@@ -1022,10 +933,9 @@ eq(gen2.rows.length, 17, `a Gen 2 drawer lists 17 rows (${gen2.rows.length})`);
 ok(/妖精/.test(gen2.eraNote) && !/鋼/.test(gen2.eraNote),
   `and only Fairy is still missing — Dark and Steel arrived with it: "${gen2.eraNote}"`);
 
-// Locking a generation SEEDS a fresh board, so the collection is not 0 here and
-// asserting 0/17 would have been asserting that the page does not seed. What
-// matters is the DENOMINATOR re-basing, and then that clearing drops it to 0/17 —
-// which is what proves the Gen 1 collection did not carry across the switch.
+// Locking a generation seeds a fresh board, so the collection is not 0 here. What
+// matters is the denominator re-basing, then that clearing drops it to 0/17, which
+// proves the Gen 1 collection did not carry across the switch.
 ok(/^屬性 \(\d+\/17\)$/.test(await typeLabel()),
   `the button's denominator re-bases to Gen 2's 17 (${await typeLabel()})`);
 await ev(`document.getElementById('typeClose').click();
@@ -1036,18 +946,15 @@ eq(await typeLabel(), '屬性 (0/17)',
 
 await ev(`document.getElementById('typeClose').click(); true`);
 
-/* --- Let's Go: the same Gen 1 ROSTER at a 2018 type era. ------------------
-   The modes are named after the Dex they draw from, not the year the game
-   shipped, so a Let's Go board is Gen 1's 151 species read at era 7. Both halves
-   are observable: the denominator opens to 18, and a species that changed type
-   in Gen 6 reports its MODERN typing. Without the mode change the 24-row
-   override table decides a 2018 board from a table about games before 1990. */
+/* --- Let's Go: the same Gen 1 roster at a 2018 type era. -------------------
+   The modes are named after the Dex they draw from, not the year the game shipped,
+   so a Let's Go board is Gen 1's 151 species read at era 7. The denominator opens to
+   18, and a species that changed type in Gen 6 reports its modern typing. */
 await ev(`document.getElementById('btnOpenSetup').click(); true`);
 await sleep(250);
-// BACK TO GEN 1 FIRST. The Let's Go radios are built by renderSetupModal() and
-// only for a generation that has letsGoStarters — the previous block left this
-// page on Gen 2, where they do not exist, so querying one returns null. The
-// failure reads as "Cannot read properties of null" and says nothing about modes.
+// Back to Gen 1 first. The Let's Go radios are built by renderSetupModal() and only
+// for a generation that has letsGoStarters; the previous block left this page on
+// Gen 2, where they do not exist.
 await ev(`[...document.querySelectorAll('.life-gen-tab-btn')].find(b => /第 1 世代/.test(b.textContent)).click(); true`);
 await sleep(300);
 const letsGoRadio = await ev(`(() => {
@@ -1071,20 +978,15 @@ ok(/2018/.test(lg.eraNote),
   `and the note says why the era moved: "${lg.eraNote}"`);
 eq(await typeLabel(), '屬性 (0/18)', 'and the button counts against 18');
 
-// The species-level half: place a 皮皮 and read its CLAIM back off the wash.
-// 皮皮 is Fairy in the data; classic Gen 1 says 一般 and Let's Go must say 妖精, or
-// the mode changed nothing a reader can see.
+// The species-level half: place a 皮皮 and read its claim back off the wash. 皮皮 is
+// Fairy in the data; classic Gen 1 says 一般 and Let's Go must say 妖精.
 //
-// CLOSE THE DRAWER FIRST. `typeDrawer()` above left the type drawer open, and it
-// is a fixed overlay: the press went to the drawer rather than to the canvas, the
-// cell was never placed, and the assertion reported 「nothing has a share」 — a
-// failure with no mention of the drawer that caused it.
+// Close the drawer first: `typeDrawer()` above left it open, and it is a fixed
+// overlay, so the press would go to the drawer rather than the canvas.
 await ev(`document.getElementById('typeClose').click(); true`);
 await sleep(200);
-// AND the brush tool, which the erasure block above switched to and never
-// switched back. A press with 抹除 active deletes nothing and places nothing, so
-// the cell never existed and the share was 「nothing」 — a failure whose message
-// named neither the tool nor the drawer.
+// Also select the brush: the erasure block switched to 抹除 and never switched
+// back, and a press with 抹除 active places nothing.
 await ev(`document.querySelector('[data-tool="brush"]').click(); true`);
 await ev(`document.getElementById('btnClear').click(); true`);
 await sleep(200);

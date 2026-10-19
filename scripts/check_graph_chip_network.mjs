@@ -1,58 +1,30 @@
 #!/usr/bin/env node
 /**
- * Regression checks for graph.html's category chips. Run: node scripts/check_graph_chip_network.mjs
+ * Regression checks for graph.html's category chips.
+ * Run: node scripts/check_graph_chip_network.mjs
  *
- * WHAT THIS EXISTS FOR
- * ===================
- * Nothing in the suite read `data-filter-cat` before this file. The manifest's only
- * graph.html entries are check_graph_browser.mjs (a CDP smoke test, `manual: true`
- * and `serial: true`, the most expensive entry in the suite) and its harness. So
- * 精選分類 had no coverage at all while §3.N of AGENTS.md records, in the graph
- * section, that "nothing in the suite reads a header's geometry".
+ * graph.js keeps a link only when both endpoints survive the active filter
+ * (assets/js/graph.js:399-403). Every `mega` and `gmax` link is base -> form, so
+ * pressing 精選分類 → 超級進化 used to drop all 93 parents and leave 93 isolated
+ * sprites: 93 nodes / 0 links / 93 components. This file asserts that every chip
+ * draws a connected web rather than a pile.
  *
- * The defect it would have caught is a structural one and it shipped silently.
- * graph.js keeps only links whose BOTH endpoints survive the active filter:
+ * The filter is pure arithmetic over graph_data.json, so the whole question is
+ * answerable off disk; a CDP run would cost a Chrome boot to compute a
+ * connected-components count, and §3.G4's stub work established that the slow half of
+ * a page check is not where these answers live. This runs in well under 0.2s.
  *
- *     assets/js/graph.js:399-403
- *       return nodeIds.has(srcId) && nodeIds.has(tgtId);
+ * 超極巨化 is a DECLARED exception (0 links / 34 components): connecting it needs
+ * Dynamax nodes and artwork that do not exist in this corpus. The exception is
+ * itself asserted to remain isolated, so it cannot outlive its reason (§3.F's
+ * opposite shape: a "known set" whose bound stayed), and every chip outside the list
+ * must have links > 0.
  *
- * Every `mega` and `gmax` link is base -> form, i.e. cross-category by
- * construction, so pressing 精選分類 → 超級進化 dropped all 93 parents and left 93
- * sprites with 0 links and nothing but `d3Force('charge').strength(-140)` pushing
- * them apart. Measured before the fix: 93 nodes / 0 links / 93 components, and
- * 悖謬 at 20 / 8 / 12. 600 族 read 30 / 48 / 1 -- one component -- because its ring
- * is intra-category, which is the entire difference between a chip that filters a
- * web and a chip that filters a pile.
+ * `linkColors` is read out of graph.js rather than restated (§3.S): a hardcoded
+ * copy is a second source of truth for the answer the assertion exists to police.
  *
- * WHY STATIC RATHER THAN OVER CDP
- * ===============================
- * The filter is three lines of pure arithmetic over graph_data.json, so the whole
- * question "what does pressing this chip draw" is answerable off disk. Putting it
- * in the browser would cost ~6s and a Chrome boot to compute a connected-components
- * count, and §3.G4's stub work already established that the slow half of a page
- * check is not where these answers live. This runs in well under 0.2s.
- *
- * THE EXCEPTION LIST IS THE INTERESTING PART
- * ==========================================
- * 超極巨化 is still 0 links / 34 components, because making it connect needs 32
- * Dynamax sprites and two more generator scripts (there are no Dynamax nodes in the
- * corpus and no Dynamax artwork anywhere under assets/ -- measured, `find assets
- * -iname '*dynamax*'` returns zero). That is a real gap, recorded in AGENTS.md §7 of
- * this change, and it is written down here as a DECLARED exception with its reason.
- *
- * Two things make that a decision rather than a silence:
- *
- *   1. `DECLARED_ISOLATED` is asserted to STILL be isolated. If 超極巨化 ever gets
- *      links, this checker FAILS and someone deletes the entry -- so the exception
- *      cannot outlive its reason. §3.F's seven silently-truncated species were
- *      recorded as a "known set" and the bound stayed; this is the opposite shape.
- *   2. Every chip that is NOT in the list must have links > 0. Adding a new chip
- *      that renders a pile therefore fails here rather than in front of a reader.
- *
- * Reading `linkColors` out of graph.js rather than restating it follows §3.S's
- * rule (check_color_page.mjs reads OPEN_BUTTON_MOUNT out of shared.js): a hardcoded
- * copy in the assertion is a second source of truth for the exact answer the
- * assertion exists to police, and it goes stale in the dangerous direction.
+ * Before this file, nothing in the suite read a header's geometry or a chip's
+ * `data-filter-cat` (§3.N).
  */
 
 import { readFileSync } from 'node:fs';
@@ -73,8 +45,8 @@ const eq = (got, want, msg) => ok(
 /**
  * Chips that are KNOWN to draw a pile rather than a web, with the reason.
  *
- * `gmax` is the only one. See the docblock: the fix needs Dynamax nodes that do
- * not exist in this corpus.
+ * `gmax` is the only one: the honest relation is gmax <-> dynamax, and the corpus
+ * has no Dynamax nodes or artwork.
  */
 const DECLARED_ISOLATED = {
   gmax: 'no intra-category edge exists; the honest relation is gmax <-> dynamax, '
@@ -83,24 +55,21 @@ const DECLARED_ISOLATED = {
 
 /** Largest-connected-component floor, as a share of the chip's node count.
  *
- * 0.5 is a FLOOR and not a description of health. The tightest chip against it is
- * 幻之寶可夢 at 12/23 = 0.52, which is 0.02 above the line and is therefore on the
- * watch list rather than comfortable -- the assertion is doing its job there.
+ * 0.5 is a floor, not a description of health. The tightest chip is 幻之寶可夢 at
+ * 12/23 = 0.52, which is 0.02 above the line and therefore on the watch list.
  */
 const LARGEST_FLOOR = 0.5;
 
-/** The two form families whose nodes cross-check against the fetch cache.
- *  Declared here rather than next to its one use so the SKIP branch above, which
- *  runs BEFORE the cross-check, can still report how many nodes went unchecked. */
+/** The form families whose nodes cross-check against the fetch cache.
+ *  Declared here rather than at its one use so the SKIP branch can still report
+ *  how many nodes went unchecked. */
 const FORM_FAMILIES = new Set(['mega', 'gmax', 'regional']);
 
 /** Strip comments before scanning source or markup for structure.
  *
- * graph.html's own prose explains what these chips do and names `data-filter-rel`
- * while doing it, and graph.js's linkColors block carries a 20-line explanation of
- * why the fallback existed. Scanning raw text walks straight out of either. Same
- * reason check_page_module_api.mjs masks comments -- and §3.S's note that this
- * mistake landed first in the checker written to catch the real thing.
+ * graph.html's prose names `data-filter-rel`, and graph.js's linkColors block
+ * carries a 20-line explanation of its fallback; scanning raw text walks out of
+ * either. Same reason check_page_module_api.mjs masks comments (§3.S).
  */
 const maskJsComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const maskHtmlComments = (src) => src.replace(/<!--[\s\S]*?-->/g, ' ');
@@ -124,21 +93,15 @@ const html = maskHtmlComments(readFileSync(join(BASE, 'graph.html'), 'utf8'));
 const js = maskJsComments(readFileSync(join(BASE, 'assets/js/graph.js'), 'utf8'));
 const data = JSON.parse(readFileSync(join(BASE, 'assets/data/graph_data.json'), 'utf8'));
 
-/* The fetch cache is gitignored (see .gitignore: raw PokeAPI payloads are out, the
- * generated table is in), so a fresh clone without it is a NORMAL state -- and one
- * where build_graph_data.py has already quietly given every form node its BASE's
+/* The fetch cache is gitignored, so a fresh clone without it is a NORMAL state --
+ * and one where build_graph_data.py has already given every form node its BASE's
  * types and stats.
  *
- * It is NOT an early exit. Everything above this point runs either way, and the
- * form cross-check below is skipped on its own. Two reasons that is the right shape
- * rather than a fast one: exiting early would throw away 100+ valid checks over a
- * missing optional input, and `check_spectrogram_port.mjs` already established the
- * convention -- print SKIP, exit 0, and make the line impossible to skim past,
- * because the alternative is an entry that reports green having verified nothing.
- *
- * The reason is printed with the command that fixes it, and the SKIP is counted in
- * the summary so `PASS 127 checks, 1 section skipped` cannot be read as `PASS 127
- * checks, all good`. */
+ * This is not an early exit. Everything above runs either way and only the form
+ * cross-check is skipped: exiting early would throw away 100+ valid checks over a
+ * missing optional input. `check_spectrogram_port.mjs` established the convention:
+ * print SKIP, exit 0, and count the skipped section in the summary so
+ * `PASS N checks, 1 section skipped` cannot be read as `all good`. */
 let formCache = null;
 let cacheReason = '';
 try {
@@ -147,7 +110,7 @@ try {
   cacheReason = err.code === 'ENOENT' ? 'file absent' : String(err.message);
 }
 
-console.log('chip connectivity (every 精選分類 chip must draw a web, not a pile)');
+console.log('chip connectivity (every 精選分類 "featured category" chip must draw a web, not a pile)');
 
 /* ---- the chip lists, parsed out of graph.html ---------------------------- */
 
@@ -155,7 +118,7 @@ const catChips = [...html.matchAll(/data-filter-cat="([^"]*)"/g)].map((m) => m[1
 const relChips = [...html.matchAll(/data-filter-rel="([^"]*)"/g)].map((m) => m[1]);
 
 ok(catChips.length >= 8, `graph.html declares only ${catChips.length} category chips; expected the 9 special-category buttons`);
-ok(catChips.includes('all'), 'the 全部 chip (data-filter-cat="all") is gone');
+ok(catChips.includes('all'), 'the 全部 "All" chip (data-filter-cat="all") is gone');
 ok(new Set(catChips).size === catChips.length,
   `graph.html repeats a category chip: ${JSON.stringify(catChips)}`);
 
@@ -236,10 +199,10 @@ console.log('\nlink type styling (every drawn type has a colour, none are orphan
 
 /* Read linkColors out of graph.js rather than restating it.
  *
- * The pattern allows an opening quote before the `#`: the values are string
- * literals (`mega: '#d946ef'`), and a regex written as `(\w+):\s*#` matches nothing
- * at all and reports every one of the thirteen types as unstyled -- which is a
- * checker that fails everything, not one that catches a defect. */
+ * The pattern allows an opening quote before the `#` because the values are string
+ * literals (`mega: '#d946ef'`). A regex written as `(\w+):\s*#` matches nothing and
+ * reports all thirteen types as unstyled -- a checker that fails everything, not
+ * one that catches a defect. */
 const colorsAt = js.indexOf('const linkColors = {');
 ok(colorsAt !== -1, 'graph.js no longer declares `const linkColors = {`');
 const colorKeys = colorsAt === -1
@@ -272,37 +235,28 @@ const metaSum = Object.values(data.metadata.link_types).reduce((a, b) => a + b, 
 eq(metaSum, data.metadata.total_links,
   'metadata.link_types does not sum to metadata.total_links -- the object claims to describe the links and does not');
 
-console.log('\nrelation chips (every 關係圖層 chip must be able to draw something)');
+console.log('\nrelation chips (every 關係圖層 "relation layer" chip must be able to draw something)');
 
-/* THE KEPT LIST IS A LIST, NOT A THRESHOLD, and the first draft of this section was
- * wrong about that in a way its own output proved.
+/* THE KEPT LIST IS A LIST, NOT A THRESHOLD.
  *
- * It asserted a floor on the largest connected component and picked 10, reasoning
- * that 純進化鏈 (largest 9) was kept and 超級進化 (largest 4) was dropped. Measured
- * against the decision that was actually made, the floor is not satisfied by the
- * decision: `form` has a 15-node mass and NO chip, while 純進化鏈 has 9 and one, so
- * a threshold cannot separate them without being tuned until it happens to.
+ * A floor on the largest connected component cannot reproduce the decision: `form`
+ * has a 15-node mass and no chip, while 純進化鏈 has 9 and one, so any threshold
+ * separating them has to be tuned until it happens to. A threshold tuned until it
+ * passes the answer is §3.F's failure in a new costume. This pins the DECISION and
+ * records why each chip earned it, which is what a later edit has to re-argue.
  *
- * A threshold tuned until it passes the answer is §3.F's failure in a new costume --
- * a bound that hides whatever it is pointed at. So this pins the DECISION and
- * records why each chip earned it, which is the thing a later edit actually needs to
- * re-argue.
+ * The two reasons are genuinely different:
  *
- * THE TWO REASONS ARE GENUINELY DIFFERENT, which is why no single number covers
- * them:
- *
- *   A. The chip draws a share of the whole scene. 屬性星系環 touches 1,025 of 1,346
- *      nodes; 雙屬性共生橋 637; 純進化鏈 824. Whatever the component shape, pressing
- *      it redraws most of the graph.
- *   B. The chip names a category the reader can also reach through a 精選分類 chip
- *      that is ITSELF a single connected network. 超級形態屬型群 and 地區型態群 are
- *      mega -> mega and regional -> regional; 悖謬特徵群 is one of the two families
- *      behind the 悖謬寶可夢 chip, which measures 20 nodes / 36 edges / 1 component.
- *      So a reader who wants that structure has a button that shows it cleanly.
+ *   A. The chip draws a share of the whole scene: 屬性星系環 touches 1,025 of 1,346
+ *      nodes, 雙屬性共生橋 637, 純進化鏈 824.
+ *   B. The chip names a category also reachable through a 精選分類 chip that is
+ *      itself one connected network: 超級形態屬型群 and 地區型態群 are mega -> mega
+ *      and regional -> regional, and 悖謬特徵群 is one family behind the 悖謬寶可夢
+ *      chip (20 nodes / 36 edges / 1 component).
  *
  * 御三家羈絆, 超級進化, 超極巨化 and the bare `regional` edge are reason C: 2-4 node
- * groups with neither property. Their links are all still in graph_data.json and
- * still drawn by 全域融合網絡 -- what was removed is the button, not the data. */
+ * groups with neither property. Their links remain in graph_data.json and are still
+ * drawn by 全域融合網絡 -- what was removed is the button, not the data. */
 const KEPT_RELATION_CHIPS = {
   all: 'the default: every link type at once',
   type_resonance: 'A — 1,025 of 1,346 nodes touched, 17 rings of >= 10',
@@ -347,11 +301,12 @@ for (const ltype of relChips) {
   ok(n > 0, `relation chip "${ltype}" has 0 links of its type in the graph — the button highlights and changes nothing`);
 }
 
-console.log('\ntoggle (pressing a row\'s active chip again returns it to 全部)');
+console.log('\ntoggle (pressing a row\'s active chip again returns it to 全部 "All")');
 
 /* Every filter row toggles, and the three rows that did not are the defect this
- * pins. 屬性共振 had it from the start; 世代劃分 / 關係圖層 / 精選分類 each had their
- * own copy of "strip is-active, add is-active, assign, apply" and no way back. */
+ * pins. 屬性共振 had it from the start; 世代劃分 / 關係圖層 / 精選分類 each carried
+ * their own copy of "strip is-active, add is-active, assign, apply" and no way
+ * back. */
 const jsClean = maskJsComments(js);
 const FILTER_ATTRS = ['data-filter-gen', 'data-filter-rel', 'data-filter-cat', 'data-filter-type'];
 for (const attr of FILTER_ATTRS) {
@@ -379,10 +334,10 @@ const chartOrder = orderBlock
   : [];
 const typeBtnOrder = [...html.matchAll(/data-filter-type="([^"]*)"[^>]*>([^<]*)</g)].map((m) => [m[1], m[2].trim()]);
 eq(typeBtnOrder.map(([t]) => t), chartOrder,
-  'graph.html\'s 屬性共振 buttons are not in TYPE_CHART_ORDER (assets/js/type-chart.js) order');
+  'graph.html\'s 屬性共振 "type resonance" buttons are not in TYPE_CHART_ORDER (assets/js/type-chart.js) order');
 eq(typeBtnOrder.length, 18, `graph.html should declare exactly 18 type buttons, found ${typeBtnOrder.length}`);
 for (const [t, label] of typeBtnOrder) {
-  ok(label.length > 0, `the 屬性共振 button for "${t}" has no visible label`);
+  ok(label.length > 0, `the 屬性共振 "type resonance" button for "${t}" has no visible label`);
 }
 
 console.log('\nintra-category families (the fix itself: these edges must stay internal)');
@@ -433,12 +388,12 @@ ok(orphanedMegas.length === 0,
 
 /* 地區形態: the same two questions, and the first one is about a FIELD.
  *
- * `region` is alola / galar / hisui / paldea, and it was not a field at all until
- * this change: build_graph_data.py's walk over `variants` passed the literal
- * 'regional' where the key was in hand, so all 54 nodes reported the same thing
- * and the four regions were invisible in the graph even though evolution_chains.
- * json names them. The four stars above are built from this column, so a node that
- * lost it is a node that dropped out of a chip with no error anywhere. */
+ * `region` is alola / galar / hisui / paldea, and it was not a field at all before
+ * the fix: build_graph_data.py's walk over `variants` passed the literal 'regional'
+ * where the key was in hand, so all 54 nodes reported the same thing and the four
+ * regions were invisible even though evolution_chains.json names them. The stars
+ * above are built from this column, so a node that lost it dropped out of a chip
+ * with no error anywhere. */
 const REGIONS = ['alola', 'galar', 'hisui', 'paldea'];
 const regionalNodes = data.nodes.filter((n) => n.category === 'regional');
 const regionless = regionalNodes.filter((n) => !REGIONS.includes(n.region));
@@ -460,10 +415,9 @@ ok(strandedRegional.length === 0,
   `${strandedRegional.length} regional form(s) are in no regional_clade edge: ${strandedRegional.slice(0, 5).map((n) => n.name).join(', ')}`);
 
 /* Every region of two or more must be a STAR whose hub is its LOWEST id -- the
- * choice is the reader's (deterministic over prettiest), so the checker pins the
- * choice rather than re-deciding it. Paldea has one member and therefore must emit
- * no hub edge at all: a 1-node group is not a group, and inventing a self-loop is
- * the shape `add_link` refuses for exactly this reason. */
+ * choice is deterministic rather than prettiest, so the checker pins it rather than
+ * re-deciding it. Paldea has one member and must emit no hub edge at all: a 1-node
+ * group is not a group, and a self-loop is the shape `add_link` refuses. */
 for (const [region, ids] of byRegion) {
   const sorted = [...ids].sort((a, b) => a - b);
   if (sorted.length < 2) {
@@ -489,8 +443,8 @@ const formNodes = data.nodes.filter((n) => FORM_FAMILIES.has(n.category));
  * Venusaur's numbers on 超級妙蛙花. Wrong, visible, and green through the suite,
  * because a copied value is a plausible value.
  *
- * Compared against the fetch cache rather than against a hand-written expectation,
- * so it is the fetch that decides and this file only insists the graph agrees. */
+ * The comparison is against the fetch cache rather than a hand-written expectation,
+ * so the fetch decides and this file only insists the graph agrees. */
 if (!formCache) {
   console.log(`  SKIP  data-sources/pokeapi_form_stats.json (${cacheReason}) -- the ${formNodes.length} `
     + 'mega/gmax nodes were NOT cross-checked against their own types or stats.');
@@ -535,7 +489,7 @@ if (!formCache) {
    * is a set that grows silently: fetch_form_stats.py already reports it, but a
    * report nobody reads is not a guard. */
   const notFound = Object.entries(formCache).filter(([, v]) => !v.found).map(([id]) => Number(id)).sort((a, b) => a - b);
-  eq(notFound, [10314], 'the set of forms with no upstream PokeAPI entry changed -- read the fetch output and decide whether that is a new upstream gap or our own bad id');
+  eq(notFound, [10314], 'the set of forms with no upstream PokeAPI entry changed -- read the fetch output and decide whether that is a new upstream gap or a bad id in this project');
   ok(fellBack === notFound.length,
     `${fellBack} form node(s) fell back to base values but the cache reports ${notFound.length} unfetched form(s)`);
 }

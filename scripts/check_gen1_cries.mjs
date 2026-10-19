@@ -45,17 +45,16 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+/** `stream` keeps this file's one line per assertion; the defaults match its prefixes. */
+const C = createChecker({ stream: true });
+const { ok } = C;
+/* `eq` keeps its original shape: a detail only on FAILURE, because this checker
+ * streams a line per assertion and a passing line carries no values. */
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -381,8 +380,8 @@ console.log(`  commands: ${entries.reduce((n, [, v]) => n + v.channels.reduce((m
 console.log(`  channels without a terminator: ${implicit.length}`);
 
 console.log('');
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

@@ -54,17 +54,13 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CRY_IDS, LEGACY_CRY_IDS, CRY_SOURCE } from '../assets/js/cry-index.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+const C = createChecker({ stream: true });
+const { ok } = C;
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -226,8 +222,8 @@ function median(values) {
 
 console.log('');
 console.log(`  payload: ${(readFileSync(join(ROOT, 'assets/data/cry_features.json')).length / 1024).toFixed(0)} KB`);
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

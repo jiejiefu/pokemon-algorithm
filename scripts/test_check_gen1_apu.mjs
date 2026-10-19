@@ -1,65 +1,56 @@
 #!/usr/bin/env node
 /**
- * Prove check_gen1_apu.mjs can actually fail.
+ * Prove that check_gen1_apu.mjs can actually fail.
  *
  * Run: node scripts/test_check_gen1_apu.mjs
  *
  * These cases mutate the APU rather than the page, because the claims worth
  * guarding here are claims about sound. A checker that has only ever seen the
- * correct synthesiser cannot tell the difference between "asserts the pitch
- * formula" and "asserts a comment about the pitch formula", so every case below
- * breaks the audio path and requires the failure to be named.
+ * correct synthesiser cannot distinguish "asserts the pitch formula" from
+ * "asserts a comment about the pitch formula", so every case below breaks the
+ * audio path and requires the failure to be named.
  *
- * The expensive cases mutate the two generated JSON files, which means the
- * fixture tree is a few hundred KB rather than a few bytes — that is why there
- * are 39 cases and not forty.
+ * The expensive cases mutate the two generated JSON files, so the fixture tree is
+ * a few hundred KB rather than a few bytes. There are 39 cases.
  *
- * Where the time goes, measured here: the checker's native-rate conformance loop
- * is 4.8 s of its 6.5 s, and 22 of the 39 cases below name an assertion that loop
- * never produces. Those 22 are the reason `stripConformance` exists — see the note
- * on CONFORMANCE_EXPECTS. The other 17 DO name it, so they keep it. The baseline
- * always runs the whole checker.
- *
- * (This used to say "17 of the 34 cases ... assert something that loop never
- * touches", which had the polarity backwards as well as the count: the 17 are the
- * ones that keep the loop, and the 21 were the ones that lose it. 21 + 17 = 38,
- * which is not 39 — the sum was the tell, and it went unread. It is 22.)
+ * Measured cost: the checker's native-rate conformance loop is 4.8 s of its 6.5 s,
+ * and 22 of the 39 cases below name an assertion that loop never produces. Those
+ * 22 are why `stripConformance` exists — see the note on CONFORMANCE_EXPECTS. The
+ * other 17 DO name it, so they keep it. The baseline always runs the whole checker.
  *
  * ---------------------------------------------------------------------------
  * NOT IN check_all.mjs. THIS FILE IS RETIRED FROM THE DEFAULT RUN, ON PURPOSE.
  * ---------------------------------------------------------------------------
  *
- * It cost 42 s — a fifth of the suite, and at the time its largest single entry — to
- * prove a point that is about the CHECKER rather than about the synthesiser: that each
- * of check_gen1_apu.mjs's 92 assertions fails when the thing it polices stops being
+ * It cost 42 s — a fifth of the suite, and at the time its largest single entry —
+ * to prove a point about the CHECKER rather than the synthesiser: that each of
+ * check_gen1_apu.mjs's 92 assertions fails when the thing it polices stops being
  * true. §4 forbids a flag to skip a check, so the entry was removed rather than
  * disabled; the file still runs:
  *
  *     node scripts/test_check_gen1_apu.mjs      # ~42 s
  *
- * WHAT IS STILL CHECKED EVERY DAY: check_gen1_apu.mjs is still in the manifest, so
+ * WHAT IS STILL CHECKED EVERY DAY: check_gen1_apu.mjs remains in the manifest, so
  * the synthesis is still compared against the reference synthesiser's own output.
- * That is the claim about the APU. This file is the claim about the checker.
+ * That is the claim about the APU; this file is the claim about the checker.
  *
  * WHAT IS NO LONGER CHECKED: that each of those 92 assertions is load-bearing.
- * Nothing else substitutes for it. That is the whole trade, and it is a real one —
- * a green suite here is not evidence that this harness would still catch anything.
+ * Nothing substitutes for it. A green suite here is not evidence that this harness
+ * would still catch anything.
  *
- * IF YOU EDIT check_gen1_apu.mjs, this file's 39 `expect` strings are what tell a
- * mutation case which assertion is supposed to fire, so editing an assertion's
- * MESSAGE text silently invalidates them. check_all.mjs reads this file on every run
- * and fails when an expectation no longer names an assertion the checker contains, so
- * you will be told before you ever run this by hand.
+ * IF YOU EDIT check_gen1_apu.mjs, this file's 39 `expect` strings tell each
+ * mutation case which assertion should fire, so editing an assertion's MESSAGE
+ * text silently invalidates them. check_all.mjs reads this file on every run and
+ * fails when an expectation no longer names an assertion the checker contains.
  *
- * THAT GUARD IS IN check_all.mjs AND NOT HERE, for a reason worth keeping. It was
- * first written INSIDE check_gen1_apu.mjs, which is a mistake this file is the proof
- * of. Every case below runs the checker in a temp tree, and 22 of them run a tree
- * whose checker has had `stripConformance` applied — so the guard read a stripped
- * source, could not find the assertions 17 expectations name, emitted 17 failures, and
- * broke the one assertion that exists to make stripping safe. A guard that reads the
- * file under test is a guard that runs in every fixture too, and a fixture is not the
- * file. The runner is not a fixture; the runner is the thing that owns the manifest,
- * so the manifest's own reader is where a claim about the manifest belongs.
+ * THAT GUARD IS IN check_all.mjs AND NOT HERE. It was first written inside
+ * check_gen1_apu.mjs, which is the mistake this file is the proof of. Every case
+ * below runs the checker in a temp tree, and 22 of them run a tree whose checker
+ * has had `stripConformance` applied — so the guard read a stripped source, could
+ * not find the assertions 17 expectations name, emitted 17 failures, and broke the
+ * one assertion that exists to make stripping safe. A guard that reads the file
+ * under test also runs in every fixture, and a fixture is not the file. The runner
+ * owns the manifest, so a claim about the manifest belongs in the runner.
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -78,12 +69,13 @@ const SRC = [
   'assets/js/gb-apu.js',
   'cries-gen1.html',
   'scripts/check_gen1_apu.mjs',
-  /* This file is NOT in the list, and used to have to be. check_gen1_apu.mjs once
+  'scripts/lib/assert.mjs',
+  /* This file is NOT in the list and no longer has to be. check_gen1_apu.mjs once
    * carried a guard that read its own harness, so every temp tree needed a copy of
-   * this file and the guard had to be taught to notice a stripped checker -- which it
-   * could not, because stripConformance removes the very assertions 17 of these
-   * expectations name. The guard now lives in check_all.mjs, which is not a fixture, so
-   * a temp tree contains everything the checker opens and nothing else. */
+   * this file and the guard had to notice a stripped checker — which it could not,
+   * because stripConformance removes the very assertions 17 of these expectations
+   * name. The guard now lives in check_all.mjs, which is not a fixture, so a temp
+   * tree contains everything the checker opens and nothing else. */
 ];
 const CHECKER = 'scripts/check_gen1_apu.mjs';
 
@@ -123,17 +115,17 @@ const editJson = (dir, name, fn) => {
    --------------------------------------------------------------------------- */
 
 /* The checker's conformance section re-imports the APU at 1,048,576 Hz and renders
- * all 151 species there: 4.8 s of the 6.5 s checker, measured here. It is the most
- * valuable thing the checker does and the baseline below always runs it in full —
- * this is only ever applied to a MUTATED fixture, to a COPY of the checker inside a
+ * all 151 species there: 4.8 s of the 6.5 s checker. It is the most valuable thing
+ * the checker does, and the baseline below always runs it in full. Stripping is
+ * only ever applied to a MUTATED fixture, to a COPY of the checker inside a
  * throwaway temp tree. The real scripts/check_gen1_apu.mjs gains no switch, no
  * environment variable and no degraded mode, because a supported way to skip the
- * conformance comparison is exactly how it would stop happening.
+ * conformance comparison is how it would stop happening.
  *
- * Only the cases whose `expect` cannot come from that loop are eligible, and the
- * eligibility test is the `expect` string itself rather than a per-case flag — so
- * there is nothing to forget. A case that does not name one of these two strings is
- * asserting something the loop produces, and it runs the whole checker. */
+ * Only cases whose `expect` cannot come from that loop are eligible, and the
+ * eligibility test is the `expect` string itself rather than a per-case flag, so
+ * there is nothing to forget. A case that does not name one of these two strings
+ * asserts something the loop produces and runs the whole checker. */
 const CONFORMANCE_EXPECTS = new Set([
   'within one 8-bit step',   // eq(sampleOffBy, []) — the 151 x 48 waveform compare
   'LENGTH exactly',          // eq(lengthMismatch, []) — the 151 output lengths
@@ -181,9 +173,8 @@ const CASES = [
     expect: 'wraps DOWN',
   },
   {
-    /* This is the bug that made every cry sound wrong. The parameter is the stored
-     * byte MINUS 0x80, not its two's-complement signed reading, and the difference is
-     * a third of the note length. */
+    /* The parameter is the stored byte MINUS 0x80, not its two's-complement signed
+     * reading, and the difference is a third of the note length. */
     name: 'the length parameter reverts to the signed byte, making every note 1.5x too long',
     mutate: (dir) => editApu(dir, (s) => s
       .replace('const param = lengthByte - 0x80;', 'const param = lengthByte > 127 ? lengthByte - 256 : lengthByte;')),
@@ -203,14 +194,14 @@ const CASES = [
     expect: 'within one 8-bit step',
   },
   /* The one bug the conformance vectors structurally cannot see: they render at
-   * 1,048,576 Hz, where the rate factor is exactly 1. This is here because the
-   * symptom was inaudible in every assertion and very audible in the output.
+   * 1,048,576 Hz, where the rate factor is exactly 1. The symptom was inaudible in
+   * every assertion and very audible in the output.
    *
    * Note which assertion detects it. NOT `the noise clocks are the same at
    * 65,536 Hz`: that check still passes, because noiseClocks reports Hz and Hz is
-   * a property of the register rather than of the output rate -- which is the whole
-   * reason it is recorded in Hz. Only the RENDERED grain moves, 1,533 crossings per
-   * second against 76. */
+   * a property of the register rather than of the output rate — which is why it is
+   * recorded in Hz. Only the RENDERED grain moves, 1,533 crossings per second
+   * against 76. */
   {
     name: 'the noise LFSR clock is left unscaled, so the hiss becomes a 128 Hz buzz',
     mutate: (dir) => editApu(dir, (s) => s
@@ -246,8 +237,8 @@ const CASES = [
     expect: 'LENGTH exactly',
   },
 
-  /* ---- The two behaviours that were wrong for so long, and that every register
-     assertion in this file stayed silent about. ---- */
+  /* ---- The two long-standing defects that every register assertion in this file
+     stayed silent about. ---- */
   {
     name: 'the duty register turns once per quarter period instead of once per frame',
     mutate: (dir) => editApu(dir, (s) => s
@@ -311,19 +302,20 @@ const CASES = [
         'const cutoff = Math.max(0, Math.max(pulse1.length, pulse2.length) - Math.round(SAMPLES_PER_FRAME));')),
     expect: 'within one 8-bit step',
   },
-  /* This one is free for the TIMELINE, which is why it expects the waveform.
+  /* This case is free for the TIMELINE, which is why it expects the waveform.
    *
    * The renderer and the timeline both call noiseOffset(), so mutating the
    * renderer's call site leaves every `n.shifted` exactly as it was: the census of
    * notes still reports 620 keeping the offset and 69 without, and both still pass.
    * What changes is the audio, because a note upstream leaves unshifted now carries
    * the offset for the whole of its length and 151 species stop matching the
-   * reference. So the detector is `within one 8-bit step`, and this belongs with the
-   * conformance cases.
+   * reference. The detector is therefore `within one 8-bit step`, and this belongs
+   * with the conformance cases.
    *
-   * It used to declare 'never get one' — text that occurs in the description of a
-   * check that PASSES. Nothing caught the drift, because the old matcher only
-   * asked whether the string appeared anywhere in the output. See runCase(). */
+   * An earlier version declared 'never get one', text that occurs in the
+   * description of a check that PASSES. Nothing caught the drift, because the old
+   * matcher only asked whether the string appeared anywhere in the output. See
+   * runCase(). */
   {
     name: 'the pitch cancellation is removed, so every noise note keeps its offset',
     mutate: (dir) => editApu(dir, (s) => s
@@ -433,10 +425,10 @@ const CASES = [
     expect: 'never claims sample-exact',
   },
   {
-    /* The fade sign is a DATA bug rather than a code one, and it was invisible in the
-     * audio for the same reason the noise clock was: a note whose volume is 0 with a
-     * fade OUT stays clamped at 0, so it is silent either way and every length
-     * assertion passes. Only the waveform comparison sees it. */
+    /* The fade sign is a DATA bug rather than a code one, and it was invisible in
+     * the audio for the same reason the noise clock was: a note whose volume is 0
+     * with a fade OUT stays clamped at 0, so it is silent either way and every
+     * length assertion passes. Only the waveform comparison sees it. */
     name: 'a fade of -8 is read as +8, so the fade-in rests become silent',
     mutate: (dir) => editJson(dir, 'assets/data/gen1_cry_sfx.json', (d) => {
       d.sfx.SFX_CRY_0B.channels
@@ -485,8 +477,8 @@ const CASES = [
 ];
 
 
-/* The baseline runs first and on its own: if it fails, every case below would "fail for
- * the right reason" for the wrong reason, and the run is not worth reporting. */
+/* The baseline runs first and alone: if it fails, every case below would fail for
+ * the wrong reason and the run is not worth reporting. */
 const baseDir = makeTree(null);
 const baseline = await new Promise((res) => {
   execFile(process.execPath, [join(baseDir, CHECKER)], { encoding: 'utf8' },
@@ -497,14 +489,14 @@ ok('baseline: the checker passes on an unmutated copy of the tree', baseline.cod
   baseline.code === 0 ? '' : baseline.out.split('\n').slice(-8).join('\n'));
 if (baseline.code !== 0) process.exit(1);
 
-/* And it is run a SECOND time with the conformance section stripped, to prove the
+/* It is also run a SECOND time with the conformance section stripped, to prove the
  * strip is surgical rather than merely quiet.
  *
  * This is the guard that makes skipping it safe. A strip that took one check too
  * many would leave the 17 cheap cases asserting against a checker that has quietly
- * lost a claim, and nothing else would notice — the cases only require that their
+ * lost a claim, and nothing else would notice: the cases only require that their
  * own `expect` still appears, which a narrower checker satisfies more easily, not
- * less. So the requirement is exact: the stripped run must pass, and must report
+ * less. The requirement is exact: the stripped run must pass, and must report
  * precisely four fewer checks, because the section is four assertions and nothing
  * else. A round number is the point; anything else means the anchors drifted. */
 const stripDir = makeTree(stripConformance);
@@ -521,25 +513,26 @@ ok('baseline: the checker still passes with the conformance section removed',
 ok(`baseline: removing it drops exactly 4 of the ${fullCount} checks and nothing else`,
   fullCount - stripCount === 4, `${fullCount} against ${stripCount}`);
 
-/* The cases are independent -- each is its own `node` process against its own fixture
- * tree -- so they run concurrently. Sequentially this file was 34 checkers, three and
- * a half minutes of waiting to re-verify arithmetic. The pool is bounded by the core
- * count rather than left unbounded, because each worker is a full JIT-compiling
- * interpreter and oversubscribing them makes every case slower, not faster. */
-/* Four workers, at the user's request because other work shares this machine.
- * Measured here: 6 workers 44.5 s, 8 workers 38.9 s, 10 workers 38.0 s, 12 workers
- * 38.5 s -- so four costs about 55 s against 38 s at eight, which is the right trade
- * when the cores are not yours alone. Raise POOL when the machine is idle. */
+/* The cases are independent — each is its own `node` process against its own
+ * fixture tree — so they run concurrently. Sequentially this file was 34 checkers,
+ * three and a half minutes of waiting to re-verify arithmetic. The pool is bounded
+ * by the core count rather than left unbounded, because each worker is a full
+ * JIT-compiling interpreter and oversubscribing them makes every case slower, not
+ * faster. */
+/* Four workers, because other work shares this machine. Measured here: 6 workers
+ * 44.5 s, 8 workers 38.9 s, 10 workers 38.0 s, 12 workers 38.5 s — so four costs
+ * about 55 s against 38 s at eight, the right trade when the cores are not yours
+ * alone. Raise POOL when the machine is idle. */
 const POOL = Math.max(1, Math.min(4, (cpus().length - 1) >> 1));
 
-/* Heaviest first. The cases that need the conformance loop cost 5.7 s and the other
- * 22 cost 1.4 s, and the pool is a plain queue: handed out in declaration order the
- * last wave is whatever happened to be left, which is most often one long case that
- * holds four workers idle while three of them sit finished. Issuing the 17 long ones
- * up front makes every trailing wave short, which is worth about one full wave.
+/* Heaviest first. The cases that need the conformance loop cost 5.7 s and the
+ * other 22 cost 1.4 s, and the pool is a plain queue: handed out in declaration
+ * order, the last wave is whatever happened to be left, most often one long case
+ * that holds four workers idle while three sit finished. Issuing the 17 long ones
+ * up front makes every trailing wave short, worth about one full wave.
  *
  * Results are still recorded against the ORIGINAL index, so this changes the order
- * cases are started in and nothing about the order they are reported in. */
+ * cases start in and nothing about the order they are reported in. */
 const ORDER = CASES
   .map((c, i) => ({ i, heavy: CONFORMANCE_EXPECTS.has(c.expect) }))
   .sort((a, b) => (b.heavy - a.heavy) || (a.i - b.i))
@@ -568,13 +561,13 @@ async function runCase(i) {
   }
 
   /* `expect` must name the assertion that actually catches this mutation, which is
-   * what caughtBy() asks. The pitch-cancellation case below used to declare
-   * 'never get one', text that occurs in the description of a check that PASSES --
+   * what caughtBy() asks. The pitch-cancellation case below once declared
+   * 'never get one', text that occurs in the description of a check that PASSES:
    * the timeline calls noiseOffset() itself, so it cannot see a mutation to the
-   * renderer's call site. The case only ever failed because the waveform
-   * comparison fired, and the old `out.includes(expect)` was satisfied by the
-   * passing line. That is how it came to describe a timeline claim while being a
-   * waveform case. See scripts/lib/negative.mjs. */
+   * renderer's call site. The case only failed because the waveform comparison
+   * fired, and the old `out.includes(expect)` was satisfied by the passing line.
+   * That is how it came to describe a timeline claim while being a waveform case.
+   * See scripts/lib/negative.mjs. */
   const named = r.code !== 0 && caughtBy(r.out, c.expect);
   const reported = failLines(r.out);
   const firstFail = (reported[0] ?? '(no FAIL line)').slice(0, 90);

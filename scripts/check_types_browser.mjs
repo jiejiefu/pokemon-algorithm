@@ -45,13 +45,13 @@
  * ## SCOPE IS ASSERTED, NOT ASSUMED
  *
  * `.chip-grid` and `.chip-item` are shared by THREE blocks on this page — the
- * roster (links + a thumbnail), 招式 (a span + a power number) and 特性 (a span +
- * a count). Two of them are lists of short pills that want content-sized widths,
- * and a rule that equalised all three would have moved two lists nobody asked to
- * move. The roster carries a `--roster` modifier for exactly that reason, and the
- * last section asserts the other two are still flex and still content-sized —
- * by checking that their card widths still DIFFER from each other, which is the
- * observable consequence rather than the declaration.
+ * roster (links + a thumbnail), 招式 (moves; a span + a power number) and 特性
+ * (abilities; a span + a count). Two of them are lists of short pills that want
+ * content-sized widths, and a rule that equalised all three would have moved two
+ * lists nobody asked to move. The roster carries a `--roster` modifier for exactly
+ * that reason, and the last section asserts the other two are still flex and still
+ * content-sized — by checking that their card widths still DIFFER from each other,
+ * which is the observable consequence rather than the declaration.
  */
 import { spawn } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -210,7 +210,7 @@ await send('Page.navigate', { url: `http://localhost:${PORT}/types.html?type=fir
 // true on a correct page and times out on a wrong one, which asserts nothing.
 const READY = `document.querySelector('.chip-grid--roster') !== null && document.querySelector('.chip-grid--roster .chip-item') !== null`;
 const ready = await until(ev, READY, 25000);
-ok(ready, 'the 火 roster rendered', exceptions.length ? exceptions.join(' | ') : 'no exceptions');
+ok(ready, 'the 火 (fire) roster rendered', exceptions.length ? exceptions.join(' | ') : 'no exceptions');
 ok(exceptions.length === 0, 'types.html raised no uncaught exception', exceptions.join(' | '));
 
 /** Everything the assertions below read, in one round trip per viewport. */
@@ -421,7 +421,7 @@ for (const [label, size] of SIZES) {
   const desktop = seen.desktop;
   ok(
     desktop.otherDisplays.every(d => d === 'flex'),
-    '招式 and 特性 are still flex-wrap rows',
+    '招式 (moves) and 特性 (abilities) are still flex-wrap rows',
     desktop.otherDisplays.join(', ')
   );
   /*

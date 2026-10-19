@@ -5,10 +5,9 @@
  *
  * Guards the generated chart and the typeEffectiveness() wrapper that reads it.
  * The chart itself is verified against the wiki by extract_type_chart.py; this
- * file exists so the *runtime* behaviour is pinned too, including the dual-type
- * multiplication that a previous hand-written implementation got wrong (it
- * unioned the two types' weakness lists instead of multiplying them, so a
- * Fire/Flying Pokémon reported Water as a 2x weakness and Ground as neutral).
+ * file pins the runtime behaviour too, including dual-type multiplication: the
+ * two types' weaknesses multiply rather than union, so Fire/Flying takes 4x from
+ * Rock and 0x from Ground.
  *
  * It imports the real ES modules, so it also catches syntax errors in them.
  */
@@ -19,26 +18,13 @@ import { dirname, join } from 'node:path';
 
 import { TYPE_CHART, TYPE_CHART_ORDER, TYPE_CHART_SOURCE } from '../assets/js/type-chart.js';
 import { typeEffectiveness, EFFECT_BUCKETS } from '../assets/js/pokemon-lexicon.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+/** `eq` compares JSON-shaped values deeply; `fail` keeps this file's stderr stream. */
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 /** Collapse typeEffectiveness() output into a { multiplier: [english types] } map. */
 function buckets(types) {
@@ -140,7 +126,7 @@ eq(
     0.5: ['Electric', 'Fairy', 'Fighting', 'Water'],
     0.25: ['Grass']
   },
-  'Bulbasaur 草/毒 has no 4x and no immunity'
+  'Bulbasaur (Grass/Poison) has no 4x and no immunity'
 );
 eq(
   buckets(['Fire', 'Flying']),
@@ -151,7 +137,7 @@ eq(
     0.25: ['Bug', 'Grass'],
     0: ['Ground']
   },
-  'Charizard 火/飛行 is 4x to Rock and immune to Ground'
+  'Charizard (Fire/Flying) takes 4x from Rock and is immune to Ground'
 );
 
 /* ------------------------------------------ neutral results must disappear */
@@ -245,8 +231,8 @@ console.log('dataset coverage');
 }
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

@@ -1,30 +1,30 @@
 #!/usr/bin/env node
 /**
- * Verify gb-apu.js reproduces the Generation I cries, and that cries-gen1.html
- * tells the truth about what it reproduces.
+ * Verify that gb-apu.js reproduces the Generation I cries, and that
+ * cries-gen1.html describes what it reproduces.
  *
  * Run: node scripts/check_gen1_apu.mjs
  * Test: node scripts/test_check_gen1_apu.mjs
  *
  * WHY THIS FILE CAN ASSERT THINGS A PAGE CHECKER CANNOT
  *
- * A page check can confirm the DOM says "38 base cries". It cannot confirm that
- * pressing play produces anything resembling the cry. gb-apu.js is a pure function
- * from two generated JSON files to a Float32Array, so it runs in Node and can be
- * compared against facts published outside this project. That is what makes the
- * claims on the page checkable rather than merely stated, and why this file
- * asserts on SAMPLES and on counters rather than on strings:
+ * A page check can confirm that the DOM says "38 base cries". It cannot confirm
+ * that pressing play produces anything resembling the cry. gb-apu.js is a pure
+ * function from two generated JSON files to a Float32Array, so it runs in Node and
+ * can be compared against facts published outside this project. That makes the
+ * page's claims checkable rather than merely stated, and is why this file asserts
+ * on SAMPLES and on counters rather than on strings:
  *
- *   - Charizard and Rhyhorn produce byte-identical PCM, and so do Poliwag and
- *     Ditto. The checker rediscovers the two pairs from the audio alone.
+ *   - Charizard and Rhyhorn produce byte-identical PCM, as do Poliwag and Ditto.
+ *     The checker rediscovers both pairs from the audio alone.
  *   - Charizard and Rhyhon do NOT. Rhyhon is id 112 on a different base cry and
  *     shares only a pitch byte and a length byte with Charizard. The two names are
- *     confused constantly in Chinese retellings of this fact, so the negative case
- *     is asserted rather than left to a reader.
- *   - The duty register turns once per FRAME. The first version turned it once per
- *     quarter period, which left every frequency assertion in this file exactly as
- *     true while turning each note into a buzz — the same failure shape as a
- *     feature extractor returning a constant column. A counter is asserted instead.
+ *     often confused in Chinese retellings, so the negative case is asserted
+ *     rather than left to the reader.
+ *   - The duty register turns once per FRAME. An earlier version turned it once
+ *     per quarter period, which left every frequency assertion in this file true
+ *     while turning each note into a buzz — the same failure shape as a feature
+ *     extractor returning a constant column. A counter is asserted instead.
  *   - The volume envelope steps once per |sweep| frames, so a note with a high
  *     sweep holds its volume. Measured from the rendered samples: Charizard's
  *     first three notes sit at 1.00, 0.89 and 0.86 of full scale, where the
@@ -36,19 +36,20 @@
  *
  * ABOUT BULBAPEDIA'S 0.071 s, AND WHY IT IS NOT A HARD ASSERTION
  *
- * Bulbapedia states Caterpie's cry is 0.071 s shorter than Goldeen's. The
+ * Bulbapedia states that Caterpie's cry is 0.071 s shorter than Goldeen's. The
  * direction and the order of magnitude reproduce — the two share a base cry and
- * differ only in the length byte — but no defensible formula yields exactly 0.071:
+ * differ only in the length byte — but no defensible formula yields exactly
+ * 0.071:
  *
- *   frames = stored nibble, stretch applied continuously   0.0667 s
+ *   frames = stored nibble, stretch applied continuously     0.0667 s
  *   frames = stored nibble + 1, floored per note (this APU)  0.0833 s
  *
- * and the 0.071 s this file used to assert came from a third formula that applies
- * the stretch without flooring it, which is not what the reference synthesiser
- * does. So the assertion here is the RELATION plus the interval the published
- * figure falls inside. Tuning a formula to hit a number I cannot derive would be
- * the sort of false precision this project exists to avoid, and it would also mean
- * the synthesiser no longer matched the thing it is imitating.
+ * The 0.071 s asserted by an earlier version came from a third formula that
+ * applies the stretch without flooring it, which is not what the reference
+ * synthesiser does. The assertion here is therefore the RELATION plus the
+ * interval the published figure falls inside. Tuning a formula to hit a number
+ * that cannot be derived would be false precision, and it would also mean the
+ * synthesiser no longer matched the thing it imitates.
  */
 
 import { readFileSync } from 'node:fs';
@@ -59,17 +60,16 @@ import {
   wrappedNotes, packDuty, noiseClockHz, groupByBaseCry, clampVolume,
   FRAME_HZ, SYNTH_RATE, SAMPLES_PER_FRAME,
 } from '../assets/js/gb-apu.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+/** `stream` keeps this file's one line per assertion; the defaults match its prefixes. */
+const C = createChecker({ stream: true });
+const { ok } = C;
+/* `eq`/`near` keep their original shape: a detail only on FAILURE. This checker
+ * streams a line per assertion, and a passing line carries no values. */
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -92,19 +92,19 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
    CONFORMANCE: 151 x 48 samples against the reference synthesiser's own output.
    --------------------------------------------------------------------------- */
 
-/* The APU is re-imported at 1,048,576 Hz -- the Game Boy's real clock -- purely so
- * its output can be compared with the reference at the rate the reference computes
+/* The APU is re-imported at 1,048,576 Hz — the Game Boy's real clock — so its
+ * output can be compared with the reference at the rate the reference computes
  * at. Web Audio caps a buffer at 96,000 Hz, which is why the page renders at
- * 65,536; nothing about the synthesis differs between the two, only the output
- * rate. The conversion is applied to the module SOURCE rather than to a flag,
- * because every sample count in the APU is derived from SYNTH_RATE and a flag would
- * mean maintaining two code paths through the arithmetic that is being tested. */
+ * 65,536; only the output rate differs, not the synthesis. The conversion is
+ * applied to the module SOURCE rather than to a flag, because every sample count
+ * in the APU derives from SYNTH_RATE and a flag would mean maintaining two code
+ * paths through the arithmetic under test. */
 const nativeSrc = apuSrc.replace('export const SYNTH_RATE = 65536;', 'export const SYNTH_RATE = 1048576;');
 const nativeUrl = `data:text/javascript;base64,${Buffer.from(nativeSrc, 'utf8').toString('base64')}`;
 const native = await import(nativeUrl);
 
 /* One ULP of float32. The reference keeps its samples in a plain JS array, which is
- * float64; this project stores them in a Float32Array. That is the entire reason a
+ * float64; this project stores them in a Float32Array. That is the whole reason a
  * tolerance of one 8-bit step is allowed, and it is a property of the container
  * rather than of the synthesis. */
 const ULP = 2 ** -24;
@@ -134,20 +134,19 @@ for (const [idStr, vector] of Object.entries(conform.species)) {
   }
 }
 
-/* Every length must match EXACTLY. An earlier version of this file accepted seven
- * species being a frame short and recorded them as a known set, on the reasoning
- * that a tolerance there was better than a red test. It was covering up a bound of
- * sixteen frames on the ring-out, which truncated legitimate tails: cry1c's last
- * noise note ends at volume 6 with a sweep of 3 and needs eighteen frames of tail to
- * empty. Seventeen milliseconds, on seven species, and no assertion left to notice a
- * truncation that was any larger. */
+/* Every length must match EXACTLY. An earlier version accepted seven species being
+ * one frame short and recorded them as a known set, reasoning that a tolerance was
+ * better than a red test. It was hiding a sixteen-frame bound on the ring-out that
+ * truncated legitimate tails: cry1c's last noise note ends at volume 6 with a
+ * sweep of 3 and needs eighteen frames of tail to empty. Seventeen milliseconds on
+ * seven species, with no assertion left to notice a larger truncation. */
 eq(lengthMismatch, [],
   `all ${Object.keys(conform.species).length} species match the reference's output LENGTH exactly`);
 
 /* One step, across all 151 species, and it is the float32 ULP rather than a
- * tolerance: the reference keeps its samples in a plain JS array, which is float64,
- * and this project stores them in a Float32Array. Every sampled value of every cry
- * agrees with the reference to within that. */
+ * tolerance: the reference keeps its samples in a plain JS array (float64) and this
+ * project stores them in a Float32Array. Every sampled value of every cry agrees
+ * with the reference to within that. */
 eq(sampleOffBy, [],
   'and every sampled waveform value of all 151 species is within one 8-bit step');
 ok(worstSampleDelta <= 1,
@@ -169,9 +168,9 @@ eq(lengthMultiplier(0xff).multiplier, 0x17f, '0xFF gives 0x17F, about 1.5x nomin
 eq(lengthMultiplier(0x80).param, 0, 'and the parameter is the byte minus 0x80, not its signed reading');
 eq(lengthMultiplier(0x40).param, -0x40, 'which is what makes Goldeen longer than Caterpie rather than shorter');
 
-// The frame rate is the reference's own constant, 17,556 samples per frame at
-// 1,048,576 Hz. Carrying the ratio rather than recomputing from a round 60 is what
-// keeps this file's timing identical to the thing it imitates.
+// The frame rate is the reference's own constant: 17,556 samples per frame at
+// 1,048,576 Hz. Carrying the ratio rather than recomputing from a round 60 keeps
+// this file's timing identical to the thing it imitates.
 near(FRAME_HZ, 1048576 / 17556, 1e-9,
   'the note frame is 59.7275 Hz, the rate the reference hardcodes');
 near(SAMPLES_PER_FRAME / 17556, 65536 / 1048576, 1e-6,
@@ -241,12 +240,12 @@ function ch5Span(id) {
 const gap = ch5Span(118) - ch5Span(10);
 ok(gap > 0.02 && gap < 0.05,
   `Goldeen's first pulse channel is longer than Caterpie's by ${(gap * 1000).toFixed(1)} ms`);
-/* Bulbapedia says 0.071 s. The reference synthesiser's own output says 33.5 ms, and
- * the reference is what this APU reproduces -- its length parameter is the stored
- * byte minus 0x80, so Goldeen's 0x40 gives a multiplier of 0xC0 against Caterpie's
- * 0xA0, a ratio of 1.25 rather than the 2 the old formula implied. The published
- * figure is not reachable from any reading of the table, so the assertion is the
- * SIGN and a bracket around the measured value. */
+/* Bulbapedia says 0.071 s. The reference synthesiser's own output says 33.5 ms,
+ * and the reference is what this APU reproduces: its length parameter is the
+ * stored byte minus 0x80, so Goldeen's 0x40 gives a multiplier of 0xC0 against
+ * Caterpie's 0xA0, a ratio of 1.25 rather than the 2 the old formula implied. The
+ * published figure is not reachable from any reading of the table, so the
+ * assertion is the SIGN plus a bracket around the measured value. */
 ok(gap > 0.0335 - 0.004 && gap < 0.0335 + 0.004,
   'which is what the reference itself produces, and Bulbapedia\'s 0.071 s is not reproduced by it either');
 
@@ -262,7 +261,7 @@ const oHz = frequencyHz(shiftedRegister(firstNote.freq, oRow.pitch));
 ok(mHz < oHz, `so its first note is the lower pitch (${mHz.toFixed(1)} Hz against ${oHz.toFixed(1)} Hz)`);
 
 // ---------------------------------------------------------------------------
-// The two behaviours that were wrong for so long.
+// The two long-standing defects.
 //
 // Both are asserted on the rendered output or on a counter, because both were
 // invisible to every assertion that only looked at register arithmetic.
@@ -280,15 +279,15 @@ function noteRms(result, ch, index) {
 }
 
 /* Charizard's first three pulse notes carry sweeps of 7, 6 and 6, which on real
- * hardware is slower than the notes themselves, so each should hold its volume.
- * The continuous-envelope version had them collapsing inside their own length. */
+ * hardware is slower than the notes themselves, so each holds its volume. The
+ * continuous-envelope version had them collapsing inside their own length. */
 const chzPulse = renderSpeciesCry(cries, sfx, 6, { muted: { 6: true, 8: true } });
 const rms = [0, 1, 2, 6].map((i) => noteRms(chzPulse, 5, i));
-/* The three channels are mixed at a third each and the mix is NOT peak-normalised --
+/* The three channels are mixed at a third each and the mix is NOT peak-normalised:
  * three channels at a third cannot exceed 1.0, so normalising only rescaled every
  * cry. A soloed first pulse note therefore peaks at 15/16 divided by three, 0.3125,
- * and the first three notes sit at 0.3125, 0.2849 and 0.2708 -- each one lower than
- * the last because each carries its own fade, but no collapse. */
+ * and the first three notes sit at 0.3125, 0.2849 and 0.2708 — each lower than the
+ * last because each carries its own fade, but with no collapse. */
 ok(rms[0] > 0.30 && rms[1] > 0.27 && rms[2] > 0.26,
   `a high-sweep note holds its volume (RMS ${rms.slice(0, 3).map((v) => v.toFixed(4)).join(', ')})`);
 ok(rms[1] > rms[0] * 0.85 && rms[2] > rms[1] * 0.9,
@@ -308,15 +307,15 @@ ok(chzApu.dutyRotations < 1000, 'and nowhere near the tens of thousands a per-sa
 /* THE NOISE CLOCK MUST SCALE WITH THE OUTPUT RATE, and this is the one thing a
  * native-rate conformance comparison cannot check.
  *
- * Every register in this file is in samples at the Game Boy's clock, so each has to
+ * Every register in this file is in samples at the Game Boy's clock, so each must
  * be converted to output samples. The pulse channel's `period` is; the noise
  * channel's LFSR clock was not. At 1,048,576 Hz the conversion factor is exactly 1
- * and the bug is a no-op, so the conformance vectors passed while the page played a
- * cry with no hiss in it: the LFSR ran once per 512 OUTPUT samples, which is 128 Hz
+ * and the bug is a no-op, so the conformance vectors passed while the page played
+ * a cry with no hiss: the LFSR ran once per 512 OUTPUT samples, which is 128 Hz
  * rather than 2,048 Hz, and Charizard's noise channel was a low buzz. The measured
  * zero-crossing rate was 76/s against the reference's 1,533/s.
  *
- * A rate-independent claim is the only kind that catches it. */
+ * Only a rate-independent claim catches it. */
 const grainRow = row(6);
 const grainRate = (buf, rate) => {
   let flips = 0;
@@ -369,16 +368,16 @@ ok(stretched.meta.channelSamples[5] !== shrunk.meta.channelSamples[5],
    ONE PASS OVER ALL 151 SPECIES.
    --------------------------------------------------------------------------- */
 
-/* This used to be four separate loops, and two of them measured the same thing:
- * `ringOut` and `overStated` each wanted the render and each rebuilt it. Together
- * with the noise-offset census and the in-range audit that is 1.5 s of this file's
- * 6.5 s, spent rendering the same 151 species four times over.
+/* An earlier version used four separate loops, two of which measured the same
+ * thing: `ringOut` and `overStated` each wanted the render and each rebuilt it.
+ * With the noise-offset census and the in-range audit that was 1.5 s of this
+ * file's 6.5 s, spent rendering the same 151 species four times over.
  *
  * `renderSpeciesCry` is a pure function of (cries, sfx, id) with no options here,
- * so one render answers all four questions and nothing is lost but the time. The
- * per-species result is reduced to scalars and DROPPED -- retaining 151 renders
- * would hold ~78 MB of Float32Array alive at once, which is the one way a
- * "make it faster" edit here could cost more than it saves. */
+ * so one render answers all four questions and only the time is saved. Each
+ * per-species result is reduced to scalars and DROPPED: retaining 151 renders
+ * would hold ~78 MB of Float32Array alive at once, which is how a "make it faster"
+ * edit here could cost more than it saves. */
 let ringOut = 0;
 const overStated = [];
 let noiseNoteTotal = 0;
@@ -399,7 +398,7 @@ for (const c of cries.cries) {
   const longest = Math.max(0, ...r.notes.map((n) => n.end));
   if (Math.abs(longest - r.meta.duration) < 1e-6) ringOut++;
 
-  /* And the timeline may never claim a tail the audio does not have -- an earlier
+  /* The timeline may never claim a tail the audio does not have: an earlier
    * version over-stated Charizard's final note by 184 ms. */
   if (longest > r.meta.duration + 0.002) overStated.push(`#${c.id}`);
 
@@ -455,26 +454,25 @@ ok(oneNote.frames + 1 >= 1 && oneNote.frames + 1 <= 16,
 /* THE PITCH CANCELLATION, AND WHAT IT ACTUALLY DOES HERE.
  *
  * Upstream cancels the noise channel's pitch offset one frame before the PULSE
- * channels are SCHEDULED to end -- the sum of the note lengths, not the length they
- * render to. Taking the cutoff off the rendered arrays instead moves it later by
- * exactly the ring-out, which changes no audio at all: the pulses still finish last
- * either way. So this is the one place in the file where being wrong was free, and
- * it was wrong until the timeline's own noise-note bug was found.
+ * channels are SCHEDULED to end: the sum of the note lengths, not the length they
+ * render to. Taking the cutoff from the rendered arrays instead moves it later by
+ * exactly the ring-out, which changes no audio: the pulses finish last either way.
+ * This is the one place in the file where being wrong was free, and it was wrong
+ * until the timeline's own noise-note bug was found.
  *
- * That bug is worth recording, because it inverted the measurement twice over. The
- * timeline used a multiplier of ZERO for the noise channel to mean "not
- * time-stretched", where the renderer uses 0x100. Every noise note therefore had a
- * length of zero frames, every noise note started at sample 0, and every noise note
- * read as "still shifted" -- so this file reported that the cancellation never fired.
- * With the multiplier fixed, it fires on most of the corpus.
+ * That bug inverted the measurement twice over. The timeline used a multiplier of
+ * ZERO for the noise channel to mean "not time-stretched", where the renderer uses
+ * 0x100. Every noise note therefore had a length of zero frames, started at sample
+ * 0, and read as "still shifted" — so this file reported that the cancellation
+ * never fired. With the multiplier fixed, it fires on most of the corpus.
  *
- * What it does, measured: of 689 noise notes, 555 BEGIN after the cutoff and so
- * never receive the offset at all, across 134 of the 151 species. But NOT ONE note
- * spans the cutoff. The change is therefore a step between two adjacent notes, not
- * a pitch bending partway through one -- which is also what it has to be, since the
- * cutoff is a whole-frame boundary and no note in this corpus crosses a frame
- * boundary at that instant. The page calls this the end-of-cry crash, and the
- * honest description of it is a discontinuity AT a note boundary.
+ * Measured: of 689 noise notes, 555 BEGIN after the cutoff and so never receive
+ * the offset at all, across 134 of the 151 species. But NOT ONE note spans the
+ * cutoff. The change is therefore a step between two adjacent notes, not a pitch
+ * bending partway through one — which it has to be, since the cutoff is a
+ * whole-frame boundary and no note in this corpus crosses a frame boundary at that
+ * instant. The page calls this the end-of-cry crash, and the honest description is
+ * a discontinuity AT a note boundary.
  *
  * The five counters below are accumulated in the single corpus pass above. */
 eq(noiseNoteTotal, 689, 'the corpus has 689 noise notes with a real length');
@@ -487,9 +485,9 @@ eq(spanning, 63,
 
 /* A synthetic base where the noise channel outlasts the pulse channel proves the
  * path is reachable rather than coincidental, and pins WHICH length the cutoff is
- * read from: the ring-out can render the pulses longer than they are scheduled
- * for, so a cutoff taken off the rendered arrays would leave every note shifted
- * and one taken off the nominal sums would not. */
+ * read from: the ring-out can render the pulses longer than scheduled, so a cutoff
+ * taken from the rendered arrays would leave every note shifted while one taken
+ * from the nominal sums would not. */
 const tailBase = {
   base: 0, files: [], implicitRet: [],
   channels: [
@@ -522,12 +520,12 @@ eq(implicit.length, 6, 'six channels upstream still have no sound_ret');
 
 /* The one sound_loop in the corpus, and it IS applied.
  *
- * The reference's feature list marks loop "unsupported", which is true of its UI and
- * false of its data: cry0d's Ch5 arrives with the block already duplicated, fourteen
- * entries where the raw table holds seven. An earlier version of this APU dropped
- * the loop on the strength of that list, which left the nine species on base cry0d
- * short by exactly one block -- and every other assertion in this file agreed with
- * it, because the conformance vectors did not exist yet. */
+ * The reference's feature list marks loop "unsupported", which is true of its UI
+ * and false of its data: cry0d's Ch5 arrives with the block already duplicated,
+ * fourteen entries where the raw table holds seven. An earlier version of this APU
+ * dropped the loop on the strength of that list, which left the nine species on
+ * base cry0d short by exactly one block — and every other assertion in this file
+ * agreed with it, because the conformance vectors did not exist yet. */
 const loops = bases.flatMap((name) =>
   sfx.sfx[name].channels.flatMap((c) =>
     c.commands.filter((x) => x.op === 'loop').map((x) => `${name}/Ch${c.ch} x${x.count}`)));
@@ -546,16 +544,16 @@ ok(/整段重播 \$\{cmd\.count\} 次/.test(dom),
 ok(dom.includes('count 是總次數，不是額外次數'),
   'and is explicit that count is the total, not the number of extra repetitions');
 
-/* The master volume is on the channel's own 0..15 scale and the page presents that
- * same scale, so the slider reading IS the master volume — there is no conversion
+/* The master volume is on the channel's own 0..15 scale and the page presents the
+ * same scale, so the slider reading IS the master volume: there is no conversion
  * between them, and `sliderToMaster()` has been removed rather than left as an
  * identity function.
  *
- * That makes this the one claim here that must be checked by MEASURING rather than
- * by reading an expression: master volume plays no part in the conformance
+ * This is therefore the one claim here that must be checked by MEASURING rather
+ * than by reading an expression: master volume plays no part in the conformance
  * comparison, which renders at unity either way, so a wrong value passes every
  * waveform assertion in this file while every cry comes out at the wrong loudness.
- * So the default is asserted against the audio it produces — a default of 3 must be
+ * The default is asserted against the audio it produces: a default of 3 must be
  * about a fifth of full scale, not a third, and not silence. */
 eq(clampVolume(0), 0, 'a master volume of 0 is the bottom of the scale');
 eq(clampVolume(15), 15, 'and 15 is the top, the same 15 the channels use');
@@ -568,7 +566,7 @@ ok(silent.samples.every((v) => v === 0), 'a zero volume renders silence rather t
 
 /* The default, measured. `loudness()` is the peak of a render, which is linear in
  * the master volume because the mix divides by three and nothing normalises
- * afterwards — so the ratio of two peaks IS the ratio of two volumes. */
+ * afterwards, so the ratio of two peaks IS the ratio of two volumes. */
 function peakAt(id, volume) {
   return renderSpeciesCry(cries, sfx, id, { volume }).samples.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
 }
@@ -583,8 +581,8 @@ ok(allMuted.samples.every((v) => v === 0),
   'muting all three channels renders silence rather than dividing by a zero peak');
 
 /* A rendered note's spectrum must match the register it came from. A duty pattern
- * stepped per sample rather than per frame leaves every register value in this file
- * exactly as true while turning the note into broadband noise. */
+ * stepped per sample rather than per frame leaves every register value in this
+ * file true while turning the note into broadband noise. */
 function goertzel(samples, hz, rate) {
   const k = Math.round((samples.length * hz) / rate);
   const w = (2 * Math.PI * k) / samples.length;
@@ -597,9 +595,9 @@ function goertzel(samples, hz, rate) {
   return Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - coeff * s1 * s2)) / samples.length;
 }
 
-/* A non-uniform duty, because an all-50% pattern cannot tell a per-frame walk
- * from a per-sample one at all — every slot holds the same value. This is the
- * shape the corpus actually uses (cry00's Ch5 is 3,3,0,0). */
+/* A non-uniform duty, because an all-50% pattern cannot distinguish a per-frame
+ * walk from a per-sample one — every slot holds the same value. This is the shape
+ * the corpus uses (cry00's Ch5 is 3,3,0,0). */
 const probeBase = {
   base: 0, files: [], implicitRet: [],
   channels: [
@@ -612,11 +610,11 @@ const probeHz = frequencyHz(shiftedRegister(1601, 238));
 const probeOut = new GbApu(probeBase, { pitch: 238, length: 128, muted: { 6: true, 8: true } }).render();
 const probeFundamental = goertzel(probeOut, probeHz, SYNTH_RATE);
 /* Duty patterns are stepped by the REGISTER, whose value changes under rotation,
- * so the duty actually reached is not the 3,3,0,0 written in the table and
- * asserting a particular harmonic ratio would be asserting something false about
- * the reference's own waveform. What separates a pulse wave from the broadband
- * noise a per-sample duty step produces is COHERENCE: energy concentrated at the
- * harmonics of the register's pitch, and essentially none between them. */
+ * so the duty actually reached is not the 3,3,0,0 written in the table, and
+ * asserting a particular harmonic ratio would assert something false about the
+ * reference's own waveform. What separates a pulse wave from the broadband noise a
+ * per-sample duty step produces is COHERENCE: energy concentrated at the harmonics
+ * of the register's pitch and essentially none between them. */
 const harmonics = [];
 const offHarmonics = [];
 for (let k = 1; k <= 8; k++) {
@@ -630,9 +628,9 @@ ok(coherence > 10,
 ok(probeFundamental > mean(offHarmonics) * 5,
   `and the fundamental is strong in absolute terms (${probeFundamental.toFixed(4)}, against ${mean(offHarmonics).toFixed(4)} between harmonics)`);
 /* A sweep of 0 means the envelope never steps, so a reference that rings the last
- * note until the volume empties rings forever -- and the first version here did,
- * for four million samples, because nothing bounded the tail. It is bounded now,
- * at the hardware's maximum note length. This note is 24 frames nominal, since a
+ * note until the volume empties rings forever — and the first version here did,
+ * for four million samples, because nothing bounded the tail. It is now bounded at
+ * the hardware's maximum note length. This note is 24 frames nominal, since a
  * length byte of 0x80 stretches 16 frames by 1.5x, plus the 16-frame bound. */
 const probeBound = Math.round(SAMPLES_PER_FRAME * 16) * 2;
 ok(probeOut.length === probeBound,
@@ -663,13 +661,12 @@ ok(/rgmechex\.com\/tech\/gen1cries\.html/.test(dom),
   'the page links the synthesiser it is transcribed from, by URL and not just by name');
 ok(/特別感謝|特別感謝這份網頁的作者/.test(dom), 'and thanks its author by name');
 /* The behaviours taken from the reference are named on the page, so a reader can
- * see what the credit is actually for. Five is the count gb-apu.js's header
- * documents, and asserting it is the point: a credit that lists nothing is a
- * formality. */
+ * see what the credit is for. Five is the count gb-apu.js's header documents, and
+ * asserting it is the point: a credit that lists nothing is a formality. */
 ok(/每幀旋轉一次/.test(dom) && /\|sweep\|/.test(dom) && /噪音通道不吃長度位元組/.test(dom)
    && /兩個欄位/.test(dom) && /sound_ret/.test(dom),
   'and names the behaviours it takes from them, so the credit is not empty');
-/* Our own debugging is not the reader's business. The bug narrative belongs in
+/* Debugging history is not the reader's business. The bug narrative belongs in
  * AGENTS.md §3.F, where it already is. */
 ok(!/(先被誤寫|比對才找出|內部斷言看得出來|三個以上|除錯)/.test(dom),
   'and does not spend the reader\'s time on how this page\'s own synthesis was debugged');
@@ -680,8 +677,8 @@ console.log(`  synthesis rate: ${SYNTH_RATE} Hz   note frame: ${FRAME_HZ.toFixed
 console.log(`  identical pairs: ${collisions.map(([, ids]) => ids.join('=')).join(', ')}`);
 console.log(`  Caterpie/Golden Ch5 gap: ${(gap * 1000).toFixed(1)} ms`);
 
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

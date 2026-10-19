@@ -89,18 +89,14 @@ import {
   analyseCry, COMPARABLE, DIMENSIONS, FEATURE_NAMES, M0_SCALE_OFFSET, N_MEL, SR,
   UNCOMPARABLE, melFilterbank,
 } from '../assets/js/cry-spectrogram.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PYTHON = join(ROOT, '..', '.venv', 'bin', 'python');
 const EXTRACTOR = join(ROOT, 'scripts', 'analyze_cries.py');
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+const C = createChecker({ stream: true });
+const { ok } = C;
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -490,8 +486,8 @@ console.log(`  extractor's resample cutoff ${extractorCutoff(N_IN, SR_IN).toFixe
   + `  ->  a resample to ${SR / 2} Hz must keep 8000`);
 console.log(`  worst comparable-feature difference: ${A_result.worst.toExponential(2)} relative`
   + ` (${A_result.worstName}), on the band-limited probe`);
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

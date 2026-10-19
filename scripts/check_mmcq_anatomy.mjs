@@ -62,8 +62,8 @@ const sampleIds = Array.from(new Set([...strideSample, ...FIVE_COLOR_IDS])).sort
 
 check(
   FIVE_COLOR_IDS.every((id) => sampleIds.includes(id)),
-  '樣本必須含 color_palettes.json 自己標示為 5 色的全部 id',
-  () => `缺少 5 色物種: ${FIVE_COLOR_IDS.filter((id) => !sampleIds.includes(id)).join(', ')}`
+  'the sample contains every id that color_palettes.json itself marks as 5-colour',
+  () => `missing 5-colour species: ${FIVE_COLOR_IDS.filter((id) => !sampleIds.includes(id)).join(', ')}`
 );
 
 // ---------------------------------------------------------------------------
@@ -138,35 +138,35 @@ for (const id of sampleIds) {
   }
 }
 
-check(hexAndShareMatches, 'hex 與占比逐隻相符', () => hexMismatchDetail);
+check(hexAndShareMatches, 'hex and share match for every species', () => hexMismatchDetail);
 check(allTraceLength5, 'trace.length === 5');
-check(allPhasesCorrect, 'phase1 恰 4 刀且 phase2 恰 1 刀');
-check(phaseOrderCorrect, 'trace 的 phase 順序');
+check(allPhasesCorrect, 'phase 1 has exactly 4 cuts and phase 2 exactly 1');
+check(phaseOrderCorrect, 'trace phase order');
 
 const requiredEmpties = [0, 1, 2, 3];
 const missingEmpties = requiredEmpties.filter((e) => !emptyRegionCounts.has(e));
 check(
   missingEmpties.length === 0,
-  'emptyRegions >= 0 的分佈覆蓋 {0,1,2,3}',
-  () => `缺少空區域層級: ${missingEmpties.join(', ')}`
+  'the emptyRegions >= 0 distribution covers {0,1,2,3}',
+  () => `missing empty-region tiers: ${missingEmpties.join(', ')}`
 );
 
 const requiredLengths = [5, 6];
 const missingLengths = requiredLengths.filter((l) => !paletteLengthCounts.has(l));
 check(
   missingLengths.length === 0,
-  'paletteRows 長度覆蓋 {5,6}',
-  () => `缺少色盤長度: ${missingLengths.join(', ')}`
+  'paletteRows lengths cover {5,6}',
+  () => `missing palette lengths: ${missingLengths.join(', ')}`
 );
 
 check(
   missingEmpties.length === 0 && missingLengths.length === 0,
-  '覆蓋度不足就紅並在訊息裡說明缺哪一層',
-  () => `缺少層級: empties [${missingEmpties.join(', ')}], lengths [${missingLengths.join(', ')}]`
+  'insufficient coverage fails and names the missing tier in the message',
+  () => `missing tiers: empties [${missingEmpties.join(', ')}], lengths [${missingLengths.join(', ')}]`
 );
 
-check(topUpFilledEmpty, '5 色物種的第六格由 top-up 補上');
-check(deterministicOrder, '同占比色票的排序是確定性的');
+check(topUpFilledEmpty, 'the sixth slot of a 5-colour species is filled by top-up');
+check(deterministicOrder, 'the ordering of equal-share swatches is deterministic');
 
 // ---------------------------------------------------------------------------
 // 3. Full corpus check: "vbox2 is None" occurs 0 / 5,125 times
@@ -188,8 +188,8 @@ for (const id of ALL_IDS) {
 
 check(
   totalCorpusCuts === 5125 && totalVbox2None === 0,
-  'vbox2 is None 在語料裡 0 次',
-  () => `vbox2 is None 出現次數: ${totalVbox2None} / ${totalCorpusCuts}`
+  '"vbox2 is None" occurs 0 times in the corpus',
+  () => `"vbox2 is None" occurrences: ${totalVbox2None} / ${totalCorpusCuts}`
 );
 
 console.log(`\n${failures ? `FAIL  ${failures} of ${total} checks failed` : `PASS  all ${total} checks passed`}`);

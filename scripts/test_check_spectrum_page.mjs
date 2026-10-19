@@ -63,9 +63,10 @@ const SRC = [
      `check_all.mjs` is not the same as copied here — a missing copy fails the
      harness's own BASELINE, which is loud but means the 40 cases measure nothing. */
   'assets/js/cover-roster.js',
+  'scripts/lib/assert.mjs',
   'assets/data/cry_features.json',
   'assets/data/gen1_cries.json',
-  /* The checker reads this for the 傳說/幻之 facet counts AND, now, to sweep the live
+  /* The checker reads this for the 傳說/幻之 (legendary/mythical) facet counts AND, now, to sweep the live
      curve's ink over every record. It was MISSING here while `check_all.mjs` declared
      it, so every one of this harness's cases was reporting FAIL — including the
      baseline — because `read()` throws on a file the tree does not have, before any
@@ -623,7 +624,7 @@ const CASES = [
   },
 
   // -------------------------------------------------------------------------
-  // 對表's header, and the cascade defect.
+  // 對表 (cross-reference table) header, and the cascade defect.
   // -------------------------------------------------------------------------
   {
     /* The cascade defect, removed. The header's spans share the rows' classes on

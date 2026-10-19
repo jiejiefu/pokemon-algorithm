@@ -3,16 +3,15 @@
  *
  *   node scripts/check_moves_page.mjs
  *
- * The static half of the §3.G4 split. It reads moves.html, move.html,
- * moves.css and moves.js off disk — a stylesheet contract is checked by reading
- * it, and this costs a fraction of a second, so the whole of it runs.
+ * The static half of the §3.G4 split: reads moves.html, move.html, moves.css and
+ * moves.js off disk. A stylesheet contract is checked by reading it, and this
+ * costs a fraction of a second.
  *
- * What it deliberately does NOT cover is what the pages PRODUCE: the rendered
- * half is check_moves_page_browser.mjs, which drives both over CDP. Three
- * defects on this pair are invisible to a text reader — the filter row count,
- * the `[hidden]` box, and whether the search box narrows anything — and §3.G4's
- * whole argument is that a static-only page checker would have reported "PASS"
- * over all of them.
+ * What the pages PRODUCE is check_moves_page_browser.mjs, which drives both over
+ * CDP. Three defects on this pair are invisible to a text reader — the filter row
+ * count, the `[hidden]` box, and whether the search box narrows anything — and
+ * §3.G4's argument is that a static-only checker would report "PASS" over all of
+ * them.
  *
  * Three existing checkers already read these pages and are NOT duplicated here,
  * because re-asserting a rule in a second file is a second place for it to be
@@ -21,8 +20,8 @@
  * check_page_module_api.mjs owns the named imports (§3.I). Both page sets are
  * self-selecting, so all three cover moves.html and move.html with no edit.
  *
- * It imports moves.js and runs it, so the vocabulary tables, the formatters and
- * filterMoves() are executed against the real 919 rows rather than shape-read.
+ * moves.js is imported and executed, so the vocabulary tables, the formatters and
+ * filterMoves() run against the real 919 rows rather than being shape-read.
  */
 
 import { readFileSync } from 'node:fs';
@@ -49,6 +48,7 @@ import {
   filterMoves,
   prepareMoves
 } from '../assets/js/moves.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
@@ -59,35 +59,18 @@ const DETAIL = read('move.html');
 const CSS = read('assets/css/moves.css');
 const MOVES_JS = read('assets/js/moves.js');
 
-/* Comments and strings are masked before any stylesheet or source shape test.
- * §3.S records check_color_page.mjs's false positive: a rule-shaped regex over
- * raw text walked out of a comment that named a selector and "found" it in the
- * next rule. Three of this file's assertions are rule-shaped, so all of them
- * read the stripped copy. */
+/* Comments are masked before any stylesheet or source shape test. §3.S records
+ * check_color_page.mjs's false positive: a rule-shaped regex over raw text walked
+ * out of a comment that named a selector and "found" it in the next rule. Three
+ * assertions here are rule-shaped, so all of them read the stripped copy. */
 const cssCode = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
 
 const MOVES = readData('moves_zh.json');
 const COUNTS = readData('move_learners_count.json');
 const rows = prepareMoves(MOVES);
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message, detail) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}${detail ? `\n        ${detail}` : ''}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    message,
-    `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 /** Keys of a generated map, ignoring the provenance record. */
 function dataKeys(map) {
@@ -99,11 +82,11 @@ function dataKeys(map) {
 /*
  * THE PAYLOAD SPLIT IS ASSERTED IN BOTH DIRECTIONS.
  *
- * moves.html needs 「N 隻可學」 on 919 rows and loads move_learners_count.json
- * (54 KB). move.html needs the actual list and loads move_learners.json (424 KB).
- * Asserting only the half that saves bytes would pass on a moves.html that also
- * pulls the 424 KB index — which is the mistake the split exists to prevent, and
- * the one a reader pays for on every visit.
+ * moves.html needs 「N 隻可學」 (N can learn) on 919 rows and loads
+ * move_learners_count.json (54 KB). move.html needs the actual list and loads
+ * move_learners.json (424 KB). Asserting only the half that saves bytes would pass
+ * on a moves.html that also pulls the 424 KB index — the mistake the split exists
+ * to prevent, and one a reader pays for on every visit.
  */
 ok(
   LIST.includes('loadMoveLearnersCount') && !/\bloadMoveLearners\b\s*[,)]/.test(LIST),
@@ -124,13 +107,13 @@ ok(
  * check_color_page.mjs's false positive, a rule-shaped regex walking out of a
  * comment that named a selector and "finding" it in the next rule.
  *
- * What is deliberately NOT done is blanking string literals as well. An earlier
- * version of this file stripped them to dodge the explanatory sentences around
- * each rule — and then six assertions below silently stopped matching real code,
- * because the masking was removing the calls they were asserting. §3.P's lesson
- * twice over: a vacuous assertion looks exactly like a passing one. So the
- * assertions below match the DANGEROUS SPELLINGS specifically, and a comment
- * naming one in backticks cannot produce them. */
+ * String literals are deliberately NOT blanked as well. An earlier version
+ * stripped them to dodge the explanatory sentences around each rule, and six
+ * assertions below silently stopped matching real code because the masking was
+ * removing the calls they asserted. §3.P's lesson twice over: a vacuous assertion
+ * looks exactly like a passing one. The assertions below match the DANGEROUS
+ * SPELLINGS specifically, and a comment naming one in backticks cannot produce
+ * them. */
 const stripComments = html => html
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/<!--[\s\S]*?-->/g, '')
@@ -163,9 +146,9 @@ eq(
   'moveUrl() should percent-encode a slug'
 );
 
-// §3.A again, for species. move.html renders up to 1025 learner cards and every
-// one of them is a link; a hand-assembled species URL is exactly how nidoran-f
-// and nidoran-m stop being distinct.
+// §3.A again, for species. move.html renders up to 1,025 learner cards, each a
+// link; a hand-assembled species URL is exactly how nidoran-f and nidoran-m stop
+// being distinct.
 eq(
   [...detailCode.matchAll(/(?:href=|`|'|")\s*detail\.html\?slug=/g)].length,
   0,
@@ -190,34 +173,34 @@ ok(
 
 /*
  * `.chip-grid` and `.chip-item` are shared by THREE blocks on types.html — the
- * roster (links + a thumbnail), 招式 (a span + a power number) and 特性 (a span +
- * a count). The roster was given equal-width columns and a stacked card; the
- * other two are lists of short pills that want content-sized widths.
+ * roster (links + a thumbnail), 招式 (moves: a span + a power number) and 特性
+ * (abilities: a span + a count). The roster was given equal-width columns and a
+ * stacked card; the other two are lists of short pills that want content-sized
+ * widths.
  *
- * So every one of those declarations has to sit behind the `--roster` modifier.
- * `check_types_browser.mjs` asserts the CONSEQUENCE — that the other two blocks
- * are still flex rows whose cards still differ in width — because that is the
- * half a stylesheet cannot state. This asserts the MECHANISM, because a
- * mutation that drops the modifier from `flex: 1` is invisible to the browser
- * checker until the mobile breakpoint, and the two halves fail independently.
+ * Every one of those declarations must therefore sit behind the `--roster`
+ * modifier. `check_types_browser.mjs` asserts the CONSEQUENCE — that the other
+ * two blocks remain flex rows whose cards differ in width — because a stylesheet
+ * cannot state that. This asserts the MECHANISM, because a mutation that drops
+ * the modifier from `flex: 1` is invisible to the browser checker until the
+ * mobile breakpoint, and the two halves fail independently.
  */
 const typesCss = typesHtml.replace(/\/\*[\s\S]*?\*\//g, '');
 /*
- * Two of these eight were VACUOUS on arrival and the harness said so, which is
- * the reason the harness is worth the second it costs.
+ * Two of these eight were VACUOUS on arrival, which is why the harness is worth
+ * the second it costs.
  *
  * The first version asked whether `.chip-grid--roster { … }` exists. Renaming it
- * to `.chip-grid { … }` left every OTHER `.chip-grid--roster` rule in the file,
- * so the assertion stayed green — it was satisfied by a page where the grid rule
- * did not carry the modifier at all, which is §3.B2's shape: a guard that can be
- * satisfied by the thing it exists to forbid. It now asks which rule declares
- * `display: grid`, because that is the claim.
+ * to `.chip-grid { … }` left every OTHER `.chip-grid--roster` rule in the file, so
+ * the assertion stayed green — satisfied by a page where the grid rule did not
+ * carry the modifier at all, which is §3.B2's shape: a guard satisfiable by the
+ * thing it exists to forbid. It now asks which rule declares `display: grid`.
  *
- * The second asked for `Math.abs(value + 25) < 3`, written to allow for
- * measurement noise. -23 is 2 away, so the exact pre-fix value passed. A
- * tolerance wide enough to absorb the regression is not a tolerance. The
- * measurement spans 25.0 / 25.4 / 25.8 across three box sizes, so 1% covers all
- * three of them and excludes both neighbours.
+ * The second asked for `Math.abs(value + 25) < 3`, allowing for measurement
+ * noise. -23 is 2 away, so the exact pre-fix value passed: a tolerance wide enough
+ * to absorb the regression is not a tolerance. The measurement spans 25.0 / 25.4 /
+ * 25.8 across three box sizes, so 1% covers all three and excludes both
+ * neighbours.
  */
 const rosterGridRule = typesCss.match(/\.chip-grid--roster\s*\{([^}]*)\}/);
 ok(
@@ -227,10 +210,10 @@ ok(
 );
 /*
  * The bare `.chip-item` rule is shared by all three blocks, so these three
- * properties are the ones that would equalise 招式 and 特性 if they leaked. They
- * are asserted ABSENT from the bare rule and PRESENT under the modifier, which
- * is the pairing §3.M records: asserting only the absence passes on a page where
- * the roster was never given the properties at all.
+ * properties are what would equalise 招式 and 特性 if they leaked. They are
+ * asserted ABSENT from the bare rule and PRESENT under the modifier — the pairing
+ * §3.M records: asserting only the absence passes on a page where the roster was
+ * never given the properties at all.
  */
 const bareChipItem = typesCss.match(/\n\s*\.chip-item\s*\{([^}]*)\}/);
 ok(
@@ -248,28 +231,22 @@ ok(
   'and fill the grid track it is placed in — the rule that was missing when the first measurement found 60px cards in 96.7px tracks'
 );
 /*
- * The image inside the roster card is a 120×112 icon going into a square box, so
- * `contain` is load-bearing rather than decorative: `fill` stretches it 7%
- * horizontally. `check_types_browser.mjs` asserts the computed value and the
- * measured box; this is the declaration, and the two were written in that order
- * because the browser checker found the value was `fill` when nobody had looked.
+ * The image inside the roster card is a 120×112 icon in a square box, so `contain`
+ * is load-bearing: `fill` stretches it 7% horizontally. `check_types_browser.mjs`
+ * asserts the computed value and the measured box; this is the declaration.
  */
 /*
- * `object-fit` lives in its OWN rule, and the first version of this assertion
- * named the selector and took the first match — which is the rule ABOVE it, the
- * one that sets width and height. It read `width: 40px; height: 40px;` and failed
- * on a correct page, which is §3.P's shape with the polarity reversed: the
- * pattern was not lazy, it was too eager, and it answered about a different
- * construct than the one it named.
+ * `object-fit` lives in its OWN rule. An earlier version named the selector and
+ * took the first match — the rule ABOVE it, which sets width and height — and
+ * failed on a correct page. §3.P's shape with the polarity reversed: the pattern
+ * was too eager, answering about a different construct than the one it named.
  *
- * The harness caught it rather than the author, because `test_check_moves_page`
- * fails a run whose BASELINE is red before it looks at a single mutation. That is
- * the one assertion in the file that cannot be attacked through its input, and it
- * is worth having for exactly this reason.
+ * The harness caught it, because `test_check_moves_page` fails a run whose
+ * BASELINE is red before it looks at a mutation. That is the one assertion here
+ * that cannot be attacked through its input.
  *
- * So: every rule on that selector is collected and the declaration is required
- * in one of them, which is also the honest reading — a stylesheet is a set of
- * rules, and "this selector declares X" is not "the first rule I found does".
+ * So every rule on that selector is collected and the declaration is required in
+ * one of them: "this selector declares X" is not "the first rule found does".
  */
 const rosterImgRules = [...typesCss.matchAll(/\.chip-grid--roster\s+\.chip-item img\s*\{([^}]*)\}/g)].map(m => m[1]);
 ok(
@@ -281,10 +258,10 @@ ok(
 /* ===== the filter state is the URL ===== */
 
 /*
- * A filter the reader cannot link to, cannot share, and cannot survive a reload
- * is a control rather than a feature. The four params are asserted as a set
- * because the claim is "every filter is addressable", and checking that three of
- * them are would be satisfied by the one that isn't being written yet.
+ * A filter the reader cannot link to, share, or survive a reload is a control
+ * rather than a feature. The params are asserted as a set because the claim is
+ * "every filter is addressable", and checking three of them would be satisfied by
+ * the one not yet written.
  */
 for (const param of ['q', 'type', 'class', 'gen', 'learnable']) {
   ok(LIST.includes(`'${param}'`), `moves.html should keep the "${param}" filter in the URL`);
@@ -294,9 +271,9 @@ ok(LIST.includes('replaceState'), 'moves.html should write filter changes into t
 /* ===== a deep link with a bad value drops the filter, it does not empty the page ===== */
 
 /*
- * `?type=firex` has to behave like no filter at all, not like a filter that
- * matches nothing. The difference is visible: one shows 919 rows, the other
- * shows 「沒有符合條件的招式」 and looks like a broken page.
+ * `?type=firex` must behave like no filter at all, not like a filter that matches
+ * nothing. The difference is visible: one shows 919 rows, the other shows
+ * 「沒有符合條件的招式」 (no matching moves) and looks like a broken page.
  */
 ok(
   LIST.includes('unknown ?') && LIST.includes('ignoring it'),
@@ -330,8 +307,8 @@ eq(
   true,
   'filterMoves(generation) should only return that generation'
 );
-// The chip sets are derived from the rows, so a chip can never offer a value
-// that matches nothing — which is the other half of the bad-deep-link contract.
+// The chip sets are derived from the rows, so a chip can never offer a value that
+// matches nothing — the other half of the bad-deep-link contract.
 eq(
   [...new Set(rows.map(m => m.type))].length,
   18,
@@ -348,8 +325,8 @@ eq(
   'the class chip row should offer exactly the damage classes MOVE_CLASS_ZH labels'
 );
 
-// learnable is a filter rather than a default because 「誰能學這招」 is the
-// question a team-builder asks constantly. Both directions must work, and the
+// learnable is a filter rather than a default because 「誰能學這招」 (who can learn
+// this) is a constant team-builder question. Both directions must work, and the
 // false branch is the one that would be silently unimplemented.
 const learnable = filterMoves(rows, { learnable: true });
 const unlearnable = filterMoves(rows, { learnable: false });
@@ -370,8 +347,8 @@ eq(
   'the two learnable branches should partition the 919'
 );
 // Cross-checked against the counts FILE rather than moves_zh's own denormalised
-// column, so a disagreement between the two files is what fails — they are
-// written by the same pass and §3.B1 says one of them has to be wrong.
+// column, so a disagreement between the two files fails: one pass writes both, and
+// §3.B1's rule means one of them has to be wrong.
 eq(
   learnable.length,
   [...rows.filter(moveIsLearnable).map(m => m.id)].filter(id => moveHasLearners(COUNTS, id)).length,
@@ -383,14 +360,14 @@ eq(
 eq(moveSearchText({ id: 1, zh: '拍擊', en: 'pound', target: 'selected-pokemon', ailment: 'none', category: 'damage' }).includes('拍擊'), true, 'search should match the Chinese name');
 eq(moveSearchText({ id: 1, zh: '拍擊', en: 'pound', target: 'selected-pokemon', ailment: 'none', category: 'damage' }).includes('pound'), true, 'search should match the English name');
 eq(moveSearchText({ id: 85, zh: '雷霆萬鈞', en: 'thunderbolt', target: 'selected-pokemon', ailment: 'paralysis', category: 'damage-ailment' }).includes('85'), true, 'search should match a bare id');
-// Typing 拍擊 must not also match a move that merely shares a character, and
-// typing an id must not match 0850.
+// Typing 拍擊 (pound) must not also match a move that merely shares a character,
+// and typing an id must not match 0850.
 eq(filterMoves(rows, { q: '85' }).every(m => String(m.id).includes('85')), true, 'an id query should only return ids containing it');
 ok(filterMoves(rows, { q: 'zzzznotamove' }).length === 0, 'a query matching nothing should return nothing');
 
-// The haystack is built once in prepareMoves, not per keystroke — 919 rows ×
-// one string build per character typed is the difference between a search box
-// and a page that stutters.
+// The haystack is built once in prepareMoves, not per keystroke — 919 rows × one
+// string build per character typed is the difference between a search box and a
+// page that stutters.
 eq(
   filterMoves(rows, { q: 'pound' }).some(m => m.id === 1),
   true,
@@ -402,12 +379,11 @@ eq(
   'the haystack should survive onto the filtered rows'
 );
 /*
- * Asserting that a haystack EXISTS says nothing about WHEN it is built, which
- * is why this reads filterMoves' own body rather than its output. Swapping the
- * field read for a moveSearchText() call returns byte-identical rows and passes
- * every other assertion in this file — found by the mutation that did exactly
- * that, and the reason the "one run confirms a fix" rule (§4) is not a licence
- * to stop writing the mechanism down next to the outcome.
+ * Asserting that a haystack EXISTS says nothing about WHEN it is built, so this
+ * reads filterMoves' own body rather than its output. Swapping the field read for
+ * a moveSearchText() call returns byte-identical rows and passes every other
+ * assertion here — found by the mutation that did exactly that. §4's "one run
+ * confirms a fix" rule is not a licence to stop recording the mechanism.
  */
 const filterBody = MOVES_JS.match(/export function filterMoves\([\s\S]*?\n}/);
 ok(
@@ -433,8 +409,8 @@ eq(moveNumber(0), '0', 'moveNumber should keep 0 — it is a real value');
 
 eq(moveAccuracyText(100), '100%', 'moveAccuracyText should render a percentage');
 eq(moveAccuracyText(null), '—', 'moveAccuracyText should dash a null');
-// The three moves that carry accuracy 0. 迅子利刃 says 「必定命中」 in its own
-// effect text, so printing 「0%」 would contradict the panel two lines below.
+// The three moves that carry accuracy 0. 迅子利刃 says 「必定命中」 (always hits) in
+// its own effect text, so printing 「0%」 would contradict the panel below.
 eq(moveAccuracyText(0), '必中', 'accuracy 0 is 必中, not 0%');
 eq(
   rows.filter(m => m.accuracy === 0).map(m => m.id).sort((a, b) => a - b),
@@ -450,8 +426,8 @@ eq(
   '硬壓 is physical with power 0 — a real HP-scaling value, not a dash'
 );
 
-// [min, max] pairs, because `max: null` with `min: 2` means 「至少 2 次」 and
-// flattening it to 2 is a different claim.
+// [min, max] pairs: `max: null` with `min: 2` means 「至少 2 次」 (at least twice),
+// and flattening it to 2 is a different claim.
 eq(movePairText([2, 5], ' 次'), '2～5 次', 'a bounded pair should read as a range');
 eq(movePairText([2, null], ' 次'), '至少 2 次', 'a null max means 「至少」, not 「2」');
 eq(movePairText(null), '—', 'a null pair should dash');
@@ -477,8 +453,8 @@ for (const category of new Set(rows.filter(m => m.category).map(m => m.category)
 for (const ailment of new Set(rows.filter(m => m.ailment).map(m => m.ailment))) {
   ok(MOVE_AILMENT_ZH[ailment] !== undefined, `MOVE_AILMENT_ZH has no label for "${ailment}"`);
 }
-// A label table that also carries a slug the data never produces is a second
-// answer to a question only the data can answer.
+// A label table carrying a slug the data never produces is a second answer to a
+// question only the data can answer.
 for (const key of Object.keys(MOVE_TARGET_ZH)) {
   ok(
     rows.some(m => m.target === key),
@@ -489,10 +465,10 @@ for (const key of Object.keys(MOVE_TARGET_ZH)) {
 /* ===== the four learn methods agree with detail.html ===== */
 
 /*
- * move.html's tabs and detail.html's move tables are the same four methods on
- * the same file. If one of them renames a tab the other is wrong and nothing
- * downstream would say so — detail.html reads MOVE_TABS, this page reads
- * MOVE_LEARN_METHODS, and they were written months apart in intent.
+ * move.html's tabs and detail.html's move tables are the same four methods over
+ * the same file. If one renames a tab the other is wrong and nothing downstream
+ * says so: detail.html reads MOVE_TABS, this page reads MOVE_LEARN_METHODS, and
+ * they were written months apart.
  */
 eq(
   MOVE_LEARN_METHODS,
@@ -543,10 +519,10 @@ const unprefixed = selectors.filter(s => !/^\.mv-/.test(s) && !/^(html|body|@|:r
 eq(unprefixed, [], 'every selector in moves.css should be mv- prefixed');
 
 /*
- * `[hidden]` needs the explicit display:none. §3.M measured that an author
- * `display` beats the UA sheet's `[hidden] { display: none }` whatever the
- * specificity, so `el.hidden = true` leaves the box painted while the property
- * still reads true. Both classes here are declared with a display of their own.
+ * `[hidden]` needs the explicit display:none. §3.M: an author `display` beats the
+ * UA sheet's `[hidden] { display: none }` whatever the specificity, so
+ * `el.hidden = true` leaves the box painted while the property still reads true.
+ * Both classes here declare a display of their own.
  */
 ok(
   /\.mv-panel\s*\{/.test(cssCode),
@@ -567,11 +543,10 @@ ok(
   '.mv-tabpanel[hidden] must set display: none explicitly'
 );
 
-// types.html declares its chart tokens inside its own inline <style>, so a
-// var() naming one of them from here resolves to nothing. The token name is
-// spelled out here in prose and NOT in moves.css, because a check that greps
-// for it cannot tell a declaration from the sentence explaining why the
-// declaration is a different one — §3.S, self-inflicted.
+// types.html declares its chart tokens in its own inline <style>, so a var()
+// naming one from here resolves to nothing. The token name is spelled out here in
+// prose and NOT in moves.css, because a grep cannot tell a declaration from the
+// sentence explaining why the declaration is a different one — §3.S.
 ok(
   /type-specific chart token/.test(CSS) === false,
   'sanity: this file documents the chart-token rule in a comment it does not share with moves.css'
@@ -606,23 +581,22 @@ ok(
 
 /*
  * `?move=nonexistent` renders an error naming the move. Falling back to move 1
- * would answer "here is 拍擊" to a question about something else, and the reader
- * cannot tell that happened — §3.B2's vacuity shape applied to a URL.
+ * would answer "here is 拍擊" (pound) to a question about something else, and the
+ * reader cannot tell — §3.B2's vacuity shape applied to a URL.
  *
- * Asserted on the Map lookup the page actually uses rather than on a `.find()`
- * this checker was written expecting: what matters is that the slug resolves and
- * that a miss is checked, not which of the two ways to do that was chosen.
+ * Asserted on the Map lookup the page actually uses rather than a `.find()` this
+ * checker expected: what matters is that the slug resolves and a miss is checked,
+ * not which of the two ways was chosen.
  */
 ok(DETAIL.includes('找不到招式'), 'move.html should say so when ?move= names nothing');
 /*
- * Asserted on the PROPERTY the lookup depends on, not on the spelling. The
- * first version of this line matched `bySlug.set(move.en, move)` and went red
- * the moment the page was fixed — because the fix WAS to change that call. The
- * thing that matters is that a row taken out of `Object.entries(moves)` carries
- * the id it is filed under, since `learners[String(move.id)]` is otherwise
- * `learners["undefined"]` and the learner panel renders empty with no error.
- * The rendered half is what found that; this is here so the next person to
- * simplify the loop finds a red line instead of a regression.
+ * Asserted on the PROPERTY the lookup depends on, not on the spelling. An earlier
+ * version matched `bySlug.set(move.en, move)` and went red the moment the page was
+ * fixed, because the fix WAS to change that call. What matters is that a row taken
+ * out of `Object.entries(moves)` carries the id it is filed under, since
+ * `learners[String(move.id)]` is otherwise `learners["undefined"]` and the learner
+ * panel renders empty with no error. The rendered half found that; this is here so
+ * the next simplification of the loop finds a red line instead of a regression.
  */
 ok(
   detailCode.includes('bySlug.set(move.en, { id: Number(id), ...move })'),
@@ -637,8 +611,8 @@ ok(
 
 /*
  * 473 of the 782 moves are learned by at least one Pokémon through two methods,
- * because learnsets.json is a union over every generation. A total that summed
- * the four lists would overstate more than half the catalogue.
+ * because learnsets.json is a union over every generation. A total summing the
+ * four lists would overstate more than half the catalogue.
  */
 const overlap = [1, 15, 85, 809].filter(id => {
   const row = COUNTS[String(id)];
@@ -657,14 +631,14 @@ ok(
 /* ===== the type chips carry their own colour ===== */
 
 /*
- * The 屬性 row is the one the reader scans by hue, and the other three rows stay
- * neutral. A MODIFIER rather than a change to `.mv-chip` is what leaves those
- * three untouched; colors-explore.html reaches the same shape under `.cp-`,
- * because colors.css is not mounted here and §3.B1 says a page's own rules live
- * in its own prefixed file.
+ * The 屬性 (type) row is the one the reader scans by hue; the other three stay
+ * neutral. A MODIFIER rather than a change to `.mv-chip` leaves those three
+ * untouched; colors-explore.html reaches the same shape under `.cp-`, because
+ * colors.css is not mounted here and §3.B1 requires a page's own rules to live in
+ * its own prefixed file.
  *
- * Asserted on the emitted inline style rather than on `typePair()` being called,
- * because a call that produced nothing would still satisfy the call.
+ * Asserted on the emitted inline style rather than on `typePair()` being called:
+ * a call that produced nothing would still satisfy the call.
  */
 ok(
   listCode.includes('mv-chip--type') && listCode.includes('mv-chip-dot'),
@@ -682,8 +656,8 @@ ok(
   /\.mv-chip--type \.mv-chip-dot\s*\{[^}]*background:\s*var\(--mv-type-fill/.test(cssCode),
   "the dot should be painted with the SAME fill, not the raw TYPE_COLORS hex — pressing a chip then spreads it instead of swapping one colour for another"
 );
-// The 屬性 suffix is why the group label exists. Eighteen chips each spelling
-// 屬性 is the word twice, and the dot carries the type already.
+// The 屬性 (type) suffix is why the group label exists. Eighteen chips each
+// spelling 屬性 is the word twice, and the dot already carries the type.
 ok(
   /return TYPE_EN_ZH\[capitalize\(slug\)\] \|\| slug;/.test(listCode),
   'the type chip label should be the bare type name'
@@ -692,10 +666,10 @@ ok(
   !/\+ *'屬性'|\}[`'"]屬性/.test(listCode),
   'and should not append 屬性 — the group label already says it'
 );
-// Only the type row is decorated, so the accent has to be a parameter and not
-// something chipRow applies to every row it builds. The count is on the CALL
-// SITES (`frag.appendChild(chipRow(`), not on the function definition, which
-// shares the same name and would make the count five.
+// Only the type row is decorated, so the accent is a parameter rather than
+// something chipRow applies to every row. The count is on the CALL SITES
+// (`frag.appendChild(chipRow(`), not the function definition, which shares the
+// name and would make the count five.
 eq(
   (listCode.match(/appendChild\(chipRow\(/g) || []).length,
   4,
@@ -714,17 +688,15 @@ eq(
 /* ===== the footer credits the source ===== */
 
 /*
- * Both pages name PokeAPI, because 919 moves of numbers and 919 zh-hant names
- * come from it and a reader is owed the provenance. This is the `.footer-note`
- * shape types.html and generations.html use — a bare <p>, no runtime mount, one
- * CSS class from shared.css — rather than index.html's `data-footer-nav` grid,
- * which exists to re-derive NAV's columns and would be five more link lists on a
- * page whose own nav row already points at everything it links to.
+ * Both pages name PokeAPI, because the 919 rows of numbers and zh-hant names come
+ * from it and a reader is owed the provenance. This is the `.footer-note` shape
+ * types.html and generations.html use — a bare <p>, no runtime mount, one CSS
+ * class from shared.css — rather than index.html's `data-footer-nav` grid, which
+ * exists to re-derive NAV's columns.
  *
- * The position assertion is that the note is a SIBLING of the footer content and
- * not inside the module block, matching types.html's order exactly: </main>, the
- * note, then the script. The `</body>`/`</html>` extent is check_js_syntax.mjs's
- * (§3.I1) and is not restated here.
+ * The note must be a SIBLING of the footer content, not inside the module block,
+ * matching types.html's order: </main>, the note, then the script. The
+ * `</body>`/`</html>` extent belongs to check_js_syntax.mjs (§3.I1).
  */
 for (const [name, code] of [['moves.html', LIST], ['move.html', DETAIL]]) {
   ok(
@@ -744,11 +716,10 @@ for (const [name, code] of [['moves.html', LIST], ['move.html', DETAIL]]) {
 /* ===== the learner cards use the official artwork ===== */
 
 /*
- * `hasSv()` is asked BEFORE the request rather than after a 404. §3.E's rule is
- * that the check exists so an upstream removal degrades to the 96px sprite
- * instead of leaving a console error and nothing else to trace, and the code
- * stays even though `hasSv` is true for all 1,025 today — that dormancy IS the
- * case the branch exists for.
+ * `hasSv()` is asked BEFORE the request rather than after a 404. §3.E: the check
+ * exists so an upstream removal degrades to the 96px sprite instead of leaving a
+ * console error and nothing to trace. The code stays even though `hasSv` is true
+ * for all 1,025 today — that dormancy is the case the branch exists for.
  *
  * The frontend credits PokeAPI only (§3.E), so nothing here names InfoPoke.
  */
@@ -784,15 +755,15 @@ ok(
  * object-fit WITH object-position, and both.
  *
  * The SV set is 120×112, the sprite is 96×96 and the box is 56×56. Setting
- * width/height — which is what `.chip-item img` does on types.html and what this
- * rule used to do — stretches the SV art 6% horizontally AND scales it to fill
- * the box, which moves the subject 3.7px UP off the card's bottom edge. The SV
- * subject is bottom-anchored with its empty space above; `contain` scales to
- * 56×52.3 and `object-position: bottom` puts the 3.7px of slack at the top,
- * where the artwork's own padding already is.
+ * width/height — as `.chip-item img` does on types.html and this rule used to —
+ * stretches the SV art 6% horizontally AND scales it to fill the box, moving the
+ * subject 3.7px UP off the card's bottom edge. The SV subject is bottom-anchored
+ * with its empty space above; `contain` scales to 56×52.3 and
+ * `object-position: bottom` puts the 3.7px of slack at the top, where the
+ * artwork's own padding already is.
  *
  * Asserting `object-fit` without `object-position` would pass on a page that
- * undoes the anchoring, which is the same defect in the other order.
+ * undoes the anchoring — the same defect in the other order.
  */
 ok(
   /\.mv-learner img\s*\{[^}]*object-fit:\s*contain/.test(cssCode),
@@ -802,10 +773,9 @@ ok(
   /\.mv-learner img\s*\{[^}]*object-position:\s*bottom/.test(cssCode),
   'and be pinned to the bottom, which is where the SV subject belongs'
 );
-// THIS PAGE DELIBERATELY HAS NO VERTICAL OFFSET, and the reason is worth
-// pinning: types.html's roster chips carry a `translateY` because their thumbnail
-// shares a line with a name and the two have to line up. These cards put the image
-// on its own row above the name, so there is nothing to line up against and the
+// THIS PAGE DELIBERATELY HAS NO VERTICAL OFFSET: types.html's roster chips carry a
+// `translateY` because their thumbnail shares a line with a name. These cards put
+// the image on its own row above the name, so there is nothing to align and the
 // offset would only lift the subject off the card's baseline.
 ok(
   !/\.mv-learner[^{}]*is-sv[^{]*\{[^}]*translateY/.test(cssCode),
@@ -813,15 +783,14 @@ ok(
 );
 
 /*
- * And the counterpart on the page that DOES lift: a percentage of its own box, so
- * it survives the thumbnail changing size between the desktop and phone figures.
+ * The counterpart on the page that DOES lift: a percentage of its own box, so it
+ * survives the thumbnail changing size between the desktop and phone figures.
  *
- * This reads the value out of types.html rather than restating it. The first
- * version named `-23%` in a comment beside the assertion above, and when
- * types.html's roster moved to a 40px/32px thumbnail and the offset was
- * re-measured, that comment described a declaration that no longer existed —
- * while every assertion in this file stayed green. A comment is not a check, and
- * a number copied next to a checker is a number that goes stale in the one
+ * The value is read out of types.html rather than restated. An earlier version
+ * named `-23%` in a comment beside the assertion above; when the roster moved to a
+ * 40px/32px thumbnail and the offset was re-measured, that comment described a
+ * declaration that no longer existed while every assertion stayed green. A comment
+ * is not a check, and a number copied next to a checker goes stale in the one
  * direction a reader cannot see (§3.S).
  */
 const rosterLift = typesHtml.match(
@@ -837,12 +806,11 @@ ok(
 /*
  * No `image-rendering` on the learner image at all.
  *
- * The house convention is `crisp-edges` and it appears only on UPSCALES — the
- * 96px sprite drawn at 140px in a pokedex card. Both sets here are drawn DOWN
- * (96→56 and 120→56) by a non-integer factor, where nearest-neighbour drops
- * pixels unevenly and reads worse than smooth. The rule that was here said
- * `pixelated`, the legacy alias for the same thing, with the same problem one
- * declaration further from the project's naming.
+ * The house convention is `crisp-edges`, used only on UPSCALES — the 96px sprite
+ * drawn at 140px in a pokedex card. Both sets here are drawn DOWN (96→56 and
+ * 120→56) by a non-integer factor, where nearest-neighbour drops pixels unevenly
+ * and reads worse than smooth. The rule that was here said `pixelated`, the legacy
+ * alias for the same thing.
  */
 const learnerImgRule = cssCode.match(/\.mv-learner img\s*\{([^}]*)\}/);
 ok(Boolean(learnerImgRule), 'moves.css should still declare .mv-learner img');
@@ -851,9 +819,9 @@ ok(
   'the learner image should declare no image-rendering — both art sets are drawn DOWN, not up'
 );
 
-if (failures === 0) {
-  console.log(`PASS ${checks} checks`);
+if (C.failures.length === 0) {
+  console.log(`PASS ${C.checks} checks`);
 } else {
-  console.error(`FAIL ${failures} of ${checks} checks`);
+  console.error(`FAIL ${C.failures.length} of ${C.checks} checks`);
   process.exit(1);
 }

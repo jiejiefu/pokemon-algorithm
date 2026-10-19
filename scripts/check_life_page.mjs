@@ -259,36 +259,29 @@ check(engine.cells.size >= 2, 'Grid contains living wild encounter cluster');
 
 // 9. The cross-generation Eevee branch.
 //
-// Every check here is about a defect that shipped green through the whole suite.
-// The branch used to be drawn from the family tree's stage columns, and
-// evolution_chains.json numbers `stage` by DEX ORDER — so Eevee's eight branches
-// read as eight successive stages, only 水伊布 was ever reachable, and the fix
-// that made the other seven reachable was an edit to a GENERATED data file that
-// the next run of extract_evolution_chains.py erases. The two assertions that
-// matter are the ones a data edit cannot satisfy: the branch is the real edge
-// list, and its destination set is the whole family.
+// The branch must come from the EDGE LIST, not the family tree's stage columns:
+// evolution_chains.json numbers `stage` by DEX ORDER, so Eevee's eight branches
+// read as eight successive stages and only 水伊布 is reachable. The two assertions
+// that matter are the ones a data edit cannot satisfy — the branch is the real
+// edge list, and its destination set is the whole family.
 console.log('\n--- Eevee cross-generation branch ---');
 
-// The set is a NAMED exception because 70 of the 489 edges cross a generation
-// boundary and most are worse: #172 Pichu -> #25 Pikachu runs backwards, and
-// #52 Primeape -> #863 Annihilape would put a Gen 8 form on a Gen 1 board. So the
-// assertion is the set's exact contents, not "at least one exception exists" —
-// an empty set would satisfy the weaker form and remove the feature.
+// A NAMED exception: 70 of the 489 edges cross a generation boundary and most are
+// worse (#172 Pichu -> #25 Pikachu runs backwards; #52 Primeape -> #863
+// Annihilape would put a Gen 8 form on a Gen 1 board). Assert the exact set, not
+// "at least one exception exists" — an empty set would satisfy the weaker form
+// and remove the feature.
 check([...CROSS_GEN_BRANCH_ROOTS].join(',') === '133',
   `CROSS_GEN_BRANCH_ROOTS is exactly {133}, got {${[...CROSS_GEN_BRANCH_ROOTS].join(',')}}`);
 
-// The branch must be the eight real edges, not a hand-written id list. A list
-// that drifts is a feature that quietly stops working; this reads the same table
-// the engine draws from.
+// The branch must be the eight real edges, not a hand-written id list; this reads
+// the same table the engine draws from.
 const eeveeEdges = [...(evolutionLevels.unlevelled['133'] || [])].map(e => e.to).sort((a, b) => a - b);
 check(eeveeEdges.join(',') === '134,135,136,196,197,470,471,700',
   `Eevee has eight real edges in evolution_levels.json, got ${eeveeEdges.length}`);
-// ALL EIGHT, ON A BOARD THAT CAN HOLD THEM. `engine` here is the bare Gen 1
-// engine from earlier in the file, and on a classic Gen 1 board it correctly
-// reaches only THREE — so the eight-edge claim moved to a Let's Go board, where
-// era 7 admits all eight. Asserting eight on the Gen 1 engine is what the era
-// restriction was written to make false; asserting fewer than eight anywhere
-// would make the branch stop being the feature it exists to be.
+// ALL EIGHT, ON A BOARD THAT CAN HOLD THEM. The bare Gen 1 engine correctly
+// reaches only THREE, so the eight-edge claim runs on a Let's Go board (era 7
+// admits all eight).
 {
   const lgMeta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 });
   const lg = new GameEngine(lgMeta, evolutionLevels, 'letsGo');
@@ -297,26 +290,24 @@ check(eeveeEdges.join(',') === '134,135,136,196,197,470,471,700',
     `a Let's Go board can reach all eight Eeveelutions, got ${lg.successorsOf(133).length}`);
   check(engine.successorsOf(133).map(e => e.to).sort((a, b) => a - b).join(',') === '134,135,136',
     `a classic Gen 1 board reaches only the three stones (${engine.successorsOf(133).length})`);
-  // 仙子伊布 is the point of the exception, so it gets its own line rather than
-  // being one of eight: it is a Gen 6 species and was unreachable on every Gen 1
-  // board before this, which is what a reader asking for it would have found.
+  // 仙子伊布 is the point of the exception, so it gets its own assertion: a Gen 6
+  // species, unreachable on every Gen 1 board before this.
   check(lg.successorsOf(133).some(e => e.to === 700),
     '仙子伊布 (#700) is reachable from an Eevee — on a board whose era has Fairy');
 }
 
 // BRANCH_WEIGHTS is the one invented table in the engine, so its key set is
-// pinned to the edge set. An id absent from the map falls back to weight 1
-// silently, which is exactly how a typo would hide.
+// pinned to the edge set: an absent id falls back to weight 1 silently, which is
+// how a typo hides.
 check([...BRANCH_WEIGHTS.keys()].sort((a, b) => a - b).join(',') === eeveeEdges.join(','),
   `BRANCH_WEIGHTS keys are exactly Eevee's eight destinations, got ${BRANCH_WEIGHTS.size}`);
 
 // Measured, not asserted as a formula: 3/3/3/2/2/1/1/1 over 16 is
-// 18.75% / 12.5% / 6.25%, and a `weightedPick` that fell through to a uniform
-// draw would still pass a key-set check. 40k draws keeps the tolerance at +/-1pt.
-// Drawn from a Let's Go board, so it exercises all eight weights. The first
-// version drew from the classic Gen 1 engine, which admits three — so the
-// weighted/uniform question was being asked of three equal weights, where both
-// implementations produce the same answer and the check could not fail.
+// 18.75% / 12.5% / 6.25%, and a `weightedPick` falling through to a uniform draw
+// would still pass a key-set check. 40k draws keeps the tolerance at +/-1pt.
+// Drawn from a Let's Go board to exercise all eight weights: the classic Gen 1
+// engine admits three equal weights, where both implementations agree and the
+// check could not fail.
 const lgDrawEngine = new GameEngine(
   buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 }),
   evolutionLevels, 'letsGo');
@@ -334,10 +325,9 @@ check(Math.abs(shareOf(134) - 3 / 16) < 0.01 && Math.abs(shareOf(700) - 1 / 16) 
 check([...drawTally.keys()].length === 8,
   `all eight branches are drawn over ${DRAWS} attempts, got ${drawTally.size}`);
 
-// The classic Gen 1 draw is a different shape: three stones, BRANCH_WEIGHTS gives
-// all three 3, so it should be a THIRD each. Asserted because the era filter made
-// it uniform by accident rather than by decision, and a later weight edit would
-// otherwise go unnoticed here.
+// The classic Gen 1 draw is a different shape: three stones, all weight 3, so a
+// THIRD each. Asserted because the era filter makes it uniform by accident rather
+// than by decision, and a later weight edit would otherwise go unnoticed.
 {
   const g1Tally = new Map();
   for (let i = 0; i < DRAWS; i++) {
@@ -423,10 +413,9 @@ check(frozen.requiredLevel === null,
 
 // 12. The Pokédex roster and the counter divide by the SAME number.
 console.log('\n--- Pokédex roster ---');
-// Built WITH the starter, because the Eevee section is the reader's choice and
-// not the generation's: it appears only when the chosen starter belongs to a
-// cross-generation branch family. `gen1Meta` above was built without one, so it
-// is the answer for 「no starter chosen」 and is asserted as such first.
+// Built WITH the starter: the Eevee section appears only when the chosen starter
+// belongs to a cross-generation branch family. `gen1Meta` above was built without
+// one, so it is the answer for 「no starter chosen」 and is asserted as such first.
 const eeveeMeta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId: 133 });
 check(gen1Meta.totalSpeciesCount === 151,
   `Gen 1 holds 151 species, got ${gen1Meta.totalSpeciesCount}`);
@@ -446,10 +435,9 @@ check(sectionEntries.length === 9 && sectionEntries[0].species.id === 133,
 check(eeveeMeta.dexRoster.filter(e => !e.section).length === 147,
   `the main run holds the other 147, got ${eeveeMeta.dexRoster.filter(e => !e.section).length}`);
 
-// The condition is the FAMILY, not the id, so it is asserted per starter rather
-// than once: four of Gen 1's five starters are outside chain 67 and must get the
-// plain roster back, including 皮卡丘 — which is the interesting one, because
-// Let's Go freezes Pikachu and Eevee is still seeded on that board.
+// The condition is the FAMILY, not the id, so it is asserted per starter: four of
+// Gen 1's five starters are outside chain 67 and must get the plain roster back,
+// including 皮卡丘 (Let's Go freezes Pikachu while still seeding Eevee).
 for (const starterId of [1, 4, 7, 25]) {
   const meta = buildGenMetadata(1, allPokemon, evoChains, generations, { starterId });
   check(meta.dexRoster.length === 151 && meta.dexRoster.every(e => e.section === null),

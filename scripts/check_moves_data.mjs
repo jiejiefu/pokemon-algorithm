@@ -8,28 +8,27 @@
  *   assets/data/move_learners.json       — move → the Pokémon that learn it
  *   assets/data/move_learners_count.json — the counts-only companion
  *
- * scripts/fetch_moves.py builds them, and the interesting parts of that build
- * are the choices, not the download. Four of them are pinned here:
+ * scripts/fetch_moves.py builds them, and the load-bearing choices are pinned
+ * here:
  *
  *   1. ALL 919 non-shadow moves ship, not the 782 the learnset references. A
- *      招式 page is a database, so a Z-move nobody can learn is still a row —
- *      but that means "782" is no longer the file's size, and three separate
- *      places in this repo used to say 783 or 782.
+ *      招式 (move) page is a database, so a Z-move nobody can learn is still a
+ *      row — which means "782" is no longer the file's size.
  *   2. The effect sentence has TWO provenances and the boundary is a
  *      generation line: 826 from PokeAPI's zh-hant flavour text, 93 from
- *      InfoPoke's Simplified run through OpenCC. Pinning the split is the point;
- *      asserting only "every row has some text" would pass if InfoPoke's markup
- *      changed shape and 26 rows quietly went blank.
+ *      InfoPoke's Simplified run through OpenCC. Pinning the split matters:
+ *      "every row has some text" would pass if InfoPoke's markup changed shape
+ *      and 26 rows quietly went blank.
  *   3. The conversion is asserted by IDEMPOTENCE, not by "no Simplified
- *      characters". See the note at UNCONVERTED_UPSTREAM below — a
- *      hand-written Simplified set flags 手, 岩 and 污, all of which are correct
- *      Traditional, and would fire on 565 of the 919 rows.
+ *      characters". See the note at UNCONVERTED_UPSTREAM below — a hand-written
+ *      Simplified set flags 手, 岩 and 污, all of which are correct Traditional,
+ *      and would fire on 565 of the 919 rows.
  *   4. `meta` is null for 92 moves because PokeAPI ships meta: null, which is
  *      not the same claim as "this move has no ailment". Both values are in the
- *      file and both mean something different to a team builder.
+ *      file and mean different things to a team builder.
  *
- * It imports the real ES module, so it also catches a syntax error in the
- * vocabulary tables moves.js and both pages depend on.
+ * The real ES module is imported, so a syntax error in the vocabulary tables
+ * moves.js and both pages depend on also fails here.
  */
 
 import { readFileSync } from 'node:fs';
@@ -42,6 +41,7 @@ import {
   MOVE_AILMENT_ZH,
   moveHasLearners,
 } from '../assets/js/moves.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = name => JSON.parse(readFileSync(join(ROOT, 'assets/data', name), 'utf8'));
@@ -71,25 +71,10 @@ function dataKeys(map) {
   return Object.keys(map).filter(k => k !== '_meta');
 }
 
-let failures = 0;
-let checks = 0;
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
+
 const notes = [];
-
-function ok(condition, message, detail) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}${detail ? `\n        ${detail}` : ''}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    message,
-    `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
-  );
-}
 
 /** PokeAPI damage-class slugs, which `class` carries verbatim. */
 const DAMAGE_CLASSES = new Set(['physical', 'special', 'status']);
@@ -119,9 +104,8 @@ ok(
 );
 
 // A name test rather than an id test: shadow-claw, shadow-punch, shadow-force
-// and shadow-ball are ordinary moves that begin with the same four letters, so
-// anything asserting "no move starts with shadow-" is asserting the wrong thing
-// and would fail the day one of them were dropped from the file.
+// and shadow-ball are ordinary moves sharing the same prefix, so "no move starts
+// with shadow-" asserts the wrong thing and would fail the day one is dropped.
 const shadowish = dataKeys(MOVES).filter(k => MOVES[k].en.startsWith('shadow-'));
 const shadowBlock = Object.keys(shadowish).map(Number).filter(id => id >= SHADOW_BLOCK_START);
 eq(shadowBlock, [], 'no shadow-block move should have shipped');
@@ -164,12 +148,12 @@ eq(
  * IDEMPOTENCE, not "contains no Simplified characters".
  *
  * The 93 rows were produced by OpenCC s2twp, so re-running the converter on the
- * shipped text must be a no-op — satisfied by exactly one condition, that the
- * conversion ran to completion on the rows it was meant to run on.
+ * shipped text must be a no-op — which holds only if the conversion ran to
+ * completion on the rows it was meant to run on.
  *
- * A Simplified-character set is the obvious wrong check here and it fails
- * badly: 手, 岩 and 污 are all flagged by a naive set and all three are correct
- * Traditional in this corpus. It is 565 of 919 rows of noise.
+ * A Simplified-character set is the obvious wrong check: 手, 岩 and 污 are all
+ * flagged by a naive set and all three are correct Traditional in this corpus.
+ * That is 565 of 919 rows of noise.
  */
 const rowsWithoutEffect = dataKeys(MOVES).filter(id => !MOVES[id].effect);
 eq(rowsWithoutEffect, [], 'every shipped move should have effect text');
@@ -199,9 +183,9 @@ eq(
  * the mainland-preferred form of words Taiwanese official text does not use:
  * 刮起狂風 → 颳起狂風, 投擲污泥 → 投擲汙泥, 發送 → 傳送. 18 rows are affected.
  *
- * It is asserted as a COUNT of rows OpenCC would change rather than as any one
- * of those three words, because pinning the words would make the check fail on
- * an upstream re-wording and pass on a genuinely new Simplified leak.
+ * Asserted as a COUNT of rows OpenCC would change, not as any one of those
+ * words: pinning the words would fail on an upstream re-wording and pass on a
+ * genuinely new Simplified leak.
  */
 const UNCONVERTED_UPSTREAM = 18;
 notes.push(
@@ -235,19 +219,18 @@ for (const id of ids) {
   // (sonic-boom, dragon-rage) and variable power (return, gyro-ball) all have
   // null. Only the weaker invariant is safe to assert.
   //
-  // ZERO IS ALSO ALLOWED, and this is not a loosened assertion. 16 status moves
-  // carry `power: 0` where null would mean the same thing, and one move carries
-  // 0 as a REAL value: hard-press (硬壓) is physical and its power scales with
-  // the target's remaining HP from 0 to 100. Normalising 0 to null would turn a
-  // documented mechanic into a dash — §3.B1's rule applied to a sentinel that is
-  // a sentinel in 16 rows and a number in 1. The two cases are separated below
-  // rather than averaged away.
+  // ZERO IS ALSO ALLOWED. 16 status moves carry `power: 0` where null would mean
+  // the same thing, and one move carries 0 as a REAL value: hard-press (硬壓) is
+  // physical and scales with the target's remaining HP from 0 to 100.
+  // Normalising 0 to null would turn a documented mechanic into a dash — §3.B1's
+  // rule applied to a sentinel that is a sentinel in 16 rows and a number in 1.
+  // The two cases are separated below rather than averaged away.
   ok(
     m.power === null || m.power === 0 || (Number.isInteger(m.power) && m.power > 0),
     `move ${id} (${m.en}) power should be null, 0 or a positive integer, got ${m.power}`
   );
-  // accuracy 0 is 「必中」, not 「0%」 — tachyon-cutter's own effect text says so.
-  // It is asserted as a permitted value and rendered as 必中 by moves.js.
+  // accuracy 0 means 必中 (never misses), not 0% — tachyon-cutter's own effect
+  // text says so. It is a permitted value and moves.js renders it as 必中.
   ok(
     m.accuracy === null || (Number.isInteger(m.accuracy) && m.accuracy >= 0 && m.accuracy <= 100),
     `move ${id} (${m.en}) accuracy should be null or 0..100, got ${m.accuracy}`
@@ -256,9 +239,9 @@ for (const id of ids) {
     m.pp === null || (Number.isInteger(m.pp) && m.pp > 0),
     `move ${id} (${m.en}) pp should be null or a positive integer, got ${m.pp}`
   );
-  // -7..7, not -6..6: trick-room is the one move at -7 and it is real (it has to
-  // resolve before the moves it swaps). The range is PokeAPI's, so a future
-  // move outside it goes red here rather than being silently clamped.
+  // -7..7, not -6..6: trick-room is the one move at -7 and it is real (it must
+  // resolve before the moves it swaps). The range is PokeAPI's, so a future move
+  // outside it goes red here rather than being silently clamped.
   ok(
     m.priority === null || (Number.isInteger(m.priority) && m.priority >= -7 && m.priority <= 7),
     `move ${id} (${m.en}) priority should be null or -7..7, got ${m.priority}`
@@ -280,9 +263,9 @@ for (const id of ids) {
   }
 
   // The four meta-derived fields share one cause: PokeAPI ships `meta: null` for
-  // the whole of Generation 9. That is "we have no data", which is not the same
-  // claim as "this move has no ailment" — and a team builder reading drain: 0
-  // instead of drain: null would act on a number PokeAPI never asserted.
+  // the whole of Generation 9. That means "no data", not "this move has no
+  // ailment" — and a team builder reading drain: 0 instead of drain: null would
+  // act on a number PokeAPI never asserted.
   for (const field of ['category', 'ailment']) {
     ok(
       m[field] === null || typeof m[field] === 'string',
@@ -290,10 +273,9 @@ for (const id of ids) {
     );
   }
   // drain and heal are SIGNED percentages of the damage taken, not counts, so a
-  // negative is a real answer and not an error: 光之御三家's light-of-ruin is
-  // drain -50 (the user loses half its HP) and clangorous-soul is heal -33.
-  // Clamping them to >= 0 would erase the only two moves where the cost is
-  // bigger than the benefit.
+  // negative is a real answer: 光之御三家's light-of-ruin is drain -50 (the user
+  // loses half its HP) and clangorous-soul is heal -33. Clamping them to >= 0
+  // would erase the only two moves where the cost exceeds the benefit.
   for (const field of ['drain', 'heal']) {
     ok(
       m[field] === null || (Number.isInteger(m[field]) && m[field] >= -100 && m[field] <= 100),
@@ -320,13 +302,12 @@ for (const id of ids) {
  * 16 status moves carry power 0 where null would read the same, and one move
  * carries 0 as a real value: hard-press (硬壓) is physical and scales its power
  * with the target's remaining HP from 0 to 100. Nothing renders that mechanic
- * from a dash, so the distinction has to survive the file — and the way to keep
- * it is to name the exception rather than to add a "hasPower" flag that would
- * then need its own exception.
+ * from a dash, so the distinction must survive the file — name the exception
+ * rather than add a "hasPower" flag that would need its own exception.
  *
- * If a second variable-power move ever ships, this fails and the new one gets
- * written down. That is the point: the alternative is a silent `power: 0` that
- * looks like the 16 sentinels.
+ * If a second variable-power move ships, this fails and the new one is written
+ * down. The alternative is a silent `power: 0` indistinguishable from the 16
+ * sentinels.
  */
 const VARIABLE_POWER_MOVES = { 912: 'hard-press' };
 const variablePower = Object.fromEntries(
@@ -347,7 +328,7 @@ notes.push(
 /*
  * The four meta fields must be null TOGETHER or not at all, because they share
  * one cause in PokeAPI. Checking them separately would let a partial fill ship
- * and read as "Generation 9 happens to have categories but no ailments".
+ * and read as "Generation 9 has categories but no ailments".
  */
 const metaNullShapes = new Set(
   ids.map(id => {
@@ -371,11 +352,11 @@ eq(
 eq(
   dataKeys(LEARNERS).length,
   MOVES._meta.moves_referenced,
-  'move_learners.json should cover exactly the moves our 1025 reference'
+  'move_learners.json should cover exactly the moves the 1,025-Pokémon roster references'
 );
 
 // Inverted from learnsets.json in the same pass, so re-inverting here is the
-// only way to catch a divergence between the two files' inputs.
+// only way to catch divergence between the two files' inputs.
 const recomputed = {};
 for (const pid of dataKeys(LEARNSETS)) {
   for (const method of LEARN_METHODS) {
@@ -395,13 +376,13 @@ for (const mid of Object.keys(recomputed)) {
     }
   }
 }
-checks += 1;
+ok(true, 'move_learners.json matches the learnset it was inverted from'); // the sweep is counted once
 
 for (const mid of dataKeys(LEARNERS)) {
   const slots = LEARNERS[mid];
   for (const method of LEARN_METHODS) {
     // A present-but-empty array and an absent key are different claims, so the
-    // key is required even when nothing is in it. See build_move_learners().
+    // key is required even when empty. See build_move_learners().
     ok(Array.isArray(slots[method]), `move_learners.json ${mid} is missing the "${method}" array`);
     for (const pid of slots[method] || []) {
       ok(
@@ -413,15 +394,15 @@ for (const mid of dataKeys(LEARNERS)) {
 }
 
 /*
- * THE SAME POKEMON IN TWO LEARN METHODS IS NOT A DEFECT, and asserting that it is
- * would have been the wrong check on 473 of the 782 moves.
+ * THE SAME POKEMON IN TWO LEARN METHODS IS NOT A DEFECT; asserting otherwise
+ * would be wrong on 473 of the 782 moves.
  *
  * learnsets.json is a union over every generation, so a move that was a TM in
  * Gen 4 and a level-up in Gen 5 is listed twice for that Pokémon. Move 809 has
  * 44 machine rows and 36 tutor rows for 55 distinct Pokémon. Summing the four
- * methods would print 「80 隻可學」 for a move 55 Pokémon can learn, and a reader
- * has no way to tell which number was meant — so `total` is the union, and this
- * asserts the union rather than the sum.
+ * methods would print 「80 隻可學」 (80 can learn) for a move 55 Pokémon learn,
+ * and a reader cannot tell which number was meant — so `total` is the union, and
+ * this asserts the union rather than the sum.
  */
 const overlapping = dataKeys(LEARNERS).filter(mid => {
   const slots = LEARNERS[mid];
@@ -435,9 +416,9 @@ notes.push(
 );
 
 /*
- * The counts file is the list page's whole payload, so a disagreement between
- * it and the index is the defect the split most easily introduces: the row says
- * "89 隻可學" and the page it links to lists 102.
+ * The counts file is the list page's whole payload, so a disagreement between it
+ * and the index is the defect the split most easily introduces: the row says
+ * "89 隻可學" (89 can learn) and the page it links to lists 102.
  */
 eq(
   dataKeys(LEARNERS_COUNT).length,
@@ -458,9 +439,9 @@ for (const id of ids) {
       `move_learners_count.json ${key}.${method} disagrees with move_learners.json`
     );
   }
-  // The four methods overlap, so their sum is >= total and strictly less
-  // whenever anyone learns the move twice. That inequality is the whole reason
-  // `total` is a union, so it is asserted rather than assumed.
+  // The four methods overlap, so their sum is >= total and strictly greater
+  // whenever anyone learns the move twice. That inequality is why `total` is a
+  // union, so it is asserted rather than assumed.
   const summed = LEARN_METHODS.reduce((n, m) => n + count[m], 0);
   ok(summed >= count.total, `move_learners_count.json ${key}: method sum ${summed} < total ${count.total}`);
 }
@@ -506,9 +487,9 @@ for (const [name, map] of Object.entries({
 
 for (const note of notes) console.log(`  note  ${note}`);
 
-if (failures === 0) {
-  console.log(`PASS ${checks} checks`);
+if (C.failures.length === 0) {
+  console.log(`PASS ${C.checks} checks`);
 } else {
-  console.error(`FAIL ${failures} of ${checks} checks`);
+  console.error(`FAIL ${C.failures.length} of ${C.checks} checks`);
   process.exit(1);
 }

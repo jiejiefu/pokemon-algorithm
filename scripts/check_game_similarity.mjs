@@ -16,7 +16,7 @@
  *    here would be a second source of truth. This actually runs 9 generations x
  *    365 days and confirms every member is drawable and nothing lands outside.
  *
- * 2. **地獄 is shiny, and the index really does have to be two indexes.**
+ * 2. **地獄 (hell) is shiny, and the index really does have to be two indexes.**
  *    `color-match.js`'s `buildMatchIndex()` reads only `palettes[key].n`, so it
  *    knows nothing about shinies. This module builds its own, so
  *    `paletteRows(pal, id, 's')` must return the shiny palette and `scoreGuess`
@@ -253,14 +253,15 @@ console.log('\nthe difficulty decides the variant, one way only');
 {
   check(DIFFICULTIES.length === 3, 'there are three difficulties',
     () => DIFFICULTIES.join(', '));
-  check(variantOf('easy') === 'n', 'easy is 原始色');
-  check(variantOf('hard') === 'n', 'hard is 原始色');
-  check(variantOf('hell') === 's', 'hell is 異色');
+  check(variantOf('easy') === 'n', 'easy uses 原始色 (normal colours)');
+  check(variantOf('hard') === 'n', 'hard uses 原始色 (normal colours)');
+  check(variantOf('hell') === 's', 'hell uses 異色 (shiny colours)');
   check(isShinyMode('hell') === true, 'and only hell reports itself as shiny');
   check(!isShinyMode('easy') && !isShinyMode('hard'), 'easy and hard do not');
 
-  // The one that would matter if it were wrong: 地獄 rendering 原始色 is a
-  // difficulty that does not differ from 困難 in anything the player can see.
+  // The one that would matter if it were wrong: 地獄 (hell) rendering 原始色
+  // (normal colours) is a difficulty that does not differ from 困難 (hard) in
+  // anything the player can see.
   const hell = pickDailyTarget('hell', 1, data, { now: at(13) });
   const hard = pickDailyTarget('hard', 1, data, { now: at(13) });
   check(hell.variant === 's' && hard.variant === 'n', 'the two full-dex modes differ in variant');
@@ -268,8 +269,8 @@ console.log('\nthe difficulty decides the variant, one way only');
   check(MAX_ATTEMPTS === 4, '4 attempts, copied from the reference');
   check(normalizeDifficulty('nonsense') === 'easy', 'an unknown difficulty falls back to easy');
   check(normalizeDifficulty(undefined) === 'easy', 'and so does a missing one');
-  check(normalizeGeneration(99, [1, 2, 3]) === 1, 'an out-of-range generation falls back to 第一世代',
-    () => 'the spec says the first visit is Easy + 第一世代, so that is the fallback');
+  check(normalizeGeneration(99, [1, 2, 3]) === 1, 'an out-of-range generation falls back to 第一世代 (Gen I)',
+    () => 'the spec says the first visit is Easy + 第一世代 (Gen I), so that is the fallback');
   check(normalizeGeneration(0, [1, 2, 3]) === 1, 'and so does zero');
   check(normalizeGeneration(3, [1, 2, 3]) === 3, 'a real one is kept');
 }
@@ -298,7 +299,7 @@ console.log('\nshiny palettes are a real second index, not a copy');
   }
   check(missingNormal.length === 0, 'every species has a normal palette',
     () => `${missingNormal.length} missing: ${missingNormal.slice(0, 8)}`);
-  check(missingShiny.length === 0, 'every species has a shiny palette, so 地獄 has no gaps',
+  check(missingShiny.length === 0, 'every species has a shiny palette, so 地獄 (hell) has no gaps',
     () => `${missingShiny.length} missing: ${missingShiny.slice(0, 8)}`);
   check(wrongOrder.length === 0, 'rows arrive already sorted by share, so row 0 is the primary',
     () => wrongOrder.slice(0, 8).join(' '));
@@ -331,7 +332,7 @@ console.log('\nshiny palettes are a real second index, not a copy');
     if (Math.abs((scoreGuess(palettes, p.id, 1, 's') || { score: -1 }).score
       - (scoreGuess(palettes, p.id, 1, 'n') || { score: -2 }).score) < 1e-12) sameAsNormal++;
   }
-  check(sameAsNormal < compared / 2, 'scoring in 異色 gives different answers from 原始色',
+  check(sameAsNormal < compared / 2, 'scoring in 異色 (shiny) gives different answers from 原始色 (normal)',
     () => `${sameAsNormal}/${compared} species scored identically across variants`);
 
   check(paletteRows(palettes, 99999, 'n').length === 0, 'an id that is not a species returns no rows');

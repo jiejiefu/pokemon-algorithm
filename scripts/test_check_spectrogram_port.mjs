@@ -107,7 +107,7 @@ const replaceOrThrow = (src, from, to) => {
 
 function makeTree(mutate) {
   const dir = mkdtempSync(join(BASE, 'tree-'));
-  for (const f of [MODULE, CHECKER, EXTRACTOR]) {
+  for (const f of [MODULE, CHECKER, EXTRACTOR, 'scripts/lib/assert.mjs']) {
     mkdirSync(join(dir, dirname(f)), { recursive: true });
     cpSync(join(ROOT, f), join(dir, f));
   }

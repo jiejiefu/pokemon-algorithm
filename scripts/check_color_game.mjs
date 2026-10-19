@@ -259,7 +259,7 @@ console.log('\nevery getElementById resolves');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe three tiers, and what makes 地獄 different');
+console.log('\nthe three tiers, and what makes 地獄 (hell) different');
 // ---------------------------------------------------------------------------
 {
   for (const d of ['easy', 'hard', 'hell']) {
@@ -268,7 +268,7 @@ console.log('\nthe three tiers, and what makes 地獄 different');
   check(/id="gm-mode-daily"/.test(html) && /id="gm-mode-unlimited"/.test(html),
     'both modes are present (每日 / 無限)');
 
-  // The whole point of 地獄 is the appearance, and the pools of hard and hell are
+  // The whole point of 地獄 (hell) is the appearance, and the pools of hard and hell are
   // IDENTICAL. So the badge is the only place that difference can be visible.
   check(/id="gm-shiny-badge"/.test(html), 'the 異色 badge exists in the markup');
   const badge = html.match(/<span class="gm-shiny-badge"[^>]*>/);
@@ -277,7 +277,7 @@ console.log('\nthe three tiers, and what makes 地獄 different');
   check(/els\.shinyBadge\s*=/.test(jsCode), 'which the module actually reads');
   check(/renderShinyBadge\(\)/.test(jsCode), 'and turns on through a named function');
   /* The badge shipped in the HTML with `hidden` and NOTHING in the module ever
-   * touched it, so 地獄 rendered identically to 困難 — the entire reason for the
+   * touched it, so 地獄 (hell) rendered identically to 困難 (hard) — the entire reason for the
    * tier's existence was invisible. Asserting the markup alone would have passed
    * throughout; the assertion is that the CALL SITE exists. */
   check(/renderShinyBadge\s*\(\s*\)\s*;/.test(jsCode.split('function renderAll')[1] || ''),
@@ -285,7 +285,7 @@ console.log('\nthe three tiers, and what makes 地獄 different');
 
   const simCode = stripJs(similarity);
   check(/function variantOf\(difficulty\)\s*\{\s*return difficulty === 'hell' \? 's' : 'n';/.test(simCode),
-    "variantOf() is one line in game-similarity.js: only 地獄 is shiny",
+    "variantOf() is one line in game-similarity.js: only 地獄 (hell) is shiny",
     () => 'a second way for a tier to become shiny would be a second thing to keep right');
   check(!/function variantOf/.test(jsCode),
     'and color-game.js defines no second one',
@@ -480,7 +480,7 @@ console.log('\nthe hint button: free on the first press, cooldown after');
 
   /* The terminal state has to be honest on its own, not only because the row is
    * hidden. `hidden` is the row\'s business; `disabled` is the button\'s. Leaving the
-   * button enabled and still reading 再看一則提示 after the third hint is a lie that
+   * button enabled and still reading 再看一則提示 (show another hint) after the third hint is a lie that
    * is invisible today and true the day anything unhides the row. */
   check(/els\.hintBtn\.disabled = true;[\s\S]{0,160}els\.hintBar\.hidden = true/.test(r),
     'after the third hint the button is disabled AND the bar is hidden, not merely un-shown',
@@ -582,8 +582,9 @@ console.log('\nthe bar is the card\'s header, and the at-rest card is three thin
    * `overflow: hidden` with the CARD's radius doing the clipping.
    *
    * `ruleBody()` is BRACE-SCOPED to the rule it names — it already existed in this
-   * file for §3.P's vacuous mutations, and I wrote a SECOND copy before noticing,
-   * which is the same mistake in a new place. The version this replaced was
+   * file for §3.P's vacuous mutations, and a SECOND copy was written before that
+   * was noticed, which is the same mistake in a new place. The version this
+   * replaced was
    * `/\.gm-target\s*\{[\s\S]*?padding:\s*0/`: lazy, so it finds the FIRST
    * `padding: 0` after the selector, which is `.gm-slots`'s, 360 lines further down.
    * Restoring `padding: 16px` on `.gm-target` would have left it green. A shape
@@ -627,12 +628,12 @@ console.log('\nthe bar is the card\'s header, and the at-rest card is three thin
     () => 'a leftover element or reference: the element would be null and its first write would throw');
   /* 下一題 LIVES IN THE CARD'S CONTROL ROW, beside 放棄.
    *
-   * It used to be in the result panel, labelled 「再玩一次」, and it was already the
+   * It used to be in the result panel, labelled 「再玩一次」 (play again), and it was already the
    * unlimited-only next round — so functionally nothing was missing, only its name and
    * its seat. The reference puts Get New Pokémon beside Give Up in the card
    * (`pokemonpalette/src/app/game/page.tsx:2494`), and after answering the reader's eye
    * is still near the palette bar: the result panel runs sprite + answer + stats +
-   * the share block + a copy button, so 「下一題」 at its foot is a scroll away. */
+   * the share block + a copy button, so 「下一題」 (next question) at its foot is a scroll away. */
   const footBlock = /<div class="gm-target-foot">([\s\S]*?)<\/div>/.exec(htmlCode);
   check(!!footBlock && /id="gm-again"/.test(footBlock[1]),
     'the control row carries #gm-again',
@@ -911,7 +912,7 @@ console.log('\neasy mode narrows the SUGGESTIONS, and only the suggestions');
 
   /* A PHONE HAS NO ENTER KEY, and the two-step flow was unreachable by touch
    * because of it: tap a suggestion row, the name lands in the field, the list closes,
-   * and the status line says 「按 Enter 作答」 to a reader with nothing to press. iOS
+   * and the status line says 「按 Enter 作答」 (press Enter to answer) to a reader with nothing to press. iOS
    * fires `Enter` from its search key and it happens to work; much of Android has no
    * key at all. */
   check(/id="gm-submit"/.test(htmlCode) && /class="gm-btn gm-submit"/.test(htmlCode),
@@ -1033,7 +1034,7 @@ console.log('\nthe empty slots are placeholders, not dex #1 to #4');
 console.log('\nthe guess box: two autocomplete layers, and the keyboard');
 // ---------------------------------------------------------------------------
 {
-  /* The stated need: a reader who knows it is 妙蛙種子 and cannot type it exactly.
+  /* The stated need: a reader who knows it is 妙蛙種子 (Bulbasaur) and cannot type it exactly.
    *
    * There was a SECOND layer for this — a `<datalist>` — and it is gone. Its popup is
    * BROWSER UI: it opened on a bare click with an empty field and rendered as one long
@@ -1056,8 +1057,8 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
     () => 'something still references the removed datalist');
 
   /* THE RESULT PANEL HAS THE SAME SPLIT, and the two links must NOT both be the colour
-   * page. The user drew this deliberately: the name answers 「這隻是誰，圖鑑怎麼說」and
-   * the button answers 「它的色盤完整長怎樣」. */
+   * page. The user drew this deliberately: the name answers 「這隻是誰，圖鑑怎麼說」(who is this, what does the Pokédex say) and
+   * the button answers 「它的色盤完整長怎樣」 (what does its full palette look like). */
   const resultBody = /function renderResult\(\)[\s\S]*?\n}/.exec(jsCode);
   check(!!resultBody && /els\.resultAnswer\.innerHTML = `<a href="\$\{pokemonDetailUrl\(t\)\}"/.test(resultBody[0]),
     'the result panel\'s name links to the Pokédex entry',
@@ -1130,7 +1131,7 @@ console.log('\nthe guess box: two autocomplete layers, and the keyboard');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\nthe IME\'s 選字 key is Enter too, and it is not the game\'s');
+console.log('\nthe IME\'s 選字 (candidate-selection) key is Enter too, and it is not the game\'s');
 // ---------------------------------------------------------------------------
 {
   const kdBody = blockBody(jsCode, "els.search.addEventListener('keydown', (e) =>");
@@ -1168,7 +1169,7 @@ console.log('\nthe IME\'s 選字 key is Enter too, and it is not the game\'s');
 
   /* A finished round cannot be answered, and `dispatchEvent` reaches a DISABLED
    * element's listeners anyway — which is how the 作答 button works. The measured
-   * symptom without this: the fall-through printed 「先輸入名稱或全國編號。」 on a round
+   * symptom without this: the fall-through printed 「先輸入名稱或全國編號。」 (enter a name or national dex number) on a round
    * that can never be answered, overwriting the outcome a line earlier. */
   check(/if \(state\.status !== 'playing'\) return;/.test(kdBody || ''),
     'and the handler answers nothing on a round that has ended',
@@ -1180,7 +1181,7 @@ console.log('\nthe IME\'s 選字 key is Enter too, and it is not the game\'s');
   check(/state\.status !== 'playing'/.test(blockBody(jsCode, 'function canSubmit()') || ''),
     'which the 作答 button cannot reach anyway, because canSubmit() requires the round to be playing');
 
-  /* THE TRAP, and the reason this assertion exists rather than a comment: the 作答
+  /* THE TRAP, and the reason this assertion exists rather than a comment: the 作答 (answer)
    * button submits by DISPATCHING a synthetic `new KeyboardEvent('keydown', {key:
    * 'Enter'})`. A constructed event has `isTrusted === false` and `keyCode === 0`.
    * So a guard written to be tidy about untrusted events — `if (!e.isTrusted)
@@ -1204,7 +1205,7 @@ console.log('\nwhile the list is open, Enter SELECTS — it never guesses');
   check(!!openBlock, 'the list-open branch is readable');
 
   /* The whole defect in one sentence: with 26 rows showing, Enter must not reach a
-   * submit. It used to, and it picked #86 小海獅 because `pokemon` is dex order —
+   * submit. It used to, and it picked #86 小海獅 (Seel) because `pokemon` is dex order —
    * one of four daily attempts spent on a species the reader never named. */
   check(!!openBlock && /chooseFromSearch\(/.test(openBlock),
     'a multi-row list routes Enter to chooseFromSearch(), which fills the field and submits nothing',
@@ -1278,9 +1279,9 @@ console.log('\nwhile the list is open, Enter SELECTS — it never guesses');
 console.log('\nthe round ends below the fold: the reader is taken there, and told');
 // ---------------------------------------------------------------------------
 {
-  /* Measured, not assumed: with the document at scrollY 0 and 放棄 pressed, the
+  /* Measured, not assumed: with the document at scrollY 0 and 放棄 (give up) pressed, the
    * search row sits at y 653 (1440×900) / y 791 (390×844) and `#gm-result`'s top at
-   * y 1117 / y 1247. On 放棄 with no guesses NOTHING in view changes at all, so the
+   * y 1117 / y 1247. On 放棄 (give up) with no guesses NOTHING in view changes at all, so the
    * panel is the round's only feedback and it starts 217px and 403px off-screen. */
   const reveal = blockBody(jsCode, 'function revealResult()');
   check(!!reveal, 'revealResult() exists');
@@ -1362,7 +1363,7 @@ console.log('\nthe round ends below the fold: the reader is taken there, and tol
   check(!!announce && /RESULT_TITLE\[state\.status\]/.test(announce),
     'and so does the announcement');
 
-  /* The 異色 marker is one function, for the same reason — and it is the only place
+  /* The 異色 (shiny) marker is one function, for the same reason — and it is the only place
    * `variantSuffix()` may be bypassed. */
   check(!!rr2 && /\$\{variantSuffix\(\)\}/.test(rr2) && !!announce && /\$\{variantSuffix\(\)\}/.test(announce),
     'and so is the 異色 marker, which both channels call');
@@ -1593,7 +1594,7 @@ console.log('\nthe daily round cannot be farmed by reloading');
   const giveUpBody = /function giveUp\(\)\s*\{[\s\S]*?\n\}/.exec(jsCode);
   check(!!giveUpBody && !/state\.mode !== 'daily'/.test(giveUpBody[0]),
     'and 「放棄」 works in BOTH modes — the reference gates on the round state only',
-    () => "giveUp() still refuses outside daily mode, so a reader in unlimited cannot say 「我不猜了，看答案」");
+    () => "giveUp() still refuses outside daily mode, so a reader in unlimited cannot say 「我不猜了，看答案」 (I give up, show the answer)");
   check(!!giveUpBody && /if \(state\.mode === 'daily'\) persistDaily\(\);/.test(giveUpBody[0]),
     'while the DAILY WRITE inside it is mode-guarded, which is what the old gate was really protecting',
     () => 'persistDaily() has no mode check of its own, so an unlimited give-up would be written into the daily store and restored as a free answer');

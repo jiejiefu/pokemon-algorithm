@@ -6,41 +6,33 @@
  * Run: node scripts/check_cries_page.mjs
  * Test: node scripts/test_check_cries_page.mjs
  *
- * WHY THIS FILE EXISTS WHEN check_cry_features.mjs ALREADY CHECKS THE DATA
+ * check_cry_features.mjs guards the feature table; this file guards the page's
+ * claims about it. A similarity search can be quietly wrong and still return
+ * twelve real Pokémon, so the assertions cover the things that would make the
+ * page lie:
  *
- * The feature table is guarded. What is not guarded is the page's claims about
- * it, and on this page the claims are the product. A similarity search that is
- * quietly wrong looks exactly like one that is working: it returns twelve rows,
- * they are all real Pokémon, and the reader has no way to tell that the ranking
- * was decided by two dimensions out of thirty-four. So this file checks the
- * things that would make the page lie:
- *
- *   - that it reads the feature table rather than a private copy of it
- *   - that the axes it offers all exist in featureNames, so a renamed feature
- *     makes a bar read `undefined` rather than a wrong number
- *   - that the weights are standardised before they are compared, since raw
- *     cosine returns 1.000 for everything and the list looks plausible
- *   - that no preset leaves a single dimension active, which is the degenerate
- *     case where cosine is always ±1 and the ranking silently inverts
- *   - that the caveat is on the page, in the DOM, and says 音色 and not 血緣
- *   - that the legacy toggle carries its warning, because the two sets are not
- *     comparable and the page offers both
+ *   - it reads the feature table rather than a private copy
+ *   - every axis it offers exists in featureNames, so a rename cannot leave a
+ *     bar reading `undefined`
+ *   - scores are standardised before comparison, since raw cosine returns
+ *     1.000 for everything
+ *   - no preset leaves a single dimension active, where cosine is always ±1
+ *     and the ranking silently inverts
+ *   - the caveat is in the served DOM and says timbre (音色), not lineage (血緣)
+ *   - the legacy toggle carries its warning, because the two sets are not
+ *     comparable
  */
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
-let checks = 0;
-const fails = [];
-const ok = (cond, what) => {
-  checks++;
-  if (!cond) fails.push(what);
-  console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`);
-};
+const C = createChecker({ stream: true });
+const { ok } = C;
 const eq = (got, want, what) => {
   const a = JSON.stringify(got);
   const b = JSON.stringify(want);
@@ -54,11 +46,9 @@ const NAV = read('assets/js/shared.js');
 
 /** Strip comments before scanning for selectors or keys.
  *
- *  Learned the hard way twice over in this repo. cries.css explains in a comment
- *  exactly why it must not claim a `cp-` selector, and a naive grep found that
- *  explanation and reported the file for breaking its own rule. check_color_
- *  page.mjs masks comments before balancing brackets for the same reason: NAV's
- *  comments are full of apostrophes and backticks.
+ *  Both files document the rules they no longer break, so a naive grep finds the
+ *  explanation and reports the file for breaking its own rule. NAV's comments
+ *  also contain apostrophes and backticks, which can unbalance a bracket scan.
  */
 const stripComments = (src) => src
   .replace(/\/\*[\s\S]*?\*\//g, ' ')
@@ -77,8 +67,8 @@ ok(page.includes('assets/data/cry_features.json'),
   'the page reads the generated feature table rather than embedding numbers');
 /* A hardcoded feature row is a run of numeric literals in an array literal. The
    threshold is 5 rather than 3 because the probe legitimately prints
-   `[0, 1, 2, 3]` when it reads MFCC means m0..m3 -- four numbers, and that is
-   not a feature row. A 34-number row cannot be confused with either. */
+   `[0, 1, 2, 3]` when it reads MFCC means m0..m3; a 34-number row cannot be
+   confused with either. */
 const numericRuns = [...stripComments(page).matchAll(/\[\s*-?[\d.]+(?:\s*,\s*-?[\d.]+){4,}\s*\]/g)];
 eq(numericRuns.map((m) => m[0]), [],
   'no feature row is hardcoded in the page script as a run of numbers');
@@ -94,11 +84,10 @@ const unknown = axisKeys.filter((k) => !features.featureNames.includes(k));
 eq(unknown, [], 'every axis the page offers exists in featureNames');
 eq([...new Set(axisKeys)], axisKeys, 'no axis is listed twice');
 
-// The five the reader is promised, by name. These are the labels the page
-// advertises in its own intro, so a rename in AXES without a rename here would
-// leave the prose describing axes that no longer exist.
+// The five labels the page advertises in its intro. A rename in AXES without a
+// rename here would leave the prose describing axes that no longer exist.
 for (const label of ['明亮度', '明亮–全頻', '沙啞度', '時長', 'MFCC 音色']) {
-  ok(page.includes(`'${label}'`), `the axis 「${label}」 is labelled on the page`);
+  ok(page.includes(`'${label}'`), `the axis label ${label} is present on the page`);
 }
 
 // ---------------------------------------------------------------------------
@@ -110,9 +99,9 @@ ok(/std\[k\]\s*=\s*\(rows\[i\]\[k\]\s*-\s*mean\[k\]\)\s*\/\s*sd\[k\]/.test(page)
 ok(/sd\[k\]\s*=\s*Math\.sqrt\(sd\[k\]\s*\/\s*rows\.length\)\s*\|\|\s*1/.test(page),
   'a zero standard deviation falls back to 1 instead of dividing by zero');
 
-// Standardisation is per SET, not computed once. The two recorded sets differ
-// enough that a legacy vector standardised with latest's statistics is not the
-// same measurement, and the page does swap sets.
+// Standardisation is per SET, not computed once. A legacy vector standardised
+// with the latest set's statistics is not the same measurement, and the page
+// does swap sets.
 ok((page.match(/indexSet\(/g) || []).length >= 3 &&
    /indexSet\(state\.legacy\s*\?\s*features\.legacy\s*:\s*features\.latest\)/.test(page) &&
    /indexSet\(features\.latest\)/.test(page),
@@ -129,7 +118,7 @@ ok(/active\s*<=\s*1/.test(page) && /1\s*\/\s*\(\s*1\s*\+\s*delta\s*\)/.test(page
 
 // No shipped preset may activate a single dimension, because cosine over one
 // dimension returns 1.000 for every neighbour and orders them by distance
-// DESCENDING — the opposite of what a reader is told.
+// descending — the opposite of what a reader is told.
 const presetCount = (presetBlock.match(/key:\s*'/g) || []).length;
 ok(presetCount >= 3, `there are ${presetCount} weight presets`);
 ok(!/\bonly:\s*\[/.test(presetBlock),
@@ -146,28 +135,24 @@ ok(/mountAutoplay/.test(page) && /cry-autoplay\.js/.test(page),
 ok(/from '\.\/assets\/js\/cry-autoplay\.js'/.test(page),
   'by importing it, the same module the Generation I lab uses');
 /* Bounded by the PANEL's own tags rather than by proximity: a switch beside the
- * panel reads as a control belonging to something else, and "is it near the panel"
- * is not the question — is it inside it. */
+ * panel reads as a control belonging to something else. The question is whether
+ * it is inside the panel, not near it. */
 const aside = page.match(/<aside class="cy-panel"[^>]*>([\s\S]*?)<\/aside>/);
 ok(!!aside && /id="autoplay-slot"/.test(aside[1]),
   'into a mount point INSIDE the timbre panel, not beside it');
 ok(/<h2>音色分析<\/h2>\s*<div id="autoplay-slot">/.test(aside[1]),
   'and under the panel heading, so the panel does not open with a control before its title');
-/* Autoplay must only ever be triggered by a CLICK. In cries-gen1.html the same
- * select() runs at boot and on every hashchange, so a switch read inside the
- * function would cry out on load; the pages therefore pass it as an option, and
- * only the click handler passes it true. The observable is that the read site and
- * the pass site are different places. */
-/* The rule on this page is the OTHER shape from the Gen I lab's, and it is the
- * right one here: probe() reads the switch itself, because probe() is only ever
- * reached from two click handlers. What matters is the same on both pages — nothing
- * on the BOOT path may reach a play() — so the check is on the call sites, not on
- * where the read sits. */
+/* Autoplay must only ever be triggered by a click. On cries-gen1.html the same
+ * select() runs at boot and on every hashchange, so a switch read inside that
+ * function would cry out on load. The rule here is that nothing on the BOOT path
+ * may reach a play(), so the check is on the call sites, not on where the read
+ * sits. probe() reads the switch itself because it is only reached from two
+ * click handlers. */
 const probeBody = page.match(/function probe\(id\) \{([\s\S]*?)\n {4}\}/);
 ok(!!probeBody && /autoplay\.on/.test(probeBody[1]),
   'probe() reads the switch, because selecting IS the gesture');
-/* Counted on the comment-stripped source: a fourth mention lives in a comment, and
- * matching prose would make this a count that changes when the code is explained. */
+/* Counted on the comment-stripped source: a fourth mention lives in a comment,
+ * and matching prose would make the count change when the code is explained. */
 eq([...stripComments(page).matchAll(/probe\(/g)].length, 3,
   'and probe() has exactly three mentions: its definition plus the two click handlers');
 ok(!/\n\s*probe\(/.test(stripComments(page).slice(0, stripComments(page).indexOf('function probe('))),
@@ -186,7 +171,7 @@ ok(/12\.6%/.test(dom) && /3\.2%/.test(dom),
 ok(/2\.1%/.test(dom), 'the caveat carries the measured top-1 figure');
 /* The intro is where a promise would be made, so the ban is scoped there. The
    word 血緣 cannot be banned page-wide: the caveat has to say 不是血緣 in order
-   to deny the reading, and a check that forbade the word would forbid the denial. */
+   to deny the reading. */
 const intro = page.slice(page.indexOf('<div class="cy-intro">'), page.indexOf('</div>', page.indexOf('<div class="cy-intro">')));
 ok(!/(血緣|同類|同進化|親緣|最\s*相似\s*的?寶可夢)/.test(intro),
   'the intro never claims the similarity is semantic or family-based');
@@ -209,11 +194,11 @@ ok(/legacy-warning/.test(page.slice(page.indexOf('el(\'filters\')'))),
 // ---------------------------------------------------------------------------
 
 ok(/from '\.\/assets\/js\/cry-player\.js'/.test(page), 'the page imports the shared player');
-/* Matched on the legacy flag alone, not on the whole call: the call now carries an
- * onStart hook for the probe waveform's playback cursor, and a checker that pinned
- * the exact argument list would fail on formatting rather than on behaviour. */
+/* Matched on the legacy flag alone, not on the whole call: the call carries an
+ * onStart hook for the probe waveform's playback cursor, and a checker that
+ * pinned the exact argument list would fail on formatting rather than behaviour. */
 /* `(id,` is required so a mention of cryPlayer.play() inside a comment is not
- * mistaken for a call site -- which is exactly what happened the first time. */
+ * mistaken for a call site. */
 const playCalls = [...page.matchAll(/cryPlayer\.play\(id,([^]*?)\)\s*;/g)].map((m) => m[0]);
 ok(playCalls.length > 0 && playCalls.every((c) => /legacy:\s*state\.legacy/.test(c)),
   'playback passes the set through the player rather than picking a directory itself');
@@ -250,40 +235,35 @@ ok(/keydown/.test(page) && /e\.key !== 'Enter'/.test(page),
 // ---------------------------------------------------------------------------
 // The generation filter is a filter, and the scroll position is a scroll position.
 //
-// These were one field (`state.gen`) doing both jobs, which is invisible in a
-// screenshot and lethal in use: render() sliced `state.gen * PAGE_SIZE`, so
-// pressing 第 1 世代 asked for 60 cards out of all 1,025 — the same 60 as before,
-// in the same order — while `aria-pressed` said the chip was on. And the
-// sentinel's `state.gen++` re-picked a generation on every scroll, so scrolling
-// silently changed the filter. A reader could not have told the difference from
-// a page that ignored them.
+// These were one field (`state.gen`) doing both jobs: render() sliced
+// `state.gen * PAGE_SIZE`, so pressing 第 1 世代 (Gen I) asked for 60 cards out
+// of all 1,025 — the same 60 as before, in the same order — while `aria-pressed`
+// said the chip was on. The sentinel's `state.gen++` also re-picked a generation
+// on every scroll, so scrolling silently changed the filter.
 //
-// So the separation is asserted structurally: the slice must read the page
-// counter, the filter must narrow the id list, and nothing may write to `state.gen`
+// The separation is asserted structurally: the slice must read the page counter,
+// the filter must narrow the id list, and nothing may write to `state.gen`
 // outside filteredIds()/the two filter branches.
 // ---------------------------------------------------------------------------
 
 ok(/pages:\s*1,/.test(page) && /state\.pages/.test(page),
   'the page keeps a scroll-position field separate from the generation filter');
-/* The narrowing itself, and specifically that it reads the pokemon record's
- * generation rather than a range of ids — a gen filter built on id arithmetic is
- * wrong for every generation after the third, because the ranges are not
- * contiguous (Gen 4 starts at 387, not at 252+1).
+/* The narrowing reads the pokemon record's generation rather than a range of
+ * ids: id arithmetic is wrong for every generation after the third, because the
+ * ranges are not contiguous (Gen 4 starts at 387, not at 252+1).
  *
- * The source is a LOCAL named `ids` rather than `state.ids`, because 封面神獸 is a
- * second independent filter and the generation narrowing now runs on whatever the
- * first one left. The assertion is deliberately written against the RECURSION
- * rather than against the old one-liner: matching `state.ids.filter(...)` again
- * would have been a second copy of a shape, and the shape is what changed. */
+ * The source is a LOCAL named `ids` rather than `state.ids`, because 封面神獸
+ * (cover legendaries) is a second independent filter and the generation
+ * narrowing runs on whatever the first one left. */
 const genFilter = page.slice(page.indexOf('function filteredIds'), page.indexOf('function sortedIds'));
 ok(/\.filter\(\(id\) => state\.meta\.get\(id\)\?\.generation === state\.gen\)/.test(genFilter),
   "the filter narrows by the pokemon record's own generation, not by an id range");
 ok(/state\.ids\.filter\(\(id\) => COVER_IDS\.has\(id\)\)/.test(genFilter),
-  'and 封面神獸 narrows the id list by the shared roster, before the generation is applied — so the two compose instead of one replacing the other');
-/* The copy on the unfiltered path. `sortedIds()` sorts what it hands it IN PLACE, so
- * returning `state.ids` itself sorted the ACTIVE SET as a side effect of choosing
- * 名稱 or an axis. That was invisible while id order was the only sort that ran
- * first, and a second filter makes it reachable: on, sort by axis, off. */
+  'and the cover filter narrows the id list by the shared roster, before the generation is applied — so the two compose instead of one replacing the other');
+/* The copy on the unfiltered path. `sortedIds()` sorts what it hands it IN PLACE,
+ * so returning `state.ids` itself sorted the ACTIVE SET as a side effect of
+ * choosing 名稱 (name) or an axis. A second filter makes it reachable:
+ * on, sort by axis, off. */
 ok(/: \[\.\.\.state\.ids\]/.test(genFilter),
   'the unfiltered path copies `state.ids`, because `sortedIds()` sorts in place and would otherwise reorder the active set');
 ok(/ordered\.slice\(0, state\.pages \* PAGE_SIZE\)/.test(page),
@@ -293,66 +273,60 @@ ok(/filteredIds\(\)\.includes/.test(page),
 ok(/computeAxisRange/.test(page) && /for \(const id of pool\)/.test(page),
   'the meter ranges are computed from the filtered set, not from all 1,025');
 
-/* 封面神獸 — the third filter, and the one whose chip can lie.
+/* 封面神獸 (cover legendaries) — the third filter, and the one whose chip can lie.
  *
- * The chip label is the interesting part. 舊版錄音 is ids 1–649 (Gen 1–5) and
- * eleven of the cover legendaries postdate it, so a chip hardcoded to the
- * roster's 24 promises twenty-four and delivers thirteen under a different
- * recording, with no way for the reader to tell a broken filter from a smaller
- * one. The count therefore has to be read OFF THE ACTIVE SET rather than off the
- * roster — which is an assertion about the expression, not about the number, since
- * the number legitimately changes if the legacy recording ever grows. */
+ * 舊版錄音 (legacy recording) is ids 1–649 (Gen 1–5) and eleven of the cover
+ * legendaries postdate it, so a chip hardcoded to the roster's 24 promises
+ * twenty-four and delivers thirteen under a different recording. The count
+ * therefore has to be read off the ACTIVE SET rather than the roster. The
+ * assertion is about the expression, not the number, since the number
+ * legitimately changes if the legacy recording ever grows. */
 const filtersBlock = page.slice(page.indexOf('function renderFilters'), page.indexOf('function renderWeights'));
 ok(/chip\('covers',\s*`封面神獸 \(\$\{coverCount\}\)`/.test(filtersBlock),
   'the 封面神獸 chip prints the number it will actually produce, not the roster size');
 ok(/state\.ids\.reduce\(\(n, id\) => n \+ \(COVER_IDS\.has\(id\) \? 1 : 0\), 0\)/.test(filtersBlock),
-  'and that number counts covers IN THE ACTIVE SET, so switching to 舊版錄音 says 13 rather than 24');
+  'and that number counts covers IN THE ACTIVE SET, so switching to the legacy recording says 13 rather than 24');
 
-/* The roster is a MODULE, not a local. Asserted here because the filter above is
- * otherwise perfectly happy narrowing by any Set called `COVER_IDS` — including
- * one a page wrote itself, which is a fourth thing to keep right and the exact
- * duplication `check_cover_roster.mjs` exists to prevent. Stripped source, because
- * an import-shaped string inside a comment satisfies the pattern otherwise.
+/* The roster is a MODULE, not a local. The filter above would otherwise accept
+ * any Set called `COVER_IDS`, including a page-local copy that
+ * `check_cover_roster.mjs` exists to prevent. Comment-stripped, because an
+ * import-shaped string inside a comment satisfies the pattern otherwise.
  *
- * Ids only, not the `[id, edition]` pairs: this page prints no per-species edition
- * label, so importing one would be a field nothing here renders. */
+ * Ids only, not the `[id, edition]` pairs: this page prints no per-species
+ * edition label. */
 ok(/import\s*\{\s*COVER_IDS\s*\}\s*from\s*'\.\/assets\/js\/cover-roster\.js'/.test(stripComments(page)),
   'the 24 come from cover-roster.js, which spectrum.html and colors-generator.html read too — one roster, not four');
 
 /* The `clear` chip is the only thing that resets a filter, so a filter the clear
-   path forgot is a filter a reader can enter and never leave. Asserted for
-   `covers` on its own rather than as "clear resets everything", because that
-   phrasing would be satisfied by resetting any one of them. */
+   path forgot is one a reader can enter and never leave. Asserted for `covers` on
+   its own rather than as "clear resets everything", because that phrasing would
+   be satisfied by resetting any one of them. */
 const clearBranch = page.slice(page.indexOf("key === 'clear'"), page.indexOf("key === 'covers'"));
 ok(/state\.covers = false/.test(clearBranch),
-  'and 清除篩選 turns 封面神獸 off — a filter the clear path forgot is one the reader cannot leave');
+  'and 清除篩選 (clear filters) turns 封面神獸 off — a filter the clear path forgot is one the reader cannot leave');
 
 /* ONE writer for the probe reset, serving all four filters.
  *
- * It used to live inside the generation branch, with a second, differently-spelled
- * copy in the legacy branch (`state.rows.has`). Two copies of one rule is two
- * places to forget, and the new filter would have been a third. Placed after the
- * whole branch chain, so a branch that forgets to clear the selection is caught by
- * this count rather than by a reader staring at a panel describing a species the
- * grid stopped showing. */
+ * It used to live inside the generation branch, with a second, differently
+ * spelled copy in the legacy branch (`state.rows.has`). Two copies of one rule
+ * are two places to forget, and a new filter would have been a third. Placed
+ * after the whole branch chain so a branch that forgets to clear the selection
+ * is caught here. */
 eq([...stripComments(page).matchAll(/if \(state\.probeId !== null && !filteredIds\(\)\.includes\(state\.probeId\)\) state\.probeId = null;/g)].length, 1,
   'exactly one statement drops a filtered-out selection, and it runs for every filter rather than for one branch');
 
 /* Every `state.gen` write, so the count is checkable rather than asserted.
  *
- * Scanned on the COMMENT-STRIPPED source, because the two comments explaining
- * this bug both contain the pattern — `state.gen++` in the state block and
- * `state.gen = 0` in the handler — and matching either would make this check
- * report a violation for prose. Same reason as the `cp-` scan above: a naive
- * grep finds the explanation of a rule and reports the file for breaking it.
+ * Scanned on the comment-stripped source, because the two comments explaining
+ * this bug both contain the pattern (`state.gen++` in the state block and
+ * `state.gen = 0` in the handler). A naive grep would report prose as a
+ * violation.
  *
  * The boundary is the IntersectionObserver, and it is the LAST write that is
  * forbidden rather than a count that must balance. The observer is defined after
- * the filter handler, so slicing "everything after the handler" would have
- * included it — the first version of this check passed a mutation that moved the
- * sentinel onto `state.gen`, for exactly that reason. Nothing after the observer
- * is allowed to touch the filter at all: the observer is the only thing there
- * that runs on its own, and scrolling is precisely what must not re-filter. */
+ * the filter handler, so slicing "everything after the handler" would include
+ * it. Nothing after the observer may touch the filter: scrolling must not
+ * re-filter. */
 const bare = stripComments(page);
 const genWritesAfter = (bare.slice(bare.indexOf('new IntersectionObserver('))
   .match(/state\.gen\s*(?:=[^=]|\+\+|--)/g) ?? []);
@@ -392,28 +366,20 @@ ok(/waveform:/.test(NAV), 'the waveform icon is defined');
 // ---------------------------------------------------------------------------
 // §3.X. The probe's tall half, behind one disclosure collapsed at 900px.
 //
-// MEASURED AT 390×844, before the disclosure existed, with a species selected:
+// Measured at 390×844 with a species selected, the panel was 1,609px of a
+// 6,914px document and #probe-play sat 5,309px above the viewport. The
+// disclosure brings the panel to 387px and the play control to y=181. At
+// 1280×1000 the panel is unchanged, which the `display: none` assertion below
+// keeps true.
 //
-//   .cy-panel        1,609px of a 6,914px document
-//     similar list    666px · caveat 262px · measured figures 171px
-//     plus three <h3>s, the weight chips and their note   ≈ 510px
-//   #probe-play      y = −5,309 — 5,309px ABOVE the viewport, after tapping card 40
-//   grid's 1st card  y = 2,246
-//
-// and after: .cy-panel 387px, #probe-play y=181, #cy-probe-head y=55, grid's 1st card
-// y=707. At 1280×1000 the panel measures the same before and after — 1,000px, sticky,
-// #probe-play at y=234, a 3,640px document — which is what the `display: none`
-// assertion below exists to keep true.
-//
-// The GEOMETRY is in `check_cry_mobile_layout.mjs`; this half is what a source and a
-// stylesheet can answer, and none of it could catch a layout on its own.
+// The geometry lives in `check_cry_mobile_layout.mjs`; this half covers what a
+// source and a stylesheet can answer.
 // ---------------------------------------------------------------------------
 
 const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-/* `[\s\S]*?` and not `[\S]*?` — the latter cannot match a space, so it silently finds
- * nothing in a stylesheet with no error. Measured: this helper's first version reported
- * zero media queries in every file it was pointed at. */
+/* `[\s\S]*?` and not `[\S]*?`: the latter cannot match a space, so it silently
+ * finds nothing in a stylesheet. */
 const maxWidthBlocks = (src) => [...src.matchAll(/@media\s*\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)\n\}/g)]
   .map((m) => ({ width: Number(m[1]), body: m[2] }));
 
@@ -423,13 +389,11 @@ ok(moreOpen > 0 && moreClose > moreOpen,
   'the probe\'s figures, its similarity list and its caveat are behind ONE `<details>`, which is `open` in the markup so a reader with no JavaScript gets the page this shipped as');
 ok(page.indexOf('id="probe-wave"') < moreOpen && page.indexOf('id="probe-play"') < moreOpen
   && page.indexOf('id="probe-spectrum"') < moreOpen,
-  'and the waveform, ▶ 播放叫聲 and the 看頻譜 link are OUTSIDE it — they answer 「what does this one sound like」, which is the question a reader who just tapped a card asked, and putting them behind a tap would be the fix making the original complaint');
-/* BOUNDED ON BOTH SIDES, because half of this is not half of it. The first version
- * asked only that each id come after the opening tag, and a mutation that moved
- * `#probe-stats` to just PAST `</details>` — the one place that breaks the layout and
- * leaves the markup perfectly valid — satisfied it. This is §3.P's finding pointed at an
- * assertion of my own: 「inside the disclosure」 is a statement about an interval, and
- * an interval has two ends. */
+  'and the waveform, ▶ 播放叫聲 (play cry) and the 看頻譜 (view spectrum) link are OUTSIDE it — they answer 「what does this one sound like」, the question a reader who just tapped a card asked');
+/* BOUNDED ON BOTH SIDES. An assertion that only asked each id to come after the
+ * opening tag was satisfied by moving `#probe-stats` just past `</details>`, the
+ * one place that breaks the layout while leaving the markup valid. "Inside the
+ * disclosure" is a statement about an interval, and an interval has two ends. */
 const insideDetails = (needle) => {
   const at = page.indexOf(needle);
   return at > moreOpen && at < moreClose;
@@ -449,12 +413,10 @@ const summaryBlocks = maxWidthBlocks(cssCode).filter((b) => /\.cy-more-summary/.
 eq(summaryBlocks.length, 1,
   'and it appears in exactly ONE `max-width` block, because two of them would be two widths the control belongs to');
 
-/* The breakpoint is read out of the STYLESHEET and required to be the block that drops
- * the panel out of the side. `cries.css` has four 900px blocks and two of them are
- * about other things — this file's own new block, and `.cg-picker`, which is the
- * Generation I lab's control on a page that is not in scope here. A bare number
- * comparison would have been satisfied by any of them; §3.S's shape, where a
- * stylesheet-shaped assertion is satisfied by a rule with nothing to do with the claim. */
+/* The breakpoint is read out of the STYLESHEET and required to be the block that
+ * drops the panel out of the side. `cries.css` has four 900px blocks and two are
+ * about other things, so a bare number comparison could be satisfied by any of
+ * them (§3.S). */
 const panelBlocks = maxWidthBlocks(cssCode).filter((b) => /\.cy-panel/.test(b.body));
 eq(panelBlocks.length, 1,
   'and there is exactly ONE `max-width` block in `cries.css` that touches `.cy-panel` — the one that makes it static, which is the layout the disclosure exists to mitigate');
@@ -466,19 +428,18 @@ ok(Boolean(mq) && panelBlocks.length === 1 && Number(mq[1]) === panelBlocks[0].w
 eq(summaryBlocks.filter((b) => b.width === panelBlocks[0]?.width).length, 1,
   'and the summary appears at the SAME width the panel collapses at — the control and the layout it exists for are one declaration site each, or a reader gets a button on the wrong side of the breakpoint');
 
-/* NO GATE ON A GESTURE, and the reason is already asserted at the top of this file:
- * there are exactly three mentions of `probe()` — the definition and two click handlers
- * — and none of them precede the definition, so the boot path calls `renderProbe()`
- * directly. `revealProbe()` living inside `probe()` is therefore safe, and this
- * assertion is here to say that it depends on the one above rather than to restate it. */
+/* No gate on a gesture: exactly three mentions of `probe()` — the definition and
+ * two click handlers — and none precedes the definition, so the boot path calls
+ * `renderProbe()` directly. `revealProbe()` inside `probe()` is therefore safe;
+ * this assertion depends on the one above rather than restating it. */
 ok(/revealProbe\(\);/.test(probeBody[1] ?? ''),
   '`revealProbe()` is called from `probe()`, which the count above proves is reachable only from the grid click and the similarity-list click');
 const revealBody = page.match(/function revealProbe\(\)\s*\{[\s\S]*?\n {4}\}/)?.[0] ?? '';
 ok(/if \(!collapsed\(\)\) return;/.test(revealBody),
   'and it returns early above the breakpoint, so a desktop reader is never moved by a function that exists for a phone');
-/* THE TARGET IS THE PANEL, and this is the measured half. Scrolling to `.cy-probe-head`
- * put the head at y=−45 and its NAME at y=−31 — above the fold, so the reader was shown
- * a play button for a Pokémon whose name they could not read. */
+/* The target is the panel. Scrolling to `.cy-probe-head` put the head at y=−45
+ * and its name at y=−31, above the fold, so the reader saw a play button for a
+ * Pokémon whose name they could not read. */
 ok(/querySelector\('\.cy-panel'\)/.test(revealBody) && !/cy-probe-head/.test(revealBody),
   'and it scrolls the PANEL rather than the probe head: `nearest` aligns an element that is entirely above the viewport by its bottom, which clipped the sprite and its name off the top of the screen');
 ok(/block:\s*'nearest'/.test(revealBody) && /prefers-reduced-motion/.test(revealBody),
@@ -488,8 +449,8 @@ console.log('');
 console.log(`  axes: ${axisKeys.join(', ')}`);
 console.log(`  presets: ${presetCount}, features per row: ${features.dimensions}`);
 
-if (fails.length) {
-  console.log(`FAIL  ${fails.length} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`FAIL  ${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS  ${checks} checks`);
+console.log(`PASS  ${C.checks} checks`);

@@ -7,10 +7,11 @@
  * WHY THIS FILE EXISTS. Half of check_color_daily.mjs is arithmetic, and
  * arithmetic is the easiest kind of check to write so that it is green for the
  * wrong reason. A 4σ parity gate that measures the wrong bucket passes forever;
- * a reachability gate that searches the pools for the drawn id credits 熱門 with
- * four Pokémon that were actually drawn as 600族, and reports a fake 8σ skew.
- * Both of those bugs existed in the first draft of the checker and both printed
- * plausible FAIL lines — see the NEG 2 and the "first pool" note below.
+ * a reachability gate that searches the pools for the drawn id credits 熱門
+ * (popular) with four Pokémon that were actually drawn as 600族
+ * (pseudo-legendary), and reports a fake 8σ skew. Both bugs existed in the
+ * checker's first draft and both printed plausible FAIL lines — see the
+ * "first pool" note below.
  *
  * Each case breaks ONE invariant in a scratch copy of the tree, runs the real
  * checker against it, and requires a non-zero exit AND a specific substring.
@@ -161,10 +162,10 @@ const cases = [
   },
   {
     // The regression that shipped once already: a per-page seed prefix put
-    // 今日推薦 = 班基拉斯 on the homepage and 厄鬼椪 on the colour page, on
-    // 98.1% of days, with nothing on screen explaining the switch. Reinstated
-    // here the way it was written, so this stays a behavioural failure rather
-    // than a static one.
+    // 今日推薦 (today's pick) = 班基拉斯 (Tyranitar) on the homepage and
+    // 厄鬼椪 (Ogerpon) on the colour page, on 98.1% of days, with nothing on
+    // screen explaining the switch. Reinstated here the way it was written, so
+    // this stays a behavioural failure rather than a static one.
     name: 'color.html regains its own seed prefix, so the two pages feature different Pokémon',
     mutate: (f, s) => f.endsWith('daily-pick.js')
       ? s
@@ -207,14 +208,14 @@ const cases = [
     expect: 'redefines DAILY_BUCKETS',
   },
   {
-    name: 'today.html transcribes its own 熱門 list, so 今日推薦 can feature an unlisted Pokémon',
+    name: 'today.html transcribes its own 熱門 (popular) list, so 今日推薦 (today\'s pick) can feature an unlisted Pokémon',
     mutate: (f, s) => f.endsWith('today.html')
       ? s.replace('const POPULAR_IDS = DAILY_POPULAR_IDS;', 'const POPULAR_IDS = [1, 2, 3];')
       : undefined,
-    expect: 'keeps its own 熱門 id list',
+    expect: 'keeps its own 熱門 (popular) id list',
   },
   {
-    name: 'the 傳說 pool comes back empty, so the draw would render a broken page',
+    name: 'the 傳說 (legendary) pool comes back empty, so the draw would render a broken page',
     mutate: (f, s) => f.endsWith('categories.js')
       ? s.replace('const speciesFlags = (key) => (data) => data.filter((p) => p[key]);', 'const speciesFlags = (key) => (data) => (key === \'is_legendary\' ? [] : data.filter((p) => p[key]));')
       : undefined,

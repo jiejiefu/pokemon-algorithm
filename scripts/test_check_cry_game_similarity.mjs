@@ -3,29 +3,27 @@
  *
  *   node scripts/test_check_cry_game_similarity.mjs
  *
- * Why it is needed, and the reason is specific to this checker rather than
- * general: most of its assertions are MEASURED — a distribution, a separation
- * gap, an achievability count — and a measured assertion has two ways to die. It
+ * Most of that checker's assertions are MEASURED — a distribution, a separation
+ * gap, an achievability count — and a measured assertion has two ways to die: it
  * can genuinely never pass, or it can pass no matter what. The second is the
  * dangerous one, because it prints PASS and the word says nothing about what it
  * measured.
  *
- * Four of the cases below are mutations that were WRITTEN, tried, and found not
- * to go red. They are recorded here as `expect: null` with the reason attached,
- * because a harness that only contains the cases that worked is a harness that
- * reports a clean sweep it never earned — §3.P, in the file that section is
- * about.
+ * Four cases below are mutations that were WRITTEN, tried, and found NOT to go
+ * red. They are recorded as `expect: null` with the reason attached, because a
+ * harness containing only the cases that worked reports a clean sweep it never
+ * earned — §3.P, in the file that section is about.
  *
  * Each breaking case edits one place in `cry-game-similarity.js` inside a scratch
  * tree and requires the checker to go red on a NAMED line. Naming the line rather
  * than testing `exit != 0` is §3.V's rule: a merely-broken checker also exits
- * non-zero, and one that fails to PARSE exits non-zero having run nothing at all.
+ * non-zero, and one that fails to PARSE exits non-zero having run nothing.
  *
  * The scratch tree copies all of `assets/js` (§3.B2's reason): the module imports
- * `daily-pick.js`, whose chain reaches `shared.js`. Copying one file short makes
- * every case die on `ERR_MODULE_NOT_FOUND` — a parse-time error, so the checker
- * runs zero assertions and every case would "go red" while proving nothing. The
- * baseline case is what establishes that the tree is sound.
+ * `daily-pick.js`, whose chain reaches `shared.js`. One file short makes every case
+ * die on `ERR_MODULE_NOT_FOUND` — a parse-time error, so the checker runs zero
+ * assertions and every case "goes red" while proving nothing. The baseline case
+ * establishes the tree is sound.
  */
 
 import { mkdtempSync, mkdirSync, cpSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -55,10 +53,10 @@ const SRC = [
 /**
  * Break the module, and THROW when the target string is absent.
  *
- * The throw is load-bearing. A harness that silently changes nothing reports the
- * mutation as green, which is indistinguishable from an assertion that holds —
- * and §3.W's own record of the colour game is a mutation that could not be
- * applied and printed exactly what a surviving mutation prints.
+ * The throw is load-bearing: a harness that silently changes nothing reports the
+ * mutation as green, indistinguishable from an assertion that holds — and §3.W's
+ * record of the colour game is a mutation that could not be applied and printed
+ * exactly what a surviving mutation prints.
  */
 const editModule = (dir, from, to) => {
   const p = join(dir, MODULE);
@@ -76,9 +74,9 @@ const CASES = [
   },
 
   /* ---- Standardisation ---- */
-  /* DROPPED — the sd guard: a case that cannot fail. Kept out of the suite because each
-     * one costs a full 4.3 s run and catches nothing; see the module's docblock
-     * for why it is a no-op on the shipped data. */
+  /* DROPPED — the sd guard: a case that cannot fail. Each case costs a full 4.3 s
+     * run and catches nothing; see the module's docblock for why it is a no-op on
+     * the shipped data. */
   {
     name: 'the mean is never subtracted, so nothing is standardised at all',
     mutate: (dir) => editModule(dir,
@@ -88,11 +86,11 @@ const CASES = [
   },
   {
     name: 'the index trusts cry_features.json\'s header for the dimension count',
-    /* The header currently says 34 and the rows say 34, so trusting the header
-     * was a no-op. The mutation has to make the header DISAGREE, which is the
-     * §3.K defect: a regenerated file whose `dimensions` no longer matches its
-     * rows. `+ 1` does that, and the row-length guard then refuses the table
-     * outright rather than z-scoring a dimension that is not there. */
+    /* The header currently says 34 and the rows say 34, so trusting the header was
+     * a no-op. The mutation must make the header DISAGREE — §3.K's defect: a
+     * regenerated file whose `dimensions` no longer matches its rows. `+ 1` does
+     * that, and the row-length guard then refuses the table outright rather than
+     * z-scoring a dimension that is not there. */
     mutate: (dir) => editModule(dir,
       '  const dim = ids.length ? (table[String(ids[0])] || []).length : 0;',
       '  const dim = (features && features.dimensions + 1) || 0;'),
@@ -103,12 +101,11 @@ const CASES = [
     mutate: (dir) => editModule(dir,
       '  const denom = Math.sqrt(na) * Math.sqrt(nb);\n  return denom > 0 ? dot / denom : NaN;',
       '  return dot;'),
-    /* The first version of this case named 「a species against itself is 1」 and
-     * the checker matched nothing — because that assertion read `> 0.9999`, and
-     * a raw dot product of a standardised vector against itself is `sum(v^2)`,
-     * which for 34 fully standardised columns over 1,025 rows is **1,025**. The
-     * case had been green for a different reason. The assertion is now an exact
-     * identity and this case is the one that pins it. */
+    /* The first version named 「a species against itself is 1」 and matched nothing —
+     * that assertion read `> 0.9999`, and a raw dot product of a standardised
+     * vector against itself is `sum(v^2)`, which for 34 fully standardised columns
+     * over 1,025 rows is **1,025**. The case had been green for a different
+     * reason. The assertion is now an exact identity and this case pins it. */
     expect: 'a species against itself is exactly 1',
   },
   {
@@ -122,13 +119,12 @@ const CASES = [
   /* ---- The neighbour ranking: the total order is what seeds the daily round ---- */
   {
     name: 'ties stop breaking on ascending id, so the ranking depends on the order the pool arrived in',
-    /* The comparator is the obvious target and it is a NO-OP on an ascending
-     * pool: V8's sort is stable, so dropping the tie-break leaves the order it
-     * was given, which is already ascending by id. The defect only appears on a
-     * pool in another order — and `genIdMap()` returns ascending ids, so no
-     * production path would ever see it, which is exactly why the tie-break is a
-     * CONTRACT rather than a detail and why the checker reverses the pool to
-     * make the dependence observable. */
+    /* The comparator is the obvious target and a NO-OP on an ascending pool: V8's
+     * sort is stable, so dropping the tie-break leaves the order it was given,
+     * already ascending by id. The defect appears only on a pool in another order —
+     * and `genIdMap()` returns ascending ids, so no production path sees it. That
+     * is why the tie-break is a CONTRACT rather than a detail, and why the checker
+     * reverses the pool to make the dependence observable. */
     mutate: (dir) => editModule(dir,
       'list.sort((a, b) => (b.sim - a.sim) || (a.id - b.id));',
       'list.sort((a, b) => b.sim - a.sim);'),
@@ -157,7 +153,7 @@ const CASES = [
       'export const SIMILARITY_CEILING = {\n  easy: Infinity,\n  hard: Infinity,\n  hell: Infinity,\n};'),
     /* NOT the ceiling-violation check, which stays green: with every ceiling at
      * Infinity nothing can exceed its own limit. That assertion is a backstop for
-     * a ceiling that is too LOW, and this mutation is the opposite. */
+     * a ceiling too LOW; this mutation is the opposite. */
     expect: '簡單 and 困難 do not overlap in any pool',
   },
   /* DROPPED — 「困難 inherits 簡單's ceiling」 is a special case of the

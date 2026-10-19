@@ -220,7 +220,7 @@ sp.railBtnY = sp.playY;
 /* MECHANISM. The picker is one summary row and the roster inside it is not laid out at
  * all. `checkVisibility()` and not the rect: a rect inside a closed `<details>` reports
  * the size Chrome last remembered (2,707px measured), which is a number about the past. */
-eq2(sp.pickerH <= 60, 'the picker is one summary row and nothing else',
+ok(sp.pickerH <= 60, 'the picker is one summary row and nothing else',
   `the collapsed picker is ${sp.pickerH}px — one 44px summary and no room for a list (measured 56px)`);
 ok(!sp.rosterVisible, 'and the roster inside it is not laid out at all',
   'the roster reports `checkVisibility() === false`, which is the assertion that works: its own rect reports 2,707px of remembered size and means nothing');
@@ -519,11 +519,3 @@ console.log(`PASS  ${checks} checks`);
  * measured there, `http.request` with `agent: false` exited at 29ms where `fetch`
  * finished its work at 31ms and exited at 6033ms. */
 await finish(0);
-
-/* This was `eq2(cond, what, message)` with `_what` discarded, which is the same silent
- * third argument as above wearing a different name. There is exactly one call site and
- * it never had a second label to give, so it is a call to `ok` with the detail — not a
- * second spelling of `ok` that a reader has to work out which one a site is using. */
-function eq2(cond, _unused, message) {
-  ok(cond, message);
-}

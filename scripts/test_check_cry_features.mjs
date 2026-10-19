@@ -56,6 +56,7 @@ const SRC = [
   'assets/js/cry-index.js',
   'scripts/analyze_cries.py',
   'scripts/check_cry_features.mjs',
+  'scripts/lib/assert.mjs',
 ];
 const CHECKER = 'scripts/check_cry_features.mjs';
 const FEATURES = 'assets/data/cry_features.json';

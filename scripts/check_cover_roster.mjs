@@ -8,7 +8,7 @@
  * WHY A FILE OF ITS OWN
  * =====================
  * Three pages show the cover legendaries — `spectrum.html`'s quick-pick chips,
- * `colors-generator.html`'s 24-cell grid, and `cries.html`'s 封面神獸 filter — and
+ * `colors-generator.html`'s 24-cell grid, and `cries.html`'s 封面神獸 (cover legendary) filter — and
  * two of them had already written the list out independently, byte for byte. The
  * roster is now `assets/js/cover-roster.js` and this file owns every claim about
  * it, so the three page checkers keep only what is page-shaped: that the page

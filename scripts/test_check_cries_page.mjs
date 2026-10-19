@@ -6,11 +6,11 @@
  *
  * The cases cluster on the three ways this page could go wrong without looking
  * broken. It could stop reading the generated table. It could compare
- * unstandardised numbers, which returns a confident ranking decided by
- * whichever dimension happens to have the largest scale. And it could keep a
- * claim the measurements do not support — a "most similar" panel that never says
- * it means timbre. Each case breaks one of those and requires the checker to
- * exit non-zero naming it, because "it failed" is also what a crash produces.
+ * unstandardised numbers, which returns a confident ranking decided by whichever
+ * dimension has the largest scale. And it could keep a claim the measurements do
+ * not support — a "most similar" panel that never says it means timbre. Each case
+ * breaks one of those and requires the checker to exit non-zero naming it,
+ * because "it failed" is also what a crash produces.
  */
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -25,20 +25,17 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /* EVERY SCRATCH DIRECTORY IS TRACKED AT CREATION AND REMOVED ON EXIT.
  *
- * The per-case `finally { rmSync(dir) }` blocks below already clean up on the happy path
- * and on a throw inside `run()`. They cannot cover the one window that leaks: `makeTree()`
- * calls `mkdtempSync` and then copies files and mutates the copy, so a stale anchor, a
- * missing source file or a `cpSync` failure throws AFTER the directory exists but BEFORE
- * the caller's `finally` is ever entered. The caller has no `dir` to clean up, because
- * `makeTree()` never returned one.
+ * The per-case `finally { rmSync(dir) }` blocks below clean up on the happy path
+ * and on a throw inside `run()`. They cannot cover the one window that leaks:
+ * `makeTree()` calls `mkdtempSync` and then copies files and mutates the copy, so
+ * a stale anchor, a missing source file or a `cpSync` failure throws AFTER the
+ * directory exists but BEFORE the caller's `finally` is entered — and the caller
+ * has no `dir` to clean up.
  *
- * Registering at creation closes that window without depending on where the throw happens,
- * and it is the same fix as test_check_color_palettes.mjs. Measured: this harness left one
- * partial tree per run — 4-5 files, never a complete one, which is what "threw halfway
- * through makeTree" looks like on disk.
- *
- * The existing finally blocks stay: they free the space promptly during a long run, and
- * `force: true` makes the exit-time removal a no-op for anything already gone.
+ * Registering at creation closes that window without depending on where the throw
+ * happens, as in test_check_color_palettes.mjs. The existing finally blocks stay:
+ * they free the space promptly, and `force: true` makes the exit-time removal a
+ * no-op for anything already gone.
  */
 const SCRATCH = new Set();
 const track = (dir) => (SCRATCH.add(dir), dir);
@@ -53,6 +50,7 @@ const SRC = [
   'assets/data/cry_features.json',
   'assets/js/shared.js',
   'scripts/check_cries_page.mjs',
+  'scripts/lib/assert.mjs',
 ];
 const CHECKER = 'scripts/check_cries_page.mjs';
 
@@ -79,21 +77,13 @@ const run = (dir) => new Promise((res) => {
     (err, stdout, stderr) => res({ code: err ? (err.code ?? 1) : 0, out: `${stdout}${stderr}` }));
 });
 
-/* A `.replace()` THAT MATCHES NOTHING IS A MUTATION THAT CANNOT BE APPLIED, and
- * it prints exactly what a mutation the assertion survives prints. `String#replace`
- * returns its receiver unchanged when the needle is absent and never complains, so
- * a case whose target string has since been reworded leaves the page healthy, the
- * checker passes, and the case reports green — having tested nothing.
- *
- * That is not hypothetical here: adding 封面神獸 rewrote `filteredIds()`'s one-liner
- * into a two-step chain, and the case below had that exact line as its needle. It
- * would have gone green for a week. `test_check_spectrum_page.mjs` has had
- * `replaceOrThrow` since; this file did not, and the guard is what it took for the
- * difference to show up.
- *
- * `edited()` catches the whole chain at once, which is the common case (36 of the 42
- * cases below are a single `.replace()`). A chain of two or more can still lose one
- * link silently, so those cases go through `mustReplace` per string. */
+/* A `.replace()` THAT MATCHES NOTHING IS A MUTATION THAT CANNOT BE APPLIED, and it
+ * prints exactly what a mutation the assertion survives prints. `String#replace`
+ * returns its receiver unchanged when the needle is absent, so a case whose target
+ * string has since been reworded leaves the page healthy, the checker passes, and
+ * the case reports green having tested nothing. `edited()` catches the whole chain
+ * at once; a chain of two or more can still lose one link silently, so those cases
+ * go through `mustReplace` per string. */
 const edited = (src, out, where) => {
   if (out === src) {
     throw new Error(
@@ -175,26 +165,19 @@ const CASES = [
   },
   {
     name: 'the caveat is moved out of the served DOM and built by script instead',
-    /* Anchored to the caveat's OWN closing tag, by its ten-space indent. It used to be
-     * `<div class="cy-caveat">[\s\S]*?<\/div>\n        <\/div>`, which was exact while
-     * the caveat's parent was the panel and the next closing tag was `#probe`'s. The
-     * caveat now sits inside a `<details>`, so what follows it is `</div>\n
-     * </details>` and the old pattern found no match there — and being non-greedy, it
-     * did not fail, it kept eating to the next `</div>\n        </div>` several hundred
-     * lines later and deleted that too, taking `#autoplay-slot` with it. The harness
-     * then reported 「did not behave」 against a completely different assertion.
-     *
-     * Which is §3.P's finding pointed at a mutation rather than at a checker: a lazy
-     * `[\s\S]*?` is satisfied by the first match ANYWHERE, and 「it deleted more than I
-     * meant to」 is indistinguishable from 「it deleted the right thing and something
-     * else happened to catch it」. The inner `<dl>` closes at twelve spaces, so ten is
-     * the only indent that names the caveat itself. */
+    /* Anchored to the caveat's OWN closing tag, by its ten-space indent. A generic
+     * `<div class="cy-caveat">[\s\S]*?<\/div>` was exact while the caveat's parent
+     * was the panel; now the caveat sits inside a `<details>`, so what follows it
+     * is `</div>\n</details>`. Being non-greedy, the old pattern did not fail — it
+     * kept eating to a `</div>` hundreds of lines later and deleted that too,
+     * taking `#autoplay-slot` with it, so the harness reported against a different
+     * assertion (§3.P). The inner `<dl>` closes at twelve spaces, so ten is the
+     * only indent that names the caveat itself. */
     mutate: (dir) => editPage(dir, (s) => s
       .replace(/<div class="cy-caveat">[\s\S]*?\n          <\/div>/, '')),
     expect: 'caveat is part of the served DOM',
   },
-  /* ---- §3.X: the probe's disclosure, collapsed at 900px (§3.X's measured defect:
-     1,609px of panel on a 390x844 screen, and #probe-play 5,309px above the fold) ---- */
+  /* ---- §3.X: the probe's disclosure, collapsed at 900px ---- */
   {
     name: 'the summary is shown on a desktop too, where nothing is collapsed',
     mutate: (dir) => editCss(dir, (s) => mustReplace(
@@ -204,9 +187,8 @@ const CASES = [
   },
   {
     /* Past the CLOSING tag, not merely out of its position: a reorder inside the
-     * disclosure is still inside it, and an assertion that only asked 「after the
-     * opening tag」 would have called this a pass. The assertion was strengthened
-     * because this case failed to fail — see the note on `insideDetails`. */
+     * disclosure is still inside it. The assertion was strengthened because this
+     * case first failed to fail — see the note on `insideDetails`. */
     name: 'the measured figures move past the disclosure\'s closing tag',
     mutate: (dir) => editPage(dir, (s) => s
       .replace('          <h3>實測數值</h3>\n          <dl class="cy-stats" id="probe-stats"></dl>\n\n', '')
@@ -315,8 +297,8 @@ const CASES = [
   /* ---- The autoplay switch, which must never fire on load ---- */
   {
     /* The failure this guards: reading the switch inside the function that runs at
-     * boot, so the page cries out the moment it opens. The Gen I lab's equivalent is
-     * a `select()` that plays on every call, including its own boot call. */
+     * boot, so the page cries out the moment it opens. The Gen I lab's equivalent
+     * is a `select()` that plays on every call, including its own boot call. */
     name: 'autoplay fires from the boot path, so the page makes noise on load',
     mutate: (dir) => editPage(dir, (s) => s
       .replace('if (autoplay.on) togglePlay(id);', 'togglePlay(id);')),
@@ -361,11 +343,9 @@ const CASES = [
   },
   {
     /* The needle is the CURRENT generation line, which `filteredIds()` grew when
-     * 封面神獸 became a second filter: it is now applied to the cover-narrowed
-     * local rather than straight to `state.ids`. The original needle — the old
-     * one-liner — stopped matching the moment that edit landed, and this harness
-     * used a bare `String#replace`, so it would have no-opped and reported green
-     * for a week. See `edited()` and `mustReplace` at the top. */
+     * 封面神獸 became a second filter: it now applies to the cover-narrowed local
+     * rather than straight to `state.ids`. A bare `String#replace` against the old
+     * one-liner would silently no-op. See `edited()` and `mustReplace`. */
     name: 'the filter stops narrowing the id list, so a generation chip only changes the count',
     mutate: (dir) => editPage(dir, (s) => s
       .replace('return ids.filter((id) => state.meta.get(id)?.generation === state.gen);', 'return ids;')),
@@ -400,7 +380,7 @@ const CASES = [
     expect: 'narrows the id list by the shared roster',
   },
   {
-    name: '清除篩選 forgets 封面神獸, so a reader can enter the filter and never leave it',
+    name: '清除篩選 (clear filters) forgets 封面神獸, so a reader can enter the filter and never leave it',
     mutate: (dir) => editPage(dir, (s) => s
       .replace('        state.covers = false;\n', '')),
     expect: 'turns 封面神獸 off',

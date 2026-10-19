@@ -5,7 +5,7 @@
  *
  * Guards the two generated files behind the moves section:
  *   assets/data/learnsets.json  — four learn methods per Pokémon, per game
- *   assets/data/moves_zh.json   — 繁中 names and the fields the tables render
+ *   assets/data/moves_zh.json   — 繁中 (Traditional Chinese) names and the fields the tables render
  *
  * scripts/fetch_moves.py builds them from PokeAPI, and the interesting parts of
  * that build are the choices, not the download: the union spans every
@@ -27,6 +27,7 @@ import {
   typeBadgeHtml,
   typeBadgeSmHtml,
 } from '../assets/js/shared.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LEARNSETS = JSON.parse(readFileSync(join(ROOT, 'assets/data/learnsets.json'), 'utf8'));
@@ -38,23 +39,8 @@ const POKEMON = JSON.parse(
 /** A machine code as PokeAPI spells it, already upper-cased by fetch_moves.py. */
 const MACHINE_CODE = /^(TM|HM|TR)\d{2,3}$/;
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 /**
  * The move id of a row. Level and machine rows are [moveId, ...] because they
@@ -342,8 +328,8 @@ for (const [id, move] of dataKeys(MOVES).slice(0, 400).map(id => [id, MOVES[id]]
 }
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

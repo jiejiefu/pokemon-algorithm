@@ -70,11 +70,11 @@ const CASES = [
     expect: 'hard draws from all 1,025',
   },
   {
-    name: '地獄 stops being shiny, so the third difficulty is a label',
+    name: 'hell stops being shiny, so the third difficulty is a label',
     mutate: (dir) => editModule(dir,
       "return difficulty === 'hell' ? 's' : 'n';",
       "return 'n';"),
-    expect: 'hell is 異色',
+    expect: 'hell uses 異色 (shiny colours)',
   },
   {
     name: 'the daily seed drops the generation, so picking one changes nothing',
@@ -82,9 +82,9 @@ const CASES = [
       "`${GAME_SEED}${difficulty}:${difficulty === 'easy' ? gen : 'all'}:${taipeiDateKey(now)}`",
       "`${GAME_SEED}${difficulty}:${taipeiDateKey(now)}`"),
     /* This case is why the checker asserts the seed from the SOURCE. The obvious
-       behavioural check for this mutation — 「easy(gen1) 的目標與 easy(gen3) 的
-       目標不同」 — passes with the mutation in place, because the two pools are
-       disjoint id sets: a target drawn from 1–151 can never equal one drawn from
+       behavioural check for this mutation — "the easy(gen1) target differs from the
+       easy(gen3) target" — passes with the mutation in place, because the two pools
+       are disjoint id sets: a target drawn from 1–151 can never equal one drawn from
        252–386, no matter what the seed says. The generation reaches the result
        twice, through the pool and through the seed, and only a source assertion
        can see the second one. */
@@ -112,8 +112,8 @@ const CASES = [
       'return mulberry32(fnv1a(seed)) % pool.length;'),
     /* NOT the stability check, and that is the finding. `fn % n` is NaN, `NaN < 0`
        is false, so `pool[NaN]` is `undefined` — and two `{id: undefined}` objects
-       compare EQUAL, so 「同一個日子抽到同一隻」 passes while every target is
-       broken. The assertion that catches it is reachability. */
+       compare EQUAL, so "the same day draws the same Pokémon" passes while every
+       target is broken. The assertion that catches it is reachability. */
     expect: 'a decade of hard targets reaches most of the dex',
   },
   {
@@ -124,11 +124,11 @@ const CASES = [
     expect: 'an empty pool returns null rather than a fallback Pokémon',
   },
   {
-    name: 'the generation fallback is 9 instead of 第一世代',
+    name: 'the generation fallback is 9 instead of Gen I (第一世代)',
     mutate: (dir) => editModule(dir,
       'if (!Number.isFinite(g) || g < 1 || g > max) return 1;',
       'if (!Number.isFinite(g) || g < 1 || g > max) return max;'),
-    expect: 'an out-of-range generation falls back to 第一世代',
+    expect: 'an out-of-range generation falls back to 第一世代 (Gen I)',
   },
 
   /* ---- Palettes: shares stay unsorted, and 6 is a ceiling rather than a literal ---- */
@@ -165,11 +165,11 @@ const CASES = [
     expect: 'the reveal shows every row it has',
   },
   {
-    name: '地獄 reads the normal palette because the variant is defaulted away',
+    name: 'hell reads the normal palette because the variant is defaulted away',
     mutate: (dir) => editModule(dir,
       "export function paletteRows(palettes, id, variant = 'n') {",
       "export function paletteRows(palettes, id, _variant = 'n') {\n  const variant = 'n';"),
-    expect: 'scoring in 異色 gives different answers from 原始色',
+    expect: 'scoring in 異色 (shiny) gives different answers from 原始色 (normal)',
   },
 
   /* ---- Scoring: this is this project's rule, not the reference's ---- */

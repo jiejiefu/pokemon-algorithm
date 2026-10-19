@@ -7,11 +7,10 @@
  * WHY THIS FILE EXISTS. Every check in the checker is a source-level regex or a
  * table invariant, and a regex that no longer matches its target passes for the
  * wrong reason: `node --check` succeeds, the page still renders, and the check
- * reports green while policing nothing. That is the trap the repo already hit
- * twice — gotcha 15's dead-link probe (which passed while `pokemonSlug()` had
- * changed underneath it) and gotcha 25's "check what runs, not what exists".
- * A probe that passes for the wrong reason is worse than no probe, because it
- * is read as coverage.
+ * reports green while policing nothing. That is a trap this repo has hit
+ * twice — the dead-link probe that passed while `pokemonSlug()` had changed
+ * underneath it, and "check what runs, not what exists". A probe that passes for
+ * the wrong reason is worse than no probe, because it is read as coverage.
  *
  * So each case below breaks ONE invariant in a scratch copy of the tree, runs
  * the real checker against it, and requires a non-zero exit AND a specific
@@ -198,20 +197,21 @@ const cases = [
     expect: 'hardcodes',
   },
   {
-    /* Deleting the ROW does not leave color.html unclaimed — the 色彩 group still
-     * claims it, which is a different defect and trips the rule below rather than
-     * the claim-count rule above. This case used to name the claim-count check,
-     * which still passes: the page has exactly one owner either way. It passed
-     * anyway because that check's description is printed whether it passes or
-     * fails and the old matcher only asked whether the text appeared at all. */
-    name: 'removing the color.html nav row leaves the 色彩 group claiming it with no row of its own',
+    /* Deleting the ROW does not leave color.html unclaimed — the 色彩 (Colors)
+     * group still claims it, which is a different defect and trips the rule
+     * below rather than the claim-count rule above. This case used to name the
+     * claim-count check, which still passes: the page has exactly one owner
+     * either way. It passed anyway because that check's description is printed
+     * whether it passes or fails and the old matcher only asked whether the text
+     * appeared at all. */
+    name: 'removing the color.html nav row leaves the 色彩 (Colors) group claiming it with no row of its own',
     mutate: (f, s) => f.endsWith('shared.js')
       ? s.replace(/\s*\{ href: 'color\.html', label: '單一寶可夢色盤'[^\n]*\n/, '\n')
       : undefined,
     expect: 'no page is claimed by a group with no row of its own',
   },
   {
-    name: 'dropping 特殊分類\'s row-level pages strands category.html',
+    name: 'dropping the row-level pages of 特殊分類 (special categories) strands category.html',
     // The row, not the group, is what claims category.html. Remove its `pages`
     // and the group is left claiming a page no row owns, which is the
     // "no row of its own" rule. The claim-table count below it drops to 10 in
@@ -224,9 +224,10 @@ const cases = [
   {
     name: 'a row-claimed page missing from the group\'s pages sits inside a closed panel',
     // The other half of the same decision, and the failure the closed-panel
-    // section of the checker's own header describes. 圖鑑's `pages` has to list
-    // category.html or the group renders collapsed on that page, taking the
-    // aria-current it just gained with it — claimed and invisible at once.
+    // section of the checker's own header describes. 圖鑑's (Pokédex's) `pages`
+    // has to list category.html or the group renders collapsed on that page,
+    // taking the aria-current it just gained with it — claimed and invisible at
+    // once.
     //
     // The anchor grew 'moves.html' when that page shipped, and the stale-anchor
     // guard below caught the no-op on the next run rather than letting this case
@@ -236,8 +237,8 @@ const cases = [
     // tells them apart, and both are recorded at check_color_page.mjs's header.
     mutate: (f, s) => f.endsWith('shared.js')
       ? s.replace(
-        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html'],",
-        "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html', 'moves.html'],"
+        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html'],",
+        "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html', 'moves.html', 'abilities.html'],"
       )
       : undefined,
     expect: 'the group does not list',
@@ -254,10 +255,11 @@ const cases = [
   },
   {
     name: 'narrowing the claim to href === page drops category.html\'s aria-current',
-    // The regression this file's own first run caught: 特殊分類 lists
-    // category.html in `pages` and has no groups, so requiring href equality
-    // leaves that page with `.is-active` and no aria-current. The TABLE-level
-    // ownership checks cannot see this — they read NAV, not the renderer.
+    // The regression this file's own first run caught: 特殊分類 (special
+    // categories) lists category.html in `pages` and has no groups, so requiring
+    // href equality leaves that page with `.is-active` and no aria-current. The
+    // TABLE-level ownership checks cannot see this — they read NAV, not the
+    // renderer.
     mutate: (f, s) => f.endsWith('shared.js')
       ? s.replace('const claimsCurrent = isGroup ? item.href === currentPage : isActive;', 'const claimsCurrent = item.href === currentPage;')
       : undefined,
@@ -388,15 +390,14 @@ const cases = [
   },
   {
     name: 'a planned row whose target PLANNED_PAGES does not list is a broken promise',
-    // Anchored to a planned row that still EXISTS in code. It used to be
-    // `moves.html`, and that case reported 「checker exited 0 — the invariant is
-    // not actually policed」 for a commit AFTER the row was removed, because the
-    // string had survived in two COMMENTS and the mutation was rewriting prose.
-    // The stale-anchor guard could not see it: the file did change. That is the
-    // one failure mode the guard does not cover, and it is the same one
-    // check_color_page.mjs's own header records against its `[^{}]*` selector
-    // walk — §3.S, and the reason both examples above name a live row.
-    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("planned: 'abilities.html'", "planned: 'abilities2.html'") : undefined,
+    // Anchored to a planned row that still EXISTS in code. The anchor has had to
+    // move twice, each time because the row it named shipped: it was `moves.html`,
+    // then `abilities.html`, and both left the string alive only in COMMENTS, so
+    // the mutation rewrote prose and the checker exited 0. The stale-anchor guard
+    // cannot see that — the file did change. The current anchor is the live
+    // `natures.html` row, the same rule check_color_page.mjs's header records
+    // against its `[^{}]*` selector walk — §3.S.
+    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("planned: 'natures.html'", "planned: 'natures2.html'") : undefined,
     expect: 'PLANNED_PAGES does not list',
   },
   {
@@ -611,9 +612,10 @@ const cases = [
   {
     // The one that actually shipped broken for an hour. `scale,` resolves to
     // `window.scale` — the element with `id="scale"` — so nothing throws and
-    // every token collapses onto the primary; 「色彩美學」 ends up drawn in the
-    // primary on a primary background. A screenshot is the only thing that
-    // catches it, and only if you know what the card should look like.
+    // every token collapses onto the primary; 「色彩美學」 ("color aesthetics")
+    // ends up drawn in the primary on a primary background. A screenshot is the
+    // only thing that catches it, and only if you know what the card should look
+    // like.
     name: 'the showcase handed a bare `scale` gets the <div id="scale"> instead of a ramp',
     mutate: (f, s) => f.endsWith('color.html')
       ? s.replace('scale: primaryScale,', 'scale,')

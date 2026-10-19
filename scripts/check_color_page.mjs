@@ -11,9 +11,9 @@
  * separate "correct" from "plausible":
  *
  * 1. A NAV page with no row of its own. `color.html` was listed in the 色彩
- *    group's `pages` — which is what makes the group light up — but had no
- *    sub-item pointing at it. The page therefore marked NOTHING current, and
- *    the rail offered no way back to it. `pages` and `groups` are separate
+ *    (Colors) group's `pages` — which is what makes the group light up — but
+ *    had no sub-item pointing at it. The page therefore marked NOTHING current,
+ *    and the rail offered no way back to it. `pages` and `groups` are separate
  *    arrays and nothing forced them to agree; the comment above the 色彩 group
  *    already described the intended three-row drill-down, so the table was
  *    wrong rather than the design. CAUGHT HERE, statically, as "this page is
@@ -54,7 +54,7 @@ const pass = (msg) => console.log(`  ok   ${msg}`);
 const fail = (msg) => { failures++; console.log(`  FAIL ${msg}`); };
 // A FAIL that prints an empty message is worse than no check: it reads as a
 // blank line, and `1 check(s) failed` with nothing to act on sends the reader
-// looking in the wrong file (the gotcha 42 lesson). So the detail is never
+// looking in the wrong file (§3.G5). So the detail is never
 // allowed to be empty — the reason is always named, even if the computed list
 // of offenders came back empty, which is how a mis-written predicate is caught.
 const check = (cond, ok, bad) => {
@@ -140,7 +140,7 @@ try {
   PLANNED = tableFrom(shared, 'PLANNED_PAGES');
 } catch (e) {
   // A renamed export must be a readable FAIL, not a stack trace: a crash
-  // discards every readable line printed above it (gotcha 38).
+  // discards every readable line printed above it (§3.G5).
   fail(`could not lift NAV / PLANNED_PAGES out of shared.js — ${e.message}`);
   console.log('\n1 check(s) failed');
   process.exit(1);
@@ -163,19 +163,20 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // Three planned rows (abilities.html, moves.html, natures.html) are NOT counted,
 // because a `planned` entry is a badge promising a page nothing links to yet.
 //
-// It went 15 -> 16 when spectrum.html joined the 叫聲 group, 16 -> 17 when
-// life.html joined 演算法, 17 -> 18 when graph.html joined 演算法, 18 -> 19 when
-// color-game.html replaced its `planned: 'color-game.html'` placeholder in the 色彩
-// group with a real row — which is what the `planned` branch of `navRowHtml` exists
-// for — and 19 -> 20 when cry-game.html joined 叫聲 as a real row. **That last bump
-// was missed**, so this assertion has been red since: the row landed in commit
-// 16fe543 and the count did not move. It is recorded here rather than left to the
-// commit log because the message below now names WHICH pages are in the table, so
-// the diagnosis is one line of output instead of a re-derivation.
-// 20 -> 21 when today.html became the first row of 圖鑑, the day index.html gave
-// its content sections away. The bump being VISIBLE is the point: this pin is
-// what turns "a page quietly stopped being mentioned by NAV" into a red line
-// instead of a table of claims that quietly stopped covering it.
+// It went 15 -> 16 when spectrum.html joined the 叫聲 (cries) group, 16 -> 17
+// when life.html joined 演算法 (algorithms), 17 -> 18 when graph.html joined
+// 演算法, 18 -> 19 when color-game.html replaced its `planned: 'color-game.html'`
+// placeholder in the 色彩 group with a real row — which is what the `planned`
+// branch of `navRowHtml` exists for — and 19 -> 20 when cry-game.html joined
+// 叫聲 as a real row. **That last bump was missed**, so this assertion has been
+// red since: the row landed in commit 16fe543 and the count did not move. It is
+// recorded here rather than left to the commit log because the message below now
+// names WHICH pages are in the table, so the diagnosis is one line of output
+// instead of a re-derivation.
+// 20 -> 21 when today.html became the first row of 圖鑑 (Pokédex), the day
+// index.html gave its content sections away. The bump being VISIBLE is the
+// point: this pin is what turns "a page quietly stopped being mentioned by NAV"
+// into a red line instead of a table of claims that quietly stopped covering it.
 // 21 -> 22 when moves.html shipped. `move.html` did NOT move it: that page is
 // reached by drilling in from a row, exactly as detail.html is, and neither
 // carries an aria-current claim for a reason — adding one would have been the
@@ -201,9 +202,9 @@ for (const item of NAV) {
       } else {
         rowTargets.push({ from: `${label} > ${it.label}`, href: it.href, kind: 'group row' });
         // A row's `pages` are real destinations too, and they have to resolve
-        // for the same reason the row's own href does: 特殊分類 lists
-        // category.html so that page can mark itself current from one row
-        // instead of needing a row of its own.
+        // for the same reason the row's own href does: 特殊分類 (special
+        // categories) lists category.html so that page can mark itself current
+        // from one row instead of needing a row of its own.
         for (const page of it.pages || []) {
           rowTargets.push({ from: `${label} > ${it.label}`, href: page, kind: 'group row pages[]' });
         }
@@ -234,17 +235,19 @@ const everyPage = [...new Set(rowTargets.map((t) => t.href))].sort();
 // The table must not SHRINK. Every check below is computed over `everyPage`,
 // which is built from what NAV mentions — so a page that quietly stops being
 // mentioned leaves the table and turns every claim check green while marking
-// nothing current. That is not hypothetical: 特殊分類's row-level `pages` is
-// the only thing that mentions category.html, and deleting that one array is a
-// one-token edit that no other assertion here would notice. Pinning the size
-// is the blunt instrument that turns that silence into a failure, and the count
-// only moves when a page is genuinely added to or removed from the site.
+// nothing current. That is not hypothetical: the row-level `pages` of 特殊分類
+// (special categories) is the only thing that mentions category.html, and
+// deleting that one array is a one-token edit that no other assertion here would
+// notice. Pinning the size is the blunt instrument that turns that silence into a
+// failure, and the count only moves when a page is genuinely added to or removed
+// from the site.
 /* The message NAMES THE PAGES, sorted, because a bare count difference is a
  * re-derivation rather than a diagnosis. This assertion went red on a real
- * omission — cry-game.html had been a 叫聲 row for a commit — and the report was
- * "everyPage has 20 entries, expected 19", which says that something changed and
- * nothing about what. The next person to bump this has to answer one question
- * ("which page?") and the answer should be in the output they already have. */
+ * omission — cry-game.html had been a 叫聲 (cries) row for a commit — and the
+ * report was "everyPage has 20 entries, expected 19", which says that something
+ * changed and nothing about what. The next person to bump this has to answer one
+ * question ("which page?") and the answer should be in the output they already
+ * have. */
 check(
   everyPage.length === EXPECTED_NAV_PAGES,
   `the claim table holds all ${EXPECTED_NAV_PAGES} site pages`,
@@ -304,8 +307,9 @@ check(
 // aria-current it just gained is inside a `[hidden]` panel. The group opens on
 // `pages`, so a page claimed by a row but missing from its group's `pages` is
 // claimed and invisible at the same time. The two lists look redundant —
-// category.html is in both of 圖鑑's — and they are, but for different jobs:
-// `group.pages` opens the disclosure, the row's `pages` carries the claim.
+// category.html is in both of 圖鑑's (Pokédex's) — and they are, but for
+// different jobs: `group.pages` opens the disclosure, the row's `pages` carries
+// the claim.
 const unopenedGroups = [];
 for (const item of NAV) {
   if (!item.groups) continue;
@@ -460,7 +464,7 @@ check(
 check(
   !/\.cp-app\s*>\s*\.header/.test(cssCode),
   'and colors.css keeps no rule that would style one if it came back',
-  () => 'colors.css still has a `.cp-app > .header` rule — a rule for an element the page does not mount is a rule nobody maintains (the `.header-graph` shape, gotcha §3.N)'
+  () => 'colors.css still has a `.cp-app > .header` rule — a rule for an element the page does not mount is a rule nobody maintains (the `.header-graph` shape, §3.N)'
 );
 
 // ---------------------------------------------------------------------------
@@ -472,7 +476,7 @@ check(
 // `document.querySelector('.header')?.append(...)`. Deleting the header turns an
 // optional chain with nothing behind it into a silent no-op: every phone loses
 // navigation, nothing throws, nothing logs, and every other check in this file
-// stays green. That is gotcha §3.I exactly, and it is why these four exist.
+// stays green. That is §3.I exactly, and it is why these four exist.
 //
 // The mount id is READ from shared.js rather than written here. Restating it
 // would be a second copy of the answer this section exists to police, and it
@@ -626,7 +630,7 @@ check(
 );
 check(
   /aria-hidden="true"/.test(gridSource),
-  'the copy glyph is aria-hidden, because the cell button already carries the name 複製 <value>',
+  'the copy glyph is aria-hidden, because the cell button already carries the name 複製 (copy) <value>',
   () => 'the glyph is exposed to assistive tech as a second, redundant control'
 );
 check(
@@ -733,8 +737,8 @@ check(
   () => 'the scale container carries no `.cp-scale-stack` column, so the three ramps touch and the row boundary is invisible'
 );
 // And the prose, which is the claim a reader actually checks against the ★.
-// The old sentence said 「★ 標示的是主要色本身」, which was true of one ramp and
-// false the moment there are three.
+// The old sentence said 「★ 標示的是主要色本身」 ("the ★ marks the primary
+// itself"), which was true of one ramp and false the moment there are three.
 const scaleProse = (colorHtml.match(/id="sec-scale"[\s\S]*?<div id="scale"/) || [''])[0];
 check(
   /該列色票本身/.test(scaleProse) && !/主要色本身/.test(scaleProse),
@@ -751,7 +755,8 @@ check(
 // the document and this page has `<div id="scale">`. A DOM node answers
 // `scale['50']` as `undefined`, so showcaseHtml's `scale[step] || primary`
 // returned the primary for EVERY step, which set --cp-sf, --cp-ink and --cp-bd
-// all to one colour and drew 「色彩美學」 in the primary on a primary background.
+// all to one colour and drew 「色彩美學」 ("color aesthetics") in the primary on
+// a primary background.
 //
 // The three words that matter: silent, invisible, and in the one section whose
 // entire job is to prove the palette is readable.
@@ -850,7 +855,8 @@ check(
   () => 'the dex field is type=number inside a scrollable panel'
 );
 // All-digits and in-range are two failures with two messages. A `{1,4}` regex
-// answered "全國編號只能是數字" for 99999, which is a perfectly good number.
+// answered "全國編號只能是數字" ("the national dex number must be numeric") for
+// 99999, which is a perfectly good number.
 check(
   /!\/\^\\d\+\$\/\.test\(raw\)/.test(colorHtml),
   'the digits test is /^\\d+$/, so a 5-digit value reports RANGE rather than "not a number"',

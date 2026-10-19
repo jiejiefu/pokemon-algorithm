@@ -3,32 +3,30 @@
  *
  *   node scripts/test_check_cry_game.mjs
  *
- * This one is cheaper than its sibling and for a different reason. The page
- * checker reads four files off disk and its assertions are all SHAPE claims —
- * a selector prefix, a mount in the HTML, a writer count — so a case costs one
- * `node` spawn of a checker that reads 60 KB, not a browser and not a 1,025 x
- * 1,025 sweep. Thirty-odd cases land around four seconds.
+ * Cheap for a different reason than its sibling: the page checker reads four files
+ * off disk and its assertions are all SHAPE claims — a selector prefix, a mount
+ * in the HTML, a writer count — so a case costs one `node` spawn of a checker that
+ * reads 60 KB, not a browser and not a 1,025 x 1,025 sweep. Thirty-odd cases land
+ * around four seconds.
  *
  * ---------------------------------------------------------------------------
  * WHAT IT CANNOT COVER, AND WHY THAT IS NOT A GAP IN THE HARNESS
  * ---------------------------------------------------------------------------
  *
- * **None of the four defects this page shipped with are reachable from here**,
- * and it is worth being exact about why, because the temptation is to write cases
- * that "should" catch them:
+ * **None of the four defects this page shipped with are reachable from here**, and
+ * the reason matters because the tempting cases "should" catch them:
  *
  *   - the round ended one question early, so question 10 never happened
  *   - saved picks restored as nothing, so a reloaded round started over
  *   - `findIndex`'s -1 answer falling into the mid-round branch
  *   - the waveform blank until the decode resolved
  *
- * Every one of them is a page that is *correctly shaped* and behaves wrongly. A
- * mutation harness proves that a change to the source is noticed; these were
- * never changes to the source, they were bugs in source that had never been
- * wrong in any way a shape assertion can see. The fix for that class is a
- * browser, and the page was driven in one before being called done — which is
- * also why `check_cry_game.mjs` ends with a section that pins the four by name,
- * so the SECOND occurrence is at least caught by a shape assertion.
+ * Each is a page that is *correctly shaped* and behaves wrongly. A mutation
+ * harness proves that a change to the source is noticed; these were never changes
+ * to the source, they were bugs in source no shape assertion can see. The fix for
+ * that class is a browser, and the page was driven in one before being called
+ * done — which is also why `check_cry_game.mjs` ends with a section that pins the
+ * four by name, so the SECOND occurrence is at least caught by a shape assertion.
  *
  * A case that cannot fail is worse than no case: it reports a sweep it never ran.
  * So this file only declares cases that genuinely go red, and the two no-op
@@ -48,12 +46,12 @@ import { pool, defaultPool } from './lib/pool.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_cry_game.mjs';
 
-/* ALL of `assets/js`, not a hand-picked few — §3.B2's reason, and it cost this
- * harness its first run. The checker reads `assets/js/daily-pick.js` to assert
- * that `taipeiDateKey` really does dereference its argument, and the module
- * imports it, so a tree without it died on ERR_MODULE_NOT_FOUND: exit 1, zero
- * assertions run, and every case "going red" while proving nothing. A named list
- * of files is a second thing to keep right; the directory is not. */
+/* ALL of `assets/js`, not a hand-picked few — §3.B2's reason. The checker reads
+ * `assets/js/daily-pick.js` to assert that `taipeiDateKey` really does
+ * dereference its argument, and the module imports it, so a tree without it dies
+ * on ERR_MODULE_NOT_FOUND: exit 1, zero assertions run, and every case "going
+ * red" while proving nothing. A named list of files is a second thing to keep
+ * right; the directory is not. */
 const JS_TREE = readdirSync(join(ROOT, 'assets/js'))
   .filter((f) => f.endsWith('.js'))
   .map((f) => `assets/js/${f}`);

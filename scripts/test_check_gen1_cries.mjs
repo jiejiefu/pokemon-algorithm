@@ -73,6 +73,7 @@ const SRC = [
   'assets/data/gen1_cry_sfx.json',
   'scripts/fetch_gen1_cries.py',
   'scripts/check_gen1_cries.mjs',
+  'scripts/lib/assert.mjs',
 ];
 const CHECKER = 'scripts/check_gen1_cries.mjs';
 const FETCHER = 'scripts/fetch_gen1_cries.py';

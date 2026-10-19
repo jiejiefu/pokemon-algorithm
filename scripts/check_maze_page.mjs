@@ -3,34 +3,20 @@
  *
  *   node scripts/check_maze_page.mjs
  *
- * WHY THIS FILE EXISTS. maze.html had NO checker at all — nothing in the
- * manifest mentioned the string "maze", so a page with four pathfinding
- * algorithms, two terrain modes and a four-leg patrol shipped through a
- * 51-entry suite without anything reading it. It was found by hand, and the
- * first thing found was not a cosmetic one:
+ * The page shipped without a checker, so a TypeError inside a rAF callback
+ * ended every successful patrol after the search. The trigger was a missing
+ * `cost` on `starRun`'s result, which the page then passed to `.toFixed()`.
+ * `starRun` lives in the module so it can be imported and run (§3.F).
  *
- *   `starRun` returned `{ legs, found, path }` with no `cost`, and the page did
- *   `result.cost.toFixed(1)` on it. `undefined.toFixed` threw a TypeError inside
- *   a requestAnimationFrame callback, which ended every successful patrol after
- *   the search: no hops stat, no run-log row, no status line, no path animation,
- *   and `run` never nulled so the frame loop then spun on an exhausted generator
- *   forever. The patrol had never once drawn a path. §3.F's rule — compare
- *   OUTPUT, never a description of the output — is why `starRun` was moved out of
- *   the page into the module: only an importable thing can be run.
+ * Two halves:
+ *   BEHAVIOURAL — imports the real `starRun` and runs it over fake grids of
+ *   plain `{x, y}` objects. This half catches the crash and proves the four
+ *   legs interleave.
+ *   SHAPE — reads maze.html for the wiring the page owns: marker point sets,
+ *   `runKind` resets, and the canvas accessible name.
  *
- * TWO HALVES, and the split is the design:
- *
- *   BEHAVIOURAL — imports the real `starRun` and runs it over a 5×5 fake grid
- *   of plain objects. This half is the one that would have caught the crash, and
- *   it is also the only half that can prove the four legs actually INTERLEAVE.
- *
- *   SHAPE — reads maze.html off disk for the wiring the page owns: which point
- *   set the markers draw, where runKind is reset, what the canvas's accessible
- *   name says. A stylesheet/handler contract can be checked by reading it.
- *
- * The fake grid is plain `{x, y}` objects with no `walls` and no `terrainCost`,
- * which is the whole point of maze-pathfinding.js being graph-generic: the
- * patrol can be exercised without constructing 1,600 Cells.
+ * The fake grids carry no `walls` or `terrainCost`, which is why the engine
+ * stays graph-generic: the patrol runs without constructing 1,600 Cells.
  */
 
 import { readFileSync } from 'node:fs';
@@ -42,6 +28,7 @@ import {
   starRun, PATROL_LEGS, largestComponent,
   manhattanHeuristic, octileHeuristic,
 } from '../assets/js/maze-pathfinding.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HTML = readFileSync(join(ROOT, 'maze.html'), 'utf8');
@@ -49,41 +36,23 @@ const ENGINE = readFileSync(join(ROOT, 'assets/js/maze-pathfinding.js'), 'utf8')
 const CSS = readFileSync(join(ROOT, 'assets/css/algo.css'), 'utf8');
 const SHARED = readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8');
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 function section(name) {
   console.log(`\n--- ${name}`);
 }
 
-/* Comments and string literals are masked to blanks, keeping every offset so a
- * reported line number still points at the right place. This is the same move
- * check_page_module_api.mjs makes, and it is needed here for a self-inflicted
- * reason: the docblock explaining WHY the engine must not touch `searchVisited`
- * has to say the word `searchVisited` to do that, so a raw source grep for the
- * token reports its own justification. Masked characters become spaces rather
+/* Masks comments and string literals to blanks, preserving offsets so reported
+ * line numbers stay correct. Needed because the docblock explaining why the
+ * engine must not touch `searchVisited` has to name that token; a raw grep
+ * would match its own justification. Masked characters become spaces rather
  * than being deleted, so an index into the masked text is still an index into
  * the original.
  *
- * Applied to JAVASCRIPT ONLY. maze.html is markup: its prose and its `href`s are
- * not strings, so this masker would open a quote on an apostrophe and never
- * close it. The two HTML assertions below scope themselves to a function body
- * instead. */
+ * JAVASCRIPT ONLY. maze.html is markup: its prose and `href`s are not strings,
+ * so this masker would open a quote on an apostrophe and never close it. The
+ * HTML assertions below scope themselves to a function body instead. */
 function maskCommentsAndStrings(src) {
   const out = new Array(src.length).fill(' ');
   let i = 0;
@@ -121,23 +90,19 @@ function maskCommentsAndStrings(src) {
 const ENGINE_CODE = maskCommentsAndStrings(ENGINE);
 
 /**
- * The source of one block, by brace-matching from the first `{` after
+ * Returns the source of one block, by brace-matching from the first `{` after
  * `startMarker`. Null when the marker is absent.
  *
- * ## WHY NOT A REGEX, AND WHAT THAT COST
- * Every maze.html assertion here was originally `/function setMode[\s\S]*?…/`,
- * and `[\s\S]*?` runs to END OF FILE. So "runKind is reset at setMode" was
- * satisfied by a `setRunKind('single')` sitting in the contrast handler a
- * hundred lines later. Deleting the real one from setMode left it green —
- * confirmed by mutation, not by reading. That is §3.B2's vacuity shape with the
- * roles reversed: a detector that cannot fail is worse than no detector, because
- * it reads as coverage.
+ * A regex such as `/function setMode[\s\S]*?…/` runs to end of file, so a
+ * `setRunKind('single')` a hundred lines later satisfies it. Deleting the real
+ * one then leaves the suite green — §3.B2's vacuity with the roles reversed.
+ * A detector that cannot fail reads as coverage.
  *
  * Known limit: this counts braces without understanding strings or regex
  * literals, so a `{` inside a string literal inside the block would mis-count.
  * maze.html's script has none unbalanced (its template `${…}` holes all close),
- * and a mis-count fails LOUD — the assertion sees the wrong slice — rather than
- * silently passing, which is the safe direction for this to fail in.
+ * and a mis-count fails loudly — the assertion sees the wrong slice — rather
+ * than silently passing.
  */
 function blockAfter(src, startMarker) {
   const at = src.indexOf(startMarker);
@@ -153,7 +118,7 @@ function blockAfter(src, startMarker) {
 }
 
 /** A block, asserting it exists — a missing function must not read as "no
- *  violation found", which is the same vacuity one level up. */
+ *  violation found". */
 function blockOf(src, startMarker, name) {
   const body = blockAfter(src, startMarker);
   ok(body !== null, `${name} was located in maze.html`);
@@ -171,11 +136,10 @@ const B_STAR_POINTS = blockOf(HTML, 'function starPoints()', 'starPoints');
 const B_SET_RUN_KIND = blockOf(HTML, 'function setRunKind(next)', 'setRunKind');
 /** The brace-matched block of the first `if` whose HEAD matches `headRe`.
  *
- * This exists because `[\s\S]*?return false;` is not a branch. The lazy span
- * runs straight past the closing brace into the NEXT branch, so deleting the
- * refusal from any one of decideSeed's three error branches left the suite
- * green — twice, in two separate mutation runs, each time satisfied by a
- * sibling it was never about. Every refusal is bounded to its own braces. */
+ * A lazy `[\s\S]*?return false;` span runs past the closing brace into the next
+ * branch, so deleting the refusal from any one of decideSeed's three error
+ * branches left the suite green — twice, each time satisfied by a sibling.
+ * Every refusal is bounded to its own braces. */
 function ifBlock(src, headRe) {
   const m = headRe.exec(src);
   if (!m) return null;
@@ -192,14 +156,13 @@ function ifBlock(src, headRe) {
 const B_DRAW_MARKERS = blockOf(HTML, 'function drawMarkers()', 'drawMarkers');
 const B_ARIA = blockOf(HTML, 'const ARIA_LABEL =', 'ARIA_LABEL');
 
-/* --- The two features added after the first run of this checker. Both had a bug
- * that a source assertion nails down in one line, which is why they are here
- * rather than only in the browser probe.
+/* --- Two features added after the first run of this checker. Each had a bug
+ * that a source assertion pins down in one line.
  *
- * The seed one is worth reading twice: `loadPokemonMaze` used to roll its own
- * `Math.random()` seed on the way to the carve, so 固定種子 could not work at all
- * and 換種子 announced a seed the next load immediately overwrote. The carve has
- * always been deterministic — the guarantee was just unreachable. */
+ * `loadPokemonMaze` used to roll its own `Math.random()` seed before the carve,
+ * so 固定種子 (fixed seed) could not work and 換種子 (new seed) announced a seed
+ * the next load overwrote. The carve was always deterministic; the guarantee
+ * was unreachable. */
 const B_LOAD_MAZE = blockOf(HTML, 'async function loadPokemonMaze(requestedId)', 'loadPokemonMaze');
 const B_DECIDE_SEED = blockOf(HTML, 'function decideSeed()', 'decideSeed');
 const B_ROLL_SEED = blockOf(HTML, 'function rollSeed()', 'rollSeed');
@@ -216,8 +179,8 @@ section('SHAPE — the seed is chosen once, and the maze it produces is fixed');
 
 /* Not "no Math.random" — the loader legitimately rolls the Pokémon id on a
  * blank field, and forbidding that would forbid the page's main button. What
- * must not happen in there is a SEED being invented: the every-Math.random-line
- * must be the id line, so a reintroduced `seed = 1 + Math.floor(Math.random() *
+ * must not happen is a SEED being invented: the only Math.random line must be
+ * the id line, so a reintroduced `seed = 1 + Math.floor(Math.random() *
  * 999999)` fails because that line mentions 999999 and not MAX_ID. */
 {
   const randomLines = B_LOAD_MAZE.split('\n').filter((l) => /Math\.random/.test(l));
@@ -240,16 +203,16 @@ ok(
 );
 ok(
   /id="seedField"[^>]*hidden/.test(HTML) && /id="seedLabel"[^>]*hidden/.test(HTML),
-  'the seed field and its label start hidden, so unchecked 固定種子 reads as 「隨機」 with nothing to fill in'
+  'the seed field and its label start hidden, so unchecked 固定種子 (fixed seed) reads as 「隨機」 (random) with nothing to fill in'
 );
 ok(
   /id="fixedSeedToggle"(?![^>]*checked)/.test(HTML) && /id="fixedPokemonToggle"(?![^>]*checked)/.test(HTML),
-  'neither axis ships checked — both default to 隨機'
+  'neither axis ships checked — both default to 隨機 (random)'
 );
 
 /* One function owns "reveal the field, hide the label, clear the error, and fill
- * it with the current value". Two hand-written change handlers were the shape
- * this replaces: the seed one shipped without the fill, which is the bug. */
+ * it with the current value". It replaces two hand-written change handlers; the
+ * seed one shipped without the fill, which is the bug. */
 {
   const bind = blockOf(HTML, 'function bindAxisToggle(', 'bindAxisToggle');
   ok(/hideWhenUnchecked = true\)/.test(HTML),
@@ -267,8 +230,8 @@ ok(
     'sync() runs once at bind time, so the initial state comes from the same code rather than from markup nobody re-runs');
 }
 /* The species id is shown either way. Hiding it made the CURRENT species
- * invisible in the one state where it changes on every load — which is exactly
- * when a reader wants to read it. */
+ * invisible in the one state where it changes on every load — exactly when a
+ * reader wants to read it. */
 ok(
   /bindAxisToggle\(fixedPokemonToggle, idField, idLabel, idError,[\s\S]*?\n\s*false\);/.test(HTML),
   'the Pokémon axis is bound with hideWhenUnchecked = false — the id is always on screen'
@@ -300,14 +263,13 @@ ok(
 
 /* --- The id axis. It moved OUT of loadPokemonMaze, because 「checked ⇒ the field
  * is the answer」 and 「blank ⇒ random」 are two different rules and the loader
- * was answering the old one on its own. */
-ok(
+ * was answering the old one on its own. */ok(
   /function decideId\(\)/.test(HTML),
   'decideId exists as the id axis\' counterpart to decideSeed'
 );
 ok(
   /if \(!fixedPokemonToggle\.checked\) return true;/.test(blockOf(HTML, 'function decideId()', 'decideId')),
-  'decideId returns early when the box is unchecked — unchecked means 隨機, not an error'
+  'decideId returns early when the box is unchecked — unchecked means 隨機 (random), not an error'
 );
 {
   const dec = blockOf(HTML, 'function decideId()', 'decideId');
@@ -341,22 +303,22 @@ ok(
   'the loader is told which species to use, so 「random」 is a decision made once and in one place'
 );
 ok(
-  !/decideId/.test(blockOf(HTML, "document.getElementById('btnRandomSeed')", 'the 換種子 handler')),
+  !/decideId/.test(blockOf(HTML, "document.getElementById('btnRandomSeed')", 'the 換種子 (new seed) handler')),
   '換種子 does not consult the Pokémon axis — it re-carves the species already on screen'
 );
 
-/* --- The two axes are independent, and the prose now says so. */
+/* --- The two axes are independent, and the prose says so. */
 ok(
   /兩個開關都是<b>不勾＝隨機<\/b>，而且互相獨立/.test(HTML),
-  'the hint states that both boxes are unchecked＝隨機 and that the axes are independent'
+  'the hint states that both boxes are unchecked＝隨機 (random) and that the axes are independent'
 );
 ok(
   /牆完全不變/.test(HTML),
-  'the hint spells out that a fixed seed survives 「載入寶可夢迷宮」 — the reader\'s point 2, which the old copy did not say'
+  'the hint spells out that a fixed seed survives 「載入寶可夢迷宮」 (load Pokémon maze) — the old copy did not say this'
 );
 ok(
   /按演算法按鈕就好，不必重新載入/.test(HTML),
-  'the hint tells the reader how to accumulate 比較紀錄, since reloading clears it'
+  'the hint tells the reader how to accumulate 比較紀錄 (comparison history), since reloading clears it'
 );
 ok(
   /id="loadForm"[^>]*flex-direction:column/.test(HTML),
@@ -380,11 +342,11 @@ ok(
   !/Math\.random/.test(B_DECIDE_SEED),
   'decideSeed itself does no arithmetic on chance; it delegates to rollSeed so there is one roll to find'
 );
-/* The COMPARISON, not the message. An earlier version of this asserted
+/* The COMPARISON, not the message. An earlier version asserted
  * /1 到 999999/ && /return false/, which deleting the whole range check left
  * green — the string is still in the error text and `return false` still
- * appears in the two branches above it. §3.B2's shape exactly: a claim
- * satisfied by an unrelated part of the file. */
+ * appears in the two branches above it. §3.B2: a claim satisfied by an
+ * unrelated part of the file. */
 ok(
   /n < 1 \|\| n > 999999/.test(B_DECIDE_SEED),
   'decideSeed range-checks the field with a real comparison, not just prose about it'
@@ -419,10 +381,11 @@ ok(
   /btnRandomSeed[\s\S]{0,300}rerollSeed\(\);[\s\S]{0,200}loadPokemonMaze\(/.test(HTML),
   '換種子 rerolls and then calls the loader — the button re-carves for real instead of only rewording the status line'
 );
-/* 換種子 must NOT go through decideSeed. In 固定種子 mode decideSeed reads the
- * field, so routing the button through it rerolls the SAME maze: measured live,
- * seed 4242 stayed 4242 and the wall fingerprint did not move. A button whose
- * label is 「換種子」 that does not change the seed is worse than no button. */
+/* 換種子 (new seed) must NOT go through decideSeed. In 固定種子 (fixed seed) mode
+ * decideSeed reads the field, so routing the button through it rerolls the SAME
+ * maze: measured live, seed 4242 stayed 4242 and the wall fingerprint did not
+ * move. A button labelled 「換種子」 that does not change the seed is worse than
+ * no button. */
 ok(
   !/btnRandomSeed[\s\S]{0,300}decideSeed/.test(HTML),
   '換種子 does not route through decideSeed, which would honour the pinned value and change nothing'
@@ -464,11 +427,11 @@ ok(
   'initSeed is called on the line immediately before carveMaze — the re-seed-per-carve guarantee from 4098b7d'
 );
 
-section('SHAPE — 點亮整張圖');
+section('SHAPE — 點亮整張圖 (light the whole board)');
 
 ok(
   /id="btnLitAll"[^>]*hidden/.test(HTML),
-  'the 點亮 button starts hidden; there is nothing to toggle before a run has finished'
+  'the 點亮 (light up) button starts hidden; there is nothing to toggle before a run has finished'
 );
 ok(
   /aria-pressed="false"/.test(HTML),
@@ -488,7 +451,7 @@ ok(
 );
 ok(
   /setLitAll\(false, false\)/.test(B_START_SEARCH),
-  'startSearch hides it and turns 點亮 off, so a new run dims the board itself'
+  'startSearch hides it and turns 點亮 (light up) off, so a new run dims the board itself'
 );
 ok(
   /setLitAll\(false, false\)/.test(B_LOAD_MAZE),
@@ -500,19 +463,19 @@ ok(
 );
 ok(
   /litAll \? 1 : \(this\.onPath \? 1 : \(this\.searchVisited \? 0\.5 : 0\.05\)\)/.test(B_CELL_DRAW),
-  'Cell.draw forces alpha to 1 when lit — that is the whole of 「點亮」'
+  'Cell.draw forces alpha to 1 when lit — that is the whole of 「點亮」 (light up)'
 );
 ok(
   /setLitAll\(!litAll\);\s*\n\s*redraw\(\);/.test(B_ONPATH),
-  'the toggle redraws and does nothing else — no flag is rewritten, so 復原 is the same run rendered again'
+  'the toggle redraws and does nothing else — no flag is rewritten, so 復原 (restore) is the same run rendered again'
 );
 ok(
   !/onPath|searchVisited/.test(B_ONPATH),
-  'the 點亮 handler touches neither onPath nor searchVisited, which is why restoring is lossless'
+  'the 點亮 (light up) handler touches neither onPath nor searchVisited, which is why restoring is lossless'
 );
 ok(
   !/drawMarkers|marker\(/.test(B_ONPATH),
-  'the 點亮 handler does not redraw markers either — the discs survive 點亮 because drawMarkers runs after the cells'
+  'the 點亮 (light up) handler does not redraw markers either — the discs survive 點亮 because drawMarkers runs after the cells'
 );
 
 /* ==================================================== BEHAVIOURAL HALF ==== */
@@ -601,7 +564,7 @@ for (const id of Object.keys(SOLVERS)) {
   eq(
     result.legs.map((l) => l.label),
     ['左上', '右下', '右上', '左下'],
-    'legs carry the corner names the page prints, in rotation order'
+    'legs carry the corner names the page prints (top-left, bottom-right, top-right, bottom-left), in rotation order'
   );
   ok(
     result.legs.every((l) => typeof l.found === 'boolean' && Array.isArray(l.path)),
@@ -613,10 +576,10 @@ for (const id of Object.keys(SOLVERS)) {
   );
 }
 
-/* --- THE INTERLEAVING CLAIM. The whole reason this is round-robin rather than
- * four runs in sequence, and the only assertion here that a sequential
- * implementation fails: the first four yields must be one step from EACH leg's
- * own generator, in PATROL_LEGS order — not four consecutive steps of leg A. */
+/* --- THE INTERLEAVING CLAIM. The patrol is round-robin rather than four
+ * sequential runs, and this is the only assertion a sequential implementation
+ * fails: the first four yields must be one step from EACH leg's own generator,
+ * in PATROL_LEGS order — not four consecutive steps of leg A. */
 {
   const grid = openGrid();
   const pts = pointsFor(grid);
@@ -651,14 +614,14 @@ for (const id of Object.keys(SOLVERS)) {
 }
 
 /* --- ORDER IS A CONTRACT. `legs` is rebuilt in PATROL_LEGS order rather than in
- * whatever order the legs happened to finish, because the page draws four paths
- * and prints four labels in that order.
+ * completion order, because the page draws four paths and prints four labels in
+ * that order.
  *
- * The centre is DELIBERATELY off-centre. On a symmetric grid every corner is the
+ * The centre is deliberately off-centre. On a symmetric grid every corner is the
  * same hop distance from the middle, all four legs finish in the same round, and
- * completion order already equals PATROL_LEGS order — the test then passes for an
- * implementation that does not sort at all. From (1,1) the four corners are 2, 10,
- * 6 and 6 hops away, so a completion-ordered result is B, D, C, A. */
+ * completion order already equals PATROL_LEGS order — the test then passes for
+ * an implementation that does not sort at all. From (1,1) the four corners are
+ * 2, 10, 6 and 6 hops away, so a completion-ordered result is B, D, C, A. */
 {
   const size = 7;
   const nodes = new Map();
@@ -744,7 +707,7 @@ for (const id of Object.keys(SOLVERS)) {
   );
   ok(
     result.cost === Infinity,
-    'an unsolved patrol reports cost Infinity, which the page prints as 「無解」'
+    'an unsolved patrol reports cost Infinity, which the page prints as 「無解」 (no solution)'
   );
   ok(
     result.path.length === 0,
@@ -753,7 +716,7 @@ for (const id of Object.keys(SOLVERS)) {
 }
 
 /* --- THE MODULE STAYS GRAPH-GENERIC. The per-leg `searchVisited` reset that
- * left three of four legs unpainted was grid awareness leaking into the run, and
+ * left three of four legs unpainted was grid awareness leaking into the run;
  * it can only leak if the engine can see the grid. */
 section('BEHAVIOURAL — the engine does not know about the grid');
 ok(
@@ -793,9 +756,9 @@ ok(
   /runKind\s*===\s*'star'/.test(B_DRAW_MARKERS),
   "drawMarkers branches on runKind === 'star'"
 );
-/* 點亮 hides the markers, and it has to be the FIRST statement after the empty-
- * grid guard: a `litAll` check placed after the patrol branch would leave the
- * four corner discs drawn. */
+/* 點亮 (light up) hides the markers, and it has to be the FIRST statement after
+ * the empty-grid guard: a `litAll` check placed after the patrol branch would
+ * leave the four corner discs drawn. */
 ok(
   /if \(!grid\.length\) return;\s*\n\s*if \(litAll\) return;/.test(B_DRAW_MARKERS),
   'drawMarkers bails on litAll immediately, before either branch — so S, G and the patrol A/B/C/D all go'
@@ -904,15 +867,15 @@ ok(
 /* --- Prose. The page states the leg order; the engine owns it. They have to be
  * the same order, or the panel teaches the reader the wrong labels.
  *
- * Scoped to the patrol panel rather than the whole file, and for the same reason
+ * Scoped to the patrol panel rather than the whole file, for the same reason
  * every assertion above is block-scoped: the aria-label contains the identical
  * 「A 左上、B 右下、C 右上、D 左下」 sequence, so a page-wide grep for it stayed
  * green after the panel's own sentence was deleted. Two places on a page making
- * the same claim is exactly what makes the claim worth checking twice. */
+ * the same claim is what makes the claim worth checking twice. */
 {
   const title = '<h2>四角巡航是什麼</h2>';
   const start = HTML.indexOf(title);
-  ok(start >= 0, 'the 四角巡航 panel exists');
+  ok(start >= 0, 'the 四角巡航 (four-corner patrol) panel exists');
   const end = start >= 0 ? HTML.indexOf('<h2>', start + title.length) : -1;
   const panel = start >= 0 && end > start ? HTML.slice(start, end) : '';
   ok(panel.length > 0, 'the 四角巡航 panel was bounded by the next panel heading');
@@ -937,31 +900,32 @@ ok(
   /速度以「每幀處理幾格」計。/.test(HTML),
   'the speed sentence is still on the page, in one short line'
 );
-/* It moved out of 這一次的結果 and into 這四個演算法保證什麼. Scoped, because the
- * one-line form is a substring of the old three-line version — a page-wide match
- * would have kept passing against the long paragraph it replaced. */
+/* It moved out of 這一次的結果 (this run's result) and into 這四個演算法保證什麼
+ * (what these four algorithms guarantee). Scoped, because the one-line form is a
+ * substring of the old three-line version — a page-wide match would have kept
+ * passing against the long paragraph it replaced. */
 {
   const at = HTML.indexOf('速度以「每幀處理幾格」計。');
   const guarantees = HTML.indexOf('這四個演算法保證什麼');
   const results = HTML.indexOf('這一次的結果');
   ok(at > guarantees && guarantees > results,
-    'the speed line sits in 這四個演算法保證什麼, below 這一次的結果');
+    'the speed line sits in 這四個演算法保證什麼 (what these four algorithms guarantee), below 這一次的結果 (this run\'s result)');
   ok(
     !/演算法之間的差距本來就很大/.test(HTML),
     'the old three-line speed paragraph is gone — it was the longest text on the page for the least information'
   );
   ok(
     !/四腿合計<\/b>的量/.test(HTML),
-    'the 「四腿合計」 clause went with it; the per-frame budget claim now lives in the module comment where it is load-bearing'
+    'the 「四腿合計」 (four-leg total) clause went with it; the per-frame budget claim now lives in the module comment where it is load-bearing'
   );
 }
 
-/* --- The run log's 探索 column means "cells painted", which is why it takes
- * `explored` and not `settled`. Asserted so a later edit does not quietly make
- * the column a different quantity from the canvas. */
+/* --- The run log's 探索 (explored) column means "cells painted", which is why
+ * it takes `explored` and not `settled`. Asserted so a later edit does not
+ * quietly make the column a different quantity from the canvas. */
 ok(
   /addRunLog\(\{[\s\S]*?visited: explored,/.test(B_FINISH),
-  'the run log records the union, so its 探索 column still means cells painted'
+  'the run log records the union, so its 探索 (explored) column still means cells painted'
 );
 
 /* --- Tokens. The markers read --algo-start / --algo-goal, and a patrol draws
@@ -1185,8 +1149,8 @@ ok(
 );
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

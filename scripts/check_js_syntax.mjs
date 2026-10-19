@@ -218,7 +218,7 @@ if (checked === 0) {
  *
  * `</html>` is NOT in that list. A page with no `</body>` falls through to
  * `</svg>`, and today.html's only `</svg>` sat INSIDE a template literal — the
- * 今日推薦 card's chevron icon. The injected `</script>` therefore ended the
+ * 今日推薦 (Today's Pick) card's chevron icon. The injected `</script>` therefore ended the
  * inline module early at the HTML-PARSER level, which is a different thing from
  * the file failing to parse: the file on disk parsed perfectly. That is why this
  * checker could not see it — everything here reads the FILE, and the corruption
@@ -226,7 +226,8 @@ if (checked === 0) {
  *
  * What the reader got: `SyntaxError: Unexpected end of input` at the injected
  * line, an empty navbar, an empty theme toggle, an empty 今日推薦 card, an empty
- * 熱門 grid, three empty 快速連結 panels, nine untinted 精選系列 cards, and about
+ * 熱門 (Popular) grid, three empty 快速連結 (Quick Links) panels, nine untinted
+ * 精選系列 (Featured Series) cards, and about
  * four screens of raw JavaScript rendered as page text.
  *
  * So the assertion is the PRECONDITION rather than the symptom, and it is

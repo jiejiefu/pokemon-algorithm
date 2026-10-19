@@ -3,31 +3,19 @@
  *
  *   node scripts/check_categories.mjs
  *
- * Guards assets/js/categories.js, which drives category.html. Nothing else
- * exercises this file: it is imported by exactly one page, the page's only error
- * surface is a generic try/catch that prints "載入失敗", and — the reason this
- * file exists — a selector whose argument shape is wrong does not throw. It
- * returns an empty array, and the page renders a confident, correctly-styled,
- * completely empty grid.
- *
- * That is not hypothetical. `regionalMembers()` was written `(data, chains)`
- * while `starterMembers()` was `(data, gens)`, and category.html calls every
- * selector with the same three positional arguments in `needs` order. So the
- * regional page handed its chains parameter the *generations* array, every
- * `chain.variants` was undefined, and the regional category produced 0 of its 58
- * members with no error in any console. A non-zero member count per category is
- * the single assertion that would have caught it, so it is asserted for all nine.
+ * Guards assets/js/categories.js, which drives category.html. A selector whose
+ * argument shape is wrong does not throw: it returns an empty array, and the
+ * page renders a correctly-styled empty grid. A non-zero member count per
+ * category is therefore asserted for every category.
  *
  * The other invariants pinned here are the ones that break quietly:
- *   - artwork exists on disk for every member (a bad filename is a broken <img>,
- *     which is invisible to any assertion that only looks at JSON);
+ *   - artwork exists on disk for every member;
  *   - every card has a Traditional Chinese title and a detail-page target,
  *     because a form card links to its BASE species (form ids like 10033 have no
  *     record in pokemon_data.json and detail.html could not resolve them);
  *   - the shiny page's cards are real artwork on disk and not a CSS filter, and
  *     shared.js still points them at assets/images/shiny/;
- *   - every declared filter selects at least one member, so a renamed or
- *     retuned predicate cannot leave a chip that filters to nothing;
+ *   - every declared filter selects at least one member;
  *   - the tiles() pair shapes are renderable, with no undefined/NaN.
  *
  * It imports the real ES module, so it also catches syntax errors in it.
@@ -58,31 +46,20 @@ import {
 } from '../assets/js/categories.js';
 import { TYPE_COLORS, TYPE_EN_ZH, hexToRgb } from '../assets/js/shared.js';
 import { SHINY_IDS, hasShiny } from '../assets/js/shiny-index.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok } = C;
 
 /**
  * Source with its comments removed, for the guards below that assert on what the
- * code DOES rather than what it says.
+ * code does rather than what it says.
  *
- * Stripping is not politeness — it is the whole point. Both files document the
- * filter they no longer apply, by name and by value, precisely so the next person
- * does not "restore" it: shared.css's replacement comment still says
- * `hue-rotate(-28deg) saturate(165%)`, and shared.js's still says the option
- * "used to apply" one. A guard that matched raw text would fail on those comments
- * and could only be satisfied by deleting the explanation, which is the wrong
- * trade. Line comments, block comments and CSS /* *\/ blocks all go.
+ * Both files document the filter they no longer apply, by name and by value, so
+ * a guard matching raw text would fail on those comments. Line comments, block
+ * comments and CSS /* *\/ blocks are all stripped.
  */
 function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
@@ -911,8 +888,8 @@ ok(
 );
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

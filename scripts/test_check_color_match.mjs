@@ -155,10 +155,10 @@ const CASES = [
 
   {
     // THE case this whole file exists for. §3.B2 records nearest-in-RGB naming
-    // #414141 墨綠 because a tinted entry 8 away in one channel beat every grey
-    // 20 away in all three. The mutation is a REAL RGB swap — `hexToOklab`
-    // replaced by plain 8-bit channel extraction and `deltaEOk` by channel
-    // euclidean — not a rescaling of the OKLab coordinates.
+    // #414141 墨綠 (dark green) because a tinted entry 8 away in one channel
+    // beat every grey 20 away in all three. The mutation is a REAL RGB swap —
+    // `hexToOklab` replaced by plain 8-bit channel extraction and `deltaEOk` by
+    // channel euclidean — not a rescaling of the OKLab coordinates.
     //
     // That distinction cost this case its first run. The original mutation
     // multiplied the OKLab coordinates by 255, which is a change of UNITS: every
@@ -276,10 +276,10 @@ const CASES = [
   // -----------------------------------------------------------------------
 
   {
-    // The product rule is "主色為主、附色輔助". Ranking by the closest colour
-    // ANYWHERE in the six is the rule a reader would assume from the word
-    // "closest", and it is wrong: it lets a species win on a colour the reader
-    // will not see.
+    // The product rule is "主色為主、附色輔助" (primary first, secondary
+    // assists). Ranking by the closest colour ANYWHERE in the six is the rule a
+    // reader would assume from the word "closest", and it is wrong: it lets a
+    // species win on a colour the reader will not see.
     name: 'ranking switches to the closest colour anywhere in the palette',
     mutate: (dir) => editModule(dir, (s) => s.replace(
       `    const d = deltaEOk(lab, g.primary.lab);
@@ -572,11 +572,11 @@ const CASES = [
     expect: 'the theme export section is not on colors-generator.html',
   },
   {
-    // The page's own copy. The meta description kept promising 「生成明暗階、套用展示」
-    // after both sections were deleted, and the intro kept claiming two kinds of
-    // content side by side. A search-result summary and the first paragraph are
-    // the two places a reader is most likely to believe, and no other check reads
-    // either.
+    // The page's own copy. The meta description kept promising
+    // 「生成明暗階、套用展示」 ("shade ramp, showcase") after both sections were
+    // deleted, and the intro kept claiming two kinds of content side by side. A
+    // search-result summary and the first paragraph are the two places a reader
+    // is most likely to believe, and no other check reads either.
     name: 'the meta description promises the removed showcase and ramp again',
     mutate: (dir) => editPage(dir, (s) => replaceOrThrow(
       s, '生成一組有量測基礎的主題色盤。',

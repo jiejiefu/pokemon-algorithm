@@ -1,47 +1,41 @@
 /**
- * 叫聲猜謎 — the page itself (cry-game.html / cry-game.css / cry-game.js).
+ * 叫聲猜謎 (cry quiz) — the page itself (cry-game.html / cry-game.css / cry-game.js).
  *
  *   node scripts/check_cry_game.mjs
  *
  * ---------------------------------------------------------------------------
- * WHY THE MEASUREMENT IS NOT HERE
+ * THE MEASUREMENT IS NOT HERE
  * ---------------------------------------------------------------------------
  *
- * Every number this page shows comes from `cry-game-similarity.js`, and that file
- * has its own checker with its own mutation harness. Duplicating the arithmetic
- * here would give the project two places to be right about the difficulty
- * ceiling, which is §3.B1's rule for a different reason: a checker that restates
- * its subject's constants can only fail when the constant moves, never when the
- * reasoning about it was wrong.
+ * Every number this page shows comes from `cry-game-similarity.js`, which has its
+ * own checker and mutation harness. Duplicating the arithmetic would give the
+ * project two places to be right about the difficulty ceiling (§3.B1): a checker
+ * that restates its subject's constants can only fail when the constant moves,
+ * never when the reasoning about it was wrong.
  *
- * What IS here is the half nothing else looks at: the shell contract, the
- * `[hidden]` pairing, the node-capture discipline, and the claims that are about
- * THIS FILE — which ids are written, which by more than one function, and which
- * the stylesheet has a rule for.
+ * What is here is the half nothing else looks at: the shell contract, the
+ * `[hidden]` pairing, the node-capture discipline, and the claims about which ids
+ * are written and by which function.
  *
  * ---------------------------------------------------------------------------
- * THE FOUR THINGS THAT ARE DERIVED RATHER THAN RESTATED
+ * FOUR THINGS ARE DERIVED RATHER THAN RESTATED
  * ---------------------------------------------------------------------------
  *
- * Each of these had a version written by hand first, and each restatement is a
- * second source of truth that goes stale in the direction that hides a defect.
+ * A restatement is a second source of truth that goes stale in the direction that
+ * hides a defect.
  *
  * 1. **The `[hidden]` pairing list.** Walked out of cry-game.js: find every
  *    `setRevealed(els.X` and `els.X.hidden` site, resolve the id, read that
  *    element's class out of cry-game.css, and require a `[hidden]` rule ONLY when
  *    its body declares `display: flex|grid|inline-flex|inline-grid`. An element
- *    whose author display is `block` or none needs no pairing, and requiring one
- *    anyway produces a rule list nobody maintains.
- * 2. **The id inventory.** Every `getElementById` resolves in the markup, and
- *    every id in the markup is reached by something — with the four ARIA
- *    exemptions (`for=`, `aria-labelledby=`, `aria-controls=`,
- *    `aria-describedby=`), because an id referenced only by ARIA is still a live
- *    element and still must exist.
+ *    whose author display is `block` or none needs no pairing.
+ * 2. **The id inventory.** Every `getElementById` resolves in the markup and
+ *    every id in the markup is reached by something, with four ARIA exemptions
+ *    (`for`, `aria-labelledby`, `aria-controls`, `aria-describedby`).
  * 3. **The handler routes.** Both a delegated `closest('#id')` and a direct
- *    listener on a permanent node count, each with a floor. A count of ONE in
- *    either direction is a smell detector for "a control is bound to a node a
- *    re-render can detach", and colour-game learned that by failing on an
- *    improvement that took the count from 4 to 3 (§3.W).
+ *    listener on a permanent node count, each with a floor; a count of ONE in
+ *    either direction signals a control bound to a node a re-render can detach
+ *    (§3.W).
  * 4. **The `selectors are all cg-` rule.** Every selector in cry-game.css is
  *    parsed and checked, excluding at-rule preludes and keyframe stops.
  *
@@ -50,16 +44,10 @@
  * THE STRIPPED COPY
  * ---------------------------------------------------------------------------
  *
- * `cry-game.js` explains at length that `Math.random` must not appear in it,
- * `cry-game.css` documents this very rule — and a stylesheet assertion built on
- * raw text reads the sentence that describes the rule as an instance of it.
- * That is §3.S's finding, in the file the finding is written in: the false
- * positive was in the checker written to catch the real thing.
- *
+ * `cry-game.css` documents this very rule, and a stylesheet assertion built on
+ * raw text reads the sentence describing the rule as an instance of it (§3.S).
  * So `jsCode` and `cssCode` are comment-stripped before any rule-shaped
- * assertion, and `htmlCode` exists beside `html` for the same reason — the
- * markup's comments name the `[hidden]` pairs and the delegation, and an absence
- * test over the raw text is satisfied by the paragraph explaining the absence.
+ * assertion, and `htmlCode` exists beside `html` for the same reason.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -94,12 +82,10 @@ const css = readFileSync(join(ROOT, 'assets/css/cry-game.css'), 'utf8');
 const js = readFileSync(join(ROOT, 'assets/js/cry-game.js'), 'utf8');
 const moduleSrc = readFileSync(join(ROOT, 'assets/js/cry-game-similarity.js'), 'utf8');
 const sharedSrc = readFileSync(join(ROOT, 'assets/js/shared.js'), 'utf8');
-/* The CSS is read SEPARATELY and on purpose. The first version pulled the
- * row-layout modifier list out of `assets/js/shared.js`, which is JavaScript and
- * contains no selectors at all — so the list came back empty and the membership
- * assertion reported 「not one of the 0」 while the page carried a modifier that
- * does not exist. The list lives in `assets/css/shared.css`, next to the rules
- * that give those classes their layout. */
+/* The CSS is read SEPARATELY on purpose: the row-layout modifier list lives in
+ * `assets/css/shared.css`, next to the rules that give those classes their
+ * layout. Reading it from `shared.js` returns an empty list, and the membership
+ * assertion then reports against nothing. */
 const sharedCss = readFileSync(join(ROOT, 'assets/css/shared.css'), 'utf8');
 
 const htmlCode = stripHtmlComments(html);
@@ -109,9 +95,8 @@ const jsCode = stripJsComments(js);
 /**
  * The body of a named top-level function, brace-matched.
  *
- * §3.P's second vacuous shape, and this file is full of places it would bite:
- * `/function renderAll[\s\S]*?…/` matches a call three functions later. Every
- * function-scoped assertion below goes through here.
+ * §3.P's second vacuous shape: `/function renderAll[\s\S]*?…/` matches a call
+ * three functions later, so every function-scoped assertion goes through here.
  */
 function fnBody(src, name) {
   const head = src.indexOf(`function ${name}(`);
@@ -138,12 +123,10 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
 
   // §3.G2: a bare `.header` is the MOBILE layout and renders a valid, wrong page.
   // `check_nav_pages.mjs` reads the six modifier names out of shared.css; this
-  // only asserts that EXACTLY ONE is present and that it is this page's.
+  // only asserts that exactly one is present and that shared.css defines it.
   /* Read the modifier list out of the COMBINED selector at the row layout, not
    * out of the per-modifier `--page-accent` rules at the top. Both name the same
-   * six classes, but only the combined one is the list that means "these are the
-   * row layouts" — and the first regex here matched neither, returning an empty
-   * list that made the membership assertion below report `0`. */
+   * six classes, but only the combined one means "these are the row layouts". */
   const rowLayout = (sharedCss.match(/\.header-dex,\s*\.header-3d,[\s\S]{0,200}?\{/) || [])[0] || '';
   const modifiers = [...rowLayout.matchAll(/\.header-([a-z0-9-]+)/g)].map((m) => m[1]);
   check(modifiers.length >= 6,
@@ -153,21 +136,14 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
   const used = [...onHeader.matchAll(/header-([a-z0-9-]+)/g)].map((m) => m[1]);
   check(used.length === 1, `the header carries exactly one row-layout modifier — found ${used.length}`,
     () => `header class is "header${onHeader}"; shared.css defines ${modifiers.length}: ${modifiers.join(', ')}`);
-  /* MEMBERSHIP, not a name. The first version asserted `used[0] === 'cries'` —
-   * a modifier that does not exist — and passed, because the assertion was about
-   * the string this page happened to carry rather than about whether shared.css
-   * defines it. So the page shipped with `header-cries`, which `.header` on its
-   * own then rendered: the mobile column layout, the nav on a second row, and
-   * the theme toggle in the corner. `check_nav_pages.mjs` caught it on its very
-   * next run, which is the argument for asserting MEMBERSHIP here rather than
-   * restating a name — and for the fact that this checker is not the only one
-   * reading shared.css. */
+  /* MEMBERSHIP, not a name: asserting the modifier's string says nothing about
+   * whether shared.css defines it, so the page could ship `header-cries` and
+   * still render the mobile column layout under a bare `.header`. */
   check(modifiers.includes(used[0]),
     `and shared.css actually defines header-${used[0]}`,
     () => `header-${used[0]} is not one of the ${modifiers.length}: ${modifiers.join(', ')}`);
-  /* AND it is the SAME modifier the rest of the 叫聲 group uses, read out of
-   * those files rather than remembered — three headers for one group and a
-   * fourth invented name is how a page ends up looking like a different family. */
+  /* AND it is the SAME modifier the rest of the 叫聲 (cry) group uses, read out
+   * of those files rather than remembered. */
   const siblings = ['cries.html', 'spectrum.html', 'cries-gen1.html']
     .map((f) => (readFileSync(join(ROOT, f), 'utf8').match(/<header class="header header-([a-z0-9-]+)"/) || [])[1])
     .filter(Boolean);
@@ -176,13 +152,11 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
     () => `this page uses header-${used[0]}`);
 
   // §3.G2 again: the toggle SHIPS EMPTY. `initThemeToggle()` guards on
-  // `.icon-sun`, so a hand-authored pair of any other class is doubled.
-  /* NO CHILD ELEMENTS AT ALL, rather than 「no `icon-sun`」. The second version
-   * banned those two class names by name and a mutation that shipped a hand-drawn
-   * pair called `my-sun` / `my-moon` sailed straight through — which is the exact
-   * defect, because `initThemeToggle()`'s guard only tests for `.icon-sun`, so a
-   * pair of ANY other class is not replaced but ADDED TO: four children in a
-   * 34px grid box, one painting outside it, and nothing thrown. */
+  // `.icon-sun`, so a hand-authored pair of any other class is added to, not replaced.
+  /* NO CHILD ELEMENTS AT ALL, rather than "no `icon-sun`". `initThemeToggle()`'s
+   * guard only tests for `.icon-sun`, so a pair of ANY other class is ADDED TO,
+   * leaving four children in a 34px grid box with one painting outside it and no
+   * error thrown. */
   const toggle = (htmlCode.match(/<button class="theme-toggle"[\s\S]*?<\/button>/) || [])[0] || '';
   check(!!toggle && !/<(svg|span|i)[\s>]/.test(toggle),
     'the theme toggle ships with no child elements, so the runtime injects exactly one icon pair',
@@ -200,21 +174,18 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
 
   /* `check_nav_pages.mjs` reads the mount off the HTML BY DESIGN: a grep over
      `assets/js` cannot answer "which pages mount the nav", because the import
-     names the symbol and two pages carry it inside a comment. So the page must
-     NOT also mount it from its own module — which would make the HTML check pass
+     names the symbol and a page can carry it inside a comment. So the page must
+     NOT also mount it from its own module, which would make the HTML check pass
      while the page's real behaviour came from the other place. */
   check(!/initHeaderNav/.test(jsCode), 'cry-game.js does NOT also mount the nav', () => 'the mount is in two places');
   check(!/initThemeToggle/.test(jsCode), 'nor the theme toggle', () => 'the mount is in two places');
   check(/from '\.\/cry-game-similarity\.js'/.test(jsCode), 'and it imports the pure module it is drawn from');
 
   /* WHAT IS LOAD-BEARING IS THAT IT IS INLINE AND IN THE HEAD, not that it
-   * precedes the stylesheet link. The first version of this assertion ordered it
-   * before `rel="stylesheet"` — which colour-game.html's own comment also claims,
-   * and which is not what either file does. A `<link rel="stylesheet">` blocks
-   * the parser until it loads, so an inline script anywhere in `<head>` runs
-   * before the first paint whether or not a stylesheet was requested above it.
-   * What would break the guarantee is an EXTERNAL script, which is deferred and
-   * therefore runs after paint — so that is what is asserted. */
+   * precedes the stylesheet link: a `<link rel="stylesheet">` blocks the parser,
+   * so an inline script anywhere in `<head>` runs before the first paint. What
+   * would break the guarantee is an EXTERNAL script, which is deferred and runs
+   * after paint — so that is what is asserted. */
   const headEnd = htmlCode.indexOf('</head>');
   const themeAt = htmlCode.indexOf('pokemon-theme');
   check(themeAt > 0 && themeAt < headEnd,
@@ -267,14 +238,10 @@ console.log('\nevery element the JS hides has the CSS pairing §3.M requires');
     if (!classes.length) continue;
     resolved.push({ id: guess, classes });
     /* An element needs a pairing when ANY of its classes is a flex or grid box,
-     * and the pairing may be on ANY of them.
-     *
-     * The first version built the selector from the element's WHOLE class string,
-     * so `<button class="cg-btn cg-btn-ghost" id="cg-again">` was asked for
-     * `.cg-btn cg-btn-ghost[hidden]` — a descendant selector naming an element
-     * that cannot exist. It reported a missing pairing on an element that has
-     * one, which is the failure a hand-written list has and a derived one was
-     * supposed to have removed. */
+     * and the pairing may be on ANY of them. Building the selector from the
+     * element's WHOLE class string (`class="cg-btn cg-btn-ghost"`) asks for a
+     * descendant selector that cannot exist and reports a missing pairing on an
+     * element that has one. */
     if (displaysOf(classes).some((d) => d && /^(flex|grid|inline-flex|inline-grid)$/.test(d))) {
       needsPairing.push({ id: guess, classes });
     }
@@ -309,12 +276,12 @@ console.log('\nevery element the JS hides has the CSS pairing §3.M requires');
     'and exactly ONE function in the page writes .style.display — setRevealed()',
     () => `${displayWriters} write sites`);
   /* BOTH the attribute AND the display, because they are two ways of saying the
-   * same thing and they can disagree in opposite directions. §3.M's usual
-   * finding is 「`hidden = true` does not hide it」 because an author `display`
-   * wins. This page shipped the other one: seven elements carry `hidden` in the
-   * markup, `setRevealed(el, true)` cleared only `style.display`, and the 下一題
-   * button never appeared — found by driving the page, not by any assertion here,
-   * because every pairing assertion in this file asks whether a RULE EXISTS. */
+   * same thing and can disagree in opposite directions. §3.M's usual finding is
+   * that `hidden = true` does not hide an element because an author `display`
+   * wins; this page shipped the other direction — seven elements carry `hidden`
+   * in the markup, `setRevealed(el, true)` cleared only `style.display`, and the
+   * 下一題 (next question) button never appeared. Every pairing assertion in this
+   * file asks only whether a RULE EXISTS, so no static check could see it. */
   const setBody = fnBody(jsCode, 'setRevealed') || '';
   check(setBody.includes('node.style.display') && setBody.includes('node.hidden ='),
     'setRevealed() writes BOTH the display and the hidden attribute, so they cannot disagree',
@@ -352,10 +319,9 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
     `and all ${read.size} ids exist in cry-game.html`,
     () => `missing from the markup: ${unresolvedIds.join(', ')}`);
 
-  /* THE OTHER DIRECTION, which is the one that finds dead markup. An id in the
-   * page that nothing reads is a container nothing fills — and `check_nav_pages`
-   * documents the version of this where the nav container was empty for a whole
-   * commit with no exception anywhere. */
+  /* THE OTHER DIRECTION, the one that finds dead markup: an id nothing reads is
+   * a container nothing fills. In this project's history a nav container was
+   * empty for a whole commit with no exception anywhere. */
   const markupIds = [...htmlCode.matchAll(/\sid="([a-z0-9-]+)"/g)].map((m) => m[1]);
   const ARIA = ['for', 'aria-labelledby', 'aria-controls', 'aria-describedby', 'list'];
   const orphans = markupIds.filter((id) => {
@@ -368,9 +334,8 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
     `and none of the page's ${markupIds.length} ids is an orphan`,
     () => `read by nothing: ${orphans.join(', ')}`);
 
-  /* BOTH handler routes, with a floor on each. `color-game.mjs` requires this and
-   * its comment records the cost of not having it: a count of delegated routes
-   * alone failed the suite when an improvement took the count from 4 to 3. */
+  /* Both handler routes need a floor: a count of delegated routes alone failed
+   * the suite once when an improvement took the count from 4 to 3. */
   const delegated = new Set([...jsCode.matchAll(/closest\('#([a-z0-9-]+)'\)/g)].map((m) => m[1]));
   const attrHooked = new Set([...jsCode.matchAll(/closest\('\[([a-z-]+)\]'\)/g)].map((m) => m[1]));
   check(delegated.size >= 2,
@@ -393,22 +358,21 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
     check(!!cls, `the node behind els.${prop} exists in the markup`);
   }
 
-  /* THE DELEGATED CONTAINER IS ONE THAT SURVIVES. `#cg-choices` has its innerHTML
-   * replaced on every question change, so the listener has to be on the element
-   * ITSELF and read the option index off the card — the alternative is a
-   * listener per card, on a node that is about to be thrown away, and a detached
-   * node does not bubble (§3.I). */
+  /* THE DELEGATED CONTAINER MUST SURVIVE. `#cg-choices` has its innerHTML
+   * replaced on every question change, so the listener is on the container itself
+   * and reads the option index off the card: the alternative binds a listener per
+   * card, on a node about to be thrown away, and a detached node does not bubble
+   * (§3.I). */
   const choicesBody = fnBody(jsCode, 'renderChoices') || '';
   check(/els\.choices\.innerHTML\s*=/.test(choicesBody),
     'renderChoices() is what re-renders the options');
   check(/els\.choices\.addEventListener/.test(jsCode),
     'and the options\' click handler is on #cg-choices, which is never replaced');
-  /* A `.canvas` on something that IS the canvas. Both call sites of the blit
-   * disagreed about what they were passing — one passed the cache wrapper, the
-   * other the element — and `paintWave` read `.canvas` off its argument, so the
-   * waveform drew nothing. 109 static assertions were green throughout, because
-   * every one of them asks whether the canvas EXISTS and has a SIZE, and neither
-   * is the question. Found by driving the page. */
+  /* A `.canvas` on something that IS the canvas. `paintWave()` read `.canvas` off
+   * its argument while one call site passed the cache wrapper and the other the
+   * element, so the waveform drew nothing — and every static assertion was green
+   * because they all ask whether the canvas EXISTS and has a SIZE, which is not
+   * the question. Found by driving the page. */
   const paint = fnBody(jsCode, 'paintWave') || '';
   check(/ctx\.drawImage\(source/.test(paint) && !/\.canvas\b/.test(paint),
     'paintWave() blits the element it is given and never reads a .canvas property off it',
@@ -423,10 +387,10 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
     () => blits.join(' | '));
 
   /* EVERY identifier a render function reads is a PARAMETER or a module-level
-   * binding. A free variable inside `renderChoices()` cost a real run: it read
-   * the current question's index `i`, which existed in `renderAll()` and not
-   * here, so answering a question threw and the whole render after the choice
-   * grid — the names, the dossier link, the 下一題 button — never happened. */
+   * binding. A free variable inside `renderChoices()` read the current question's
+   * index `i`, which existed in `renderAll()` and not here, so answering a
+   * question threw and the whole render after the choice grid — the names, the
+   * dossier link, the 下一題 (next question) button — never happened. */
   check(/function renderChoices\(q, playing, i\)/.test(jsCode),
     'renderChoices() takes the question index as a parameter rather than closing over one',
     () => 'renderChoices() cannot see `i`');
@@ -442,10 +406,9 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
     'and no listener is attached to an option card — a card is re-rendered on every question change',
     () => `${perCard.length} in-loop listeners`);
 
-  /* THE PLAY GLYPH IS `data-state`, NEVER `innerHTML`. This is `color-game`'s
-   * §3.W hint-bar defect one level up: `renderHints()` wrote
-   * `els.hintBtn.innerHTML`, which destroyed the `<span>` the progress bar lived
-   * in, so the bar never appeared once and nothing threw. */
+  /* THE PLAY GLYPH IS `data-state`, NEVER `innerHTML`. §3.W's hint-bar defect one
+   * level up: writing `innerHTML` destroys the child node a progress element
+   * lived in, so the bar never appears and nothing throws. */
   check(!/els\.play\.innerHTML/.test(jsCode) && !/els\.hintBtn\.innerHTML/.test(jsCode),
     'no control on this page rebuilds its own contents — the play glyph and the hint label are attributes and textContent');
   check(/els\.play\.dataset\.state\s*=/.test(jsCode), 'the play glyph is driven by data-state');
@@ -456,10 +419,9 @@ console.log('\nall ids resolve, none are orphans, and every route is bound');
 console.log('\nthe page has no randomness of its own, and one live region');
 // ---------------------------------------------------------------------------
 {
-  /* The claim in the file's docblock, asserted against the comment-stripped
-   * source — the docblock NAMES `Math.random` four times, so an unstripped
-   * assertion would be satisfied by the paragraph explaining the rule, which is
-   * §3.S's false positive in the file §3.S is written in. */
+  /* Asserted against the comment-stripped source: the docblock NAMES
+   * `Math.random`, so an unstripped assertion is satisfied by the paragraph
+   * explaining the rule — §3.S's false positive in the file §3.S is written in. */
   check(!/Math\.random/.test(jsCode),
     'cry-game.js contains no Math.random — every draw takes the module\'s default',
     () => `${(jsCode.match(/Math\.random/g) || []).length} occurrences`);
@@ -479,30 +441,21 @@ console.log('\nthe page has no randomness of its own, and one live region');
     || /role="status"[^>]*id="cg-player"/.test(htmlCode),
     'and it is #cg-player with role="status"');
 
-  /* ONE WRITER, PLUS ONE ASSERTED BOOT EXCEPTION. The live region had seven write
-   * sites and this check is what found them: the empty-pool branch, the
-   * mid-round restore, the playback-failure branch and the data-load failure each
-   * assigned `textContent` directly, so whichever ran last won and two of them
-   * assigned BEFORE the render that was supposed to show them — the mid-round
-   * restore set its sentence after `renderAll()` had already consumed and cleared
-   * the field, so it surfaced later, displacing an unrelated message.
+  /* FUNCTIONS, NOT SITES. Counting assignments makes a correct file look wrong
+   * and a wrong one look right depending on how many branches the right writer
+   * has: `renderPlayer()` has three (an announcement, a finished round, the
+   * default prompt), which is one writer doing three jobs.
    *
-   * The load failure is the one exception and it is stated in the source: `init()`
-   * has no `renderAll()` to call because nothing has rendered yet. So the rule is
-   * 「exactly two, and the second is the boot failure」 rather than 「one」. */
-  /* FUNCTIONS, NOT SITES. The first version counted assignments and asked for
-   * two; there are four, because `renderPlayer()` has three branches — an
-   * announcement, a finished round, and the default prompt — which is one
-   * writer doing three jobs. The claim is about writers, and counting sites
-   * instead makes a correct file look wrong and a wrong one look right
-   * depending on how many branches the right writer has. */
-  /* NEAREST PRECEDING DECLARATION, not a brace-depth stack. A stack is the
-   * textbook way to do this and it is wrong here: `} catch (e) {` opens and
-   * closes a brace on one line in the wrong order for a naive counter, so the
-   * stack popped early and attributed `renderPlayer()`'s writes to module scope.
-   * Scanning backwards for the last `function NAME(` before the line is crude and
-   * has no state to get wrong, and it is exact for this file because no two
-   * functions share a name. */
+   * ONE WRITER, PLUS ONE ASSERTED BOOT EXCEPTION. `init()` has no `renderAll()`
+   * to call because nothing has rendered yet, so the rule is 「exactly two, and
+   * the second is the boot failure」 rather than 「one」. Every other path sets
+   * `lastAnnouncement` BEFORE the render that consumes it, so the sentence is not
+   * displaced by an unrelated later render.
+   *
+   * NEAREST PRECEDING DECLARATION, not a brace-depth stack. `} catch (e) {` opens
+   * and closes a brace on one line in the wrong order for a naive counter, so a
+   * stack pops early and misattributes writes. Scanning backwards for the last
+   * `function NAME(` is exact here because no two functions share a name. */
   const writers = new Set();
   {
     const lines = jsCode.split('\n');
@@ -575,9 +528,9 @@ console.log('\nstyles: every selector is ours, and the card really is flush');
       `cry-game.css contains no ${prefix} rule — ${['cy', 'sp', 'gm', 'cp'].includes(prefix.slice(1)) ? "that page's" : 'any shared'} prefix is another page's problem`);
   }
 
-  /* §3.W's rule about the accent: one value cannot serve both themes, and the
-   * proof is that the two DIFFER. A single declaration would satisfy an
-   * existence check and leave colour-game's white-on-white bug in place. */
+  /* §3.W: one value cannot serve both themes, so the proof is that the two
+   * DIFFER — a single declaration satisfies an existence check and leaves the
+   * white-on-white bug in place. */
   const accents = [...cssCode.matchAll(/--cg-accent:\s*(#[0-9a-fA-F]{3,8})/g)].map((m) => m[1]);
   check(accents.length === 2,
     `--cg-accent is declared once per theme — ${accents.length} declaration(s): ${accents.join(' ')}`,
@@ -600,8 +553,9 @@ console.log('\nstyles: every selector is ours, and the card really is flush');
   const waveRule = (cssCode.match(/\.cg-wave\s*\{([^}]*)\}/) || [])[1] || '';
   check(!/border-radius/.test(waveRule), 'and .cg-wave carries no radius of its own');
 
-  /* `flex-basis: 0` versus `auto` is a §3.G3 lesson: segments with no intrinsic
-   * width collapse to their border. The type band is the same shape. */
+  /* §3.G3: segments with no intrinsic width collapse to their border under
+   * `flex-basis: auto`; `0` is what makes them share the row. The type band is
+   * the same shape. */
   const bandRule = (cssCode.match(/\.cg-choice-types span\s*\{([^}]*)\}/) || [])[1] || '';
   check(/flex:\s*1 1 0/.test(bandRule),
     'the type band\'s segments are flex: 1 1 0, not auto — they have no intrinsic width',
@@ -630,9 +584,9 @@ console.log('\nthe choices really are nameless until the answer is given');
   check(body.includes('cg-choice-name'),
     'and the name element always exists, holding its line — otherwise resolving a question resizes four cards');
 
-  /* The reference prints the name on all four cards, which makes the game a
-   * memory test. Asserting the ABSENCE of the name in the playing state is the
-   * only way that claim is policed. */
+  /* The name is printed on all four cards in the reference, which turns the game
+   * into a memory test. Asserting the ABSENCE of the name in the playing state is
+   * the only way that claim can be policed. */
   check(!/cg-choice-name[^}]*>[^<]*\$\{p\.names\.zh\}/.test(body),
     'the name is not written unconditionally');
 
@@ -645,12 +599,10 @@ console.log('\nthe choices really are nameless until the answer is given');
   /* The sprite is NOT greyscaled here, unlike colour-game's suggestion list —
    * and that is a deliberate difference: there the sprite was a LEAK beside the
    * clue; here it IS the answer. */
-  /* SCOPED TO THE BARE SELECTOR. An earlier version of this was
-   * `/.cg-choice[^{]*\{/`, which also matches `.cg-choice.is-eliminated
-   * .cg-choice-sprite` — so it reported the greyscale the hint deliberately
-   * applies as the option sprite being greyscaled, and would have been deleted
-   * by anyone who believed it. The claim is about the card in its PLAYING state,
-   * which is the bare `.cg-choice` and nothing under it. */
+  /* SCOPED TO THE BARE SELECTOR. `.cg-choice[^{]*\{` also matches
+   * `.cg-choice.is-eliminated .cg-choice-sprite`, so it reports the greyscale the
+   * hint deliberately applies as the option sprite being greyscaled. The claim is
+   * about the card in its PLAYING state, which is the bare `.cg-choice`. */
   const bareChoice = (cssCode.match(/(?:^|[,}\s])\.cg-choice\s*\{([^}]*)\}/g) || [])
     .map((r) => (r.match(/\{([^}]*)\}/) || [])[1]).join(' ');
   check(!/filter:\s*grayscale/.test(bareChoice),
@@ -661,23 +613,20 @@ console.log('\nthe choices really are nameless until the answer is given');
 }
 
 // ---------------------------------------------------------------------------
-/* §3.P: A DIFFICULTY TAB THAT SILENTLY RE-NARROWS THE POOL. `game-similarity.js`
- * gives its own `easy` one generation and `hard` the dex; this page does the same
- * through `DEFAULT_GENERATION`. The dangerous half is not the table — it is a
- * difficulty change that takes a filter the reader chose away from them, with
- * nothing in the interface saying the pool moved. §3.W's shape. */
+/* §3.P: a difficulty tab silently re-narrows the pool. The dangerous half is not
+ * the table but a difficulty change that takes away a filter the reader chose,
+ * with nothing in the interface saying the pool moved. §3.W's shape. */
 console.log('\nthe opening generation is a DEFAULT, not an override');
 {
   check(/DEFAULT_GENERATION/.test(jsCode) && /from '\.\/cry-game-similarity\.js'/.test(jsCode),
     'the page reads DEFAULT_GENERATION from the module rather than writing its own lookup');
   check(!/\{\s*easy:\s*1\s*,/.test(jsCode),
     'and holds no copy of it — a second table is a second thing to keep right');
-  /* THE PAGE DOES NOT NORMALISE THE VALUE ON ASSIGN. It runs the STORED value
-   * through `normalizeGeneration`, which falls back to 全部世代, but assigns the
-   * table's value raw — so a table naming a generation this corpus lacks would
-   * hand `poolFor()` an absent generation and the page would report
-   * 「這個範圍沒有足夠的寶可夢出題」 on a tier that should have opened on the whole
-   * dex. The module checker asserts the values exist; this is the other end. */
+  /* The table is assigned RAW, not run through `normalizeGeneration`. A table
+   * naming a generation this corpus lacks would hand `poolFor()` an absent
+   * generation and the page would report 「這個範圍沒有足夠的寶可夢出題」 (not enough
+   * Pokémon to build a round) on a tier that should have opened on the whole dex.
+   * The module checker guarantees the values exist; this is the other end. */
   const setDiffRaw = fnBody(jsCode, 'setDifficulty') || '';
   check(!/state\.gen = normalizeGeneration\(DEFAULT_GENERATION/.test(jsCode),
     'and note that the table is assigned RAW rather than through normalizeGeneration — stated here because the module side is what actually guarantees the value is valid',
@@ -689,12 +638,10 @@ console.log('\nthe opening generation is a DEFAULT, not an override');
   check(!/state\.gen = DEFAULT_GENERATION/.test(setDiff.replace(/if \(!state\.genTouched\) state\.gen = DEFAULT_GENERATION\[next\];/, '')),
     'and never applies it unconditionally anywhere else in that function');
 
-  /* `genTouched` IS SET BEFORE THE EARLY RETURN, and that placement is the whole
-   * defect this assertion exists for. Re-clicking the chip that is already
-   * selected returns before the flag is written, so a reader who opened on 簡單
-   * — where 第I世代 IS the default — and clicked it has made no recorded choice,
-   * and their next real pick is treated as the first click rather than the
-   * second. */
+  /* `genTouched` MUST BE SET BEFORE THE EARLY RETURN. Re-clicking the chip that
+   * is already selected returns before the flag is written, so a reader who
+   * opened on 簡單 (easy) — where 第I世代 IS the default — and clicked it has made
+   * no recorded choice, and their next real pick is treated as their first. */
   const setGen = fnBody(jsCode, 'setGeneration') || '';
   const touchAt = setGen.indexOf('state.genTouched = true;');
   const returnAt = setGen.indexOf('if (next === state.gen) return;');
@@ -755,19 +702,19 @@ console.log('\nthe daily round survives a reload, and rebuilds rather than resto
     'and it REBUILDS the questions from the seed rather than storing them — a stored round would pin today\'s puzzle to one reader\'s first visit');
   check(/store\.get/.test(fn), 'reading what was saved');
 
-  /* Only the picks are persisted. Storing answers too would be the same
+  /* Only the picks are persisted. Storing the answers too would be the same
    * duplication with a worse failure mode. */
   const persist = fnBody(jsCode, 'persistDaily') || '';
   check(/picks:/.test(persist) && !/answers:/.test(persist) && !/questions:/.test(persist),
     'only the PICKS are persisted — the questions are re-derived, so they cannot drift from the module');
-  /* `localStorage` appears three times, all of them inside the `store` wrapper —
-   * and that is the point of the wrapper, because private mode throws on
-   * `getItem` and a page that touches storage unguarded dies before it renders.
-   * So the count is compared against the wrapper's own three, not against zero. */
-  /* THE WRAPPER IS AN OBJECT LITERAL, NOT A FUNCTION, so `fnBody()` cannot find
-   * it — the first version asked for a `function get(` and got null, then read
-   * null's `.match` as a failure with no detail. It is sliced out of the source
-   * instead, and the assertion is that NOTHING OUTSIDE it names localStorage. */
+  /* `localStorage` appears only inside the `store` wrapper, which is the point of
+   * the wrapper: private mode throws on `getItem`, and a page that touches storage
+   * unguarded dies before it renders. The count is compared against the wrapper's
+   * own, not against zero.
+   *
+   * The wrapper is an OBJECT LITERAL, so `fnBody()` cannot find it — it is sliced
+   * out of the source, and the assertion is that nothing OUTSIDE it names
+   * `localStorage`. */
   const storeLiteral = (jsCode.match(/const store = \{[\s\S]*?\n\};/) || [])[0] || '';
   check(storeLiteral.includes('localStorage'), 'the try/catch `store` wrapper exists');
   check((storeLiteral.match(/localStorage\./g) || []).length === 3,
@@ -780,23 +727,18 @@ console.log('\nthe daily round survives a reload, and rebuilds rather than resto
     () => `${outside} occurrences outside the wrapper`);
 
   /* The key carries the mode's inputs, so two filters on one day are two rounds.
-   *
-   * BOTH HALVES, and the second is the one that was missing. Asserting only the
-   * CALL SITE — `dailyKey(state.difficulty, state.gen)` — is satisfied by a
-   * function whose signature takes two parameters and whose template uses one,
-   * so dropping `gen` from the key entirely left the assertion green while two
-   * readers on the same day under different filters shared one round. The
-   * template is where the filter reaches the key; the call site is only how the
-   * value gets there. */
+   * The TEMPLATE is where the filter reaches the key and the call site is only
+   * how the value gets there: asserting the call site alone is satisfied by a
+   * signature that takes two parameters and a template that uses one. */
   const keyFn = (jsCode.match(/const dailyKey = \(([^)]*)\) => `([^`]*)`/) || []);
   check(keyFn[2] ? /\$\{difficulty\}/.test(keyFn[2]) && /\$\{gen\}/.test(keyFn[2]) : false,
     'the daily key template carries BOTH the difficulty and the generation filter',
     () => `the template is \`${keyFn[2]}\``);
   check(/dailyKey\(\s*state\.difficulty\s*,\s*state\.gen\s*\)/.test(jsCode),
     'and the call site passes the filter in');
-  /* NO PARENTHESES IN THE PATTERN. The capture group `\(([^)]*)\)` excludes them,
-   * so `keyFn[1]` is `difficulty, gen` and a regex demanding a literal `\(` cannot
-   * match it — the check failed against its own correct input. */
+  /* No parens in the pattern: the capture group `\(([^)]*)\)` excludes them, so
+   * `keyFn[1]` is `difficulty, gen` and a regex demanding a literal `\(` cannot
+   * match it. */
   check(/\bgen\b/.test(keyFn[1] || ''),
     'so a drop from the template cannot be silent',
     () => `the signature is (${keyFn[1]})`);
@@ -805,10 +747,9 @@ console.log('\nthe daily round survives a reload, and rebuilds rather than resto
 
   /* A reload mid-round resumes at the first UNANSWERED question, derived from
    * the picks rather than from a stored counter that can disagree with them. */
-  /* It is a `get()` INSIDE `Object.defineProperty(state, 'indexOfCurrent', …)`,
-   * so it is not a `function name(` at all and `fnBody()` cannot find it. The
-   * first version asked `fnBody()` for `indexOfCurrent`, got null, and reported
-   * the absence of a getter that is there. Asserted on the actual construct. */
+  /* A `get()` INSIDE `Object.defineProperty(state, 'indexOfCurrent', …)`, so it is
+   * not a `function name(` and `fnBody()` cannot find it. Asserted on the actual
+   * construct. */
   const derived = (jsCode.match(/Object\.defineProperty\(state,\s*'indexOfCurrent',[\s\S]{0,900}?get\(\)\s*\{[\s\S]{0,900}?\}/) || [])[0] || '';
   check(!!derived, 'the current question is a DERIVED getter on `state`, not a stored counter',
     () => 'indexOfCurrent is not defined with Object.defineProperty(state, …, { get() { … } })');
@@ -820,12 +761,11 @@ console.log('\nthe daily round survives a reload, and rebuilds rather than resto
 }
 
 // ---------------------------------------------------------------------------
-/* `taipeiDateKey(now)` IN daily-pick.js REQUIRES its argument — it reads
- * `now.getTime()` with no default, so a bare call is a TypeError rather than a
- * date. This page called it bare in four places, and `newRound()` then threw
- * inside `persistDaily()`: no round, no waveform, and a page that looked loaded.
- * Nothing said so. One helper is the fix, and the assertion is that no bare call
- * survives anywhere in the file. */
+/* `taipeiDateKey(now)` REQUIRES its argument: it reads `now.getTime()` with no
+ * default, so a bare call is a TypeError rather than a date. A bare call in
+ * `newRound()` threw inside `persistDaily()` — no round, no waveform, and a page
+ * that looked loaded. One helper is the fix; the assertion is that no bare call
+ * survives anywhere. */
 console.log('\nthe Taipei day key is never called bare');
 {
   check(!/taipeiDateKey\(\s*\)/.test(jsCode),
@@ -846,14 +786,11 @@ console.log('\nthe Taipei day key is never called bare');
 console.log('\nthe answer\'s dossier link is built by the canonical helper');
 // ---------------------------------------------------------------------------
 {
-  /* §3.A: `detail ⇄ color` reciprocity, and the one shape the rule exists for. The
-   * link has to come from `pokemonDetailUrl()` — a derived string breaks the day
-   * either page gains a path segment, and `nidoran-f` / `nidoran-m` are the pair
-   * that would silently merge. `color-game.mjs` asserts the same thing about
-   * `#gm-explore`, and it also records that a STATIC href there was a trap: it
-   * renders `color.html` until `renderResult()` overwrites it, so the page looks
-   * right while every reader who opens it before the round ends sees a link to
-   * the wrong place. */
+  /* §3.A: the link must come from `pokemonDetailUrl()` — a derived string breaks
+   * the day either page gains a path segment, and `nidoran-f` / `nidoran-m` are
+   * the pair that would silently merge. A STATIC href is also a trap: it renders
+   * until the first render overwrites it, so a reader who opens the page early
+   * sees a link to the wrong place. */
   check(/import \{[^}]*pokemonDetailUrl[^}]*\} from '\.\/shared\.js'/.test(jsCode),
     'the page imports pokemonDetailUrl from shared.js');
   check(/els\.listen\.href = pokemonDetailUrl\(/.test(jsCode),
@@ -876,11 +813,11 @@ console.log('\nthe answer\'s dossier link is built by the canonical helper');
 }
 
 // ---------------------------------------------------------------------------
-/* §3.G: ONE PREFERENCE, ONE DEFAULT, ONE PIECE OF MARKUP. `cry-autoplay.js`
- * exists so that cries.html, spectrum.html and cries-gen1.html do not each grow
- * their own; this page is the fourth consumer and writes none of it. The class
- * prefix is `cg-` because `mountAutoplay` builds its markup from `className`, so
- * every rule it needs belongs to cry-game.css and not one to cries.css. */
+/* §3.G: one preference, one default, one piece of markup. `cry-autoplay.js`
+ * exists so the three sibling 叫聲 pages do not each grow their own; this page is
+ * the fourth consumer and writes none of it. The class prefix is `cg-` because
+ * `mountAutoplay` builds its markup from `className`, so every rule it needs
+ * belongs to cry-game.css. */
 console.log('\nthe autoplay switch is mounted, not reimplemented');
 {
   check(/from '\.\/cry-autoplay\.js'/.test(jsCode), 'the page imports mountAutoplay from cry-autoplay.js');
@@ -888,18 +825,17 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
   check(/className:\s*'cg-autoplay'/.test(jsCode),
     'with a `cg-` className — the module builds its markup from this, so cries.css\'s `.cy-autoplay` rules cannot reach it');
 
-  /* THE SLOT IS EMPTY IN THE MARKUP AND STAYS THAT WAY. `mountAutoplay` appends,
-   * so anything written between the tags is a second control that no code
-   * removes. The three sibling pages' slots are empty for the same reason. */
+  /* The slot is EMPTY in the markup and stays that way: `mountAutoplay` appends,
+   * so anything written between the tags is a second control no code removes. */
   const slot = (htmlCode.match(/<div class="cg-autoplay-slot" id="cg-autoplay-slot">([\s\S]*?)<\/div>/) || [])[1];
   check(slot !== undefined && slot.trim() === '',
     'the slot div is empty in the markup — mountAutoplay appends to it',
     () => `it contains ${JSON.stringify(slot)}`);
 
-  /* THE FIVE NAMES THE MODULE QUERIES ARE AN INTERFACE, not our selectors. It
-   * writes `className` onto the element and then reads `.${className}-track` and
-   * `.${className}-text` back out, so a missing rule here is an unstyled switch
-   * rather than an error anywhere. */
+  /* The five names the module queries are an INTERFACE, not this page's
+   * selectors. It writes `className` onto the element and reads
+   * `.${className}-track` and `.${className}-text` back out, so a missing rule
+   * here is an unstyled switch rather than an error anywhere. */
   for (const part of ['-track', '-track::after', '-text', '-text span', '[aria-checked="true"]']) {
     check(cssCode.includes(`.cg-autoplay${part}`) || cssCode.includes(`.cg-autoplay${part.replace('"', "'")}`),
       `cry-game.css styles .cg-autoplay${part}, which the mounted markup needs`,
@@ -907,11 +843,10 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
   }
   check(cssCode.includes('.cg-autoplay-text span'), 'and the hint line specifically, because the switch states its own position before the reader touches it');
 
-  /* THE THREE CONDITIONS ARE ALL NECESSARY, and `audioUnlocked` is the one that
-   * reads as an optimisation and is not. Measured: `cryPlayer.play()` before any
-   * user gesture leaves the promise PENDING FOREVER — three seconds measured, no
-   * rejection, `onStart` never fires. So the flag is what stops the page
-   * attempting a play that can only hang. */
+  /* All three conditions are necessary, and `audioUnlocked` is the one that reads
+   * as an optimisation. Measured: `cryPlayer.play()` before any user gesture
+   * leaves the promise PENDING forever — no rejection, `onStart` never fires — so
+   * the flag is what stops the page attempting a play that can only hang. */
   const maybe = fnBody(jsCode, 'maybeAutoPlay') || '';
   check(/if \(!autoplay \|\| !autoplay\.on \|\| !audioUnlocked\) return;/.test(maybe),
     'maybeAutoPlay() refuses unless the switch is on AND the document has been activated',
@@ -924,8 +859,8 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
     'and it removes itself, so the handler does not run for the rest of the session');
   check(/cryPlayer\.unlock\(\)/.test(install), 'calling cryPlayer.unlock() rather than reaching into the context');
 
-  /* IT IS CALLED FROM THE TWO TRANSITIONS AND NOWHERE ELSE. `renderAll()` runs on
-   * a theme flip, a resize and every state write, so an auto-play there would
+  /* Called from the two transitions and nowhere else. `renderAll()` runs on a
+   * theme flip, a resize and every state write, so an auto-play there would
    * replay the cry on a theme change. */
   const callers = [...jsCode.matchAll(/maybeAutoPlay\(\)/g)].map((m) => m.index);
   check(callers.length === 3,
@@ -938,7 +873,7 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
     check(!/maybeAutoPlay\(\)/.test(fnBody(jsCode, name) || ''), `${name}() does not auto-play`);
   }
 
-  /* MOUNTED BEFORE THE FIRST ROUND IS DRAWN. `maybeAutoPlay()` reads `autoplay`,
+  /* Mounted BEFORE the first round is drawn. `maybeAutoPlay()` reads `autoplay`,
    * and a default-constructed `null` there means the first question silently
    * ignores a preference the reader set on a different page. */
   const init2 = fnBody(jsCode, 'init') || '';
@@ -957,9 +892,9 @@ console.log('\nthe autoplay switch is mounted, not reimplemented');
 }
 
 // ---------------------------------------------------------------------------
-/* The result review is ten rows of forty, and §3.I is the whole reason its
- * listener is delegated: the block is rebuilt wholesale on every render, so a
- * per-sprite listener would be bound to a node about to be thrown away. */
+/* §3.I: the review block is rebuilt wholesale on every render, so its listener
+ * must be delegated — a per-sprite listener would be bound to a node about to be
+ * thrown away. */
 console.log('\nthe result review is delegated, and renders forty playable sprites');
 {
   check(htmlCode.includes('id="cg-review"'), 'the review list exists');
@@ -979,20 +914,17 @@ console.log('\nthe result review is delegated, and renders forty playable sprite
   check(/escapeHtml\(p\.names\.zh\)/.test(review), 'the name is escaped — it is DATA, and 圖鑑說明 has produced apostrophes');
 
   check(/els\.review\.addEventListener/.test(jsCode), 'the click is delegated from #cg-review');
-  /* AN ABSENCE WITHIN THE FUNCTION THAT BUILDS THEM, not a regex trying to spot a
-   * loop. The first version looked for `for (...) { … addEventListener }` with
-   * `[^}]*` between, which cannot cross a closing brace — so a per-sprite listener
-   * added inside a nested block passed, and a mutation adding one after the
-   * `innerHTML` write passed too. The claim is about what `renderReview()` does,
-   * so it reads that function's body. */
+  /* An ABSENCE WITHIN THE FUNCTION THAT BUILDS THEM, not a regex trying to spot a
+   * loop: `[^}]*` between a `for (` and an `addEventListener` cannot cross a
+   * closing brace, so a listener added inside a nested block passes. The claim is
+   * about what `renderReview()` does, so it reads that function's body. */
   check(!/addEventListener/.test(review),
     'and renderReview() attaches no listener at all — the block is replaced on every render',
     () => [...review.matchAll(/.{0,60}addEventListener.{0,40}/g)].map((m) => m[0]).join(' | '));
 
-  /* EVERY SPECIES PLAYS ITSELF. The whole reason the review exists is that a
-   * reader can hear all four and pick out the answer; a per-question button
-   * playing only the answer would say nothing they could not read in green two
-   * inches above. The reference's result page lets all forty of its cards play. */
+  /* Every species plays ITSELF. The review exists so a reader can hear all four
+   * and pick out the answer; a per-question button playing only the answer would
+   * say nothing the green border two inches above has not already said. */
   check(/cryPlayer\.play\(id, \{/.test(jsCode),
     'and a review sprite plays ITS OWN id, not the question\'s answer');
   check(/onStart: \(\) => setReviewPlaying\(id\)/.test(jsCode),
@@ -1002,9 +934,8 @@ console.log('\nthe result review is delegated, and renders forty playable sprite
   check(/active\.dataset\.playing = ''/.test(jsCode),
     'and the state is re-applied after a rebuild, because the block is replaced on every render');
 
-  /* A DIRECT REQUEST FAILS LOUDLY. This is the opposite of the auto-play path: the
-   * reader pressed one specific sprite, so the honest answer to that is that it
-   * could not be played. */
+  /* A direct request fails LOUDLY, unlike the auto-play path: the reader pressed
+   * one specific sprite, so the honest answer is that it could not be played. */
   check(/lastAnnouncement = `#\$\{id\}.*播不出來/s.test(jsCode) || /#\$\{id\} \$\{p\.names\.zh\} 的叫聲播不出來/.test(jsCode),
     'a failed review play announces itself, unlike a failed auto-play which falls back to silence');
 
@@ -1019,17 +950,16 @@ console.log('\nthe result review is delegated, and renders forty playable sprite
 console.log('\nthe four defects a static checker could not have found');
 // ---------------------------------------------------------------------------
 {
-  /* Every one of these shipped into a page whose 119 shape assertions were all
-   * green, and every one was found by driving the real page in a browser. They
-   * are here so the SECOND run does not have to find them again — and so the
-   * next page in this project inherits the list rather than rediscovering it. */
+  /* Each of these shipped into a page whose shape assertions were all green, and
+   * each was found by driving the real page in a browser. They are pinned here so
+   * a SECOND run does not have to find them again, and so the next page in this
+   * project inherits the list rather than rediscovering it. */
 
   // 1. The round ended one question early, so question 10 never happened.
-  /* BRACE-MATCHED TO `advance()`, not a whole-file regex. The first version
-   * searched the entire file, and `renderNext()` contains the identical
-   * expression — so a mutation that changed only `advance()` left the assertion
-   * green while the defect was live. §3.P's second vacuous shape, and the reason
-   * this file has a `fnBody()` helper at all. */
+  /* BRACE-MATCHED TO `advance()`, not a whole-file regex: `renderNext()` contains
+   * the identical expression, so a whole-file search is satisfied by the other
+   * function while the defect is live (§3.P's second vacuous shape). This is why
+   * the file has a `fnBody()` helper. */
   const advance = fnBody(jsCode, 'advance') || '';
   check(/state\.answeredAt \+ 1 >= state\.questions\.length/.test(advance),
     'advance() closes the round from answeredAt, not from indexOfCurrent + 1 — the getter has ALREADY moved past the question being left',

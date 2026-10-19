@@ -1,35 +1,21 @@
 #!/usr/bin/env node
 /**
- * Mutation tests for scripts/check_graph_browser.mjs.
+ * Mutation tests for scripts/check_graph_browser.mjs. Each case must make one of the
+ * checker's assertions fail.
  *
  *   node scripts/test_check_graph_browser.mjs
  *
- * The checker this attacks measured five values, printed them and exited zero no
- * matter what they were, so there was nothing here to prove — this file is written
- * after the checker gained assertions, and its job is to establish that each of those
- * assertions can fail. §3.I's rule: a checker that has only ever seen good data is
- * not known to check anything, because "all checks passed" and "no assertion ever
- * fired" print identically.
+ * §3.I's rule: a checker that has only ever seen good data is not known to check
+ * anything, because "all checks passed" and "no assertion ever fired" print
+ * identically.
  *
- * WHY THIS SERVES ITS OWN TREE AND PORT INSTEAD OF MUTATING THE REPO
+ * Each case gets its own temporary tree, its own ephemeral port, and the checker is
+ * pointed at that port through GRAPH_PORT. The server runs in this process, so there is
+ * no stray `http.server` to leak (§3.J's failure mode). Mutating the repo in place would
+ * corrupt a tree that concurrently running entries also read.
  *
- * The obvious harness copies nothing, rewrites assets/js/graph.js in place, runs the
- * checker and restores. That was safe when the runner was serial. It is not any more:
- * Tier A runs three entries at once, so a checker that happens to be reading
- * assets/js/ at that moment — check_page_module_api.mjs reads every file in that
- * directory — would see the mutation and fail for a reason that has nothing to do with
- * it. A harness that corrupts a shared tree is a harness that can fail the suite by
- * being run.
- *
- * So each case gets its own temporary tree, its own ephemeral port, and the checker is
- * pointed at that port through GRAPH_PORT. The server is in this process, which is why
- * there is no stray `http.server` to leak — §3.J's failure mode is a port left held and
- * a profile left on disk, and both of those need a separate process to happen at all.
- *
- * The one thing that is NOT copied is assets/images/, which is 370 MB across pokemon/,
- * shiny/ and scarlet-violet/ and of which graph.html needs four files. It is symlinked,
- * so a case that changes a sprite sees the change and a case that does not pays
- * nothing for it.
+ * assets/images/ is symlinked rather than copied: it is 370 MB and graph.html needs
+ * four files.
  */
 
 import { execFile } from 'node:child_process';
@@ -61,7 +47,7 @@ function cleanup() {
   for (const d of SCRATCH) { try { rmSync(d, { recursive: true, force: true }); } catch { /* already gone */ } }
 }
 /* Registered rather than placed at the bottom: a case that throws between mkdtemp and
- * its own cleanup would otherwise leak exactly the tree nobody is watching. */
+ * its own cleanup would otherwise leak the tree. */
 process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(130); });
 process.on('SIGTERM', () => { cleanup(); process.exit(143); });
@@ -90,23 +76,17 @@ function buildTree(mutate) {
  * Replace the served graph_data.json with a small one.
  *
  * The full file is 1,346 nodes and 2,523 relations, and building that in a WebGL force
- * layout is most of what each case costs — four cases of it was the single most expensive
- * entry in the suite at 33 s, against a suite that runs in 99. A hundred and twenty
- * nodes build in a fraction of the time and exercise every assertion identically: a node
- * still needs a canvas, the badge still has to be rewritten from the loaded graph, and
- * search and the dossier still have to open something.
+ * layout is most of what each case costs. A hundred and twenty nodes exercise every
+ * assertion identically: a node still needs a canvas, the badge still has to be
+ * rewritten from the loaded graph, and search and the dossier still have to open
+ * something.
  *
- * THE REAL 1,346-NODE DATASET IS NOT WHAT THIS FILE IS FOR. That is
- * check_graph_browser.mjs's own manifest entry, which runs against the repo's data at
- * 6.4 s. The split is: the checker answers "does graph.html work", this harness answers
- * "can each assertion fail". A trimmed fixture cannot answer the first and does not need
- * to; it answers the second, and it answers it four times for the price of less than one.
+ * check_graph_browser.mjs's own manifest entry answers "does graph.html work" against
+ * the real data; this harness answers "can each assertion fail".
  *
- * 皮卡丘 (id 25) is kept regardless, because two of the assertions search for it by name.
- * metadata.total_nodes and total_links are RECOMPUTED rather than copied, because the
- * checker fetches them from the page and compares them against a badge the page also
- * built — if the counts did not describe the file, the baseline would fail for a reason
- * that has nothing to do with any mutation.
+ * 皮卡丘 (id 25) is kept regardless, because two assertions search for it by name.
+ * total_nodes and total_links are recomputed because the checker compares them against
+ * a badge the page built from this same file.
  */
 const KEEP = 120;
 const MUST_KEEP = 25; // 皮卡丘
@@ -170,11 +150,9 @@ const CASES = [
     expect: null,
   },
   {
-    /* The canvas is the page. §3.G3 shipped six permanently blank lanes through a
-     * 41-script suite, and this is the same shape one layer up: a graph page that
-     * mounts nothing looks like a page whose spinner never resolves. Pointing the
-     * renderer at the wrong parent keeps every other assertion passing, so this case
-     * fails exactly one. */
+    /* A graph page that mounts nothing looks like a page whose spinner never resolves
+     * (§3.G3's shape). Pointing the renderer at the wrong parent keeps every other
+     * assertion passing, so this case fails exactly one. */
     name: 'the canvas is mounted into a detached parent, so #graph-container stays empty',
     mutate: (dir) => patch(join(dir, 'assets/js/graph.js'),
       '  const Graph = ForceGraph3D()(container)',
@@ -182,13 +160,9 @@ const CASES = [
     expect: 'the 3D canvas exists',
   },
   {
-    /* graph.html ships a static placeholder badge that graph.js overwrites. Sending the
-     * computed counts to a data attribute instead of the text leaves the placeholder
-     * on screen — which is precisely what a page whose JavaScript silently stopped
-     * running would look like, and what this check existed to catch when it printed
-     * the value and asserted nothing. The check reads the placeholder out of the
-     * served HTML rather than naming its text, so correcting the copy in graph.html
-     * cannot quietly turn "was it rewritten" into a check nothing can fail. */
+    /* Sending the computed counts to a data attribute leaves the static placeholder on
+     * screen, which is what a page whose JavaScript stopped running looks like. The
+     * check reads the placeholder out of the served HTML rather than naming its text. */
     name: 'the computed counts go to a data attribute, leaving the HTML placeholder visible',
     mutate: (dir) => patch(join(dir, 'assets/js/graph.js'),
       "      countBadge.textContent = `${activeNodes.length} 實體 · ${activeLinks.length} 關係`;",
@@ -196,9 +170,8 @@ const CASES = [
     expect: 'the entity/relation badge was rewritten at runtime',
   },
   {
-    /* The dossier is the only route from a search result to anything at all, and
-     * classList is how it opens. Removing the class rather than the call keeps the
-     * click handler running, so only the assertion about the panel being open fails. */
+    /* Removing the class rather than the call keeps the click handler running, so only
+     * the assertion about the panel being open fails. */
     name: 'selecting a node sets a data attribute instead of the is-active class',
     mutate: (dir) => patch(join(dir, 'assets/js/graph.js'),
       "    dossierPanel.classList.add('is-active');",
@@ -208,17 +181,14 @@ const CASES = [
 ];
 
 /**
- * Run the checker against `dir`, on a fresh ephemeral port.
+ * Run the checker against `dir` on a fresh ephemeral port.
  *
- * ASYNCHRONOUS execFile, NOT execFileSync, and that is not a style choice. This
- * process is also the HTTP server the checker fetches the page from, and execFileSync
- * blocks the event loop while it waits for the child — so the server cannot answer the
- * one request that matters, the page itself. The checker sat in its 30-second readiness
- * poll for ever and the harness had to be killed. Every other harness in scripts/ uses
- * execFileSync safely because none of them serves anything.
+ * Asynchronous execFile, not execFileSync: this process is also the HTTP server the
+ * checker fetches the page from, and execFileSync blocks the event loop so the server
+ * cannot answer the page request.
  *
- * `process.execPath`, not 'node' from PATH: the baseline and its mutations have to run
- * the same interpreter to be comparable.
+ * `process.execPath`, not 'node' from PATH, so the baseline and its mutations run the
+ * same interpreter.
  */
 function runChecker(dir) {
   return serve(dir).then(({ server, port }) => new Promise((res) => {
@@ -236,11 +206,9 @@ function runChecker(dir) {
   }));
 }
 
-/* Three at a time, in DECLARATION order out — see scripts/lib/pool.mjs. The cases are
- * independent by construction: each builds its own tree, listens on its own ephemeral
- * HTTP port, and gets its own CDP port from the index below, so nothing two of them
- * touch is the same. That premise is what licenses the pool, and GRAPH_CDP_PORT is what
- * makes the third clause true rather than nearly true. */
+/* Three at a time, in declaration order out — see scripts/lib/pool.mjs. Each case builds
+ * its own tree and listens on its own ephemeral HTTP port, and the checker picks its own
+ * CDP port. */
 const CONCURRENCY = 3;
 
 const verdicts = await pool(CASES.map((c) => async () => {
@@ -252,9 +220,8 @@ const verdicts = await pool(CASES.map((c) => async () => {
 let failed = 0;
 for (const { c, v: verdict, err } of verdicts) {
   if (err) {
-    /* A harness that throws did not run the checker. That is never a passing mutation
-     * case — it is a case that never happened — and it is reported as its own thing
-     * rather than folded into the verdict. */
+    /* A harness that throws did not run the checker: a case that never happened, never
+     * a passing one. */
     console.log(`  FAIL ${c.name}\n        harness threw: ${err.message}`);
     failed++;
     continue;

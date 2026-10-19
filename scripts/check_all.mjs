@@ -8,7 +8,7 @@
  *
  * WHY THIS EXISTS
  *
- * The suite is twenty-odd scripts run by hand, and they are not equally expensive.
+ * The suite is dozens of scripts run by hand, and they are not equally expensive.
  * Measured here: `check_gen1_apu.mjs` is 6.0 s of which 5.0 s is one pass over the
  * 151-species corpus at 1,048,576 Hz — 146,311,704 samples — and
  * `test_check_gen1_apu.mjs` is 37.8 s because 17 of its 39 cases need that same pass.
@@ -283,10 +283,11 @@ const CHECKERS = [
     ],
   },
   {
-    /* 顏色猜謎的出題與計分。兩個純函式模組在裸 Node 裡跑得完，所以這個檢查器
-     * 不需要瀏覽器——那正是它們被拆出去的直接原因（game-similarity.js 的檔頭）。
-     * 整個 `assets/js` 是 glob，因為兩個模組都 import 到 shared.js /
-     * color-match.js / daily-pick.js 的鏈。 */
+    /* Question generation and scoring for 顏色猜謎 (the colour-guessing game). The
+     * two pure-function modules run to completion in bare Node, so this checker
+     * needs no browser — that is the direct reason they were split out (the
+     * game-similarity.js file header). The whole of `assets/js` is a glob because
+     * both modules import the shared.js / color-match.js / daily-pick.js chain. */
     script: 'scripts/check_game_similarity.mjs', group: 'color',
     note: 'pools, the three difficulties, the OKLab distance, and the four share tiers re-measured',
     inputs: [
@@ -305,9 +306,9 @@ const CHECKERS = [
     ],
   },
   {
-    /* 三則固定提示。`evolution_levels.json` 已經不再被讀——進化提示是七個類別裡
-     * 最弱的一個，而 `evolution_chains.json` 從來沒有被讀，因為那張表的 `stage`
-     * 不可信（§3.K）。 */
+    /* Three fixed hints. `evolution_levels.json` is no longer read — the evolution
+     * hint is the weakest of the seven categories — and `evolution_chains.json` was
+     * never read, because that table's `stage` is not trustworthy (§3.K). */
     script: 'scripts/check_game_hints.mjs', group: 'color',
     note: 'three fixed slots; type measured against the categories that would give the answer away',
     inputs: [
@@ -316,18 +317,23 @@ const CHECKERS = [
     ],
   },
   {
-    /* 叫聲猜謎的出題模組。放 cry-page 而不是 color，因為 `--only=cry` 是讀者
-     * 記得住的那一個前綴，而這個模組的輸入是 `cry_features.json`。
+    /* The question-generation module for 叫聲猜謎 (the cry-guessing game). It lives
+     * in cry-page rather than color because `--only=cry` is the prefix a reader
+     * remembers, and this module's input is `cry_features.json`.
      *
-     * 這支檢查器 4.3 秒，是本群最貴的一項非瀏覽器檢查，而且它值得——它量的是
-     * 「三個難度真的有分開」這件事，而那件事的第一版設計**量出來是沒分開的**：
-     * 原本用「相似度排名區間」定義難度，困難與地獄在全部十個池子裡都重疊
-     * （`p90(困難) − p10(地獄)` 從 -0.09 到 -0.26 全是負的），等於兩個難度
-     * 標籤指向同一件事。改成「相似度上限」之後，30 個池 × 難度組合、6,150 次
-     * 物種檢查裡 **0 次違規、0 次降級**，而且分開了 0.30 / 0.65 / 0.84。
+     * This checker takes 4.3 s, the most expensive non-browser check in its group,
+     * and it earns that: it measures that the three difficulties really are
+     * separated, and the first design of that thing **measured as not separated**.
+     * Difficulty was originally defined by a similarity rank band, and hard and
+     * hell overlapped in all ten pools (`p90(hard) − p10(hell)` ran from -0.09 to
+     * -0.26, all negative), so the two difficulty labels pointed at the same thing.
+     * With a similarity ceiling instead, across 30 pool × difficulty combinations
+     * and 6,150 species checks there were **0 violations, 0 degradations**, and the
+     * tiers separated at 0.30 / 0.65 / 0.84.
      *
-     * 那些數字是這支檢查器存在的理由。它每次都重新量一次，所以資料一改就會紅，
-     * 而不是安靜地變成一個仍然通過但已經不代表任何東西的門檻。 */
+     * Those numbers are why this checker exists. It re-measures every run, so a
+     * data change turns it red rather than quietly leaving a threshold that still
+     * passes but no longer means anything. */
     script: 'scripts/check_cry_game_similarity.mjs', group: 'cry-page',
     note: 'the ceiling, re-measured across 10 pools x 3 tiers — 0 violations, 0 degraded',
     inputs: [
@@ -337,23 +343,29 @@ const CHECKERS = [
     ],
   },
   {
-    /* 33 個 case，四個 worker，約 30 秒淨跑（量到 27 秒，分頁與別的 tier 同跑時
-     * 量到 46 秒）——是本群最貴的 harness，也是刻意保留的。
+    /* 33 cases, four workers, about 30 s net (27 s measured; 46 s measured when
+     * paging runs alongside another tier) — the most expensive harness in this
+     * group, and deliberately retained.
      *
-     * 為什麼不是 §3.G5 那種「移除而不是標記」：這個模組就是這個頁面的**設計**。
-     * 它的三個常數（0.35 / 0.65 / Infinity）、它的種子字串、它的排序
-     * （相似度相同時按 id 升冪）每一個都是頁面上讀者看得見的行為，而
-     * `check_cry_game_similarity.mjs` 的斷言大多是**量測**出來的——一個量測型
-     * 斷言有兩種死法，一種是真的過不了，另一種是**怎麼改都過**，後者回報 PASS
-     * 而 PASS 這個字對它量到什麼毫無資訊。
+     * Why this is not §3.G5's "remove rather than flag": this module IS the page's
+     * **design**. Its three constants (0.35 / 0.65 / Infinity), its seed string,
+     * and its ordering (ascending id on equal similarity) are each behaviour the
+     * reader can see on the page, and most assertions in
+     * `check_cry_game_similarity.mjs` are **measured** — a measurement assertion
+     * can die two ways: it can genuinely fail, or it can **pass no matter what is
+     * changed**, and the latter reports PASS while the word PASS carries no
+     * information about what it measured.
      *
-     * 這支 harness 就是在找後者，而且找到過：四個 case 在第一版就沒被抓到，
-     * 其中兩個的缺陷是真的，修的是檢查器不是 mutation（降級分支在這個語料上是
-     * 死碼，於是檢查器現在用一個合成的小池子去走它；排序的並列規則在生產路徑
-     * 上永遠看不出來，因為每個池子都是升冪而 V8 的 sort 是穩定的，於是斷言改成
-     * 反轉池子再比一次）。另外五個 case 刪掉了而不是留成 `expect: null`：
-     * 每個都要跑滿 4.3 秒而一個都抓不到，這是 harness 的反面。刪了哪些、
-     * 為什麼，寫在檔頭。 */
+     * This harness hunts the latter, and has found it: four cases were not caught
+     * in the first version, and two of those were real defects. The checker was
+     * fixed rather than the mutation (the degradation branch is dead code on this
+     * corpus, so the checker now drives it with a synthetic small pool; the sort's
+     * tie rule is never visible on the production path because every pool is
+     * ascending and V8's sort is stable, so the assertion now reverses the pool
+     * and compares again). The other five cases were deleted rather than left as
+     * `expect: null`: each took the full 4.3 s and caught nothing, which is the
+     * inverse of what a harness is for. Which ones were deleted, and why, is in
+     * the file header. */
     script: 'scripts/test_check_cry_game_similarity.mjs', checker: 'scripts/check_cry_game_similarity.mjs', group: 'cry-page',
     note: '33 cases in child trees, four at a time — the module IS this page\'s design',
     inputs: [
@@ -363,24 +375,30 @@ const CHECKERS = [
     ],
   },
   {
-    /* 叫聲猜謎的頁面。132 個斷言，0.2 秒，全部讀檔。
+    /* The 叫聲猜謎 page. 132 assertions, 0.2 s, all read from disk.
      *
-     * 為什麼沒有瀏覽器版：`color-game.html` 到今天為止沒有，`check_cry_game.mjs`
-     * 的檔頭寫明了這件事，而 §3.W 的結尾正是那個缺口（stateless 的頁面缺陷全部
-     * 看起來不可見）。**這個頁面是在瀏覽器裡跑過才叫做完成的**——不過那是因為我
-     * 記得要去跑，不是因為有東西逼我跑。
+     * Why there is no browser version: `color-game.html` has none to this day,
+     * `check_cry_game.mjs`'s header says so, and the end of §3.W is exactly that
+     * gap (stateless page defects all look invisible). **This page is only complete
+     * once it has been run in a browser** — but that was because the author
+     * remembered to run it, not because anything forced it.
      *
-     * 瀏覽器找到的四個缺陷沒有一個是這支檢查器抓得到的，而且不是巧合：
+     * None of the four defects the browser found is reachable by this checker, and
+     * not by coincidence:
      *
-     *   - 答完第 9 題（10 題裡）就結束回合，第 10 題從來沒有發生過
-     *   - 存的作答紀錄用「題目物件」當索引還原，結果每題都還原成 null
-     *   - `findIndex` 全部命中時回傳 -1，被 `first < MAX_QUESTIONS` 接走了
-     *   - 波形在解碼完成前是空的，而每一題（第一題之後）都要等一次網路往返
+     *   - the round ended after question 9 of 10; question 10 never happened
+     *   - saved picks were restored by indexing with the question OBJECT, so every
+     *     question restored as null
+     *   - `findIndex` returned -1 when all matched, and `first < MAX_QUESTIONS`
+     *     absorbed it
+     *   - the waveform was blank until decoding finished, and every question after
+     *     the first waited on a network round trip
      *
-     * 四個都是「形狀正確、行為錯誤」的頁面。mutation harness 證明的是「改了原始碼
-     * 有沒有被發現」，而這四個從來不是原始碼的改動，它們是從來沒有以任何 shape
-     * 斷言看得見的錯誤。所以這個檢查器最後有一節**逐一把它們釘住**——第二個
-     * 相同的缺陷至少會被形狀斷言擋下。 */
+     * All four are "right shape, wrong behaviour" pages. A mutation harness proves
+     * whether a source change is noticed; these four were never source changes —
+     * they were defects no shape assertion had ever been able to see. So this
+     * checker ends with a section that **pins each one down**, so that a second
+     * occurrence of the same defect is at least stopped by a shape assertion. */
     script: 'scripts/check_cry_game.mjs', group: 'cry-page',
     note: 'the shell contract, the §3.M pairing, the autoplay unlock gate, and the four defects a browser found',
     inputs: [
@@ -397,7 +415,7 @@ const CHECKERS = [
       'assets/js/cry-game-similarity.js',
       'assets/js/daily-pick.js',
       'assets/js/shared.js',
-      /* The three sibling 叫聲 pages, because the assertion is that this page's header
+      /* The three sibling cry pages, because the assertion is that this page's header
        * modifier is the SAME one they use. */
       'cries.html',
       'spectrum.html',
@@ -405,13 +423,15 @@ const CHECKERS = [
     ],
   },
   {
-    /* 49 個 case，四個 worker，0.8 秒。
+    /* 49 cases, four workers, 0.8 s.
      *
-     * 與 `test_check_cry_game_similarity.mjs` 的關鍵差別：那一支的 33 秒買到的是
-     * 「三個常數、一個種子、一個排序」——都是讀者看得見的行為，而且它的斷言多半
-     * 是量測出來的。**這一支買不到同樣的東西，而它的檔頭直接寫明了**：頁面檢查器
-     * 的斷言全是形狀主張，一個 mutation harness 證明不了「形狀正確但行為錯誤」，
-     * 那需要瀏覽器。所以這 0.8 秒不是湊數，它是誠實地涵蓋它能涵蓋的那一半。 */
+     * The key difference from `test_check_cry_game_similarity.mjs`: that one's
+     * 33 s buys "three constants, one seed, one ordering" — all reader-visible
+     * behaviour, and most of its assertions are measured. **This one cannot buy
+     * the same thing, and its header says so outright**: the page checker's
+     * assertions are all shape claims, and a mutation harness cannot prove
+     * "right shape, wrong behaviour" — that needs a browser. So the 0.8 s is not
+     * padding; it honestly covers the half it can cover. */
     script: 'scripts/test_check_cry_game.mjs', checker: 'scripts/check_cry_game.mjs', group: 'cry-page',
     note: '49 cases in child trees — shape claims only, and the header says what that cannot cover',
     inputs: [
@@ -440,7 +460,7 @@ const CHECKERS = [
     ],
   },
   {
-    /* 頁面本身。static 與 shell contract，不需要瀏覽器。 */
+    /* The page itself. Static and shell contract; no browser needed. */
     script: 'scripts/check_color_game.mjs', group: 'color',
     note: 'the shell contract, the §3.M hidden/display pairing, and the §3.G node captures',
     inputs: [
@@ -455,29 +475,36 @@ const CHECKERS = [
     ],
   },
   {
-    /* §3.W 的 rendered half，與上面那條 static 是同一個 split（§3.G4）。
+    /* The rendered half of §3.W, the same split as the static entry above
+     * (§3.G4).
      *
-     * `check_color_game.mjs` 已經把 strip 的 140px、≤640px 的 100px、結果圖的
-     * 200px 與「沒有 image-rendering」都當 CSS 文字斷言過了，那些斷言留下——讀
-     * stylesheet 就該讀 stylesheet，而且只要 0.2s。這裡量的是那份文字實際**產生**
-     * 了什麼，所以每個 breakpoint 都量兩個方向。
+     * `check_color_game.mjs` has already asserted the strip's 140px, the 100px
+     * at ≤640px, the result image's 200px and "no image-rendering" as CSS text,
+     * and those assertions stay — a stylesheet should be read as a stylesheet,
+     * and that takes only 0.2 s. This entry measures what that text actually
+     * **produces**, so every breakpoint is measured in both directions.
      *
-     * `manual: true` 是必須的，不是客氣：它一個 repo 檔案都不讀，頁面全部從 HTTP
-     * 來，狀態跟 `check_cry_mobile_layout.mjs` 一樣。§4 說 `manual` 不影響執行，
-     * 只讓 `--prove-inputs` 印出那條誠實警告。 */
+     * `manual: true` is required, not polite: this checker reads no repo file at
+     * all; the pages all arrive over HTTP, the same state as
+     * `check_cry_mobile_layout.mjs`. §4 says `manual` does not affect execution;
+     * it only makes `--prove-inputs` print that honest caveat. */
     script: 'scripts/check_color_game_browser.mjs', group: 'color',
     browser: true, needsServer: true, manual: true,
     note: 'page inputs read off the HTML, not recorded',
-    /* 這條 entry 是 ee5f126（叫聲猜謎：換題自動播放）順手帶進來的，不是 color-game
-     * 這個 session 寫的 —— 那一個 commit 對 `check_all.mjs` 跑了整檔 `git add`，於是
-     * 一段 29 行的陌生 entry 混進了 cry-game 的 commit。檔案本身由 36bda44 補上，
-     * suite 現在一致，但**歸屬是錯的**：revert 或 rebase ee5f126 會把這支 checker
-     * 從 manifest 裡靜靜刪掉，而刪掉時不報錯。
+    /* This entry was dragged in incidentally by ee5f126 (叫聲猜謎: autoplay on
+     * question change); it was not written by the color-game session — that
+     * commit ran a whole-file `git add` on `check_all.mjs`, so a 29-line
+     * unfamiliar entry slipped into the cry-game commit. The file itself was
+     * supplied by 36bda44, and the suite is now consistent, but the
+     * **attribution is wrong**: reverting or rebasing ee5f126 would quietly
+     * delete this checker from the manifest, with no error on deletion.
      *
-     * 記在這裡而不是靠 git log，是因為 §4 的形狀：一個 commit 裡混進來的東西，
-     * 只有在**下一次有人動這個檔案**時才會被看見，而那個人看到的是一個
-     * 「color-game 一直都有這條」的 manifest。歷史不動（改寫它要重寫 4 個 SHA
-     * 底下所有人的東西），歸屬寫在它現在待著的地方。 */
+     * It is recorded here rather than left to git log because of §4's shape:
+     * something mixed into a commit is only seen the **next time someone touches
+     * this file**, and what that person sees is a manifest where "color-game
+     * always had this entry". History is left alone (rewriting it would mean
+     * rewriting everyone's work under 4 SHAs), and the attribution is written
+     * where it now lives. */
     inputs: [
       'color-game.html',
       'assets/css/color-game.css',
@@ -939,7 +966,7 @@ const CHECKERS = [
    * The §3.G4 split: a stylesheet contract and a filter's arithmetic are checked
    * by reading files off disk at ~0.2s, and the rendered half is a separate CDP
    * entry. `browser: true` is what puts the second one in tier B; `needsServer`
-   * is set for the same reason as the nine other page checkers — the pages fetch
+   * is set for the same reason as the other page checkers — the pages fetch
    * their JSON over HTTP and a file:// load is a CORS failure, not a page.
    *
    * `manual: true` because the rendered half opens no repo file — the pages
@@ -1167,6 +1194,19 @@ const CHECKERS = [
     ],
   },
   {
+    script: 'scripts/check_moves_data.mjs', group: 'data',
+    /* §3.AA: the four move tables are written in one pass by fetch_moves.py, so
+     * this entry is what keeps them from drifting apart. It was the only checker
+     * in the suite with no manifest entry, so a full run never executed it — the
+     * gap AGENTS.md §4 already described as if the entry existed. */
+    inputs: [
+      'assets/data/moves_zh.json', 'assets/data/learnsets.json',
+      'assets/data/move_learners.json', 'assets/data/move_learners_count.json',
+      'assets/data/pokemon_data.json',
+      'assets/js/moves.js',
+    ],
+  },
+  {
     script: 'scripts/check_regional_dex.mjs', group: 'data',
     inputs: [
       'detail.html',
@@ -1175,20 +1215,24 @@ const CHECKERS = [
     ],
   },
   {
-    /* §3.J 的 prefix 規則，終於有一個東西量它。
+    /* The §3.J prefix rule, finally measured by something.
      *
-     * 這一條規則從寫下來到現在都是人手審，而且已經錯過兩次：cry-game 的
-     * `cgpage-neg-` 落在別人選的 `cgpage-` 命名空間裡（§3.J 自己記了那一段），
-     * 然後 AGENTS.md 裡的總數被改了三次 —— 30、31、33 —— 沒有一次是程式量的。
+     * This rule has been reviewed by hand from the day it was written, and has
+     * already been missed twice: cry-game's `cgpage-neg-` landed inside someone
+     * else's `cgpage-` namespace (§3.J records that episode itself), and then the
+     * total in AGENTS.md was changed three times — 30, 31, 33 — none of them
+     * measured by code.
      *
-     * 唯一的斷言是**互為前綴的對數為 0**，而另外兩條存在的理由是讓它不能空洞地
-     * 通過：每一個 `tmpdir()` 參照都要被分類（掃描器認不出的形狀是紅的，不是
-     * 看不見的），以及掃描確實有找到東西。
+     * The only assertion is that **the number of mutually-prefixed pairs is 0**,
+     * and the other two exist so it cannot pass vacuously: every `tmpdir()`
+     * reference must be classified (a shape the scanner cannot recognise is red,
+     * not invisible), and the scan must actually have found something.
      *
-     * 掃描器的正則本身寫錯過兩次 —— `join(tmpdir(),'cr-')` 逗號後沒空格、
-     * `tree-` 巢狀在一個也是 `join(tmpdir(), …)` 的 BASE 底下 —— 然後開心地
-     * 回報「零重疊」。所以 inputs 是整個 `scripts/*.mjs`：**任何一支 script 改
-     * 動都讓這條失效**，因為任何一支 script 都可能帶著新的前綴回來。 */
+     * The scanner's regex itself has been wrong twice — `join(tmpdir(),'cr-')`
+     * with no space after the comma, and `tree-` nested under a BASE that is also
+     * `join(tmpdir(), …)` — and each time it happily reported "zero overlap". So
+     * the inputs are all of `scripts/*.mjs`: **any script change invalidates
+     * this**, because any script can come back carrying a new prefix. */
     script: 'scripts/check_tmp_prefixes.mjs', group: 'data',
     note: 'every tmpdir() reference classified, and zero overlapping prefixes — §3.J, which was enforced by hand',
     inputs: ['scripts/*.mjs'],
@@ -1530,6 +1574,10 @@ const CHECKERS = [
    --------------------------------------------------------------------------- */
 const RETIRED_HARNESSES = [
   { harness: 'scripts/test_check_gen1_apu.mjs', checker: 'scripts/check_gen1_apu.mjs' },
+  /* Not in the manifest (it costs about as much as its checker and the browser
+   * half it cannot reach is §3.Z's recorded trade), but edited all the same —
+   * so its cases must stay pointed at the assertions they attack. */
+  { harness: 'scripts/test_check_home_hero.mjs', checker: 'scripts/check_home_hero.mjs' },
 ];
 
 /* WHY ORPHANS ARE SLICED PER ASSERTION, AND WHY THAT IS NOT THE INTERESTING PART.
@@ -1573,7 +1621,13 @@ function auditRetiredHarnesses() {
     const descriptions = chunks.map((c) => c.replace(/\\'/g, "'"));
 
     const expectations = [...hs.matchAll(/^\s*expect:\s*(['"])([\s\S]*?)\1\s*,?\s*$/gm)].map((m) => m[2]);
-    const declared = [...hs.matchAll(/^\s{4}name: /gm)].length;
+    /* A BASELINE CASE IS NOT A MUTATION CASE. `test_check_home_hero.mjs` keeps its
+     * baseline inside CASES with `expect: null`, because its pool carries `out` and
+     * `code` on every result and the baseline needs the same shape — so it is named
+     * but has no expectation to be caught by, and counting it here would report a
+     * mismatch that means nothing. */
+    const baselines = [...hs.matchAll(/^\s{4}baseline:\s*true\b/gm)].length;
+    const declared = [...hs.matchAll(/^\s{4}name: /gm)].length - baselines;
 
     /* NON-VACUITY, AS AN IDENTITY RATHER THAN A FLOOR. Two independent parses of the
        same file: how many cases are NAMED, and how many carry an expectation. If the

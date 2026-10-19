@@ -253,7 +253,7 @@ const imageCases = [
     expect: 'ids in the roster with no file behind them',
   },
   {
-    name: 'a roster entry is a non-PNG body wearing a .png name (fetcher gotcha 2)',
+    name: 'a roster entry is a non-PNG body wearing a .png name',
     files: (io) => io.write(`${SV_IMAGES}/5.png`, '404: Not Found'),
     expect: 'not PNGs',
   },

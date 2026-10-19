@@ -8,7 +8,7 @@
  * that had to be measured before the module could be written at all.
  *
  * ---------------------------------------------------------------------------
- * WHY 屬性 AND NOT CLASSIFICATION OR FIRST LETTER
+ * WHY 屬性 (TYPE) AND NOT CLASSIFICATION OR FIRST LETTER
  * ---------------------------------------------------------------------------
  *
  * A hint's value is how far it cuts the candidate pool. Measured over all 1,025
@@ -21,17 +21,18 @@
  *   weight band             277
  *   evolves / final form    519      ← weakest, and removed on that basis
  *
- * 「這一隻已經是進化的最終型」 cuts the pool by barely 2x and varies by only
- * 457..568 across all targets, so it says almost nothing that varies. The reading
- * 「if it has no evolution, tell me it has no evolution」 is the correct description
- * of it.
+ * 「這一隻已經是進化的最終型」 (this species is already fully evolved) cuts the
+ * pool by barely 2x and varies by only 457..568 across all targets, so it says
+ * almost nothing that varies. The reading 「if it has no evolution, tell me it has
+ * no evolution」 is the correct description of it.
  *
  * Classification and first letter are the opposite problem: leaving two or five
  * candidates is not a clue, it is the answer.
  *
  * `speciesHint()` used to be exported from this module on the stated ground that
  * the classification number had to stay reproducible. It could not be: it returns
- * 「這一隻屬於鼠寶可夢。」, which has nothing to do with a final-form claim, and the
+ * 「這一隻屬於鼠寶可夢。」 (this species is a mouse Pokémon), which has nothing to
+ * do with a final-form claim, and the
  * figure quoted for it (568) contradicts this table's 519 — so it was never the
  * measurement's source and was only keeping a dead export alive. Both are gone.
  * A check that cannot reproduce its own number is a comment, not a guard.
@@ -41,7 +42,9 @@
  * ---------------------------------------------------------------------------
  *
  * 93 of the 1,025 `descriptions.zh` contain their own species name — #4 小火龍
- * opens 「尾巴上燃燒的火焰是小火龍生命力的象徵」. The port REFUSED those lines and
+ * (Charmander) opens 「尾巴上燃燒的火焰是小火龍生命力的象徵」 (the flame burning
+ * on its tail is the symbol of Charmander's vitality). The port REFUSED those
+ * lines and
  * substituted a different category. That was wrong twice over: it meant those 93
  * species received a DIFFERENT third hint from the other 932, and it threw away
  * a description that was perfectly usable once the name was taken out.
@@ -49,14 +52,15 @@
  * Masking keeps every species on the same slot and removes only the answer:
  *
  *   「當噴火龍憤怒至極時…」 -> 「當ＯＯＯ憤怒至極時…」
+ *   (when Charizard is enraged... -> when ＯＯＯ is enraged...)
  *
  * So the strong invariant is the negative one — slot 3 never contains the
  * species' own name — and the mask width is a second claim: one mask per
  * character, so the length of the hidden run stays visible.
  *
  * The second level is 38 species with a TWO-CHARACTER run of their name and no
- * full name — #1 妙蛙種子's line has 種子, #85 嘟嘟利's has 嘟嘟, #109 瓦斯彈's
- * has 瓦斯. Those are masked too.
+ * full name — #1 妙蛙種子's (Bulbasaur) line has 種子, #85 嘟嘟利's (Dodrio) has
+ * 嘟嘟, #109 瓦斯彈's (Koffing) has 瓦斯. Those are masked too.
  *
  * The rule is LONGEST RUN FIRST, not "mask every two-character window". Measured
  * over all 1,025 species the naive rule rewrites **892** lines — including every
@@ -111,7 +115,7 @@ console.log('\nthree slots, in order, always');
   }
   check(lens.size === 1 && lens.has(3),
     'every one of the 1,025 produces exactly 3 — the length never varies',
-    () => `lengths seen: ${[...lens].join(', ')}. A variable-length hint list makes the page's 「3 則」 a claim that is sometimes false`);
+    () => `lengths seen: ${[...lens].join(', ')}. A variable-length hint list makes the page's 「3 則」 ("3 items") a claim that is sometimes false`);
   check(slot1Wrong === 0, 'slot 1 is always the type', () => `${slot1Wrong} differ`);
   check(slot2Wrong === 0, 'slot 2 is always the palette reveal', () => `${slot2Wrong} differ`);
   check(slot3Wrong === 0, 'slot 3 is always the Pokédex line', () => `${slot3Wrong} differ`);
@@ -210,7 +214,7 @@ console.log('\nslot 3: the Pokédex line, verbatim');
     && [...Array(p.names.zh.length - 1).keys()]
       .some((i) => p.names.zh.length - i >= 2 && p.descriptions.zh.includes(p.names.zh.slice(i, i + 2))));
   check(partial.length === 38,
-    `38 species carry a 2-character run with no full name (#1 妙蛙種子 -> 種子) — the second level, now masked (${partial.length})`,
+    `38 species carry a 2-character run with no full name (#1 妙蛙種子 (Bulbasaur) -> 種子) — the second level, now masked (${partial.length})`,
     () => `${partial.length}, not 38`);
   const stillLeaking = data.filter((p) => {
     const shown = generateHints(p)[2];
@@ -242,7 +246,8 @@ console.log('\nslot 3: the Pokédex line, verbatim');
    * only rewrite a window that OCCURS, so both touch the same 131 species. The
    * real difference is that shortest-first consumes a two-character window that
    * overlaps the rest of the name, which leaves the remainder visible: 噴火龍's
-   * line becomes 「當ＯＯ龍憤怒至極時」 and the 龍 is the reader's for free.
+   * (Charizard's) line becomes 「當ＯＯ龍憤怒至極時」 and the 龍 (dragon) is the
+   * reader's for free.
    *
    * So the assertion is on the LEAK, not on the rewrite count. */
   const maskOf = (order) => (text, name) => {
@@ -258,13 +263,13 @@ console.log('\nslot 3: the Pokédex line, verbatim');
   const shortest = maskOf('short');
   /* Compare the masked TEXT against the masked TEXT. The first version compared
    * `shortest(...)` — which is the bare sentence — against `generateHints(p)[2]`,
-   * which is `圖鑑說明：「…」`. Those can never be equal, so the assertion reported
-   * 1,025 differing instead of the 66 that are real. */
+   * which is `圖鑑說明：「…」` (Pokédex entry: "..."). Those can never be equal, so
+   * the assertion reported 1,025 differing instead of the 66 that are real. */
   const bodyOf = (p) => descriptionHint(p).replace(`${DESCRIPTION_PREFIX}：「`, '').replace(/」$/, '');
   const differing = data.filter((p) => shortest(p.descriptions.zh, p.names.zh) !== bodyOf(p));
   check(differing.length === 66,
     `shortest-first and longest-first differ on ${differing.length} species — and that difference is a leak, not cosmetics`,
-    () => `${differing.length}, not 66; the docblock's 「噴火龍 -> 當ＯＯ龍」 example depends on it`);
+    () => `${differing.length}, not 66; the docblock's 「噴火龍 -> 當ＯＯ龍」 (Charizard -> 當ＯＯ龍) example depends on it`);
   const shortLeaksChar = data.filter((p) => {
     const b = shortest(p.descriptions.zh, p.names.zh);
     const good = bodyOf(p);

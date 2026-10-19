@@ -7,20 +7,22 @@
  * static string matching over one HTML file; everything here has to EXECUTE the
  * draw, because every failure mode is arithmetic that parses and renders fine.
  *
- * The regression that motivated it: a bare `color.html` — the page the nav, the
- * 色彩 dropdown and any pasted link all point at — resolved no id and rendered
- * 找不到這個寶可夢. There was no id to resolve, because the URL had no ?slug. A
- * static check for "init() has a fallback" passes just as happily against a
- * fallback that returns `pokemon[0]` on every day of the year, so the four
- * properties below are measured rather than pattern-matched:
+ * The motivating regression: a bare `color.html` — the page the nav, the
+ * 色彩 (Colors) dropdown and any pasted link all point at — resolved no id and
+ * rendered 找不到這個寶可夢 ("Pokémon not found"). There was no id to resolve,
+ * because the URL had no ?slug. A static check for "init() has a fallback"
+ * passes just as happily against a fallback that returns `pokemon[0]` every day
+ * of the year, so the four properties below are measured rather than
+ * pattern-matched:
  *
  * 1. DAY STABILITY. A daily draw that is not stable is a coin flip. Measured by
  *    drawing the same instant twice, and by drawing three clock times inside one
  *    Taipei calendar day — including the hour either side of the UTC date
- *    rollover, which is the exact trap `taipeiDateKey` exists to avoid.
- * 2. BUCKET PARITY. A flat pool over the 114 ids is ~62% 傳說 and reaches 600族
- *    on ~9% of days, so two of four buckets would effectively never appear. The
- *    4σ gate below is what fails if someone "simplifies" it back to a flat draw.
+ *    rollover, the trap `taipeiDateKey` exists to avoid.
+ * 2. BUCKET PARITY. A flat pool over the 114 ids is ~62% 傳說 (legendary) and
+ *    reaches 600族 (pseudo-legendary) on ~9% of days, so two of four buckets
+ *    would effectively never appear. The 4σ gate below fails if someone
+ *    "simplifies" it back to a flat draw.
  * 3. REACHABILITY. Every member of every pool must be drawable, or a Pokémon can
  *    be permanently unfeatured no matter how many days pass.
  * 4. STREAM INDEPENDENCE. color.html must not be a copy of the homepage's draw;
@@ -73,8 +75,8 @@ for (const b of DAILY_BUCKETS) {
 }
 check(
   pools.popular.length === POPULAR_IDS.length,
-  `every transcribed 熱門 id resolves (${POPULAR_IDS.length}/${POPULAR_IDS.length})`,
-  `only ${pools.popular.length} of ${POPULAR_IDS.length} 熱門 ids exist in pokemon_data.json — a drifted transcription`,
+  `every transcribed 熱門 (popular) id resolves (${POPULAR_IDS.length}/${POPULAR_IDS.length})`,
+  `only ${pools.popular.length} of ${POPULAR_IDS.length} 熱門 (popular) ids exist in pokemon_data.json — a drifted transcription`,
 );
 // Four ids sit in two buckets at once (超夢/烈空坐 熱門+傳說, 快龍/烈咬陸鯊
 // 熱門+600族), so the pools are not disjoint and their union is not their sum.
@@ -173,9 +175,10 @@ const today = pickDailyPokemon(pokemon);
 console.log(`       today (${taipeiDateKey(new Date())}) draws #${today.id} ${today.names.zh}`);
 
 console.log('\n--- the two pages feature the SAME Pokémon ---');
-// The 今日推薦 card advertises the colour page. An earlier version gave each page
-// its own seed prefix and the two agreed on only 1.9% of days, so a reader who
-// saw 今日推薦 = 班基拉斯 was shown 厄鬼椪 with nothing explaining the switch.
+// The 今日推薦 (today's pick) card advertises the colour page. An earlier
+// version gave each page its own seed prefix and the two agreed on only 1.9% of
+// days, so a reader who saw 今日推薦 = 班基拉斯 (Tyranitar) was shown 厄鬼椪
+// (Ogerpon) with nothing explaining the switch.
 //
 // Each page's OWN call expression is lifted out of its HTML and executed here, so
 // this compares what the two files actually ask for. Calling pickDailyPokemon
@@ -228,7 +231,7 @@ for (let i = 0; i < DAYS; i++) {
 check(
   diverged === 0,
   `both pages' real call sites draw identically on all ${DAYS} days`,
-  `the two pages disagree on ${diverged} of ${DAYS} days (first: ${firstDivergence}) — the homepage's 今日推薦 and the colour page's default must be the same Pokémon`,
+  `the two pages disagree on ${diverged} of ${DAYS} days (first: ${firstDivergence}) — the homepage's 今日推薦 (today's pick) and the colour page's default must be the same Pokémon`,
 );
 
 console.log('\n--- one seed, and no way to add a second ---');
@@ -260,16 +263,16 @@ for (const [name, html] of [['today.html', todayHtml], ['color.html', colorHtml]
 }
 check(
   /POPULAR_IDS as DAILY_POPULAR_IDS/.test(todayHtml),
-  'today.html reuses daily-pick.js POPULAR_IDS for the 熱門 grid',
-  'today.html no longer imports the shared 熱門 list, so the two can disagree',
+  'today.html reuses daily-pick.js POPULAR_IDS for the 熱門 (popular) grid',
+  'today.html no longer imports the shared 熱門 (popular) list, so the two can disagree',
 );
 // The import alone is not enough: `const POPULAR_IDS = [1, 2, 3]` next to the
 // import shadows it silently, and the grid would render three cards while the
 // daily draw still featured the module's ten.
 check(
   !/const POPULAR_IDS\s*=\s*\[/.test(todayHtml),
-  'today.html declares no second copy of the 熱門 id list',
-  'today.html keeps its own 熱門 id list, so 今日推薦 can feature a Pokémon the grid below never shows',
+  'today.html declares no second copy of the 熱門 (popular) id list',
+  'today.html keeps its own 熱門 (popular) id list, so 今日推薦 (today\'s pick) can feature a Pokémon the grid below never shows',
 );
 
 console.log('\n--- color.html: the fallback fires only for an absent id ---');
@@ -291,7 +294,7 @@ check(
 check(
   !/pickDailyPokemon\([^)]*\bstream\b/.test(colorHtml) && !/pickDailyPokemon\([^)]*\bseed\b/.test(colorHtml),
   "color.html asks for the day's pick with no per-page seed or stream override",
-  "color.html passes a per-page stream/seed to pickDailyPokemon, so it can feature a different Pokémon than the homepage's 今日推薦",
+  "color.html passes a per-page stream/seed to pickDailyPokemon, so it can feature a different Pokémon than the homepage's 今日推薦 (today's pick)",
 );
 check(
   !/pickDailyPokemon\([^)]*\bstream\b/.test(todayHtml) && !/pickDailyPokemon\([^)]*\bseed\b/.test(todayHtml),

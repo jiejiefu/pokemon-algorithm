@@ -166,7 +166,7 @@ const ok = (c, w) => {
 
 ok(logs.length === 0, `no exception on load${logs.length ? ` — ${logs[0]}` : ''}`);
 ok(await ev(`!!document.querySelector('.site-nav [href="outfit.html"]')`),
-  'the nav renders a real link for 寶可夢穿搭, not a 敬請期待 badge');
+  'the nav renders a real link for 寶可夢穿搭 (Pokémon outfit), not a 敬請期待 (coming soon) badge');
 ok(await ev(`!!document.getElementById('of-drop')`), 'the upload zone is present');
 ok(await ev(`document.getElementById('of-work').hidden === true`), 'the work area starts hidden, before a photo exists');
 
@@ -913,11 +913,12 @@ ok(!BODY.includes('[cite') && !BODY.includes('shared[cite'),
 
 // --- the winner's OWN palette, as the five-colour strip -----------------------
 //
-// Section 四 shows what was measured off the READER's outfit; this strip shows
+// Section 四 (4) shows what was measured off the READER's outfit; this strip shows
 // the six colours measured off the matched SPRITE. Both are six colours in the
 // same component, which is exactly why the strip is easy to wire to the wrong one
 // silently — so the assertion is identity, not shape: the first segment must
-// equal the hex already printed in the 「寶可夢的主色」 tile on the same card.
+// equal the hex already printed in the 「寶可夢的主色」 (primary colour) tile on
+// the same card.
 const strip = await ev(`(() => {
   const segs = [...document.querySelectorAll('.of-winner-strip .cp-seg')];
   const bar = document.querySelector('.of-winner-strip .cp-strip');
@@ -1174,7 +1175,7 @@ ok(swap.exists && swap.count === 4,
 ok(swap.winnerAbsent,
   `and the winner is not among them — it has its own card above, not a duplicate here`);
 ok(swap.poseButtons === 4,
-  `every card can still be swapped into the photo (${swap.poseButtons}/4 carry 合照)`);
+  `every card can still be swapped into the photo (${swap.poseButtons}/4 carry 合照 (group photo))`);
 ok(swap.inWorkbench && !swap.inReadout,
   'and the list lives in the workbench, with no second copy left behind in the readout');
 // The one that catches a stale list: a card marked current must be the species the
@@ -1216,7 +1217,7 @@ const swapped = await ev(`(async () => {
 // `src` is a path, so the comparison is on the id inside it — comparing the two
 // strings whole is a mismatch that reports a working button as broken.
 ok(String(swapped.wanted) === swapped.stickerId,
-  `pressing 合照 puts that species in the photo (${swapped.tagName}, ${swapped.stickerSrc})`);
+  `pressing 合照 (group photo) puts that species in the photo (${swapped.tagName}, ${swapped.stickerSrc})`);
 ok(swapped.marked.length === 1 && String(swapped.wanted) === swapped.marked[0],
   `and the highlight moves to it, so the state is a companion and not just a winner (marked: ${swapped.marked.join(',')})`);
 // The claim is that the photo ends up where the reader can act on it — near the

@@ -145,15 +145,10 @@ indexIds.forEach(id => ok(glbIdsInData.includes(id),
 
 /**
  * Load the reducer out of the module and run it here, rather than keeping a
- * copy. An earlier draft mirrored the regex in this file and asserted the two
- * matched textually — which is how it shipped a test that agreed with a
- * *wrong* reading of the clip names: 1.glb's clips are `model_skeleton|001a`
- * + token (`001aidle`, `001ako`, `001awalk`, nine for nine), not `001idle`, and
- * a test that checks its own copy against itself cannot notice.
- *
- * `new Function` over a two-line string is not a security concern: the source
- * is this repo's, and evaluating it is the only way to exercise the shipped
- * implementation rather than a reimplementation of it.
+ * copy: a test that checks its own copy against itself cannot notice a wrong
+ * reading of the clip names. `new Function` is safe here — the source is this
+ * repo's, and evaluating it exercises the shipped implementation rather than a
+ * reimplementation of it.
  */
 function loadFromViewer(names) {
   const slices = names.map(name => {

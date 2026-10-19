@@ -20,7 +20,7 @@
  *      number: 267 of 314 come from PokeAPI's zh-hant flavour text. The other
  *      47 have no Chinese effect at all and fall back to effectEn, which is
  *      PokeAPI's English kept in its OWN field — §3.D's blurbEn rule, because
- *      merging English into `effect` would pass it off as our translation.
+ *      merging English into `effect` would pass it off as a translation.
  *   3. The three COUNT fields mean three different things and the page must not
  *      conflate them: `holders` counts PokeAPI Pokémon including formes (47 for
  *      威嚇), `speciesCount` counts distinct base species (37), and `formCount`
@@ -33,7 +33,7 @@
  *      that keeps it honest is the round-trip below.
  *   5. Every holder resolves to a base species in this roster, by species ID.
  *      A first attempt matched on names and silently misfiled 14 ordinary
- *      species — PokeAPI's `amoonguss` against our "Amoongus", a one-letter
+ *      species — PokeAPI's `amoonguss` against the roster's "Amoongus", a one-letter
  *      typo in pokemon_data.json. Nothing about the output looked wrong; the
  *      abilities those 14 hold were just quietly reported as form-only.
  */
@@ -41,6 +41,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readData = name => JSON.parse(readFileSync(join(ROOT, 'assets/data', name), 'utf8'));
@@ -72,32 +74,17 @@ const EXPECTED_SOURCES = { 'pokeapi-zh-hant': 267, 'opencc-s2twp': 0, none: 47 }
  * Ogerpon, which PokeAPI has no Pokémon record for. It is a real ability in a
  * real game with a real description, so it stays; the alternative is a hard
  * `speciesCount >= 1` assertion that would delete it, and §3.AA's rule is that
- * a named exception list is for upstream quirks, not for our own omission.
+ * a named exception list is for upstream quirks, not for a local omission.
  */
 const DECLARED_HOLDERLESS = new Set(['embody-aspect']);
 
 /** The three abilities PokeAPI has no Chinese NAME for. They render nameEn. */
 const DECLARED_NAMELESS = new Set(['eelevate', 'fire-mane', 'aura-guard']);
 
-let checks = 0;
-let failures = 0;
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
+
 const notes = [];
-
-function ok(condition, message, detail) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}${detail ? `\n        ${detail}` : ''}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    message,
-    `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
-  );
-}
 
 const slugs = Object.keys(ABILITIES);
 const byId = new Map();
@@ -168,7 +155,7 @@ eq(sourceCounts, EXPECTED_SOURCES, 'the effect provenance split should not drift
 const excludedIds = [...byId.keys()].filter((id) => id >= INTERNAL_BLOCK_START);
 eq(excludedIds.length, 0, 'the internal block is excluded by id, and nothing at that id shipped');
 notes.push(
-  `internal block: 60 rows at id >= ${INTERNAL_BLOCK_START} excluded (PokeAPI holds 374, we ship ${EXPECTED_TOTAL})`
+  `internal block: 60 rows at id >= ${INTERNAL_BLOCK_START} excluded (PokeAPI holds 374, the roster ships ${EXPECTED_TOTAL})`
 );
 
 /* ===== holders, and the three counts that must not be conflated ===== */
@@ -450,9 +437,9 @@ notes.push(
 
 for (const note of notes) console.log(`  note  ${note}`);
 
-if (failures === 0) {
-  console.log(`PASS ${checks} checks`);
+if (C.failures.length === 0) {
+  console.log(`PASS ${C.checks} checks`);
 } else {
-  console.error(`FAIL ${failures} of ${checks} checks`);
+  console.error(`FAIL ${C.failures.length} of ${C.checks} checks`);
   process.exit(1);
 }

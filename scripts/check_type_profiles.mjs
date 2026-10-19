@@ -5,8 +5,8 @@
  *
  * Guards assets/data/type_profiles.json, the per-type prose that types.html
  * renders. The file is produced by scripts/fetch_type_profiles.py from the
- * InfoPoke `/types/[id]` Nuxt chunk; that payload is awkward enough that the
- * scraper's own structural checks are not sufficient on their own, because the
+ * InfoPoke `/types/[id]` Nuxt chunk; the payload is irregular enough that the
+ * scraper's structural checks are not sufficient on their own, because the
  * upstream data has shifted shape before (entries keyed by a stale variable
  * name, and a zh-TW page that renders raw i18n keys because no zh-TW catalog
  * exists upstream at all).
@@ -14,8 +14,8 @@
  * The invariants pinned here are the ones the page depends on:
  *   - all 18 slugs present, in the canonical chart order;
  *   - every effect string is actually Traditional Chinese, so a regression to
- *     the un-converted Simplified Chinese is caught here rather than shipping
- *     胆量 / 允许 to a zh-TW site;
+ *     the un-converted Simplified Chinese (胆量 / 允许) is caught here rather
+ *     than shipped to a zh-TW site;
  *   - every ability and item name resolves against a name this project already
  *     trusts (abilities_zh.json), so a scrape cannot quietly rename 膽量;
  *   - every category is one this project can render;
@@ -27,27 +27,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { TYPE_CHART_ORDER } from '../assets/js/type-chart.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'assets', 'data');
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 const read = name => JSON.parse(readFileSync(join(DATA, name), 'utf8'));
 
@@ -167,8 +153,8 @@ for (const [slug, profile] of Object.entries(types)) {
 }
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

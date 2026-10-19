@@ -1,5 +1,5 @@
 /**
- * 寶可夢穿搭 (outfit.html) + the runtime MMCQ port — regression test
+ * 寶可夢穿搭 (outfit.html — Pokémon outfit) + the runtime MMCQ port — regression test
  *
  *   node scripts/check_outfit_page.mjs
  *
@@ -64,26 +64,12 @@ import {
   DISC_MIN_PX,
   DISC_MAX_PX,
 } from '../assets/js/outfit-palette.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 const hex = (r, g, b) => '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
 
@@ -614,11 +600,11 @@ console.log('sampling: which pixels are measured');
 }
 
 {
-  // equalise is the rule "每件衣服份量一樣", and the property that makes it
-  // honest is that it NEVER DUPLICATES A PIXEL. A rule that resampled the small
-  // discs up to the largest one would produce shares indistinguishable from real
-  // measurements while being entirely invented, which is the specific failure this
-  // module's docblock claims to have chosen not to commit.
+  // equalise is the rule "每件衣服份量一樣" (equal weight per garment), and the
+  // property that makes it honest is that it NEVER DUPLICATES A PIXEL. A rule that
+  // resampled the small discs up to the largest one would produce shares
+  // indistinguishable from real measurements while being entirely invented, which is
+  // the specific failure this module's docblock claims to have chosen not to commit.
   // Colours must be unambiguously distinguishable: an earlier fixture generated
   // `i % 256` on both axes, so [0,0,0] appeared in BOTH discs and the classifier
   // below counted it twice, reporting 31/31 for a 30/30 result.
@@ -748,7 +734,7 @@ for (const s of samplePaths) {
 }
 
 /* ---------------------------------------------------------------------------
-   The 把它變成主題 block: three claims, none of which is about a colour.
+   The 把它變成主題 (export as theme) block: three claims, none of which is about a colour.
    ---------------------------------------------------------------------------
 
    The block was rebuilt to wear `color.html`'s `.cp-theme-code-block` shell, and
@@ -779,7 +765,7 @@ for (const s of samplePaths) {
       and then throws on `FORMATS[exportFormat].build`).
    --------------------------------------------------------------------------- */
 console.log('');
-console.log('把它變成主題: the code block is a real tablist, and its dead rules are gone');
+console.log('把它變成主題 (export as theme): the code block is a real tablist, and its dead rules are gone');
 
 const OUTFIT_CSS_SRC = readFileSync(join(ROOT, 'assets/css/outfit.css'), 'utf8');
 // Comments are stripped because the file explains each deleted selector by name
@@ -840,8 +826,8 @@ ok(/highlightCode\(code\)/.test(OUTFIT_HTML),
   'the panel is filled through highlightCode\'s HTML, whose textContent is byte-identical to the source — check_outfit_browser.mjs JSON.parse()s that text, so the two have to agree');
 
 console.log('');
-if (failures) {
-  console.log(`${failures} of ${checks} checks failed`);
+if (C.failures.length) {
+  console.log(`${C.failures.length} of ${C.checks} checks failed`);
   process.exit(1);
 }
-console.log(`${checks} checks passed`);
+console.log(`${C.checks} checks passed`);

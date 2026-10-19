@@ -4,44 +4,41 @@
  *
  *   node scripts/test_check_moves_page.mjs
  *
- * ## WHY THIS EXISTS AND WHAT IT IS FOR
+ * ## WHY THIS EXISTS
  *
- * `check_moves_page.mjs` is 155 assertions about a page that had four shipped
- * defects no text reader can see (§3.AA), which makes it exactly the kind of
- * checker that can be green because its assertions are vacuous rather than
- * because the page is right. Every case below introduces one defect and has to
- * break the checker WITH THAT REASON — not merely break it. `caughtBy()` reads
- * the FAIL block rather than the whole output, because this project's checkers
+ * `check_moves_page.mjs` is 155 assertions about a page that shipped four defects
+ * no text reader can see (§3.AA), so it can be green because its assertions are
+ * vacuous rather than because the page is right. Every case below introduces one
+ * defect and must break the checker WITH THAT REASON — not merely break it.
+ * `caughtBy()` reads the FAIL block rather than the whole output: the checkers
  * print each assertion's description whether it passes or fails, so a plain
- * substring match would be satisfied by any check whose description happens to
- * contain the expected words.
+ * substring match would be satisfied by any passing check whose description
+ * happens to contain the expected words.
  *
- * ## THE CASES ARE CHOSEN BY WHERE A VACUOUS ASSERTION CAN HIDDENOT BY WHAT IS
+ * ## THE CASES ARE CHOSEN BY WHERE A VACUOUS ASSERTION CAN HIDE, NOT BY WHAT IS
  * INTERESTING ABOUT THE PAGE
  *
- * Four of the twenty below exist because their assertion is currently a
- * substring search, which is the shape §3.P records going green on a perfect
- * page: the `[hidden]` guard, the payload split, the hand-built-URL ban, and the
- * `mv-` prefix sweep. The rest are the claims that would be quietly wrong if a
- * formatter lost a branch — 必中 rendering as 0%, 硬壓's variable power rendering
- * as a dash, `至少 N` collapsing to `N`.
+ * Four cases exist because their assertion is a substring search, the shape §3.P
+ * records going green on a perfect page: the `[hidden]` guard, the payload split,
+ * the hand-built-URL ban, and the `mv-` prefix sweep. The rest are claims that
+ * would be quietly wrong if a formatter lost a branch — 必中 rendering as 0%,
+ * 硬壓's variable power rendering as a dash, `至少 N` collapsing to `N`.
  *
  * ## ANCHORS MUST BE LIVE CODE, NOT PROSE
  *
  * The stale-anchor guard below catches a `String.replace` that matched nothing.
  * It does NOT catch one that matched a COMMENT: the file changes, the guard
- * passes, and the case then reports 「checker exited 0」 for a reason that has
- * nothing to do with the assertion it was written for. `test_check_color_page.mjs`
- * lost a case exactly that way when its anchor `planned: 'moves.html'` outlived
- * the row it named (§3.S). Every anchor below is a line that exists in the file
- * and is load-bearing.
+ * passes, and the case then reports 「checker exited 0」 for a reason unrelated to
+ * the assertion it was written for. `test_check_color_page.mjs` lost a case that
+ * way when its anchor `planned: 'moves.html'` outlived the row it named (§3.S).
+ * Every anchor below is a load-bearing line that exists in the file.
  *
- * ## NO POOL FOR THE DATA FILES' SAKE, BUT POOLED ANYWAY
+ * ## POOLED
  *
- * §3.G7: these cases are independent and each is its own `node` process against
- * its own tree, so they go through `lib/pool.mjs` (capped at 4) rather than a
- * `for` loop around `execFileSync`. `pool()` returns results in declaration
- * order and the report is printed after the drain, so two green runs diff.
+ * §3.G7: the cases are independent and each runs in its own `node` process
+ * against its own tree, so they go through `lib/pool.mjs` (capped at 4) rather
+ * than a `for` loop around `execFileSync`. `pool()` returns results in declaration
+ * order and the report prints after the drain, so two green runs diff.
  */
 import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync, symlinkSync, existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -59,18 +56,15 @@ const CHECKER = 'scripts/check_moves_page.mjs';
  * the checker itself so a case can attack an assertion and not only its input.
  *
  * A file missing from this list is an ENOENT that kills the checker before its
- * first assertion, which the harness then reports as twenty-four cases that ran
- * nothing — §4's shape, and the reason both existing harnesses spell their SRC
- * out at length. It bit this file on its first run: `shared.js` imports
- * `form-names.js`, which imports `form-names-zh.js` and `shiny-index.js`, and a
- * tree without the first one dies at module resolution before a single
- * assertion — twenty-four reds that all say ERR_MODULE_NOT_FOUND and none of
- * which tested anything.
+ * first assertion, which the harness reports as cases that ran nothing (§4). The
+ * first run hit exactly that: `shared.js` imports `form-names.js`, which imports
+ * `form-names-zh.js` and `shiny-index.js`, and a tree without the first dies at
+ * module resolution before a single assertion.
  *
- * That closure is DERIVED rather than written by hand for the same reason
- * §4 derives its numbers: a hand-kept import list is a second answer to the same
- * question, and it goes stale the day an import is added. `MODULE_CLOSURE`
- * below walks the two entry points and asserts the copy is complete, so an
+ * The closure is DERIVED rather than written by hand, for the same reason §4
+ * derives its numbers: a hand-kept import list is a second answer to the same
+ * question and goes stale the day an import is added. `MODULE_CLOSURE` walks the
+ * two entry points and the assertions below prove the copy is complete, so an
  * import added to shared.js turns this harness red at its baseline rather than
  * turning every case into an ENOENT. */
 const MODULE_ROOTS = ['assets/js/shared.js', 'assets/js/moves.js'];
@@ -96,6 +90,7 @@ const MODULE_CLOSURE = moduleClosure(MODULE_ROOTS);
 
 const SRC = [
   CHECKER,
+  'scripts/lib/assert.mjs',
   'moves.html',
   'move.html',
   'types.html',
@@ -121,19 +116,16 @@ const SRC = [
 }
 
 /*
- * The prefix is INLINED into the template rather than held in a constant, and
- * that is `check_tmp_prefixes.mjs` deciding this file's shape. The scanner
- * derives its allowlist by reading the head of every `mkdtempSync(join(tmpdir(),
- * \`…\`))` template out of the source, and a template whose head is an
- * interpolation is reported UNCLASSIFIED rather than guessed at — so a constant
- * would have produced one red line here and made this file the only one in the
- * suite its scanner cannot account for. §3.J's rule is that the prefix is
- * derived from the source, which only works if it IS the source.
+ * The prefix is INLINED into the template rather than held in a constant, as
+ * `check_tmp_prefixes.mjs` requires. The scanner derives its allowlist by reading
+ * the head of every `mkdtempSync(join(tmpdir(), \`…\`))` template out of the source,
+ * and a template whose head is an interpolation is reported UNCLASSIFIED rather
+ * than guessed at. §3.J's rule is that the prefix is derived from the source,
+ * which only works if it IS the source.
  *
  * `mvpage-neg-` must not collide with another harness's. §3.J's incident was two
  * harnesses picking names in the same family, each checking only the one it knew
- * about; the zero overlapping pairs that scanner asserts is what stops that
- * recurring.
+ * about; the zero overlapping pairs the scanner asserts stops that recurring.
  */
 
 let failures = 0;
@@ -148,11 +140,10 @@ function makeTree(mutate) {
     cpSync(join(ROOT, f), join(dir, f));
   }
   /* The pages under test are copies, but shared.js and the CSS resolve their
-   * siblings relative to ROOT, and a checker that imports a module which imports
-   * another module would ENOENT on the second one. Symlinking every remaining
-   * .html proves the harness itself is sound in the baseline run instead of
-   * letting each case die on "missing moves.html" — the reason
-   * test_check_nav_pages.mjs does the same. */
+   * siblings relative to ROOT, and a checker importing a module that imports
+   * another module would ENOENT on the second. Symlinking every remaining .html
+   * proves the harness is sound in the baseline run instead of letting each case
+   * die on "missing moves.html" — as test_check_nav_pages.mjs does. */
   for (const f of readdirSync(ROOT)) {
     if (f.endsWith('.html') && !existsSync(join(dir, f))) symlinkSync(join(ROOT, f), join(dir, f));
   }
@@ -162,8 +153,7 @@ function makeTree(mutate) {
       const p = join(dir, f);
       const before = readFileSync(p, 'utf8');
       // `undefined` means "not my file". A returned string IDENTICAL to the input
-      // is a stale anchor and the case would pass for the wrong reason, so it is
-      // an error rather than a no-op.
+      // is a stale anchor, so it is an error rather than a no-op.
       const after = mutate(f, before);
       if (after === undefined) continue;
       if (after === before) {
@@ -345,9 +335,9 @@ const cases = [
 
   // ------------------------------------------- types.html's roster: MECHANISM
   //
-  // Eight assertions with no case would be a number nobody can check, and this
-  // file's own header says the cases are chosen BY WHERE A VACUOUS ASSERTION CAN
-  // HIDE. All eight below are new, so all eight get one.
+  // Eight assertions with no case would be a number nobody can check, and the
+  // cases here are chosen BY WHERE A VACUOUS ASSERTION CAN HIDE. All eight are
+  // new, so all eight get one.
   {
     name: 'the roster card stops filling its grid track — the 60px-in-96.7px defect',
     mutate: (f, s) => f === 'types.html'
@@ -373,8 +363,8 @@ const cases = [
     name: 'the equal-width declarations leak onto the shared .chip-item, flattening 招式 and 特性',
     // Added to the shared rule rather than MOVED off the roster's: renaming the
     // roster's own header would take `flex-direction: column` with it and trip a
-    // different assertion, which is a caught mutation but not proof that the
-    // shared-rule guard is the thing doing the catching.
+    // different assertion — a caught mutation, but not proof that the shared-rule
+    // guard is doing the catching.
     mutate: (f, s) => f === 'types.html'
       ? s.replace('    .chip-item {\n      display: inline-flex;\n',
         '    .chip-item {\n      flex: 1;\n      flex-direction: column;\n      display: inline-flex;\n')

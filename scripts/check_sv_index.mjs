@@ -57,8 +57,8 @@ eq(provIds, [...knownIds].sort((a, b) => a - b),
   'provenance map covers exactly the species in pokemon_data.json');
 
 /* 2. Every promised file exists at the promised URL, and is a real PNG.
-   Gotcha 2 in fetch_sv_sprites.py: a host that answers a miss with a non-404
-   body produces a file that passes a filename check and fails in the browser. */
+   A host that answers a miss with a non-404 body produces a file that passes a
+   filename check and fails in the browser. */
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const MIN_BYTES = 1024;
 const notPng = [];
@@ -79,7 +79,7 @@ ok(existsSync(svDir) && statSync(svDir).isDirectory(), `${SV_PATH_PREFIX} is a d
 
 /* 3. Provenance values are real source names, and that name is one the fetcher
    actually knows -- otherwise the map can record a source nothing will ever
-   use, which reads as "we got this from somewhere" and is not true. */
+   use, which claims a provenance the fetcher cannot honour. */
 const fetcher = readFileSync(join(root, 'scripts/fetch_sv_sprites.py'), 'utf8');
 const declaredSources = Object.keys(provenance.sources || {});
 const unknownSource = Object.entries(provenance.artwork || {})

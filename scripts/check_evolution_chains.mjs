@@ -3,14 +3,14 @@
  * Regression checks for assets/data/evolution_chains.json.
  * Run: node scripts/check_evolution_chains.mjs
  *
- * This pins the invariants that the name-based classifier got wrong, because all
- * of them are invisible in a rendered screenshot and none of them raise an error:
+ * These pin the invariants a name-based classifier got wrong, all of which are
+ * invisible in a rendered screenshot and none of which raise an error:
  *
  *  - 76 species whose CSV `name` contains a hyphen (Nidoran-F, Mr-Mime, Kommo-O,
  *    Ho-Oh, Type-Null, Tapu-Koko, Wo-Chien, Iron-Thorns, Roaring-Moon, ...)
  *    matched the catch-all `-.+$` variant pattern and were filed under
  *    special_forms.other. That emptied main_line on 51 of 541 chains and dropped
- *    a stage from 18 more -- Wormadam disappeared from between Burmy and Mothim.
+ *    a stage from 18 more: Wormadam disappeared from between Burmy and Mothim.
  *  - Every node's link target is `name_en`, and 379 of them (325 forms, which
  *    have no detail page, plus 54 species whose CSV spelling drifted from
  *    pokemon_data.json's names.en) resolved to a URL that 404s. `base_name_en`
@@ -18,14 +18,14 @@
  *    That count is now 364, after the Nidoran split gave both halves a slug of
  *    their own, the Flabebe accent fix stopped the mark becoming a separator,
  *    and correcting twelve misspelled EN names made the roster's slugs agree
- *    with these nodes again; see the assertions in this file for why each of
- *    those is the fix working rather than the count drifting.
+ *    with these nodes again; see the assertions below for why each is the fix
+ *    working rather than the count drifting.
  *  - All 1025 species must answer to a distinct slug. Nidoran♀ and Nidoran♂
  *    differed by nothing but a symbol, and ♀/♂ are stripped by the slug filter,
  *    so both resolved to `nidoran` and first-match-wins sent every request to
- *    尼多蘭. Uniqueness is asserted over all 1025 rather than as a special case
- *    for the pair, because a regression that dropped the fix would leave every
- *    other link check in this file passing.
+ *    尼多蘭 (Nidoran♀). Uniqueness is asserted over all 1025 rather than as a
+ *    special case for the pair, because a regression that dropped the fix would
+ *    leave every other link check in this file passing.
  *
  * Like the other check_*.mjs scripts it reads only committed files: no network,
  * and no re-derivation from the CSV, which is the generator's job.
@@ -70,9 +70,10 @@ const slugName = (name) => name
   .replace(/^-+|-+$/g, '');
 
 /** ♀/♂ are dropped by slugName() above, so Nidoran♀ and Nidoran♂ collide on
- *  `nidoran` and find() answers 尼多蘭 for both. Ported from SYMBOL_SLUGS in
- *  shared.js. Both halves carry an explicit letter, so neither slug asserts
- *  less than the data does; `nidoran` is deliberately not kept as an alias. */
+ *  `nidoran` and find() answers 尼多蘭 (Nidoran♀) for both. Ported from
+ *  SYMBOL_SLUGS in shared.js. Both halves carry an explicit letter, so neither
+ *  slug asserts less than the data does; `nidoran` is deliberately not kept as an
+ *  alias. */
 const SYMBOL_SLUGS = new Map([
   ['Nidoran♀', 'nidoran-f'],
   ['Nidoran♂', 'nidoran-m'],
@@ -80,19 +81,19 @@ const SYMBOL_SLUGS = new Map([
 
 /** Name-level form of pokemonSlug(). Every resolution below goes through this
  *  rather than slugName(), because base_name_en is a raw name that can be
- *  `Nidoran♂` -- and slugName() strips that symbol straight back to the shared
- *  `nidoran`, which is the collision the table exists to end.
+ *  `Nidoran♂` — and slugName() strips that symbol straight back to the shared
+ *  `nidoran`, the collision the table exists to end.
  *
  *  The chain file spells the pair with ASCII hyphens (`Nidoran-F`), so its
- *  base_name_en values miss the table and fall through to slugName() -- which
+ *  base_name_en values miss the table and fall through to slugName() — which
  *  happens to derive the same two slugs, because a hyphen is a separator there
- *  too. That is why `nidoran-f` has to stay the generic rule's own output for
+ *  too. That is why `nidoran-f` must remain the generic rule's own output for
  *  this pair and not merely a table lookup. */
 const slugFor = (name) => SYMBOL_SLUGS.get(name) || slugName(name);
 
 // The real pokemonSlug() takes a pokemon and reads names.en || name_en || id.
-// The fallback is the whole reason the 379 dead links were silent: a chain node
-// has no `names`, so it slid through to name_en and produced a plausible slug.
+// The fallback is why the 379 dead links were silent: a chain node has no `names`,
+// so it slid through to name_en and produced a plausible slug.
 const pokemonSlug = (p) => {
   const name = p?.names?.en || p?.name_en || String(p?.id || '');
   return SYMBOL_SLUGS.get(name) || slugName(name);
@@ -220,20 +221,20 @@ const dupeSlugs = allSlugs.filter((s, i) => {
 });
 eq([...new Set(dupeSlugs)], [], 'slugs claimed by more than one species');
 // The pair itself, pinned by id so a rename cannot make this pass silently.
-eq(byId.get(29) && pokemonSlug(byId.get(29)), 'nidoran-f', '尼多蘭 slug');
-eq(byId.get(32) && pokemonSlug(byId.get(32)), 'nidoran-m', '尼多朗 slug');
-eq(slugToId.get('nidoran-f'), 29, '?slug=nidoran-f resolves to 尼多蘭');
-eq(slugToId.get('nidoran-m'), 32, '?slug=nidoran-m resolves to 尼多朗');
+eq(byId.get(29) && pokemonSlug(byId.get(29)), 'nidoran-f', '尼多蘭 (Nidoran♀) slug');
+eq(byId.get(32) && pokemonSlug(byId.get(32)), 'nidoran-m', '尼多朗 (Nidoran♂) slug');
+eq(slugToId.get('nidoran-f'), 29, '?slug=nidoran-f resolves to 尼多蘭 (Nidoran♀)');
+eq(slugToId.get('nidoran-m'), 32, '?slug=nidoran-m resolves to 尼多朗 (Nidoran♂)');
 // The bare spelling is gone on purpose, so it must NOT resolve. Without this the
-// rename could pass while a stale `nidoran` alias quietly kept answering 尼多蘭,
-// which is the state the user ruled against.
-eq(slugToId.has('nidoran'), false, 'bare ?slug=nidoran is not an alias for 尼多蘭');
-// The port above is only trustworthy while it stays faithful, and it has drifted
-// once already. The port carries its own SYMBOL_SLUGS table and its own copy of
-// the normalisation, so a change to either in shared.js silently leaves the
-// checker validating a rule the site no longer ships. Compare the two over the
-// whole roster instead of trusting the hand-copy: this caught the combining-mark
-// bug below, which nothing else in the site looked at.
+// rename could pass while a stale `nidoran` alias quietly kept answering 尼多蘭
+// (Nidoran♀).
+eq(slugToId.has('nidoran'), false, 'bare ?slug=nidoran is not an alias for 尼多蘭 (Nidoran♀)');
+// The port above is trustworthy only while it stays faithful, and it has drifted
+// once. It carries its own SYMBOL_SLUGS table and its own copy of the
+// normalisation, so a change to either in shared.js silently leaves the checker
+// validating a rule the site no longer ships. Compare the two over the whole
+// roster rather than trusting the hand-copy: this caught the combining-mark bug
+// below, which nothing else in the site looked at.
 const portDisagreements = data
   .map(p => [p, slugFor(p.names.en), pokemonSlug(p)])
   .filter(([, viaTable, real]) => viaTable !== real)
@@ -241,16 +242,16 @@ const portDisagreements = data
 eq(portDisagreements, [], 'port of pokemonSlug diverges from shared.js');
 // Named regression, and the only species slug the accent fix moves. NFKD split
 // Flabebe's e-acute into `e` + U+0301, and the mark is not [a-z0-9], so the
-// separator step turned it into `flabe-be` -- a URL that resolved to nothing
-// except through the `?id=` fallback. The marks have to be *removed* before the
-// separator step, not squeezed out by it: a plain `[^a-z0-9] -> ''` would give
-// `flabb`, losing the `e`, and would also collapse the 40-odd names that rely on
-// the separator (Tapu Koko -> tapukoko, Ho-Oh -> hooh).
+// separator step turned it into `flabe-be` — a URL that resolved to nothing except
+// through the `?id=` fallback. The marks must be *removed* before the separator
+// step, not squeezed out by it: a plain `[^a-z0-9] -> ''` would give `flabb`,
+// losing the `e`, and would also collapse the 40-odd names that rely on the
+// separator (Tapu Koko -> tapukoko, Ho-Oh -> hooh).
 eq(byId.get(669) && pokemonSlug(byId.get(669)), 'flabebe', 'Flabébé slug (accented e)');
 eq(slugToId.get('flabe-be'), undefined, 'the pre-fix flabe-be slug is gone');
 
 // A missing base_name_en must read as a FAIL, not an abort: pokemonSlug(undefined)
-// throws, and a stack trace sends the reader to the wrong file (gotcha 38).
+// throws, and a stack trace sends the reader to the wrong file.
 const noBaseNameEn = nodes.filter(n => typeof n.base_name_en !== 'string');
 eq(noBaseNameEn.map(n => n.id), [], 'nodes with no base_name_en field');
 const linkable = nodes.filter(n => typeof n.base_name_en === 'string');
@@ -327,7 +328,7 @@ const badIfNameEn = nodes.filter(n => !slugToId.has(pokemonSlug({ names: { en: n
 // Same 379 -> 378 -> 377 -> 376 -> 364 as above, for the same reason.
 eq(badIfNameEn.length, 364, 'nodes that would 404 if the renderer used name_en');
 // The URL must be the ?slug= form the local dev server can actually serve, not
-// the clean /detail/<slug> path that Live Server 404s (gotcha 8).
+// the clean /detail/<slug> path that Live Server 404s.
 eq(nodes.filter(n => !nodeHref(n).startsWith('detail.html?slug=')).length, 0,
    'every rendered href is a ?slug= URL');
 

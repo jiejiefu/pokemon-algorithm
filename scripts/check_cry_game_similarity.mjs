@@ -3,45 +3,43 @@
  *
  *   node scripts/check_cry_game_similarity.mjs
  *
- * Why this is its own file: the module has no DOM, no fetch and no audio, so it
- * runs to completion in bare Node, and every failure mode here is arithmetic that
- * renders fine and is wrong until asked. Static string matching is the right tool
- * for the shell contract in check_cry_game.mjs, not for this.
+ * Its own file because the module has no DOM, no fetch and no audio: it runs to
+ * completion in bare Node, and every failure mode here is arithmetic that renders
+ * fine and is wrong until asked. Static string matching is the right tool for the
+ * shell contract in check_cry_game.mjs, not for this.
  *
- * The five things asserted here, and why each one is a MEASUREMENT rather than
- * a restatement of the module's docblock:
+ * The five things asserted here, each a MEASUREMENT rather than a restatement of
+ * the module's docblock:
  *
- * 1. **Every ceiling is achievable, in every pool, for every species.** The
- *    module degrades to "the three nearest overall" when fewer than three
- *    neighbours clear the ceiling, and a degraded question is a 困難 question
- *    rendered at 地獄 difficulty. The docblock claims that branch never runs;
- *    this asserts it over 10 pools x 3 tiers x 1,025 species, and reports the
- *    count rather than trusting the sentence.
+ * 1. **Every ceiling is achievable, in every pool, for every species.** The module
+ *    degrades to "the three nearest overall" when fewer than three neighbours
+ *    clear the ceiling, and a degraded question is a 困難 (hard) question rendered
+ *    at 地獄 (hell) difficulty. The docblock claims that branch never runs; this
+ *    asserts it over 10 pools x 3 tiers x 1,025 species and reports the count.
  *
  * 2. **Every drawn round honours its ceiling, as an IDENTITY.** `hardestSim <=
- *    ceiling` with the `<=` the module actually filters on. A tolerance here
- *    would be satisfied by a mutation whose own error is under it.
+ *    ceiling` with the `<=` the module actually filters on; a tolerance would be
+ *    satisfied by a mutation whose own error is under it.
  *
  * 3. **The three tiers are separated, per pool.** Not "harder on average" — the
- *    separation the first design failed to have, measured the same way it was
- *    measured when it failed. `p90(easy) < p50(hard)` and `p90(hard) < p50(hell)`
- *    in all ten pools, or two of the three tabs are the same tab.
+ *    separation the first design lacked, measured the same way it was measured
+ *    when it failed. `p90(easy) < p50(hard)` and `p90(hard) < p50(hell)` in all
+ *    ten pools, or two of the three tabs are the same tab.
  *
- * 4. **The neighbour list is a total order.** The daily round is seeded, and a
- *    seeded round is only reproducible while ties break the same way every time.
+ * 4. **The neighbour list is a total order.** A seeded round is only reproducible
+ *    while ties break the same way every time.
  *
  * 5. **The daily round is stable, and the filter is in the seed.** Pooling alone
  *    cannot prove the filter reaches the seed, because the generation pools are
  *    disjoint id sets and would differ by accident — so this asserts the seed
- *    string as a source fact AND asserts that two filters over the same day give
+ *    string as a source fact AND that two filters over the same day give
  *    different questions.
  *
- * One thing deliberately NOT asserted here, and it is the §3.B2 trap: nothing
- * checks that `SIMILARITY_CEILING` is a *good* difficulty. There is no threshold
- * for "good" — a ceiling of 0.35 and a ceiling of 0.36 both satisfy every check
- * below. What pins the numbers is the docblock's measurement and this file's
- * report of the resulting spread, so a reader changing a ceiling sees the curve
- * move before deciding whether to.
+ * One thing deliberately NOT asserted, the §3.B2 trap: nothing checks that
+ * `SIMILARITY_CEILING` is a *good* difficulty. There is no threshold for "good" —
+ * 0.35 and 0.36 both satisfy every check below. What pins the numbers is the
+ * docblock's measurement and this file's report of the resulting spread, so a
+ * reader changing a ceiling sees the curve move before deciding whether to.
  */
 
 import { readFileSync } from 'node:fs';
@@ -79,25 +77,22 @@ const data = JSON.parse(readFileSync(join(ROOT, 'assets/data/pokemon_data.json')
 const features = JSON.parse(readFileSync(join(ROOT, 'assets/data/cry_features.json'), 'utf8'));
 const index = cryIndex(features, FEATURE_SET);
 
-/* A real calendar walk — see check_game_similarity.mjs: `new Date(\`2026-10-${n}\`)`
- * silently becomes an Invalid Date past the 30th and `taipeiDateKey` then throws
- * inside `toISOString()`, so the checker dies with a RangeError instead of
- * reporting a FAIL. */
+/* A real calendar walk: `new Date(\`2026-10-${n}\`)` silently becomes an Invalid
+ * Date past the 30th, and `taipeiDateKey` then throws inside `toISOString()`, so
+ * the checker dies with a RangeError instead of reporting a FAIL. */
 const BASE = Date.UTC(2026, 9, 1);
 const at = (n) => new Date(BASE + (n - 1) * 86400000);
 
 /**
  * One seeded generator, SHARED, for every sampling loop in this file.
  *
- * The first version was a `makeRand()` FACTORY and every loop called it, so each
- * draw replayed the identical sequence — the "does the answer land in all four
- * positions" check saw the same shuffled question 400 times and reported the
- * answer at position 4 every single time, which looks exactly like a page whose
- * shuffle is broken. It was the harness, not the module.
- *
- * So: one xorshift, one `rand()`, consumed in order. What is being held constant
- * is the SEQUENCE, which is what makes the measurement the same experiment on
- * every run; what is being varied is how far along it each draw starts.
+ * A `makeRand()` factory per loop replays the identical sequence, so the "does the
+ * answer land in all four positions" check would see the same shuffled question
+ * 400 times and report the answer at position 4 every time — indistinguishable
+ * from a page whose shuffle is broken. One xorshift, one `rand()`, consumed in
+ * order: what is held constant is the SEQUENCE, which makes the measurement the
+ * same experiment on every run, and what varies is how far along it each draw
+ * starts.
  */
 function makeRand(seed = 0x9e3779b9) {
   let s = seed >>> 0;
@@ -145,33 +140,31 @@ console.log('\nthe index is built from the table, and the table is the right one
   check(index.setName === 'latest', `the shipped set is "latest" (LEGACY_SET=${LEGACY_SET})`,
     () => `${index.setName}`);
 
-  /* DIMENSIONS CROSS-CHECKED AGAINST THE FILE'S OWN HEADER, which the module
-   * deliberately does not read. §3.K's shape: a generated file whose header
-   * disagrees with its rows is exactly what bit life.html, and reading the
-   * header would hide it. */
+  /* Dimensions cross-checked against the FILE'S OWN HEADER, which the module
+   * deliberately does not read: a generated file whose header disagrees with its
+   * rows is what bit life.html, and reading the header would hide it (§3.K). */
   check(index.dim === features.dimensions,
     `the index's ${index.dim} matches cry_features.json's own declared dimensions`,
     () => `header says ${features.dimensions}, first row holds ${index.dim}`);
   check(index.dim === features.featureNames.length,
     'and the names list is the same length', () => `${features.featureNames.length}`);
 
-  /* §3.G1's UNCOMPARABLE is [peak, rms, m0] and this module keeps all three.
-   * The docblock argues why; what is asserted is that the argument is still
-   * ABOUT THE CURRENT TABLE — if upstream regenerates with different names, the
-   * reasoning above stops applying to a table that no longer has those columns. */
+  /* §3.G1's UNCOMPARABLE is [peak, rms, m0] and this module keeps all three. The
+   * docblock argues why; what is asserted is that the argument is still ABOUT THE
+   * CURRENT TABLE — a regenerate with different names would leave the reasoning
+   * applying to columns that no longer exist. */
   const names = features.featureNames;
   for (const n of ['peak', 'rms', 'm0']) {
     check(names.indexOf(n) >= 0, `the dimension this module keeps deliberately — "${n}" — is still in the table`,
       () => `cry_features.json no longer has a "${n}" column`);
   }
 
-  /* Standardisation must actually standardise. This reads the VECTORS rather
-   * than `index.means` / `index.sds`, which are the RAW statistics in the table's
-   * own units — a first draft asserted mean 0 and sd 1 against those two fields
-   * and read 1.17 for `dur` and 792.19 for `zcr`, which is not a bug in the
-   * module but a check aimed at the wrong object. Recomputing from the vectors
-   * also catches the case `means`/`sds` cannot: a guard like `sd[k] || 1` makes
-   * a dead column standardise to a mean of 0 by accident. */
+  /* Standardisation must actually standardise. This reads the VECTORS, not
+   * `index.means` / `index.sds`, which are the RAW statistics in the table's own
+   * units — asserting mean 0 against those reads 1.17 for `dur` and 792.19 for
+   * `zcr`, a check aimed at the wrong object. Recomputing from the vectors also
+   * catches a `sd[k] || 1` guard, which standardises a dead column to mean 0 by
+   * accident. */
   const vecMean = new Float64Array(index.dim);
   const vecSd = new Float64Array(index.dim);
   for (const v of index.vectors.values()) {
@@ -212,12 +205,10 @@ console.log('\nthe index is built from the table, and the table is the right one
   check(features[FEATURE_SET][String(1)].length === index.dim,
     'the raw table agrees about how many dimensions it has');
 
-  /* AN IDENTITY, not `> 0.9999`. A first draft wrote the threshold version and
-   * it caught nothing: dropping the cosine's denominator makes
-   * `similarity(x, x)` return `sum(v^2)`, which for a set of 34 fully
-   * standardised columns is the ROW COUNT — 1,025 — and 1,025 > 0.9999. The
-   * check passed on the one mutation it existed to catch. The cosine guarantees
-   * exactly 1, so that is what is asserted. */
+  /* AN IDENTITY, not `> 0.9999`: dropping the cosine's denominator makes
+   * `similarity(x, x)` return `sum(v^2)`, which for 34 fully standardised columns
+   * is the ROW COUNT — 1,025 — and 1,025 > 0.9999, so a threshold version passes
+   * on the one mutation it exists to catch. The cosine guarantees exactly 1. */
   check(Math.abs(similarity(index, 1, 1) - 1) < 1e-12, 'a species against itself is exactly 1',
     () => `${similarity(index, 1, 1)}`);
   check(Math.abs(similarity(index, 1025, 1025) - 1) < 1e-12, 'and so is the last one',
@@ -247,12 +238,11 @@ console.log('\nthe neighbour list is a total order, which is what seeds the dail
   check(desc, 'the list runs closest-first');
 
   /* THE TOTAL ORDER, asserted rather than assumed. A stable sort over a
-   * comparator that returns 0 on ties leaves the order up to the engine, and the
-   * daily round is a seeded draw over exactly this list — so an unstable tie
-   * makes 「everyone sees the same ten questions today」 true on one machine.
-   * Checked by finding a genuine tie and confirming it is broken by ascending
-   * id. If no tie exists in the corpus this reports 0 and says so, rather than
-   * silently passing on an empty search. */
+   * comparator returning 0 on ties leaves the order up to the engine, and the
+   * daily round is a seeded draw over exactly this list — so an unstable tie makes
+   * 「everyone sees the same ten questions today」 true on one machine only. Checked
+   * by finding a genuine tie and confirming it is broken by ascending id; if no
+   * tie exists this reports 0 rather than passing on an empty search. */
   let tieSeen = 0;
   let tieOrdered = 0;
   for (const probe of [1, 25, 94, 150, 448, 658, 1025]) {
@@ -273,11 +263,9 @@ console.log('\nthe neighbour list is a total order, which is what seeds the dail
 
   /* THE TIE-BREAK MUST NOT DEPEND ON THE ORDER THE POOL ARRIVED IN, and this is
    * the only assertion that can tell. Every production caller passes an ASCENDING
-   * pool — `allIds()` sorts, `genIdMap()` sorts — and V8's sort is stable, so a
-   * comparator that simply dropped the tie-break would leave the order unchanged
-   * and every other assertion here would stay green. Feeding the same pool
-   * REVERSED makes the dependence observable: the comparator, not the input
-   * order, has to be what decides. */
+   * pool and V8's sort is stable, so a comparator that simply dropped the
+   * tie-break would leave the order unchanged and every other assertion here would
+   * stay green. Feeding the pool REVERSED makes the dependence observable. */
   const probe = 25;
   const rankedAsc = neighbours(index, probe, pool);
   const rankedDesc = neighbours(index, probe, pool.slice().reverse());
@@ -297,22 +285,12 @@ console.log('\nthe neighbour list is a total order, which is what seeds the dail
    *
    * `neighbours()` has two paths — the n^2 cache for pools of at least
    * MATRIX_BREAK_EVEN, a dot product per pair below it — and a caching layer that
-   * drifts from the function it caches is a second measurement nothing else in
-   * this project is looking at. The drift would be invisible, because both paths
-   * return plausible rankings.
-   *
-   * Comparing the two PATHS to each other does not work and never did: the
-   * threshold is the only thing that decides between them, so a pool large enough
-   * to be worth caching has no direct path to compare against. Two earlier
-   * versions tried — one by giving `neighbours()` an `else if (index._matrix)`
-   * fallback so small pools would use the cache once it existed, and one with a
-   * second index intended to stay uncached — and both compared the cache with
-   * itself for most of their samples. **The reference has to be `similarity()`
-   * itself**, which is the one thing both paths are supposed to be computing.
-   *
-   * Below the threshold this also confirms the cache is never consulted, because
-   * `index` has one built by this point and the small sizes still have to match.
-   */
+   * drifts from the function it caches returns plausible rankings either way, so
+   * the drift is invisible. Comparing the two PATHS to each other cannot work:
+   * the threshold is the only thing deciding between them, so a pool large enough
+   * to be cached has no direct path to compare against. **The reference has to be
+   * `similarity()` itself**, the one thing both paths compute. Below the threshold
+   * this also confirms the cache is never consulted. */
   const drift = [];
   let pairs = 0;
   for (const probe of index.ids) {
@@ -408,26 +386,12 @@ console.log('\nthe generation pools are derived, and only from playable species'
   check(buildQuestion(index, 1, [1, 2, 3, 4], 'easy') !== null,
     'four members is exactly enough, and the answer is excluded from its own pool');
   check(buildRound(index, [1, 2, 3], 'easy').length === 0, 'nor a round from a three-member pool');
-  /* THREE, not six, and the arithmetic is the point. Each question consumes its
-   * answer out of the pool AND needs three more members to be distractors, so a
-   * pool of N yields floor(N/2) questions — six members give three. A first draft
-   * asserted six and read it as a bug in the module; it was a bug in the
-   * expectation. It matters because it is what bounds the pool a round needs:
-   * 20 species is the minimum for ten questions, and the smallest real
-   * generation holds 72. */
-  /* THE ARITHMETIC, and getting it wrong twice is why it is written down. Each
-   * question draws its answer out of the pool and then needs three MORE members
-   * to be distractors, so a question can start only while at least 4 remain —
-   * which makes the count `min(MAX_QUESTIONS, N - 3)`, not `floor(N/2)` and not
-   * `N`. Six members give three; twelve give nine; the floor for ten is THIRTEEN.
-   * The smallest real generation holds 72, so the floor is never approached. */
-  /* THE ARITHMETIC. All ten answers are drawn UP FRONT, and every question then
-   * draws its distractors from the pool minus that whole answer set — so a
-   * question needs CHOICES - 1 = 3 members beyond the answers it could be.
-   * Hence the cap `N - (CHOICES - 1)`: six members give three questions, and the
-   * floor for ten is THIRTEEN. Getting this wrong twice is why it is written
-   * down: a first draft asserted six for a six-member pool and read the module
-   * as broken, then asserted nine for nineteen and read it as broken again. */
+  /* THE ARITHMETIC. All ten answers are drawn up front, and every question then
+   * draws its distractors from the pool minus that whole answer set, so a question
+   * needs CHOICES - 1 = 3 members beyond the answers it could be. Hence the cap
+   * `min(MAX_QUESTIONS, N - (CHOICES - 1))`: six members give three questions, and
+   * the floor for ten is THIRTEEN. The smallest real generation holds 72, so the
+   * floor is never approached. */
   for (const [members, expect] of [[3, 0], [4, 1], [6, 3], [12, 9], [13, 10], [19, 10], [1025, 10]]) {
     const got = buildRound(index, allIds(index).slice(0, members), 'easy').length;
     check(got === expect,
@@ -453,15 +417,15 @@ console.log('\nevery ceiling is achievable, in every pool, for every species');
   const perTier = {};
 
   for (const [gen, pool] of pools) {
-    /* THE RANKING IS COMPUTED ONCE PER SPECIES AND REUSED ACROSS ALL THREE
-     * TIERS. A tier is a CEILING over one similarity list, so the list does not
-     * depend on the tier — computing it three times made this sweep cost 11.5 s
-     * where 4 s measures exactly the same thing.
-     *
-     * `buildQuestion` still does its own ranking internally; this is the
-     * checker's own copy, used only to feed the three assertions below. The
-     * numbers asserted come from `buildQuestion`'s RETURN VALUE, not from this
-     * list, so hoisting cannot make a check pass that would otherwise fail. */
+  /* THE RANKING IS COMPUTED ONCE PER SPECIES AND REUSED ACROSS ALL THREE TIERS. A
+   * tier is a CEILING over one similarity list, so the list does not depend on the
+   * tier; computing it three times costs 11.5 s to measure the same thing 4 s
+   * does.
+   *
+   * `buildQuestion` still ranks internally; this is the checker's own copy, used
+   * only to feed the assertions below. The asserted numbers come from
+   * `buildQuestion`'s RETURN VALUE, so hoisting cannot make a check pass that
+   * would otherwise fail. */
     const ranked = new Map();
     for (const answer of pool) ranked.set(answer, neighbours(index, answer, pool));
 
@@ -500,22 +464,19 @@ console.log('\nevery ceiling is achievable, in every pool, for every species');
     `0 degraded questions — every species can always find ${CHOICES - 1} distractors under its tier's ceiling`,
     () => `${degradedTotal} fell back to "the three nearest overall", which renders 困難 at 地獄 difficulty`);
 
-  /* THE DEGRADED BRANCH, REACHED WITH A SYNTHETIC QUESTION — because on the
-   * shipped data it is unreachable, and that is precisely why it needed
-   * reaching. Every species in every pool finds three neighbours under its
-   * ceiling, so `buildQuestion` never takes the fallback; a mutation that
-   * deleted the branch left all 171 assertions green, because the branch is dead
-   * code on this corpus.
+  /* THE DEGRADED BRANCH, REACHED WITH A SYNTHETIC QUESTION — on the shipped data
+   * it is unreachable, which is precisely why it needs reaching: `buildQuestion`
+   * never takes the fallback, so a mutation deleting the branch leaves every
+   * assertion green and the branch is dead code on this corpus.
    *
-   * The fixture is the answer's own TWO nearest neighbours plus one far species
-   * — a four-member pool where only one member clears a 0.35 ceiling and two are
-   * needed. Built from `neighbours()` rather than written down, so it cannot
-   * drift from the data the way a hardcoded id would.
+   * The fixture is the answer's own TWO nearest neighbours plus one far species —
+   * a four-member pool where only one member clears a 0.35 ceiling and two are
+   * needed. Built from `neighbours()` rather than written down, so it cannot drift
+   * from the data the way a hardcoded id would.
    *
-   * What is asserted is the CONTRACT and not the count: `degraded` must be true,
-   * and the returned distractors must be the nearest ones — which is a promise
-   * the page relies on, because a 簡單 question that silently became 地獄 is a
-   * difficulty tab that lies. */
+   * What is asserted is the CONTRACT, not the count: `degraded` must be true and
+   * the returned distractors must be the nearest ones, because a 簡單 (easy)
+   * question that silently became 地獄 (hell) is a difficulty tab that lies. */
   const synthetic = (() => {
     for (const answer of [25, 1, 94, 150, 448, 658, 1025]) {
       const n = neighbours(index, answer, allIds(index));
@@ -536,12 +497,10 @@ console.log('\nevery ceiling is achievable, in every pool, for every species');
     check(synthetic.q1.degraded === true,
       'while still reporting degraded — a silent ceiling breach the page would render as a normal 簡單 round',
       () => `degraded was ${synthetic.q1.degraded}`);
-    /* THREE nearest, not two. The pool is three members and the fallback takes
-     * the head of the ranked list, so `far` is a distractor too — which is the
-     * promise: a degraded question is the three CLOSEST species it could find,
-     * ranked, and nothing is dropped or re-ordered on the way. The first version
-     * of this assertion said 「two nearest」 and failed on `far` being present,
-     * which was the assertion being wrong about a module that was right. */
+    /* THREE nearest, not two. The pool has three members and the fallback takes
+     * the head of the ranked list, so `far` is a distractor too — the promise
+     * being that a degraded question is the three CLOSEST species it could find,
+     * ranked, with nothing dropped or re-ordered. */
     const near = neighbours(index, synthetic.answer, synthetic.pool).slice(0, 3).map((r) => r.id).sort((a, b) => a - b);
     const used = synthetic.q1.options.filter((o) => o !== synthetic.answer).sort((a, b) => a - b);
     check(JSON.stringify(used) === JSON.stringify(near),
@@ -570,12 +529,11 @@ console.log('\nevery ceiling is achievable, in every pool, for every species');
 console.log('\nthe three tiers are actually separated, in every pool');
 // ---------------------------------------------------------------------------
 {
-  /* The measurement that rejected the first design. `p90(簡單) < p50(困難)` and
-   * `p90(困難) < p50(地獄)`, per pool. A mere "harder on average" would be
-   * satisfied by a tier that shifts the distribution by a thousandth — which is
-   * what the rejected rank-band design did: its 困難 and 地獄 OVERLAPPED in all
-   * ten pools, and neither of those difficulty tabs did anything a player could
-   * hear. */
+  /* The measurement that rejected the first design: `p90(簡單) < p50(困難)` and
+   * `p90(困難) < p50(地獄)`, per pool. "Harder on average" would be satisfied by a
+   * tier that shifts the distribution by a thousandth — which is what the rejected
+   * rank-band design did: its 困難 and 地獄 OVERLAPPED in all ten pools, and neither
+   * tab did anything a player could hear. */
   const pools = [[0, allIds(index)]];
   for (const g of availableGenerations(index, data)) pools.push([g, poolFor(index, data, g)]);
 
@@ -587,16 +545,14 @@ console.log('\nthe three tiers are actually separated, in every pool');
     const dist = {};
     for (const difficulty of DIFFICULTIES) {
       /* 40 DRAWN ROUNDS, not one question per species. buildRound draws its own
-       * answers and its own shuffles, so this samples the round rather than the
-       * species and therefore samples the shuffle too — which the previous
-       * version of this loop did not do, having built one round per pool and
-       * then compared ten numbers.
+       * answers and shuffles, so this samples the round rather than the species —
+       * and therefore the shuffle too.
        *
-       * 40 was measured down from 200 for cost and the claim is unchanged: the
-       * gaps being tested are ~0.30 and ~0.19, against within-tier spread of a
-       * few hundredths, so 400 samples per pool puts p90 and p50 tens of
-       * standard errors apart. The reported gaps are printed below so a reader
-       * can see how little margin there is, rather than being asked to trust it. */
+       * 40 was measured down from 200 for cost, and the claim is unchanged: the
+       * gaps tested are ~0.30 and ~0.19 against within-tier spread of a few
+       * hundredths, so 400 samples per pool puts p90 and p50 tens of standard
+       * errors apart. The reported gaps are printed below so a reader can see how
+       * little margin there is rather than being asked to trust it. */
       const vals = [];
       for (let i = 0; i < 40; i++) {
         for (const x of buildRound(index, pool, difficulty, rand)) {
@@ -641,10 +597,8 @@ console.log('\na question is four distinct options with the answer among them');
   let position = [0, 0, 0, 0];
   const R = 400;
   for (let i = 0; i < R; i++) {
-    /* ONE QUESTION PER DRAW, not a whole round of ten. The first version called
-     * `buildRound(...)[0]`, which ranked the pool 4,000 times to use 400 of the
-     * results — 3.1 s of this file's 11.5 s spent building nine questions per draw
-     * and discarding them. */
+    /* ONE QUESTION PER DRAW, not a whole round of ten: `buildRound(...)[0]` ranks
+     * the pool 4,000 times to use 400 of the results. */
     const answer = pool[Math.floor(rand() * pool.length)];
     const q1 = buildQuestion(index, answer, pool.filter((id) => id !== answer), 'easy', rand);
     if (!q1) { wrongShape++; continue; }
@@ -658,10 +612,9 @@ console.log('\na question is four distinct options with the answer among them');
     () => `${wrongShape} malformed`);
   check(repeats === 0, 'and no option appears twice', () => `${repeats} repeats`);
 
-  /* The answer's position must not carry information. Sorting the distractors
-   * and appending the answer — the obvious implementation — puts it last every
-   * time, and a 25% free win on a four-choice question is invisible in every
-   * screenshot. */
+  /* The answer's position must not carry information. Sorting the distractors and
+   * appending the answer — the obvious implementation — puts it last every time,
+   * and a 25% free win on a four-choice question is invisible in every screenshot. */
   const exp = R / CHOICES;
   const sd = Math.sqrt(exp * (1 - 1 / CHOICES));
   const worst = position.reduce((w, n, i) => (Math.abs(n - exp) > Math.abs(w.dev) ? { i, n, dev: n - exp } : w),
@@ -712,8 +665,8 @@ console.log('\na round is ten questions with ten DIFFERENT answers');
       () => `${r.crossUse} such options`);
   }
 
-  /* The same, inside the SMALLEST pool. A round that needs ten distinct answers
-   * out of a shrinking remainder is the place this fails, and 第六世代 is 72
+  /* The same, inside the SMALLEST pool: a round needing ten distinct answers out
+   * of a shrinking remainder is where this fails, and 第六世代 (Gen VI) is 72
    * members — comfortable — so the floor is asserted rather than assumed. */
   const six = poolFor(index, data, 6);
   let sixShort = 0;
@@ -736,12 +689,11 @@ console.log('\nthe daily round is stable, and the generation filter is in the se
   check(JSON.stringify(a) === JSON.stringify(b), 'the same day draws the identical round',
     () => 'the two rounds differ');
 
-  /* WHY THIS IS A SOURCE ASSERTION AND NOT A BEHAVIOURAL ONE, and the reason is
-   * §3.B2's. The obvious behavioural test is
-   * `buildDailyRound(all, 0) !== buildDailyRound(six, 6)` — and it can never
-   * fail: pools 0 and 6 are DISJOINT id sets (1,025 vs 72), so the two rounds
-   * differ no matter what the seed contains. A mutation that deletes the filter
-   * from the seed leaves it green. */
+  /* A SOURCE ASSERTION, NOT A BEHAVIOURAL ONE, for §3.B2's reason: the obvious
+   * behavioural test `buildDailyRound(all, 0) !== buildDailyRound(six, 6)` can
+   * never fail, because pools 0 and 6 are DISJOINT id sets (1,025 vs 72) and the
+   * two rounds differ no matter what the seed contains. A mutation deleting the
+   * filter from the seed leaves it green. */
   const src = readFileSync(join(ROOT, 'assets/js/cry-game-similarity.js'), 'utf8');
   const seedExpr = (src.match(/fnv1a\(\s*\n?\s*`\$\{GAME_SEED\}([^`]*)`/) || [])[1] || '';
   check(seedExpr.includes('difficulty') && seedExpr.includes('gen') && seedExpr.includes('dateKey'),
@@ -761,11 +713,11 @@ console.log('\nthe daily round is stable, and the generation filter is in the se
   check(GAME_SEED === 'pokemon-crygame:', 'and it is the one this page, its store key and this checker all name',
     () => `${GAME_SEED}`);
 
-  /* The one thing that IS behavioural about the filter: two DIFFERENT filters
-   * over the same day must give different rounds, and two filters of the SAME
-   * size must too. Gen I (151) and Gen V (156) are close enough in size that a
-   * filter dropped from the seed would be the only thing keeping them apart in
-   * the pool but not in the seed. */
+  /* The one behavioural thing about the filter: two DIFFERENT filters over the
+   * same day must give different rounds, and two filters of the SAME size must
+   * too. 第一世代 (151) and 第五世代 (156) are close enough in size that a filter
+   * dropped from the seed is the only thing keeping them apart in the pool but not
+   * in the seed. */
   const one = poolFor(index, data, 1);
   const five = poolFor(index, data, 5);
   const d1 = buildDailyRound(index, one, 'hard', 1, '2026-10-13');
@@ -798,16 +750,15 @@ console.log('\nthe daily round is stable, and the generation filter is in the se
   check(taipeiDateKey(new Date('2026-10-13T16:30:00Z')) === '2026-10-14',
     'a Taipei day is named by Taipei midnight, not UTC');
 
-  /* FAIRNESS, NOT COVERAGE — the argument is check_game_similarity.mjs's and it
-   * does not transfer: a 10-draw round reaching 1,025 species in 365 days is
-   * the coupon-collector problem, so what is asserted is that no species
-   * dominates. */
+  /* FAIRNESS, NOT COVERAGE — the argument is check_game_similarity.mjs's and does
+   * not transfer: a 10-draw round reaching 1,025 species in 365 days is the
+   * coupon-collector problem, so what is asserted is that no species dominates. */
   const tally = new Map();
-  /* 180 DAYS, halved from a year, and that is a real cost decision: this sweep
-   * was 1,070 ms of a 3,100 ms checker — the single largest item — because each
-   * daily round ranks the whole dex ten times. Half a year is still 1,800 draws
-   * from 1,025 species, which is what the coupon-collector note needs; a year
-   * would be 3,600 and would not change whether one species dominates. */
+  /* 180 DAYS, halved from a year, is a real cost decision: this sweep was
+   * 1,070 ms of a 3,100 ms checker — the single largest item — because each daily
+   * round ranks the whole dex ten times. Half a year is still 1,800 draws from
+   * 1,025 species, which is all the coupon-collector note needs; a year would be
+   * 3,600 and would not change whether one species dominates. */
   const DAYS = 180;
   for (let d = 0; d < DAYS; d++) {
     const round = buildDailyRound(index, all, 'hard', 0, taipeiDateKey(at(d + 1)));
@@ -867,8 +818,8 @@ console.log('\nthe score counts an unanswered question as wrong');
   /* THE ONE THAT MATTERS. A missing pick is not skipped — the reference's result
    * page renders an unanswered question exactly like a correct one, because the
    * correct option is green either way, so the score is the only place the
-   * difference can show. Counting a missing pick as neither would let a reader
-   * who quit at question 2 report a perfect round. */
+   * difference can show. Counting a missing pick as neither lets a reader who quit
+   * at question 2 report a perfect round. */
   const half = round.map((q1, i) => (i < 5 ? q1.answer : null));
   const s = scoreRound(round, half);
   check(s.correct === 5, 'five right and five unanswered scores 5, not 10',
@@ -883,11 +834,10 @@ console.log('\nthe score counts an unanswered question as wrong');
   check(scoreRound(round, mixed).correct === 5, 'alternating right and unanswered scores 5',
     () => `${scoreRound(round, mixed).correct}`);
 
-  /* Bands are monotone and the extremes are their own cases. */
-  /* COVERAGE, not distinctness. Bands are ranges and three of the six cover two
-   * scores each; what has to hold is that every score 0..10 lands on SOME band,
-   * because a score that reached no band would print the empty string — which is
-   * the one branch `scoreBand` cannot reach and is therefore untested. */
+  /* Bands are monotone, the extremes are their own cases, and the claim is
+   * COVERAGE rather than distinctness: bands are ranges and three of the six cover
+   * two scores each, so what must hold is that every score 0..10 lands on SOME
+   * band — a score reaching no band would print the empty string. */
   const ladder = [];
   for (let n = 0; n <= 10; n++) ladder.push(scoreBand(n));
   check(ladder.every((s) => typeof s === 'string' && s.length > 0),
@@ -924,9 +874,8 @@ console.log('\nthe share text describes the round that was actually played');
     'the header carries the day, the tier AND the filter scope', () => lines[0]);
   check(lines[1] === '🟩🟥🟥🟩🟥🟥🟩🟥🟥🟩', 'the grid is one cell per question, green only where the pick was right',
     () => lines[1]);
-  /* CODE POINTS, not UTF-16 units. 🟩 is a surrogate pair, so `lines[1].length`
-   * reports 20 for a ten-cell grid and the check reads as a page emitting twice
-   * as many cells as it should. */
+  /* CODE POINTS, not UTF-16 units: 🟩 is a surrogate pair, so `lines[1].length`
+   * reports 20 for a ten-cell grid. */
   check([...lines[1]].length === MAX_QUESTIONS, 'and it is exactly ten cells wide',
     () => `${[...lines[1]].length} cells (UTF-16 length ${lines[1].length})`);
   check(lines[2] === '4 / 10', 'the count agrees with the grid', () => lines[2]);
@@ -941,14 +890,13 @@ console.log('\nthe share text describes the round that was actually played');
   check(unlimited.includes('無限模式'), 'unlimited rounds say so rather than implying a shared day', () => unlimited.split('\n')[0]);
 
   /* The reference's result page renders an unanswered question identically to a
-   * correct one, so a share string derived from the same field would too. The
-   * two answers must agree, and the grid is where that is checkable. */
+   * correct one, so a share string derived from the same field would too. The grid
+   * is where the two answers agreeing is checkable. */
   const cells = (p) => p.map((v, i) => (v != null && v === round[i].answer ? '🟩' : '🟥')).join('');
   check(cells(picks) === lines[1], 'the grid and the count cannot disagree — one function computes both',
     () => `${cells(picks)} vs ${lines[1]}`);
-  /* A DEFAULT dateKey is read, and `taipeiDateKey` takes a Date argument with no
-   * default of its own — calling it bare is a TypeError on `now.getTime()`, and
-   * the first version of this line did exactly that and killed the checker. */
+  /* A DEFAULT dateKey is read, and `taipeiDateKey` takes a Date with no default of
+   * its own — a bare call is a TypeError on `now.getTime()`. */
   check(typeof shareText({}).split('\n')[0] === 'string'
     && /^叫聲猜謎 \d{4}-\d{2}-\d{2} · 簡單（全部世代）$/.test(shareText({}).split('\n')[0]),
     'shareText({}) with no arguments at all defaults to today and 全部世代 rather than throwing',
@@ -958,11 +906,10 @@ console.log('\nthe share text describes the round that was actually played');
 
   /* The grid is the comparison surface, so it must not grow a second meaning. */
   const withLegend = shareText({ questions: round, picks, mode: 'daily', difficulty: 'hard', gen: 0, dateKey: '2026-10-14' });
-  /* TWO emoji lines, and both are meant to be there: the grid and the legend.
-   * The first version asserted ONE and reported the legend as a violation — the
-   * check was measuring "how many emoji lines" when the claim is "the grid is a
-   * grid and the legend is not another one". So the assertion is on the SHAPE of
-   * the emoji lines: exactly one of them is exactly ten cells. */
+  /* TWO emoji lines, both meant to be there: the grid and the legend. The claim is
+   * not "how many emoji lines" but "the grid is a grid and the legend is not
+   * another one", so the assertion is on the SHAPE — exactly one is ten cells
+   * wide. */
   const emojiLines = withLegend.split('\n').filter((l) => /[\u{1F7E2}\u{1F7E5}]/u.test(l));
   check(emojiLines.length === 2, 'two emoji lines: the grid and the legend',
     () => withLegend.replace(/\n/g, '\\n'));
@@ -979,12 +926,11 @@ console.log('\nevery difficulty OPENS ON a pool that can hold a round');
 // ---------------------------------------------------------------------------
 {
   /* `DEFAULT_GENERATION` is a default the page applies only while the reader has
-   * not chosen a generation. What has to hold about it is arithmetic: every tier's
-   * opening pool must be able to produce `MAX_QUESTIONS` questions, and the floor
-   * is `MIN_POOL + MAX_QUESTIONS - 1` because each answer is withdrawn from the
-   * pool its own distractors come out of. A default of, say, generation 8 (96
-   * members) is fine and a default of a generation with 12 members would build a
-   * round of five and render 「5 / 10」. */
+   * not chosen a generation. What must hold is arithmetic: every tier's opening
+   * pool can produce `MAX_QUESTIONS` questions, and the floor is
+   * `MIN_POOL + MAX_QUESTIONS - 1` because each answer is withdrawn from the pool
+   * its own distractors come out of. A default generation holding 12 members would
+   * build a round of five and render 「5 / 10」. */
   for (const d of DIFFICULTIES) {
     const gen = DEFAULT_GENERATION[d];
     const pool = poolFor(index, data, gen);
@@ -998,10 +944,10 @@ console.log('\nevery difficulty OPENS ON a pool that can hold a round');
       () => `${round.length}`);
   }
 
-  /* 簡單 IS THE NARROW ONE AND THE OTHER TWO ARE NOT, and that is the whole
-   * point of the table: `game-similarity.js` gives its own `easy` one generation
-   * and `hard` the dex, and this is the same relationship. A table where all
-   * three matched would be a constant wearing a lookup's clothes. */
+  /* 簡單 IS THE NARROW ONE AND THE OTHER TWO ARE NOT, which is the point of the
+   * table: `game-similarity.js` gives its own `easy` one generation and `hard` the
+   * dex. A table where all three matched would be a constant wearing a lookup's
+   * clothes. */
   check(DEFAULT_GENERATION.easy !== 0,
     '簡單 opens on a single generation rather than all 1,025 — the same relationship game-similarity.js has between its easy and hard',
     () => `easy is ${DEFAULT_GENERATION.easy}`);
@@ -1009,12 +955,11 @@ console.log('\nevery difficulty OPENS ON a pool that can hold a round');
     'and 困難 and 地獄 both open on the whole dex, because narrowing the pool is not what makes a question hard');
 
   /* EVERY DEFAULT NAMES A GENERATION THAT EXISTS. The page assigns
-   * `state.gen = DEFAULT_GENERATION[next]` WITHOUT normalising — it does not run
-   * the value through `normalizeGeneration` — so a table naming a generation this
-   * corpus lacks hands the page an empty pool and it reports
-   * 「這個範圍沒有足夠的寶可夢出題」 on a tier that should have opened on the whole
-   * dex. Asserting existence here is the cheap end of that; the page checker
-   * asserts the normalise-on-assign side as well. */
+   * `state.gen = DEFAULT_GENERATION[next]` WITHOUT normalising, so a table naming
+   * a generation this corpus lacks hands the page an empty pool and it reports
+   * 「這個範圍沒有足夠的寶可夢出題」 (not enough Pokémon to build a round) on a tier
+   * that should have opened on the whole dex. The page checker asserts the
+   * normalise-on-assign side as well. */
   const gmap = new Set(genIdMap(data, index).keys());
   for (const d of DIFFICULTIES) {
     const g = DEFAULT_GENERATION[d];
@@ -1027,9 +972,9 @@ console.log('\nevery difficulty OPENS ON a pool that can hold a round');
     () => `the table has ${Object.keys(DEFAULT_GENERATION).join(', ')}`);
 
   /* THE TWO AXES REALLY ARE INDEPENDENT, which is the claim the table's docblock
-   * makes and the reason a difficulty change is allowed to leave the pool alone.
-   * If narrowing the pool changed the measured difficulty, 簡單 on 第I世代 would be
-   * a fourth thing and the three tabs would not be the same axis. */
+   * makes and the reason a difficulty change may leave the pool alone. If narrowing
+   * the pool changed the measured difficulty, 簡單 on 第I世代 would be a fourth
+   * thing and the three tabs would not be the same axis. */
   const narrow = [];
   const wide = [];
   for (let i = 0; i < 60; i++) {
@@ -1055,8 +1000,8 @@ console.log('\nnormalising a value that came from localStorage');
   check(normalizeDifficulty(undefined) === 'easy', 'and so does a missing one');
   check(normalizeDifficulty('hell') === 'hell', 'a real one is kept');
 
-  /* The fallback is 0 (全部) and NOT 1 (第一世代). §3.W records the analogous bug
-   * on the colour game: a first visit must get what the UI says it gets. */
+  /* The fallback is 0 (全部/all) and NOT 1 (第一世代). §3.W records the analogous
+   * bug on the colour game: a first visit must get what the UI says it gets. */
   const GENS = availableGenerations(index, data);
   check(normalizeGeneration(99, GENS) === 0, 'an out-of-range generation falls back to 全部世代',
     () => `${normalizeGeneration(99, GENS)}`);
@@ -1065,9 +1010,9 @@ console.log('\nnormalising a value that came from localStorage');
   check(normalizeGeneration('nonsense', GENS) === 0, 'and unparseable');
   check(normalizeGeneration(3, GENS) === 3, 'a real one is kept');
   check(normalizeGeneration(9, GENS) === 9, 'and so is the last one');
-  /* `available` is REQUIRED, and the first version made it optional — so
-   * `normalizeGeneration(99)` returned 99, a filter the corpus cannot satisfy,
-   * with the range check doing nothing for any caller that left it off. */
+  /* `available` is REQUIRED and used to be optional, so `normalizeGeneration(99)`
+   * returned 99 — a filter the corpus cannot satisfy — with the range check doing
+   * nothing for any caller that left it off. */
   check(normalizeGeneration(99, undefined) === 99,
     'with no list at all there is no range to check against, and that is now the only way to get one — so a caller that forgets the list gets a filter with no questions',
     () => `${normalizeGeneration(99, undefined)} — if this ever becomes 0, normalizeGeneration grew a hidden range`);

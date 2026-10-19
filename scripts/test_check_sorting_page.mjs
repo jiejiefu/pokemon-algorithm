@@ -65,9 +65,10 @@ const FILES = [
      already copied wholesale above, and the copy loop skips `assets/js/` entries.
      That makes this list the only thing that decides which files a case may touch,
      and a case aimed at a module NOT in it applies nothing: the checker runs
-     unmutated and the harness reports 「the guard does not exist」. That is exactly
-     what happened to the two 排序鍵 cases, and it is §3.W's shape — a mutation that
-     cannot be applied prints what a mutation the assertion survives prints. */
+      unmutated and the harness reports 「the guard does not exist」. That is exactly
+      what happened to the two 排序鍵 (sort key) cases, and it is §3.W's shape — a
+      mutation that cannot be applied prints what a mutation the assertion survives
+      prints. */
   'assets/js/sort-keys.js',
 ];
 
@@ -549,7 +550,7 @@ const cases = [
      * on the wrong input and sat there reading as verified. */
     name: 'a quoted step count is edited into something the generators do not produce',
     mutate: (f, s) => f === 'assets/js/sort-run.js' ? s.replace('524,800   選擇排序', '480,000   選擇排序') : undefined,
-    expect: 'sort-run.js quotes 選擇排序 on already-sorted input as 524,800, and attaches it to that row',
+    expect: 'sort-run.js quotes selection sort on already-sorted input as 524,800, and attaches it to that row',
   },
   {
     /* The defect this suite's own first version had: the check was "the string never

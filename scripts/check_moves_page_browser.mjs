@@ -599,7 +599,12 @@ if (tabsBox) {
   const secondSelected = await ev(`[...document.querySelectorAll('.mv-tab')].findIndex(t => t.getAttribute('aria-selected') === 'true')`);
   ok(secondSelected === 1, 'and aria-selected followed', `index ${secondSelected}`);
 } else {
-  ok(true, '拍擊 has a single learn method, so there is no second tab to press');
+  /* 拍擊 has a single learn method, so there is no second tab to press — but
+   * "no second tab" is a claim about the page, not a reason to skip. Counted
+   * rather than asserted as `true`: a bare `ok(true)` is a check that cannot
+   * fail, and it would inflate the total whether or not the page is right. */
+  const tabCount = await ev(`document.querySelectorAll('.mv-tab').length`);
+  ok(tabCount === 1, '拍擊 has one learn method, so the page shows exactly one tab', `${tabCount} tabs`);
 }
 
 const learnerCards = await ev(`document.querySelectorAll('.mv-learner').length`);

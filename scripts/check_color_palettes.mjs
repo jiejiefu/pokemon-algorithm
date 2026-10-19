@@ -51,6 +51,7 @@ import {
   hexToHsl,
   NEUTRAL_CHROMA,
 } from '../assets/js/color-palette.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Defaults to the tracked file. An override exists so the guards below can be
@@ -72,23 +73,8 @@ const MAX_COLORS = 6;
 const HEX = /^#[0-9a-f]{6}$/;
 const EXCLUDED = new Set(['#000000', '#101010', '#121212', '#010101', '#0f0f0f']);
 
-let failures = 0;
-let checks = 0;
-
-function ok(condition, message) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `${message}\n        expected ${JSON.stringify(expected)}\n        actual   ${JSON.stringify(actual)}`
-  );
-}
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
 
 const IDS = POKEMON.map((p) => p.id).sort((a, b) => a - b);
 
@@ -258,22 +244,24 @@ eq(
 //
 // Arceus #493 was the visible one. Its primary is #e6e6ee at 35.73%, channels
 // 230/230/238, so max−min = 8 of 255. That is a grey. describeHex() read hue
-// 240 and lightness 91.8, and never looked at saturation, so it said 淺藍;
-// chineseColorName() ran a 100-entry nearest-neighbour over RGB and landed on
-// 薰衣草紫 (#E6E6FA, 12 away in the blue channel). The page said both.
+// 240 and lightness 91.8, and never looked at saturation, so it said 淺藍
+// (light blue); chineseColorName() ran a 100-entry nearest-neighbour over RGB
+// and landed on 薰衣草紫 (lavender, #E6E6FA, 12 away in the blue channel). The
+// page said both.
 //
 // Three properties are asserted, each because one of the three functions
 // broke independently of the other two:
 //
 //   1. A swatch below NEUTRAL_CHROMA is named a grey. describeHex() failed this
-//      on the pure grey #6a6a6a by calling it 紅 — `max === min` leaves h at 0,
-//      which falls into the first hue bucket. chineseColorName() failed it on
-//      #414141, which nearest-neighbour returned 墨綠 for: an entry 8 away in
-//      one channel beats every 淺灰 that is 20 away in all three.
+//      on the pure grey #6a6a6a by calling it 紅 (red) — `max === min` leaves h
+//      at 0, which falls into the first hue bucket. chineseColorName() failed it
+//      on #414141, which nearest-neighbour returned 墨綠 (dark green) for: an
+//      entry 8 away in one channel beats every 淺灰 (light grey) that is 20 away
+//      in all three.
 //   2. The two namers agree on every sub-threshold swatch, because the page
 //      shows them to the reader as one answer.
-//   3. colorTemperature() agrees with the name, because the page prints 色溫 on
-//      the same block as the colour name.
+//   3. colorTemperature() agrees with the name, because the page prints 色溫
+//      (color temperature) on the same block as the colour name.
 const GREY_NAMES = new Set(['黑', '白', '深灰', '灰色', '淺灰', '灰白']);
 const CHROMATIC_NAMES = /[紅橙黃綠青藍紫粉]/;
 const allSwatches = [];
@@ -444,7 +432,7 @@ for (const id of IDS) {
     }
   }
 }
-checks += 1; // existsSync sweep counted once
+ok(true, 'every normal and shiny sprite exists on disk'); // existsSync sweep counted once
 
 console.log(`palettes      ${IDS.length} ids x 2 variants = ${IDS.length * 2}`);
 console.log(`entries       ${totalEntries} (avg ${(totalEntries / entryCounts.length).toFixed(2)})`);
@@ -458,8 +446,8 @@ console.log(`at cap        ${capHits.length}`);
 console.log(`share sum     min ${Math.min(...shareSums).toFixed(2)}  median ${medianSum.toFixed(2)}  max ${Math.max(...shareSums).toFixed(2)}`);
 
 console.log(
-  failures === 0
-    ? `\nall ${checks} checks passed`
-    : `\n${failures} of ${checks} checks FAILED`
+  C.failures.length === 0
+    ? `\nall ${C.checks} checks passed`
+    : `\n${C.failures.length} of ${C.checks} checks FAILED`
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(C.failures.length === 0 ? 0 : 1);

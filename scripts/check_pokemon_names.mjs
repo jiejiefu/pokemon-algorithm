@@ -3,40 +3,20 @@
  *
  *   node scripts/check_pokemon_names.mjs
  *
- * Guards the English and Traditional Chinese names in pokemon_data.json, and
- * the three generated files that copy them. It exists because of what happened
- * on 2026-10-19: twelve species carried a misspelled English name in
- * `data-sources/International List of Pokémon Names.xlsx`, and the typo
- * propagated into the slug — which is the site's primary key for every
- * cross-page link. `detail.html?slug=amoongus` was a dead link and
- * `detail.html?slug=amoonguss` did not exist, for a species the user had to
- * tell us about.
+ * Guards the English and Traditional Chinese names in pokemon_data.json and the
+ * three generated files that copy them. A misspelled English name in the source
+ * XLSX propagates into the slug — the site's primary key for every cross-page
+ * link — so a typo makes a detail page unreachable.
  *
- * **WHY NOT A COMPARISON AGAINST POKEAPI.** A whole-corpus name comparison is
- * the obvious guard and it is the wrong one here, which is why this file pins
- * twelve names instead of 1025. Measured across all 1025 species and all nine
- * languages, 193 names disagree with PokeAPI — and a good share of the
- * disagreements are PokeAPI being wrong:
+ * It pins twelve names rather than comparing all 1,025 against PokeAPI. Measured
+ * across every species and all nine languages, 193 names disagree with PokeAPI,
+ * and many of those are PokeAPI being wrong: tw.portal-pokemon.com confirms our
+ * #956 and #983, PokeAPI's German column is shifted around #353, and its zh_HK
+ * uses mainland orthography. Twelve pins plus the cross-file agreement below
+ * cover the class of defect that ships a broken slug.
  *
- *   #956 超能豔鴕 / #983 仆斬將軍   PokeAPI ships 艷 and 刀; tw.portal-pokemon.com
- *                                  — the authority fix_pokemon_names.py scrapes —
- *                                  confirms ours, so a "sync to PokeAPI" pass
- *                                  would break two correct names.
- *   the German column               ours is shifted around #353 AND PokeAPI's is
- *                                  shifted the other way (#355 carries Zwirrlicht)
- *   the Korean column               PokeAPI gives Arceus the Korean name of Victini
- *   zh_HK                           ours uses HK orthography (火爆猴, 腭) where
- *                                  PokeAPI uses the mainland names (火暴猴, 颚)
- *   ja                              mixed legacy kana (ヂィ vs ディ) and real errors
- *
- * Pinning 1025 strings would be 1025 lines of duplication that goes stale, which
- * is the failure §3.J warns about. Twelve pins plus the cross-file agreement
- * below covers the class that actually broke.
- *
- * What it does NOT duplicate: check_evolution_chains.mjs already asserts
- * `base_name_en === names.en`, so this file does not assert it a second time
- * (§3.B1's rule — one check in the place that owns it, not two that can
- * disagree).
+ * check_evolution_chains.mjs already asserts `base_name_en === names.en`, so
+ * this file does not restate it (§3.B1 — one check in the place that owns it).
  */
 
 import { readFileSync } from 'node:fs';
@@ -44,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { pokemonSlug } from '../assets/js/shared.js';
+import { createChecker } from './lib/assert.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readData = name => JSON.parse(readFileSync(join(ROOT, 'assets/data', name), 'utf8'));
@@ -75,37 +56,19 @@ const CORRECTED_EN = {
 
 /**
  * The two Traditional Chinese names that must NOT be "corrected" toward
- * PokeAPI. This pair is the most valuable thing in the file: a future pass that
- * treats PokeAPI as authoritative over this project's own zh data would break
- * both, silently, because PokeAPI returns 200 and a plausible string.
- *
- * Verified against https://tw.portal-pokemon.com/play/pokedex/{id}/ on the day
- * the correction landed. PokeAPI ships 超能艷鴕 and 仆刀將軍.
+ * PokeAPI. PokeAPI returns 200 and a plausible string, so a future pass that
+ * treats it as authoritative would break both silently. Verified against
+ * tw.portal-pokemon.com; PokeAPI ships 超能艷鴕 and 仆刀將軍.
  */
 const PINNED_ZH_WHERE_POKEAPI_DISAGREES = {
   956: '超能豔鴕',
   983: '仆斬將軍'
 };
 
-let checks = 0;
-let failures = 0;
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, eq } = C;
+
 const notes = [];
-
-function ok(condition, message, detail) {
-  checks += 1;
-  if (!condition) {
-    failures += 1;
-    console.error(`  FAIL  ${message}${detail ? `\n        ${detail}` : ''}`);
-  }
-}
-
-function eq(actual, expected, message) {
-  ok(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    message,
-    `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
-  );
-}
 
 const byId = new Map(POKEMON.map(p => [p.id, p]));
 
@@ -188,9 +151,9 @@ notes.push(`12 corrected EN names pinned; ${POKEMON.length} species; ${Object.ke
 
 for (const note of notes) console.log(`  note  ${note}`);
 
-if (failures === 0) {
-  console.log(`PASS ${checks} checks`);
+if (C.failures.length === 0) {
+  console.log(`PASS ${C.checks} checks`);
 } else {
-  console.error(`FAIL ${failures} of ${checks} checks`);
+  console.error(`FAIL ${C.failures.length} of ${C.checks} checks`);
   process.exit(1);
 }

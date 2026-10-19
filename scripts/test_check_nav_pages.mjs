@@ -1,38 +1,28 @@
 /**
- * Negative tests for check_nav_pages.mjs — the checker must FAIL, and name the
- * right reason, for every invariant it claims to police.
+ * Negative tests for check_nav_pages.mjs. Each case must make the checker FAIL
+ * with a specific reason, for every invariant the checker claims to police.
  *
  *   node scripts/test_check_nav_pages.mjs
  *
- * WHY THIS FILE EXISTS. The checker's central claim is a negative one: that a
- * page with no nav call is caught. That is the easiest kind of assertion to get
- * accidentally true. A `src.includes('initHeaderNav')` test looks identical on
- * all 12 pages and is green forever, because every page also IMPORTS the symbol
- * and two of them mention the call in a comment — maze.html:110 and
- * detail.html:45. A checker that cannot fail is worse than no checker, because
- * it is trusted, and this one would be trusted precisely because it is green.
+ * A negative claim is easy to satisfy accidentally. A `src.includes(...)` test
+ * stays green when every page imports the symbol and two mention the call in a
+ * comment. Each case breaks one invariant in a scratch tree, runs the real
+ * checker, and requires both a non-zero exit and a specific substring. The exit
+ * code alone would also pass on a crash. A mutation that returns its input
+ * unchanged is an error: a stale anchor makes the case pass without exercising
+ * the check.
  *
- * Each case below breaks ONE invariant in a scratch copy of the tree, runs the
- * real checker against it, and requires a non-zero exit AND a specific
- * substring. Asserting only the exit code would pass on a crash, which is how a
- * typo becomes a "passing" test. A mutation that returns its input unchanged is
- * treated as an error rather than a no-op, for the same reason: a stale anchor
- * makes the case pass without ever exercising the check.
+ * The fixture holds every file the checker opens — the checker, shared.css, the
+ * two footer mark SVGs and every root .html. A missing file does not degrade the
+ * check that reads it; it ENOENTs the whole run.
  *
- * The tree is the checker, shared.css, the two footer mark SVGs and every root
- * .html — which is every file the checker opens, because a file left out of the
- * fixture does not degrade the check that reads it, it ENOENTs the whole run.
+ * The two `passes` cases at the end police the opposite direction: a new page
+ * that mounts the nav correctly must not be reported, and neither must an
+ * InfoPoke capture. The page set is derived from the directory and has no fixed
+ * size.
  *
- * The two `passes` cases at the end police the OPPOSITE direction — a genuinely
- * new page that does the right thing must not be reported as a defect, and
- * neither must an InfoPoke capture. Without them a checker that simply demanded
- * the 12 pages it was written against would look correct forever, and the whole
- * point of deriving the page set from the directory is that it has no fixed size.
- *
- * The harness runs from a temp tree, so a failed case cannot leave the working
- * tree modified. Only text files are copied — the checker reads root html and
- * nothing else — which also means the fixture cannot drift into agreeing with a
- * bug in the checker.
+ * The harness runs from a temp tree, so a failed case cannot modify the working
+ * tree. Only text files are copied.
  */
 
 import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
@@ -46,21 +36,14 @@ import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_nav_pages.mjs';
 
-/* shared.css is in the tree because the checker READS the row-layout modifier
- * list out of it. Without it every case dies with ENOENT before the first
- * assertion — which the harness would report as ten failures that ran nothing,
- * the §4 shape this file's own cases exist to catch. It is 1,741 lines and copies
- * in about a millisecond, which is a fair price for the third case below. */
+/* The checker reads the row-layout modifier list out of shared.css. Without it
+ * every case dies with ENOENT before the first assertion, and the harness would
+ * report failures that ran nothing. */
 const SHARED_CSS = 'assets/css/shared.css';
 
-/* The two mark files are in the tree because the checker READS each one's own
- * `<path fill="…">` to decide which colour a theme actually paints the mark in.
- * They are 1.5 KB of text each, and their absence is not a degraded check — it is
- * an ENOENT that kills the checker before its first assertion, which this harness
- * then reports as five cases that ran nothing. That is exactly the failure shape
- * §4 warns about, and it arrived the moment the footer section started reading a
- * file outside the root: the comment at the top of this file said the checker
- * "reads root html and nothing else", which was true until it was not. */
+/* The checker reads each mark file's own `<path fill="…">` to decide which
+ * colour a theme paints the mark in. Their absence is an ENOENT, not a degraded
+ * check. */
 const MARK_FILES = [
   'assets/images/github-invertocat-black.svg',
   'assets/images/github-invertocat-white.svg',
@@ -85,9 +68,9 @@ function makeTree(mutate) {
     for (const f of [...SRC]) {
       const p = join(dir, f);
       const before = readFileSync(p, 'utf8');
-      // `undefined` means "this case does not target this file". A returned
-      // string IDENTICAL to the input means a stale anchor, and the case would
-      // then pass for the wrong reason — an error, not a no-op.
+      // `undefined` means this case does not target this file. A returned
+      // string identical to the input means a stale anchor: an error, not a
+      // no-op.
       const after = mutate(f, before);
       if (after === undefined) continue;
       if (after === before) {
@@ -108,8 +91,8 @@ function run(dir) {
   }
 }
 
-// Baseline first: if the unmutated copy does not pass, every case below would be
-// measuring the harness rather than the checker.
+// Baseline first: if the unmutated copy does not pass, every case below measures
+// the harness rather than the checker.
 {
   const dir = makeTree(null);
   const { code, out } = run(dir);
@@ -120,9 +103,9 @@ function run(dir) {
 
 const cases = [
   {
-    /* The case the whole file exists for. maze.html's HTML comment quotes the
-       call verbatim two lines above the real one, so a substring test still
-       reports this page as mounting the nav after the call is gone. */
+    /* maze.html's HTML comment quotes the call two lines above the real one, so
+       a substring test still reports this page as mounting the nav after the
+       call is gone. */
     name: 'the call is deleted from a page whose comment still quotes it',
     mutate: (f, s) => f === 'maze.html' ? s.replace('\n    initHeaderNav();\n', '\n') : undefined,
     expect: 'pages with no initHeaderNav() call: maze.html',
@@ -165,7 +148,7 @@ const cases = [
   },
   {
     /* aria-labelledby contains "aria-label" as a substring, so a presence test
-       would call this button named when it names nothing. */
+       calls this button named when it names nothing. */
     name: 'the toggle is labelled only by aria-labelledby, which names no control',
     mutate: (f, s) => f === 'model3d.html'
       ? s.replace('aria-expanded="false" aria-label="開啟選單"', 'aria-expanded="false" aria-labelledby="site-nav"')
@@ -180,8 +163,8 @@ const cases = [
     expect: 'unusable drawer: colors-generator.html',
   },
   {
-    /* aria-hidden contains "hidden" after a hyphen, and /\bhidden\b/ matches it,
-       so this is the one mutation a naive boolean-attribute test waves through. */
+    /* aria-hidden contains "hidden" after a hyphen and /\bhidden\b/ matches it,
+       so a naive boolean-attribute test waves it through. */
     name: 'the drawer is given aria-hidden instead of hidden, which does not hide it',
     mutate: (f, s) => f === 'pokedex.html'
       ? s.replace('data-nav data-nav-drawer hidden>', 'data-nav data-nav-drawer aria-hidden="false">')
@@ -196,8 +179,8 @@ const cases = [
     expect: 'colors-explore.html (0 [data-nav-drawer])',
   },
   {
-    /* The regression the NAV comment above initHeaderNav() describes: five
-       hand-maintained copies of the same <nav>, drifting into three link sets. */
+    /* Five hand-maintained copies of the same <nav> drifted into three link
+       sets. The container belongs to the runtime. */
     name: 'a page hand-writes links inside the container the runtime owns',
     mutate: (f, s) => f === 'sorting.html'
       ? s.replace('<nav class="site-nav" data-nav aria-label="主選單"></nav>',
@@ -206,11 +189,10 @@ const cases = [
     expect: 'pages with <a> inside <nav class="site-nav">: sorting.html',
   },
   {
-    /* The regression that has no error message. `.header` on its own is a VALID
-       class — it resolves to the COLUMN layout, so every other check in this file
-       passes on it: the nav mounts, the toggle is a proper button, the drawer is
-       hidden, nothing throws and nothing logs. What a reader gets is a header 43px
-       too tall with the nav on a second row, overlapping the theme toggle. */
+    /* A bare `.header` is a valid class that resolves to the COLUMN layout, so
+       every other check here passes: the nav mounts, the toggle is a proper
+       button, the drawer is hidden, nothing throws. The page is 43px too tall
+       with the nav on a second row, overlapping the theme toggle. */
     name: 'a header drops its row-layout modifier, so the nav lands on a second row',
     mutate: (f, s) => f === 'spectrum.html'
       ? s.replace('<header class="header header-colors">', '<header class="header">')
@@ -218,9 +200,9 @@ const cases = [
     expect: 'headers with a bare class="header": spectrum.html',
   },
   {
-    /* Two modifiers is not "at least one working" — each sets --page-accent,
-       background and position, so the winner is whichever came last in
-       shared.css, and a page asking for the wrong identity gets it silently. */
+    /* Each modifier sets --page-accent, background and position, so the winner is
+       whichever came last in shared.css and a page asking for the wrong identity
+       gets it silently. */
     name: 'a header claims two identities and the later one silently wins',
     mutate: (f, s) => f === 'maze.html'
       ? s.replace('<header class="header header-maze">', '<header class="header header-maze header-sort">')
@@ -228,18 +210,15 @@ const cases = [
     expect: 'headers with several modifiers: maze.html',
   },
   {
-    /* The list the check guards is read OUT of shared.css, so if the stylesheet
-       stops shipping a row rule the check has nothing to compare against and would
-       pass on every page. The mutation turns the row back into a column — which is
-       the same class of edit someone makes when they "fix" the header — rather than
-       renaming one of the six classes, which would leave five working ones and be a
-       question about identity rather than about the list existing at all. */
+    /* The check reads the modifier list out of shared.css. If the stylesheet
+       stops shipping a row rule, the check has nothing to compare against and
+       passes on every page. The mutation turns the row back into a column rather
+       than renaming one class, which would leave five working ones. */
     name: 'shared.css turns the header row back into a column, leaving the guard with nothing to match',
-    /* Keyed on the CONSTANT, not on 'shared.css'. The loop passes SRC entries, and
-       this one is a path — so `f === 'shared.css'` was never true, mutate returned
-       undefined for every file, and the case ran on an unmutated tree and passed
-       for the wrong reason. `undefined` is how a case says "not my file", so a
-       stale key is invisible here: there is no anchor to go stale. */
+    /* Keyed on the constant, not on 'shared.css'. The loop passes SRC entries and
+       this one is a path, so `f === 'shared.css'` is never true. `undefined` is
+       how a case says "not my file", so a stale key is invisible here: there is
+       no anchor to go stale. */
     mutate: (f, s) => f === SHARED_CSS
       ? s.replace('  flex-direction: row;\n  align-items: center;\n  gap: 20px;',
         '  flex-direction: column;\n  align-items: center;\n  gap: 20px;')
@@ -248,9 +227,8 @@ const cases = [
   },
   {
     /* initThemeToggle() injects the sun/moon pair only when the button holds no
-       `.icon-sun`, so a page that hardcodes its own differently-named pair is not
-       skipped but doubled: four children in a 34px box, both hand-written ones
-       visible in both themes, the third one painting below the button. */
+       `.icon-sun`, so a hardcoded pair is doubled: four children in a 34px box,
+       both hand-written ones visible in both themes. */
     name: 'a page hard-writes its own sun/moon, which the runtime then doubles',
     mutate: (f, s) => f === 'spectrum.html'
       ? s.replace('<button class="theme-toggle" type="button" aria-label="切換深色／淺色主題"></button>',
@@ -287,16 +265,14 @@ const cases = [
     expect: '404.html no longer contains location.replace',
   },
 
-  /* --- the footer's GitHub mark -------------------------------------------------
-   * These SHIPPED inverted, so each one is a case that demonstrably went green
-   * once. M1 is the defect itself; M2 and M4 are the two guards that were written
-   * to catch it and did NOT, which is why they are here too — a harness that only
-   * holds the cases the author expected to pass is the same vacuity one layer up.
+  /* --- the footer's GitHub mark -----------------------------------------------
+   * Each of these shipped inverted once. M1 is the defect itself; M2 and M4 are
+   * the guards written to catch it that did not.
    */
   {
-    /* The bug as shipped: the classes named the THEME, so "dark hides the dark
-     * one" was false and each theme displayed the mark that vanishes into it —
-     * white on #f3f5fa and black on #0b1020, both under 1.2:1. */
+    /* The classes named the THEME, so "dark hides the dark one" was false and
+     * each theme displayed the mark that vanishes into it: white on #f3f5fa and
+     * black on #0b1020, both under 1.2:1. */
     name: "the mark's two swap rules are wired to each other, so both themes show the invisible mark",
     mutate: (f, s) => f === SHARED_CSS
       ? s.replace(".home-footer-github .gh-black { display: none; }", ".home-footer-github .gh-white { display: none; }")
@@ -305,8 +281,8 @@ const cases = [
     expect: 'the mark shown on each theme is visible against that theme',
   },
   {
-    /* Found by hand-running M2: this stayed GREEN at first, because the check
-     * used the class only as a lookup key and never read the NAME. */
+    /* The check used the class only as a lookup key and never read the NAME, so
+     * this stayed green at first. */
     name: "the mark's classes go back to naming the theme, which is what made the rules readable as their own inverse",
     mutate: (f, s) => f === 'index.html'
       ? s.replace('class="gh-black"', 'class="gh-dark"')
@@ -317,8 +293,8 @@ const cases = [
     expect: 'each mark class is named for the colour its file actually paints',
   },
   {
-    /* Found by hand-running M4: the ground check read index.html, which no longer
-     * defines `.home-footer` at all, so it matched nothing and passed. */
+    /* The ground check read index.html, which no longer defines `.home-footer`,
+     * so it matched nothing and passed. */
     name: 'the footer is given a background of its own, so --bg-primary is no longer what the mark sits on',
     mutate: (f, s) => f === SHARED_CSS ? s.replace('.home-footer { border-top:', '.home-footer { background: #ffffff; border-top:') : undefined,
     expect: 'the footer paints no background of its own',
@@ -338,8 +314,8 @@ const cases = [
     expect: 'each mark class is named for the colour its file actually paints',
   },
   {
-    /* M5b, which was green until it was added to the checker. A second copy of a
-     * shared rule wins on stylesheet order alone until the day it does not. */
+    /* M5b. A second copy of a shared rule wins on stylesheet order alone until
+     * the day it does not. */
     name: 'today.html re-declares .home-footer-line, so two definitions exist and only the cascade decides',
     mutate: (f, s) => f === 'today.html'
       ? s.replace('    .today-section {', '    .home-footer-line { text-align: left; }\n    .today-section {')
@@ -347,11 +323,9 @@ const cases = [
     expect: 'today.html does not re-declare .home-footer or .home-footer-line',
   },
   {
-    /* The one-mark defect, which is NOT the same as the zero-mark case four
-     * other footers are in: the swap rules hide exactly one per theme, so a
-     * page carrying a single mark renders the logo that disappears into its own
-     * background. today.html is where the mutation goes because index.html is
-     * no longer the only footer that could carry it. */
+    /* The one-mark defect, distinct from the zero-mark case four other footers
+     * are in: the swap rules hide exactly one per theme, so a page carrying a
+     * single mark renders the logo that disappears into its own background. */
     name: 'today.html loses one of its two GitHub marks, so one theme shows a logo that vanishes into itself',
     mutate: (f, s) => f === 'today.html'
       ? s.replace('<img class="gh-black" src="assets/images/github-invertocat-black.svg" alt="" width="24" height="24">', '')
@@ -359,8 +333,8 @@ const cases = [
     expect: 'today.html does not carry exactly one GitHub mark',
   },
   {
-    /* The path's fill, not the clipPath's `<rect fill="white">`: a naive first-
-     * fill match reads the BLACK file as white, which is what let the inverted
+    /* The path's fill, not the clipPath's `<rect fill="white">`: a naive
+     * first-fill match reads the BLACK file as white, which let the inverted
      * state look correct. */
     name: 'the white mark is swapped for one whose path fill no longer names a colour',
     mutate: (f, s) => f === 'assets/images/github-invertocat-white.svg'
@@ -370,9 +344,8 @@ const cases = [
   },
 ];
 
-// Text mutations and filesystem mutations are independent hooks, and a case may
-// use either or both; one loop over the merged list, because splitting them is
-// how a `files` hook ends up shipping that nothing ever calls.
+// Text and filesystem mutations are independent hooks; one loop over the merged
+// list, so a `files` hook cannot ship without being called.
 for (const c of cases) {
   const dir = makeTree(c.mutate);
   if (c.files) c.files(dir);
@@ -383,9 +356,8 @@ for (const c of cases) {
 }
 
 /* Opposite direction. A page that mounts the nav correctly must not read as a
-   defect, or the checker is hardcoding the twelve pages it was written against —
-   which is the failure mode that would make the next page on this site get no
-   nav, and no warning. */
+   defect, or the checker is hardcoding the twelve pages it was written against
+   and the next page gets no nav and no warning. */
 {
   const dir = makeTree(null);
   const nav = [
@@ -410,8 +382,8 @@ for (const c of cases) {
   releaseTree(dir);
 }
 
-/* And the other direction of the derived set: an InfoPoke capture is third-party
-   markup, not a page of this site, and must never be governed. */
+/* The other direction of the derived set: an InfoPoke capture is third-party
+   markup and must never be governed. */
 {
   const dir = makeTree(null);
   writeFileSync(join(dir, 'infopoke_net_new.html'), '<!DOCTYPE html><html><body>upstream capture</body></html>');

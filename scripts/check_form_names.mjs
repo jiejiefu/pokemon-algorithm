@@ -1,12 +1,11 @@
 /**
  * Form name authority — regression test.
  *
- * The failure this guards against is specific: FORM_NAME_OVERRIDES is a
- * hand-written table of Chinese strings, so nothing stops a plausible-looking
- * entry from creeping in and rendering as if it were the official wording. Every
- * override is therefore asserted to appear verbatim in the generated portal
- * table for that same species. A typo, a reworded descriptor, or a name the
- * portal spells differently all fail here rather than shipping.
+ * FORM_NAME_OVERRIDES is a hand-written table of Chinese strings, so a
+ * plausible-looking entry could render as if it were official wording. Every
+ * override is asserted to appear verbatim in the generated portal table for the
+ * same species. A typo, a reworded descriptor, or a differently spelled portal
+ * name all fail here rather than shipping.
  *
  * Run: node scripts/check_form_names.mjs
  */
@@ -69,10 +68,10 @@ const unusedDescriptors = Object.keys(FORM_DESCRIPTOR_ZH)
   .filter((q) => !forms.some((n) => n.qualifier === q));
 eq(unusedDescriptors, [], 'descriptor rules no local form uses');
 
-/* 4. The 127 rows that were already Chinese must not regress. This is the tier-3
-   guarantee, and it is the reason the 9 portal-absent Megas survive: 10278-10284,
-   10306 and 10308 appear in no portal list, so an implementation that preferred
-   the portal unconditionally would blank them. */
+/* 4. The 127 rows that were already Chinese must not regress. The 9
+   portal-absent Megas survive because of this: 10278-10284, 10306 and 10308
+   appear in no portal list, so an implementation that preferred the portal
+   unconditionally would blank them. */
 const regressed = forms
   .filter((n) => isChinese(n.name_zh) && formNameZh(n) !== n.name_zh)
   .map((n) => `${n.name_en}: was ${n.name_zh}, now ${formNameZh(n)}`);
@@ -81,12 +80,12 @@ eq(regressed, [], 'already-Chinese form names altered');
 /* 5. No node renders empty. */
 eq(forms.filter((n) => !formNameZh(n)).map((n) => n.name_en), [], 'forms with no name at all');
 
-/* 6. Coverage, pinned by count. The point of this test is that the residual is a
-   known, measured gap rather than a surprise: 69 of 325 forms still fall through
-   to their English name because the official source has no Chinese for them.
-   The split is 127 rows that were already Chinese plus 129 newly localised, and
-   both halves are asserted separately because they fail for opposite reasons —
-   the first is a regression guard, the second is the win. */
+/* 6. Coverage, pinned by count. The residual is a known, measured gap rather
+   than a surprise: 69 of 325 forms still fall through to their English name
+   because the official source has no Chinese for them. The split is 127 rows
+   that were already Chinese plus 129 newly localised; both halves are asserted
+   separately because they fail for opposite reasons — the first is a regression
+   guard, the second is the win. */
 const localised = forms.filter((n) => isChinese(formNameZh(n)));
 const preChinese = forms.filter((n) => isChinese(n.name_zh));
 eq(preChinese.length, 127, 'form nodes whose stored name_zh is already Chinese');
@@ -95,7 +94,7 @@ eq(localised.length - preChinese.length, 129, 'form nodes newly localised by the
 const stillEnglish = forms.filter((n) => !isChinese(formNameZh(n)));
 eq(stillEnglish.length, 69, 'form nodes still falling through to English');
 ok(stillEnglish.every((n) => n.name_zh === n.name_en),
-  'a form resolved to a Chinese name that is neither Chinese nor its own stored name');
+  'every form still rendering in English is one whose stored zh name is its English name — none falls through while a Chinese name exists');
 
 /* 7. The approved sub_names land verbatim where a local node exists. */
 const approved = [
@@ -110,10 +109,10 @@ eq(approved.map(([name, q, id]) => {
   return n ? formNameZh(n) : `<no node ${id}/${q}>`;
 }), approved.map(([name]) => name), 'approved sub_names render verbatim');
 
-/* 8. Two of the approved sub_names have no local node, and that is recorded
-   rather than faked with a guessed qualifier. 刀劍形態 is NOT in this list: it
-   does have a node (10026 Aegislash-Blade, base 681) and the Blade rule resolves
-   it, so listing it here would assert a false gap. */
+/* 8. Two of the approved sub_names have no local node; that is recorded rather
+   than faked with a guessed qualifier. 刀劍形態 (Blade Form) is NOT in this list:
+   it has a node (10026 Aegislash-Blade, base 681) and the Blade rule resolves it,
+   so listing it here would assert a false gap. */
 const PORTAL_ONLY_APPROVED = ['東海', '真品形態'];
 for (const sub of PORTAL_ONLY_APPROVED) {
   checks++;
@@ -133,9 +132,9 @@ eq(
 eq(
   forms.filter((n) => n.qualifier === 'Hisui').map((n) => formNameZh(n)),
   forms.filter((n) => n.qualifier === 'Hisui').map((n) => `${n.base_name_zh}（洗翠的樣子）`),
-  'Hisui forms use 洗翠的樣子',
+  'Hisui forms use 洗翠的樣子 (Hisuian form)',
 );
-ok(!JSON.stringify(FORM_DESCRIPTOR_ZH).includes('他思岐'), '他思岐 still in FORM_DESCRIPTOR_ZH');
+ok(!JSON.stringify(FORM_DESCRIPTOR_ZH).includes('他思岐'), 'the misspelling 他思岐 is absent from FORM_DESCRIPTOR_ZH');
 
 /* 10. The 9 newer Megas the portal does not list must keep their local name. */
 const newerMegas = [10278, 10279, 10280, 10281, 10282, 10283, 10284, 10306, 10308];
@@ -145,13 +144,13 @@ eq(newerMegas.map((id) => {
 }), newerMegas.map((id) => forms.find((x) => x.id === id).name_zh),
   'portal-absent Megas keep their local names');
 
-/* 11. The sprite fallback is driven by the FILESYSTEM, not by `has_art`, and
-   this is the check that keeps that decision honest. `has_art` is false on 9
-   nodes, but 5 of those 9 sprites are on disk: 10301 (Zygarde-Mega) and the four
-   Koraidon/Miraidon forms 10265/10267/10269/10271. Keying the fallback off
-   `has_art` would silently swap 5 forms that do have artwork for their base.
-   The 4 that genuinely lack a file are all Koraidon/Miraidon build forms, and
-   every one of them has a base sprite, so the fallback is always renderable. */
+/* 11. The sprite fallback is driven by the FILESYSTEM, not by `has_art`.
+   `has_art` is false on 9 nodes, but 5 of those 9 sprites are on disk: 10301
+   (Zygarde-Mega) and the four Koraidon/Miraidon forms 10265/10267/10269/10271.
+   Keying the fallback off `has_art` would silently swap 5 forms that do have
+   artwork for their base. The 4 that genuinely lack a file are all
+   Koraidon/Miraidon build forms, and each has a base sprite, so the fallback is
+   always renderable. */
 const hasFile = (id) => existsSync(join(root, `assets/images/pokemon/${id}.png`));
 const noSprite = forms.filter((n) => !hasFile(n.id));
 eq(noSprite.map((n) => n.id), [10264, 10266, 10268, 10270], 'form nodes with no sprite on disk');
@@ -165,9 +164,9 @@ ok(!noSprite.some((n) => !formNameZh(n)), 'a sprite-less form has no name to fal
 /* 12. All three evolution-chain render loops go through the helpers. The bug this
    module exists for was a raw `${p.name_zh}` interpolated at each site, so the
    regression to guard is a site going back to reading the field directly — which
-   would silently restore English on that loop only, and the page would look
+   would silently restore English on that loop only and leave the page looking
    half-fixed. Counting the call sites also keeps the name and the sprite fallback
-   from drifting apart, the same reason nodeHref() exists (gotcha 15). */
+   from drifting apart. */
 const shared = readFileSync(join(root, 'assets/js/shared.js'), 'utf8');
 eq((shared.match(/\$\{(pokemon|p)\.name_zh\}/g) || []).length, 0,
   'renderEvolutionChain still interpolates a raw name_zh');

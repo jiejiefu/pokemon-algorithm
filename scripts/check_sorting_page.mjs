@@ -1,56 +1,42 @@
 #!/usr/bin/env node
 /**
- * sorting.html's 競速 mode: the layout contract, and the six canvases that were blank.
+ * sorting.html's race mode: the lane layout contract and the six canvases.
  *
  *   node scripts/check_sorting_page.mjs          (needs the repo served on :5500)
  *   SORT_PORT=8080 node scripts/check_sorting_page.mjs
  *
- * WHY THIS FILE EXISTS. Race mode shipped with every lane rendering nothing, and
- * the whole 41-script suite stayed green. The cause was three helpers closing over
- * a module-level `ctx`:
+ * Race mode once shipped with every lane rendering nothing while the suite stayed
+ * green. Three helpers closed over a module-level `ctx`:
  *
- *     paint(lane.nodes, events, race.playing)   -> drew into the SINGLE canvas
+ *     paint(lane.nodes, events, race.playing)   -> drew into the single canvas
  *     ring(node, color)                         -> same
- *     sweep(lane.sweepAt)                       -> same, AND read a MODULE-level
- *                                                   `sweepAt` while taking a
- *                                                   `progress` parameter it never used
+ *     sweep(lane.sweepAt)                       -> same, and read a module-level
+ *                                                  `sweepAt` while ignoring its
+ *                                                  `progress` parameter
  *
- * frameRace() cleared `lane.ctx` and then called `paint()`, so each lane was
- * cleared 60x/second and nothing was ever drawn on it — into a canvas `setMode()`
- * had set `hidden`. No exception, no failed request, no console output, and no
- * checker read this page's DOM or its stylesheet at all (`rg -l "al-lanes"` returns
- * sorting.html and algo.css; `rg -l "sort-run" scripts/` returns nothing). Those
- * three greps are the reason this file exists and they are repeated here as the
- * cheapest possible tripwire.
+ * frameRace() cleared `lane.ctx` and then called paint(), so each lane was cleared
+ * 60 times a second and nothing was drawn into it — into a canvas setMode() had
+ * hidden. No exception, no failed request, no console output, and no checker read
+ * this page's DOM or its stylesheet at all.
  *
- * WHAT IS ASSERTED, AND WHY IT IS SPLIT IN TWO
+ * Two halves:
  *
- *   STATIC  reads sorting.html / algo.css / sort-run.js off disk. The lane shapes
- *           are a stylesheet contract, and a stylesheet contract can be checked by
- *           reading it. Mutation-testable against a scratch copy, so every claim
- *           here is proven able to fail.
+ *   STATIC   reads sorting.html / algo.css / sort-run.js off disk. The lane shapes
+ *            are a stylesheet contract, checkable by reading the stylesheet.
+ *            Mutation-testable against a scratch copy.
  *
- *   RENDERED  drives the real page over CDP and counts INK. A blank canvas is
- *           TRANSPARENT, so alpha is the only thing that distinguishes "drew
- *           nothing" from "drew black" — a check that ignores alpha scores a
- *           pristine canvas as a perfect result, which is exactly how the original
- *           defect survived (see §3.G of AGENTS.md).
+ *   RENDERED drives the real page over CDP and counts INK. A blank canvas is
+ *            TRANSPARENT, so alpha is the only thing that distinguishes "drew
+ *            nothing" from "drew black". See §3.G.
  *
- * The split matters in the other direction too: the STATIC half is a source-shape
- * check, and a regex over the same lines passes for any mutation that leaves the
- * substrings in place. So the static half is written to assert the EXACT defect —
- * a call site with no context argument — and its negative cases mutate that line
- * and are required to be caught by the assertion that names it. The rendered half
- * is what says the fix works; the static half is what says it cannot be undone by
- * a later edit that only half-reverts.
+ * The static half asserts the exact defect — a call site with no context argument —
+ * and its negative cases mutate that line. The rendered half proves the fix works;
+ * the static half proves it cannot be undone by a half-revert.
  *
- * ONE PAGE LOAD, THEN THE CONTROLS. Navigating per case costs ~25s per load
- * because the page re-fetches 1,025 sprites, which is what made a first pass at
- * this take half an hour. So this loads once in race mode and then drives the
+ * ONE PAGE LOAD, THEN THE CONTROLS. Navigating per case costs ~25s per load because
+ * the page re-fetches 1,025 sprites. This loads once in race mode and drives the
  * reader's own controls — the algorithm chips and the sample-size select — with
- * `click()` and a `change` event. That is both fast and a better test: it
- * exercises the wiring the reader uses, so a broken `buildRace()` call site fails
- * here too rather than only under a URL parameter.
+ * `click()` and a `change` event.
  */
 
 import { spawn } from 'node:child_process';
@@ -69,11 +55,10 @@ let checks = 0;
 const pass = (msg) => { checks++; console.log(`  ok   ${msg}`); };
 const fail = (msg) => { checks++; failures++; console.log(`  FAIL ${msg}`); };
 
-/* `ok — why`, and never an empty `why`. check_nav_pages.mjs records why: a FAIL that
- * prints nothing reads as a blank line, and `N check(s) failed` with nothing to act
- * on sends the reader to the wrong file. An empty detail is also how a predicate
- * that disagrees with its own message shows up — the computed offender list comes
- * back empty precisely then. */
+/* `ok — why`, and never an empty `why`. A FAIL that prints nothing reads as a blank
+ * line, and `N check(s) failed` with nothing to act on sends the reader to the wrong
+ * file. An empty detail is also how a predicate that disagrees with its own message
+ * shows up: the computed offender list comes back empty precisely then. */
 const check = (cond, ok, bad) => {
   if (cond) return pass(ok);
   const why = typeof bad === 'function' ? bad() : bad;
@@ -92,22 +77,15 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
 /* THE BLOCK OF A HANDLER, BRACE-MATCHED TO ITS OWN CLOSING BRACE.
  *
- * This exists because the language-switch assertion below was a `[\s\S]*?` pair
- * with an indentation-shaped terminator, and that is the exact shape §3.P records
- * as vacuous: the tail ran 9,172 characters PAST the handler's end — all the way
- * into the boot sequence — because the handler closes at six spaces and the
- * pattern asked for eight. It was not *currently* vacuous (the one other
- * `highlightPseudo` call in the file differs by an `?.`, so the pattern could not
- * be satisfied by the wrong one), which is the worse half to discover: a
- * structurally wrong assertion that happens to be right today and stops being
- * right the next time anything below it in the file moves.
+ * A `[\s\S]*?` pair with an indentation-shaped terminator silently over-reaches: the
+ * tail runs past the handler's end whenever the closing brace sits at a different
+ * indent than the pattern asks for, so the assertion reads the rest of the file. A
+ * structurally wrong assertion that happens to be right today stops being right the
+ * next time anything below it moves. Read the block the assertion is about.
  *
- * It failed on the 資料範圍 work for exactly that reason. The fix is not a wider
- * tolerance; it is reading the block the assertion is about.
- *
- * `openAt` is the index of the `{` that opens the body. Counting has to start
- * AFTER it, and the string-literal skip is not optional: a `}` inside a string
- * (`'}'`) would otherwise close the block early. */
+ * `openAt` is the index of the `{` that opens the body. Counting starts AFTER it,
+ * and the string-literal skip is required: a `}` inside a string (`'}'`) would
+ * otherwise close the block early. */
 function blockFrom(src, openAt) {
   if (openAt < 0) return null;
   let depth = 0, i = openAt;
@@ -128,26 +106,22 @@ function blockFrom(src, openAt) {
 
 /* ------------------------------------------------------- STUBBED SPRITES
  *
- * The page boots by fetching 1,025 sprites, and they are 126.7 KB on average — about
- * 130 MB and 1,025 PNG decodes per navigation, at concurrency 24. That was 85% of this
- * checker's runtime and, through the mutation suite's full baseline, most of the
- * suite's too. None of it is what the rendered half is measuring: the claims are that
- * each lane canvas HOLDS INK, that five grid shapes are right, that a race finishes,
- * and that a full six-lane race does not retain its history. A 71-byte sprite answers
- * all four.
+ * The page boots by fetching 1,025 sprites at 126.7 KB average — about 130 MB and
+ * 1,025 PNG decodes per navigation at concurrency 24. None of it is what the rendered
+ * half measures: each lane canvas HOLDS INK, five grid shapes are right, a race
+ * finishes, and a full six-lane race does not retain its history. A 71-byte sprite
+ * answers all four.
  *
- * What is given up, stated here because a reader will otherwise assume otherwise:
- * that the sprite PATHS resolve and that the PNGs DECODE. A wrong `filename` or a 404
- * still produces ink — PokemonNode.draw() skips an image whose naturalWidth is 0 —
- * so that class of defect goes dark in this checker. Everything §3.G3 is about still
- * works, because sprites painted into a hidden canvas give zero ink whichever sprite
- * they are.
+ * What is given up: that sprite PATHS resolve and that PNGs DECODE. A wrong
+ * `filename` or a 404 still produces ink — PokemonNode.draw() skips an image whose
+ * naturalWidth is 0 — so that class of defect goes dark here. Everything §3.G3
+ * covers still works, because a sprite painted into a hidden canvas gives zero ink
+ * whichever sprite it is.
  *
- * The PNG is BUILT here rather than pasted in as a base64 constant, because a corrupt
- * stub would leave every lane blank and the checker would then fail for a reason that
- * has nothing to do with the page. Built means provably well-formed: a PNG is a
- * signature plus length-prefixed, CRC32-suffixed chunks, and `zlib.crc32` gives the
- * CRC Node's own zlib already computes, so there is no table to hand-copy.
+ * The PNG is BUILT rather than pasted as a base64 constant, because a corrupt stub
+ * would leave every lane blank and the checker would fail for a reason unrelated to
+ * the page. A PNG is a signature plus length-prefixed, CRC32-suffixed chunks, and
+ * `zlib.crc32` supplies the CRC, so there is no table to hand-copy.
  */
 function pngChunk(type, data) {
   const len = Buffer.alloc(4);
@@ -177,7 +151,7 @@ function stubSprite() {
     pngChunk('IEND', Buffer.alloc(0)),
   ]);
 }
-/** Re-parse what we just built, so a malformed stub is a startup throw and not 33 red checks. */
+/** Re-parse the freshly built stub, so a malformed PNG is a startup throw and not 33 red checks. */
 function assertWellFormedPng(png) {
   const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   for (let i = 0; i < SIG.length; i++) if (png[i] !== SIG[i]) throw new Error('stub PNG has a bad signature');
@@ -238,7 +212,7 @@ const span2 = /\.al-lanes\[data-lanes="5"\] \.al-lane\s*\{[^}]*grid-column:\s*sp
 const span3 = /\.al-lanes\[data-lanes="5"\] \.al-lane:nth-child\(4\),\s*\.al-lanes\[data-lanes="5"\] \.al-lane:nth-child\(5\)\s*\{[^}]*grid-column:\s*span 3/.test(cssCode);
 check(span2 && span3,
   'the five-lane shape gives three lanes span 2 and the bottom two span 3',
-  () => `the 上3下2 rule is incomplete — span 2 is ${span2 ? 'present' : 'MISSING'}, span 3 on the bottom two is ${span3 ? 'present' : 'MISSING'}. Without both, five lanes leave an empty cell.`);
+  () => `the three-over-two (上3下2) rule is incomplete — span 2 is ${span2 ? 'present' : 'MISSING'}, span 3 on the bottom two is ${span3 ? 'present' : 'MISSING'}. Without both, five lanes leave an empty cell.`);
 
 /* `.al-result` must be APPENDED, because the five-lane bottom two are selected by
  * position. This is the one ordering claim that a stylesheet check cannot make, so
@@ -334,11 +308,12 @@ check(/if \(!sweep\(ctx, CFG, sweepAt\)\) sweepAt = 0;/.test(htmlCode)
  * `state.n` is validated against RACE_SIZES on load, so a size that is not in the
  * array is one that silently falls back.
  *
- * The <select>'s options are BUILT, not written: 資料範圍 decides which subset is
- * loaded, and `sampleEvenly` returns `arr.slice()` the moment `n >= arr.length`, so
- * a static option list under a 72-generation scope would offer four sizes that all
- * render the same 72 sprites under a label saying 1,025. So this now asserts the
- * options come from the same derivation rather than that they match a literal. */
+ * The <select>'s options are BUILT, not written: the 資料範圍 (scope) control decides
+ * which subset is loaded, and `sampleEvenly` returns `arr.slice()` the moment
+ * `n >= arr.length`, so a static option list under a 72-generation scope would offer
+ * four sizes that all render the same 72 sprites under a label saying 1,025. So this
+ * asserts the options come from the same derivation rather than that they match a
+ * literal. */
 const sizes = [...htmlCode.match(/const RACE_SIZES = \[([^\]]*)\]/)?.[1].matchAll(/'(\d+)'/g)].map(m => m[1]);
 check(JSON.stringify(sizes) === JSON.stringify(['100', '250', '500', '1025']),
   'RACE_SIZES is 100 / 250 / 500 / 1025',
@@ -355,7 +330,7 @@ check(sizeOptions.length === 0 && /function offeredRaceSizes\(/.test(htmlCode)
   && /if \(usable\.length\) return usable;\s*\n\s*return \[String\(len\)\];/.test(htmlCode)
   && /raceSizeSelect\.replaceChildren/.test(htmlCode),
   'the sample-size <select> is built from offeredRaceSizes(), which FILTERS by the loaded count',
-  () => `the select has ${sizeOptions.length} static <option> element(s) ${sizeOptions.length ? `[${sizeOptions.join(', ')}] ` : ''}and is not repopulated from a filtering offeredRaceSizes(). Under a small 資料範圍 that means every offered size renders the same subset while the label claims otherwise — sampleEvenly() returns arr.slice() as soon as n >= arr.length. The "if (usable.length)" fallback matters too: without it a 72-generation offers NOTHING, which is worse than offering one.`);
+  () => `the select has ${sizeOptions.length} static <option> element(s) ${sizeOptions.length ? `[${sizeOptions.join(', ')}] ` : ''}and is not repopulated from a filtering offeredRaceSizes(). Under a small 資料範圍 (scope) that means every offered size renders the same subset while the label claims otherwise — sampleEvenly() returns arr.slice() as soon as n >= arr.length. The "if (usable.length)" fallback matters too: without it a 72-generation offers NOTHING, which is worse than offering one.`);
 check(/if \(!offered\.includes\(state\.n\)\) state\.n = offered\[0\]/.test(htmlCode),
   'syncRaceSizes() re-validates state.n against the offered set',
   () => 'a `?n=1025&scope=6` link would leave state.n at 1025 while the select shows only the scope size, and the result panel would print a number the reader cannot pick.');
@@ -375,10 +350,10 @@ console.log('static: the toolbar wraps its own children');
  * checks so a mutation that drops one says which half is missing. */
 check(/#singleControls,\s*\n#raceControls\s*\{\s*\n\s*flex-wrap:\s*wrap;\s*\n\s*\}/.test(cssCode),
   'both control groups wrap their own children',
-  () => '`.al-toolbar` has `flex-wrap: wrap`, which wraps GROUPS. `#singleControls` and `#raceControls` are each one `.al-group`, and `.al-group` has no wrap — so their six children are flex items that shrink to min-content instead of wrapping. Measured before the fix: 跳至結果 at 44x82px with its label broken across three lines.');
+  () => '`.al-toolbar` has `flex-wrap: wrap`, which wraps GROUPS. `#singleControls` and `#raceControls` are each one `.al-group`, and `.al-group` has no wrap — so their six children are flex items that shrink to min-content instead of wrapping. Measured before the fix: 跳至結果 (skip-to-result) at 44x82px with its label broken across three lines.');
 check(/body\.al-body \.al-toolbar \.btn\s*\{\s*\n\s*white-space:\s*nowrap;\s*\n\s*\}/.test(cssCode),
   'the toolbar\'s buttons are nowrap, which is what makes the wrap mean anything',
-  () => 'without `white-space: nowrap` on the toolbar\'s buttons the wrap is inert: flex items shrink to min-content, and for Chinese text with no spaces min-content is one character, so 「跳至結果」 becomes a 44px box three lines tall inside a 20px-radius pill. The two declarations are one fix and neither works alone.');
+  () => 'without `white-space: nowrap` on the toolbar\'s buttons the wrap is inert: flex items shrink to min-content, and for Chinese text with no spaces min-content is one character, so 「跳至結果」 (skip-to-result) becomes a 44px box three lines tall inside a 20px-radius pill. The two declarations are one fix and neither works alone.');
 /* §3.B1's rule as an assertion: a page-only need goes in a page stylesheet, not
  * into the shared button rule. `.btn` lives in shared.css and is used by every page
  * on the site, so a `nowrap` added there would be a claim about all of them made on
@@ -393,7 +368,7 @@ check(/@media\s*\(max-width:\s*560px\)\s*\{\s*\n\s*body\.al-body #algoPicker \.b
   () => 'algo.css\'s max-width:560px rule sizes the six algorithm buttons so they fit 320px in one row. Both halves are load-bearing: 6 × (12×2 + 18 + 2) = 294px against 296px of content box, a 2px margin. Rounding `padding: 5px 9px` to `10px` re-wraps the picker at exactly the width the rule exists for, so the number is asserted rather than left to a comment.');
 
 
-console.log('static: the 排序鍵 select can show every option it offers');
+console.log('static: the 排序鍵 (sort key) select can show every option it offers');
 
 /* A `<select>` SIZES ITSELF TO ITS WIDEST OPTION, so `max-width` on it is a promise
  * that every option fits. Read off the rule rather than restated, because the whole
@@ -410,37 +385,26 @@ check(sortKeyMaxWidth !== undefined && Number(sortKeyMaxWidth) >= 18,
   '#sortKeySelect declares its own max-width, above the shared .al-select\'s 15em',
   () => `#sortKeySelect's own max-width is ${sortKeyMaxWidth ? sortKeyMaxWidth + 'em' : 'absent'}; it needs to be at least 18em. .al-select's 15em = 195px could not hold the longest option (13 characters, ~211px), so the control clipped its own list at EVERY width including 1,440px.`);
 
-/* THE REAL INVARIANT IS THE DUPLICATION, NOT THE PIXELS, and it is checkable without
- * a browser: an option label that repeats what its own `note` already says. `note` is
- * printed by `refreshKeyNote()` into `#keyNote`, directly under the toolbar, and it
- * has existed for the whole life of the field.
+/* THE REAL INVARIANT IS THE DUPLICATION, NOT THE PIXELS: an option label that repeats
+ * what its own `note` already says. `note` is printed by `refreshKeyNote()` into
+ * `#keyNote`, directly under the toolbar, and has existed for the whole life of the
+ * field.
  *
  * So the assertion is that no label carries a parenthetical that is not on the list.
- * The labels that legitimately do are not explanations of the key's behaviour, they
- * are *disclosures* and *directions*: sort-keys.js's own comment says the 視瀏覵器而定
- * wording is what stands in for a guarantee the page cannot make, and a sort key
- * without its direction is ambiguous. Neither is a second copy of a note, which is
- * why the rule has to be about duplication and cannot simply be 「no parentheses」. */
+ * The legitimate ones are *disclosures* and *directions*, not explanations of the
+ * key's behaviour: sort-keys.js says the 視瀏覵器而定 (browser-dependent) wording stands
+ * in for a guarantee the page cannot make, and a sort key without its direction is
+ * ambiguous. Neither is a second copy of a note, which is why the rule has to be about
+ * duplication and cannot simply be 「no parentheses」. */
 const SORT_KEYS = (await import(join(ROOT, 'assets/js/sort-keys.js'))).SORT_KEYS;
 const parenthetical = (label) => (label.match(/（([^）]+)）/g) || []);
 
 /* KEYED BY `id`, AND THE LABELS ARE READ FROM THE MODULE RATHER THAN TYPED.
  *
- * The first version of this list held the label strings verbatim and every one of
- * them had to be typed by hand — and I mistyped the same character twice in five
- * entries, so 「中文名筆畫（視瀏覵器而定）」 matched nothing and the assertion fired on
- * the one label it was written to excuse. That is the second time in this session a
- * hand-copied string from a data file was the whole defect, after the
- * `availableRaceSizes` anchor, and it is §3.S's rule stated as an implementation
- * choice: read the constant out of the module, never restate it. The `id` is the
- * only thing written here, and the label is looked up.
- *
- * The five are not explanations of the key's behaviour, they are DISCLOSURES and
- * DIRECTIONS. sort-keys.js's own comment says the 視瀏覵器而定 wording stands in for a
- * guarantee the page cannot make, because the browser's ICU may or may not carry
- * zh-Hant-u-co-stroke collation data; and a sort key whose direction is not stated is
- * ambiguous. None of them is a second copy of a `note`, which is why the rule has to
- * be about duplication and cannot simply be 「no parentheses」. */
+ * A hand-copied label list is the defect this avoids: one mistyped character makes an
+ * entry match nothing, so the assertion fires on the very label it was written to
+ * excuse. Read the constant out of the module and look the label up; the `id` is the
+ * only thing written here. §3.S. */
 const REVEALING = [
   { id: 'name-stroke', why: 'a disclosure about collation support, which sort-keys.js says is what the label is for' },
   { id: 'weight', why: 'the sort direction, which a key without is ambiguous' },
@@ -455,7 +419,7 @@ const unexplained = SORT_KEYS
   .map(k => `${k.id}: 「${k.label}」 carries ${parenthetical(k.label).join(' ')}`);
 check(unexplained.length === 0,
   'no sort-key label repeats an explanation its own note already prints',
-  () => `${unexplained.join(' | ')}. A select sizes itself to its widest option, so a parenthetical is a width cost in the toolbar. The 屬性 key's label was 17 characters and 259px against a 195px control — and its note has said all of it in better prose, in #keyNote, directly below, since the field existed. §3.B1: two copies of one thing is duplication, and the copy that breaks the layout is the one to delete. Direction and disclosure parentheticals are legitimate and are the five ids in REVEALING.`);
+  () => `${unexplained.join(' | ')}. A select sizes itself to its widest option, so a parenthetical is a width cost in the toolbar. The 屬性 (type) key's label was 17 characters and 259px against a 195px control — and its note has said all of it in better prose, in #keyNote, directly below, since the field existed. §3.B1: two copies of one thing is duplication, and the copy that breaks the layout is the one to delete. Direction and disclosure parentheticals are legitimate and are the five ids in REVEALING.`);
 
 /* THE EXCEPTION LIST IS A FLOOR, NOT AN ALLOWANCE, and that is a separate
  * assertion from the one above.
@@ -476,9 +440,9 @@ const lostDisclosures = REVEALING
   .map(r => `${r.id} (${SORT_KEYS.find(x => x.id === r.id)?.label ?? 'no such key'}) — ${r.why}`);
 check(lostDisclosures.length === 0,
   'every sort-key that is allowed a parenthetical still carries one',
-  () => `${lostDisclosures.join(' | ')}. REVEALING is not a list of labels the checker tolerates; it is the floor under the one above. Deleting 視瀏覵器而定 does not merely shorten a dropdown — sort-keys.js records that wording as standing in for a guarantee the page cannot make about the browser's ICU collation data, so removing it replaces 「we cannot promise this」 with a silent claim. Same for 矮→高 / 輕→重: a sort key whose direction is not stated is ambiguous.`);
+  () => `${lostDisclosures.join(' | ')}. REVEALING is not a list of labels the checker tolerates; it is the floor under the one above. Deleting 視瀏覵器而定 (browser-dependent) does not merely shorten a dropdown — sort-keys.js records that wording as standing in for a guarantee the page cannot make about the browser's ICU collation data, so removing it replaces 「we cannot promise this」 with a silent claim. Same for 矮→高 / 輕→重 (short→tall / light→heavy): a sort key whose direction is not stated is ambiguous.`);
 
-console.log('static: the 資料範圍 scope gate');
+console.log('static: the 資料範圍 (scope) gate');
 
 /* THE PHONE BREAKPOINT IS IN TWO PLACES AND CANNOT BE IN ONE, because a media
  * query cannot be read by JS and JS cannot write into a stylesheet. So the number
@@ -521,11 +485,11 @@ check(/p\.set\('scope', state\.scope\);/.test(htmlCode),
  * a value is NOT in a list cannot be phrased as a presence check. */
 const scopeIds = [...htmlCode.match(/const SCOPES = \[([\s\S]*?)\n    \];/)?.[1].matchAll(/id:\s*'(\w+)'/g)].map(m => m[1]);
 check(scopeIds.length === 10 && scopeIds[0] === 'all' && new Set(scopeIds).size === 10,
-  'SCOPES is 所有世代 plus the nine generations, ten distinct ids',
+  'SCOPES is 所有世代 (all generations) plus the nine generations, ten distinct ids',
   () => `SCOPES is [${scopeIds.join(', ')}] — expected ten distinct ids starting with 'all'. A generation whose id repeats another one makes the select offer two rows the page cannot tell apart, and one that is missing makes the gate's first screen quieter than it claims to be.`);
 check(!/state\.scope\s*===\s*null|scope:\s*null/.test(htmlCode),
-  "'all' is never used to mean 「還沒決定」",
-  () => 'a null scope would be the gate expressed inside state.scope, which is the shape this design rejected: `all` already means 「全部」, so the same string would carry both meanings and every reader of state.scope would have to know which one it holds.');
+  "'all' is never used to mean 「undecided」",
+  () => 'a null scope would be the gate expressed inside state.scope, which is the shape this design rejected: `all` already means 「all」, so the same string would carry both meanings and every reader of state.scope would have to know which one it holds.');
 
 /* IMG.clear() is the line the whole feature turns on. */
 const loadScopeBody = htmlCode.match(/async function loadScope\([\s\S]*?\n    \}/)?.[0] || '';
@@ -558,7 +522,7 @@ check(/function ensureLoop\(\)[\s\S]*?loopStarted/.test(htmlCode)
 /* The button the gate points at has to EXIST by the time the gate shows. */
 check(/renderScopeSelect\(\);\s*\n\s*loadPokemonData\(\)/.test(htmlCode),
   'the scope select is built before the gate can ask for it',
-  () => 'the gate tells the reader to use the 資料範圍 dropdown. If renderScopeSelect() ran after loadPokemonData().then(...), a slow or failed JSON fetch leaves the gate pointing at a control that is not in the DOM yet — §3.W\'s els.submit bug, one level up.');
+  () => 'the gate tells the reader to use the 資料範圍 (scope) dropdown. If renderScopeSelect() ran after loadPokemonData().then(...), a slow or failed JSON fetch leaves the gate pointing at a control that is not in the DOM yet — §3.W\'s els.submit bug, one level up.');
 
 /* The lane ceiling is written in four places and any one of them alone is wrong. */
 const ceiling = Number(htmlCode.match(/const RACE_N_MAX = (\d+);/)?.[1]);
@@ -613,7 +577,8 @@ check(cited.includes('check_sorting_page.mjs'),
   'sort-run.js names the checker that actually measures its numbers',
   () => 'sort-run.js quotes step counts but names no checker for them, so the numbers are a claim with nothing behind it again — the exact defect this check exists to prevent.');
 /* The three numbers, re-derived from the module's own generators rather than trusted.
- * 524,800 was attributed to 氣泡/選擇/插入 on reverse-sorted input; it is 選擇 on
+ * 524,800 was attributed to 氣泡/選擇/插入 (bubble/selection/insertion) on reverse-sorted
+ * input; it is 選擇 (selection) on
  * already-sorted. All four exceed the 400,000 cap either way, so the UI's behaviour
  * never changed — but the claim did, and a wrong number that still produces the right
  * decision is the kind that survives review. */
@@ -634,9 +599,9 @@ const steps = await (async () => {
     // moves the anchor SHOULD fail loudly — it means someone edited the sentence and
     // the number's attachment to the claim needs re-confirming — but the failure
     // should name the measurement, which is why `claim` is separate.
-    { claim: '選擇排序 on already-sorted input', anchor: '選擇排序 on ALREADY-SORTED', n: count(sorted, 'selection') },
-    { claim: '氣泡 and 插入 on reverse-sorted input', anchor: 'for 氣泡 and 插入', n: count(reversed, 'bubble') },
-    { claim: '快速 on already-sorted input', anchor: '快速 on already-sorted', n: count(sorted, 'quick') },
+    { claim: 'selection sort on already-sorted input', anchor: '選擇排序 on ALREADY-SORTED', n: count(sorted, 'selection') },
+    { claim: 'bubble and insertion on reverse-sorted input', anchor: 'for 氣泡 and 插入', n: count(reversed, 'bubble') },
+    { claim: 'quick sort on already-sorted input', anchor: '快速 on already-sorted', n: count(sorted, 'quick') },
   ];
 })();
 
@@ -670,7 +635,7 @@ for (const { claim, anchor, n } of steps) {
 }
 check(steps[0].n > 400000 && steps[2].n < 400000,
   'the asymmetry the docblock draws its design constraint from still holds',
-  () => `選擇 on already-sorted is ${steps[0].n} and 快速 is ${steps[2].n}; the documented split (one algorithm loses the timeline at n=1,025, the others keep it) no longer holds at the DEFAULT_MAX_LOGGED_EVENTS of 400000.`);
+  () => `選擇 (selection) on already-sorted is ${steps[0].n} and 快速 (quick) is ${steps[2].n}; the documented split (one algorithm loses the timeline at n=1,025, the others keep it) no longer holds at the DEFAULT_MAX_LOGGED_EVENTS of 400000.`);
 
 /* ================================================== PSEUDOCODE, TWO LANGUAGES
  *
@@ -773,8 +738,8 @@ for (const id of ALGO_IDS) {
  * So the rest of the array is pinned STRUCTURALLY instead: index i must carry
  * the same KIND of statement in both arrays. That is the invariant the prose
  * header actually promises — `pseudoPy` is the same statement LIST — and it is
- * expressible without restating either array, which a content table for all 41
- * lines would be.
+ * expressible without restating either array, which a content table for every
+ * line would be.
  *
  * `other` IS EXEMPT, and it is exempt for a real reason rather than to make a
  * rule pass: three of the generic lines are PROSE (「把 pivot 換到 arr[high]」,
@@ -1041,9 +1006,9 @@ if (!existsSync(CHROME)) {
      * question of whether the rebuild behind that number has stopped moving, which is
      * the one `SETTLE` was guessing at. Two polls, two different facts.
      *
-     * The selector is a parameter because the 單一 tab leaves no `.al-lane` at all —
-     * there `#singleCanvas` is the thing that has to stop re-measuring, and passing
-     * the lane count there would wait for a count that can never be right.
+     * The selector is a parameter because the 單一 (single) tab leaves no `.al-lane` at
+     * all — there `#singleCanvas` is the thing that has to stop re-measuring, and
+     * passing the lane count there would wait for a count that can never be right.
      */
     const STABLE = (sel, want) => `new Promise(r => { const t0 = Date.now(); let last = null, same = 0;
         const tick = () => {
@@ -1167,7 +1132,7 @@ if (!existsSync(CHROME)) {
           const sorted = [...widths].sort((a, b) => a - b);
           check(sorted[0] < sorted[sorted.length - 1],
             'in a five-lane race the bottom two lanes are the wider ones',
-            () => `canvas widths are [${widths.join(', ')}] — all equal, so the two bottom lanes are NOT taking half a row each and the 上3下2 shape is not being honoured.`);
+            () => `canvas widths are [${widths.join(', ')}] — all equal, so the two bottom lanes are NOT taking half a row each and the 上3下2 (three-over-two) shape is not being honoured.`);
         }
       }
 
@@ -1224,7 +1189,7 @@ if (!existsSync(CHROME)) {
       /* The finish path, at a size that completes inside a checker's budget. It is the
        * same code at every n — what 1,025 exercises that 250 does not is duration, not
        * a branch — and the panel's own claim is what a reader will believe. Reached by
-       * dropping the size select back to 250 and clicking 極快, rather than by
+       * dropping the size select back to 250 and clicking 極快 (fastest), rather than by
        * navigating: both are the reader's controls, and a navigation here would cost a
        * fifth of the whole runtime.
        *
@@ -1246,7 +1211,7 @@ if (!existsSync(CHROME)) {
       })`));
       check(speeds.present > 0 && speeds.fastest,
         'the speed picker is built before anything clicks it',
-        () => `#speedPicker has ${speeds.present} button(s) and ${speeds.fastest ? 'no' : 'no button labelled 極快'}. Clicking it before the grid finished rebuilding is what threw here; the count is reported so an empty picker is distinguishable from a renamed label.`);
+        () => `#speedPicker has ${speeds.present} button(s) and ${speeds.fastest ? 'no' : 'no button labelled 極快 (fastest)'}. Clicking it before the grid finished rebuilding is what threw here; the count is reported so an empty picker is distinguishable from a renamed label.`);
       if (speeds.present > 0 && speeds.fastest) {
         await evalJs(`[...document.querySelectorAll('#speedPicker button')].find(b => b.textContent === '極快').click()`);
       }
@@ -1323,7 +1288,7 @@ if (!existsSync(CHROME)) {
             : ''));
       check(done && done.ranks.length === 6 && new Set(done.ranks).size === 6,
         'every lane gets a distinct rank',
-        () => `ranks are [${done && done.ranks.join(', ')}] — six lanes need six distinct 第 N 名 labels, since finishRace() writes them by position.`);
+        () => `ranks are [${done && done.ranks.join(', ')}] — six lanes need six distinct 第 N 名 (rank-N) labels, since finishRace() writes them by position.`);
 
       const prose = await evalJs(`(document.querySelector('.al-result .al-hint')||{textContent:''}).textContent.replace(/\\s+/g,' ').trim()`);
       const stated = prose.match(/(\d+\.\d)px/);
@@ -1342,7 +1307,7 @@ if (!existsSync(CHROME)) {
       /* Single mode must be untouched by a race-mode fix: the three helpers were changed for
        * the lanes, and the single canvas is the one they used to write to by accident.
        *
-       * Reached by CLICKING THE 單一 TAB, not by navigating — and this is not a
+       * Reached by CLICKING THE 單一 (single) TAB, not by navigating — and this is not a
        * shortcut, it is the same state for free. The page's boot sequence runs
        * `setMode(state.mode)` and then `resetSingle()` UNCONDITIONALLY, so the
        * single-mode canvas and its 1,025 nodes exist from the first paint whatever
@@ -1358,8 +1323,8 @@ if (!existsSync(CHROME)) {
           if (document.getElementById('raceGrid').hidden === true && document.getElementById('singleCanvas').hidden === false) { clearInterval(t); r(true); }
         }, 100); setTimeout(() => { clearInterval(t); r(false); }, 20000); })`);
       check(switched,
-        'clicking the 單一 tab swaps the stage to single mode',
-        () => 'after clicking 單一, the race grid was still visible or the single canvas still hidden. setMode() is the page\'s own handler for that tab, so this is the page failing to respond to a control.');
+        'clicking the 單一 (single) tab swaps the stage to single mode',
+        () => 'after clicking 單一 (single), the race grid was still visible or the single canvas still hidden. setMode() is the page\'s own handler for that tab, so this is the page failing to respond to a control.');
       await evalJs(STABLE('#singleCanvas', 1));
       const single = JSON.parse(await evalJs(`(() => {
         const cv = document.getElementById('singleCanvas');
@@ -1432,8 +1397,8 @@ if (!existsSync(CHROME)) {
       check(scopePicked.opts.length === 10
         && scopePicked.opts[0].startsWith('all:')
         && scopePicked.opts.some(o => o.startsWith('5:') && o.includes('156')),
-        'the scope select offers 所有世代 plus nine generations, each labelled with its own count',
-        () => `the select offered ${scopePicked.opts.length} option(s): ${scopePicked.opts.join(' | ')}. The count in the label is what the reader commits memory against, so it cannot be omitted and it cannot be wrong — 第 5 世代 is 156 records in pokemon_data.json.`);
+        'the scope select offers 所有世代 (all generations) plus nine generations, each labelled with its own count',
+        () => `the select offered ${scopePicked.opts.length} option(s): ${scopePicked.opts.join(' | ')}. The count in the label is what the reader commits memory against, so it cannot be omitted and it cannot be wrong — 第 5 世代 (generation 5) is 156 records in pokemon_data.json.`);
 
       const beforePick = stubbed;
       await evalJs(`(() => { const s = document.getElementById('scopeSelect'); s.value = '5'; s.dispatchEvent(new Event('change')); return true; })()`);
@@ -1446,14 +1411,14 @@ if (!existsSync(CHROME)) {
           setTimeout(tick, 100);
         }; tick(); })`);
       check(afterPick.loaded === true,
-        'choosing 第 5 世代 loads it and dismisses the gate',
-        () => 'the overlay never went hidden within 30s of picking 第 5 世代. loadScope() awaits loadAllPokemonNodes and hides the overlay after it resolves, so this is either the fetch failing or loadScope() throwing before its last line.');
+        'choosing 第 5 世代 (generation 5) loads it and dismisses the gate',
+        () => 'the overlay never went hidden within 30s of picking 第 5 世代 (generation 5). loadScope() awaits loadAllPokemonNodes and hides the overlay after it resolves, so this is either the fetch failing or loadScope() throwing before its last line.');
       check(stubbed - beforePick === 156,
-        `第 5 世代 asks for exactly its own 156 sprites (asked for ${stubbed - beforePick})`,
-        () => `the scope filter is off: picking 第 5 世代 made ${stubbed - beforePick} sprite request(s). assets/data/pokemon_data.json has 156 records with generation === 5. Either scopedData() compares the wrong field or scope.count is prose that does not match the data — and the option label tells the reader 156.`);
+        `第 5 世代 (generation 5) asks for exactly its own 156 sprites (asked for ${stubbed - beforePick})`,
+        () => `the scope filter is off: picking 第 5 世代 (generation 5) made ${stubbed - beforePick} sprite request(s). assets/data/pokemon_data.json has 156 records with generation === 5. Either scopedData() compares the wrong field or scope.count is prose that does not match the data — and the option label tells the reader 156.`);
 
       /* The derived sample sizes, at the scope where they are wrong without it.
-       * 第 6 世代 is the smallest at 72, which is below the smallest of the four
+       * 第 6 世代 (generation 6) is the smallest at 72, which is below the smallest of the four
        * static sizes — so this is the case where `offeredRaceSizes()` has to fall
        * through to "offer the scope's own size" rather than filter. */
       await evalJs(`(() => { const s = document.getElementById('scopeSelect'); s.value = '6'; s.dispatchEvent(new Event('change')); return true; })()`);
@@ -1469,7 +1434,7 @@ if (!existsSync(CHROME)) {
         }; tick(); })`);
       check(after72.opts.length === 1 && after72.opts[0] === '72',
         'a 72-generation offers exactly one sample size, and it is 72',
-        () => `the 取樣 select offered [${after72.opts.join(', ')}] under 第 6 世代 (72 records). Without offeredRaceSizes() the four static sizes survive, and sampleEvenly() returns arr.slice() as soon as n >= arr.length — so all four would render the same 72 sprites under labels reading 100 through 1,025. A reader picks 500, watches 72, and has no way to tell the control did anything.`);
+        () => `the 取樣 (sample size) select offered [${after72.opts.join(', ')}] under 第 6 世代 (generation 6, 72 records). Without offeredRaceSizes() the four static sizes survive, and sampleEvenly() returns arr.slice() as soon as n >= arr.length — so all four would render the same 72 sprites under labels reading 100 through 1,025. A reader picks 500, watches 72, and has no way to tell the control did anything.`);
 
       /* The gate must NOT be reachable from a link, because a link is a claim about
        * what the sender was looking at. Same viewport, same media query, explicit
@@ -1490,8 +1455,9 @@ if (!existsSync(CHROME)) {
        * THE INVARIANT IS "A CONTROL IS AS WIDE AS ITS OWN TEXT", NOT A HEIGHT.
        *
        * The defect this section closes was found in a screenshot, not by reading
-       * the stylesheet: at 390px the single-mode row rendered 跳至結果 at 44×82px
-       * and 重新洗牌 at 50×62, with the labels broken across three lines inside a
+       * the stylesheet: at 390px the single-mode row rendered 跳至結果 (skip-to-result) at
+       * 44×82px and 重新洗牌 (reshuffle) at 50×62, with the labels broken across three
+       * lines inside a
        * 20px-radius pill, which reads as two controls overlapping. Root cause is
        * one property: `.al-group` has no `flex-wrap`, and flex items have
        * `min-width: auto`, which for Chinese text with no spaces is ONE CHARACTER.
@@ -1565,7 +1531,7 @@ if (!existsSync(CHROME)) {
       const singleSweep = await sweep('single');
       check(singleSweep.found.length === 0,
         'no single-mode control is narrower than its own label, at 560 / 390 / 320px',
-        () => `${singleSweep.found.length} squeezed control(s): ${singleSweep.found.join(' | ')}. A control narrower than its text is a control whose label has been broken across lines — CJK has no spaces, so min-content is one character and the shrink floor is 「跳至結果」 in a 44px box.`);
+        () => `${singleSweep.found.length} squeezed control(s): ${singleSweep.found.join(' | ')}. A control narrower than its text is a control whose label has been broken across lines — CJK has no spaces, so min-content is one character and the shrink floor is 「跳至結果」 (skip-to-result) in a 44px box.`);
       check(Number(singleSweep.heights[2].split(':')[1]) <= TOOLBAR_CEILING,
         `the single-mode toolbar stays within ${TOOLBAR_CEILING}px at 320px`,
         () => `the toolbar measured ${singleSweep.heights.join(', ')}. It was 308px before the fix; it was 403px in race mode, which is the number worth remembering.`);
@@ -1598,7 +1564,7 @@ if (!existsSync(CHROME)) {
         () => `the toolbar measured ${raceSweep.heights.join(', ')}. 403px was 48% of an 844px phone viewport, and wrapping was the fix rather than a disclosure because the height came from `.al-chips` stacking — the thing wrapping removes.`);
 
 
-      /* 排序鍵, at every width of the sweep including 1440, because that is where the
+      /* 排序鍵 (the sort-key select), at every width of the sweep including 1440, because that is where the
        * defect lived: `.al-select`'s `max-width: 15em` is a promise that every option
        * in that select fits, and the widest one needed 259px against 195px. Nothing
        * about it was phone-specific — it was clipped on a 1,440px desktop too, which
@@ -1623,7 +1589,7 @@ if (!existsSync(CHROME)) {
         if (m.need > m.box + 1) sortKeyFits.push(`${w}px ${m.box}<${m.need}`);
       }
       check(sortKeyFits.length === 0,
-        'the 排序鍵 select is at least as wide as the widest option it offers, at 1440 / 560 / 390 / 320px',
+        'the 排序鍵 (sort key) select is at least as wide as the widest option it offers, at 1440 / 560 / 390 / 320px',
         () => `${sortKeyFits.length} width(s) clipped the option list: ${sortKeyFits.join(' | ')}. A select sizes itself to its widest option, so a control narrower than that clips its own list — on the desktop too, which is why the sweep runs to 1,440px rather than starting at the phone breakpoint.`);
 
       /* Restore the wide viewport and the default URL before the stub-liveness read

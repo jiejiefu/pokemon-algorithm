@@ -5,12 +5,12 @@
  * Run: node scripts/check_gen1_page.mjs        (needs the repo served on :5500)
  *
  * These are the claims no static checker can make. The APU is verified against the
- * reference synthesiser's own output in check_gen1_apu.mjs; what is verified here is
- * that the PAGE says true things about it and that the playback affordances move.
- * Two of these assertions exist because the corresponding bugs shipped once: the
- * lane label read 播放中 for every unmuted channel, which was never true, and the
- * playhead's guard was `startedAt > 0` when the audio clock legitimately reads 0 on
- * the first play, so the cursor never appeared at all.
+ * reference synthesiser's own output in check_gen1_apu.mjs; what is verified here
+ * is that the PAGE says true things about it and that the playback affordances
+ * move. Two assertions guard shipped defects: the lane label read 播放中 (playing)
+ * for every unmuted channel, which was never true, and the playhead's guard was
+ * `startedAt > 0` when the audio clock legitimately reads 0 on the first play, so
+ * the cursor never appeared.
  */
 
 import { spawn } from 'node:child_process';
@@ -26,12 +26,12 @@ const chrome = spawn(CHROME, [
   '--headless=new', '--remote-debugging-port=0', '--disable-gpu',
   '--autoplay-policy=no-user-gesture-required',
   /* Silent at the BROWSER, not on the page. This checker presses play, and the
-   * page's default is a fifth of full scale — comfortable at a desk, genuinely
-   * startling in a room. Muted here rather than by setting the volume slider to
-   * zero, because a zeroed slider would mean the playback test exercises silence,
-   * and the claim being tested is that pressing play reaches the synthesiser and
-   * moves a cursor. The AudioContext still runs; only the output is discarded, so
-   * nothing can hide behind it.
+   * page's default is a fifth of full scale — comfortable at a desk, startling in
+   * a room. Muted here rather than by setting the volume slider to zero, because a
+   * zeroed slider would make the playback test exercise silence, and the claim
+   * under test is that pressing play reaches the synthesiser and moves a cursor.
+   * The AudioContext still runs; only the output is discarded, so nothing can hide
+   * behind it.
    *
    * `--mute-audio` alone is the FIRST line rather than the guarantee, so the
    * second is installed in the page: see scripts/lib/mute-tap.mjs for why a flag
@@ -45,13 +45,14 @@ const chrome = spawn(CHROME, [
  * assertPortFree() unnecessary rather than merely unused. */
 const CDP = await waitForDebugPort(profile);
 /* THE CHROME IS KILLED ON THE EXIT PATH TOO, and that is not tidiness — it keeps the
- * next run's --remote-debugging-port free and it is what makes the profile removal above
- * safe. A headless Chrome left running holds its debugging port, so an orphan is a port
- * collision waiting for the next run: the new browser cannot bind and the checker fetches
- * /json/list from the ORPHAN — driving a browser whose profile directory this process
- * already deleted under it. 'exit' covers a normal return, a process.exit() and an
- * uncaught throw, which is everything except a signal, so SIGINT and SIGTERM are mapped
- * to the same path. SIGKILL cannot be caught at all, which is the honest limit. */
+ * next run's --remote-debugging-port free and makes the profile removal above safe.
+ * A headless Chrome left running holds its debugging port, so an orphan is a port
+ * collision waiting for the next run: the new browser cannot bind and the checker
+ * fetches /json/list from the ORPHAN — driving a browser whose profile directory
+ * this process already deleted under it. 'exit' covers a normal return, a
+ * process.exit() and an uncaught throw, which is everything except a signal, so
+ * SIGINT and SIGTERM are mapped to the same path. SIGKILL cannot be caught at all;
+ * that is the honest limit. */
 const stopChrome = () => { try { chrome.kill(); } catch {} };
 process.on('exit', stopChrome);
 for (const sig of ['SIGINT', 'SIGTERM']) {
@@ -96,13 +97,13 @@ ws.addEventListener('message', (e) => {
   if (m.method === 'Runtime.exceptionThrown') logs.push('EXCEPTION ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text));
 });
 
-/* The mute, installed before any page script runs — so it cannot be raced by the
- * page's own module scope, and so a page that constructs an AudioContext during
- * boot is already covered. */
+/* The mute, installed before any page script runs, so the page's own module scope
+ * cannot race it and a page that constructs an AudioContext during boot is already
+ * covered. */
 await send('Page.addScriptToEvaluateOnNewDocument', { source: MUTE_TAP });
 await send('Page.navigate', { url: `http://localhost:${process.env.CRY_PORT || 5500}/cries-gen1.html` });
-/* Was a fixed 3500 ms. The picker builds its 151 chips after load fires, so this
- * waits for the chips rather than for a duration; the ceiling is 20 s. */
+/* Waits for the picker's 151 chips rather than for a duration, because they are
+ * built after load fires. The ceiling is 20 s. */
 await until(`document.readyState === 'complete' && document.querySelectorAll('#groups .cg-chip').length > 0`, 20000);
 
 async function evalJs(expr) {
@@ -113,16 +114,16 @@ async function evalJs(expr) {
 
 /** Poll a page expression until it is truthy. Returns whether it ever became so.
  *
- *  Same helper, same two guarantees, as the one in check_cries_browser.mjs and
- *  check_spectrum_browser.mjs: every ceiling used below exceeds the sleep it
+ *  Same helper and the same two guarantees as the one in check_cries_browser.mjs
+ *  and check_spectrum_browser.mjs: every ceiling used below exceeds the sleep it
  *  replaces, so tolerance only goes UP; and a timeout returns false, so the
- *  assertion after it still runs and still reports its real measurement. There is
- *  no flag that skips a check here.
+ *  assertion after it still runs and reports its real measurement. No flag here
+ *  skips a check.
  *
  *  Declared as a `function` rather than a `const` arrow on purpose: `evalJs` and
- *  the 3500 ms navigation wait below are ordered the other way round in this file,
- *  and a `const` helper above its first use is the temporal-dead-zone error that
- *  cost a run here. Function declarations hoist, so the order stops mattering. */
+ *  the navigation wait below are ordered the other way round in this file, and a
+ *  `const` helper above its first use is a temporal-dead-zone error that once cost
+ *  a run. Function declarations hoist, so the order stops mattering. */
 async function until(expression, ceilingMs, step = 60) {
   const deadline = Date.now() + ceilingMs;
   for (;;) {
@@ -151,8 +152,9 @@ ok(init.canvasW > 0, `waveform canvas sized (${init.canvasW}px)`);
 ok(init.lanes === 3, `3 channel lanes (got ${init.lanes})`);
 ok(init.staff && init.head, 'the staff and its playhead both exist');
 /* Only the three CHANNELS have a mute state. The mix row's gutter cell is a label
- * reading 三條聲道相加 and must never claim to be a live state, the same rule that
- * stopped the lanes from reading 播放中 while idle. */
+ * reading 三條聲道相加 (sum of three channels) and must never claim to be a live
+ * state, the same rule that stopped the lanes from reading 播放中 (playing) while
+ * idle. */
 ok(init.states.filter((t) => t !== '三條聲道相加').every((t) => t === '啟用' || t === '靜音'),
   `channel lane states are 啟用/靜音, never 播放中 (${init.states.join('/')})`);
 ok(init.states.filter((t) => t === '三條聲道相加').length === 1,
@@ -161,12 +163,12 @@ ok(init.states.filter((t) => t === '三條聲道相加').length === 1,
  * group reads as a row of Pokémon rather than a row of names.
  *
  * The check is on the BINDING, not on how many images have finished arriving. All
- * 151 are loading="lazy" and the panel is long, so after a few seconds only some
- * 50 of them have decoded — an earlier version of this asserted "every sprite in
- * the viewport has decoded" and failed, which measured Live Server's throughput and
- * not the page. The one image that IS required to be decoded is the selected
- * species': it is the one the reader is looking at, and a wrong path or a 0x0
- * decode is the only failure mode this can catch. */
+ * 151 are loading="lazy" and the panel is long, so after a few seconds only about
+ * 50 have decoded — an earlier version asserted "every sprite in the viewport has
+ * decoded" and failed, which measured Live Server's throughput rather than the
+ * page. The one image that IS required to be decoded is the selected species': it
+ * is the one the reader is looking at, and a wrong path or a 0x0 decode is the only
+ * failure mode this can catch. */
 const chips = await evalJs(`(async () => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   for (let i = 0; i < 30; i++) {
@@ -206,7 +208,7 @@ ok(grp.found, 'the current species\' group is open after load');
 /* EXACTLY one, and it is the current species'. Small groups used to be open too, so
  * the picker loaded with 24 of its 38 disclosures expanded and read as a wall of
  * chips rather than as 38 choices. A disclosure the reader did not open is noise;
- * the one exception is the group the reader is currently looking at. */
+ * the exception is the group the reader is currently looking at. */
 eq(grp.openCount, 1, `and it is the ONLY group open (${grp.openCount} open)`);
 /* Compared against whatever the page says is current, not against a literal name:
  * the default species is a page decision and hard-coding it here would make this
@@ -237,11 +239,11 @@ ok(a !== 'translateX(0px)', 'and it leaves the origin immediately');
 const playing = await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`);
 ok(playing === 'true', 'play button reflects playing state');
 
-/* The mute is a claim like any other, so it is asserted rather than assumed — the
+/* The mute is a claim like any other, so it is asserted rather than assumed: the
  * failure mode of a mute that quietly stopped working is a cry at a fifth of full
- * scale and a green run, which is the worst pair available. Placed HERE, after the
- * first press, because the AudioContext is built lazily on play and a probe before
- * that would be reading a tap that has not been asked to do anything yet.
+ * scale and a green run, the worst pair available. Placed HERE, after the first
+ * press, because the AudioContext is built lazily on play and a probe before that
+ * would read a tap that has not been asked to do anything yet.
  *
  * `gain` is read back off the live AudioParam, so this asks whether the output is
  * muted NOW rather than whether the script once set a number. See
@@ -259,11 +261,10 @@ const sel = await evalJs(`(() => {
   other.click();
   return { id, name: other.textContent };
 })()`);
-/* Was a fixed 400 ms, then compared `cur-name` against what was just clicked.
- * Polled on the page's own selection state — the `is-current` class moving to the
- * clicked chip — rather than on `cur-name` matching, because the latter IS the next
- * line's assertion and waiting for it would make the check pass by construction. The
- * rendered text is still compared independently, which is the actual claim. */
+/* Polls the page's own selection state — the `is-current` class moving to the
+ * clicked chip — rather than `cur-name` matching, because the latter IS the next
+ * line's assertion and waiting for it would make the check pass by construction.
+ * The rendered text is still compared independently, which is the actual claim. */
 await until(`[...document.querySelectorAll('#groups .cg-chip')].some((b) => b.dataset.species === ${JSON.stringify(String(sel.id))} && b.classList.contains('is-current'))`, 8000);
 const after = await evalJs(`(() => {
   const d = document.getElementById('cur-name').textContent;
@@ -298,9 +299,9 @@ const lanes = await evalJs(`(() => {
 })()`);
 eq(lanes.length, 3, `three channel lanes, on top of the mix lane (${lanes.length})`);
 eq(lanes.map((c) => c.ch), ['5', '6', '8'], 'and they are Ch5, Ch6 and Ch8');
-/* The mix is row 0 of the SAME grid, not a separate canvas above it. That is what
-   makes all four waveforms share a left edge: if the mix ever sat outside the
-   staff, the two would be the same interval drawn at two different widths. */
+/* The mix is row 0 of the SAME grid, not a separate canvas above it. That makes
+   all four waveforms share a left edge: if the mix sat outside the staff, the two
+   would be the same interval drawn at two different widths. */
 eq(await evalJs(`[...document.querySelectorAll('.cg-lane')].length`), 4,
   'and the mix is the fourth row of the same staff, not a separate canvas');
 ok(await evalJs(`document.querySelectorAll('.cg-lane-mix .cg-lane-plot canvas#wave').length === 1`),
@@ -313,17 +314,17 @@ ok(lanes.every((c) => c.widthMatch),
 ok(lanes.every((c) => c.bars > 0),
   `and each carries its own note bars on the same axis (${lanes.map((c) => c.bars).join(' / ')})`);
 /* All four waveforms are the same instrument, so the mix must not be framed while
- * the three lanes under it are not — a border around only the first reads as four
+ * the three lanes under it are not: a border around only the first reads as four
  * unrelated widgets. */
 const mixBorder = await evalJs(`getComputedStyle(document.getElementById('wave')).borderTopWidth`);
 eq(mixBorder, '0px', 'and the mix waveform is borderless with them');
 
 /* The note bars must be positioned in SECONDS while the waveform is drawn from
- * SAMPLES. The first version divided a note's start by the SAMPLE count, so a
+ * SAMPLES. An earlier version divided a note's start by the SAMPLE count, so a
  * 62,541-sample cry put every bar under 0.02% of the lane — seven bars stacked on
  * the left edge, and a check that only counted them saw nothing wrong. This one
- * reads the last bar's right edge, which is the only number that moves when the two
- * axes are conflated. */
+ * reads the last bar's right edge, the only number that moves when the two axes
+ * are conflated. */
 const barSpan = await evalJs(`(() => {
   /* A MUTED channel is left out of the note list entirely — muting removes its
    * notes from what the timeline draws — so Ch5 has no bars at this point and is
@@ -353,8 +354,8 @@ ok(barSpan.rows.every((r, i) => Math.abs(r.right - barSpan.voice[i]) < 25),
 /* The mix is drawn with the master volume undone. At the default of 3 the APU's
  * array is a fifth of full scale, so a mix drawn from it directly was a fifth of
  * the height it should be — and it changed shape as the reader dragged the volume
- * slider, which is not what a volume control is supposed to do to a picture of the
- * sound. Measured as ink coverage: a fifth-scale trace covers about a fifth of the
+ * slider, which is not what a volume control should do to a picture of the sound.
+ * Measured as ink coverage: a fifth-scale trace covers about a fifth of the
  * height. */
 const mixInk = await evalJs(`(() => {
   const c = document.getElementById('wave');
@@ -371,16 +372,16 @@ ok(mixInk > 4,
  *
  * The loop that wired them up was `state[id] = value` over `['pitch','length',
  * 'volume']`, which worked for two of the three and silently created a fourth
- * property for the third: the Length slider's key is `lengthSigned`. So the slider
- * did nothing at all — same bytes rendered, same duration, bit-identical audio —
- * while looking exactly like a working control.
+ * property for the third: the Length slider's key is `lengthSigned`. The slider
+ * therefore did nothing — same bytes rendered, same duration, bit-identical audio
+ * — while looking exactly like a working control.
  *
- * So this moves each slider and reads back the field it names. And for length the
+ * This moves each slider and reads back the field it names. For length the
  * observable is the SAMPLE COUNT, not the label: a label can follow a readout that
  * is not wired to anything, but the sample count is the audio's own length. */
 const sliderState = await evalJs(`(async () => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  /* scheduleRender() debounces by 90 ms, so every read has to wait for it — a
+  /* scheduleRender() debounces by 90 ms, so every read must wait for it: a
    * synchronous read after dispatching 'input' sees the PREVIOUS render, which is
    * indistinguishable from a slider that does nothing. */
   const set = async (id, v) => {
@@ -390,9 +391,10 @@ const sliderState = await evalJs(`(async () => {
     await wait(220);
   };
   /* The count is printed with a thousands separator, so it is stripped BEFORE the
-   * digits are matched. Matching digits off "62,541 個樣本" captured "541" — which
-   * is not a smaller version of the right answer, it is a different number, and it
-   * still scaled correctly with the slider, so nothing downstream could tell. */
+   * digits are matched. Matching digits off "62,541 個樣本" (62,541 samples)
+   * captured "541" — not a smaller version of the right answer but a different
+   * number, and it still scaled correctly with the slider, so nothing downstream
+   * could tell. */
   const samples = () => parseInt(
     document.getElementById('cur-meta').textContent.replace(/,/g, '').match(/(\\d+) 個樣本/)[1], 10);
   const val = (id) => document.getElementById(id).textContent;
@@ -425,19 +427,19 @@ ok(sliderState.volume.label.trim() === '15 / 15',
   `the Volume readout follows its slider (${sliderState.volume.label})`);
 
 /* A muted lane has to LOOK muted. Dimming gold by 0.28 alpha over a dark panel
- * still reads as gold, so the first version of this dimmed nothing a reader could
- * see — the lane was identical to an active one and the state was carried only by
- * the caption. Measured as a colour distance, because "it looks dimmer" is not
+ * still reads as gold, so the first version dimmed nothing a reader could see —
+ * the lane was identical to an active one and the state was carried only by the
+ * caption. Measured as a colour distance, because "it looks dimmer" is not
  * something a checker can be asked about. */
 const laneColour = await evalJs(`(() => {
-  /* A hard alpha cut-off would exclude the muted lane entirely — that is the whole
-   * point of it — so the sample is over every non-transparent pixel and the mean
-   * colour is taken of those. */
+  /* A hard alpha cut-off would exclude the muted lane entirely — the whole point
+   * of it — so the sample is over every non-transparent pixel and the mean colour
+   * is taken of those. */
   const px = (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let r=0,g=0,b=0,n=0; for (let i=0;i<d.length;i+=4) if (d[i+3]>10) { r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; } return n ? [Math.round(r/n),Math.round(g/n),Math.round(b/n),n] : null; };
   const lane5 = document.querySelector('.cg-lane[data-ch="5"]');
   const wave = () => document.querySelector('.cg-lane[data-ch="5"] canvas');
-  /* The lane-state toggle below may have left Ch5 muted, and this block toggles —
-   * so start from unmuted or it would measure nothing. */
+  /* The lane-state toggle below may have left Ch5 muted, and this block toggles,
+   * so start from unmuted or it measures nothing. */
   if (lane5.classList.contains('is-muted')) document.querySelector('.cg-lane-toggle[data-mute="5"]').click();
   return new Promise((res) => setTimeout(() => res({
     before: px(wave()),
@@ -446,9 +448,8 @@ const laneColour = await evalJs(`(() => {
   }), 300));
 })()`).then(async (v) => {
   await evalJs(`document.querySelector('.cg-lane-toggle[data-mute="5"]').click()`);
-  /* Was a fixed 400 ms, then sampled the lane's pixels. The page marks the lane
-   * itself, so the wait is on that class rather than on the repaint having
-   * finished guessing; the pixel sample below is still what is asserted. */
+  /* Waits on the page's own `is-muted` class rather than guessing when the
+   * repaint finished; the pixel sample below is still what is asserted. */
   await until(`document.querySelector('.cg-lane[data-ch="5"]')?.classList.contains('is-muted')`, 8000);
   v.after = await evalJs(`(() => {
     const c = document.querySelector('.cg-lane[data-ch="5"] canvas');
@@ -464,9 +465,9 @@ ok(dist(laneColour.before, laneColour.after) > 30,
 ok(dist(laneColour.after, laneColour.other) > 30,
   'and the muted lane is visibly different from an unmuted one');
 /* Muting one channel must say so AND leave the waveform standing: a muted channel
- * is still rendered, which is exactly why it can be shown. The `laneColour` block
- * above leaves Ch5 muted, so this reads the state it left rather than clicking
- * again — a second click would un-mute it and there would be nothing to check. */
+ * is still rendered, which is why it can be shown. The `laneColour` block above
+ * leaves Ch5 muted, so this reads the state it left rather than clicking again — a
+ * second click would un-mute it and there would be nothing to check. */
 const mutedLane = await evalJs(`(() => {
   const f = document.querySelector('.cg-lane[data-ch="5"]');
   const c = f.querySelector('canvas');
@@ -484,13 +485,13 @@ ok(mutedLane.ink > 500, 'and leaves the waveform visible rather than blanking it
 
 /* The synthesised-not-recorded note belongs next to the thing it explains.
  *
- * It used to sit in the page footer, which is one screen below the transport and the
+ * It used to sit in the page footer, one screen below the transport and the
  * autoplay switch — so the reader hears a cry, presses play again, and only learns
- * a screen later that nothing here is a recording. It also means the page has no
- * footer of its own, so this is a real structural change and not a move.
+ * a screen later that nothing here is a recording. The page now has no footer of
+ * its own, so this is a structural change rather than a move.
  *
  * Read from `bodyHtml`, the served DOM, because this checker's `page` is the CDP
- * state object from the first eval — not the source. */
+ * state object from the first eval, not the source. */
 ok(!/class="site-footer"/.test(bodyHtml), 'the page no longer carries a footer of its own');
 const picker = bodyHtml.match(/<aside class="cy-panel cg-picker"[^>]*>([\s\S]*?)<\/aside>/);
 ok(!!picker && /即時合成/.test(picker[1]),
@@ -499,10 +500,10 @@ ok(!!picker && picker[1].indexOf('id="groups"') < picker[1].lastIndexOf('即時�
   'below the base-cry groups, where it reads as a footnote to them');
 ok(!!picker && /叫聲總覽/.test(picker[1]),
   'and still points at the page that does hold recordings');
-/* Air under the staff, so the first paragraph reads as a caption and not as part of
- * the plot. A margin, not padding: padding would push the text into the plot's own
- * box without separating them from it. Read from the loaded stylesheet rather than
- * from the file, so it is the value the cascade actually produced. */
+/* Air under the staff, so the first paragraph reads as a caption and not as part
+ * of the plot. A margin, not padding: padding would push the text into the plot's
+ * own box without separating it from the plot. Read from the loaded stylesheet
+ * rather than the file, so it is the value the cascade actually produced. */
 const noteAfter = await evalJs(`(() => {
   for (const sheet of document.styleSheets) {
     let rules;
@@ -519,9 +520,9 @@ ok(!!noteAfter && /margin-top:\s*1[0-9]px/.test(noteAfter),
  * That rule is a bare `canvas` element selector carrying `box-shadow: 0 0 25px
  * rgba(0,0,0,0.9)`, written for the maze canvas — a lit surface. It reaches every
  * canvas on the site, and on a 44px hairline trace a 25px black halo does not read
- * as a shadow, it reads as a heavy dark box around the lane. Measured on the
- * COMPUTED value rather than by reading the stylesheet, so a cascade change cannot
- * quietly bring it back. */
+ * as a shadow but as a heavy dark box around the lane. Measured on the COMPUTED
+ * value rather than by reading the stylesheet, so a cascade change cannot quietly
+ * bring it back. */
 const shadow = await evalJs(`(() => {
   const g = (sel) => getComputedStyle(document.querySelector(sel));
   return { mix: g('#wave').boxShadow, lane: g('.cg-lane-wave').boxShadow, radius: g('.cg-lane-wave').borderRadius };
@@ -535,7 +536,7 @@ eq(shadow.radius, '0px', 'and no rounded panel either — this page draws lines'
  * The load case is the one that matters. select() is called at boot, on every
  * hashchange and by the reset button as well as from a chip click, so a switch read
  * inside select() would cry out on page load. The observable is the play button's
- * aria-pressed, which is the page's own record of whether it is sounding. */
+ * aria-pressed, the page's own record of whether it is sounding. */
 const auto = await evalJs(`(() => {
   const sw = document.querySelector('#autoplay-slot [role="switch"]');
   return sw ? { present: true, role: sw.getAttribute('role'), on: sw.getAttribute('aria-checked'),
@@ -564,12 +565,12 @@ const silentTarget = await evalJs(`(() => {
   b.click();
   return id;
 })()`);
-/* Was a fixed 300 ms. This one asserts the ABSENCE of playback, so it cannot wait
- * for the thing it is checking would not happen — there is no condition that would
- * ever make it true. It waits for the SELECTION to land instead (`is-current` moved
- * to the clicked chip), which is the page having done the thing whose consequence is
- * being checked. `playingIs('false')` is deliberately NOT used: it is already true
- * before the click, so it would return instantly and measure the pre-click state. */
+/* This one asserts the ABSENCE of playback, so it cannot wait for the thing it
+ * expects not to happen — no condition would ever make it true. It waits for the
+ * SELECTION to land instead (`is-current` moved to the clicked chip), which is the
+ * page having done the thing whose consequence is being checked. `playingIs('false')`
+ * is deliberately NOT used: it is already true before the click, so it would return
+ * instantly and measure the pre-click state. */
 await until(`[...document.querySelectorAll('#groups .cg-chip')].some((b) => b.dataset.species === ${JSON.stringify(String(silentTarget))} && b.classList.contains('is-current'))`, 8000);
 eq(await evalJs(`document.getElementById('play').getAttribute('aria-pressed')`), 'false',
   'and a click with it off changes the species without making a sound');
@@ -580,18 +581,17 @@ await evalJs(`document.querySelector('#autoplay-slot [role="switch"]').click()`)
 /* The intro's 6:4 split must leave the prose column AT LEAST its own measure.
  *
  * The paragraph is set to a 68ch measure, so a split that narrows the column below
- * that does not change the line breaks — it just makes the grid the binding
- * constraint, and the measure becomes a lie written in the stylesheet. 7:3 and 6:4
- * both pass at 1440px; this is here because the one that would fail is a narrower
- * viewport, where nothing else in the file would notice. */
+ * that does not change the line breaks — it makes the grid the binding constraint,
+ * and the measure becomes a lie written in the stylesheet. 7:3 and 6:4 both pass at
+ * 1440px; this is here because the failing case is a narrower viewport, where
+ * nothing else in the file would notice. */
 const intro = await evalJs(`(() => {
   const body = document.querySelector('.cy-intro-body').getBoundingClientRect();
   const p = document.querySelector('.cy-intro p');
   const measure = parseFloat(getComputedStyle(p).maxWidth);
   /* The TRACK widths, not the sprite figure's box: justify-self:center shrinks
    * that box to its 112px of content, so measuring it reports a 9:1 split for a
-   * grid that is set to 6:4. gridTemplateColumns resolves to the used track sizes
-   * in px. */
+   * grid set to 6:4. gridTemplateColumns resolves to the used track sizes in px. */
   const tracks = getComputedStyle(document.querySelector('.cy-intro')).gridTemplateColumns
     .split(' ').map(parseFloat).filter((n) => !Number.isNaN(n));
   return {
