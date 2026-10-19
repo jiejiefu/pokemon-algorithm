@@ -60,7 +60,29 @@ const profile = mkdtempSync(join(tmpdir(), 'spx-'));
  * a checker that cleans up and one that does not is one line, and nothing reports it.
  * See the note in check_cries_browser.mjs for why this is an `exit` handler rather
  * than a line at the bottom. */
-process.on('exit', () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} });
+/* Removed here rather than on the exit path, and the ORDER is the whole point.
+ *
+ * This used to read `process.on('exit', () => rmSync(profile, …))`, registered
+ * ABOVE the handler that kills Chrome. Exit handlers run in REGISTRATION order,
+ * so the sequence was: remove the profile directory, then signal Chrome. Chrome
+ * does not stop the instant it is signalled, and for the few milliseconds before
+ * it actually dies it is still writing to that profile — so it RECREATED the
+ * directory that had just been removed underneath it, and left a bare `Default/`
+ * with no `DevToolsActivePort` behind.
+ *
+ * The comment this file carried said the opposite — that killing Chrome "is what
+ * makes the profile removal above safe". It was a claim about an ordering it did
+ * not have, which is §3.G9's rule one file over: a comment that names a safety
+ * property its own code contradicts is worse than no comment, because it is the
+ * thing a reader stops checking.
+ *
+ * So the removal happens in `shutdown()`, after Chrome is CONFIRMED dead. It
+ * stays on the exit handler too, for a path that never reaches shutdown — an
+ * uncaught throw, which is exactly when the run is already going wrong — and that
+ * fallback carries this caveat rather than pretending to be clean. */
+const removeProfile = () => {
+  try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {}
+};
 /* `--mute-audio` is the FIRST line, not the guarantee: it mutes at the browser, so
    the AudioContext still runs and `currentTime` still advances, which is what
    keeps the playback assertions meaningful. The guarantee is MUTE_TAP below,
@@ -84,8 +106,32 @@ const CDP = await waitForDebugPort(profile);
  * to the same path. SIGKILL cannot be caught at all, which is the honest limit. */
 const stopChrome = () => { try { chrome.kill(); } catch {} };
 process.on('exit', stopChrome);
+process.on('exit', removeProfile);
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => { stopChrome(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+}
+
+/**
+ * Kill Chrome, WAIT for it to actually be gone, and only then remove its profile.
+ *
+ * The wait is the fix; `chrome.kill()` returns immediately and says nothing about
+ * whether the child has stopped. A live child writing to a directory another
+ * process just deleted is the shape of the leak this replaced, and the ordering
+ * was the defect rather than the missing line — see the note on `removeProfile`.
+ *
+ * The ceiling RETURNS rather than throws, so a Chrome that refuses to die still
+ * lets this checker exit instead of hanging it, which is §3.Z's symptom: a checker
+ * that has finished and does not exit is indistinguishable from one that is stuck.
+ */
+async function shutdown(code) {
+  stopChrome();
+  await new Promise((resolve) => {
+    if (chrome.exitCode !== null || chrome.signalCode !== null) return resolve();
+    const timer = setTimeout(resolve, 3000);
+    chrome.once('exit', () => { clearTimeout(timer); resolve(); });
+  });
+  removeProfile();
+  process.exit(code);
 }
 
 
@@ -99,8 +145,7 @@ for (let i = 0; i < 80; i++) {
 }
 if (!targets) {
   console.log('FAIL  Chrome did not open a debugging port');
-  chrome.kill();
-  process.exit(1);
+  await shutdown(1);
 }
 
 const ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
@@ -1150,13 +1195,16 @@ try {
     + ` ${(100 * independent.worst.r).toFixed(2)}%)`);
 } finally {
   ws.close();
-  chrome.kill();
 }
 
 console.log('');
 if (fails.length) {
   for (const f of fails) console.log(`FAIL  ${f}`);
   console.log(`FAIL  ${fails.length} of ${pass + fails.length} checks failed`);
-  process.exit(1);
+  await shutdown(1);
 }
 console.log(`PASS  ${pass} checks`);
+/* Falling off the end would run the exit handlers, which remove the profile while
+ * Chrome may still be dying — see the note on `removeProfile`. §3.Z's rule: this
+ * file needs to EXPLICITLY exit, and now it exits through the teardown. */
+await shutdown(0);
