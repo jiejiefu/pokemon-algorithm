@@ -16,6 +16,24 @@ type_profiles.json already key on.
 
   abilities.json       one row per ability: names, effect, provenance, counts
   ability_species.json slug -> the Pokemon that hold it, split by hidden flag
+  species_abilities.json dex id -> that Pokemon's names + its ability slugs
+
+Why a third file, which is derivable from the second
+---------------------------------------------------
+abilities.html answers the REVERSE question — 「威嚇有誰能持有」 — and the
+only table that carries it is keyed by ability, so the browser would have to
+download 388 KB and invert 1,025 species at page load. `pokemon_data.json` is not
+an alternative: it is 2.8 MB and carries no ability slugs.
+
+This file is the inverse, written by the SAME pass that writes the other two, so
+it cannot disagree with ability_species.json about which species exist or which
+slot an ability sits in. Measured 93 KB against 388 KB, and it drops the per-row
+name fields (each species appeared once per ability it holds) while storing NO
+ability names at all — the page already has all 314 in abilities.json.
+
+Only `inRoster` rows go in, keyed by `baseId`. That is what makes it a 1,025-row
+index rather than a 1,350-row one: a forme-exclusive holder (Gyarados' forme
+records, Meowstic-Mega) is folded onto the base species it belongs to.
 
 Why BOTH, and why the second one is not derived from pokemon_data.json
 -----------------------------------------------------------------------
@@ -64,6 +82,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "assets" / "data"
 ABILITIES_OUT = DATA / "abilities.json"
 SPECIES_OUT = DATA / "ability_species.json"
+SPECIES_INDEX_OUT = DATA / "species_abilities.json"
 POKEMON_DATA = DATA / "pokemon_data.json"
 
 API = "https://pokeapi.co/api/v2"
@@ -490,8 +509,66 @@ def build(dry_run: bool) -> None:
     SPECIES_OUT.write_text(
         json.dumps(species, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8"
     )
+    species_index = build_species_index(species)
+    single = sum(1 for e in species_index.values() if len(e["reg"]) == 1 and not e["hid"])
+    SPECIES_INDEX_OUT.write_text(
+        json.dumps(species_index, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
     print(f"\nwrote {ABILITIES_OUT.relative_to(ROOT)} ({ABILITIES_OUT.stat().st_size // 1024} KB)")
     print(f"wrote {SPECIES_OUT.relative_to(ROOT)} ({SPECIES_OUT.stat().st_size // 1024} KB)")
+    print(
+        f"wrote {SPECIES_INDEX_OUT.relative_to(ROOT)}"
+        f" ({SPECIES_INDEX_OUT.stat().st_size // 1024} KB,"
+        f" {len(species_index)} species, {single} with a single ability)"
+    )
+
+
+def build_species_index(species: Dict[str, List[dict]]) -> Dict[str, dict]:
+    """Invert `species` (slug -> holders) into dex id -> {names, slugs}.
+
+    The inverse of the file written directly above it, deliberately derived in
+    this pass rather than in the browser: a page that has to invert 1,025 rows
+    on every load is paying for a shape it could have been handed.
+
+    `inRoster` is the filter that makes this a 1,025-row index rather than a
+    1,350-row one — a forme-exclusive holder collapses onto the base species it
+    belongs to, which is also the species the reader will search for.
+
+    Deduplication is by slug per slot, NOT by row: one species can reach the same
+    ability through several formes, and the index is keyed by baseId so those are
+    entries to merge rather than duplicates to print twice.
+
+    The SAME slug can legitimately land in BOTH slots, and 12 species do: a
+    regional forme's regular ability is often the base forme's hidden one (Alolan
+    Grimer's poison-touch is Kantonian Grimer's hidden 毒觸, and Rock Head is the
+    case §3.AC already records for Marowak). Merging formes onto one row therefore
+    produces a species whose two lists intersect, and the page renders that third
+    case separately rather than printing the same ability twice — a plausible
+    reading of which slot it belongs to is a wrong answer, not a cosmetic one.
+    check_abilities_data.mjs pins the count at 12.
+    """
+    index: Dict[str, dict] = {}
+    for slug, rows in species.items():
+        for row in rows:
+            if not row.get("inRoster") or row.get("baseId") is None:
+                continue
+            key = str(row["baseId"])
+            entry = index.get(key)
+            if entry is None:
+                entry = index[key] = {
+                    "zh": row.get("nameZh") or "",
+                    "en": row.get("nameEn") or row.get("name") or "",
+                    "reg": [],
+                    "hid": [],
+                }
+            slot = "hid" if row.get("isHidden") else "reg"
+            if slug not in entry[slot]:
+                entry[slot].append(slug)
+    for entry in index.values():
+        entry["reg"].sort()
+        entry["hid"].sort()
+    return dict(sorted(index.items(), key=lambda kv: int(kv[0])))
 
 
 def main() -> None:

@@ -540,3 +540,188 @@
      too — so the phone grid keeps its column count and only the art grows. */
   .ab-holder img { width: 56px; height: 56px; }
 }
+
+/* ===========================================================================
+   The reverse lookup: 「這隻寶可夢有哪些特性」.
+
+   Every rule below is new and `ab-species*`/`ab-slot*` prefixed. Nothing here
+   edits a rule the two pages already share — §3.B1's rule is that a stylesheet
+   shaped for one block must not leak onto its siblings, and `.ab-card`,
+   `.ab-chip` and `.ab-badge` are all read by ability.html.
+   =========================================================================== */
+
+.ab-species {
+  margin: 18px 0 4px;
+  padding: 14px 16px;
+  background: var(--surface-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.ab-species-h {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ab-species-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ab-species-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 16px;
+}
+
+/*
+ * The species link and the ability chips are SIBLINGS, never nested. The name
+ * and the abilities are two answers to two different questions and go to two
+ * different pages; wrapping the chips inside the link would make a chip click
+ * land on detail.html, which is the same class of bug §3.W found when `role`
+ * overrode an anchor's implicit link role.
+ */
+.ab-species-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 168px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.ab-species-id:hover .ab-species-zh {
+  text-decoration: underline;
+}
+
+.ab-species-id:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * `object-fit: contain` WITH `object-position: bottom`, for the reason
+ * `.ab-holder img` records and not restated: the Scarlet/Violet set is 120×112
+ * and bottom-anchored, so `contain` alone leaves the subject ~3.7px above the
+ * row's own baseline. No `translateY` (nothing here pairs the image with a name
+ * on one line) and no `image-rendering` (this is a downscale).
+ */
+.ab-species-sprite {
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+.ab-species-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ab-species-zh {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ab-species-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ab-species-slots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.ab-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ab-slot-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ab-slot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The chip is an `<a>`, so it needs its own affordance — `.ab-chip` was
+   written for the detail page's static list. */
+.ab-slot-chips .ab-chip {
+  text-decoration: none;
+  border: 1px solid var(--hairline);
+  background: var(--bg-card);
+}
+
+.ab-slot-chips .ab-chip:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-hover);
+}
+
+.ab-slot-chips .ab-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ab-slot-chips .ab-chip.is-en {
+  font-style: italic;
+}
+
+.ab-slot-none {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ab-badge-single {
+  align-self: center;
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
+
+/*
+ * The truncation notice. It is `hidden` when nothing was dropped rather than
+ * rendering an empty paragraph, so the assertion is about the ATTRIBUTE and the
+ * page never grows a blank line under a complete result.
+ */
+.ab-species-more {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .ab-species { padding: 12px; }
+  /* One column, and the sprite shrinks with the rest — the row is the same
+     shape at both widths, so the phone case is a size change and not a second
+     layout to keep in step. */
+  .ab-species-id { min-width: 0; }
+  .ab-species-slots { flex: 1 1 100%; }
+}

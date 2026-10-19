@@ -68,6 +68,12 @@
       <div class="ab-chiprow" id="ab-filters"></div>
     </div>
 
+    <section class="ab-species" id="ab-species" aria-labelledby="ab-species-h" hidden>
+      <h2 class="ab-species-h" id="ab-species-h">這隻寶可夢的特性</h2>
+      <div id="ab-species-list"></div>
+      <p class="ab-species-more" id="ab-species-more" hidden></p>
+    </section>
+
     <p class="ab-resultline" id="ab-resultline" role="status" aria-live="polite"></p>
 
     <div id="ab-grid-wrap">
@@ -81,8 +87,10 @@
     import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
     import {
       prepareAbilities, filterAbilities, loadAbilities,
+      buildSpeciesIndex, filterSpecies, speciesSlots, speciesIdText,
+      loadSpeciesAbilities, SPECIES_RESULT_CAP,
       abilityName, abilityIsFallbackName, abilityEffect, abilityEffectEn,
-      abilityGenerationText, abilityUrl
+      abilityGenerationText, abilityUrl, holderUrl, holderSprite
     } from './assets/js/abilities.js';
 
     initThemeToggle();
@@ -110,13 +118,17 @@
       stats: document.getElementById('ab-stats'),
       resultLine: document.getElementById('ab-resultline'),
       wrap: document.getElementById('ab-grid-wrap'),
-      status: document.getElementById('ab-status')
+      status: document.getElementById('ab-status'),
+      species: document.getElementById('ab-species'),
+      speciesList: document.getElementById('ab-species-list'),
+      speciesMore: document.getElementById('ab-species-more')
     };
 
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     let rows = [];
+    let speciesIndex = [];
 
     function setParam(key, value) {
       if (value === null || value === '' || value === undefined || value === false) {
@@ -243,17 +255,110 @@
       </a>`;
     }
 
+    /* ---- the reverse lookup: species -> its abilities ---- */
+
+    /**
+     * One ability chip inside a species row. `bySlug` is the page's own
+     * abilities.json, so the name printed is the same name the card below would
+     * print for the same ability — two namers for one ability is the defect
+     * §3.B2 found on color.html, and there is no reason to reintroduce it here.
+     *
+     * A slug the index names but abilities.json does not have is rendered as the
+     * slug in italic rather than dropped: the panel's job is to answer the
+     * question, and silently omitting one of three abilities would make the
+     * answer confidently wrong. check_abilities_data.mjs asserts the two sets
+     * are identical, so this branch is a degradation, not a normal path.
+     */
+    function slotChipHtml(slug, bySlug) {
+      const ability = bySlug[slug];
+      const label = ability ? abilityName(ability) : slug;
+      const cls = ability && abilityIsFallbackName(ability) ? 'ab-chip is-en' : 'ab-chip';
+      return `<li><a class="${cls}" href="${esc(abilityUrl(slug))}">${esc(label)}</a></li>`;
+    }
+
+    function speciesRowHtml(species, bySlug) {
+      const { reg, hid, shared, single } = speciesSlots(species);
+      // holderUrl/holderSprite read `nameEn` off the row, which is exactly the
+      // field this index carries — so the species link is built through the same
+      // canonical helper ability.html uses, keeping nidoran-f / nidoran-m
+      // distinct (§3.A).
+      const href = holderUrl({ nameEn: species.nameEn });
+      // Three groups, never two: the 12 species whose regional forme folds onto
+      // the base one end up with a slug that is one forme's regular ability and
+      // another's hidden one, and printing it under either heading alone would
+      // be a confident wrong answer. speciesSlots() has already removed those
+      // from both lists, so nothing can render twice.
+      const slot = (label, slugs) => (slugs.length
+        ? `<div class="ab-slot">
+            <span class="ab-slot-label">${label}</span>
+            <ul class="ab-slot-chips">${slugs.map(s => slotChipHtml(s, bySlug)).join('')}</ul>
+          </div>`
+        : '');
+      return `<li class="ab-species-row">
+        <a class="ab-species-id" href="${esc(href)}">
+          <img class="ab-species-sprite" src="${esc(holderSprite({ baseId: species.id }))}"
+               alt="" loading="lazy" width="56" height="56">
+          <span class="ab-species-name">
+            <span class="ab-species-zh">${esc(species.name)}</span>
+            <span class="ab-species-meta">${esc(species.nameEn)} · ${esc(speciesIdText(species.id))}</span>
+          </span>
+        </a>
+        <div class="ab-species-slots">
+          ${single ? '<span class="ab-badge ab-badge-single">單一特性</span>' : ''}
+          ${slot('常見特性', reg)}
+          ${slot('隱藏特性', hid)}
+          ${slot('常見或隱藏（依形態）', shared)}
+          ${!reg.length && !hid.length && !shared.length
+            ? '<p class="ab-slot-none">這隻寶可夢沒有可列出的特性。</p>' : ''}
+          ${!hid.length && !shared.length && reg.length
+            ? '<p class="ab-slot-none">沒有隱藏特性</p>' : ''}
+        </div>
+      </li>`;
+    }
+
+    function renderSpecies() {
+      const { hits, total } = filterSpecies(speciesIndex, state.q, SPECIES_RESULT_CAP);
+      if (!total) {
+        els.species.hidden = true;
+        return { total: 0 };
+      }
+      const bySlug = {};
+      for (const row of rows) bySlug[row.slug] = row;
+      els.speciesList.innerHTML = `<ul class="ab-species-list">${hits.map(s => speciesRowHtml(s, bySlug)).join('')}</ul>`;
+      // Say the limit out loud rather than truncating in silence — 574 matches
+      // to a one-character query is the expected case, not an edge (§3.B2).
+      els.speciesMore.hidden = total <= hits.length;
+      els.speciesMore.textContent = `符合的寶可夢 ${total} 隻，只顯示前 ${hits.length} 隻，輸入更多字縮小範圍。`;
+      els.species.hidden = false;
+      return { total };
+    }
+
     function render() {
       const list = filterAbilities(rows, state);
+      // renderSpecies() returns { total } so it can report the cap decision to
+      // the caller AND leave `els.speciesMore` written. Destructuring the NUMBER
+      // is the whole use here — interpolating the object printed
+      // 「符合的寶可夢 [object Object] 隻」 on a page that had just answered the
+      // question correctly, which no assertion in the checker could see.
+      const { total: speciesTotal } = renderSpecies();
 
       if (!list.length) {
-        els.resultLine.textContent = '沒有符合的特性';
-        els.wrap.innerHTML = '<p class="ab-empty">沒有符合的篩選條件，換個關鍵字或放寬世代試試。</p>';
+        if (speciesTotal) {
+          // The query DID have an answer — the Pokémon above it — so the page
+          // must not also claim 「沒有符合的特性」. Two contradictory lines about
+          // one query is worse than either alone.
+          els.resultLine.textContent = `符合的寶可夢 ${speciesTotal} 隻 · 沒有符合的特性`;
+          els.wrap.innerHTML = '';
+        } else {
+          els.resultLine.textContent = '沒有符合的特性';
+          els.wrap.innerHTML = '<p class="ab-empty">沒有符合的篩選條件，換個關鍵字或放寬世代試試。</p>';
+        }
         return;
       }
 
       els.resultLine.textContent =
-        `顯示 ${list.length} / ${rows.length} 種特性`;
+        `顯示 ${list.length} / ${rows.length} 種特性`
+        + (speciesTotal ? ` · 符合的寶可夢 ${speciesTotal} 隻` : '');
 
       els.wrap.innerHTML =
         `<ul class="ab-grid">${list.map(cardHtml).join('')}</ul>`;
@@ -272,8 +377,20 @@
       els.status.classList.toggle('is-error', Boolean(isError));
     }
 
-    loadAbilities().then(data => {
+    // The reverse index is an ADDITION, so its failure is not this page's
+    // failure. The 314-card grid is what abilities.html is for; a missing
+    // 88 KB table must degrade to ability-search-only rather than replace the
+    // page with an error. Both fetches go out together so the panel is not
+    // serialised behind the first one.
+    Promise.all([
+      loadAbilities(),
+      loadSpeciesAbilities().catch(err => {
+        console.warn('[abilities] 寶可夢反向索引載入失敗，搜尋框將只比對特性', err);
+        return null;
+      })
+    ]).then(([data, speciesData]) => {
       rows = prepareAbilities(data);
+      speciesIndex = speciesData ? buildSpeciesIndex(speciesData) : [];
       els.search.value = state.q;
 
       // A deep link can carry anything. An unrecognised value is dropped rather

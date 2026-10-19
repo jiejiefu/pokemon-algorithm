@@ -8,11 +8,14 @@
  * check_abilities_page.mjs runs filterAbilities() over the real 314 rows and
  * compares, rather than reading a regex and hoping.
  *
- * Two generated tables back it:
+ * Three generated tables back it:
  *   assets/data/abilities.json       — slug → {nameZh, effect, generation, …}
  *   assets/data/ability_species.json — slug → the Pokémon that hold it
+ *   assets/data/species_abilities.json — dex id → that Pokémon's ability slugs
  *
- * Both are produced by scripts/fetch_abilities_detail.py and policed by
+ * The first two are keyed by ability and the third is their inverse, so the two
+ * pages answer opposite directions from one pair of sources. All three are
+ * produced by scripts/fetch_abilities_detail.py in ONE pass and policed by
  * scripts/check_abilities_data.mjs. This module reads them and decides nothing
  * about their shape beyond what that checker already enforces.
  */
@@ -146,6 +149,7 @@ export function splitAbilityHolders(rows) {
 
 let abilitiesPromise = null;
 let speciesPromise = null;
+let speciesAbilitiesPromise = null;
 
 /** The ability table. Cached on the promise, not on the value, so two callers
  *  racing at boot share one request instead of fetching twice. */
@@ -158,6 +162,134 @@ export function loadAbilities() {
 export function loadAbilitySpecies() {
   if (!speciesPromise) speciesPromise = loadJson('ability_species.json');
   return speciesPromise;
+}
+
+/**
+ * dex id → that species' ability slugs. Only abilities.html needs this, and it
+ * is what lets that page answer 「這隻有哪些特性」 without loading
+ * pokemon_data.json — §3.AB's split holds because the reverse index is 88 KB,
+ * not because the question went away.
+ */
+export function loadSpeciesAbilities() {
+  if (!speciesAbilitiesPromise) speciesAbilitiesPromise = loadJson('species_abilities.json');
+  return speciesAbilitiesPromise;
+}
+
+/**
+ * The reverse lookup: how many species the panel shows at once.
+ *
+ * Exported rather than written at the call site so the page and
+ * `check_abilities_page.mjs` share one number, the same reason
+ * `color-palette.js`'s strip width is read instead of restated (§3.W).
+ *
+ * **The cap exists because the query space is not evenly sized.** Measured over
+ * all 1,025 records, a ONE-character query matches 574 species on `a` and 504 on
+ * `e`, against 1 for any two-character Chinese name. Rendering every hit is
+ * therefore not an edge case, it is the common case for the first keystroke of
+ * an English query — and a reader who sees 574 rows learns nothing from any of
+ * them.
+ *
+ * `total` is returned alongside `hits` so the panel can say 「574 隻，只顯示前
+ * 12 隻」 rather than quietly truncating. §3.B2's rule: an absence the reader
+ * cannot distinguish from an answer is worse than a visible limit.
+ */
+export const SPECIES_RESULT_CAP = 12;
+
+/**
+ * Flatten the generated reverse index into a dex-ordered array.
+ *
+ * The file is an OBJECT keyed by dex id, and JSON key order is not something to
+ * build a display order on — integer-like keys happen to enumerate ascending in
+ * JS today and nothing in the spec guarantees it stays that way. Sorting here
+ * makes dex order a property of this function rather than of a parser.
+ */
+export function buildSpeciesIndex(raw) {
+  return Object.keys(raw || {})
+    .map(key => {
+      const row = raw[key] || {};
+      return {
+        id: Number(key),
+        name: row.zh || '',
+        nameEn: row.en || '',
+        reg: row.reg || [],
+        hid: row.hid || []
+      };
+    })
+    .filter(row => Number.isFinite(row.id))
+    .sort((a, b) => a.id - b.id);
+}
+
+/**
+ * Split one species into its slots, and say which of the three labels it gets.
+ *
+ * 「單一特性」 is a property of the SPECIES, not a third kind of ability: a
+ * species with one regular and no hidden slot cannot swap or be bred for a
+ * second one. It is computed here rather than stored because it is a function of
+ * the two lists the index already carries — a third field to keep in step with
+ * them is a third thing that can be wrong (§3.B1).
+ *
+ * **`shared` is not an error case, it is a merge artefact, and it is 12 species
+ * wide.** The index is keyed by baseId, so a regional forme folds onto the base
+ * species — and a regional forme's REGULAR ability is very often the base forme's
+ * HIDDEN one (Alolan Grimer's poison-touch is Kantonian Grimer's hidden 毒觸;
+ * Rock Head is the Marowak case §3.AC records). Merging them puts one slug in
+ * both lists, which has no single honest slot: printing it twice invents a
+ * duplicate, and picking one silently mislabels the other forme.
+ *
+ * So the caller gets three disjoint lists and prints the third as its own row.
+ * A plain `reg ∩ hid` in the caller would work, but returning it here is what
+ * keeps the three lists provably disjoint — the page cannot accidentally print a
+ * slug twice, and `check_abilities_page.mjs` asserts that.
+ */
+export function speciesSlots(species) {
+  const reg = (species && species.reg) || [];
+  const hid = (species && species.hid) || [];
+  const hidSet = new Set(hid);
+  const regSet = new Set(reg);
+  const shared = reg.filter(slug => hidSet.has(slug));
+  return {
+    reg: reg.filter(slug => !hidSet.has(slug)),
+    hid: hid.filter(slug => !regSet.has(slug)),
+    shared,
+    single: reg.length === 1 && hid.length === 0
+  };
+}
+
+/**
+ * The Pokémon half of the search box.
+ *
+ * Matches on SUBSTRING against the Chinese name and the English name, and on
+ * the dex id bare or zero-padded to three digits — the same id rule
+ * `filterAbilities` uses, so 「025」 finds 皮卡丘 here and a 3-digit id finds a
+ * move there without the reader learning two conventions.
+ *
+ * Returns `{ hits, total }` and never more than `cap` hits, for the reason
+ * `SPECIES_RESULT_CAP` records. An EMPTY query returns nothing rather than
+ * everything: the panel answers 「this Pokémon can have these abilities」, and
+ * with no Pokémon named the honest answer is no Pokémon.
+ */
+export function filterSpecies(index, q, cap = SPECIES_RESULT_CAP) {
+  const query = (q || '').trim().toLowerCase();
+  if (!query) return { hits: [], total: 0 };
+  const hits = [];
+  let total = 0;
+  for (const row of index || []) {
+    const id = String(row.id);
+    const matched =
+      row.name.toLowerCase().includes(query) ||
+      row.nameEn.toLowerCase().includes(query) ||
+      id === query ||
+      id.padStart(3, '0') === query;
+    if (!matched) continue;
+    total += 1;
+    if (hits.length < cap) hits.push(row);
+  }
+  return { hits, total };
+}
+
+/** `dex id` as the site prints it everywhere else — zero-padded to three. */
+export function speciesIdText(id) {
+  return `#${String(id).padStart(3, '0')}`;
 }
 
 /**

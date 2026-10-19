@@ -24,6 +24,8 @@ import { dirname, join } from 'node:path';
 
 import {
   prepareAbilities, filterAbilities, splitAbilityHolders,
+  buildSpeciesIndex, filterSpecies, speciesSlots, speciesIdText,
+  SPECIES_RESULT_CAP,
   abilityName, abilityIsFallbackName, abilityEffect, abilityEffectEn,
   abilityUrl, holderUrl
 } from '../assets/js/abilities.js';
@@ -35,6 +37,7 @@ const readData = name => JSON.parse(readFileSync(join(ROOT, 'assets/data', name)
 
 const ABILITIES = readData('abilities.json');
 const SPECIES = readData('ability_species.json');
+const SPECIES_INDEX = readData('species_abilities.json');
 
 const LIST = read('abilities.html');
 const DETAIL = read('ability.html');
@@ -245,6 +248,252 @@ const genValues = [...new Set(rows.map(a => a.generation))];
 ok(
   genValues.every(g => g >= 3),
   'abilities begin in Gen 3 — a filter chip below 3 would be offering a reader nothing'
+);
+
+/* ===== the reverse lookup: 「這隻寶可夢有哪些特性」 ===== */
+
+const speciesIndex = buildSpeciesIndex(SPECIES_INDEX);
+
+eq(speciesIndex.length, SPECIES_INDEX ? Object.keys(SPECIES_INDEX).length : 0,
+  'every index row should survive buildSpeciesIndex');
+eq(speciesIndex.filter((s, i) => s.id !== i + 1).length, 0,
+  'buildSpeciesIndex should hand back dex order, not JSON key order');
+ok(speciesIndex.every(s => s.name && s.nameEn),
+  'every species the panel can render must carry a Chinese and an English name');
+
+/** The three ways a reader names a Pokémon, and the id rule the ability search already uses. */
+eq(filterSpecies(speciesIndex, '皮卡丘').hits.map(s => s.id), [25],
+  'a Chinese name should find its species');
+ok(filterSpecies(speciesIndex, 'pikachu').hits.some(s => s.id === 25),
+  'the English name should match on a substring, not only a prefix');
+eq(filterSpecies(speciesIndex, '025').hits.map(s => s.id), [25],
+  'the zero-padded dex id should find its species');
+eq(filterSpecies(speciesIndex, '1025').hits.map(s => s.id), [1025],
+  'a four-digit dex id must not be zero-padded into something else');
+eq(filterSpecies(speciesIndex, '妙蛙').hits.map(s => s.id), [1, 2, 3],
+  'a shared character should find the whole line, not one member of it');
+
+/**
+ * THE CAP IS THE GUARD, and this is the case that makes it load-bearing.
+ *
+ * The query space is wildly uneven: two Chinese characters find three species,
+ * one English letter finds 574. A cap that only ever meets the good case is a
+ * cap nobody has tested, and the failure is a panel that renders 574 rows rather
+ * than a red line — so `a` is asserted at BOTH the cap and the true total, and
+ * the second number is what proves the first one truncated something.
+ */
+const bomb = filterSpecies(speciesIndex, 'a');
+eq(bomb.hits.length, SPECIES_RESULT_CAP, 'a one-character query must stop at the cap');
+ok(bomb.total > bomb.hits.length * 10,
+  'the bomb case must actually be bigger than the cap, or the assertion above is satisfied by a filter that truncates nothing');
+eq(bomb.total, 574, 'the measured total for 「a」 — the number the panel reports next to the cap');
+ok(bomb.hits.every(s => s.nameEn.toLowerCase().includes('a') || s.name.toLowerCase().includes('a')),
+  'everything the cap returned must still match the query — a cap must never pad or reorder into non-matches');
+
+/** An empty query answers 「no Pokémon named」, not 「all 1,025」. */
+eq(filterSpecies(speciesIndex, ''), { hits: [], total: 0 },
+  'an empty query must return no species, or the panel opens on the whole roster');
+eq(filterSpecies(speciesIndex, '   '), { hits: [], total: 0 },
+  'a whitespace-only query is an empty query');
+eq(filterSpecies(speciesIndex, 'zzzzzznotaspecies').total, 0,
+  'a query matching nothing should say zero rather than fall back to a default list');
+
+/**
+ * The three labels a species row can carry, and why the third one exists.
+ *
+ * A slug in both slots is the baseId merge showing through — a regional forme's
+ * regular ability is often the base forme's hidden one — and the page prints it
+ * as its own group. The load-bearing property is that the three lists are
+ * DISJOINT: a slug appearing twice would render one ability under two headings
+ * and read as two abilities.
+ */
+{
+  const shared = speciesIndex.filter(s => speciesSlots(s).shared.length);
+  eq(shared.length, 12, 'the folded-forme species, matching the data check');
+
+  let disjointFailures = 0;
+  let duplicatedRender = 0;
+  let singleFailures = 0;
+  for (const species of speciesIndex) {
+    const { reg, hid, shared: both, single } = speciesSlots(species);
+    const seen = new Set();
+    for (const slug of [...reg, ...hid, ...both]) {
+      if (seen.has(slug)) duplicatedRender += 1;
+      seen.add(slug);
+    }
+    if (reg.some(s => hid.includes(s) || both.includes(s))) disjointFailures += 1;
+    if (hid.some(s => reg.includes(s) || both.includes(s))) disjointFailures += 1;
+    const expectedSingle = species.reg.length === 1 && species.hid.length === 0;
+    if (single !== expectedSingle) singleFailures += 1;
+  }
+  eq(disjointFailures, 0, 'the three slot lists must be disjoint — a slug in two of them renders as two abilities');
+  eq(duplicatedRender, 0, 'no species may render the same ability twice');
+  eq(singleFailures, 0, 'the 單一特性 flag must mean exactly one regular ability and no hidden one');
+}
+
+/** Nothing in the panel may name an ability the page cannot render. */
+{
+  const unknown = new Set();
+  for (const species of speciesIndex) {
+    for (const slug of speciesSlots(species).reg.concat(speciesSlots(species).hid)) {
+      if (!ABILITIES[slug]) unknown.add(slug);
+    }
+  }
+  eq([...unknown].join(','), '', 'the panel must not link an ability slug that abilities.json cannot name');
+}
+
+/** The species link is a real URL, built through the canonical helper. */
+{
+  const nidoranF = speciesIndex.find(s => s.nameEn === 'Nidoran♀' || s.nameEn === 'Nidoran-F');
+  const nidoranM = speciesIndex.find(s => s.nameEn === 'Nidoran♂' || s.nameEn === 'Nidoran-M');
+  if (nidoranF && nidoranM) {
+    ok(holderUrl({ nameEn: nidoranF.nameEn }) !== holderUrl({ nameEn: nidoranM.nameEn }),
+      'the two Nidorans must not resolve to one detail URL');
+  }
+  eq(speciesIdText(25), '#025', 'the dex id is printed zero-padded to three');
+  eq(speciesIdText(1025), '#1025', 'a four-digit id is not truncated to three');
+}
+
+/* ===== the panel is mounted, wired, and loaded ===== */
+
+/**
+ * The markup and the wiring. A module full of working queries is worth nothing
+ * if the page never calls them — §3.I is exactly that shape, where a page called
+ * a method the module did not yet define and every control died silently.
+ */
+ok(/id="ab-species"/.test(LIST), 'abilities.html needs the #ab-species panel the render writes into');
+ok(/<section[^>]*id="ab-species"[^>]*\bhidden\b/.test(LIST_CODE),
+  'the panel ships hidden — an unopened page must not render a species list');
+ok(/id="ab-species-list"/.test(LIST), 'the panel needs a list container distinct from its own wrapper');
+ok(/id="ab-species-more"/.test(LIST), 'the truncation notice needs its own element so it can be hidden without touching the results');
+ok(/loadSpeciesAbilities\(\)/.test(LIST), 'the page must actually load the reverse index');
+ok(/buildSpeciesIndex\(/.test(LIST), 'the page must turn the raw table into an ordered index');
+ok(/filterSpecies\(/.test(LIST), 'the page must run the species query');
+ok(/species_abilities\.json/.test(read('assets/js/abilities.js')),
+  'the loader must name the generated file, not a hand-written path');
+
+/**
+ * The failure of the reverse index must not be the failure of the page.
+ *
+ * Both fetches go out together and the second is caught: the 314-card grid is
+ * what abilities.html is for, so a missing 88 KB table has to degrade to
+ * ability-search-only rather than replace the page with the error state.
+ */
+ok(
+  /loadSpeciesAbilities\(\)\s*\.catch\(|Promise\.all\(\s*\[/.test(LIST),
+  'the reverse index must be loaded so that ITS failure does not blank the ability list'
+);
+ok(!/loadAbilities\(\)\.then/.test(LIST),
+  'the boot path should load both tables together, not chain the species index behind the ability one');
+
+/**
+ * The alarming empty state is written on exactly ONE branch, and it is not the
+ * one where the species panel found something.
+ *
+ * Counted rather than pattern-matched because the phrase 「沒有符合的特性」 also
+ * appears in the comment explaining why it is suppressed — a substring assertion
+ * keyed on prose would be satisfied by the explanation of the rule it polices,
+ * which is §3.P's shape. `ab-empty` is a class name, so it appears only where a
+ * node is actually created.
+ */
+ok(/符合的寶可夢/.test(LIST),
+  'the result line should report the species count as well as the ability count, so both questions have a visible answer');
+
+/**
+ * `renderSpecies()` returns `{ total }` so it can both report the cap decision and
+ * leave the notice element written — and the caller interpolates that value into
+ * a sentence. A bare binding therefore renders 「符合的寶可夢 [object Object] 隻」
+ * on a page that had just answered the question correctly.
+ *
+ * **This was the actual defect, and it was found by rendering the page rather than
+ * by any assertion** — every check above passed on it, because all of them ask
+ * whether the prose EXISTS and none asks what it renders (§3.G1a's shape). The
+ * guard below is on the MECHANISM, not on the string: the call site must
+ * destructure, and it is brace-scoped to that one line so it cannot be satisfied
+ * by a destructuring somewhere else in the file.
+ */
+{
+  const callLine = (LIST_CODE.match(/[^\n]*renderSpecies\(\);/) || [''])[0];
+  ok(/\{[^}]*total[^}]*\}\s*=\s*renderSpecies\(\)/.test(callLine),
+    'renderSpecies() must be destructured at its call site — a bare binding renders 「[object Object]」 into the result line',
+    );
+  ok(!/const\s+\w+\s*=\s*renderSpecies\(\)/.test(LIST_CODE),
+    'no bare `const x = renderSpecies()` — its return is an object, and the page prints it as a count');
+}
+eq(
+  (LIST_CODE.match(/class="ab-empty"/g) || []).length,
+  1,
+  'the red empty state should be rendered on one branch only — a second occurrence means it now shows even when the species panel answered'
+);
+ok(
+  /if \(speciesTotal\)[\s\S]{0,400}?els\.wrap\.innerHTML\s*=\s*''/.test(LIST_CODE),
+  'the species-matched branch must clear the ability grid rather than render the empty state into it'
+);
+
+/** §3.A: cross-page URLs go through the canonical helpers, never assembled here. */
+ok(/holderUrl\(/.test(LIST), 'the species row should build its detail URL through holderUrl()');
+ok(/holderSprite\(/.test(LIST), 'the species row should get its artwork through holderSprite()');
+ok(!/detail\.html\?slug=/.test(LIST), 'no hand-assembled detail.html URL — nidoran-f and nidoran-m must stay distinct');
+
+/**
+ * The chip is a LINK, and it must not be nested inside the species link.
+ *
+ * Two answers to two questions going to two pages; wrapping the chips inside the
+ * anchor would make a chip click land on detail.html — the same class of defect
+ * as §3.W's `role="img"` overriding an anchor's implicit link role.
+ */
+ok(/<a class="ab-species-id"[\s\S]{0,600}?<\/a>\s*<div class="ab-species-slots">/.test(LIST),
+  'the species link must close before the ability slots open');
+ok(!/<a class="ab-species-id"[\s\S]{0,900}?ab-slot-chips/.test(LIST),
+  'an ability chip must never end up inside the species anchor');
+
+/* ===== the panel's stylesheet ===== */
+
+/** Every rule it adds is new and prefixed — §3.B1's rule for a sibling page. */
+for (const sel of ['.ab-species', '.ab-species-list', '.ab-species-row', '.ab-slot-chips']) {
+  ok(new RegExp(`${sel.replace('.', '\\.')}\\s*\\{`).test(CSS_CODE), `${sel} should have its own rule`);
+}
+ok(!/\.ab-card\s*\{[^}]*ab-species/.test(CSS_CODE), 'no species rule should be grafted onto the shared .ab-card');
+ok(!/\.ab-chip\s*\{[^}]*species/.test(CSS_CODE), 'no species rule should be grafted onto the shared .ab-chip');
+
+/**
+ * The sprite is Scarlet/Violet artwork, so `object-fit` and `object-position` are
+ * asserted TOGETHER for §3.E's reason — `contain` alone passes an assertion about
+ * fitting while the bottom-anchored subject floats 3.7px above the row's
+ * baseline, which is a property assertion cannot see and `getComputedStyle`
+ * would answer wrongly (`50% 100%` is what it returns for `bottom`).
+ */
+const speciesSpriteRule = (CSS_CODE.match(/\.ab-species-sprite\s*\{[^}]*\}/) || [''])[0];
+ok(/\.ab-species-sprite\s*\{/.test(CSS_CODE), '.ab-species-sprite should declare its own box');
+ok(/object-fit:\s*contain/.test(speciesSpriteRule),
+  'the sprite needs object-fit: contain — width/height alone stretches the 120×112 SV art by 6%');
+ok(/object-position:\s*bottom/.test(speciesSpriteRule),
+  'the sprite must pair object-fit with object-position: bottom, or the subject floats off the row baseline (§3.E)');
+ok(!/image-rendering/.test(speciesSpriteRule),
+  'no image-rendering — the house convention is for UPSCALES and this is a 56px downscale');
+ok(!/translateY/.test(speciesSpriteRule),
+  'no translateY — nothing here pairs the image with a name on one line, so the offset has nothing to align');
+ok(
+  /width:\s*56px/.test(speciesSpriteRule) && /height:\s*56px/.test(speciesSpriteRule),
+  'the sprite box should be 56×56 in the stylesheet'
+);
+ok(
+  /<img[^>]*class="ab-species-sprite"[^>]*\bwidth="56"[^>]*\bheight="56"/.test(LIST),
+  'the markup should declare width/height 56 too — a mismatch reserves the wrong box and then jumps (§3.AA)'
+);
+
+/**
+ * The cap is a number the page and this file must agree on, so it is READ rather
+ * than restated — a literal 12 written next to the assertion would pass after the
+ * module changed it, which is the stale-second-copy defect §3.S records.
+ */
+ok(
+  !/SPECIES_RESULT_CAP\s*=\s*12/.test(LIST),
+  'the page must import SPECIES_RESULT_CAP, not write the number out a second time'
+);
+ok(
+  /SPECIES_RESULT_CAP/.test(LIST) && /filterSpecies\([^)]*SPECIES_RESULT_CAP/.test(LIST),
+  'the page should pass the shared cap into filterSpecies'
 );
 
 /* ===== holders: the forme / hidden fold ===== */

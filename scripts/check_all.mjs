@@ -1027,6 +1027,7 @@ const CHECKERS = [
     inputs: [
       'assets/data/abilities.json',
       'assets/data/ability_species.json',
+      'assets/data/species_abilities.json',
       'assets/data/abilities_zh.json',
       'assets/data/pokemon_data.json',
     ],
@@ -1050,6 +1051,44 @@ const CHECKERS = [
       'assets/js/shiny-index.js',
       'assets/data/abilities.json',
       'assets/data/ability_species.json',
+      'assets/data/species_abilities.json',
+    ],
+  },
+
+  /* ---- the reverse-lookup mutation harness ---- */
+  {
+    /*
+     * 12 cases, each a mutation the NEWEST assertions in
+     * check_abilities_page.mjs must catch: the result cap, the empty-query
+     * contract, the de-duplication that separates a folded forme's shared
+     * ability, the referential integrity of a derived table, the chip/link
+     * nesting, and the empty-state branch.
+     *
+     * Pooled at 4 per §3.G7 because the cases are independent — each builds its
+     * own tree and restores nothing, which is the precondition that pool() needs
+     * and the one four other harnesses cannot use. No `browser: true`: the
+     * checker under attack is the static half, so a case costs a node spawn and
+     * a directory copy and never a Chrome.
+     */
+    script: 'scripts/test_check_abilities_page.mjs',
+    checker: 'scripts/check_abilities_page.mjs',
+    group: 'nav',
+    note: 'runs the above in child trees',
+    inputs: [
+      'abilities.html', 'ability.html',
+      'assets/css/abilities.css',
+      'assets/css/moves.css',
+      'assets/data/abilities.json',
+      'assets/data/ability_species.json',
+      'assets/data/species_abilities.json',
+      // The whole module directory rather than a list of it. Both modules under
+      // attack import a graph four files deep (abilities.js -> shared.js ->
+      // form-names.js -> the generated form-names-zh.js), and §3.AC records what
+      // a hand-maintained version of that list costs — the moves entry above
+      // under-declared three of its own and had to be corrected by --prove-inputs
+      // rather than by reading. A glob cannot go stale on a new import.
+      'assets/js/*',
+      'scripts/lib/*',
     ],
   },
 

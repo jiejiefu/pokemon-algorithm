@@ -47,6 +47,7 @@ const readData = name => JSON.parse(readFileSync(join(ROOT, 'assets/data', name)
 
 const ABILITIES = readData('abilities.json');
 const SPECIES = readData('ability_species.json');
+const SPECIES_INDEX = readData('species_abilities.json');
 const ABILITIES_ZH = readData('abilities_zh.json');
 const POKEMON = readData('pokemon_data.json');
 
@@ -334,6 +335,116 @@ eq(
   [...DECLARED_NAMELESS].sort(),
   'the abilities with no Chinese name should be exactly the declared three'
 );
+
+/* ===== the reverse index: species_abilities.json ===== */
+
+/*
+ * This file exists so abilities.html can answer 「這隻有哪些特性」 without
+ * downloading pokemon_data.json (2.8 MB) or inverting 1,025 species in the
+ * browser. It is DERIVED from ability_species.json in the same generator pass,
+ * which means it can be wrong in ways the two forward files cannot — and every
+ * one of those ways is silent, because a plausible wrong ability list looks
+ * exactly like a right one.
+ *
+ * The load-bearing assertion is the GHOST SLUG check below: the index stores
+ * ability slugs and nothing else, so a slug it names that abilities.json does
+ * not have has no name to print and would render as a dead link. That is the
+ * failure mode a derived file has and the originals do not.
+ */
+
+const INDEX_KEYS = Object.keys(SPECIES_INDEX);
+const INDEX_IDS = INDEX_KEYS.map(Number).sort((a, b) => a - b);
+const ROSTER_IDS = POKEMON.map(p => p.id).sort((a, b) => a - b);
+const ROSTER_ID_SET = new Set(ROSTER_IDS);
+
+eq(INDEX_KEYS.length, ROSTER_IDS.length, 'the reverse index has one row per roster species');
+eq(
+  INDEX_IDS.filter((id, i) => id !== i + 1).length,
+  0,
+  'the reverse index keys should be the roster dex ids, 1..N with no gaps'
+);
+eq(
+  INDEX_IDS.filter(id => !ROSTER_ID_SET.has(id)).length,
+  0,
+  'no reverse-index key should be outside the roster'
+);
+
+let ghostSlugs = 0;
+let emptyNames = 0;
+let emptyRegular = 0;
+let sharedSlot = 0;
+let singleAbility = 0;
+let duplicated = 0;
+const sharedExamples = [];
+
+for (const key of INDEX_KEYS) {
+  const row = SPECIES_INDEX[key];
+  if (!row.zh || !row.en) emptyNames += 1;
+  if (!Array.isArray(row.reg) || row.reg.length === 0) emptyRegular += 1;
+  if (row.reg.some(slug => !ABILITIES[slug])) ghostSlugs += 1;
+  if (row.hid.some(slug => !ABILITIES[slug])) ghostSlugs += 1;
+  if (row.reg.length !== new Set(row.reg).size) duplicated += 1;
+  if (row.hid.length !== new Set(row.hid).size) duplicated += 1;
+  if (row.reg.length === 1 && row.hid.length === 0) singleAbility += 1;
+  const both = row.reg.filter(slug => row.hid.includes(slug));
+  if (both.length) {
+    sharedSlot += 1;
+    if (sharedExamples.length < 4) sharedExamples.push(`${row.zh} ${both.join(',')}`);
+  }
+}
+
+eq(ghostSlugs, 0, 'every ability slug in the reverse index must exist in abilities.json — a ghost slug has no name to print');
+eq(emptyNames, 0, 'every reverse-index row must carry both a Chinese and an English name, or the search box cannot match it');
+eq(emptyRegular, 0, 'every species must have at least one regular ability');
+eq(duplicated, 0, 'neither slot may repeat a slug; one species reaches an ability through several formes');
+eq(singleAbility, 153, 'the species with exactly one regular and no hidden ability — the 單一特性 badge — should be the measured 153');
+
+/*
+ * A slug in BOTH slots is not corruption — it is the merge showing through. The
+ * index is keyed by baseId, so a regional forme folds onto the base species, and a
+ * regional forme's regular ability is very often the base forme's hidden one
+ * (Alolan Grimer's poison-touch is Kantonian Grimer's hidden 毒觸; Rock Head is
+ * the Marowak case §3.AC records). The page renders that third group separately
+ * rather than picking a slot, because picking one mislabels the other forme.
+ *
+ * This was written as `0` on the reasoning that `isHidden` is decided per
+ * (species, ability) pair and so cannot disagree with itself — which is TRUE of
+ * upstream and false of a baseId-keyed MERGE, and the check caught the
+ * difference. The count is pinned rather than tolerated so that a genuine upstream
+ * change to the relationship is visible instead of absorbed.
+ */
+eq(sharedSlot, 12, 'the species carrying one ability in both slots — a folded regional forme — should be the measured 12');
+
+notes.push(
+  `shared-slot species (folded formes): ${sharedExamples.join('; ')}`
+);
+
+/*
+ * The round-trip that keeps the inverse from drifting away from the file it was
+ * inverted from. Without it the index could be internally perfect and still be
+ * describing a different set of abilities than ability_species.json, because
+ * nothing else in the repo compares the two.
+ */
+{
+  const forward = new Map();
+  for (const slug of Object.keys(SPECIES)) {
+    for (const r of SPECIES[slug]) {
+      if (!r.inRoster || r.baseId === null) continue;
+      const key = String(r.baseId);
+      if (!forward.has(key)) forward.set(key, { reg: new Set(), hid: new Set() });
+      (r.isHidden ? forward.get(key).hid : forward.get(key).reg).add(slug);
+    }
+  }
+  let drift = 0;
+  for (const key of INDEX_KEYS) {
+    const f = forward.get(key);
+    const row = SPECIES_INDEX[key];
+    if (!f) { drift += 1; continue; }
+    if (row.reg.length !== f.reg.size || row.hid.length !== f.hid.size) drift += 1;
+  }
+  eq(drift, 0, 'the reverse index must agree with ability_species.json on every species and both slots');
+  eq(forward.size, INDEX_KEYS.length, 'the reverse index and the forward table must cover the same number of species');
+}
 
 /* ===== report ===== */
 
