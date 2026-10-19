@@ -9,7 +9,7 @@
  * gradient, four tile values, a paragraph, a member selector and a filter
  * dimension. Ten near-identical HTML files would mean ten copies of the hero
  * markup to keep in sync, which is how this repo already got bitten twice
- * (AGENTS.md gotcha 23 — dead code in a file that never ran; gotcha 32 — a
+ * (dead code in a file that never ran; a
  * second, unreachable copy of the maze search). One page driven by this table
  * makes it impossible for the copies to drift, and it follows the precedent the
  * user already approved for `pokedex.html?gen=N`: query-parameter addressing
@@ -42,7 +42,7 @@
 // The `shiny` category reports how many ids have real shiny artwork, so the
 // number has to come from the generated index rather than be written down here
 // — a hardcoded 1327 is exactly the kind of duplication COLLECTION_GROUPS
-// already needs check_categories.mjs to police (AGENTS.md gotcha 38), and
+// already needs check_categories.mjs to police, and
 // regenerating the index would then silently leave the tile wrong.
 import { SHINY_IDS } from './shiny-index.js';
 import { TYPE_COLORS, TYPE_EN_ZH, contrast, hexToRgb } from './shared.js';
@@ -258,10 +258,10 @@ function formTitleZh(base, form) {
  *    `Darmanitan-Galar-Standard` and `-Zen` both resolve to Darumaka and get
  *    labelled 「火紅不倒翁（伽勒爾）」, identical to the real Darumaka-Galar card
  *    beside them. And Mr. Mime's chain 57 has an EMPTY main line (the canonical
- *    case called out in AGENTS.md gotcha 15), so `main_line[0]` is undefined,
+ *    case), so `main_line[0]` is undefined,
  *    the base lookup returns nothing, and `Mr-Mime-Galar` is dropped entirely —
  *    silently, because "skip the row when the chain looks empty" is exactly the
- *    heuristic that gotcha exists to warn about.
+ *    heuristic this note exists to warn about.
  *
  *    So the base is parsed out of the form's own name, ahead of every other
  *    source. See `resolveBase` for the matching rules.
@@ -404,7 +404,7 @@ const dragonMembers = (data) => data.filter((p) => p.types.includes('Dragon'));
  *
  * Both shapes are facts about the data, not about the rule, so the rule keeps to
  * the two flags it can evaluate correctly and the checker owns the rest. See
- * AGENTS.md gotcha 37 for the sibling `variants: {}` truthiness trap.
+ * the sibling `variants: {}` truthiness trap.
  */
 const PSEUDO_EXCLUDED = new Set([1018]);
 const pseudoLegendaryMembers = (data) =>
@@ -724,7 +724,7 @@ export const CATEGORIES = {
       // The claim it makes — that all 10 need two evolutions — is asserted against
       // the chains in check_categories.mjs, which is the only place that can
       // handle chain 408's empty `main_line` and the `-Mega`/`-Gmax` padding rows
-      // without a 15-line helper duplicating what gotcha 37 already warns about.
+      // without a 15-line helper duplicating the guard against that trap.
       // Recomputing it here would be a second implementation to keep correct.
       [m.length, '皆需兩次進化'],
     ],
@@ -904,7 +904,7 @@ export function rgbOf(hex) {
  * stylesheet so that collections.html, the contrast assertions in
  * check_categories.mjs and a human reading the CSS all read the same number —
  * the earlier version of this idea kept them in two places, which is exactly the
- * kind of duplication gotcha 38 exists to prevent.
+ * kind of duplication the checker exists to prevent.
  */
 export const TINT_ALPHA = { from: 0.55, to: 0.4, border: 0.35, borderHover: 0.7 };
 export const TAG_ALPHA = { bg: 0.55 };

@@ -79,7 +79,7 @@ OUTPUT = os.path.join(ROOT, "assets", "js", "cry-index.js")
 LATEST_PREFIX = "assets/cries/latest/"
 LEGACY_PREFIX = "assets/cries/legacy/"
 
-# Recorded in the module for the same reason SV_SOURCE (gotcha 17) and
+# Recorded in the module for the same reason SV_SOURCE and
 # GENUS_SOURCE are: the provenance of a generated file belongs in the file, not
 # only in git. There is no second host here -- unlike the Scarlet/Violet artwork,
 # the cries repository was copied once and is refreshed from one place -- so

@@ -14,8 +14,8 @@
    attribute is always present.
 
    The dark block doubles as the no-JS fallback. Every value in it is measured
-   for WCAG AA against the surface it sits on; see AGENTS.md gotcha 31 for the
-   light-mode equivalents and the six corrections to the reference palette.
+   for WCAG AA against the surface it sits on; see the light-mode block for the
+   equivalents and the six corrections to the reference palette.
 
    Naming: `--accent-gold` is gold *as text* and `--accent-gold-surface` is gold
    *as a fill*, with `--on-accent` for text sitting on either. One value cannot
@@ -38,7 +38,7 @@
   /* Brand headers — all five are the SAME neutral navy, and page identity moved
      to a 3px rule on the header's top edge (--page-accent, see the .header
      rule). Four saturated gradients plus a gold title fought each other, and
-     gotcha 39's lightest-stop rule was being paid for on all four ramps just to
+     the lightest-stop rule was being paid for on all four ramps just to
      keep white title text legal. */
   --header-base: linear-gradient(180deg, #182046 0%, #111834 100%);
   --bg-header-sort: var(--header-base);
@@ -124,7 +124,7 @@
                               a white Pokemon on a white card needs more */
   --aurora-1: 0.32;   /* radial tint over the card, from --card-accent-rgb */
   --aurora-2: 0.18;
-  --card-muted: #bdbdbd;  /* the glass is lighter than the page; see gotcha 28 */
+  --card-muted: #bdbdbd;  /* the glass is lighter than the page */
 
   /* Per-Pokémon card glow. The alphas are the RGB card signature — 0.55/0.35
      is right on a near-black page and a grey smudge on white, so light mode
@@ -345,7 +345,7 @@
   --btn-fg: #0f1730;
 
   /* The light glass is *darker* than nothing at all but lighter than the page,
-     so the same override gotcha 28 documents is needed, pointing the other
+     so the same override is needed, pointing the other
      way: a pale gold-grey like #656d76 measures 2.34:1 on an aurora-tinted
      card. #3f3f46 holds 6.18:1 at the reduced aurora below. */
   --glass-bg: rgba(255, 255, 255, 0.78);
@@ -364,7 +364,7 @@
   --canvas-bg: #ffffff;
   --canvas-wall: 15, 23, 48;
   --canvas-grid: rgba(15, 23, 48, 0.22);
-  --canvas-text: #92400e;   /* the S/G glyphs sit on their own fills; see gotcha 35 */
+  --canvas-text: #92400e;   /* the S/G glyphs sit on their own fills */
 
   /* The algorithm highlight roles again, darkened for a white canvas — see the
      dark block's note for the measured contrast that forces this. Hue is held
@@ -381,7 +381,7 @@
   /* Corrected, not copied. Every one of the five dark values above fails as text
      on a white card: --gender-male 2.14:1 and --gender-female 1.92:1, and all
      three move tints 1.36 / 2.27 / 1.94 — the dark values were only ever measured
-     against the #2a2a2a card (gotcha 22), which is why they looked fine. The
+     against the #2a2a2a card, which is why they looked fine. The
      replacements hold 5.67-10.44:1 here. */
   --gender-male: #1d4ed8;
   --gender-female: #be185d;
@@ -496,8 +496,8 @@ body {
 }
 
 /* ===== Site logo =====
-   Top-left of every header, linking to the homepage. This REVERSES gotcha 26,
-   which held that a visible logo image was a favicon only — that was the
+   Top-left of every header, linking to the homepage. This REVERSES the earlier
+   rule, which held that a visible logo image was a favicon only — that was the
    user's earlier instruction and it no longer applies. This is a different
    image, chosen for the header, and it is a real link.
 
@@ -517,8 +517,8 @@ body {
    over the gradient.
 
    `alt=""` is deliberate. The link carries `aria-label`, so an alt on the img
-   would announce the site's name twice — the same rule as `.icon` in gotcha
-   27, where the accessible name lives on the interactive element and the
+   would announce the site's name twice — the same rule as `.icon`, where the
+   accessible name lives on the interactive element and the
    graphic stays out of the accessibility tree. */
 .header-brand {
   display: flex;
@@ -620,7 +620,7 @@ summary:focus-visible,
    were five separate saturated gradients and the title was gold text on top of
    them — so every page carried two competing identities and each gradient had
    to be light enough for white-ish title text to stay legal, which is what
-   gotcha 39's lightest-stop rule was being paid for on all five.
+   the lightest-stop rule was being paid for on all five.
 
    The rule colours are deliberately NOT held to 4.5:1 or 3:1. WCAG 1.4.11
    governs boundaries that identify a control; a 3px band of decoration with no
@@ -655,8 +655,8 @@ summary:focus-visible,
 /* ---------- Site footer chrome ----------
    These three rules were, until now, inline in index.html only — so the three
    colour pages, which use the same markup, rendered their footer as a bare
-   unstyled <p>. Same failure mode as gotcha 15 (CSS that lives in one page and
-   is silently unstyled everywhere else).
+   unstyled <p>. Same failure mode as CSS that lives in one page and
+   is silently unstyled everywhere else.
 
    index.html no longer keeps its own copy. It carried one because its <style>
    block is linked after this stylesheet and so won the cascade — which meant
@@ -850,7 +850,7 @@ summary:focus-visible,
 
    The `:not(:disabled)` is not decoration either: a dead button that still
    paints as pressed is worse than one that greys out, and `aria-disabled`
-   (rather than `disabled`) is what gotcha 30 chose for the shiny toggle so it
+   (rather than `disabled`) is what the shiny toggle uses so it
    stays focusable and can explain itself. */
 .btn[aria-pressed="true"] {
   background-color: var(--accent-gold-surface);
@@ -912,7 +912,7 @@ summary:focus-visible,
    out 8px/16px and 14px, identical to the numbered buttons beside it. Source
    order then settles it. Kept to size only: no colour, border or radius of its
    own, because those are `.btn`'s tokens and a second copy of them is a third
-   place to keep correct (gotcha 39's rule about duplicated palettes). */
+   place to keep correct. */
 .controls-maze .btn-sm {
   padding: 5px 11px;
   font-size: 12px;
@@ -1514,7 +1514,7 @@ a.site-nav-item:focus-visible,
   color: var(--text-muted);
 }
 
-/* Planned page: a <span>, not an <a> (gotcha 37 — a focusable control that does
+/* Planned page: a <span>, not an <a> (a focusable control that does
    nothing is worse than a non-focusable one). `cursor: default` because
    `pointer` on a dead row is the affordance lie. */
 .site-nav-row.is-planned {

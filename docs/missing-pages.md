@@ -4,8 +4,7 @@ Pages the homepage and the shared header **link to or advertise** that do not
 exist as files yet. Nothing in the site points at a 404 — anything advertised
 but unbuilt renders as a non-focusable `<span>` carrying a
 `.home-tag-badge` reading 敬請期待, never as an empty `<a>`. A focusable
-control that does nothing when activated is worse than a non-focusable one
-(AGENTS.md gotcha 37).
+control that does nothing when activated is worse than a non-focusable one.
 
 **Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 13 entries
 are registered there and **all 13 are missing as files**; the `data` field
@@ -69,11 +68,11 @@ the source's sitemap. They stay registered so the header nav is unchanged.
 ## Adding a page
 
 1. Create the file at the repo root. Every page is a flat `*.html` — there is
-   no router; `404.html` only rewrites `/detail/<slug>` (gotcha 8).
+   no router; `404.html` only rewrites `/detail/<slug>`.
 2. Update that entry's `data` field if appropriate, and flip the header nav row
    from planned to a real link by dropping `planned: true` in `NAV`.
 3. Remove the matching `is-planned` `<span>` + `.home-tag-badge` from
    `index.html` — the 精選系列 / 寶可夢遊戲 / 對戰工具 cards, the 快速連結
    panels, and the footer — and make it a real link.
 4. `node scripts/check_categories.mjs` — it asserts the hub's slugs and the
-   category link targets still exist (gotcha 38).
+   category link targets still exist.

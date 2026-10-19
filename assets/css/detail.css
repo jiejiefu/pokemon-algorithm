@@ -871,7 +871,7 @@ body {
 /* A tab's rows are split into two side-by-side tables, matching InfoPoke's
    `grid-cols-1 lg:grid-cols-2`. 1100px is a layout preference, not a measured
    overflow limit -- the machine table spills 0px at every width from 960 to
-   1400px (see AGENTS.md gotcha 22a). The split earns its keep on the row count:
+   1400px. The split earns its keep on the row count:
    a machine tab runs to 340 rows. */
 .move-tables {
   display: grid;

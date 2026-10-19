@@ -108,7 +108,7 @@
 
        THE GRADIENT IS THE 700 STEP, NOT THE SOURCE'S 600, AND THE TILE SCrim IS
        BLACK — both measured over 101 samples of the whole interpolation, never
-       just the endpoints (gotcha 41). Transcribing purple-600→blue-600 with its
+       just the endpoints. Transcribing purple-600→blue-600 with its
        own white/10 tile verbatim fails 4 of 8 text layers: the 14px type pill
        3.62:1, the 18px description 4.24:1, the 14px tile label 3.05:1 and the
        14px hover CTA 3.64:1. purple-700 #7e22ce → blue-700 #1d4ed8 fixes the
@@ -118,7 +118,7 @@
        point where it clears with margin (5.25:1) and still reads as a pill.
 
        The tile is a 0.16 BLACK scrim with white/95 text, not the source's
-       white/10 with blue-200 — the same inversion as gotcha 39 and gotcha 43, and
+       white/10 with blue-200 — the same inversion as the other scrims, and
        for the same reason: a white scrim lightens the fill. Measured on black/16
        the label is 5.96:1 and the value 8.47:1, against 3.85 and 5.47 on the
        source's own pairing. Blue-200/blue-100 as the *text* colours are kept
@@ -275,7 +275,7 @@
     /* 探索圖鑑 — one accent per card, carried as an rgb triple so one rule can
        build both the border and the number. The comma in `96, 165, 250` is
        load-bearing: `rgb(96 165 250 / .35)` is invalid and the whole
-       declaration is dropped (gotcha 41). Steps are chosen per theme, because
+       declaration is dropped. Steps are chosen per theme, because
        --bg-card flips: the 400 step is 8.73:1 on the dark card and 1.9:1 on
        the white one. Worst case measured 5.50:1 dark / 5.02:1 light. */
     .today-explore-grid {
@@ -315,7 +315,7 @@
        specificity so it wins on source order against either theme's base rule —
        a bare `.today-explore-card.is-blue` here would lose to
        `[data-theme="light"] .today-explore-card.is-blue` (0,2,0) and print the
-       dark 400 step on white paper (gotcha 44). */
+       dark 400 step on white paper. */
     @media print {
       [data-theme="dark"] .today-explore-card.is-blue,
       [data-theme="light"] .today-explore-card.is-blue   { --today-accent-rgb: 29, 78, 216; }
@@ -887,7 +887,7 @@
     // `cardTintVars(COLLECTION_TINTS[slug])` returns — the SAME function and table
     // collections.html uses, so the homepage and the hub cannot drift apart. Nine
     // hand-written gradients here would be a fourth copy of a table that already
-    // exists, which is what gotcha 38 is about.
+    // exists.
     //
     // The property names are rewritten from `--coll-*` to `--link-*` because the
     // two pages' cards are different components with different padding, corner
@@ -986,8 +986,8 @@
             `<div class="today-pick-artwork">` +
               // alt="" on purpose: the whole card is the link and its aria-label
               // already names the Pokémon, so a described image would announce it
-              // twice (gotcha 27/51's rule — the name lives on the interactive
-              // element, the graphic stays out of the tree).
+              // twice (the name lives on the interactive element, the graphic
+              // stays out of the tree).
               `<img src="${ASSETS.images}${p.id}.png" alt="" width="320" height="320" loading="lazy" decoding="async">` +
             `</div>` +
           `</div>` +

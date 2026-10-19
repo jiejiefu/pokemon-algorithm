@@ -21,7 +21,7 @@
  * ## Why there is no shared Slugifier and no form URLs
  *
  * These are display names only. The 325 form nodes have no detail pages of their
- * own (gotcha 15), so nothing here is ever used to build a route. Do not derive
+ * own, so nothing here is ever used to build a route. Do not derive
  * a slug from a form name and do not add one to `?slug=`.
  */
 

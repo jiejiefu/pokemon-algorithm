@@ -240,7 +240,7 @@
 
     /* The whole playback panel is hidden, not just disabled, when a model has no
        clips — a row of dead controls is worse than no row (the same argument as
-       gotcha 37's planned cards). */
+       the planned cards). */
     .m3d-playback[hidden] { display: none; }
 
     .m3d-note { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
@@ -377,8 +377,7 @@
   <script type="module">
     // hasGlb() comes from glb-index.js, NOT from shared.js — a missing export is
     // a SyntaxError at parse time that kills the whole module, and the only
-    // symptom is a page stuck on 載入中… with no console error of its own
-    // (gotcha 31).
+    // symptom is a page stuck on 載入中… with no console error of its own.
     import {
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
       iconSvg, ASSETS
@@ -417,8 +416,8 @@
 
     // The label table lives in model3d-viewer.js and is reached through
     // clipLabel(). An earlier draft kept a second copy here so the page could
-    // label a button; that is the duplication gotcha 27 and the module-header
-    // note are both about, and it was already wrong within one commit — the
+    // label a button; that is the duplication the module-header note is
+    // about, and it was already wrong within one commit — the
     // copy did not know about the `001a` exporter prefix, so all nine of 1.glb's
     // buttons would have silently fallen back to their raw names.
     function esc(s) {
@@ -516,7 +515,7 @@
     //
     // The two toggles are labelled by STATE, not just tinted by it. `循環播放` on a
     // button that is not looping is not a label, it is a command — the same
-    // ambiguity gotcha 49 avoided by making planned cards non-focusable. So the
+    // ambiguity avoided by making planned cards non-focusable. So the
     // text names the current mode (循環播放 while looping, 單次播放 while not) and
     // the gold pressed style in shared.css carries the redundant channel for
     // anyone who cannot separate the two colours.

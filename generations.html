@@ -89,7 +89,7 @@
        pink-600, under a black/10 scrim, with a 60×60 sparkle tile at 10%. All
        three are copied. The 600 steps clear AA where the old 700-level rule
        also cleared it, and the copy is now exact rather than an approximation
-       of a different step — see AGENTS.md gotcha 43.
+       of a different step.
 
        Two values are NOT copied, and both are the same mistake: a white
        overlay LIGHTENS the fill, so on a mid-tone gradient it pushes white
@@ -98,7 +98,7 @@
          span  text-white/70   3.35:1  FAIL   -> white/90   4.69:1
          tile  bg-white/10     3.58:1  FAIL   -> black/10   4.62:1
        The h1 (5.48:1) and the lede (4.69:1) are fine as the source has them.
-       The scrim is black, which is gotcha 39's rule for a light-text band. */
+       The scrim is black, which is the rule for a light-text band. */
     .gen-hero {
       position: relative;
       overflow: hidden;
@@ -328,7 +328,7 @@
     /* The nine side-panel gradients. Each pair keeps the source page's hue but
        at a DESATURATED 700 step, because the source's own 500-level values put
        white text below 4.5:1 on all nine of its card gradients, and the worst of
-       them is 2.15:1 — gen II, amber-500 → purple-500 (AGENTS.md gotcha 43).
+       them is 2.15:1 — gen II, amber-500 → purple-500.
        Saturation is what the source trades
        away, not lightness, which is why these read as muted rather than dark.
 
@@ -534,7 +534,7 @@
 
     /* The source puts a 16px stroke icon in each of these five headings. It is
        the one icon set on the page that is not `currentColor`-fillable by the
-       shared `.icon` rule (gotcha 27), because these are outline icons, not the
+       shared `.icon` rule, because these are outline icons, not the
        site's filled set — so they carry their own size and stroke and are
        hidden from assistive tech, with the heading text carrying the meaning. */
     .gen-box h3 {
@@ -624,7 +624,7 @@
        both themes). Only the SIZE is overridden, to sit at the same 12px as the
        four other chip roles in the same card — typeBadgeSmHtml() ships 10px for
        the Pokédex card footers and the move tables. Scoped to this box, so it
-       cannot resize those (gotcha 20). */
+       cannot resize those. */
     .gen-box-newtypes .type-badge {
       font-size: 12px;
       padding: 3px 10px;
@@ -663,8 +663,8 @@
          no-op.
 
        Dark is the base rule and light restores the source's opaque values, which
-       is gotcha 41's shape — but the dark fill is NOT gotcha 41's `-950 at low
-       alpha`. That rule assumes a light surface to tint; .gen-box is already
+       is the same shape — but the dark fill is NOT the `-950 at low
+       alpha` rule. That rule assumes a light surface to tint; .gen-box is already
        dark (--bg-secondary #161b22), so an amber tint disappears into it.  Measured
        separation from the box: amber-950 @0.30 is 1.02:1, worse than the
        1.23:1 of the --surface-raised chip it replaces, while amber-900 @0.70
@@ -820,7 +820,7 @@
     /* ===== Error state =====
        Visible, and it says what failed. sorting.html's equivalent is a
        console.error behind a try/catch that reports "check your local server"
-       for what was not a server problem (gotcha 23), so this page reports the
+       for what was not a server problem, so this page reports the
        actual failure and the URL that produced it. */
     .gen-error {
       padding: 20px;
@@ -904,7 +904,7 @@
         border-color: var(--hairline-strong);
       }
 
-      /* The chip's light values are restated here for gotcha 41's reason: print
+      /* The chip's light values are restated here for this reason: print
          forces the light tokens, but the DARK values are this file's base rule,
          so a dark-theme page would print #fde68a amber-200 names on white paper
          — invisible — and the badge would lose its fill while keeping a pink-200
@@ -1007,7 +1007,7 @@
     }
 
     // The five outline icons the source puts in its box headings, transcribed
-    // rather than swapped for the site's filled set — gotcha 27's rule is that
+    // rather than swapped for the site's filled set — the house rule is that
     // icons are inline SVG sized in `em` and filled with `currentColor`, and
     // these are the one place that does not apply: the source's own tag is
     // `fill="none" stroke="currentColor"`, so they are stroked, not filled, and

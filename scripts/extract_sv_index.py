@@ -70,8 +70,8 @@ OUTPUT = os.path.join(ROOT, "assets", "js", "sv-index.js")
 
 SV_PATH_PREFIX = "assets/images/scarlet-violet/"
 
-# Recorded in the module for the same reason GENUS_SOURCE (gotcha 16) and
-# TYPE_CHART_SOURCE (gotcha 11) are: the provenance of a generated file belongs
+# Recorded in the module for the same reason GENUS_SOURCE and
+# TYPE_CHART_SOURCE are: the provenance of a generated file belongs
 # in the file, not only in git. Kept byte-identical to SOURCES["pokeapi"] in
 # fetch_sv_sprites.py -- check_sv_index.mjs asserts the two agree, because a
 # fetcher that points somewhere else is how a directory loses its provenance.

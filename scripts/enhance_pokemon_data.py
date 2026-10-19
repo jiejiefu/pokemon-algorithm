@@ -194,7 +194,7 @@ def build_pokemon_entry(row, existing_data):
         # The booleans use .get with an explicit False default rather than a
         # truthiness test on `existing`: False is a real value for the other
         # 1013 records, and `if existing.get(...)` would be correct here only
-        # by accident. The risk gotcha 29 documents is the reverse one —
+        # by accident. The risk here is the reverse one —
         # rewriting a real 0/-1 — and bool() cannot do that.
         'is_ultra_beast': bool(existing.get('is_ultra_beast', False)),
         'is_paradox': bool(existing.get('is_paradox', False)),

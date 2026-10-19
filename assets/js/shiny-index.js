@@ -9,8 +9,8 @@
 // from both, and 4 are the 404 nodes in chains 535/536), and probing per id
 // would fire a failed request for each on every page view.
 //
-// A missing entry is the normal case, not a defect -- see gotcha 18 on how the
-// empty states in this repo are meant to read.
+// A missing entry is the normal case, not a defect -- the empty states in this
+// repo are meant to read that way.
 export const SHINY_SOURCE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/{id}.png";
 
 /** Every id that has real shiny artwork on disk. */

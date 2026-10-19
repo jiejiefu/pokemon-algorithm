@@ -17,8 +17,8 @@ available keys before concluding a field is absent.
 
 Scope: en + zh-hant only. Deliberately NOT hand-entered and NOT a fallback to
 the English slug with a fabricated Chinese name — a plausible-looking wrong
-translation is worse than a missing one (see the type-chart gotcha in AGENTS.md
-for the same class of mistake). If PokeAPI ever omits zh-hant for an ability,
+translation is worse than a missing one (see AGENTS.md §3.D for the same class
+of mistake with the type chart). If PokeAPI ever omits zh-hant for an ability,
 the script records zh as null rather than guessing.
 
 Provenance: https://pokeapi.co/api/v2/ability/{name}

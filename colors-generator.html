@@ -11,7 +11,7 @@
   <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
        after the first paint is a visible flash, and a module cannot run early
        because module scripts are deferred. Identical on all five themed pages
-       and kept in sync with THEME_COLORS in shared.js. See AGENTS.md gotcha 31. -->
+       and kept in sync with THEME_COLORS in shared.js. -->
   <script>
     (function () {
       var theme = 'dark';
@@ -37,8 +37,7 @@
   <style>
     /* Page shell only. The h1 lives here, not in the header, because this page
        has an intro below it. A page with an h1 in BOTH the header and the body
-       gives a screen reader two top-level headings for one page — see AGENTS.md
-       gotcha 40. */
+       gives a screen reader two top-level headings for one page. */
     .cp-page {
       max-width: 1180px;
       margin: 0 auto;
@@ -204,8 +203,7 @@
     // Every named import must exist in shared.js or the module dies at PARSE time
     // with a SyntaxError and the page silently shows nothing — the failure has
     // no error of its own to read. Check the import list, not what shared.js
-    // exports: an export nobody imports is not in module scope (AGENTS.md
-    // gotcha 31).
+    // exports: an export nobody imports is not in module scope.
     import {
       loadPokemonData, formatPokemonId, initThemeToggle, initHeaderNav,
     } from './assets/js/shared.js';
@@ -639,7 +637,7 @@
       }
       const p = pokemon.find((x) => x.id === m.id);
       // The sprite is `alt=""` because the name is the heading immediately
-      // after it; an alt would announce the name twice (AGENTS.md gotcha 27).
+      // after it; an alt would announce the name twice.
       // THE EYEBROW DEPENDS ON HOW THIS SPECIES WAS CHOSEN, and saying so is the
       // whole point of the binding. A species the MATCHER chose is the closest
       // one and is labelled 最接近. A species the READER named on the legendary
@@ -1154,8 +1152,8 @@
         els.color.value = inputHex;
         render();
       } catch (error) {
-        // gotcha 23's lesson: a swallowed catch turns a real error into a page
-        // that looks like a server problem. The message names the file.
+        // A swallowed catch turns a real error into a page that looks like a
+        // server problem. The message names the file.
         setStatus(`載入失敗，請確認是否以 HTTP 伺服器開啟（${error.message}）`, true);
         console.error(error);
       }

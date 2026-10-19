@@ -146,8 +146,8 @@ export function silhouetteStyle(fill, url) {
   // `style="mask-image:url("`, discards the `mask-image` declaration entirely,
   // and the element paints as a solid `fill` rectangle. That is exactly how a
   // masked watermark silently degrades into a black box — it renders, it is
-  // just not shaped, and only decoded pixels catch it (AGENTS.md gotcha 25 and
-  // 41: do not verify an overlay from computed style).
+  // just not shaped, and only decoded pixels catch it (do not verify an
+  // overlay from computed style).
   //
   // A quoted url() token tolerates spaces and parentheses, so this one form
   // covers the cases the old `/[()\s]/` test was branching for. Only the quote
@@ -206,7 +206,7 @@ export function identityCardHtml({ primary, secondary, artUrl, bodyHtml }) {
  * name — so if these ever need raising, raise them in one place (or here, and
  * then re-measure the card, which has the smaller text). The threshold they
  * would have to clear is 4.5:1 for the 16px labels, and that is a measurement to
- * make, not a number to guess at: see AGENTS.md gotcha 39, where a 600-level
+ * make, not a number to guess at: a 600-level
  * ramp failed 6 of 9 for exactly this reason.
  *
  * @param {Object} options - { primary, secondary, artUrl, bodyHtml, className }
@@ -232,7 +232,7 @@ export function heroHtml({ primary, secondary, artUrl, bodyHtml, className = '' 
  * which the reference relies on to land 5 as 3+2 and 6 as 3+3. We store 5..11,
  * so 7 is 3+3+1 and 11 is 3+3+3+2, leaving a half-width gap in the last row at
  * even counts. That gap is NOT patched with a `:only-child { grid-column: 1/-1 }`
- * rule the way generations.html patches its 新屬性 hole (AGENTS.md gotcha 43):
+ * rule the way generations.html patches its 新屬性 hole:
  * that fix exists because a *missing* card is a hole, whereas here the last row
  * is genuinely partial and a full-width last cell would read as a 4-wide
  * palette that happens to end there.
@@ -327,7 +327,7 @@ export const VISIBLE_STRIP_COLORS = 5;
 /**
  * The compact strip. NOT clickable and NOT a link: it lives inside a card that
  * is itself an `<a>`, and a nested button inside a link is invalid HTML and
- * makes the activation target ambiguous (AGENTS.md gotcha 27).
+ * makes the activation target ambiguous.
  *
  * @param {Array<[string, number]>} rows
  * @param {Object} [options] - { limit, showRemainder, format }
@@ -827,7 +827,7 @@ export const HEX_FORMATS = ['hex', 'rgb', 'hsl'];
  * its chain while owning no palette at all. `color_palettes.json` has exactly
  * 1025 keys, ids 1..1025, so every form id is an unrenderable row — the panel
  * would be full of links to `color.html?slug=venusaur-mega`, which 404s into
- * the site's own dead-link class (gotcha 15).
+ * the site's own dead-link class.
  *
  * So the group is derived from `evolution_chain_id`, which every one of the 1025
  * records already carries, and that is exactly `main_line` restricted to real
@@ -956,7 +956,7 @@ export function anchorIndex(anchorStep) {
  * The `?id=` fallback is not redundant, but its original reason no longer
  * applies. It used to be there because `pokemonSlug()` stripped `Nidoran♀` /
  * `Nidoran♂` to the same `nidoran` and `find()` answered 尼多蘭 for both, so id
- * 32 was unreachable by slug; that collision is fixed (gotcha 30). The fallback
+ * 32 was unreachable by slug; that collision is fixed. The fallback
  * stays for the legacy numeric form that `detail.html` still accepts, so the two
  * pages accept exactly the same set of addresses.
  */
@@ -975,7 +975,7 @@ export function findBySlug(pokemon, slug, id) {
  * Deliberately NOT derived from `pokemonDetailUrl()` by string-replacing
  * `detail.html` — that reads as a shortcut and breaks the moment either URL
  * gains a second path segment. It is the same `?slug=` shape as the detail
- * page on purpose: gotcha 8's clean-URL contract is a two-line change in
+ * page on purpose: the clean-URL contract is a two-line change in
  * detail.html + 404.html, and inheriting it accidentally here would mean
  * touching those for a page that never asked for it.
  *
@@ -995,8 +995,7 @@ export function paletteUrl(pokemon) {
  * is three pages each pairing a fill with a foreground chosen separately, and
  * `badgeStyle()` already solves the case where neither white nor near-black
  * reaches 4.5:1 by walking the fill until one does. Splitting the pair is what
- * produced near-black on Fighting in dark and white on Electric in light
- * (AGENTS.md gotcha 20).
+ * produced near-black on Fighting in dark and white on Electric in light.
  */
 export function swatchStyle(hex) {
   return badgeStyle(hexToRgb(hex));
@@ -1101,7 +1100,7 @@ function rgbToHex(rgb) {
  *    the same comparison, then walks the fill toward black or white in 2% steps
  *    until it actually clears 4.5:1 (see badgeStyle in shared.js). Every
  *    text-on-colour surface below goes through it, so no showcase text can fail
- *    contrast on a pale Yellow or a deep Fighting navy. This is gotcha 20's
+ *    contrast on a pale Yellow or a deep Fighting navy. This is the same
  *    problem — the reference's own pairs put near-black on Fighting in dark and
  *    white on Electric in light — arriving in a third place.
  *

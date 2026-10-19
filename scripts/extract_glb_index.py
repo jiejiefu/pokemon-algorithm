@@ -47,8 +47,8 @@ OUTPUT = os.path.join(
     "assets", "js", "glb-index.js",
 )
 
-# Recorded in the module for the same reason GENUS_SOURCE (gotcha 16) and
-# TYPE_CHART_SOURCE (gotcha 11) are: the provenance of a generated file belongs
+# Recorded in the module for the same reason GENUS_SOURCE and
+# TYPE_CHART_SOURCE are: the provenance of a generated file belongs
 # in the file, not only in git. These were supplied by the user; there is no
 # public upstream this project fetched them from, and saying so is more useful
 # than inventing a URL.

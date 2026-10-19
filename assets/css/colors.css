@@ -3,7 +3,7 @@
    ---------------------------------------------------------------------------
    Dark is the BASE here and `[data-theme="light"]` is the override, because
    shared.css makes `:root` dark. The same inversion applies to every token
-   this file introduces (see AGENTS.md gotcha 41): a rule written as a light
+   this file introduces: a rule written as a light
    value in the base block is a rule that only ever renders in one theme.
 
    One thing this file deliberately does NOT do: set a `color` on anything
@@ -219,7 +219,7 @@
        as load-bearing.
    (b) The width transition is `var(--transition-med)`, not a literal. It is
        0.3s, so it IS the reference's `duration-300` — but the token is what
-       makes the two themes and the reduced-motion block (gotcha 60) apply to
+       makes the two themes and the reduced-motion block apply to
        it, and a literal here would opt this one element out of both.
    (c) The 外 appearance row carries `.theme-toggle`, and that class is
        `position: absolute; top: 50%; transform: translateY(-50%)` in
@@ -404,7 +404,7 @@
 
 /* (c) The shared `.theme-toggle` is absolutely positioned for the header. That
    is a centring mechanism there and a positioning bug in here, so it is reset
-   to flow. NOTE this does not invalidate gotcha 60: the nine other pages still
+   to flow. NOTE this does not invalidate the rule: the nine other pages still
    position their toggle absolutely with `translateY(-50%)`, which is why the
    reduced-motion block must keep NOT setting `transform: none`. */
 .cp-rail .theme-toggle,
@@ -531,7 +531,7 @@
    workaround: `.header-colors` still styles seven other pages and none of them
    loads this file's frame. Deleted rather than left harmless — a rule that
    matches no element on the page that carries it is a rule nobody maintains
-   (the `.header-graph` shape, gotcha §3.N). */
+   (the `.header-graph` shape, §3.N). */
 
 /* ---------------------------------------------------------------------------
    1. The identity card — gradient body, top-right masked watermark
@@ -542,7 +542,7 @@
    (a) The watermark is a real child element, not a ::before on the card. A
        pseudo-element on an ancestor cannot be a backdrop for that same
        ancestor, so the reference needs the extra div for the same reason
-       detail.css needs `.top-hero-card::before` (AGENTS.md gotcha 28). It also
+       detail.css needs `.top-hero-card::before`. It also
        buys the `pointer-events: none` and the `overflow: hidden` a mask needs,
        both of which belong on the wrapper rather than on the masked box.
    (b) `.cp-idcard-body` carries `position: relative; z-index: 10` and the
@@ -1714,7 +1714,7 @@
 }
 
 /* The 3 stat tiles under the shade scale. `.coll-stat`'s black scrim rule
-   (AGENTS.md gotcha 39) is why these keep their own background instead of
+   is why these keep their own background instead of
    inheriting a translucent one: a translucent tile on a *palette* fill is a
    third composited surface, and the label's contrast would depend on which
    colour the tile happened to land on. Opaque, theme-token coloured, so the
@@ -1782,8 +1782,7 @@
    that with a <button> nested inside its own <Link>, which is invalid HTML and
    leaves the activation target ambiguous. Here the stripes are not clickable on
    a card at all, and copying lives on the full grid on the two pages where a
-   cell is a real button. (AGENTS.md gotcha 27, and gotcha 54's "single <a>,
-   no nested link".)
+   cell is a real button (the "single <a>, no nested link" rule).
 
    The strip IS the card's hero area, at 128px and 160px from 768px, with the
    sprite silhouette absolutely centred over it at the same size — transcribed
@@ -2225,7 +2224,7 @@
    filter bar is `sticky top-0` with a translucent background. Both are
    transcribed; the chips here TOGGLE the URL-driven filter state instead of
    linking to the reference's /type/ and /rarity/ pages, which this site does
-   not have and must not ship as dead links (the same reason gotcha 37's
+   not have and must not ship as dead links (the same reason the
    "upcoming" cards are <article> and not <a>). */
 .cp-filterrow {
   display: flex;
@@ -2433,7 +2432,7 @@
    because only a real contrast walk (badgeStyle in shared.js) guarantees 4.5:1
    for a fill that could be pale Yellow or near-black Fighting navy. No CSS
    value can do that, and a 50/50 white-or-black guess fails at both ends.
-   This is gotcha 20's problem arriving a third time. A regression test that
+   This is the same problem arriving a third time. A regression test that
    only greps for a colour here will pass while the showcase is unstyled, which
    is exactly what happened once: the block below is missing entirely, the
    panels still rendered (their colours are inline), and only getComputedStyle
@@ -2469,7 +2468,7 @@
 
 /* Same three declarations the move tabs use (detail.css `.move-tab
    [aria-selected="true"]`), because `--accent-gold` is a bright yellow in dark
-   and a dark brown in light (AGENTS.md gotcha 14) — so a hardcoded `#14110a`
+   and a dark brown in light — so a hardcoded `#14110a`
    on it measures 13.95:1 in dark and 2.85:1 in light. `--on-accent` is the
    theme-aware token for exactly this, and the gold stays on the border. */
 .sc-tab[aria-selected="true"],
@@ -3756,12 +3755,12 @@
 /* ---------------------------------------------------------------------------
    11. Print
    ---------------------------------------------------------------------------
-   Every section of the detail page is one scroll, so it prints as one document
-   (AGENTS.md gotcha 13). The hero's decorative gradient and the hover lifts are
-   dropped rather than printed, and — as gotcha 44 records — the print block
+   Every section of the detail page is one scroll, so it prints as one document.
+   The hero's decorative gradient and the hover lifts are
+   dropped rather than printed, and the print block
    below has to repeat the `[data-theme="light"]` prefix for any rule it means to
    beat. The one here is a base rule, so the plain selector is enough; adding
-   the prefix would be cargo-culting gotcha 44 onto a selector that has no light
+   the prefix would be cargo-culting that rule onto a selector that has no light
    counterpart to outrank.
    ------------------------------------------------------------------------ */
 @media print {
@@ -3795,7 +3794,7 @@
 
   /* The showcase's inactive panels carry `hidden`, which is what the tab
      widget's ARIA needs but what print cannot use — same override the move
-     tabs get, and for the same reason (AGENTS.md gotcha 13). Each panel keeps
+     tabs get, and for the same reason. Each panel keeps
      its own heading so the printed document still has one section per tab. */
   .sc-tabs {
     display: none;

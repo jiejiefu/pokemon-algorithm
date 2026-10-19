@@ -44,7 +44,7 @@ site attributes its artwork to PokeAPI, and the per-id truth about the fallback
 belongs in the repo without being published as part of the frontend.
 `scripts/check_sv_index.mjs` asserts the map covers exactly the roster.
 
-Gotchas this script exists to survive
+Failure modes this script exists to survive
 -------------------------------------
 1. **A 404 is not the end of the lookup, but two 404s are not a failure.**
    Treating "absent" as an error would make every run red and train the reader to
@@ -153,7 +153,7 @@ def fetch_one_source(pid: int, source: str) -> tuple[str, bytes | None, Optional
             response.raise_for_status()
             body = response.content
             if not body.startswith(PNG_MAGIC):
-                # Gotcha 2: a body that is not a PNG must never reach the disk.
+                # A body that is not a PNG must never reach the disk.
                 head = body[:60].decode("utf-8", "replace").replace("\n", " ")
                 return "failed", None, f"not a PNG ({head!r})" if head else "empty body"
             if len(body) < MIN_BYTES:

@@ -1277,7 +1277,7 @@
   margin-top: .9rem;
   padding: .7rem .85rem;
   /* `backdrop-filter` is what makes that z-index mean anything at all: on a
-     static element the number is inert. AGENTS.md §3.K3 is the same shape on
+     static element the number is inert. AGENTS.md §3.K is the same shape on
      life.html, where a decorative value on a non-positioned element silently
      started beating the header. This one IS positioned, so it is honest — but
      the pairing is the reason to keep both or neither. */

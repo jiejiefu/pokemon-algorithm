@@ -59,7 +59,7 @@ FORM_SPECIES: Dict[int, dict] = {}
 # from Chinese back to English -- in the commit that repairs the chains.
 #
 # So carry them forward from the existing file first, the same way
-# enhance_pokemon_data.py carries gender_rate/hatch_counter (gotcha 29).
+# enhance_pokemon_data.py carries gender_rate/hatch_counter.
 #
 # !! TEMPORARY SCAFFOLD -- DELETE IN THE NAMING COMMIT. !! The renderer is
 # supposed to own form naming (assets/js/form-names.js composes it from
@@ -117,7 +117,7 @@ def load_form_species() -> Dict[int, dict]:
     uses a DIFFERENT id namespace (its 10033 is deoxys-speed, ours is Venusaur-Mega)
     and carries no `zh-hant`, so neither is usable as a naming source.
 
-    The cache is COMMITTED, unlike the InfoPoke HTML dumps (gotcha 42). Those are
+    The cache is COMMITTED, unlike the InfoPoke HTML dumps. Those are
     3.1 MB of third-party markup that shifts whenever the site redesigns and have
     no upstream to pin; this is 45 KB of stable derived data that the generator
     cannot run at all without, so tracking it is what keeps a fresh clone able to

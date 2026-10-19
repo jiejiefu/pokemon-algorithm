@@ -961,6 +961,25 @@ const CHECKERS = [
     script: 'scripts/check_agents_size.mjs', group: 'nav',
     inputs: ['AGENTS.md', 'docs/incidents/*'],
   },
+  /* ---- Repo-wide §3 citations, and the retired numbered gotcha list ---------
+   *
+   * check_agents_size.mjs guards AGENTS.md's OWN §3 citations. This is the other
+   * half: the ~1,000 citations living in assets/js, assets/css, the pages,
+   * scripts/ and docs/, plus every dead numbered `gotcha` pointer. It walks the
+   * text half of the repo, so its inputs are one glob per directory it reads —
+   * the runner's rule that a glob may be broader than one run touched is exactly
+   * what lets a walker declare itself honestly. */
+  {
+    script: 'scripts/check_section_refs.mjs', group: 'nav',
+    inputs: ['*', 'docs/*', 'docs/incidents/*', 'assets/css/*', 'assets/js/*',
+      'scripts/*', 'scripts/lib/*'],
+  },
+  {
+    script: 'scripts/test_check_section_refs.mjs', checker: 'scripts/check_section_refs.mjs',
+    group: 'nav',
+    note: '6 cases in child trees — a dangling citation, a renamed heading, two gotcha pointers (one in a .py), a missing §3 span, and the walk narrowed until only the floors could notice',
+    inputs: ['AGENTS.md', 'scripts/*.mjs', 'scripts/*.py'],
+  },
   /* ---- moves.html / move.html ----
    *
    * The §3.G4 split: a stylesheet contract and a filter's arithmetic are checked

@@ -478,10 +478,10 @@
     }
 
     // Material `chevron_right`, the same icon family as the rest of the site.
-    // Emoji are banned (gotcha 26) and decorative icons must be hidden from
+    // Emoji are banned and decorative icons must be hidden from
     // assistive tech, because the adjacent crumb label already carries the
-    // meaning (gotcha 27). This one is used only here, so it stays a local
-    // literal rather than an ICON_PATHS entry (gotcha 40's static-icon rule).
+    // meaning. This one is used only here, so it stays a local
+    // literal rather than an ICON_PATHS entry (the static-icon rule).
     const BREADCRUMB_SEP =
       '<svg class="icon breadcrumb-sep" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
       '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';

@@ -14,8 +14,9 @@ Four things are added, in place, to assets/data/pokemon_data.json:
 Regional forms are deliberately NOT written here. They already live in
 assets/data/evolution_chains.json under `variants`, keyed by region, and that
 file is consumed by renderEvolutionChain() in shared.js behind a guard that
-gotcha 15 documents at length. Adding a second copy here would create two
-sources of truth for the same 54 sprites. See AGENTS.md gotcha 37.
+AGENTS.md documents at length. Adding a second copy here would create two
+sources of truth for the same 54 sprites. See AGENTS.md for the sibling
+variants:{} truthiness trap.
 
 SOURCE OF EACH LIST
 -------------------

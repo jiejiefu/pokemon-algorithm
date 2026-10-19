@@ -302,8 +302,8 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
   /**
    * A canvas cannot see `var(--x)`, so the clear colour, the light tint and the
    * hemisphere ground are all read per repaint — the same reason
-   * `readThemeToken()` exists for the radar canvas (gotcha 14) and
-   * `wallColor()` for the maze (gotcha 35). Wired to `themechange`, not just to
+   * `readThemeToken()` exists for the radar canvas and
+   * `wallColor()` for the maze. Wired to `themechange`, not just to
    * load, or switching themes leaves a dark canvas on a light page.
    */
   function applyTheme() {
@@ -347,7 +347,7 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
    *
    * `RoomEnvironment` is a small box-lit room, PMREM-prefiltered into the mip
    * chain PBR expects, so it is ~30 lines of generated data rather than a `.hdr`
-   * to fetch, version and get wrong the site's contrast rules (gotcha 39, 43).
+   * to fetch, version and get wrong the site's contrast rules.
    * `scene.environment` is deliberately left independent of `scene.background`:
    * the background is the page's `--bg-primary` and must not become a lit room.
    */
@@ -641,8 +641,8 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
 
   function setTimeScale(v) {
     // Linear, and it is a plain multiplier. Do not copy maze.html's quadratic
-    // slider here: that curve exists to make 0.1x-10x algorithm pacing usable
-    // (gotcha 33), and this control only spans 0.1x-2x, where a curve would
+    // slider here: that curve exists to make 0.1x-10x algorithm pacing usable,
+    // and this control only spans 0.1x-2x, where a curve would
     // make the top half of the travel feel dead.
     state.timeScale = MathUtils.clamp(Number(v) || 1, 0.05, 4);
     applyTimeScale();
@@ -728,7 +728,7 @@ export function createViewer({ mount, onFrame, onContextLost, onContextRestored 
    * Whether a zoom in each direction has anywhere left to go.
    *
    * Reported rather than left to the buttons looking dead: the ＋ at maximum
-   * zoom and the − at minimum are the same situation as gotcha 30's shiny
+   * zoom and the − at minimum are the same situation as the shiny
    * button with no artwork, so they take `aria-disabled` and stay in the tab
    * order instead of `disabled`, and a control that can say "no further" beats
    * one that silently swallows every press.
