@@ -393,18 +393,36 @@
   padding: 0;
 }
 
+/*
+ * The tile follows `.mv-learner` (moves.css:377) rather than inventing a second
+ * card shape: a 1px hairline border, the same radius, and a hover that bumps the
+ * border as well as the fill. **The border and its hover colour are one decision**
+ * — a border without the hover change is the half that reads as unfinished — and
+ * the checker asserts them as a pair.
+ *
+ * The focus ring is `var(--focus-ring)` where moves.css uses
+ * `var(--accent-gold)`; those are the same value in both themes (#f5c542 dark,
+ * #b3122a light), and `--focus-ring` is the one that says what it is for.
+ *
+ * `border-color` is added to the transition even though `.mv-learner` snaps.
+ * That is a deliberate divergence from the page this is imitating: the fill here
+ * already fades, and a border that snaps while its own background fades reads as
+ * a glitch rather than as a state.
+ */
 .ab-holder {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   padding: 10px 6px;
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .ab-holder:hover {
   background: var(--surface-hover);
+  border-color: var(--hairline-strong);
 }
 
 .ab-holder:focus-visible {
@@ -414,8 +432,14 @@
 
 .ab-holder img {
   display: block;
-  width: 56px;
-  height: 56px;
+  /* 64px in a 104px track = a 0.62 image-to-track ratio, against `.mv-learner`'s
+     56-in-88 = 0.64. The track is UNCHANGED, so the grid still resolves to 9
+     columns at this width — the bump is free. It is affordable because abilities
+     hold far fewer Pokémon than moves: the median ability has 3 base species,
+     223 of 314 have 10 or fewer, and the largest is 45, against 守住's 1,003
+     learners on move.html. Art is the scarce thing on this page, not rows. */
+  width: 64px;
+  height: 64px;
   /*
    * `object-fit: contain` WITH `object-position: bottom`, and both are
    * load-bearing. The Scarlet/Violet set is 120×112 and its subject is
@@ -512,5 +536,7 @@
   .ab-detail-title h1 { font-size: 28px; }
   .ab-grid { grid-template-columns: 1fr; }
   .ab-holders { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-  .ab-holder img { width: 48px; height: 48px; }
+  /* 56 in 88 = the same 0.64 as `.mv-learner`, and the track is unchanged here
+     too — so the phone grid keeps its column count and only the art grows. */
+  .ab-holder img { width: 56px; height: 56px; }
 }

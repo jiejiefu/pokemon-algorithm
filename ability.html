@@ -119,7 +119,7 @@
       const note = holderHasSv(entry) ? '' : '<span class="sr-only">（官方 Scarlet/Violet 圖尚未釋出，暫用 96px 替代圖）</span>';
       return `<li>
         <a class="ab-holder" href="${esc(holderUrl(entry))}">
-          <img src="${esc(holderSprite(entry))}" alt="" loading="lazy" decoding="async" width="56" height="56">
+          <img src="${esc(holderSprite(entry))}" alt="" loading="lazy" decoding="async" width="64" height="64">
           <span class="ab-holder-name">${esc(entry.nameZh || entry.nameEn || entry.name)}${note}</span>
           ${forms.length ? `<span class="ab-formnote">${esc(forms.join('、'))}</span>` : ''}
         </a>

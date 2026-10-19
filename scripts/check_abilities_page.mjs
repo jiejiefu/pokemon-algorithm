@@ -393,6 +393,49 @@ ok(
   '.ab-holder img must NOT carry a vertical offset — types.html needs one because its chips put the image and name on one line; these cards do not'
 );
 
+/* ===== the tile follows .mv-learner, and the art is bigger ===== */
+
+/** The border and its hover colour are ONE decision — a border without the hover
+ *  change is the half that reads as unfinished — so they are asserted as a pair,
+ *  the same way `object-fit` and `object-position` are (§3.E). */
+const holderRule = (CSS_CODE.match(/\.ab-holder\s*\{[^}]*\}/) || [''])[0];
+const holderHoverRule = (CSS_CODE.match(/\.ab-holder:hover\s*\{[^}]*\}/) || [''])[0];
+ok(
+  /border:\s*1px solid var\(--hairline\)/.test(holderRule),
+  '.ab-holder should carry the same 1px hairline border as .mv-learner'
+);
+ok(
+  /border-color:\s*var\(--hairline-strong\)/.test(holderHoverRule),
+  '.ab-holder:hover should bump the border to --hairline-strong, as .mv-learner does'
+);
+
+/**
+ * 64px in a 104px track is a 0.62 image-to-track ratio against `.mv-learner`'s
+ * 56-in-88 = 0.64. The track is unchanged, so the grid still resolves to 9
+ * columns — the bump is free, and it is affordable because the median ability
+ * holds 3 species against move.html's 1,003 for 守住.
+ */
+ok(
+  /width:\s*64px/.test(holderImgRule) && /height:\s*64px/.test(holderImgRule),
+  '.ab-holder img should be 64px — the ratio that matches .mv-learner\'s tile'
+);
+ok(
+  /minmax\(104px/.test(CSS_CODE),
+  'the track stays 104px so the 64px bump costs no columns'
+);
+ok(
+  /@media \(max-width: 640px\)[\s\S]*?\.ab-holder img\s*\{\s*width:\s*56px;\s*height:\s*56px;/.test(CSS_CODE),
+  'the phone override should be 56px, keeping the same 0.64 proportion'
+);
+
+/** §3.AA's rule: `width`/`height` in the markup and in the stylesheet are BOTH
+ *  asserted, because a mismatch reserves the wrong box before the image loads
+ *  and then jumps once it arrives. */
+ok(
+  /<img[^>]*\bwidth="64"[^>]*\bheight="64"/.test(DETAIL_CODE),
+  'the rendered <img> should declare width/height 64 to match the CSS, or the tile jumps when the PNG arrives'
+);
+
 /* ===== report ===== */
 
 for (const note of notes) console.log(`  note  ${note}`);
