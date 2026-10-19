@@ -41,6 +41,7 @@
 | `index.html` | Hero clip scrubbed by scroll, the intro, two algorithm demos, then the five feature cards — §3.Z |
 | `today.html` | 今日推薦: the daily pick, 熱門, 探索, 精選系列, 遊戲, 工具, 快速連結, FAQ — §3.Z |
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation / type / colour filters |
+| `team.html` | 組隊規劃: six slots, per-member defensive tallies, STAB coverage, region / generation / type filters, shareable `?team=` — §3.AD |
 | `detail.html` | Dossier: 3-col hero, Canvas radar, dual-type matrix, evolution chain, 4 move tabs. 3-way footer pager — §3.A |
 | `color.html` | One species' palette: `?slug=`, shade scales, theme exporter. Bare URL = the same seeded daily pick as the homepage, one draw two callers |
 | `colors-generator.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
@@ -82,7 +83,7 @@ pokemon-algorithm/
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
-**9,086 of the 9,463 tracked files are binary** (7,062 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 129 are code (98 `.mjs`, 31 `.py`). `assets/data/` holds 20 JSON tables and is the single source of truth for every page.
+**9,086 of the 9,471 tracked files are binary** (7,062 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 132 are code (100 `.mjs`, 32 `.py`). `assets/data/` holds 21 JSON tables and is the single source of truth for every page.
 
 **The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
 
@@ -97,12 +98,13 @@ pokemon-algorithm/
 | `analyze_cries.py` | `cry_features.json` (§3.G1) |
 | `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
 | `build_home_roster.py` | `home_roster.json` — 1,025 compact records (`id`, `names.zh`, `stats.total`, `height_m`, `hue`), 90 KB raw / 19 KB gzip, for `index.html`'s two demos. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
+| `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
 | `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 8.9 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
 
 Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
 
-**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 95 files are verification — 59 `check_*.mjs`, 26 `test_check_*.mjs` mutation harnesses, 1 standalone test (`test_cry_overlap.mjs`, a manifest entry in `cry-page`) and 9 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 31 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
+**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 97 files are verification — 60 `check_*.mjs`, 27 `test_check_*.mjs` mutation harnesses, 1 standalone test (`test_cry_overlap.mjs`, a manifest entry in `cry-page`) and 9 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 32 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
 
 **`scripts/lib/` is shared and small on purpose** — `assert.mjs` is the one `ok`/`eq`/`near` scaffold: a checker whose helper shape matches constructs a `createChecker()` so its failure printer and its summary stay byte-identical while the counting lives in one place, `negative.mjs` is the one definition of what "caught by" means, `pool.mjs` the one worker pool (§3.G7), `cdp-port.mjs` the one place a Chrome path and debug port live, `png.mjs` builds its own test PNGs, `mute-tap.mjs` silences audio before any page script, `record-inputs.cjs` proves §4's input lists, `tmp-trees.mjs` is the one registry of temp trees so an interrupted run cannot leave one behind (§3.J), and `cdp-until.mjs` is the one poll-a-page-predicate loop both browser checkers wait with. Editing any of them invalidates every cache entry, which is why they are hashed into every key unconditionally.
 
@@ -285,7 +287,7 @@ The only page missing `</body>`/`</html>`. Live Server rewrote the response: `in
 - **The fix is two lines; the guard asserts the precondition** — exactly one `</body>` and one `</html>`, both after the last `</script>`, case-insensitive throughout.
 - **Splits like `test_check_tmp_prefixes.mjs`:** five cases break the TREE and one breaks the CHECKER.
 - **Live Server is necessary only for the proof** (browsers synthesise `body`); the page set is `.html` only.
-**Guarded by:** `check_js_syntax.mjs`'s document-structure assertion (all 23 pages) + `test_check_js_syntax.mjs` (6 cases + 1 pairing) · **Background:** [checker-infrastructure.md#i1](docs/incidents/checker-infrastructure.md#i1)
+**Guarded by:** `check_js_syntax.mjs`'s document-structure assertion (all 28 pages) + `test_check_js_syntax.mjs` (6 cases + 1 pairing) · **Background:** [checker-infrastructure.md#i1](docs/incidents/checker-infrastructure.md#i1)
 
 ### J. Every CDP Checker Leaked A Chrome Profile
 Three of six removed their `--user-data-dir`; tmpdir held 28 GB. **Check for orphans after a browser run — a clean run leaves zero.**
@@ -456,6 +458,15 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 - **The payload split is asserted in both directions** (`abilities.html` also loads `species_abilities.json`, 88 KB). Search uses `SPECIES_RESULT_CAP = 12`. Twelve species have one ability in both slots.
 **Guarded by:** `check_abilities_data.mjs` (18,849, 0.1 s) + `check_abilities_page.mjs` (133, RUNS the filters) + `test_check_abilities_page.mjs` (12) + `check_pokemon_names.mjs` (94). **No browser entry (a priced trade).** · **Background:** [pages.md#ac](docs/incidents/pages.md#ac)
 
+### AD. `team.html` — Six Slots, Two Tallies, One Roster
+The slot body is **horizontal, not diagonal**: `--tm-c1` top half, `--tm-c2` bottom half, a 1px seam, and `typePair(primary)` on the name bar rather than white.
+- **`TEAM_LIMIT` lives once, in `team-state.js`**; the analysis module takes ids, not a cap.
+- **The id search is an exact padded match** — `025` must not match `0250`.
+- **`?team=` keeps literal commas:** `searchParams.set` writes `%2C`; only `team-state.js` parses and writes the parameter.
+- **Each tally header chip sits over its own mark column** — same grid, same gap; a chip is not a separate legend.
+- **The roster is 145 KB of ids, names, types, generation and regions**, never `pokemon_data.json`.
+**Guarded by:** `check_team_page.mjs` (154) + `test_check_team_page.mjs` (15). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
+
 
 ## 4. Verification & Testing Commands
 
@@ -489,6 +500,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
 | `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
+| `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 17 entries, no browser; the team pair is 154 + 15 |
 | `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |
 | `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `check_moves_data.mjs` | 127,868 checks, 0.1 s; one pass writes all four |
 | `abilities.html`, `ability.html`, `abilities.js`, `abilities.css` | `check_abilities_page.mjs` | 133 checks, 0.1 s; no browser entry |
@@ -526,7 +538,7 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 | `color` | 21.4 | 16 | B | sixteen small entries, none above 5 s (the two CDP halves moved out) |
 | `life-browser` | 7.1 | 1 | B | `serial: true`, a 40×40 rAF page; one Chrome |
 | `cry-data` | 8.4 | 8 | A | `test_check_cry_index.mjs` 4.7 s, `test_check_spectrogram_port.mjs` 1.4 s |
-| `nav` | 7.1 | 15 | A | `check_js_syntax.mjs` 2.2 s, `test_check_nav_pages.mjs` 1.0 s; no browser |
+| `nav` | 9.3 | 17 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
 | `outfit-browser` | 6.8 | 1 | B | one Chrome |
 | `cry-apu` | 5.6 | **1** | A | `check_gen1_apu.mjs` alone, 4.5 s of it one pass over the 151-species corpus |
 | `game-browser` / `types-browser` | 4.3 / 5 | 1 each | B | one Chrome each |
@@ -561,6 +573,9 @@ python scripts/enhance_pokemon_data.py
 
 # 1b. Homepage roster: rebuild after pokemon_data.json changes; --dry-run first.
 python scripts/build_home_roster.py --dry-run && python scripts/build_home_roster.py && node scripts/check_home_sections.mjs
+
+# 1c. Team roster: the slim 1,025-record table team.html reads; --dry-run first.
+python scripts/build_team_roster.py --dry-run && python scripts/build_team_roster.py && node scripts/check_team_page.mjs
 
 # 2. Chinese Names: Scrape official names from tw.portal-pokemon.com
 python scripts/fix_pokemon_names.py

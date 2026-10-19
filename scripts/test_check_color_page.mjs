@@ -229,16 +229,17 @@ const cases = [
     // taking the aria-current it just gained with it — claimed and invisible at
     // once.
     //
-    // The anchor grew 'moves.html' when that page shipped, and the stale-anchor
-    // guard below caught the no-op on the next run rather than letting this case
-    // report 「checker exited 0」 — which is the same message the OTHER stale case
-    // was producing for a different reason (an anchor matching a COMMENT rather
-    // than code). Two cases, one message, two different bugs; only the guard
-    // tells them apart, and both are recorded at check_color_page.mjs's header.
+    // The anchor grew 'moves.html' when that page shipped and 'team.html' when
+    // that one did, and the stale-anchor guard below caught the no-op each time
+    // on the next run rather than letting this case report 「checker exited 0」 —
+    // which is the same message the OTHER stale case was producing for a
+    // different reason (an anchor matching a COMMENT rather than code). Two
+    // cases, one message, two different bugs; only the guard tells them apart,
+    // and both are recorded at check_color_page.mjs's header.
     mutate: (f, s) => f.endsWith('shared.js')
       ? s.replace(
-        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html'],",
-        "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html', 'moves.html', 'abilities.html'],"
+        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html', 'team.html'],",
+        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'types.html', 'moves.html', 'abilities.html', 'team.html'],"
       )
       : undefined,
     expect: 'the group does not list',

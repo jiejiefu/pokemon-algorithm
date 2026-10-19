@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢組隊規劃 — 6 隻隊伍的弱點與覆蓋分析</title>
+  <meta name="description" content="從 1,025 隻全國圖鑑挑選 6 隻寶可夢組成隊伍，即時分析隊伍的共同弱點、抗性與 STAB 屬性覆蓋。可依地區、世代與屬性篩選，隊伍狀態存在網址可分享。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Blocking, inline, and before the stylesheet, same block and same reason as
+       every other page: the sticky controls must not flash the wrong palette. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/team.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="tm-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <a href="pokedex.html">圖鑑</a> / <span aria-current="page">組隊規劃</span>
+    </nav>
+
+    <section class="tm-hero" aria-labelledby="tm-title">
+      <h1 id="tm-title">寶可夢組隊規劃</h1>
+      <p class="tm-hero-sub">
+        從全國圖鑑挑選 6 隻寶可夢，立刻看出隊伍的共同弱點、有沒有人能扛，
+        以及屬性招式能剋制哪些對手。整個隊伍存在網址裡，複製連結就能分享。
+      </p>
+      <ul class="tm-stats">
+        <li><strong id="tm-stat-count">1,025</strong><span>隻寶可夢</span></li>
+        <li><strong>6</strong><span>格隊伍</span></li>
+        <li><strong>18</strong><span>種屬性</span></li>
+      </ul>
+    </section>
+
+    <section class="tm-team" aria-labelledby="tm-team-title">
+      <div class="tm-team-head">
+        <h2 id="tm-team-title">你的隊伍</h2>
+        <p class="tm-team-count" id="tm-count" role="status" aria-live="polite">0 / 6</p>
+      </div>
+      <ol class="tm-slots" id="tm-slots" data-slot-count="6"></ol>
+      <div class="tm-actions">
+        <button class="tm-btn" type="button" id="tm-random">隨機組隊</button>
+        <button class="tm-btn" type="button" id="tm-clear">清空隊伍</button>
+        <button class="tm-btn tm-btn-accent" type="button" id="tm-share">複製分享連結</button>
+      </div>
+      <p class="tm-action-status" id="tm-action-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="tm-analysis" aria-labelledby="tm-analysis-title">
+      <div class="tm-analysis-head">
+        <h2 id="tm-analysis-title">隊伍分析</h2>
+        <p class="tm-note">只依屬性計算，不含特性、道具與招式。紅色代表隊伍的弱點，藍色代表抗性、免疫或可剋制的屬性。</p>
+      </div>
+      <div class="tm-summary" id="tm-summary"></div>
+      <div class="tm-analysis-grid">
+        <div class="tm-analysis-col">
+          <h3>防守：弱點與抗性</h3>
+          <div class="tm-tally-head" id="tm-defense-head" aria-hidden="true"></div>
+          <ol class="tm-tallies" id="tm-defense" data-tally-count="18"></ol>
+        </div>
+        <div class="tm-analysis-col">
+          <h3>進攻：STAB 覆蓋</h3>
+          <div class="tm-tally-head" id="tm-coverage-head" aria-hidden="true"></div>
+          <ol class="tm-tallies" id="tm-coverage" data-tally-count="18"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="tm-picker" aria-labelledby="tm-picker-title">
+      <div class="tm-analysis-head">
+        <h2 id="tm-picker-title">選擇寶可夢</h2>
+        <p class="tm-note">點一張卡片加入隊伍，再點一次可移除。搜尋支援中文名、英文名與編號。</p>
+      </div>
+      <div class="tm-controls">
+        <label class="sr-only" for="tm-search">搜尋寶可夢</label>
+        <input class="tm-search" id="tm-search" type="search"
+          placeholder="搜尋中文、英文或編號，例如 皮卡丘、pikachu 或 025"
+          autocomplete="off" spellcheck="false">
+        <label class="sr-only" for="tm-region">地區</label>
+        <select class="tm-select" id="tm-region"></select>
+        <label class="sr-only" for="tm-generation">世代</label>
+        <select class="tm-select" id="tm-generation"></select>
+        <label class="sr-only" for="tm-type">屬性</label>
+        <select class="tm-select" id="tm-type"></select>
+      </div>
+      <p class="tm-resultline" id="tm-resultline" role="status" aria-live="polite"></p>
+      <p class="tm-status" id="tm-status">載入中…</p>
+      <ul class="tm-grid" id="tm-grid" data-grid="roster"></ul>
+      <p class="tm-empty" id="tm-empty" hidden>沒有符合條件的寶可夢，試著放寬篩選。</p>
+      <button class="tm-btn tm-more" type="button" id="tm-more" hidden>顯示更多</button>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import { initTeamPage } from './assets/js/team.js';
+
+    initThemeToggle();
+    initHeaderNav('team.html');
+
+    initTeamPage();
+  </script>
+</body>
+</html>

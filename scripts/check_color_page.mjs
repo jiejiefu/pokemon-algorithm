@@ -185,7 +185,10 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // the same reason `move.html` did not. The pair is deliberate rather than
 // convenient: two drill-in pages with no row means the rule is about HOW a page
 // is reached, not about there being two of them.
-const EXPECTED_NAV_PAGES = 23;
+// 23 -> 24 when team.html shipped. It has its own row and its own pages entry,
+// like abilities.html, because the planner is a destination rather than a
+// drill-in from a card.
+const EXPECTED_NAV_PAGES = 24;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

@@ -983,13 +983,13 @@ const CHECKERS = [
    * §3-background anchor is caught by the same run that reads it. */
   {
     script: 'scripts/check_agents_size.mjs', group: 'nav',
-    inputs: ['AGENTS.md', 'docs/incidents/*'],
+    inputs: ['AGENTS.md', 'docs/incidents/*', 'scripts/check_agents_size.mjs'],
   },
   {
     script: 'scripts/test_check_agents_size.mjs', checker: 'scripts/check_agents_size.mjs',
     group: 'nav',
     note: '5 cases break the tree/checker — a CJK heading in AGENTS.md and in a doc, the budget blown, the docs scan narrowed to nothing, the size ceiling — and 5 green cases hold the other direction: a 「」-quoted UI name in a heading and in prose, a fenced block, an unquoted species name, and an H1 title all stay green',
-    inputs: ['AGENTS.md', 'docs/incidents/*', 'scripts/check_agents_size.mjs'],
+    inputs: ['AGENTS.md', 'docs/incidents/*'],
   },
   /* ---- Repo-wide §3 citations, and the retired numbered gotcha list ---------
    *
@@ -1173,6 +1173,48 @@ const CHECKERS = [
       // a hand-maintained version of that list costs — the moves entry above
       // under-declared three of its own and had to be corrected by --prove-inputs
       // rather than by reading. A glob cannot go stale on a new import.
+      'assets/js/*',
+      'scripts/lib/*',
+    ],
+  },
+
+  /* ---- team.html ----
+   *
+   * A single page and a static checker: the page contract, the stylesheet's
+   * two-tone slot, the roster's referential integrity, and the arithmetic/state
+   * transitions all read off disk in ~0.1 s. No browser entry — six slots
+   * actually painting and a mark lighting its slot are rendered claims, and §4
+   * forbids reading this PASS as evidence for them.
+   *
+   * `shared.js` and `color-palette.js` are declared because the checker reads
+   * them to assert the helpers team.js reaches for still exist; a helper rename
+   * is exactly the §3.I defect a text reader can catch and a rendered one shows
+   * as a blank row.
+   */
+  {
+    script: 'scripts/check_team_page.mjs', group: 'nav',
+    inputs: [
+      'team.html',
+      'assets/css/team.css',
+      'assets/js/team.js',
+      'assets/js/team-analysis.js',
+      'assets/js/team-state.js',
+      'assets/js/shared.js',
+      'assets/js/color-palette.js',
+      'assets/js/type-chart.js',
+      'assets/data/team_roster.json',
+    ],
+  },
+  {
+    script: 'scripts/test_check_team_page.mjs', checker: 'scripts/check_team_page.mjs', group: 'nav',
+    note: 'runs the above in child trees — the horizontal split, the cap, the duplicate rule, the region set, the URL parser',
+    inputs: [
+      'team.html',
+      'assets/css/team.css',
+      'assets/data/team_roster.json',
+      // Whole directory for the same reason test_check_abilities_page.mjs does:
+      // team.js -> shared.js -> form-names.js is four files deep, and a
+      // hand-maintained list is a second import graph that can go stale.
       'assets/js/*',
       'scripts/lib/*',
     ],

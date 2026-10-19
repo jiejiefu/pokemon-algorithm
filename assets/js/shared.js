@@ -15,6 +15,17 @@ import { formNameZh } from './form-names.js';
 // detail.html disables its toggle — see createPokemonCard()'s `shiny` option.
 import { hasShiny } from './shiny-index.js';
 
+/**
+ * The one place the site version is written.
+ *
+ * It was `v0.0.1` copied into two footers, which is two places to forget and a
+ * release note that goes stale the moment either copy is edited. `scripts/release.mjs`
+ * rewrites THIS line and refuses unless it matches exactly once; the footers mount
+ * `<span data-version>` and `initVersion()` fills them. A hand edit still works,
+ * but `scripts/check_version.mjs` fails unless the CHANGELOG's newest entry agrees.
+ */
+export const SITE_VERSION = '0.1.0';
+
 // Type EN → ZH mapping
 export const TYPE_EN_ZH = {
   "Normal": "一般", "Fire": "火", "Water": "水", "Electric": "電",
@@ -740,7 +751,7 @@ export const NAV = [
     // has a header identical to collections.html, so it needs a row either way.
     // 色彩's three pages each have a row for the same reason; none of them ride
     // along on a group.
-    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html'],
+    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html', 'abilities.html', 'team.html'],
     groups: [
       {
         items: [
@@ -775,6 +786,12 @@ export const NAV = [
           // is deliberately absent from `pages`, exactly as move.html and
           // detail.html are — it is reached by drilling in from a card here.
           { href: 'abilities.html', label: '特性', desc: '314 種特性完整資料庫' },
+          // A planner, not another way to browse: it belongs after the three
+          // reference tables because it consumes them. Its own `pages` entry is
+          // required for the same reason 招式/特性 have one — the trigger has no
+          // href, so without it the reader gets a current page with no current
+          // nav row.
+          { href: 'team.html', label: '組隊規劃', desc: '6 隻隊伍的弱點、抗性與 STAB 覆蓋' },
         ],
       },
       {
@@ -1129,6 +1146,22 @@ export function initFooterNav(currentPage) {
 
   for (const el of document.querySelectorAll('[data-footer-nav]')) {
     el.innerHTML = columns;
+  }
+
+  initVersion();
+}
+
+/**
+ * Fill every `<span data-version>` with `SITE_VERSION`.
+ *
+ * It lives inside `initFooterNav()` rather than at module scope because a module
+ * side effect runs on every import, including pages that never mount a footer;
+ * and it is exported because a page that gains a footer without the nav grid
+ * should not have to re-implement it.
+ */
+export function initVersion() {
+  for (const el of document.querySelectorAll('[data-version]')) {
+    el.textContent = `v${SITE_VERSION}`;
   }
 }
 

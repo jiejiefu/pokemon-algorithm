@@ -192,3 +192,23 @@ It shipped that way on both the `有隱藏特性` badge and `.ab-chip[aria-press
 **THREE DEFECTS FOUND IN OTHER FILES WHILE BUILDING THIS, all pre-existing.** `today.html` still showed **783** moves in two places — the count from before `moves.html` started shipping all 919 — behind a 敬請期待 badge, and both rows were `<li>` rather than links because the pages they pointed at were "registered planned pages"; fixed here for 招式 as well as 特性, since the block is one shape. And `check_moves_page.mjs` + its harness **under-declared three inputs** (`form-names.js`, `form-names-zh.js`, `shiny-index.js`, all transitive through `shared.js`), which §4 calls out as "the run is green having verified nothing" — found by `--prove-inputs`, not by reading, and the same three lines were added to the abilities entry.
 
 ---
+
+<a id="ad"></a>
+
+## AD. `team.html` — Six Slots, Two Tallies, And One Horizontal Split
+
+**THE SLOT BODY IS HORIZONTAL, NOT DIAGONAL.** The reference planner splits its card corner-to-corner; this page splits it at 50%: `--tm-c1` above, `--tm-c2` below, a 1px `--tm-seam` across the middle. The rule is `linear-gradient(180deg, var(--tm-c1) 0 50%, var(--tm-c2) 50% 100%)` and the checker rejects a diagonal angle. **The tint is a veil, not a colour:** 18% `#0b1020` in dark and 22% `#f3f5fa` in light, so the type colour is still what a reader sees. The first pass used 62% and turned Electric into olive.
+
+**THE NAME BAR IS NOT WHITE.** It uses `typePair(primary)` from `shared.js` — the measured fill/ink pair — so 「皮卡丘」 on Electric and 「妙蛙種子」 on Grass both clear AA. The smoke run measured the Grass bar at **9.13:1** from the rendered colours. A token that reads dark in one theme can land on the wrong end of the fill in the other; §3.AC's `--on-accent` incident is the same mistake with a different pair.
+
+**THE TALLY HAS ONE COLUMN PER MEMBER, AND THE HEADER CHIPS SAY WHICH IS WHICH.** Each of the 18 rows can carry six marks. The header is one 22px sprite per member, in team order, sharing the rows' `92px 38px 1fr` grid and 3px gap; the smoke run found the first chip and the first mark at the **same `left` and the same 22px width**. A header built as a separate legend would align today and drift on the first padding change.
+
+**THE ID SEARCH IS EXACT, AND THAT IS THE BUG THE FIRST DRAFT SHIPPED.** `matchesQuery()` used `String(id).includes(query)`, so `025` matched `0250`–`0259`. It now compares the zero-padded form exactly and accepts only 1–4 digits. Name search stays folded and punctuation-insensitive, so `mrmime`, `mr mime` and `flabebe` all resolve.
+
+**THE URL KEEPS ITS COMMAS.** `URLSearchParams.set('team', …)` writes `?team=1%2C6%2C25`: the same URL to a parser, a different one to a reader. `writeUrl()` deletes the parameter, then assigns `search` with `team=${serializeTeamParam(ids)}`, so the documented `?team=1,6,25` survives while every unrelated parameter is preserved. A six-member load round-tripped `?team=1,4,7,25,39,133`. Parsing still goes through `parseTeamParam()`, which caps at six and drops duplicates.
+
+**`TEAM_LIMIT` HAS ONE HOME.** It is exported by `team-state.js`; `team-analysis.js` computes over whatever ids it is given and `team.js` imports the cap. A second `export const TEAM_LIMIT = 6` is the copy that survives until one of the two changes.
+
+**THE ROSTER IS SLIM ON PURPOSE.** `team_roster.json` is 1,025 records of `id`, `names`, `types`, `generation` and `regions` — 145,227 bytes, no stats, artwork or moves. The page needs the type chart and a sprite, not `pokemon_data.json`'s 2.8 MB. `build_team_roster.py` writes it from the master file; the checker asserts every record's regions are a subset of the declared list and that the list itself is in the canonical order, so a region rename cannot pass as a data refresh.
+
+**THE PAGE SHIPS NO BROWSER ENTRY, AND THAT IS A PRICED TRADE.** A one-shot headless run filled three and six slots and measured both halves, the seam, the name-bar contrast, the header alignment, the URL, the search, the light theme and the 390px grid; none of it is committed. What the suite keeps is **154 static checks plus 15 mutation cases**, which is the half that runs in 0.1 s and cannot see a rendered slot. §3.AC made the same trade for the same reason, and §4's rule applies unchanged: a green static run is not evidence for a rendered claim.
