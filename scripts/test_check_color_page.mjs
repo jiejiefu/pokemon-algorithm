@@ -227,8 +227,18 @@ const cases = [
     // section of the checker's own header describes. 圖鑑's `pages` has to list
     // category.html or the group renders collapsed on that page, taking the
     // aria-current it just gained with it — claimed and invisible at once.
+    //
+    // The anchor grew 'moves.html' when that page shipped, and the stale-anchor
+    // guard below caught the no-op on the next run rather than letting this case
+    // report 「checker exited 0」 — which is the same message the OTHER stale case
+    // was producing for a different reason (an anchor matching a COMMENT rather
+    // than code). Two cases, one message, two different bugs; only the guard
+    // tells them apart, and both are recorded at check_color_page.mjs's header.
     mutate: (f, s) => f.endsWith('shared.js')
-      ? s.replace("pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],", "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html'],")
+      ? s.replace(
+        "pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html'],",
+        "pages: ['pokedex.html', 'generations.html', 'collections.html', 'types.html', 'moves.html'],"
+      )
       : undefined,
     expect: 'the group does not list',
   },
@@ -378,7 +388,15 @@ const cases = [
   },
   {
     name: 'a planned row whose target PLANNED_PAGES does not list is a broken promise',
-    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("planned: 'moves.html'", "planned: 'moves2.html'") : undefined,
+    // Anchored to a planned row that still EXISTS in code. It used to be
+    // `moves.html`, and that case reported 「checker exited 0 — the invariant is
+    // not actually policed」 for a commit AFTER the row was removed, because the
+    // string had survived in two COMMENTS and the mutation was rewriting prose.
+    // The stale-anchor guard could not see it: the file did change. That is the
+    // one failure mode the guard does not cover, and it is the same one
+    // check_color_page.mjs's own header records against its `[^{}]*` selector
+    // walk — §3.S, and the reason both examples above name a live row.
+    mutate: (f, s) => f.endsWith('shared.js') ? s.replace("planned: 'abilities.html'", "planned: 'abilities2.html'") : undefined,
     expect: 'PLANNED_PAGES does not list',
   },
   {

@@ -588,6 +588,20 @@
       font-size: 0.8125rem;
       color: var(--text-muted);
     }
+    /* The one link inside a .type-detail-block. It sits in its own <p> rather
+       than inside chipRow()'s text because chipRow escapes its argument, and an
+       <a> handed to an escaper renders as the literal characters "&lt;a href".
+       That is the reason this is a separate paragraph and not a sentence with a
+       link at the end of it — the sentence is generated, the link is markup. */
+    .type-detail-link {
+      display: inline-block;
+      margin: -6px 0 14px;
+      font-size: 0.8125rem;
+      color: var(--accent-gold);
+      text-decoration: none;
+    }
+    .type-detail-link:hover { text-decoration: underline; }
+    .type-detail-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     /* Sub-heading inside a block: the "here are the ones that have an effect
        explanation" line. h4 so it stays under the block's h3 in the outline. */
     .type-detail-sub {
@@ -1203,6 +1217,7 @@
           <div class="type-detail-block">
             <h3>招式 <span class="fx-item-meta">${moves.length} 個</span></h3>
             ${chipRow('依威力排序，只列有寶可夢學得會的招式。')}
+            <p class="type-detail-note"><a class="type-detail-link" href="moves.html?type=${slug}">查看${escapeHtml(TYPE_EN_ZH[activeType] || '')}屬性的完整招式庫 →</a></p>
             <ul class="chip-grid">
               ${moves.map(m => `<li><span class="chip-item">
                 <span>${escapeHtml(m.zh)}</span>

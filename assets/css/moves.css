@@ -1,0 +1,397 @@
+/* ===== Moves pages =====
+ * Shared by moves.html and move.html only. Every rule is `mv-` prefixed, for
+ * the reason colors-generator.css documents: a page's own rules are mounted
+ * here and nowhere else, so neither page has to reach into the other's CSS and
+ * a fix cannot silently restyle something it was not written for.
+ *
+ * The `.move-*` classes are NOT reused even though detail.css defines them for
+ * the four learn tables. Those rules are sized for a species dossier column
+ * (detail.css, 736-900) and mounting them here would make this file's geometry
+ * a function of a page three files away — and detail.html would then be a
+ * dependency of moves.html for no reason. Where the two pages show the same
+ * THING (a move row), the same label tables do the work instead; where they
+ * show different things, the layout is genuinely different and duplicated on
+ * purpose.
+ */
+
+.mv-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+/* ---- hero ---- */
+
+.mv-hero {
+  margin-bottom: 24px;
+}
+.mv-hero h1 {
+  margin: 0 0 6px;
+  font-size: 1.75rem;
+  color: var(--text-primary);
+}
+.mv-hero-sub {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.mv-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mv-stat {
+  min-width: 96px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.mv-stat-value {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-variant-numeric: tabular-nums;
+}
+.mv-stat-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---- controls ---- */
+
+.mv-controls {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 14px 0 12px;
+  margin-bottom: 4px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.mv-search {
+  width: 100%;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+}
+.mv-search:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.mv-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.mv-chipgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.mv-chipgroup-label {
+  align-self: center;
+  margin-right: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.mv-chip {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.mv-chip:hover { background: var(--surface-hover); }
+.mv-chip[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-surface);
+}
+.mv-chip:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+.mv-resultline {
+  margin: 16px 0 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.mv-resultline strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ---- the table ---- */
+
+.mv-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.mv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.mv-table th {
+  position: sticky;
+  top: 0;
+  padding: 9px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.mv-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+.mv-table tbody tr:last-child td { border-bottom: none; }
+.mv-table tbody tr:hover { background: var(--surface-hover); }
+
+.mv-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mv-dash { color: var(--text-muted); }
+
+.mv-name {
+  display: block;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.mv-name:hover { text-decoration: underline; }
+.mv-name:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+.mv-en {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.mv-class {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+}
+.mv-class[data-class="physical"] { color: #f0a35e; border-color: rgba(240, 163, 94, 0.4); }
+.mv-class[data-class="special"]  { color: #7aa7f0; border-color: rgba(122, 167, 240, 0.4); }
+.mv-class[data-class="status"]   { color: #b0b8d4; border-color: var(--hairline-strong); }
+
+.mv-learners {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.mv-learners.is-none { color: var(--text-muted); }
+
+.mv-gen {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.mv-empty,
+.mv-status {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+/* --error-text, and deliberately not one of types.html's own chart tokens: that
+   page declares them inside its inline <style>, so a var() naming one from here
+   resolves to nothing and the whole declaration silently inherits
+   --text-muted — an error message that does not look like one. --error-text is
+   declared in shared.css for both themes, which is what a page that is not
+   types.html needs. */
+.mv-status.is-error { color: var(--error-text); }
+
+/* ===== move.html ===== */
+
+.mv-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.mv-panel {
+  padding: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.mv-panel + .mv-panel { margin-top: 16px; }
+
+.mv-detail h1 {
+  margin: 0 0 4px;
+  font-size: 1.625rem;
+  color: var(--text-primary);
+}
+.mv-detail-sub {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.mv-detail-sub .mv-en { display: inline; margin-left: 8px; }
+
+.mv-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 0.875rem;
+}
+.mv-facts dt { color: var(--text-muted); white-space: nowrap; }
+.mv-facts dd { margin: 0; color: var(--text-primary); }
+
+.mv-effect {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.mv-effect-source {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mv-section-title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+/* ---- learner tabs (move.html) ---- */
+
+.mv-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.mv-tab {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.mv-tab[aria-selected="true"] {
+  color: var(--text-primary);
+  border-color: var(--accent-gold);
+}
+.mv-tab:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+.mv-tab-count {
+  margin-left: 5px;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The panels carry tabindex="0" so a keyboard reader can scroll them, which
+   makes them focusable and gives them a focus ring. A class that exists only as
+   a `[hidden]` guard is a class nobody is maintaining — this is its geometry. */
+.mv-tabpanel:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.mv-learners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+.mv-learner {
+  display: block;
+  padding: 6px 4px;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.mv-learner:hover { background: var(--surface-hover); border-color: var(--hairline-strong); }
+.mv-learner:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+.mv-learner img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 4px;
+  image-rendering: pixelated;
+}
+.mv-learner-name {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/*
+ * The hidden rule is NOT merely a `hidden` attribute, for the reason
+ * shared.css:1599 spells out at `.site-nav-drawer[hidden]`. A UA sheet's
+ * `[hidden] { display: none }` loses to ANY author `display` at equal
+ * specificity, and every panel on these two pages is a grid or a block that
+ * declares one — so `element.hidden = true` would keep the box painted while
+ * `element.hidden` still reads `true`. §3.M measured that (inline `display:grid`
+ * + hidden -> computed `grid`, height 0), and the fix is the same everywhere.
+ */
+.mv-panel[hidden],
+.mv-tabpanel[hidden] {
+  display: none;
+}
+
+.mv-back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.mv-back:hover { color: var(--text-primary); text-decoration: underline; }
+.mv-back:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+/* ---- responsive ---- */
+
+@media (max-width: 860px) {
+  .mv-detail { grid-template-columns: minmax(0, 1fr); }
+  .mv-controls { position: static; }
+}
+
+@media (max-width: 560px) {
+  .mv-page { padding: 20px 14px 48px; }
+  .mv-hero h1 { font-size: 1.4375rem; }
+  .mv-table th, .mv-table td { padding: 7px 8px; }
+  .mv-learners-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .mv-learner img { width: 44px; height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mv-chip, .mv-tab, .mv-learner { transition: none; }
+}

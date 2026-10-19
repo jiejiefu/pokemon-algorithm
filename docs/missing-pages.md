@@ -7,8 +7,8 @@ but unbuilt renders as a non-focusable `<span>` carrying a
 control that does nothing when activated is worse than a non-focusable one
 (AGENTS.md gotcha 37).
 
-**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 15 entries
-are registered there and **all 15 are missing as files**; the `data` field
+**Source of truth: `PLANNED_PAGES` in `assets/js/shared.js`.** All 14 entries
+are registered there and **all 14 are missing as files**; the `data` field
 records whether the site's own data would already support the page, and the
 `why` field carries the specific gap. This file is the human-readable
 companion — do not treat it as authoritative, and if the two disagree, the
@@ -26,15 +26,24 @@ read; nothing in the suite reads this file.
 same commit that renamed the page to 顏色猜謎. The array means "linked or
 advertised but not built", and this slug was the only one of the sixteen that was
 built: its `why` had gone stale the same commit, claiming 「色帶已足夠作答，缺出題、
-計分與難度」 for three gaps the page closed at once. **The count is 15 and all 15
+計分與難度」 for three gaps the page closed at once. **The count is 14 and all 14
 really are absent as files** — re-checked with a loop over the slugs rather than
 trusted, because that sentence is the table's one load-bearing numeric claim and
 nothing in the suite reads this file to keep it honest.
 
+`moves.html` was then removed from both, and its `why` was the second kind of
+drift: **783 was already wrong before the page shipped.** `moves_zh.json` held
+782, because `fetch_moves.py` only shipped the moves the 1,025 reference, and
+PokeAPI has 919 non-shadow moves — the missing 137 are Z-moves, Max Moves,
+四季之符 and 掙扎. Shipping the page meant shipping all 919 and widening the
+effect text to cover them, so the promised page and the promised number moved
+together. It is a live `href` in NAV's 圖鑑 group now, alongside
+`move.html?move=<slug>` which carries no row of its own — the same arrangement
+`detail.html` has.
+
 | Slug | 標題 | Data | Gap |
 |---|---|---|---|
 | `abilities.html` | 特性 | present | `abilities_zh.json` 已有 284 筆中文名，缺彙整頁 |
-| `moves.html` | 招式 | present | `moves_zh.json` 已有 783 筆，缺可搜尋的瀏覽頁 |
 | `natures.html` | 性格 | **absent** | 連資料都沒有 — PokeAPI `/pokemon-species` 不帶 nature |
 | `type-chart.html` | 屬性相剋表 | present | 詳情頁已有相剋計算，缺獨立對照頁 |
 | `evolution-guide.html` | 進化指南 | present | `evolution_chains.json` 已有 541 條鏈，缺教學式呈現 |

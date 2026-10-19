@@ -176,7 +176,11 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // its content sections away. The bump being VISIBLE is the point: this pin is
 // what turns "a page quietly stopped being mentioned by NAV" into a red line
 // instead of a table of claims that quietly stopped covering it.
-const EXPECTED_NAV_PAGES = 21;
+// 21 -> 22 when moves.html shipped. `move.html` did NOT move it: that page is
+// reached by drilling in from a row, exactly as detail.html is, and neither
+// carries an aria-current claim for a reason — adding one would have been the
+// only page in the site marked 「current」 while it had no nav row to mark.
+const EXPECTED_NAV_PAGES = 22;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

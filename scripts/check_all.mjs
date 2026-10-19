@@ -924,15 +924,41 @@ const CHECKERS = [
       'assets/images/shiny/*',
     ],
   },
+  /* ---- moves.html / move.html ----
+   *
+   * The §3.G4 split: a stylesheet contract and a filter's arithmetic are checked
+   * by reading files off disk at ~0.2s, and the rendered half is a separate CDP
+   * entry. `browser: true` is what puts the second one in tier B; `needsServer`
+   * is set for the same reason as the nine other page checkers — the pages fetch
+   * their JSON over HTTP and a file:// load is a CORS failure, not a page.
+   *
+   * `manual: true` because the rendered half opens no repo file — the pages
+   * arrive from Live Server — so its input list is read off the HTML by hand and
+   * the runner prints the caveat instead of ticking the row (§4). */
   {
-    script: 'scripts/check_moves_data.mjs', group: 'data',
+    script: 'scripts/check_moves_page.mjs', group: 'nav',
     inputs: [
+      'moves.html', 'move.html',
+      'assets/css/moves.css',
+      'assets/js/moves.js',
+      'assets/js/shared.js',
       'assets/data/moves_zh.json',
-      'assets/data/learnsets.json',
+      'assets/data/move_learners_count.json',
+      'types.html',
+    ],
+  },
+  {
+    script: 'scripts/check_moves_page_browser.mjs', group: 'nav',
+    browser: true, needsServer: true, manual: true,
+    inputs: [
+      'moves.html', 'move.html',
+      'assets/css/moves.css',
+      'assets/js/moves.js',
+      'assets/js/shared.js',
+      'assets/data/moves_zh.json',
       'assets/data/move_learners.json',
       'assets/data/move_learners_count.json',
       'assets/data/pokemon_data.json',
-      'assets/js/moves.js',
     ],
   },
 

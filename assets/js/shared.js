@@ -740,7 +740,7 @@ export const NAV = [
     // has a header identical to collections.html, so it needs a row either way.
     // 色彩's three pages each have a row for the same reason; none of them ride
     // along on a group.
-    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html'],
+    pages: ['today.html', 'pokedex.html', 'generations.html', 'collections.html', 'category.html', 'types.html', 'moves.html'],
     groups: [
       {
         items: [
@@ -762,13 +762,18 @@ export const NAV = [
           // way of browsing the 1025 — you arrive to look up a matchup, not to
           // scroll a list.
           { href: 'types.html', label: '按屬性', desc: '18 種屬性與相剋表' },
+          // Was 計劃中 until moves.html shipped, and the count is now the real
+          // one: 919, not the 783 the planned row and docs/missing-pages.md both
+          // claimed. `move.html` is deliberately absent from `pages` — it is
+          // reached by drilling in from a row here and from types.html, exactly
+          // as detail.html is absent, so it carries no trigger and no row.
+          { href: 'moves.html', label: '招式', desc: '919 個招式完整資料庫' },
         ],
       },
       {
         title: '計劃中',
         items: [
           { label: '特性', desc: '284 種特性資料庫', planned: 'abilities.html' },
-          { label: '招式', desc: '783 個招式資料庫', planned: 'moves.html' },
           { label: '性格', desc: '25 種性格與能力修正', planned: 'natures.html' },
         ],
       },
@@ -905,7 +910,6 @@ export const NAV = [
  */
 export const PLANNED_PAGES = [
   { slug: 'abilities.html', title: '特性', why: '284 種特性散在各筆 abilities 欄位，缺的是彙整頁', data: 'present' },
-  { slug: 'moves.html', title: '招式', why: 'moves_zh.json 已有 783 筆，缺的是可搜尋的瀏覽頁', data: 'present' },
   { slug: 'natures.html', title: '性格', why: '25 種性格，連資料都沒有 — PokeAPI 的 /pokemon-species 不帶 nature', data: 'absent' },
   { slug: 'type-chart.html', title: '屬性相剋表', why: '詳情頁已有相剋計算，缺的是獨立對照頁', data: 'present' },
   { slug: 'evolution-guide.html', title: '進化指南', why: 'evolution_chains.json 已有 541 條鏈，缺的是教學式呈現', data: 'present' },
@@ -941,6 +945,16 @@ export const PLANNED_PAGES = [
   // docs/missing-pages.md, and nothing renders from it (collections.html reads
   // COLLECTION_GROUPS), so a stale row is invisible until someone reads the doc.
   // The page's own name now lives in NAV's 色彩 group — see the 顏色猜謎 row.
+  //
+  // `moves.html` WAS here too, and it was a different kind of stale: its `why`
+  // read 「moves_zh.json 已有 783 筆，缺的是可搜尋的瀏覽頁」, and 783 was wrong
+  // before the page shipped. The file held 782, because fetch_moves.py only
+  // shipped the moves the 1,025 reference; PokeAPI has 919 non-shadow moves and
+  // the difference is 137 Z-moves, Max Moves, sigils and Struggle. The gap named
+  // a number that was about to be wrong for a reason nobody had recorded, which
+  // is the sharper half of this precedent: a promised page should not be
+  // described by a figure that a later change invalidates. It now ships all 919
+  // and the NAV row reads that number, which is re-derived from the data.
 ];
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1055,11 +1069,20 @@ export function footerColumns(currentPage) {
   for (const item of NAV) {
     if (item.href === page) continue;
 
-    /* A planned row is one WITHOUT an href — `planned: 'moves.html'` — which is
-     * the same invariant `navRowHtml` relies on when it checks `.planned` first.
-     * Filtering on the missing href rather than on a group title means a group
-     * called anything else than 計劃中 still contributes its real links, so the
-     * derivation does not depend on a literal string NAV happens to use today. */
+    /* A planned row is one WITHOUT an href — `planned: 'abilities.html'` is the
+     * live example — which is the same invariant `navRowHtml` relies on when it
+     * checks `.planned` first. Filtering on the missing href rather than on a
+     * group title means a group called anything else than 計劃中 still contributes
+     * its real links, so the derivation does not depend on a literal string NAV
+     * happens to use today.
+     *
+     * Named after a row that still EXISTS, and that is the whole point of this
+     * comment having been edited: the example used to be `planned: 'moves.html'`,
+     * which stopped existing the day that page shipped, and a mutation harness
+     * anchored to that string went on mutating the COMMENT for a commit and
+     * reporting 「checker exited 0 — the invariant is not actually policed」.
+     * §3.S's shape, in the file written to prevent exactly this. An example in a
+     * comment is code to anything that greps for it. */
     const rows = item.groups
       ? item.groups.flatMap(g => g.items).filter(i => i.href)
       : item.href ? [{ href: item.href, label: item.label }] : [];

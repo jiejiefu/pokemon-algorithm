@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢招式大全 — 919 招式完整資料庫</title>
+  <meta name="description" content="寶可夢 919 個招式的完整資料庫：屬性、分類、威力、命中、PP、先制、對象與效果說明，可搜尋中文名、英文名與編號。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Blocking, inline, and before the stylesheet, same block and same reason as
+       every other page: the sticky filter bar must not flash the wrong palette. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/moves.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="mv-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <a href="pokedex.html">圖鑑</a> / <span aria-current="page">招式</span>
+    </nav>
+
+    <section class="mv-hero" aria-labelledby="mv-title">
+      <h1 id="mv-title">寶可夢招式大全</h1>
+      <p class="mv-hero-sub">
+        從第一世代的拍擊到第九世代，共 919 個招式。名稱與數值取自官方繁體中文資料，
+        效果說明 826 筆為原文、93 筆由簡體轉繁。點任何一列可以看細節與學會牠的寶可夢。
+      </p>
+      <div class="mv-stats" id="mv-stats"></div>
+    </section>
+
+    <div class="mv-controls">
+      <label class="sr-only" for="mv-search">搜尋招式</label>
+      <input
+        class="mv-search"
+        id="mv-search"
+        type="search"
+        placeholder="搜尋中文名、英文名或編號，例如 拍擊、thunderbolt 或 085"
+        autocomplete="off"
+        spellcheck="false">
+      <div class="mv-chiprow" id="mv-filters"></div>
+    </div>
+
+    <p class="mv-resultline" id="mv-resultline" role="status" aria-live="polite"></p>
+
+    <div class="mv-table-wrap" id="mv-table-wrap">
+      <p class="mv-status" id="mv-status">載入中…</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      MOVE_CLASS_ZH, MOVE_COLUMNS, TYPE_EN_ZH,
+      capitalize, typeBadgeSmHtml, initThemeToggle, initHeaderNav
+    } from './assets/js/shared.js';
+    import {
+      prepareMoves, filterMoves, loadMoves, loadMoveLearnersCount,
+      moveUrl, movePowerText, moveAccuracyText, moveNumber, moveIsLearnable
+    } from './assets/js/moves.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    /**
+     * The filter state lives in the URL, and that is a decision rather than a
+     * convenience. Every chip is a link a reader can copy to a friend, every
+     * filter survives a reload, and `moves.html?type=fire` is a real destination
+     * that types.html already links to — so the deep link is the same thing the
+     * filters build, not a second implementation of it.
+     */
+    const params = new URLSearchParams(location.search);
+
+    /**
+     * The accepted values are read from the data rather than restated. A chip
+     * set typed out next to the filter it filters is a second answer to the same
+     * question, and it goes stale the day a type is added — silently, because
+     * the stale list still parses and still renders.
+     */
+    let rows = [];
+    let counts = null;
+
+    const state = {
+      q: params.get('q') || '',
+      type: params.get('type') || null,
+      cls: params.get('class') || null,
+      generation: params.get('gen') ? Number(params.get('gen')) : null,
+      learnable: params.get('learnable') === '1' ? true : params.get('learnable') === '0' ? false : null
+    };
+
+    const els = {
+      search: document.getElementById('mv-search'),
+      filters: document.getElementById('mv-filters'),
+      stats: document.getElementById('mv-stats'),
+      resultLine: document.getElementById('mv-resultline'),
+      wrap: document.getElementById('mv-table-wrap'),
+      status: document.getElementById('mv-status')
+    };
+
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const dash = '<span class="mv-dash">—</span>';
+
+    /** PokeAPI's lowercase type slug -> the TitleCase key TYPE_EN_ZH is written with. */
+    function typeLabel(slug) {
+      const en = TYPE_EN_ZH[capitalize(slug)];
+      return en ? `${en}屬性` : slug;
+    }
+
+    function setParam(key, value) {
+      if (value === null || value === '' || value === undefined) {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+      const query = params.toString();
+      history.replaceState(null, '', query ? `?${query}` : location.pathname);
+    }
+
+    /* ---- filters ---- */
+
+    function chipRow(label, key, values, labelFor) {
+      const group = document.createElement('div');
+      group.className = 'mv-chipgroup';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', label);
+
+      const caption = document.createElement('span');
+      caption.className = 'mv-chipgroup-label';
+      caption.textContent = label;
+      group.appendChild(caption);
+
+      const pressed = key === 'learnable' ? () => String(state.learnable) : () => String(state[key]);
+      for (const value of values) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'mv-chip';
+        chip.dataset.filter = key;
+        chip.dataset.value = value == null ? '' : String(value);
+        chip.textContent = labelFor(value);
+        chip.setAttribute('aria-pressed', String(pressed() === chip.dataset.value));
+        chip.addEventListener('click', () => {
+          const next = pressed() === chip.dataset.value ? null : chip.dataset.value;
+          // Three key types, three conversions, and getting this wrong is
+          // silent: `learnable` and `gen` both go through Number() below, and
+          // Number('true') is NaN — a filter that matches every row and reads
+          // as working, because "nothing was excluded" is what an unfiltered
+          // list looks like. The learnability chip is booleans, the generation
+          // chip is numbers, and the type/class chips are strings.
+          if (key === 'learnable') {
+            state[key] = next === null ? null : next === 'true';
+          } else if (key === 'gen') {
+            state[key] = next === null ? null : Number(next);
+          } else {
+            state[key] = next === null || next === '' ? null : next;
+          }
+          setParam(key, state[key]);
+          render();
+        });
+        group.appendChild(chip);
+      }
+      return group;
+    }
+
+    function renderFilters() {
+      const types = [...new Set(rows.map(m => m.type))].sort();
+      const generations = [...new Set(rows.map(m => m.generation))].sort((a, b) => a - b);
+      const frag = document.createDocumentFragment();
+      frag.appendChild(chipRow('屬性', 'type', types, typeLabel));
+      frag.appendChild(chipRow(
+        '分類', 'class',
+        [...new Set(rows.map(m => m.class))].sort(),
+        cls => MOVE_CLASS_ZH[cls] || cls
+      ));
+      frag.appendChild(chipRow(
+        '世代', 'gen', generations,
+        gen => `第 ${gen} 世代 · ${rows.filter(m => m.generation === gen).length}`
+      ));
+      frag.appendChild(chipRow(
+        '可學性', 'learnable', [true, false],
+        v => (v ? '有寶可夢學得會' : '無寶可夢可學')
+      ));
+      els.filters.replaceChildren(frag);
+    }
+
+    /* ---- stats + result line ---- */
+
+    function renderStats() {
+      const learnable = rows.filter(moveIsLearnable).length;
+      const items = [
+        { value: rows.length, label: '招式' },
+        { value: learnable, label: '可學招式' },
+        { value: types_seen(), label: '屬性' },
+        { value: 9, label: '世代' }
+      ];
+      els.stats.replaceChildren(...items.map(item => {
+        const box = document.createElement('div');
+        box.className = 'mv-stat';
+        const value = document.createElement('span');
+        value.className = 'mv-stat-value';
+        value.textContent = item.value.toLocaleString('en-US');
+        const label = document.createElement('span');
+        label.className = 'mv-stat-label';
+        label.textContent = item.label;
+        box.append(value, label);
+        return box;
+      }));
+    }
+
+    function types_seen() {
+      return new Set(rows.map(m => m.type)).size;
+    }
+
+    /* ---- the table ---- */
+
+    function rowHtml(move) {
+      const count = counts?.[move.id];
+      const learners = count ? count.total : 0;
+      return `<tr>
+        <td class="mv-num mv-gen">${move.id}</td>
+        <td>
+          <a class="mv-name" href="${moveUrl(move)}">${esc(move.zh)}</a>
+          <span class="mv-en">${esc(move.en)}</span>
+        </td>
+        <td>${typeBadgeSmHtml(move.type)}</td>
+        <td><span class="mv-class" data-class="${esc(move.class)}">${esc(MOVE_CLASS_ZH[move.class] || move.class)}</span></td>
+        <td class="mv-num">${movePowerText(move) === '—' ? dash : esc(movePowerText(move))}</td>
+        <td class="mv-num">${moveAccuracyText(move.accuracy) === '—' ? dash : esc(moveAccuracyText(move.accuracy))}</td>
+        <td class="mv-num">${moveNumber(move.pp) === '—' ? dash : moveNumber(move.pp)}</td>
+        <td class="mv-learners${learners ? '' : ' is-none'}">${learners ? `${learners} 隻` : '無'}</td>
+      </tr>`;
+    }
+
+    function render() {
+      const visible = filterMoves(rows, state);
+      const active = Object.entries(state)
+        .filter(([, v]) => v !== null && v !== '')
+        .map(([k]) => k);
+
+      els.resultLine.innerHTML =
+        `顯示 <strong>${visible.length}</strong> / ${rows.length} 個招式` +
+        (active.length ? `　（已套用 ${active.length} 個篩選）` : '');
+
+      // The empty state replaces the table rather than hiding it: a filtered-to-
+      // nothing table with a heading row and no body reads as a failed load.
+      if (visible.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'mv-empty';
+        empty.textContent = '沒有符合條件的招式，換個關鍵字或放寬篩選。';
+        els.wrap.replaceChildren(empty);
+        return;
+      }
+
+      const table = document.createElement('table');
+      table.className = 'mv-table';
+      table.innerHTML = `<thead><tr>
+          <th scope="col">#</th>
+          <th scope="col">${MOVE_COLUMNS.move}</th>
+          <th scope="col">${MOVE_COLUMNS.type}</th>
+          <th scope="col">${MOVE_COLUMNS.class}</th>
+          <th scope="col">${MOVE_COLUMNS.power}</th>
+          <th scope="col">${MOVE_COLUMNS.accuracy}</th>
+          <th scope="col">PP</th>
+          <th scope="col">可學寶可夢</th>
+        </tr></thead><tbody>${visible.map(rowHtml).join('')}</tbody>`;
+      els.wrap.replaceChildren(table);
+      els.status.remove();
+    }
+
+    /* ---- boot ---- */
+
+    els.search.value = state.q;
+    els.search.addEventListener('input', () => {
+      state.q = els.search.value;
+      setParam('q', state.q);
+      render();
+    });
+
+    function status(message, isError) {
+      const p = document.createElement('p');
+      p.className = isError ? 'mv-status is-error' : 'mv-status';
+      p.textContent = message;
+      els.wrap.replaceChildren(p);
+    }
+
+    init().catch(err => {
+      // The file:// case is called out by name because it is the one failure a
+      // reader can act on, and the console error they would otherwise find says
+      // nothing about it. category.html sets the precedent.
+      console.error(err);
+      status(
+        `${location.protocol === 'file:' ? '這個頁面需要透過 HTTP 開啟（file:// 會被 CORS 擋下）。' : ''}載入招式資料失敗：${err.message}`,
+        true
+      );
+    });
+
+    async function init() {
+      // Two files, deliberately: the counts companion is 54 KB and answers 「N
+      // 隻可學」 on every row; the full 424 KB reverse index is move.html's job
+      // and loading it here would be 8x the payload for a number we already have.
+      const [moves, learnerCounts] = await Promise.all([
+        loadMoves(),
+        loadMoveLearnersCount()
+      ]);
+      counts = learnerCounts;
+      rows = prepareMoves(moves);
+
+      // A deep link can carry anything. An unrecognised value is dropped rather
+      // than rendered as a filter that matches nothing, because 「0 個招式」 with
+      // no reason is indistinguishable from a broken page.
+      for (const key of ['type', 'class']) {
+        if (state[key] && !rows.some(m => m[key] === state[key])) {
+          console.warn(`[moves] unknown ?${key}=${state[key]}, ignoring it`);
+          state[key] = null;
+        }
+      }
+      if (state.generation && !rows.some(m => m.generation === state.generation)) {
+        console.warn(`[moves] unknown ?gen=${state.generation}, ignoring it`);
+        state.generation = null;
+      }
+
+      renderStats();
+      renderFilters();
+      render();
+    }
+  </script>
+</body>
+</html>

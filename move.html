@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>招式 — 寶可夢演算法</title>
+  <meta name="description" content="寶可夢招式的完整資訊：屬性、分類、威力、命中、PP、先制、對象、效果說明，以及全 1025 隻寶可夢中學得會牠的名單。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/moves.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="mv-page">
+    <a class="mv-back" id="mv-back" href="moves.html">← 回到招式大全</a>
+
+    <p class="mv-status" id="mv-status">載入中…</p>
+
+    <div class="mv-detail" id="mv-detail" hidden>
+      <div>
+        <section class="mv-panel" aria-labelledby="mv-name">
+          <h1 id="mv-name"></h1>
+          <p class="mv-detail-sub">
+            <span id="mv-id"></span>
+            <span class="mv-en" id="mv-en"></span>
+          </p>
+          <dl class="mv-facts" id="mv-facts"></dl>
+        </section>
+
+        <section class="mv-panel" aria-labelledby="mv-effect-title">
+          <h2 class="mv-section-title" id="mv-effect-title">效果說明</h2>
+          <p class="mv-effect" id="mv-effect"></p>
+          <p class="mv-effect-source" id="mv-effect-source"></p>
+        </section>
+      </div>
+
+      <section class="mv-panel" aria-labelledby="mv-learners-title">
+        <h2 class="mv-section-title" id="mv-learners-title">
+          學會這個招式的寶可夢 <span class="mv-tab-count" id="mv-learners-total"></span>
+        </h2>
+        <div class="mv-tabs" id="mv-tabs" role="tablist" aria-label="學習方式"></div>
+        <div id="mv-panels"></div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      ASSETS, MOVE_CLASS_ZH, typeBadgeSmHtml,
+      pokemonDetailUrl, loadPokemonData,
+      wireRoving, initThemeToggle, initHeaderNav
+    } from './assets/js/shared.js';
+    import {
+      MOVE_TARGET_ZH, MOVE_CATEGORY_ZH, MOVE_AILMENT_ZH,
+      MOVE_LEARN_METHODS, MOVE_LEARN_METHODS_ZH, MOVE_EFFECT_SOURCE_ZH,
+      loadMoves, loadMoveLearners,
+      movePowerText, moveAccuracyText, moveNumber, movePairText, movePriorityText
+    } from './assets/js/moves.js';
+
+    initThemeToggle();
+    initHeaderNav();
+
+    /**
+     * The URL carries the PokeAPI slug, not the id. `?move=pound` is something a
+     * reader can read out loud, and `moves_zh.json` is keyed by id while every
+     * slug in it is unique — so the slug is the identifier that survives being
+     * pasted into a chat, and the id is not.
+     *
+     * An unknown slug renders an empty state naming the move, rather than
+     * falling back to move 1. "You asked for a move that does not exist" and
+     * "here is 拍擊" are the same HTTP 200 and very different pages, and picking
+     * the second one silently is how a typo turns into a confident answer.
+     */
+    const requested = new URLSearchParams(location.search).get('move');
+
+    const els = {
+      back: document.getElementById('mv-back'),
+      status: document.getElementById('mv-status'),
+      detail: document.getElementById('mv-detail'),
+      name: document.getElementById('mv-name'),
+      id: document.getElementById('mv-id'),
+      en: document.getElementById('mv-en'),
+      facts: document.getElementById('mv-facts'),
+      effect: document.getElementById('mv-effect'),
+      effectSource: document.getElementById('mv-effect-source'),
+      tabs: document.getElementById('mv-tabs'),
+      panels: document.getElementById('mv-panels'),
+      learnersTotal: document.getElementById('mv-learners-total')
+    };
+
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    /** A dash cell, kept out of the fact rows entirely — see the null note below. */
+    function fact(label, value) {
+      if (value === null || value === undefined || value === '' || value === '—') return '';
+      return `<dt>${esc(label)}</dt><dd>${value}</dd>`;
+    }
+
+    function fail(message, hint) {
+      els.status.className = 'mv-status is-error';
+      els.status.textContent = message;
+      if (hint) {
+        const p = document.createElement('p');
+        p.style.marginTop = '10px';
+        const a = document.createElement('a');
+        a.href = 'moves.html';
+        a.textContent = hint;
+        p.appendChild(a);
+        els.status.replaceChildren(els.status.firstChild, p);
+      }
+      els.detail.hidden = true;
+    }
+
+    init().catch(err => {
+      console.error(err);
+      fail(
+        `${location.protocol === 'file:' ? '這個頁面需要透過 HTTP 開啟（file:// 會被 CORS 擋下）。' : ''}載入失敗：${err.message}`
+      );
+    });
+
+    async function init() {
+      if (!requested) {
+        fail('這個頁面需要一個招式代碼，例如 move.html?move=pound。', '回到招式大全');
+        return;
+      }
+
+      const [moves, learners] = await Promise.all([
+        loadMoves(),
+        loadMoveLearners()
+      ]);
+
+      // The index is built from `en` because that is what the URL carries and
+      // what `en` is unique on. Built once per page load over 919 rows; the
+      // alternative — a slug -> id Map rebuilt on every lookup — is the same
+      // work done 919 times.
+      //
+      // The id is spread ONTO each row rather than kept as the Map key: the
+      // learner lookup below is `learners[String(move.id)]`, and a row taken
+      // straight out of Object.entries has no `id` of its own. It reads as
+      // `String(undefined)` → "undefined" → no learners → an empty panel, with
+      // no error anywhere, which is §3.I's shape one indirection down. The
+      // static checker reads this file and cannot see it; the rendered half
+      // found it on its first run by asserting the panel was non-empty.
+      const bySlug = new Map();
+      for (const [id, move] of Object.entries(moves)) {
+        if (id === '_meta') continue;
+        bySlug.set(move.en, { id: Number(id), ...move });
+      }
+
+      const move = bySlug.get(requested);
+      if (!move) {
+        fail(`找不到招式「${requested}」。`, '回到招式大全');
+        return;
+      }
+
+      // pokemon_data.json is 2.9 MB and the learner panel needs a name and a
+      // species for up to 1025 rows. It is loaded here rather than in the list
+      // page because this is the only page that renders a Pokémon at all.
+      const pokemon = await loadPokemonData();
+      const byId = new Map(pokemon.map(p => [p.id, p]));
+
+      document.title = `${move.zh} — 寶可夢招式大全`;
+      els.name.textContent = move.zh;
+      els.en.textContent = move.en;
+      els.id.textContent = `#${String(move.id).padStart(3, '0')}　第 ${move.generation} 世代`;
+
+      els.facts.innerHTML = [
+        fact('屬性', typeBadgeSmHtml(move.type)),
+        fact('分類', `<span class="mv-class" data-class="${esc(move.class)}">${esc(MOVE_CLASS_ZH[move.class] || move.class)}</span>`),
+        fact('威力', esc(movePowerText(move))),
+        fact('命中', esc(moveAccuracyText(move.accuracy))),
+        fact('PP', esc(moveNumber(move.pp))),
+        fact('先制', esc(movePriorityText(move.priority))),
+        fact('對象', esc(MOVE_TARGET_ZH[move.target] || move.target)),
+        fact('效果分類', esc(MOVE_CATEGORY_ZH[move.category] || '')),
+        // `ailment` and `drain`/`heal` are null for the whole of Generation 9
+        // because PokeAPI ships no meta for it — which is "no data", not "none".
+        // Rendering them anyway would print 「無」 for a move we simply have not
+        // looked up, and the fact() helper drops nulls so the row is absent.
+        fact('異常狀態', esc(MOVE_AILMENT_ZH[move.ailment] || '')),
+        fact('吸取', move.drain ? `${move.drain > 0 ? '＋' : ''}${move.drain}%` : ''),
+        fact('回復', move.heal ? `${move.heal > 0 ? '＋' : ''}${move.heal}%` : ''),
+        fact('攻擊次數', move.hits ? esc(movePairText(move.hits, ' 次')) : ''),
+        fact('持續回合', move.turns ? esc(movePairText(move.turns, ' 回合')) : '')
+      ].join('');
+
+      els.effect.textContent = move.effect;
+      // The provenance is on the page, not only in the data file. 93 of these
+      // sentences were machine-converted from Simplified, and a reader comparing
+      // one against InfoPoke deserves to know which side was edited.
+      els.effectSource.textContent = `文字來源：${MOVE_EFFECT_SOURCE_ZH[move.effectSource] || '未知'}`;
+
+      renderLearners(move, learners[String(move.id)] || {}, byId);
+
+      els.status.remove();
+      els.detail.hidden = false;
+    }
+
+    /**
+     * The four learn methods, each a grid of Pokémon.
+     *
+     * This is the INVERSE of detail.html's move tables: there the rows are
+     * moves and the subject is one species, here the rows are species and the
+     * subject is one move. The four tab keys and their labels come from the same
+     * module so the two pages cannot drift, but the markup is not shared —
+     * detail.html's tables are sized for a dossier column and `wireRoving` is
+     * reused rather than reimplemented so this is not a fourth tablist.
+     */
+    function renderLearners(move, slots, byId) {
+      const present = MOVE_LEARN_METHODS.filter(method => (slots[method] || []).length > 0);
+      // The count is DISTINCT species, not the sum of four lists. 473 of the 782
+      // moves are learned by at least one Pokémon through two methods, because
+      // learnsets.json is a union over every generation — so summing would
+      // overstate it and the reader cannot tell which of the two numbers was
+      // meant. The per-tab counts below are still the raw ones, which is what
+      // makes the tabs add up to more than the total.
+      const total = new Set(MOVE_LEARN_METHODS.flatMap(m => slots[m] || [])).size;
+      els.learnersTotal.textContent = total ? `共 ${total} 隻` : '';
+
+      const tabs = present.map((method, index) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'mv-tab';
+        tab.id = `mv-tab-${method}`;
+        tab.dataset.learnTab = method;
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-controls', `mv-panel-${method}`);
+        tab.setAttribute('aria-selected', String(index === 0));
+        tab.tabIndex = index === 0 ? 0 : -1;
+        tab.innerHTML = `${esc(MOVE_LEARN_METHODS_ZH[method])}<span class="mv-tab-count">${slots[method].length}</span>`;
+        els.tabs.appendChild(tab);
+        return tab;
+      });
+
+      const panels = present.map((method, index) => {
+        const panel = document.createElement('div');
+        panel.className = 'mv-tabpanel';
+        panel.id = `mv-panel-${method}`;
+        panel.dataset.learnTab = method;
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-labelledby', `mv-tab-${method}`);
+        panel.tabIndex = 0;
+        panel.hidden = index !== 0;
+
+        const grid = document.createElement('div');
+        grid.className = 'mv-learners-grid';
+        for (const pid of slots[method]) {
+          const species = byId.get(pid);
+          if (!species) continue;
+          grid.appendChild(learnerCard(species));
+        }
+        panel.appendChild(grid);
+        els.panels.appendChild(panel);
+        return panel;
+      });
+
+      if (present.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'mv-empty';
+        // Not 「沒有資料」. A Z-move, a Max Move and a sigil all land here, and
+        // the honest sentence is that no Pokémon in the current 1,025 learns it
+        // — which is a fact about the games, not a gap in this page.
+        empty.textContent = `沒有任何一隻寶可夢學得會${move.zh}。這是 Z 招式、極巨化招式或傳說秘技一類，本作圖鑑的 1,025 隻都不會學到。`;
+        els.panels.replaceChildren(empty);
+        els.tabs.remove();
+        return;
+      }
+
+      // `apply` receives the SELECTED BUTTON, not its key. Passing the element
+      // where a string was expected made `panel.dataset.learnTab !== element`
+      // true for every panel, so the click hid the one that was already hidden
+      // and unhid none — "0 panels shown" while aria-selected read perfectly.
+      // The signature is in wireRoving's docblock (`(active: Element) => void`)
+      // and this file got it wrong anyway, which is why the rendered half
+      // asserts the BOX after a real press rather than the attribute: the
+      // attribute was right the whole time.
+      wireRoving(tabs, 'aria-selected', button => {
+        const method = button.dataset.learnTab;
+        for (const panel of panels) panel.hidden = panel.dataset.learnTab !== method;
+      }, { activeClass: null, focusOnClick: true });
+    }
+
+    function learnerCard(species) {
+      const a = document.createElement('a');
+      a.className = 'mv-learner';
+      // §3.A: the one helper, never `detail.html?slug=` assembled here.
+      a.href = pokemonDetailUrl(species);
+      // ASSETS.images + filename is the species-sprite idiom, and it is
+      // detail.html's expression verbatim (detail.html:683). There is no shared
+      // spriteUrl() for species — the one in color-palette.js is colour-page
+      // territory — so this is the same construction, not a second convention.
+      a.innerHTML =
+        `<img src="${ASSETS.images}${species.filename}" alt="" loading="lazy" width="56" height="56">` +
+        `<span class="mv-learner-name">${esc(species.names?.zh || `#${species.id}`)}</span>`;
+      return a;
+    }
+  </script>
+</body>
+</html>
