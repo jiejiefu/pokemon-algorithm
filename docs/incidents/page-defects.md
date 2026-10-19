@@ -169,6 +169,8 @@ The mobile drawer rendered each group as a **748 × 366 px rounded pill** with i
 
 ---
 
+<a id="p"></a>
+
 ## P. maze.html Had No Checker, And Its Patrol Had Never Once Drawn A Path
 
 **THE PAGE HAD ZERO COVERAGE.** Nothing in the manifest mentioned the string `maze` — 51 entries, four pathfinding algorithms, two terrain modes and a four-leg patrol, and `rg maze scripts/` returned only files that happened to list `maze.html` among twenty other pages. This is §3.G4's shape with a longer tail: the sorting page got its checker when six blank canvases shipped, and maze.html waited because nobody was looking at it.
@@ -234,6 +236,8 @@ A load is the product of two independent choices — which Pokémon, and which w
 
 **Guarded by:** `check_maze_page.mjs` (188), behavioural half executes `starRun` over 5×5 and 7×7 fake grids; shape half is block-scoped to the function it names.
 
+<a id="q"></a>
+
 ## Q. Terrain Cost Is Rec.709 Luma — And That Is A Decision, Not An Omission
 
 `computeTerrainCost()` is two steps and **no colour space at all**: `alpha < 50 → Infinity`, `luminance = 0.2126R + 0.7152G + 0.0722B`, `cost = 1 + (255 − luminance)/255 · (maxCost − 1)`. Hue and saturation are discarded, so pure colours have a **fixed global order on every sprite**. Measured at `maxCost = 6`:
@@ -270,6 +274,8 @@ The three disagree **most in the darks**, which is weakness 1 below.
 
 **NOTHING GUARDS THIS**, and that is correct rather than an oversight: the model is a constant, not a claim with a threshold. What `check_maze_page.mjs` asserts is that `computeTerrainCost` is still the single cost function and that the page reads its alpha threshold from the module.
 
+<a id="r"></a>
+
 ## R. A Measurement Taken With A Different Resampler Produced The Opposite Answer
 
 **The claim that started this section was wrong, and the way it was wrong is the point.** An offline decoder (area-average downsample of the 475×475 sprite, RGB averaged including fully-transparent pixels) said #001 Bulbasaur's terrain endpoints were an isolated pixel: 914 passable cells, but only **1** reachable from the start, so the search would report 無解 on a solvable map.
@@ -287,6 +293,8 @@ The three disagree **most in the darks**, which is weakness 1 below.
 **The isolated pixel is real, but it is on the GOAL side, and the failure is different from the one claimed.** Those sprites have a passable region split into several components by semi-transparent edge speckle, and the bounding-box-corner rule puts start and goal in *different* ones — #904's start is in a 324-cell component and its goal in a **1**-cell component. A reader gets 「沒有找到可行路徑（可通行區域可能不連通）」 on a map that is perfectly solvable if the endpoints were chosen inside one component. **Fixed in [`#t`](#t).**
 
 **EXPECT THIS SHAPE WHENEVER A MEASUREMENT IS TAKEN WITH A DIFFERENT IMPLEMENTATION THAN THE ONE UNDER TEST.** The two differed in exactly one place — alpha handling — and that was enough to invert the answer. An area-average box filter treats a transparent pixel as a black pixel; Chrome's `drawImage` premultiplies. Same sprite, same 40×40, opposite conclusion, and **the offline version was the one that looked more thorough.**
+
+<a id="s"></a>
 
 ## S. `color.html`'s Header Was 55px Above A Frame That Is The Viewport
 
@@ -323,6 +331,8 @@ The `display:none`-on-the-mount assertion was written as `/\.cp-panel[^{}]*\{[^}
 **The 3px `--page-accent` rule did NOT move to the rail, and that is a decision.** The header's `border-top: 3px solid var(--page-accent)` went with it, so this page now has no top accent — asked for explicitly rather than assumed, because the alternative (hanging the identity line off the left column) would put a rule across the top of a frame the request was to start at y=0.
 
 **Guarded by:** `check_color_page.mjs` — no `<header>` in the page, no `.cp-app > .header` rule left behind, the mount id read from `shared.js` and found in the markup, the mount behind a guard rather than a `?.`, the button and the rail's `display: none` in the **same** media query, the mount positioned at ≤1023px, nothing hiding the mount, and the collapsed top row centred on `align-items`. Plus 8 mutation cases; `test_check_color_page.mjs` is at **61**.
+
+<a id="t"></a>
 
 ## T. The Terrain Endpoints Were The Extent Of The Specks, Not Of The Pokémon
 
@@ -379,6 +389,8 @@ Two things the checker found by writing the fixture wrong:
 
 **EXPECT THIS SHAPE WHENEVER A FIX IS DEFENDED BY A SINGLE NUMBER.** The right question was never "does this change the legs" but "can the leg's target be reached at all", and those two have nothing to do with each other.
 
+<a id="u"></a>
+
 ## U. A Poll That Cannot Survive The State It Is Polling For
 
 **THE FAILURE WAS A STACK TRACE 70 LINES FROM ITS CAUSE.** `check_sorting_page.mjs`'s finish poll read `!document.querySelector('.al-result').hidden` directly. `.al-result` is created at module scope and appended to the lane grid by `buildRace()` as its **last act** (`sorting.html:685`, after the lane cards at 672), so "the result row is not in the DOM yet" is a legitimate state. The poll threw a TypeError on it, `evalJs` rethrows, and the whole checker died — instead of its own assertion at line 972 reporting that the panel never appeared.
@@ -406,6 +418,8 @@ The read became a named `RESULT_PANEL_STATE` helper reporting `{ shown, present 
 **Not reproduced:** 3 standalone runs and 1 forced pooled run all passed. The condition is contention-dependent and was not produced on demand.
 
 ---
+
+<a id="v"></a>
 
 ## V. 精選分類 Filtered A Pile, And The Reason Was Three Lines That Are Correct In Isolation
 
@@ -477,7 +491,9 @@ The same change made `check_graph_browser.mjs:265` **unsatisfiable rather than f
 
 ---
 
-## W. The Hamburger Closed Itself In The Same Task It Opened — And `element.click()` Agreed With It
+<a id="n2"></a>
+
+## N2. The Hamburger Closed Itself In The Same Task It Opened — And `element.click()` Agreed With It
 
 `graph.html`'s collapsed header is the one control on the page whose entire affordance is a button, so "clicking it does not open the bar" is the whole report. It reproduced **5 of 5** with dispatched mouse events at the button's own measured centre and **0 of 5** with `element.click()`.
 
@@ -523,6 +539,8 @@ Both guards, not one: the live check still matters for keyboard-activated and sy
 ### The guard proves the three close paths survived
 
 A fix that only makes the button open is half a fix — closing the bar by dragging to orbit the camera is the defect §3.N's threshold exists to prevent, and a regression there is invisible to "the button opens". `check_graph_browser.mjs` now dispatches real presses for all of it: 3 open/close rounds plus the nav's computed `visibility`, a canvas click that must close, an 80px orbit drag that must **not**, and Escape. **Reverting the one-line guard fails 8 of those assertions** — verified by reverting and re-running, because a guard nobody has seen fail is a claim rather than a check.
+
+<a id="x"></a>
 
 ## X. 兩個頁面在手機上，控制欄在主內容之上——而且沒有任何東西量過那個寬度
 
@@ -647,3 +665,24 @@ checker 印完 `PASS` 之後坐著不動超過 200 秒，原因是 DevTools 的 
 **二、一個 case 停下來了，而它的意圖還在。** 「單子元素 `.sp-hero-head`」那一案改寫的目標字串是 `<section class="sp-hero">` 後面接一個裸 `<h2>`，而那段 markup 已經不存在了。**修法是保留意圖、把 mutation 換一個方向**：讓那一列失去播放鍵，回到只有一個子元素。順帶得到一個好結果——同一個形狀現在從兩個方向都會讓斷言變紅。
 
 **三、三參數的呼叫被兩參數的簽名吃掉。** `check_cry_mobile_layout.mjs` 裡有二十處寫成 `ok(cond, label, detail)`，而 `ok` 是 `(cond, what)`——**JavaScript 默默接受，於是每一處都只印出一個短標籤，把它剛剛量到的數字丟掉**。§3.G9 的「訊息要么引用具名常數、要么引用一個謊」被違反，而症狀只有失敗訊息裡的 `undefinedpx`。改成可變參。
+
+---
+
+<a id="h1"></a>
+
+## H1. `types.html`'s Roster Grid — Equal Tracks Are Not Equal Cards
+`types.html?type=fire` lists 81 species in `.chip-grid`, and every one of the three blocks on the page shares that class with `.chip-item`. The roster was given **equal-width columns**, a **stacked card** (icon above name) and a **larger icon** — 40px desktop, 32px below 560px.
+
+**THE FIRST MEASUREMENT FOUND A DEFECT THAT EVERY OTHER NUMBER MISSED, and it is the shape §3.G3 records for the race lanes.** The grid reported 12 columns, 7 rows and 586px — **all three correct** — while every card inside them was **60px wide in a 96.7px track**. The cause is structural rather than a typo: **the grid item is the `<li>`, and the anchor inside it is `inline-flex`, which sizes to its CONTENT.** `auto-fill` divided the row into equal tracks and nothing told the cards to occupy them, so the two were free to disagree. `.chip-grid--roster > li { display: flex }` plus `flex: 1` on the card is the fix, and **the assertion that matters is `fill > 0.98` over every card** — not "12 columns", a number that goes stale the day the font changes.
+
+**SO THE FIRST ASSERTION IS A RATIO AND THE COLUMN COUNT IS NOT AN ASSERTION AT ALL.** It is reported, because the reader of the note below needs it, but nothing requires it to stay 12.
+
+- **THE SCOPE IS ASSERTED IN BOTH DIRECTIONS, and the mechanism half found two vacuous assertions on arrival.** 招式 and 特性 are lists of short pills that want content-sized widths, so every one of the roster's declarations sits behind a `--roster` modifier. `check_types_browser.mjs` asserts the CONSEQUENCE — that those two blocks are still flex rows **whose card widths still differ by 56px** — and `check_moves_page.mjs` asserts the MECHANISM. Both halves are needed because a mutation that adds `flex: 1` to the shared `.chip-item` is caught by one and not the other.
+- **`Math.abs(value + 25) < 3` WAS SATISFIED BY `-23`,** the value it exists to forbid. The tolerance was written to allow for measurement noise and -23 is 2 away. **A tolerance wide enough to absorb the regression is not a tolerance**; the measurement spans 25.0 / 25.4 / 25.8 across three box sizes, so 1% covers all three and excludes both neighbours.
+- **AN EXISTENCE CHECK WAS SATISFIED BY THE VERY THING IT FORBIDS.** `/\.chip-grid--roster \{…\}/` stayed green when that rule was renamed `.chip-grid`, because a dozen other rules still carried the modifier. It now asks which rule declares `display: grid`. Both were found by `test_check_moves_page.mjs` and **neither was findable by reading the assertion.**
+- **A REGEX THAT NAMES A SELECTOR CAN MATCH A DIFFERENT RULE, and the baseline gate is what caught it.** `object-fit: contain` lives in its own rule; the pattern took the first match on that selector, which is the rule above it setting `width`/`height`, and failed on a correct page — **§3.P's shape with the polarity reversed**, a pattern too eager rather than too lazy. Every rule on the selector is now collected. The harness failed the run because its **baseline** was red before it looked at a mutation, and that is the one assertion in the file a mutation cannot attack.
+- **`ctx.drawImage(img)` CANNOT SEE A CSS TRANSFORM, and a delta measurement is worthless if one half of it goes through a canvas.** The offset was measured by toggling `transform` and re-drawing: **0.0px**, because a transform is applied by the rendering pipeline and `drawImage` reads the image's own pixels. The shift now comes from `getBoundingClientRect()`, which does reflect transforms, and the artwork's own bottom-anchoring comes from the canvas. **Their composition is the claim, and neither half has to model `object-fit` to be correct** — an earlier single-position version had to, and reported **78%** for a box whose subject is centred.
+- **`-23%` WAS CORRECTED TO `-25%`, and it had been carried in a comment for a long time.** The old figure came from one 28px reading of one image; drawing each set to a 28 / 56 / 96px canvas and taking the alpha bounding box puts the SV subject **25.0 / 25.4 / 25.8%** of the box below the sprite's. **Size needs no correction** — median subject 15×14px for SV against 16×14 for the sprites, both 27% ink — **so only the vertical anchor is off.** `move.html` keeps the opposite behaviour deliberately (§3.E): its card puts the image on its own row, there is nothing to line up against, and the user chose the bottom-anchored framing. **Both pages now cite the same measurement and disagree on purpose.**
+- **THE OTHER TWO BLOCKS ARE ASSERTED BY A SPREAD, not by a declaration.** "Content-sized" is not readable off `display: flex`; what is readable is that their card widths **differ from each other**, which equal columns would have removed. §3.B1's rule restated: a rule shaped for one block must not leak onto its two siblings.
+
+**Guarded by:** `check_types_browser.mjs` (51 checks, ~5 s, one Chrome, `browser: true` / `needsServer: true` / `manual: true`, group `type`) for the geometry, plus `check_moves_page.mjs` (191 checks) and `test_check_moves_page.mjs` (33 cases, six of them new) for the mechanism.

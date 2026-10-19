@@ -924,6 +924,16 @@ const CHECKERS = [
       'assets/images/shiny/*',
     ],
   },
+  /* ---- AGENTS.md itself ----
+   *
+   * AGENTS.md is context loaded every session, and its §3 had grown back into a
+   * full second copy of docs/incidents/. This entry keys on the file and the
+   * incident docs it links into, so an over-large section or a dangling
+   * §3-background anchor is caught by the same run that reads it. */
+  {
+    script: 'scripts/check_agents_size.mjs', group: 'nav',
+    inputs: ['AGENTS.md', 'docs/incidents/*'],
+  },
   /* ---- moves.html / move.html ----
    *
    * The §3.G4 split: a stylesheet contract and a filter's arithmetic are checked
