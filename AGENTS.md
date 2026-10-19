@@ -55,6 +55,7 @@
 | `cry-game.html` | 10-question, 4-option cry-guessing game; difficulty is a measured similarity ceiling — §3.Y |
 | `types.html` | Type chart + per-type browser. The ONLY place the effectiveness matrix appears — §3.D, §3.H |
 | `moves.html` | All 919 moves, searchable + filterable, every filter in the URL — §3.AA |
+| `abilities.html`, `ability.html` | 314 abilities, searchable + filterable; `ability.html` gives the effect and the 常見/隱藏 holder split — §3.AC |
 | `move.html` | One move: stats, effect text, and which of the 1,025 learn it — §3.AA |
 | `category.html` | Collection-list template, `?cat=<slug>`. Never links to `types.html` — §3.H |
 | `collections.html` | Collections hub: 11 cards in 4 groups, 2 `upcoming` |
@@ -91,6 +92,7 @@ pokemon-algorithm/
 | `fetch_gen1_cries.py` | `gen1_cries.json`, `gen1_cry_sfx.json` |
 | `fetch_evolution_levels.py` | `evolution_levels.json` (§3.K) |
 | `fetch_moves.py` | `moves_zh.json`, `learnsets.json`, `move_learners.json`, `move_learners_count.json` (§3.AA). The two learner indexes are written **compactly** while the other two are `indent=2`, for the reason the script's own comment gives: neither is ever hand-edited, and the formatting tax would make the index a quarter the size of the 4.4 MB file it exists to avoid fetching |
+| `fetch_abilities_detail.py` | `abilities.json`, `ability_species.json` (§3.AC). Both are `indent=2`; the holder index is 379 KB and never hand-edited either, and it is written **after** `abilities.json` in the same pass so the two cannot disagree about a count |
 | `analyze_cries.py` | `cry_features.json` (§3.G1) |
 | `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
@@ -976,6 +978,31 @@ Asked and answered, so it does not have to be re-litigated: **do not merge `move
 
 ---
 
+### AC. `abilities.html` / `ability.html` — 314 特性, And The Holder Map Cannot Come From Our Own Roster
+
+Two pages, split because §3.AB's rule says so: 314 records, and the list wants filter + search + URL state while the detail wants an effect and a species roster. **`ability.html` carries no nav row**, exactly as `move.html` and `detail.html` do — it is reached by drilling in from a card, and `check_abilities_page.mjs` asserts that absence, because an assertion that a name is *present* cannot express "must not be" (§3.W's `role="img"` lesson).
+
+**THE USER CHOSE 374 AND THE ANSWER IS 314, and the gap is not a preference.** PokeAPI holds 374 abilities; the 60 at id ≥ 10001 have **no name in any language, no effect text in any language, and zero holders anywhere in the API**. They are the ability-side twin of `fetch_moves.py`'s `SHADOW_BLOCK_START`, and §3.AA's rule is applied verbatim: **excluded by id, with the REASON asserted** — the fetcher measures and reports all three zero counts, so the day upstream gives one of those rows a name, a description or a holder, the block has to be re-admitted rather than silently dropped again. Shipping 60 blank rectangles would have put a 16% hole in a page whose entire subject is the description.
+
+- **THE HOLDER MAP IS READ FROM POKEAPI AND CANNOT BE INVERTED FROM `pokemon_data.json`.** Our roster references 284 of the 314; the 30 it does not are **form-exclusive** — 原始大地 belongs to Primal Groudon, 對決 to Mega Evolutions, battle-bond to Greninja-Ash. `pokemon_data.json` cannot supply them: **Groudon and Zacian both carry `forms: []`**, and the one forme record it does keep (Gyarados, `{id, base_id, form, name_en, filename}`) **has no `abilities` field**. So `ability_species.json` is built from PokeAPI's `ability[].pokemon[]`, and the guard that keeps it honest is the round-trip in `check_abilities_data.mjs`: every (species, ability) pair `pokemon_data.json` claims must appear in the index with the right hidden flag.
+- **THE BASE SPECIES IS RESOLVED BY `species.id`, NEVER BY MATCHING NAMES — and the first attempt matched names.** `/pokemon/{name}` returns `species` as a *stub*, so the id is the trailing number of its URL (what `fetch_moves.py`'s `resource_id()` already does). Name matching looked like missing data rather than like a wrong key: **14 ordinary species fail it**, PokeAPI's `amoonguss` against our `"Amoongus"` — a one-letter typo in `pokemon_data.json` — plus `farfetchd` against `"Farfetch'd"` and ten more. Nothing in the output looked wrong; the abilities those 14 hold were just quietly reported as form-only holders.
+- **`pokemon_data.json` HAS A REAL SPECIES-NAME TYPO, and it is not fixed here.** `#591` is `"Amoongus"`. PokeAPI's id 591 is `amoonguss`. **Every PokeAPI-based lookup on that species misses it by name**, and the site's own slug is `amoongus`, so `detail.html?slug=amoonguss` is a dead link. It is left alone deliberately: `pokemon_data.json` is generated by `enhance_pokemon_data.py` from `data-sources/`, and §5's rule is that the fix belongs in the generator — a key corrected by hand has a lifetime of one regeneration. **This is the one defect found while building this page that is NOT fixed**, and it is the reader-visible kind.
+- **THE ROW CARRIES THE ROSTER'S OWN `nameEn`, NOT POKEAPI'S SLUG, because the canonical slug helper disagrees with PokeAPI for 14 species.** `pokemonSlug()` turns `"Farfetch'd"` into `farfetch-d` while PokeAPI calls the species `farfetchd`; storing PokeAPI's string would dead-link 14 species. `nameZh` rides along so the holder grid is not a page of English names. **14 dead links is the number that matters — each is a card that renders and goes nowhere.**
+- **THREE COUNTS MEAN THREE DIFFERENT THINGS AND THE PAGE MUST NOT CONFLATE THEM.** `holders` counts PokeAPI Pokémon including formes (**47** for 威嚇), `speciesCount` counts distinct base species (**37**), and `formCount` is the difference. Asserting only one passes a page printing 「47 隻寶可夢」 for an ability 37 species actually have.
+- **THE EFFECT SENTENCE HAS TWO PROVENANCES, AND THE SPLIT IS NOT A ROUND NUMBER.** 267 of 314 carry PokeAPI's zh-hant flavour text; **47 carry no Chinese effect at all** and fall back to `effectEn`, which is PokeAPI's English kept in **its own field** — §3.D's `blurbEn` rule, because merging English into `effect` would pass it off as our translation and shipping the row blank would print nothing on 15% of the page. **`s2twp` fires 0 times** and the row is pinned at 0 rather than deleted, so the first ability that does convert turns the checker red instead of silently switching provenance under a page that renders two languages. **Three abilities have no Chinese NAME** (`eelevate`, `fire-mane`, `aura-guard`) and render `nameEn` with a visible italic marker — three is a measured number, not a list of things someone remembered.
+- **ONE ABILITY SHIPS WITH NO HOLDER AT ALL, and the empty state is the honest one.** 面影輝映 belongs to a Terastallized Ogerpon, which PokeAPI has no Pokémon record for. It is a real ability with a real description, so it stays; a hard `speciesCount >= 1` would delete it, and §3.AA's rule is that a named exception list is for upstream quirks, never for our own omission.
+- **A BASE SPECIES CAN LEGITIMATELY APPEAR UNDER BOTH FLAGS, and folding by `baseId` alone invented a conflict.** Rock Head is Kantonian Marowak's REGULAR ability and Alolan Marowak's HIDDEN one, so the index carries `marowak`, `marowak-alola` and `marowak-totem` — **three rows, one `baseId`, two flags**. `splitAbilityHolders()` folds by base species and marks it hidden once any forme is, keeping the forme names so the page can say *why*. **The checker matches the (baseId, isHidden) TRIPLE**: collapsing to one row per baseId and keeping the last fails on 857 pairs that are all correct.
+- **HIDDENNESS IS `slug === hidden_ability`, NOT "came from the `abilities` list"** — a species lists its hidden ability in BOTH arrays (Houndstone: `["sand-rush","fluffy"]` with `hidden_ability: "fluffy"`, and PokeAPI agrees: fluffy is slot 3). Deriving hiddenness from which array a slug was found in fails on 857 correct pairs, **which is how a checker teaches its reader to ignore it**.
+- **`abilities.css` IS `ab-`-PREFIXED AND MOUNTED ON THESE TWO PAGES ONLY**, for §3.B1's reason. It must not use `--page-accent`: shared.css declares it on the `.header-*` modifiers, so in a body it resolves to the inherited value and reads as a colour that happens to be wrong. **The check reads the comment-stripped copy**, because the file's own header comment names the token to explain the ban — §3.S's fix again. The holder images carry **no `image-rendering`**, for §3.E's reason: the house convention is for *upscales*, and 96→56 is a downscale by a non-integer factor.
+
+**THE PAYLOAD SPLIT IS ASSERTED IN BOTH DIRECTIONS.** `abilities.html` loads `abilities.json` (135 KB) only — **every count it prints is already baked in**, and loading the 379 KB holder index would be 8× the payload for a number it already has. `ability.html` adds the index and **neither page loads `pokemon_data.json` (2.8 MB)**, because the index carries the name and the id the holder grid needs. §3.AB's reasoning applied one level down: the split is only defensible because the half that stays is genuinely unnecessary.
+
+**Guarded by:** `check_abilities_data.mjs` (18,838 checks, 0.1 s — provenance split, count arithmetic re-derived from the index, the (baseId, isHidden) round-trip against `pokemon_data.json`, and name agreement with `abilities_zh.json`) + `check_abilities_page.mjs` (53 checks, 0.1 s — **which RUNS `filterAbilities()` over all 314 rows and `splitAbilityHolders()` over the Rock Head case**, because §3.P's lesson is that a query inside a page's `<script type="module">` block can be checked by nothing but its text). **There is no browser entry, and that is a priced trade rather than an oversight**: one Chrome smoke run over both pages found nothing the static half could not also assert, so a CDP entry would be a cost with no defect behind it. **What is given up is named:** nothing here can see a card render, so a broken stylesheet or a `.ab-card` that never paints is caught by a human and not by the suite. §3.Z prices that trade the same way.
+
+**THREE DEFECTS FOUND IN OTHER FILES WHILE BUILDING THIS, all pre-existing.** `today.html` still showed **783** moves in two places — the count from before `moves.html` started shipping all 919 — behind a 敬請期待 badge, and both rows were `<li>` rather than links because the pages they pointed at were "registered planned pages"; fixed here for 招式 as well as 特性, since the block is one shape. And `check_moves_page.mjs` + its harness **under-declared three inputs** (`form-names.js`, `form-names-zh.js`, `shiny-index.js`, all transitive through `shared.js`), which §4 calls out as "the run is green having verified nothing" — found by `--prove-inputs`, not by reading, and the same three lines were added to the abilities entry.
+
+---
+
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
@@ -1025,6 +1052,8 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `today.html` (今日推薦) | `--only=nav` **plus** `--only=color` **plus** `--only=home` | the daily pick, the 熱門 grid and the 精選系列 counts are enforced by `check_color_daily.mjs` and `check_categories.mjs`, both of which read this file rather than index.html — **and `check_home_hero.mjs` reads it too**, which is the reason this row was wrong until §3.I1: two of the three groups that own a page are not the ones its own table suggests |
 | `moves.html`, `move.html`, `assets/js/moves.js`, `assets/css/moves.css` | `node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs` | **name them, not `--only=nav`** — §3.AA, and `nav` now contains a 28 s browser checker. The two named entries are 0.1 s and 0.2 s and cover the data and the source; add `node scripts/check_moves_page_browser.mjs` (28 s, one Chrome) **only when the change is a rendered claim** — a filter, a `[hidden]`, a tab |
 | `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `node scripts/check_moves_data.mjs` | 127,868 checks at 0.1 s. `scripts/fetch_moves.py` writes all four in one pass, so they are never out of step with each other |
+| `abilities.html`, `ability.html`, `assets/js/abilities.js`, `assets/css/abilities.css` | `node scripts/check_abilities_page.mjs` | 53 checks at 0.1 s — §3.AC. **No browser entry**, unlike the moves pair, so nothing here can see a card render; that is the priced trade, not an oversight |
+| `abilities.json`, `ability_species.json` | `node scripts/check_abilities_data.mjs` | 18,838 checks at 0.1 s. `scripts/fetch_abilities_detail.py` writes both in one pass, and the (baseId, isHidden) round-trip against `pokemon_data.json` is what stops the index becoming a second source of truth |
 | `types.html`, `assets/css/types*` | `--only=type` | five entries, and one of them is a browser — §3.H1, which added `check_types_browser.mjs` to a group that had none. `types.html` also filters its per-type move list to moves something can learn and links out to `moves.html?type=<slug>` (§3.AA) |
 | `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo` | four entries, and only `check_life_browser.mjs` costs anything — **§3.P.** This row is new because the page had **no checker at all** until then, so the mapping itself was missing rather than the entry |
 | `sv-index.js`, `sv-sources.json`, `types.html`, any `assets/images/**` | `--only=type` | |
@@ -1118,7 +1147,21 @@ python scripts/fetch_breeding_data.py
 python scripts/fetch_regional_dex.py
 
 # 5. Abilities: Fetch official Traditional Chinese ability names
-python scripts/fetch_abilities.py
+    #     Roster-scoped: 284 slugs, read from pokemon_data.json rather than
+    #     hardcoded. Still the source of the NAMES four pages consume.
+    python scripts/fetch_abilities.py
+
+# 5b. Ability detail: the effect sentence, the generation, and the holder map.
+#     Writes TWO files in one pass — assets/data/abilities.json (314 rows:
+#     nameEn/nameZh/effect/effectEn/generation/speciesCount/formCount) and
+#     assets/data/ability_species.json (slug → holder rows, 379 KB). They
+#     cannot be out of step because one pass writes both. 374 - 60 internal
+#     block; 267 rows of Chinese effect and 47 English-only fallbacks.
+#     --dry-run reports the provenance split and the excluded block's reason
+#     without writing. Needs the venv (httpx + OpenCC), same as step 7.
+python scripts/fetch_abilities_detail.py --dry-run
+python scripts/fetch_abilities_detail.py
+node scripts/check_abilities_data.mjs
 
 # 6. Form Names: Scrape official zh-TW names for Pokémon forms
 python scripts/fetch_form_names.py
