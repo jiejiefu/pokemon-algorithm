@@ -25,6 +25,7 @@
     })();
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/home-sections.css">
   <style>
     body { display: flex; flex-direction: column; min-height: 100vh; }
     main { flex: 1; }
@@ -245,6 +246,13 @@
       margin: 26px 0 0;
       font-size: 13px;
       color: #d7dbee;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+    }
+    .home-hero-scroll-hint:hover,
+    .home-hero-scroll-hint:focus-visible {
+      color: #fff;
+      border-bottom-color: currentColor;
     }
     .home-hero-scroll-chevron { animation: home-hero-bob 1.8s ease-in-out infinite; }
     @keyframes home-hero-bob {
@@ -295,9 +303,9 @@
             <a class="home-hero-btn is-primary" href="pokedex.html">開始探索</a>
             <a class="home-hero-btn" href="today.html">今日推薦</a>
           </div>
-          <p class="home-hero-scroll-hint">向下捲動播放
+          <a class="home-hero-scroll-hint" href="#showcase-title">往下捲動，看演算法自己跑
             <svg class="icon home-hero-scroll-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
-          </p>
+          </a>
         </div>
       </div>
     </section>
@@ -327,6 +335,54 @@
         <li><span class="home-hero-stat-num">9</span><span class="home-hero-stat-label">個世代</span></li>
         <li><span class="home-hero-stat-num">6</span><span class="home-hero-stat-label">種排序演算法</span></li>
       </ul>
+    </section>
+
+    <section class="home-section" id="showcase" aria-labelledby="showcase-title">
+      <h2 id="showcase-title" class="home-section-title">演算法，自動上演</h2>
+      <p class="home-section-sub">兩種經典問題、兩種呈現方式 — 不用按任何按鈕，排序和路徑搜尋就自己跑給你看，用的是跟完整版一模一樣的演算法引擎。</p>
+      <div class="home-showcase-grid">
+        <div class="home-showcase-card">
+          <div class="home-showcase-head">
+            <h3>排序視覺化</h3>
+            <span class="home-showcase-caption" id="showcase-sort-caption">載入中…</span>
+          </div>
+          <div class="home-showcase-stage" id="showcase-sort-stage" aria-hidden="true"></div>
+          <a class="home-showcase-link" href="sorting.html">完整版：6 種排序 × 1,025 隻寶可夢，含音效與賽跑模式 →</a>
+        </div>
+        <div class="home-showcase-card">
+          <div class="home-showcase-head">
+            <h3>路徑尋找視覺化</h3>
+            <span class="home-showcase-caption" id="showcase-maze-caption">載入中…</span>
+          </div>
+          <div class="home-showcase-stage" id="showcase-maze-stage" aria-hidden="true"></div>
+          <a class="home-showcase-link" href="maze.html">完整版：BFS / DFS / Dijkstra / A*，精靈當地形 →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" id="game" aria-labelledby="game-title">
+      <h2 id="game-title" class="home-section-title">換你來挑戰 A*</h2>
+      <p class="home-section-sub">每次進來，寶可夢和地形都不一樣。用方向鍵或下面的按鈕，看你能不能比 A* 更快走到終點。</p>
+      <div class="home-game-wrap">
+        <div class="home-game-stage" id="game-stage"></div>
+        <div class="home-game-side">
+          <p class="home-game-terrain" id="game-subtitle">正在挑選寶可夢…</p>
+          <p class="home-game-status" id="game-status" role="status" aria-live="polite">正在挑選寶可夢並生成地形…</p>
+          <div class="home-game-actions">
+            <button class="btn" type="button" id="game-start" hidden>開始挑戰</button>
+            <button class="btn" type="button" id="game-again" hidden>再玩一次</button>
+          </div>
+          <div class="home-game-pad" id="game-pad" role="group" aria-label="方向控制">
+            <button type="button" class="home-game-pad-btn" data-dir="0,-1" aria-label="往上移動">↑</button>
+            <div class="home-game-pad-row">
+              <button type="button" class="home-game-pad-btn" data-dir="-1,0" aria-label="往左移動">←</button>
+              <button type="button" class="home-game-pad-btn" data-dir="0,1" aria-label="往下移動">↓</button>
+              <button type="button" class="home-game-pad-btn" data-dir="1,0" aria-label="往右移動">→</button>
+            </div>
+          </div>
+          <p class="home-game-hint">鍵盤操作：方向鍵或 WASD 移動，空白鍵開始 / 再玩一次。金色是你，藍色是 A*。</p>
+        </div>
+      </div>
     </section>
 
     <section class="feature-grid" id="features" aria-label="功能區塊">
@@ -375,6 +431,7 @@
     import { initThemeToggle, initHeaderNav, initFooterNav } from './assets/js/shared.js';
     import { initHomeHero } from './assets/js/home-hero.js';
     import { heroGenFor, heroVideoUrl, heroPosterUrl } from './assets/js/hero-gen.js';
+    import { initHomeSections } from './assets/js/home-sections.js';
 
     // Three mounts, in this order, and all three are here rather than in a
     // module: nothing in shared.js can tell which pages mount the nav, and the
@@ -395,6 +452,11 @@
     video.poster = heroPosterUrl(gen);
     video.src = heroVideoUrl(gen);
     initHomeHero({ track: document.querySelector('.home-hero'), video });
+
+    // The two demos under the intro fetch their compact roster only when they
+    // come within 400px of the viewport, so this call is a registration, not a
+    // load. It also pauses them when they leave or the tab is hidden.
+    initHomeSections();
   </script>
 </body>
 </html>

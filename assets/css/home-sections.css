@@ -1,0 +1,147 @@
+/*
+ * Homepage demos — "演算法，自動上演" and "換你來挑戰 A*".
+ *
+ * Mounted by index.html only. The canvases are built by
+ * assets/js/home-showcase.js and home-maze-game.js from the same engines
+ * sorting.html and maze.html use. Kept out of index.html so the hero block
+ * stays the only inline critical CSS: these sections are below the fold, so
+ * they cost no request on first paint and are cacheable on repeat visits.
+ * The section is capped at 1000px so it lines up with the feature grid;
+ * home-sections.js does not fetch the demos' roster until the reader scrolls
+ * within 400px.
+ */
+.home-section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 56px 20px 0;
+}
+.home-section-title {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+.home-section-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 672px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+}
+
+.home-showcase-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+@media (min-width: 860px) { .home-showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.home-showcase-card {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-showcase-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.home-showcase-head h3 { margin: 0; font-size: 17px; color: var(--text-primary); }
+.home-showcase-caption {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.home-showcase-stage {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+}
+.home-showcase-canvas { display: block; width: 100%; height: 100%; }
+.home-showcase-link {
+  align-self: flex-start;
+  font-size: 13.5px;
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+.home-showcase-link:hover,
+.home-showcase-link:focus-visible { text-decoration: underline; }
+
+/* The opponent token's fill, paired per theme with --on-accent the same
+   way --accent-gold already is. Both values are existing site colours:
+   the dark one is the rule-cyan used by the full maze page, the light one
+   is the blue used by the explore cards. */
+:root { --home-game-ai: #4cc9f0; }
+[data-theme="light"] { --home-game-ai: #1d4ed8; }
+
+.home-game-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (min-width: 860px) { .home-game-wrap { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } }
+.home-game-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+}
+.home-game-canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+.home-game-canvas:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.home-game-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 20px;
+}
+.home-game-terrain {
+  margin: 0;
+  font-size: 13px;
+  color: var(--accent-gold);
+  font-variant-numeric: tabular-nums;
+}
+.home-game-status {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  min-height: 3.2em;
+}
+.home-game-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.home-game-actions .btn[hidden] { display: none; }
+.home-game-pad { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.home-game-pad-row { display: flex; gap: 4px; }
+.home-game-pad-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline-strong);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: 18px;
+  cursor: pointer;
+}
+.home-game-pad-btn:hover { background: var(--surface-hover); }
+.home-game-pad-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.home-game-hint { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+
+@media (max-width: 860px) {
+  .home-game-stage { max-width: none; }
+}
