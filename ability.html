@@ -55,7 +55,7 @@
     import {
       loadAbilities, loadAbilitySpecies, splitAbilityHolders,
       abilityName, abilityIsFallbackName, abilityEffect, abilityEffectEn,
-      abilityGenerationText, holderUrl, holderSprite
+      abilityGenerationText, holderUrl, holderSprite, holderHasSv
     } from './assets/js/abilities.js';
 
     initThemeToggle();
@@ -113,10 +113,14 @@
     /** One holder card. Links through holderUrl(), which is pokemonDetailUrl(). */
     function holderHtml(entry) {
       const forms = entry.forms.map(f => f.form);
+      // The 96px stand-in is dormant (all 1025 species carry SV art) but the note
+      // is printed anyway, exactly as move.html does — it is what a screen-reader
+      // user is told when the picture is not the official set.
+      const note = holderHasSv(entry) ? '' : '<span class="sr-only">（官方 Scarlet/Violet 圖尚未釋出，暫用 96px 替代圖）</span>';
       return `<li>
         <a class="ab-holder" href="${esc(holderUrl(entry))}">
           <img src="${esc(holderSprite(entry))}" alt="" loading="lazy" decoding="async" width="56" height="56">
-          <span class="ab-holder-name">${esc(entry.nameZh || entry.nameEn || entry.name)}</span>
+          <span class="ab-holder-name">${esc(entry.nameZh || entry.nameEn || entry.name)}${note}</span>
           ${forms.length ? `<span class="ab-formnote">${esc(forms.join('、'))}</span>` : ''}
         </a>
       </li>`;

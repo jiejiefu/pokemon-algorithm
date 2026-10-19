@@ -19,6 +19,7 @@
 
 import { pokemonDetailUrl } from './shared.js';
 import { spriteUrl } from './color-palette.js';
+import { hasSv, svUrl } from './sv-index.js';
 
 const jsonCache = new Map();
 
@@ -176,8 +177,27 @@ export function holderUrl(row) {
   return pokemonDetailUrl({ names: { en: row.nameEn || row.name } });
 }
 
-/** The holder's 96×96 sprite. `spriteUrl` is color-palette.js's, reused rather
- *  than re-spelled so the path is one value on this site. */
+/**
+ * The holder's artwork: the official Scarlet/Violet set, falling back to the
+ * 96px sprite — the same choice `move.html` makes for its learner cards.
+ *
+ * `hasSv()` is asked BEFORE the request rather than after a 404, which would
+ * leave a console error and nothing else to trace on a card that otherwise
+ * renders fine (§3.E). The fallback is dormant today — all 1,025 species carry
+ * SV art — and kept anyway, because it is what an upstream removal degrades
+ * into rather than into a broken image.
+ *
+ * **This needs only `row.baseId`, which is why the page can have official
+ * artwork without loading pokemon_data.json.** `hasSv()` and `svUrl()` are both
+ * keyed on the id alone, so §3.AB's slim-index decision survives the change: the
+ * holder grid still reads nothing but the two generated ability tables.
+ */
 export function holderSprite(row) {
-  return spriteUrl(row.baseId);
+  return hasSv(row.baseId) ? svUrl(row.baseId) : spriteUrl(row.baseId);
+}
+
+/** Whether this holder got the official art or the 96px stand-in. The page uses
+ *  it for the sr-only note move.html also prints. */
+export function holderHasSv(row) {
+  return hasSv(row.baseId);
 }
