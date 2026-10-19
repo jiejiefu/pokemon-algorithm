@@ -305,7 +305,8 @@ for (const [id, move] of dataKeys(MOVES).slice(0, 400).map(id => [id, MOVES[id]]
   // weaker invariant is safe to assert.
   //
   // The denominator moved 782 → 919 when moves_zh.json began shipping every
-  // non-shadow move rather than only the ones our 1025 reference; the 137 added
+  // non-shadow move rather than only the ones the 1,025-species roster references;
+  // the 137 added
   // are Z-moves, Max Moves, sigils and Struggle, which is why 287 of 782 became
   // 331 of 919 rather than staying put. `power === 0` is a THIRD state and is
   // allowed by the assertion below — 16 status moves use it as an absence and

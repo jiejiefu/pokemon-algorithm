@@ -693,8 +693,8 @@ try {
    * 95% ground. So the poll succeeded and the assertion failed, about 1 run in 6, with
    * a curve that was drawn perfectly.
    *
-   * Counting pixels that differ from the idle frame is measured against a state we
-   * captured rather than against a threshold on the thing being asserted, so it cannot
+   * Counting pixels that differ from the idle frame is measured against a captured
+   * state rather than against a threshold on the thing being asserted, so it cannot
    * be satisfied by having measured nothing. The 0.5% figure is not invented: it is the
    * same threshold the MOVES check below already calibrates against, and a real playing
    * curve measures several percent (8.7% and 4.3% recorded).
@@ -946,7 +946,7 @@ try {
   /* Was a fixed 2200 ms. This one is a SAMPLING INTERVAL, not a readiness wait, and
    * the difference is worth 3 s of wall clock. Nothing follows it that reads the
    * end of playback: the button is simply clicked again to stop it. Polling for the
-   * natural release instead — which I tried first — waits for this species' cry to
+   * natural release instead — which was tried first — waits for this species' cry to
    * finish, and a synthesised Charizard runs longer than the 2200 ms the code used to
    * allow itself, so the file got SLOWER: 14.6 s to 17.6 s, with every verdict
    * unchanged. Waiting longer than the thing you are measuring is not more careful. */

@@ -27,7 +27,7 @@
  *
  * The block after the cases is a PAIRING, and it is inverted on purpose: it
  * asserts that the checker exits 0 once the ordering comparison is deleted. That
- * is how we know case 4 rests on that one comparison rather than on something
+ * is how case 4 is known to rest on that one comparison rather than on something
  * else in the guard that the same fixture happens to satisfy — mechanism and
  * outcome, separately, because either alone can be right about the wrong thing.
  *

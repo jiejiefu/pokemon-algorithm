@@ -256,7 +256,7 @@ const capEnd = page.indexOf('function storedRow', capStart);
 const cap = page.slice(capStart, capEnd);
 /* Strip the block comment inside the statement before looking for the words, which is
  * what makes this 「in the caption」 rather than 「near the caption」: without the strip the
- * docblock I wrote to explain the move satisfies the check on its own, which is the
+ * docblock explaining the move satisfies the check on its own, which is the
  * §3.G shape where the explanation explains the assertion instead of the code. */
 const capCode = cap.replace(/\/\*[\s\S]*?\*\//g, '');
 ok(capStart > 0 && /不等於/.test(capCode) && /整段算好了/.test(capCode) && /<br>/.test(capCode),

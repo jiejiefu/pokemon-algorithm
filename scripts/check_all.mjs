@@ -448,7 +448,7 @@ const CHECKERS = [
        * about. §4's own rule: a harness that copies a whole directory declares the
        * glob, because the glob is what `--prove-inputs` compares the recording
        * against. Missing it is the same defect as a missing literal, and
-       * `--prove-inputs` is what found it — after four I had already fixed. */
+       * `--prove-inputs` is what found it — after four had already been fixed. */
       'assets/js/*',
       'assets/js/cry-game.js',
       'assets/js/cry-game-similarity.js',

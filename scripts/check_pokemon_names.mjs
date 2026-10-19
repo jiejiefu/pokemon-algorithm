@@ -10,7 +10,8 @@
  *
  * It pins twelve names rather than comparing all 1,025 against PokeAPI. Measured
  * across every species and all nine languages, 193 names disagree with PokeAPI,
- * and many of those are PokeAPI being wrong: tw.portal-pokemon.com confirms our
+ * and many of those are PokeAPI being wrong: tw.portal-pokemon.com confirms this
+ * project's
  * #956 and #983, PokeAPI's German column is shifted around #353, and its zh_HK
  * uses mainland orthography. Twelve pins plus the cross-file agreement below
  * cover the class of defect that ships a broken slug.

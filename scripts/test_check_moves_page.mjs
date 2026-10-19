@@ -152,7 +152,8 @@ function makeTree(mutate) {
     for (const f of SRC) {
       const p = join(dir, f);
       const before = readFileSync(p, 'utf8');
-      // `undefined` means "not my file". A returned string IDENTICAL to the input
+      // `undefined` means the mutation does not apply to this file. A returned
+      // string IDENTICAL to the input
       // is a stale anchor, so it is an error rather than a no-op.
       const after = mutate(f, before);
       if (after === undefined) continue;

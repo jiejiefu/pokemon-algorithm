@@ -11,8 +11,8 @@
  * ----------------------------------------------------------------
  * `spectrum.html` draws a spectrogram and then claims the drawing agrees with the
  * feature table the rest of the site ranks on. A claim like that is only worth
- * anything if the two numbers came out of the same pipeline, and "I read the
- * Python and wrote the JavaScript carefully" is not evidence. So this runs
+ * anything if the two numbers came out of the same pipeline, and "the port was
+ * written carefully" is not evidence. So this runs
  * `analyze_cries.py`'s own functions — imported, not transcribed — against this
  * repo's own module, on signals both can synthesise from arithmetic alone, and
  * compares.

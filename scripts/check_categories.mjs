@@ -255,7 +255,7 @@ const baseStages = (p) => {
   // A form row is `-Mega` / `-Gmax` / a numeric variant id. Counting them as
   // stages is what makes 妙蛙草's chain read 3 evolutions instead of 2.
   //
-  // Base-vs-form is the id-authoritative rule from gotcha 15, NOT a name test.
+  // Base-vs-form is an id-authoritative rule, NOT a name test.
   // This used to be `!/-/.test(row.name)`, the same name-based classifier the
   // evolution generator used until it was repaired: it silently classified
   // Nidoran-F, Mr-Mime and Ho-Oh as forms. It passed only because none of the
@@ -556,8 +556,8 @@ for (const group of COLLECTION_GROUPS) {
 // A rendered hero is white on the accent gradient, and the gradient's LIGHTEST
 // stop is the bounding case for every text on it. The ramps are Tailwind 700
 // shades, which is the 600→700 correction: six of InfoPoke's 600-level hues put
-// white text below 4.5:1. Asserted rather than trusted, because "I picked dark
-// enough colours" is exactly the claim that rots silently.
+// white text below 4.5:1. Asserted rather than trusted, because "the colours
+// look dark enough" is exactly the claim that rots silently.
 const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
 const chan = (hex) => { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 const lum = (hex) => { const [r, g, b] = chan(hex).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
@@ -570,8 +570,8 @@ for (const slug of CATEGORY_SLUGS) {
   // bare `.accent` turns a typo into a TypeError. That aborts the whole run
   // *after* earlier FAILs have been recorded but *before* the summary prints
   // them, so the operator gets a stack trace and no report — the same
-  // "assertion told you about the wrong file" trap as gotcha 42. Skipping keeps
-  // the failure visible and named.
+  // "assertion told you about the wrong file" trap. Skipping keeps the failure
+  // visible and named.
   const cfg = getCategory(slug);
   if (!cfg || !Array.isArray(cfg.accent) || cfg.accent.length === 0) {
     ok(false, `CATEGORY_SLUGS has ${JSON.stringify(slug)} but getCategory() has no accent ramp for it`);

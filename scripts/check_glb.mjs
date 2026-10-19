@@ -375,9 +375,8 @@ ok(/paintPlaybackButtons\(viewer\.state\)/.test(page),
  *     24.2x in root scale (reported above) and `minDistance`/`maxDistance` are
  *     both multiples of a per-model measured radius, so "move 1 unit" is a nudge
  *     on one and a lurch on the other. Checked as `distance * ratio`.
- *  2. A button wired to nothing — the family of fault gotcha 23 documents at
- *     length. Checked against the public API surface, not the call site, so a
- *     renamed method cannot leave the wiring looking present.
+ *  2. A button wired to nothing. Checked against the public API surface, not the
+ *     call site, so a renamed method cannot leave the wiring looking present.
  *  3. A limit the buttons know about and the wheel does not (or vice versa).
  *     Both must read the SAME two numbers, or the wheel and the button disagree
  *     about where the floor is.
@@ -407,7 +406,7 @@ ok(/id="zoom-in"[\s\S]{0,400}id="zoom-out"/.test(page),
 ok(/aria-label="拉近"[\s\S]{0,400}aria-label="拉遠"/.test(page),
   'each zoom button names its direction for assistive tech, since the glyph is aria-hidden');
 // No `disabled` attribute: aria-disabled keeps the control focusable so it can
-// report the limit, which is gotcha 30's rule for the shiny button.
+// report the limit, the same rule the shiny toggle follows.
 const zoomButtons = page.match(/<button[^>]*class="m3d-zoom-btn"[^>]*>/g) || [];
 ok(zoomButtons.length === 2, 'exactly two zoom buttons, neither hard-disabled');
 ok(zoomButtons.every(b => !/\sdisabled[\s>=]/.test(b)),
@@ -444,7 +443,7 @@ const pins = [pinCore?.[1], pinAddons?.[1], pinConst?.[1]];
 const allPinsFound = pins.every(v => typeof v === 'string');
 // Each of these names all three values rather than a Set size: a bare "got 2,
 // want 1" and a "got 0.186.1" that reads fine while the check is red both send
-// the reader to the wrong file, which is the trap gotcha 38 is about.
+// the reader to the wrong file.
 ok(allPinsFound,
   `all three three.js pins parse (importmap x2 + THREE_VERSION); got ${JSON.stringify(pins)}`);
 ok(allPinsFound && new Set(pins).size === 1,

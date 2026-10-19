@@ -371,8 +371,8 @@ const bySearch = await rows();
  * one would have "found" a bug here on its first run and the fix would have been
  * to make the search stop matching substrings — which is the search box losing
  * the thing it is for. The expected count is therefore derived from the data
- * rather than typed, so it is a claim about the page and not about my memory of
- * how many moves Pokémon has. */
+ * rather than typed, so it is a claim about the page and not about a remembered
+ * count of how many moves Pokémon has. */
 const searchHits = await ev(`(async () => {
   const moves = await (await fetch('assets/data/moves_zh.json')).json();
   return Object.entries(moves)
@@ -517,7 +517,7 @@ const source = await ev(`document.getElementById('mv-effect-source').textContent
 ok(source.includes('PokeAPI'), 'the effect says which source it came from', source);
 
 /* Every fact row on a status move that PokeAPI has no meta for must be ABSENT,
- * not 「無」. §3.B2: `drain: null` means "we have no data", and printing 無 for it
+ * not 「無」. §3.B2: `drain: null` means "no data", and printing 無 for it
  * is a claim the data did not make. 冰山風 is one of the 92. */
 await open('move.html?move=mountain-gale', DESKTOP);
 await until(ev, MOVE_READY, 25000);
@@ -616,7 +616,7 @@ ok(firstHref.startsWith('detail.html?slug='), 'each card links through the share
  * THE CARDS SHOW THE OFFICIAL SCARLET/VIOLET ARTWORK.
  *
  * Asserted on `naturalWidth`, which is the only thing that distinguishes "the
- * browser decoded the PNG we asked for" from "the element exists" — a card whose
+ * browser decoded the requested PNG" from "the element exists" — a card whose
  * src is wrong still has an `<img>`, still occupies its box, and still renders
  * its name. `naturalHeight` is asserted alongside it because the two sets have
  * different ASPECT RATIOS (120×112 against 96×96), so a height of 96 would mean

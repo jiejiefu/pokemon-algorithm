@@ -13,7 +13,7 @@
  *   reference  #399494, #62d5b4, #73ac31, #a4d541, #5cb7a1, #ee2039
  *   ours       #399494, #62d5b4, #83eec5, #73ac31, #bdff73, #ac0031
  * so "does the output match the reference page?" is unanswerable and the
- * question is itself the bug: it invites swapping our data for theirs.
+ * question is itself the bug: it invites swapping this project's data for theirs.
  *
  * So the port is checked the other way round. Feed the generator the
  * *reference's own* palette and demand its own published light and dark values

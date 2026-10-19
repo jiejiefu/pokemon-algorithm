@@ -335,7 +335,7 @@ const scanInPage = (want) => `(async () => {
    * (cries.html:496), so the node this script used to capture at its top is DETACHED
    * by the time it clicked — autoplay is ON by default (§3.G), so the cry that was
    * already sounding ended in the middle of the pre-click wait and replaced the
-   * button underneath us. A detached node does not bubble to the delegated listener
+   * button underneath. A detached node does not bubble to the delegated listener
    * on #probe-play (cries.html:812), so button.click() was a no-op: the 60 samples
    * after it read aria-pressed=false and zero accent pixels for 1.28 s, every time.
    *
@@ -365,7 +365,7 @@ const scanInPage = (want) => `(async () => {
    *            the fullest frame the playhead is at the end of the cry, so whether
    *            the accent stops short of the last column is a coin flip, while on the
    *            earliest frame ~95% of the canvas is unplayed and the answer does not
-   *            depend on when we looked. The early 'n > 400' break has to stay out:
+   *            depend on when it is sampled. The early 'n > 400' break has to stay out:
    *            it would end the sampling a few columns in and leave both frames the
    *            same, which is the vacuous version of this assertion. */
   let fullest = null, earliest = null;

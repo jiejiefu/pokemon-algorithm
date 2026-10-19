@@ -19,7 +19,7 @@
  *
  * The three cases below were all found by hand while building this feature, and
  * the first one is the one a reader should look at twice: the "impossible"
- * assertion I wrote for a slug in both slots was wrong about the DATA, not about
+ * assertion for a slug in both slots was wrong about the DATA, not about
  * the code — a regional forme's regular ability IS the base forme's hidden one,
  * for 12 species. A checker that encodes a belief instead of a measurement does
  * not fail when the belief is wrong; it fails when upstream changes, which may be
