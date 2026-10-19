@@ -542,129 +542,129 @@ A fix that only makes the button open is half a fix — closing the bar by dragg
 
 <a id="x"></a>
 
-## X. 兩個頁面在手機上，控制欄在主內容之上——而且沒有任何東西量過那個寬度
+## X. On A Phone, The Control Rail Sits Above The Main Content — And Nothing Measured That Width
 
-`cries.html`（叫聲總覽）與 `spectrum.html`（叫聲頻譜）是同一個版型：**控制欄（sticky、自己捲動）｜內容欄**。到了 `≤900px`，兩頁都把它翻成單欄、把控制欄排在**前面**、並且 `position: static`：
+`cries.html` (「叫聲總覽」) and `spectrum.html` (「叫聲頻譜」) are the same layout: **a control rail (sticky, scrolls on its own) | a content column**. At `≤900px` both pages collapse it to one column, put the rail **first**, and make it `position: static`:
 
-- `cries.css:777` — 註解的理由是「sticky 會蓋住它本來要並排的內容」
-- `spectrum.css` 的 900px 區塊 — 同一句理由
+- `cries.css:777` — the comment's stated reason is 「sticky 會蓋住它本來要並排的內容」
+- `spectrum.css`'s 900px block — the same sentence
 
-**900px 以下沒有「並排」可言，所以拿掉 stickiness 的唯一理由在這個寬度不存在。**剩下的就是一個高的區塊壓在內容上面，而且會跟著捲走。
+**BELOW 900px THERE IS NO 「並排」 (side by side) FOR THAT REASON TO APPLY TO, so the only reason to drop stickiness does not exist at this width.** What is left is a tall block sitting on top of the content, and it scrolls away with it.
 
-### 量到的（390×844，headless Chrome，經頁面自己的 `drawImage`/佈局）
+### Measured (390×844, headless Chrome, through the page's own `drawImage` / layout)
 
-**spectrum.html**，剛載入：
+**`spectrum.html`**, on a fresh load:
 
-| 量 | 修前 |
+| measured | before the fix |
 | --- | ---: |
-| `.sp-left-panel` 高度 | **5,856px**（整份文件 9,471px 的 62%） |
-| `.sp-roster` | **5,347px**，`overflow-y: visible`（無上限） |
-| `#sp-hero`（頻譜圖）top | **6,746px** |
-| `#sp-play` | 視窗 y=397 |
+| `.sp-left-panel` height | **5,856px** (62% of a 9,471px document) |
+| `.sp-roster` | **5,347px**, `overflow-y: visible` (no ceiling) |
+| `#sp-hero` (the spectrogram) top | **6,746px** |
+| `#sp-play` | viewport y=397 |
 
-`spectrum.html` 的 `IntersectionObserver`（root: `.sp-roster`）會在讀者捲近底部時**每次再加 60 列**，所以圖表不只是遠——越接近它越遠。
+`spectrum.html`'s `IntersectionObserver` (root: `.sp-roster`) **appends another 60 rows every time** the reader nears the bottom, so the plot is not merely far — the closer you get, the further it goes.
 
-**cries.html**：
+**`cries.html`**:
 
-| 量 | 未選一隻 | 點第 40 張卡之後 |
+| measured | no Pokémon selected | after tapping the 40th card |
 | --- | ---: | ---: |
 | `.cy-panel` | 169px | **1,609px** |
-| `#probe-play` 視窗位置 | — | **y = −5,309**（在視窗上方 5,309px） |
-| 網格第一張卡 top | 597px | 2,246px |
+| `#probe-play` viewport position | — | **y = −5,309** (5,309px above the viewport) |
+| grid's first card top | 597px | 2,246px |
 
-那 1,609px 的組成：`相似清單` 666px + `警語` 262px + `實測數值` 171px + 三個 `<h3>`、權重晶片與其註 ≈ 510px。永遠可見的部分（圖、名、48px 波形、▶ 播放叫聲、看頻譜）≈ 300px。
+What the 1,609px is made of: `相似清單` 666px + `警語` 262px + `實測數值` 171px + three `<h3>`s, the weight chips and their note ≈ 510px. The always-visible half (the sprite, the name, the 48px waveform, ▶ 播放叫聲, 看頻譜) ≈ 300px.
 
-### 沒有東西看得見，而且不是巧合
+### Nothing Could See It, And That Was Not An Accident
 
-- `check_spectrum_browser.mjs` **刻意把視窗拉寬過 900px 斷點**（它的對象是 `.sp-about` 的兩欄）
-- `check_cries_browser.mjs` 是 **`manual: true`**
-- 沒有任何一項斷言量過手機寬度
+- `check_spectrum_browser.mjs` **deliberately widens past the 900px breakpoint** (its subject is `.sp-about`'s two columns)
+- `check_cries_browser.mjs` is **`manual: true`**
+- No assertion anywhere measured a phone width
 
-這是 §3.O「guarded by nothing」那一類：規則存在，但沒有任何量測在它生效的條件下執行。
+This is §3.O's 「guarded by nothing」 class: the rule exists, but no measurement runs under the condition that makes it true.
 
-### `<details>` 在這裡不能用，因為它會插入一個盒子
+### `<details>` Cannot Be Used Here, Because It Inserts A Box
 
-第一版用 `<details class="sp-picker" open>` 配 `summary`，因為它免 JavaScript、鍵盤可用、summary 就是自己的可存取名稱。**它在 `spectrum.html` 上破壞了桌面版**，而且量得很乾淨：
+The first version used `<details class="sp-picker" open>` with a `summary`, because it needs no JavaScript, works from the keyboard, and the summary is its own accessible name. **It broke `spectrum.html`'s desktop layout**, and it measured cleanly:
 
-| | 原本 | 改用 `<details>` |
+| | before | with `<details>` |
 | --- | --- | --- |
-| rail 自己捲動？ | **false**（溢出 0） | **true**（溢出 4,829px） |
-| `.sp-roster` 盒子 | 503px | 5,347px |
-| `.sp-roster` 會捲？ | **true** | **false** |
+| does the rail scroll itself? | **false** (0 overflow) | **true** (4,829px overflow) |
+| `.sp-roster` box | 503px | 5,347px |
+| does `.sp-roster` scroll? | **true** | **false** |
 
-原因：`<details>` 在 **box tree** 裡多插一層 `::details-content`，所以 `.sp-roster` 的 flex 父層不再是 `.sp-left-panel`，而是一個不會縮到比內容更小的匿名區塊。**先量了四個候選修法**（對 `<details>` 用 `display: contents`、`flex: 1 1 0`、wrapper `overflow: hidden`、兩處 `min-height: 0`），**沒有一個改動那個數字**——是那個數字指出了多出的盒子。
+The cause: `<details>` inserts one more layer, `::details-content`, into the **box tree**, so `.sp-roster`'s flex parent is no longer `.sp-left-panel` but an anonymous block that will not shrink below its content. **Four candidate fixes were measured first** (`display: contents` on the `<details>`, `flex: 1 1 0`, `overflow: hidden` on the wrapper, `min-height: 0` in two places) and **not one of them moved that number** — it was that number that pointed at the extra box.
 
-所以 disclosure 改成 `<button aria-expanded>` + `<div hidden>`，桌面版用 `.sp-picker { display: contents }` 復原——**位元組相同**，因為它把 roster 放回原處，成為 rail 的直接 flex item。量測確認三項：rail 1000px、不捲動、roster 503px 且捲動、文件 3,640px，全部與原版一致。
+So the disclosure became `<button aria-expanded>` + `<div hidden>`, restored on desktop by `.sp-picker { display: contents }` — **byte-identical**, because it puts the roster back where it was, as a direct flex item of the rail. Four measurements confirm it: rail 1000px, not scrolling, roster 503px and scrolling, document 3,640px — all identical to before.
 
-**`cries.html` 用 `<details>` 沒有這個問題，因為 `.cy-panel` 是 block**，不是 flex column。而且它在 markup 裡是 `open`，所以沒有 JavaScript 的讀者拿到的就是今天這頁。**兩個頁面長得像同一個 pattern，其實不是**——這是本次最容易被下一個人弄錯的一件事。
+**`cries.html` has no such problem with `<details>`, because `.cy-panel` is a `block`**, not a flex column. And it is `open` in the markup, so a reader without JavaScript gets today's page. **The two pages look like the same pattern and are not** — that is the thing the next person is most likely to get wrong here.
 
-### 手機上捲動的是文件，不是 roster
+### On A Phone The Document Scrolls, Not The Roster
 
-第一版的 `state.rosterScroll` 存的是 `el('sp-roster').scrollTop`，**永遠是 0**。因為 900px 以下 `spectrum.css` 給 `.sp-roster` `overflow: visible`，沒有高度限制的 flex item 由內容決定大小，於是它 **5,300px 的盒子裝 2,640px 的內容，根本不會捲**；在這個寬度上是**文件**在捲。欄位改成 `state.pickerReturnY`（`window.scrollY`，關閉時寫、開啟時還原）。§3.G 的「捲動位置換了容器，欄位就不能共用」，往外多一層。
+The first version's `state.rosterScroll` stored `el('sp-roster').scrollTop`, which **is always 0**. Below 900px `spectrum.css` gives `.sp-roster` `overflow: visible`, and a flex item with no height constraint is sized by its content, so its **5,300px box holds 2,640px of content and never scrolls** — at this width it is the **document** that scrolls. The field became `state.pickerReturnY` (`window.scrollY`, written on close, restored on open). §3.G's rule that a scroll position which changes container cannot share a field, one level further out.
 
-### 兩次「量到對的數字、但量錯了量」
+### Three Times The Number Was Right And The Measurement Was Wrong
 
-**一、`getBoundingClientRect()` 會對收合起來的 `<details>` 裡的後代說謊。** 量到 `rosterH: 2707` 與 `rail: 270` 同時為真——不可能。真相是 `rosterVisible: false` 而 rect 回傳 2,707px：Chrome 跳過 `::details-content` 內的佈局，`getBoundingClientRect()` 回傳**記住的舊尺寸**。正確的機制斷言是 `checkVisibility()`。§3.M 說「斷言算出的盒子，不是屬性，因為屬性會說謊」——**這裡連 rect 都說謊，而 `checkVisibility()` 不會**。
+**One, `getBoundingClientRect()` lies about descendants of a collapsed `<details>`.** `rosterH: 2707` and `rail: 270` were both measured true — impossible. The truth is `rosterVisible: false` while the rect returned 2,707px: Chrome skips layout inside `::details-content`, and `getBoundingClientRect()` returns **the remembered old size**. The correct mechanism assertion is `checkVisibility()`. §3.M says to assert the computed box rather than the attribute, because the attribute lies — **here even the rect lies, and `checkVisibility()` does not**.
 
-**二、捲到 `.cy-probe-head` 會把寶可夢名稱切出畫面。** 第一版捲到 head，`nearest` 對一個完全在視窗之上的元素是**對齊底部**，於是 head 在 y=−45、**名稱在 y=−31**——讀者看到一個播放鍵，卻讀不到那是誰。「播放鍵在畫面上」這條斷言是綠的，頁面仍然是錯的。改成捲 `.cy-panel`。
+**Two, scrolling to `.cy-probe-head` cuts the Pokémon's name out of frame.** The first version scrolled to the head, and `nearest` for an element entirely above the viewport is **bottom-aligned**, so the head landed at y=−45 and **the name at y=−31** — the reader sees a play button and cannot read whose it is. 「播放鍵在畫面上」 (the play button is on screen) stayed green while the page was still wrong. It scrolls to `.cy-panel` instead.
 
-**三、捲動位置還原有兩層。** 重新展開時會**再觸發一批 60 列**（rail 5,912px → 8,552px），而 `renderRoster()` 換掉 `innerHTML` 會把位置歸零一次。只在開啟時還原等於什麼都沒做。
+**Three, restoring the scroll position has two layers.** Re-expanding **triggers another batch of 60 rows** (rail 5,912px → 8,552px), and `renderRoster()` replacing `innerHTML` zeroes the position once. Restoring only on open is the same as not restoring at all.
 
-### 一個 media query 不能決定一個 attribute
+### A Media Query Cannot Decide An Attribute
 
-「桌面上開、手機上關」**在樣式表裡根本不可表達**：media query 不能設 `open` 或 `hidden`，CSS 也不能收合。所以 `syncPicker()` / `syncProbeDisclosure()` 在開機與**每次跨過斷點時**套用它。**兩個方向不對稱，而且不對稱本身就是設計**：收合是修好缺陷的那一側；展開是防止更糟的那一側，因為桌面版 toggle 是 `display: none`，被旋轉留下的收合 picker 會**讓整個 rail 消失而沒有任何控制項可以打開它**。
+「桌面上開、手機上關」 (open on desktop, closed on a phone) **is not expressible in a stylesheet at all**: a media query cannot set `open` or `hidden`, and CSS cannot collapse. So `syncPicker()` / `syncProbeDisclosure()` apply it on load and **on every breakpoint crossing**. **The two directions are asymmetric, and the asymmetry is the design**: collapsing is the side that fixes the defect; expanding is the side that prevents a worse one, because the desktop toggle is `display: none`, and a collapsed picker left behind by the rotation would **make the entire rail disappear with no control anywhere to open it**.
 
-而那個寬度**必須寫兩份**（media query 不能讀 custom property，JS 也不能讀 media query）。因此 `check_cries_page.mjs` 與 `check_spectrum_page.mjs` 都**從樣式表讀出那個數字**，並且要求它是**帶 `.cy-panel` / `.sp-left-panel` 的那一個區塊**——`cries.css` 有四個 900px 區塊，其中兩個（`.cy-more-summary` 與 `.cg-picker`）跟這件事無關。純數字比較會被其中任何一個滿足。
+And that width **has to be written twice** (a media query cannot read a custom property, and JS cannot read a media query). So `check_cries_page.mjs` and `check_spectrum_page.mjs` both **read the number out of the stylesheet**, and require it to be **the block that carries `.cy-panel` / `.sp-left-panel`** — `cries.css` has four 900px blocks, two of which (`.cy-more-summary` and `.cg-picker`) have nothing to do with this. A bare numeric comparison is satisfied by any of them.
 
-### 自己寫的斷言裡找到的三個洞
+### Three Holes Found In My Own Assertions
 
-**一、半開的區間不是區間。** 第一版的斷言只問「每個 id 在 `<details>` 開頭之後」，於是把 `#probe-stats` 移到 `</details>` **之後**的 mutation 通過了。「在 disclosure 裡面」是關於一個區間的陳述，而區間有兩端。§3.P 的發現，指向我自己的斷言。
+**One, a half-open interval is not an interval.** The first version only asked whether each id came after the `<details>` opened, so a mutation that moved `#probe-stats` **after** `</details>` passed. 「在 disclosure 裡面」 (inside the disclosure) is a claim about an interval, and an interval has two ends. §3.P's finding, pointed at my own assertion.
 
-**二、順序不是兩個「有沒有」。** 「先收合再捲動」對兩個敘述的**位置**做陳述；把兩者對調後，每一個「是否存在」的版本都滿足。改成比較 index。
+**Two, order is not two existence checks.** 「先收合再捲動」 (collapse first, then scroll) makes a claim about the **position** of two statements; swapping them satisfies every version that asks only whether each one exists. It now compares indices.
 
-**三、`[hidden]` 對上 author `display`。** mutation 刪掉 `.sp-picker[hidden] { display: none }` 時 checker 還是綠的——因為我從來沒斷言那條規則。`.sp-picker` 在 900px 以下自己宣告 `display: block`，**任何 author `display` 都贏過 UA 的 `[hidden]`**。`docs/incidents/page-defects.md#m` 量過三種變體，這是同一個形狀的第四個實例。
+**Three, `[hidden]` against an author `display`.** The checker stayed green when the mutation deleted `.sp-picker[hidden] { display: none }` — because that rule was never asserted at all. `.sp-picker` declares `display: block` itself below 900px, and **any author `display` beats the UA's `[hidden]`**. `docs/incidents/page-defects.md#m` measured three variants of that shape; this is its fourth instance.
 
-### 一個 mutation 刪掉太多東西，看起來像刪對了
+### A Mutation Deleted More Than It Meant To, And It Looked Like It Had Deleted The Right Thing
 
-`test_check_cries_page.mjs` 裡「把警語移出 served DOM」那一案，原来的 pattern 是 `<div class="cy-caveat">[\s\S]*?</div>\n        </div>`。警語現在在 `<details>` 裡，後面接的是 `</div>\n        </details>`，所以那個 pattern 在那裡**沒有匹配**——而它是非貪婪的，所以它**沒有失敗**，它繼續吃到幾百行之後的下一個 `</div>\n        </div>`，把那個也刪了，連 `#autoplay-slot` 一起。harness 於是對一條完全不同的斷言回報「did not behave」。
+The case that moves 警語 (the cry caveat) out of the served DOM in `test_check_cries_page.mjs` used the pattern `<div class="cy-caveat">[\s\S]*?</div>\n        </div>`. 警語 now lives inside a `<details>` and is followed by `</div>\n        </details>`, so that pattern **does not match there** — and being non-greedy it **does not fail**; it carries on to the next `</div>\n        </div>` hundreds of lines later, deletes that one too, and takes `#autoplay-slot` with it. The harness then reported 「did not behave」 against a completely different assertion.
 
-錨定到警語自己的收尾標籤（十個空格縮排；內層的 `<dl>` 是十二個）。**§3.P 的發現，指向一個 mutation 而不是一個 checker**：「我刪的比我想的多」和「我刪對了、別的東西剛好抓到它」在報告裡長得一樣。
+Anchor it to 警語's own closing tag (ten spaces of indentation; the inner `<dl>` is twelve). **§3.P's finding, pointed at a mutation rather than a checker**: 「我刪的比我想的多」 ("I deleted more than I meant to") and 「我刪對了、別的東西剛好抓到它」 ("I deleted the right thing and something else happened to catch it") look identical in a report.
 
-### 守衛是機制加結果，兩個都要
+### The Guard Is Mechanism Plus Outcome, And It Needs Both
 
-只斷言結果會被運氣滿足：`#sp-hero` 靠近手機畫面頂端，在一個 roster 剛好只畫 60 列的頁面上也是真的，而那個頁面在 600 列時會再壞一次，且什麼都不說。只斷言機制則會被一個「對的理由做對的事」的頁面滿足——§3.O 的形狀。
+Asserting the outcome alone is satisfied by luck: `#sp-hero` sits near the top of a phone's screen on a page whose roster happens to paint 60 rows, and that page breaks again at 600 rows while saying nothing at all. Asserting the mechanism alone is satisfied by a page that does the right thing for the wrong reason — §3.O's shape.
 
-`check_cry_mobile_layout.mjs` 兩者都量。**它不是 `manual`，而且不是任何一個既有 browser checker 的一部分**，因為前者只管 `spectrum.html`、後者不執行。**它沒有 mutation harness，這個代價寫在檔頭**：每一案都要對自己的樹開一個 Chrome，四案的錢足以買下整個 `test_check_spectrum_page.mjs`；static 那兩半有 harness，mutation 都在那裡。
+`check_cry_mobile_layout.mjs` measures both. **It is not `manual`, and it is not part of any existing browser checker**, because the former only covers `spectrum.html` and the latter does not run. **It has no mutation harness, and that cost is written into the file header**: every case opens a Chrome against its own tree, and four cases cost more than the whole of `test_check_spectrum_page.mjs`; the static halves have harnesses, and the mutations live there.
 
-### 收尾時 event loop 不會自己空閒
+### The Event Loop Does Not Idle By Itself At The End
 
-checker 印完 `PASS` 之後坐著不動超過 200 秒，原因是 DevTools 的 WebSocket，加上找到 target 的那個 `fetch`——undici 會把那條 socket 留著做 keep-alive。§4 對 runner 自己的 liveness probe 記過同一個坑，那次它呈現為「skip cache 壞了，一次全快取跑花 6.5 秒做 0.09 秒的工作」。
+The checker sat idle for over 200 seconds after printing `PASS`, because of the DevTools WebSocket plus the `fetch` that found the target — undici holds that socket open for keep-alive. §4 records the same trap for the runner's own liveness probe, where it presented as "the skip cache broke and a fully cached run spent 6.5 s doing 0.09 s of work".
 
-而且 **kill Chrome 然後立刻 exit 會留下 6 MB 的 profile tree**：`tmp-trees.mjs` 在 `process.exit` 時 sweep，而它的 `sweep()` 用的是沒有 retry 的裸 `rmSync`，所以 sweep 在瀏覽器還活著時刪一個 Chrome 正在寫的目錄會丟 `EBUSY`，被那個模組的 `catch {}` 吞掉。量到的是**每次跑留一個 `crl-*` tree、零個孤兒行程**——`ps` 乾淨而磁碟不乾淨，那是兩者中比較難發現的那個。修法是等行程真的沒了再讓 sweep 跑，而不是寫第二份 retry 策略。
+And **killing Chrome and exiting immediately leaves a 6 MB profile tree**: `tmp-trees.mjs` sweeps on `process.exit`, and its `sweep()` uses a bare `rmSync` with no retry, so sweeping a directory Chrome is still writing throws `EBUSY`, which that module's `catch {}` swallows. What was measured is **one `crl-*` tree left per run and zero orphan processes** — `ps` clean and the disk not, which is the harder of the two to notice. The fix is to wait for the process to actually be gone before letting the sweep run, rather than writing a second retry policy.
 
-### 後續：sprite 在手機上移回說明文字下方，並在時頻圖旁加了播放鍵
+### Follow-up: The Sprite Goes Back Below The Prose On A Phone, And The Plot Gets Its Own Play Control
 
-讀者在手機上回報兩件事，兩件都不是缺陷而是決定，但**第一件推翻了一句寫在 `spectrum.css` 裡的理由**。
+A reader reported two things on a phone. Neither is a defect, both are decisions, but **the first one overturned a reason written into `spectrum.css`**.
 
-**`order: -1` 的理由是對的，而它問的是錯的軸。** 原本寫的是「sprite 放在說明文字**上方**，因為失去欄位後的讀者仍想先知道自己在看什麼」。這句話對**讀者**是對的，對**位置**是錯的：讀者最先要的是「這頁在講什麼」的那一句，而這頁在手機上是三段。實測在 390×844：sprite、名字與編號原本壓在 `<h1>叫聲頻譜</h1>` **之上**——那不只是版面偏好，是**螢幕閱讀器先聽到一隻寶可夢、再聽到這頁是什麼頁面**。
+**The reason for `order: -1` was right, and it asked the wrong axis.** What it said was that the sprite sits **above** the prose, because a reader who has lost the rail still wants to know what they are looking at first. That is true of the **reader** and wrong about the **position**: what a reader wants first is the sentence saying what this page is, and on a phone this page is three paragraphs. Measured at 390×844: the sprite, the name and the number originally sat **above** `<h1>叫聲頻譜</h1>` — which is not a layout preference, it is a **screen reader hearing a Pokémon before it hears what page this is**.
 
-去掉 `order: -1` 之後成本是零，因為 `<figure>` 本來就在 `.sp-intro` 裡，`order` 只決定它落在單欄 grid 的哪一格：從第一格換到最後一格，是 90px 從說明文字上方換到下方。量到的 `#sp-hero` 是 **1,189px → 1,160px**。
+Removing `order: -1` costs nothing, because the `<figure>` is already inside `.sp-intro`; `order` only decides which cell of the single-column grid it lands in: first to last is 90px moved from above the prose to below it. The measured `#sp-hero` is **1,189px → 1,160px**.
 
-**`.sp-hero-head` 拿回它的第二個子元素，而 §3.V 早就預言了這件事。** 那個 wrapper 當初被刪的理由寫在同一個檔案裡：「只有一個子元素的 wrapper 是還沒人放東西進去的容器，留著它就是讓下一個人把東西放進去。」現在放進去的是播放鍵。**斷言也跟著換了斷法**：原本斷言「這個 class 不存在」，現在斷言「這一列有兩個子元素」——因為名稱層面的斷言會讓既有的 mutation 通過，而那一案正是為了擋這種形狀寫的。
+**`.sp-hero-head` gets its second child back, and §3.V predicted this.** The reason that wrapper was deleted is written in the same file: "a wrapper with one child is a container nobody has put anything in yet, and keeping it only invites the next person to put something in it." What goes into it now is the play button. **The assertion changed its method to match**: it used to assert that the class does not exist and now asserts that this row has two children — because an assertion at the name level let the existing mutation through, and that case was written precisely to block this shape.
 
-**`<details>` 不能用在這裡，第二次被量到。** 第一次是 §3.X 的 rail picker：`<details>` 在 box tree 裡插一個 `::details-content`，`.sp-roster` 的 flex 父層就不再是 rail。而這次是 `.sp-hero`，它沒有 flex 結構——**兩頁長得像同一個 pattern，其實一個是 flex column、一個是 block**。
+**`<details>` cannot be used here either, measured for the second time.** The first was §3.X's rail picker: `<details>` inserts a `::details-content` into the box tree, so `.sp-roster`'s flex parent is no longer the rail. This time it is `.sp-hero`, which has no flex structure at all — **the two pages look like the same pattern, and one is a flex column while the other is a block**.
 
-**兩個控制項、兩個方向都測，因為失敗不對稱。** `#sp-hero-play` 與 rail 的 `#sp-play` 呼叫同一個 `toggle()`，`setPlayButton()` 用 `[data-play]` 迭代——一次寫入、兩個節點，與 `cries.html` 的 `syncPlayButtons()` 同一個形狀。「按 rail 的鍵 → 圖旁那顆變 pressed」和「按圖旁的鍵 → rail 的那顆變 pressed」是**兩個不同的主張**：後者擋的是「按鈕看起來一樣但什麼都沒做」，而那正是它最可能被引進來的方式。
+**Two controls, both directions tested, because the failures are not symmetric.** `#sp-hero-play` and the rail's `#sp-play` call the same `toggle()`, and `setPlayButton()` iterates `[data-play]` — one write, two nodes, the same shape as `cries.html`'s `syncPlayButtons()`. "Press the rail's button → the one beside the plot becomes pressed" and "press the button beside the plot → the rail's becomes pressed" are **two different claims**: the second is what catches "the button looks the same and does nothing", which is exactly the most likely way the defect arrives.
 
-**量對比時踩到的方法錯誤值得記一次。** 第一版在執行期 `document.documentElement.dataset.theme = 'dark'`，量到按鈕 **1.08:1**——淺色 theme 的墨配深色底。頁面真正的路徑是 `<head>` 的內聯腳本讀 `localStorage['pokemon-theme']`，所以正確的量法是寫入 storage 再重新導航，量到 **17.71:1 / 14.57:1**。**rail 上既有的那顆按鈕會讀到同樣的 1.08**，所以那不是新按鈕的問題，是量法的問題——§3.W 的 datalist 那一案是同一族。
+**The methodological mistake made while measuring contrast is worth recording once.** The first version set `document.documentElement.dataset.theme = 'dark'` at runtime and measured the button at **1.08:1** — light theme's ink on a dark background. The page's real path is the inline script in `<head>` reading `localStorage['pokemon-theme']`, so the correct measurement writes to storage and re-navigates, giving **17.71:1 / 14.57:1**. **The button already on the rail reads the same 1.08**, so this is not a problem with the new button, it is a problem with the measurement — §3.W's datalist case is the same family.
 
-### 三個洞，全部在這個檔案裡，而且全部由 mutation 找到
+### Three Holes, All In That File, And All Found By Mutation
 
-**一、長手寫 vs 簡寫。** 「8px 只宣告一次」那條斷言找的是 `margin-bottom`，而 `spectrum.css` 寫的是 `margin: 0 0 8px`——**所以它被任何一個標題滿足，包括多帶一個 8px 的那個**，而 mutation 加的正是那個 8px。改成讀值（`margin: 0 0 8px` 與 `margin: 8px` 都抓得到）。§3.B2 的形狀，指向為了防止它而寫的斷言。
+**One, longhand against shorthand.** The "8px is declared once" assertion looked for `margin-bottom`, while `spectrum.css` writes `margin: 0 0 8px` — **so it was satisfied by any one of the spellings, including the one carrying an extra 8px**, and the mutation added exactly that extra 8px. It now reads the value (`margin: 0 0 8px` and `margin: 8px` are both caught). §3.B2's shape, pointed at the assertion written to prevent it.
 
-**二、一個 case 停下來了，而它的意圖還在。** 「單子元素 `.sp-hero-head`」那一案改寫的目標字串是 `<section class="sp-hero">` 後面接一個裸 `<h2>`，而那段 markup 已經不存在了。**修法是保留意圖、把 mutation 換一個方向**：讓那一列失去播放鍵，回到只有一個子元素。順帶得到一個好結果——同一個形狀現在從兩個方向都會讓斷言變紅。
+**Two, a case stopped running, and its intent is still there.** The 「單子元素 `.sp-hero-head`」 (single-child `.sp-hero-head`) case rewrote the target string `<section class="sp-hero">` followed by a bare `<h2>`, and that markup no longer exists. **The fix keeps the intent and turns the mutation around**: make that row lose the play button and go back to one child. It buys a good result for free — the same shape now turns the assertion red from both directions.
 
-**三、三參數的呼叫被兩參數的簽名吃掉。** `check_cry_mobile_layout.mjs` 裡有二十處寫成 `ok(cond, label, detail)`，而 `ok` 是 `(cond, what)`——**JavaScript 默默接受，於是每一處都只印出一個短標籤，把它剛剛量到的數字丟掉**。§3.G9 的「訊息要么引用具名常數、要么引用一個謊」被違反，而症狀只有失敗訊息裡的 `undefinedpx`。改成可變參。
+**Three, a three-argument call swallowed by a two-argument signature.** `check_cry_mobile_layout.mjs` has twenty call sites written `ok(cond, label, detail)` while `ok` is `(cond, what)` — **JavaScript accepts it silently, so every one of them prints only a short label and throws away the number it had just measured**. §3.G9's rule that a message must quote a named constant or it quotes a lie is violated, and the only symptom is an `undefinedpx` inside a failure message. It now takes a rest parameter.
 
 ---
 
