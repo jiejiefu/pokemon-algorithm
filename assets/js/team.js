@@ -39,16 +39,16 @@ import {
 const PAGE_SIZE = 120;
 const SEARCH_DEBOUNCE_MS = 120;
 const MOVE_TABLE_URL = 'assets/data/team_moves.json';
-const ART_SCALE = 2;
+const ART_SCALE = 1;
 const ART_MAX = 136;
 
 /**
  * The slot art is the one runtime request this site makes to a third party.
  *
  * Showdown's animated sprites are the reason: they are bottom-anchored battle
- * GIFs at 43-178px and their canvas size tracks the species. Each file is drawn
- * at twice its own pixels, capped at 136, so a 43x35 Ditto lands at 86x70
- * instead of being blown up 3.9x, while #6 (133x140) stays near native. The
+ * GIFs at 43-178px and their canvas size tracks the species, so each file is
+ * drawn at its own pixels, capped at 136: #132 (43x35) stays 43x35 instead of
+ * being blown up 3.2x, and #6 (133x140) is only trimmed to the cap. The
  * local Scarlet/Violet set is 120x112 with the subject occupying only 36-72px,
  * which is why drawing it at its own size looked smaller than the old 96px
  * sprite.
@@ -516,7 +516,7 @@ export async function initTeamPage() {
   }
 
   /**
-   * Twice the file's own pixels, capped at the slot's box. Both dimensions are
+   * The file's own pixels, capped at the slot's box. Both dimensions are
    * written because the `<img>`'s width/height attributes supply a 1:1 ratio
    * and `height: auto` would honour that instead of the GIF's.
    */

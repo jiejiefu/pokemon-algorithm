@@ -237,9 +237,9 @@ ok(/const gifState = new Map\(\)/.test(JS) && /let entry = gifState\.get\(id\)/.
   'one probe per species survives a re-render, so six slots cost six requests');
 ok(/\.then\(\(ok\) => \{/.test(JS),
   'every render attaches to the probe, so a late render does not lose the GIF');
-ok(/const ART_SCALE = 2/.test(JS) && /const ART_MAX = 136/.test(JS)
+ok(/const ART_SCALE = 1/.test(JS) && /const ART_MAX = 136/.test(JS)
   && /Math\.min\(ART_SCALE, ART_MAX \/ longest\)/.test(JS),
-  'a small GIF is drawn at twice its own pixels, capped at the slot box');
+  'a GIF is drawn at its own pixels, capped at the slot box');
 ok(/img\.style\.width = `\$\{Math\.round\(img\.naturalWidth \* factor\)\}px`/.test(JS)
   && /img\.style\.height = `\$\{Math\.round\(img\.naturalHeight \* factor\)\}px`/.test(JS),
   'both dimensions come from the file, so its aspect ratio is not forced into a square');

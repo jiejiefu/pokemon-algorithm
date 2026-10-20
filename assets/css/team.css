@@ -228,8 +228,8 @@
    sprite did. The official artwork is 475x475 with the subject at ~90% of the
    canvas, and the Showdown GIF is a bottom-anchored battle sprite at 43-178px.
    `contain` + `bottom` puts both on the same baseline without a transform.
-   A GIF gets inline dimensions at 2x its own pixels (see `sizeShowdown()`),
-   so these two maxima are only clamps for a narrow slot or a future cap. */
+   A GIF gets its own pixel dimensions inline (see `sizeShowdown()`),
+   so these two maxima only clamp a file larger than the box or a narrow slot. */
 .tm-slot-art {
   position: relative;
   z-index: 1;

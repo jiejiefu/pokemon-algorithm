@@ -322,7 +322,7 @@ const CASES = [
   },
   {
     name: 'the GIF is stretched into the square box',
-    why: 'a uniform 136px box blows a 43x35 Ditto up 3.9x; the file owns its size and its aspect ratio',
+    why: 'a uniform 136px box blows a 43x35 Ditto up 3.2x; the file owns its size and its aspect ratio',
     mutate: (dir) => edit(dir, 'assets/js/team.js',
       'img.style.width = `${Math.round(img.naturalWidth * factor)}px`;',
       "img.style.width = '136px';"),
