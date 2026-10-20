@@ -460,18 +460,20 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 **Guarded by:** `check_abilities_data.mjs` (18,849, 0.1 s) + `check_abilities_page.mjs` (133, RUNS the filters) + `test_check_abilities_page.mjs` (12) + `check_pokemon_names.mjs` (94). **No browser entry (a priced trade).** · **Background:** [pages.md#ac](docs/incidents/pages.md#ac)
 
 ### AD. `team.html` — Six Slots, Two Tallies, One Roster
-The slot's type statement is a **112px Poké Ball behind the sprite** (`.tm-slot-render::before`), **horizontal not diagonal**: `--tm-c1` top half, `--tm-c2` bottom half, a `--bg-secondary` waist and button ring; the name bar keeps `typePair(primary)` rather than white.
+The slot's type statement is a **148px Poké Ball behind the art** (`.tm-slot-render::before`), **horizontal not diagonal**: `--tm-c1` top half, `--tm-c2` bottom half, a `--bg-secondary` waist and button ring; the name bar keeps `typePair(primary)` rather than white.
 - **`TEAM_LIMIT` lives once, in `team-state.js`**; the analysis module takes ids, not a cap.
 - **The id search is an exact padded match** — `025` must not match `0250`.
 - **`?team=` keeps literal commas:** `searchParams.set` writes `%2C`; only `team-state.js` parses and writes the parameter.
 - **Each tally header chip sits over its own mark column** — same grid, same gap; a chip is not a separate legend.
 - **The roster is 145 KB of ids, names, types, generation and regions**, never `pokemon_data.json`; **every card states its type** in a `tm-card-types` row of `typeBadgeSmHtml()` badges, repeated in its `aria-label`.
+- **`--tm-ball-size` sizes both the disc and the render box** (`min-height: calc(var(--tm-ball-size) + 12px)`). They were 112px and 84px, so `overflow: hidden` clipped 14px off each end of the ball; the shared token is the guard, not a second eye.
+- **The slot art is the one runtime third-party request.** Local official artwork (475px) paints first, then a probed Showdown GIF replaces it when that species has one — the set is 43–178px, so the 136px box is mostly a downscale; `is-pixelated` is applied from the measured natural size, never by extension. A failed probe (#1010, #1017, #1024, #1025 today) leaves the artwork, so a 404 is not a broken icon; `gifState` holds a **promise** per species, so six slots cost six requests and a re-render during the probe still upgrades.
 - **Each member carries four moves, drawn from level-up first** and filled from machine → tutor → egg when the level pool is short; **five species cannot reach four** (#132, #201, #235, #789, #790) and 22 have under four level moves, so a short row is the species, not a draw failure.
 - **`MOVES_PER_MEMBER = 4` lives once, in `team-moves.js`.** `?moves=` is four ids per member in team order with `0` for an empty row, parsed/written only by `team-state.js`, literal commas like `?team=`. A member's chunk is accepted or rejected whole; a member without one is redrawn.
 - **`team_moves.json` is generated** (607,208 B / 151 KB gzip): `defs._fields` plus nine columns per move, and four method strings per species. Machine rows keep the id only — no TM code, no generation. The page fetches it **only after a slot is filled**, and echoes an arriving `?moves=` until the table lands.
 - **Offence is move-based and STABBED:** the strongest carried move per member, `effectiveness × 1.5`, counted at ≥2×. **Seventeen moves are excluded** — fixed damage, OHKO, counter and 忍耐 — while 硬壓 keeps its type at power 0 (依情況); status is selectable and never counted.
 - **The picker is a native `<dialog>`** with four method tabs, a cross-method search, and effect/PP/generation per row; a move used in another slot is disabled and **focus returns to the row** after the swap, which the re-render detaches.
-**Guarded by:** `check_team_page.mjs` (219) + `test_check_team_page.mjs` (28) + `check_team_moves.mjs` (54) + `test_check_team_moves.mjs` (11). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
+**Guarded by:** `check_team_page.mjs` (229) + `test_check_team_page.mjs` (33) + `check_team_moves.mjs` (54) + `test_check_team_moves.mjs` (11). **No browser entry:** the rendered split and the 148px ball were measured by hand (slot, 390px, blocked-network fallback); a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
 
 
 ## 4. Verification & Testing Commands
@@ -506,7 +508,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
 | `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
-| `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 18 entries, no browser; the team pair is 154 + 15 |
+| `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 20 entries, no browser; the team pair is 229 + 33 |
 | `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |
 | `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `check_moves_data.mjs` | 127,868 checks, 0.1 s; one pass writes all four |
 | `abilities.html`, `ability.html`, `abilities.js`, `abilities.css` | `check_abilities_page.mjs` | 133 checks, 0.1 s; no browser entry |

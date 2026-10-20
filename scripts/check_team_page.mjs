@@ -106,8 +106,18 @@ ok(Boolean(ball) && /radial-gradient\(circle at 50% 50%/.test(ball[1]),
   'the ball keeps the centre button and its ring');
 ok(Boolean(ball) && /calc\(50% - 2px\)[\s\S]*?var\(--bg-secondary\)/.test(ball[1]),
   'the waist between the halves is the card colour, so it flips with the theme');
-ok(/\.tm-slot-sprite\s*\{[^}]*z-index:\s*1/.test(cssCode),
-  'the sprite paints above the ball, not behind it');
+ok(/\.tm-slot-art\s*\{[^}]*z-index:\s*1/.test(cssCode),
+  'the art paints above the ball, not behind it');
+ok(/\.tm-slot\s*\{[^}]*--tm-ball-size:\s*148px/.test(cssCode),
+  'the slot declares one ball size');
+ok(/\.tm-slot-render\s*\{[^}]*min-height:\s*calc\(var\(--tm-ball-size\) \+ 12px\)/.test(cssCode),
+  'the render box is sized from the ball, so the disc cannot be clipped again');
+ok(/\.tm-slot-art\s*\{[^}]*object-fit:\s*contain[^}]*object-position:\s*bottom/.test(cssCode),
+  'the art is contained and bottom-anchored, so both sources share a baseline');
+ok(/\.tm-slot-art\.is-pixelated\s*\{[^}]*image-rendering:\s*pixelated/.test(cssCode),
+  'pixelation is scoped to the animated file');
+ok(!/\.tm-slot-art\s*\{[^}]*image-rendering/.test(cssCode),
+  'the local artwork is not nearest-neighbour scaled');
 ok(/var\(--tm-c1\)/.test(cssCode) && /var\(--tm-c2\)/.test(cssCode),
   'both type colours are consumed as custom properties');
 ok(/\.tm-tally-head\s*\{[^}]*grid-template-columns:\s*92px 38px 1fr/.test(cssCode),
@@ -143,7 +153,7 @@ ok(!/(^|\})\s*\.type-badge\s*\{/.test(cssCode),
 
 const NEEDED = [
   'tm-slot', 'tm-slot-add', 'tm-slot-plus', 'tm-slot-hint', 'tm-slot-fill',
-  'tm-slot-render', 'tm-slot-sprite', 'tm-slot-remove', 'tm-slot-info',
+  'tm-slot-render', 'tm-slot-art', 'tm-slot-remove', 'tm-slot-info',
   'tm-slot-name', 'tm-slot-types', 'tm-card', 'tm-card-name', 'tm-card-id',
   'tm-summary-card', 'tm-chips', 'tm-tally', 'tm-tally-type', 'tm-tally-score',
   'tm-marks', 'tm-mark', 'tm-empty', 'tm-more', 'tm-card-types',
@@ -216,7 +226,21 @@ ok(/\.tm-move-tab\[aria-checked="true"\]/.test(dialogCss),
 
 ok(/fetch\('assets\/data\/team_roster\.json'\)/.test(JS),
   'team.js reads the compact roster, never pokemon_data.json');
-ok(/spriteUrl\(pokemon\.id\)/.test(JS), 'cards and slots use the 96px sprite helper');
+ok(/spriteUrl\(pokemon\.id\)/.test(JS), 'the 22px header chips and 64px cards use the 96px sprite helper');
+ok(/artworkUrl\(pokemon\.id\)/.test(JS),
+  'a slot paints the local official artwork before anything is fetched');
+ok(/const SHOWDOWN_GIF = 'https:\/\/raw\.githubusercontent\.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/showdown'/.test(JS),
+  'the slot animation comes from the Showdown set, not a rounded local copy');
+ok(/probe\.onerror = \(\) => resolve\(false\)/.test(JS)
+  && /if \(ok && img\.isConnected\) useShowdown/.test(JS),
+  'a failed probe keeps the local artwork rather than replacing it with a broken icon');
+ok(/const gifState = new Map\(\)/.test(JS) && /let entry = gifState\.get\(id\)/.test(JS)
+  && /if \(!entry\)/.test(JS),
+  'one probe per species survives a re-render, so six slots cost six requests');
+ok(/\.then\(\(ok\) => \{/.test(JS),
+  'every render attaches to the probe, so a late render does not lose the GIF');
+ok(/Math\.min\(img\.naturalWidth, img\.naturalHeight\) < box/.test(JS),
+  'pixelation follows the measured natural size, not the extension');
 ok(/pokemonDetailUrl\(pokemon\)/.test(JS), 'the slot name links through pokemonDetailUrl()');
 ok(/history\.replaceState/.test(JS), 'the URL is rewritten in place rather than pushing a step per click');
 ok(/parseTeamParam\(/.test(JS) && /serializeTeamParam\(/.test(JS),

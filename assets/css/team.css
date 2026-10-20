@@ -122,6 +122,12 @@
 }
 
 .tm-slot {
+  /* One number for both the disc and the box that has to contain it. They were
+     112px and 「whatever a 76px image plus padding happens to be」 (84px), so
+     the top and bottom of the ball were clipped by `overflow: hidden` below.
+     A shared token is the fix: the render's min-height is derived from it, so
+     the two cannot drift apart again. */
+  --tm-ball-size: 148px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -139,14 +145,14 @@
 
 /* The ball. Layer order is paint order: the button and its ring on top, then
    the waist the halves part on, then the primary/secondary split itself. 86%
-   keeps the desktop 112px disc inside the render box and still leaves a ring
-   of type colour around the 76px sprite. */
+   is the narrow-screen bound; at 148px the disc still leaves a ring of type
+   colour around the 136px art. */
 .tm-slot-render::before {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(112px, 86%);
+  width: min(var(--tm-ball-size), 86%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
@@ -206,19 +212,37 @@
 
 .tm-slot-render {
   position: relative;
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 8px 0;
+  /* The ball is absolutely positioned, so it contributes no height. Before
+     this, the render box sized itself to the in-flow image and clipped 14px
+     off each end of the disc. */
+  min-height: calc(var(--tm-ball-size) + 12px);
+  padding: 6px 8px 0;
 }
 
-.tm-slot-sprite {
+/* Scarlet/Violet artwork is 120x112 with the subject occupying 36-72px of it,
+   so drawing it at its own size made small species look smaller than the 96px
+   sprite did. The official artwork is 475x475 with the subject at ~90% of the
+   canvas, and the Showdown GIF is a bottom-anchored battle sprite at 43-178px.
+   `contain` + `bottom` puts both on the same baseline without a transform. */
+.tm-slot-art {
   position: relative;
   z-index: 1;
-  width: 76px;
-  height: 76px;
+  width: min(136px, 84%);
+  aspect-ratio: 1;
+  height: auto;
   object-fit: contain;
+  object-position: bottom;
+}
+
+/* Nearest-neighbour is correct for pixel art scaled UP and wrong for a 178px
+   GIF scaled down to 136, so the class is applied per file at load time from
+   the measured natural size — see `markPixelated()` in team.js. */
+.tm-slot-art.is-pixelated {
+  image-rendering: pixelated;
 }
 
 .tm-slot-remove {

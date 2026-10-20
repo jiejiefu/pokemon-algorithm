@@ -13,13 +13,18 @@
  * visitor who never fills a slot never pays for it. Every slot keeps four rows
  * from the first paint — as `⋯` until the table lands — because a six-column
  * grid that grows a row per slot would reflow the whole section.
+ *
+ * The slot image is the one third-party request: the local official artwork
+ * paints first, then a probed Showdown GIF replaces it when that species has
+ * one. See `SHOWDOWN_GIF` for why the GIF set is the right size for this box
+ * and why the fallback is a probe rather than an `onerror` on the visible node.
  */
 
 import {
   TYPE_EN_ZH, TYPE_COLORS, typeBadgeSmHtml, typePair, pokemonDetailUrl,
   wireRoving, MOVE_TABS,
 } from './shared.js';
-import { spriteUrl } from './color-palette.js';
+import { artworkUrl, spriteUrl } from './color-palette.js';
 import { TYPE_CHART_ORDER } from './type-chart.js';
 import { analyzeTeam, defensiveMultiplier, teamSummary } from './team-analysis.js';
 import {
@@ -34,6 +39,53 @@ import {
 const PAGE_SIZE = 120;
 const SEARCH_DEBOUNCE_MS = 120;
 const MOVE_TABLE_URL = 'assets/data/team_moves.json';
+
+/**
+ * The slot art is the one runtime request this site makes to a third party.
+ *
+ * Showdown's animated sprites are the reason: they are bottom-anchored battle
+ * GIFs at 43-178px, so the 136px slot box is a downscale for most species and a
+ * near-native draw for #6 (133x140), while the biggest files stay crisp. The
+ * local Scarlet/Violet set is 120x112 with the subject occupying only 36-72px,
+ * which is why drawing it at its own size looked smaller than the old 96px
+ * sprite.
+ *
+ * Nothing is stored: the GIF is probed once per species per page load, and a
+ * 404 (today #1010, #1017, #1024, #1025) or a network failure keeps the local
+ * official artwork that was the `src` from the first paint. That is also why
+ * the probe is an `Image()` rather than a swapped `<img>`: a failed probe never
+ * puts a broken icon on the page, and `gifState` keeps a six-slot team to six
+ * requests rather than one per render.
+ */
+const SHOWDOWN_GIF = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown';
+const gifState = new Map();
+
+function showdownUrl(id) {
+  return `${SHOWDOWN_GIF}/${id}.gif`;
+}
+
+/**
+ * One probe per species, and one promise every rendered `<img>` can wait on.
+ *
+ * A `'loading'` string in the cache was the first shape and it was wrong: the
+ * move table's fetch can land between two renders, so the second `<img>` saw
+ * 「already loading」 and waited for a probe whose old node was detached. The
+ * promise is what makes a late render attach to the in-flight request instead
+ * of sitting on the artwork forever.
+ */
+function showdownReady(id) {
+  let entry = gifState.get(id);
+  if (!entry) {
+    entry = new Promise((resolve) => {
+      const probe = new Image();
+      probe.onload = () => resolve(true);
+      probe.onerror = () => resolve(false);
+      probe.src = showdownUrl(id);
+    });
+    gifState.set(id, entry);
+  }
+  return entry;
+}
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -460,6 +512,37 @@ export async function initTeamPage() {
     return list;
   }
 
+  /**
+   * Nearest-neighbour is right for a 45px GIF drawn at 136 and wrong for a
+   * 178px one drawn at the same size, so the class comes from the file's own
+   * measured size against the box it actually landed in — not from a guess.
+   */
+  function markPixelated(img) {
+    const box = img.getBoundingClientRect().width;
+    if (!box) return;
+    img.classList.toggle('is-pixelated',
+      Math.min(img.naturalWidth, img.naturalHeight) < box);
+  }
+
+  function useShowdown(id, img) {
+    img.onload = () => markPixelated(img);
+    img.src = showdownUrl(id);
+  }
+
+  function slotArt(pokemon) {
+    const img = el('img', 'tm-slot-art');
+    img.src = artworkUrl(pokemon.id);
+    img.alt = '';
+    img.width = 136;
+    img.height = 136;
+    img.decoding = 'async';
+
+    showdownReady(pokemon.id).then((ok) => {
+      if (ok && img.isConnected) useShowdown(pokemon.id, img);
+    });
+    return img;
+  }
+
   function renderSlots() {
     slotsEl.textContent = '';
     for (let index = 0; index < TEAM_LIMIT; index += 1) {
@@ -503,13 +586,7 @@ export async function initTeamPage() {
       const fill = el('div', 'tm-slot-fill');
 
       const render = el('div', 'tm-slot-render');
-      const img = el('img', 'tm-slot-sprite');
-      img.src = spriteUrl(pokemon.id);
-      img.alt = '';
-      img.width = 72;
-      img.height = 72;
-      img.decoding = 'async';
-      render.append(img);
+      render.append(slotArt(pokemon));
 
       const remove = el('button', 'tm-slot-remove', '×');
       remove.type = 'button';
