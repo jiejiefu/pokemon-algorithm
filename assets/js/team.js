@@ -39,13 +39,16 @@ import {
 const PAGE_SIZE = 120;
 const SEARCH_DEBOUNCE_MS = 120;
 const MOVE_TABLE_URL = 'assets/data/team_moves.json';
+const ART_SCALE = 2;
+const ART_MAX = 136;
 
 /**
  * The slot art is the one runtime request this site makes to a third party.
  *
  * Showdown's animated sprites are the reason: they are bottom-anchored battle
- * GIFs at 43-178px, so the 136px slot box is a downscale for most species and a
- * near-native draw for #6 (133x140), while the biggest files stay crisp. The
+ * GIFs at 43-178px and their canvas size tracks the species. Each file is drawn
+ * at twice its own pixels, capped at 136, so a 43x35 Ditto lands at 86x70
+ * instead of being blown up 3.9x, while #6 (133x140) stays near native. The
  * local Scarlet/Violet set is 120x112 with the subject occupying only 36-72px,
  * which is why drawing it at its own size looked smaller than the old 96px
  * sprite.
@@ -513,19 +516,19 @@ export async function initTeamPage() {
   }
 
   /**
-   * Nearest-neighbour is right for a 45px GIF drawn at 136 and wrong for a
-   * 178px one drawn at the same size, so the class comes from the file's own
-   * measured size against the box it actually landed in — not from a guess.
+   * Twice the file's own pixels, capped at the slot's box. Both dimensions are
+   * written because the `<img>`'s width/height attributes supply a 1:1 ratio
+   * and `height: auto` would honour that instead of the GIF's.
    */
-  function markPixelated(img) {
-    const box = img.getBoundingClientRect().width;
-    if (!box) return;
-    img.classList.toggle('is-pixelated',
-      Math.min(img.naturalWidth, img.naturalHeight) < box);
+  function sizeShowdown(img) {
+    const longest = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+    const factor = Math.min(ART_SCALE, ART_MAX / longest);
+    img.style.width = `${Math.round(img.naturalWidth * factor)}px`;
+    img.style.height = `${Math.round(img.naturalHeight * factor)}px`;
   }
 
   function useShowdown(id, img) {
-    img.onload = () => markPixelated(img);
+    img.onload = () => sizeShowdown(img);
     img.src = showdownUrl(id);
   }
 

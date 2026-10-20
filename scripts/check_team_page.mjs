@@ -114,10 +114,8 @@ ok(/\.tm-slot-render\s*\{[^}]*min-height:\s*calc\(var\(--tm-ball-size\) \+ 12px\
   'the render box is sized from the ball, so the disc cannot be clipped again');
 ok(/\.tm-slot-art\s*\{[^}]*object-fit:\s*contain[^}]*object-position:\s*bottom/.test(cssCode),
   'the art is contained and bottom-anchored, so both sources share a baseline');
-ok(/\.tm-slot-art\.is-pixelated\s*\{[^}]*image-rendering:\s*pixelated/.test(cssCode),
-  'pixelation is scoped to the animated file');
-ok(!/\.tm-slot-art\s*\{[^}]*image-rendering/.test(cssCode),
-  'the local artwork is not nearest-neighbour scaled');
+ok(!/image-rendering/.test(cssCode),
+  'the art is scaled smoothly: the 43-178px set has no one crispness setting');
 ok(/var\(--tm-c1\)/.test(cssCode) && /var\(--tm-c2\)/.test(cssCode),
   'both type colours are consumed as custom properties');
 ok(/\.tm-tally-head\s*\{[^}]*grid-template-columns:\s*92px 38px 1fr/.test(cssCode),
@@ -239,8 +237,12 @@ ok(/const gifState = new Map\(\)/.test(JS) && /let entry = gifState\.get\(id\)/.
   'one probe per species survives a re-render, so six slots cost six requests');
 ok(/\.then\(\(ok\) => \{/.test(JS),
   'every render attaches to the probe, so a late render does not lose the GIF');
-ok(/Math\.min\(img\.naturalWidth, img\.naturalHeight\) < box/.test(JS),
-  'pixelation follows the measured natural size, not the extension');
+ok(/const ART_SCALE = 2/.test(JS) && /const ART_MAX = 136/.test(JS)
+  && /Math\.min\(ART_SCALE, ART_MAX \/ longest\)/.test(JS),
+  'a small GIF is drawn at twice its own pixels, capped at the slot box');
+ok(/img\.style\.width = `\$\{Math\.round\(img\.naturalWidth \* factor\)\}px`/.test(JS)
+  && /img\.style\.height = `\$\{Math\.round\(img\.naturalHeight \* factor\)\}px`/.test(JS),
+  'both dimensions come from the file, so its aspect ratio is not forced into a square');
 ok(/pokemonDetailUrl\(pokemon\)/.test(JS), 'the slot name links through pokemonDetailUrl()');
 ok(/history\.replaceState/.test(JS), 'the URL is rewritten in place rather than pushing a step per click');
 ok(/parseTeamParam\(/.test(JS) && /serializeTeamParam\(/.test(JS),
