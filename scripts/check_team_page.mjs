@@ -20,7 +20,7 @@ import { dirname, join } from 'node:path';
 
 import { TYPE_CHART_ORDER } from '../assets/js/type-chart.js';
 import {
-  analyzeTeam, defensiveMultiplier, defensiveProfile, stabCoverage, teamSummary,
+  analyzeTeam, bestAgainst, defensiveMultiplier, defensiveProfile, teamSummary,
 } from '../assets/js/team-analysis.js';
 import {
   TEAM_LIMIT, parseTeamParam, serializeTeamParam, addMember, removeMember,
@@ -78,8 +78,10 @@ for (const id of ['tm-count', 'tm-resultline', 'tm-action-status']) {
   ok(/role="status"/.test(attrs(id)) && /aria-live="polite"/.test(attrs(id)),
     `#${id} is a polite live region`);
 }
-ok(/不含特性、道具與招式/.test(HTML),
-  'the page states the analysis is type-only, so it is not read as a battle prediction');
+ok(/防守只依屬性計算，不含特性與道具/.test(HTML),
+  'the page says defence is type-only, so it is not read as a battle prediction');
+ok(/招式屬性 × 1\.5 倍 STAB/.test(HTML),
+  'the page states the offence rule — move type times the 1.5x STAB');
 
 ok(/from '\.\/assets\/js\/team\.js'/.test(HTML), 'the page imports the feature module');
 ok(/^\s*initTeamPage\(\);$/m.test(HTML), 'the page actually starts the planner');
@@ -145,15 +147,70 @@ const NEEDED = [
   'tm-slot-name', 'tm-slot-types', 'tm-card', 'tm-card-name', 'tm-card-id',
   'tm-summary-card', 'tm-chips', 'tm-tally', 'tm-tally-type', 'tm-tally-score',
   'tm-marks', 'tm-mark', 'tm-empty', 'tm-more', 'tm-card-types',
-  'tm-tally-head', 'tm-tally-member',
+  'tm-tally-head', 'tm-tally-member', 'tm-moves', 'tm-move', 'tm-move-dot',
+  'tm-move-label', 'tm-move-power', 'tm-offense-note', 'tm-move-dialog',
+  'tm-move-tabs', 'tm-move-list', 'tm-move-pick',
 ];
 for (const name of NEEDED) {
   ok(cssCode.includes(`.${name}`) || cssCode.includes(`--${name}`),
     `team.css defines ${name.startsWith('tm-') ? `.${name}` : name}`);
 }
-for (const modifier of ['is-filled', 'is-highlight', 'is-weak', 'is-resist', 'is-empty']) {
+for (const modifier of ['is-filled', 'is-highlight', 'is-weak', 'is-resist', 'is-empty', 'is-loading']) {
   ok(cssCode.includes(`.${modifier}`), `team.css styles the ${modifier} state`);
 }
+
+/* ===== moves: the dialog, the lazy table, the reroll ===== */
+
+for (const id of [
+  'tm-reroll', 'tm-offense-note', 'tm-move-dialog', 'tm-move-target', 'tm-move-close',
+  'tm-move-tabs', 'tm-move-search', 'tm-move-count', 'tm-move-list', 'tm-move-empty',
+]) {
+  ok(attrs(id).length > 0, `the page carries #${id}`);
+}
+ok(/<dialog[^>]*id="tm-move-dialog"/.test(HTML), 'the picker is a native <dialog>, not a hand-built modal');
+ok(/id="tm-move-dialog"[^>]*aria-labelledby="tm-move-dialog-title"/.test(HTML),
+  'the dialog is labelled by its own heading');
+ok(/id="tm-move-tabs"[^>]*role="radiogroup"/.test(HTML),
+  'the four method tabs are a radiogroup — one filter is active, not four toggles');
+ok(/id="tm-move-empty"[^>]*hidden/.test(HTML), '#tm-move-empty starts hidden');
+ok(/id="tm-move-count"[^>]*role="status"/.test(HTML), 'the result count is announced');
+ok((HTML.match(/<dialog\b/g) || []).length === 1, 'the page mounts one dialog');
+
+ok(/const MOVE_TABLE_URL = 'assets\/data\/team_moves\.json'/.test(JS),
+  'team.js names the compact move table');
+const ensureFn = JS.slice(JS.indexOf('function ensureMoves'), JS.indexOf('function seedMoves'));
+ok(ensureFn.length > 0 && /fetch\(MOVE_TABLE_URL\)/.test(ensureFn),
+  'the move table is fetched inside ensureMoves(), not on the initial paint');
+ok(/if \(!state\.moveTable && state\.ids\.length\) ensureMoves\(\)/.test(JS),
+  'the fetch is triggered by a filled slot, so an empty team never pays for it');
+ok(/drawMoves\(learnedSet\(id\)\)/.test(JS), 'a missing member is filled by a draw');
+ok(/els\.dialog\.showModal\(\)/.test(JS), 'the picker opens with showModal(), which gives Escape and the backdrop for free');
+ok(/els\.dialog\.close\(\)/.test(JS), 'the picker closes through the dialog API');
+ok(/parseMovesParam\(/.test(JS) && /serializeMovesParam\(/.test(JS),
+  '?moves= is parsed and written by team-state.js, not by hand');
+ok(!/searchParams\.set\(\s*['"]moves['"]/.test(JS),
+  'the moves param never goes through searchParams.set()');
+ok(/moves=\$\{serializeMovesParam\(/.test(JS),
+  'the written query spells ?moves= with literal commas');
+ok(/state\.moves\.get\(memberId\)/.test(JS), 'the four rows are rendered from the member\'s picks');
+ok(/data-move-slot/.test(JS), 'each row carries its slot index for the dialog and for focus return');
+ok(/row\?\.focus\(\)/.test(JS),
+  'focus returns to the row after a swap, which the re-render would otherwise have detached');
+ok(/damaging:\s*isDamaging\(move\)/.test(JS),
+  'status and fixed-damage moves are excluded from the tally');
+
+const dialogCss = cssCode.slice(cssCode.indexOf('.tm-move-dialog'));
+ok(/\.tm-move-dialog::backdrop/.test(dialogCss), 'the dialog dims the page behind it');
+ok(/\.tm-move-dialog\[open\]\s*\{[^}]*display:\s*flex/.test(dialogCss),
+  'the open dialog is a column so the list scrolls and the header does not');
+ok(/\.tm-move-list\s*\{[^}]*overflow-y:\s*auto/.test(dialogCss),
+  'the picker scrolls inside the dialog');
+ok(/\.tm-move-pick:disabled\s*\{/.test(dialogCss),
+  'a move already in another slot is visibly disabled');
+ok(/@media \(max-width: 640px\)[\s\S]*?\.tm-move-dialog\s*\{[^}]*100vw/.test(dialogCss),
+  'the dialog is bounded by the phone viewport, not a fixed width');
+ok(/\.tm-move-tab\[aria-checked="true"\]/.test(dialogCss),
+  'the active method tab reads its state from aria-checked');
 
 /* ===== the feature module's contracts ===== */
 
@@ -245,11 +302,23 @@ is(profile.find((row) => row.type === 'Grass').multiplier, 0.25,
 is(defensiveMultiplier(['Flying'], 'Ground'), 0, 'Flying is immune to Ground');
 is(defensiveMultiplier(['Fire', 'Flying'], 'Rock'), 4, 'Rock is a 4x weakness on Fire/Flying');
 
-eq(
-  [...stabCoverage(bulbasaur.types)].sort(),
-  ['Water', 'Ground', 'Rock', 'Grass', 'Fairy'].sort(),
-  'Bulbasaur STAB covers Water, Ground, Rock, Grass and Fairy',
-);
+/* Offence is per move, not per type: the same body hits harder with the right
+ * move and nothing at all without one. */
+const flame = { id: 53, zh: '噴射火焰', type: 'Fire', stab: false, damaging: true };
+const leaf = { id: 345, zh: '魔法葉', type: 'Grass', stab: true, damaging: true };
+const status = { id: 106, zh: '刺耳聲', type: 'Normal', stab: false, damaging: false };
+is(bestAgainst([flame], 'Grass').total, 2, 'a 2x move with no STAB totals 2x');
+eq(bestAgainst([flame], 'Water').total, 0.5, 'a 0.5x move totals 0.5x');
+is(bestAgainst([leaf], 'Water').total, 3, 'a 2x STAB move totals 3x');
+is(bestAgainst([leaf, flame], 'Water').zh, '魔法葉', 'the strongest move wins a row');
+eq(bestAgainst([status], 'Grass'), null, 'a status move offers no coverage');
+eq(bestAgainst([], 'Grass'), null, 'no moves, no coverage');
+
+const fixtureMoves = new Map([
+  [1, [leaf]],
+  [6, [flame]],
+  [25, [{ id: 85, zh: '十萬伏特', type: 'Electric', stab: true, damaging: true }]],
+]);
 
 const team = analyzeTeam([1, 6, 25], byId);
 is(team.members.length, 3, 'analyzeTeam keeps the supplied order');
@@ -270,11 +339,19 @@ const summary = teamSummary(team);
 eq(summary.commonWeaknesses, [], 'the fixture team shares no weakness');
 eq(summary.unresisted, ['Rock', 'Psychic', 'Ice'],
   'Rock, Psychic and Ice have a weak member and no resisting one');
-eq(
-  summary.uncovered.sort(),
-  ['Normal', 'Poison', 'Ghost', 'Fire', 'Electric', 'Psychic', 'Dragon', 'Dark'].sort(),
-  'the fixture team leaves eight types uncovered by STAB',
-);
+eq(summary.uncovered.length, 18,
+  'a team analyzed without moves covers nothing');
+
+const withMoves = analyzeTeam([1, 6, 25], byId, fixtureMoves);
+eq(withMoves.coverage.map((row) => row.count),
+  TYPE_CHART_ORDER.map((type) => withMoves.coverage.find((row) => row.type === type).ids.length),
+  'each coverage row reports the members its own marks count');
+is(withMoves.coverage.find((row) => row.type === 'Water').count, 2,
+  'Grass and Electric both reach 2x on Water');
+is(withMoves.coverage.find((row) => row.type === 'Water').marks[0].total, 3,
+  'a STAB 2x move is reported at 3x');
+eq(teamSummary(withMoves).uncovered.length, 18 - 8,
+  'the three fixture members cover eight defending types between them');
 
 /* ===== state transitions ===== */
 

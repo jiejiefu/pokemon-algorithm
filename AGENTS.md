@@ -99,6 +99,7 @@ pokemon-algorithm/
 | `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
 | `build_home_roster.py` | `home_roster.json` — 1,025 compact records (`id`, `names.zh`, `stats.total`, `height_m`, `hue`), 90 KB raw / 19 KB gzip, for `index.html`'s two demos. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
 | `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
+| `build_team_moves.py` | `team_moves.json` — 1,025 four-method strings + 919 defs (`zh/en/type/class/power/accuracy/pp/generation/effect`), 607 KB / 151 KB gzip, for `team.html`. Type is capitalised to `type-chart.js` keys; `--dry-run` reports the split and the five species short of four (§3.AD) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
 | `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 8.9 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
 
@@ -465,7 +466,12 @@ The slot's type statement is a **112px Poké Ball behind the sprite** (`.tm-slot
 - **`?team=` keeps literal commas:** `searchParams.set` writes `%2C`; only `team-state.js` parses and writes the parameter.
 - **Each tally header chip sits over its own mark column** — same grid, same gap; a chip is not a separate legend.
 - **The roster is 145 KB of ids, names, types, generation and regions**, never `pokemon_data.json`; **every card states its type** in a `tm-card-types` row of `typeBadgeSmHtml()` badges, repeated in its `aria-label`.
-**Guarded by:** `check_team_page.mjs` (163) + `test_check_team_page.mjs` (19). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
+- **Each member carries four moves, drawn from level-up first** and filled from machine → tutor → egg when the level pool is short; **five species cannot reach four** (#132, #201, #235, #789, #790) and 22 have under four level moves, so a short row is the species, not a draw failure.
+- **`MOVES_PER_MEMBER = 4` lives once, in `team-moves.js`.** `?moves=` is four ids per member in team order with `0` for an empty row, parsed/written only by `team-state.js`, literal commas like `?team=`. A member's chunk is accepted or rejected whole; a member without one is redrawn.
+- **`team_moves.json` is generated** (607,208 B / 151 KB gzip): `defs._fields` plus nine columns per move, and four method strings per species. Machine rows keep the id only — no TM code, no generation. The page fetches it **only after a slot is filled**, and echoes an arriving `?moves=` until the table lands.
+- **Offence is move-based and STABBED:** the strongest carried move per member, `effectiveness × 1.5`, counted at ≥2×. **Seventeen moves are excluded** — fixed damage, OHKO, counter and 忍耐 — while 硬壓 keeps its type at power 0 (依情況); status is selectable and never counted.
+- **The picker is a native `<dialog>`** with four method tabs, a cross-method search, and effect/PP/generation per row; a move used in another slot is disabled and **focus returns to the row** after the swap, which the re-render detaches.
+**Guarded by:** `check_team_page.mjs` (219) + `test_check_team_page.mjs` (28) + `check_team_moves.mjs` (54) + `test_check_team_moves.mjs` (11). **No browser entry:** the rendered split was measured once by hand; a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
 
 
 ## 4. Verification & Testing Commands
@@ -577,6 +583,14 @@ python scripts/build_home_roster.py --dry-run && python scripts/build_home_roste
 
 # 1c. Team roster: the slim 1,025-record table team.html reads; --dry-run first.
 python scripts/build_team_roster.py --dry-run && python scripts/build_team_roster.py && node scripts/check_team_page.mjs
+
+# 1d. Team moves: the four learn method pools + one def row per move.
+#     Run after learnsets.json or moves_zh.json changes. --dry-run reports
+#     bytes/gzip and the species that cannot reach four moves. The checker
+#     rebuilds every method string from learnsets.json, so a stale table fails.
+python scripts/build_team_moves.py --dry-run
+python scripts/build_team_moves.py
+node scripts/check_team_moves.mjs
 
 # 2. Chinese Names: Scrape official names from tw.portal-pokemon.com
 python scripts/fix_pokemon_names.py

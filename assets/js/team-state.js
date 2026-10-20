@@ -9,6 +9,8 @@
  * `spriteUrl()` and the roster use. `?team=1,6,25` is the whole contract.
  */
 
+import { MOVES_PER_MEMBER } from './team-moves.js';
+
 export const TEAM_LIMIT = 6;
 
 /** Lowercase, strip diacritics, collapse punctuation to single spaces. */
@@ -118,4 +120,69 @@ export function randomTeam(ids, count = TEAM_LIMIT, rng = Math.random) {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   return pool.slice(0, Math.min(count, pool.length));
+}
+
+
+/**
+ * Reads `?moves=` into one slot array per team member.
+ *
+ * The parameter is a flat run of four ids per member, in team order, with `0`
+ * for an empty slot: `?team=1,6&moves=33,45,22,74,0,0,0,0`. Flattening rather
+ * than nesting keeps it comma-separated like `team=`, and keeps the parser
+ * aligned with the order the team already has.
+ *
+ * A member's four ids are accepted or rejected as a unit. A duplicate, an
+ * unknown id, or a move that species cannot learn discards that member's whole
+ * chunk and counts one ignore — redrawing four moves is better than a slot
+ * showing a move the Pokémon cannot know.
+ *
+ * @param {string|undefined} value - the raw parameter
+ * @param {number[]} ids - the team, in order
+ * @param {(id: number) => Set<number>} allowedFor - that member's learnable ids
+ */
+export function parseMovesParam(value, ids, allowedFor) {
+  const slots = ids.map(() => null);
+  const tokens = String(value == null ? '' : value).split(',');
+  let ignored = 0;
+
+  ids.forEach((id, memberIndex) => {
+    const start = memberIndex * MOVES_PER_MEMBER;
+    const chunk = tokens.slice(start, start + MOVES_PER_MEMBER);
+    if (chunk.length < MOVES_PER_MEMBER) return;
+
+    /* Zeros are kept in place, not compacted: `33,0,22,0` is a member whose
+     * second and fourth rows are empty, and moving 22 into row 2 would renumber
+     * the picks a shared link was describing. */
+    const picked = [];
+    const seen = new Set();
+    for (const token of chunk) {
+      const moveId = Number(token.trim());
+      if (token.trim() === '0') {
+        picked.push(0);
+        continue;
+      }
+      if (!Number.isInteger(moveId) || moveId <= 0 || !allowedFor(id).has(moveId)
+        || seen.has(moveId)) {
+        ignored += 1;
+        return;
+      }
+      seen.add(moveId);
+      picked.push(moveId);
+    }
+    slots[memberIndex] = seen.size ? picked : null;
+  });
+
+  return { slots, ignored };
+}
+
+/** The `?moves=` value for a team; always exactly four entries per member. */
+export function serializeMovesParam(ids, byMember) {
+  const tokens = [];
+  for (const id of ids) {
+    const picked = byMember.get(id) || [];
+    for (let index = 0; index < MOVES_PER_MEMBER; index += 1) {
+      tokens.push(picked[index] ? String(picked[index]) : '0');
+    }
+  }
+  return tokens.join(',');
 }

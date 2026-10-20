@@ -49,7 +49,7 @@ const AGENTS = join(ROOT, 'AGENTS.md');
 
 /** Whole-file budget. Current: ~74 KB. Original (pre-§3 move): ~313 KB. */
 const CEILING_CHARS = 90_000;
-const CEILING_LINES = 720;
+const CEILING_LINES = 745;
 /** One §3 section. Largest real section is under 2 KB. */
 const SECTION_CEILING = 3_500;
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>寶可夢組隊規劃 — 6 隻隊伍的弱點與覆蓋分析</title>
-  <meta name="description" content="從 1,025 隻全國圖鑑挑選 6 隻寶可夢組成隊伍，即時分析隊伍的共同弱點、抗性與 STAB 屬性覆蓋。可依地區、世代與屬性篩選，隊伍狀態存在網址可分享。">
+  <meta name="description" content="從 1,025 隻全國圖鑑挑選 6 隻寶可夢組成隊伍，每隻配 4 個招式並可更換，即時分析共同弱點、抗性與招式覆蓋（含 1.5 倍 STAB）。可依地區、世代與屬性篩選，隊伍狀態存在網址可分享。">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
   <meta name="theme-color" content="#0b1020">
@@ -49,8 +49,9 @@
     <section class="tm-hero" aria-labelledby="tm-title">
       <h1 id="tm-title">寶可夢組隊規劃</h1>
       <p class="tm-hero-sub">
-        從全國圖鑑挑選 6 隻寶可夢，立刻看出隊伍的共同弱點、有沒有人能扛，
-        以及屬性招式能剋制哪些對手。整個隊伍存在網址裡，複製連結就能分享。
+        從全國圖鑑挑選 6 隻寶可夢，每隻帶 4 個招式（預設抽等級提升招式，可換成招式學習器、
+        遺傳或傳授招式），立刻看出共同弱點、有沒有人能扛，以及含 1.5 倍 STAB 的招式覆蓋。
+        整個隊伍存在網址裡，複製連結就能分享。
       </p>
       <ul class="tm-stats">
         <li><strong id="tm-stat-count">1,025</strong><span>隻寶可夢</span></li>
@@ -67,6 +68,7 @@
       <ol class="tm-slots" id="tm-slots" data-slot-count="6"></ol>
       <div class="tm-actions">
         <button class="tm-btn" type="button" id="tm-random">隨機組隊</button>
+        <button class="tm-btn" type="button" id="tm-reroll">重抽招式</button>
         <button class="tm-btn" type="button" id="tm-clear">清空隊伍</button>
         <button class="tm-btn tm-btn-accent" type="button" id="tm-share">複製分享連結</button>
       </div>
@@ -76,7 +78,8 @@
     <section class="tm-analysis" aria-labelledby="tm-analysis-title">
       <div class="tm-analysis-head">
         <h2 id="tm-analysis-title">隊伍分析</h2>
-        <p class="tm-note">只依屬性計算，不含特性、道具與招式。紅色代表隊伍的弱點，藍色代表抗性、免疫或可剋制的屬性。</p>
+        <p class="tm-note">防守只依屬性計算，不含特性與道具。進攻以每隻的 4 個招式計算：招式屬性 × 1.5 倍 STAB，
+          對單一防守屬性取最佳倍率；變化與固定傷害招式不計入。紅色代表隊伍的弱點，藍色代表抗性、免疫或能剋制。</p>
       </div>
       <div class="tm-summary" id="tm-summary"></div>
       <div class="tm-analysis-grid">
@@ -86,7 +89,8 @@
           <ol class="tm-tallies" id="tm-defense" data-tally-count="18"></ol>
         </div>
         <div class="tm-analysis-col">
-          <h3>進攻：STAB 覆蓋</h3>
+          <h3>進攻：招式覆蓋</h3>
+          <p class="tm-offense-note" id="tm-offense-note"></p>
           <div class="tm-tally-head" id="tm-coverage-head" aria-hidden="true"></div>
           <ol class="tm-tallies" id="tm-coverage" data-tally-count="18"></ol>
         </div>
@@ -116,6 +120,24 @@
       <p class="tm-empty" id="tm-empty" hidden>沒有符合條件的寶可夢，試著放寬篩選。</p>
       <button class="tm-btn tm-more" type="button" id="tm-more" hidden>顯示更多</button>
     </section>
+
+    <dialog class="tm-move-dialog" id="tm-move-dialog" aria-labelledby="tm-move-dialog-title">
+      <div class="tm-move-dialog-head">
+        <div>
+          <h2 id="tm-move-dialog-title">更換招式</h2>
+          <p class="tm-move-target" id="tm-move-target"></p>
+        </div>
+        <button class="tm-move-close" id="tm-move-close" type="button" aria-label="關閉招式選擇">×</button>
+      </div>
+      <div class="tm-move-tabs" id="tm-move-tabs" role="radiogroup" aria-label="招式學習方式"></div>
+      <label class="sr-only" for="tm-move-search">搜尋招式</label>
+      <input class="tm-move-search" id="tm-move-search" type="search"
+        placeholder="搜尋招式名稱，例如 十萬伏特、thunderbolt" autocomplete="off" spellcheck="false">
+      <p class="tm-move-count" id="tm-move-count" role="status" aria-live="polite"></p>
+      <ul class="tm-move-list" id="tm-move-list"></ul>
+      <p class="tm-move-empty" id="tm-move-empty" hidden>沒有符合的招式。</p>
+      <p class="tm-move-hint">屬性相剋以單一防守屬性計算，STAB ×1.5；變化與固定傷害招式可選，但不計入覆蓋。</p>
+    </dialog>
   </main>
 
   <script type="module">
