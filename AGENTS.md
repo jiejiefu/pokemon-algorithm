@@ -79,7 +79,7 @@ pokemon-algorithm/
 └── data-sources/    raw CSV/XLSX + per-id provenance (never fetched at runtime)
 ```
 
-`assets/video/` holds the nine generated hero loops (8.9 MB) and the nine stills cut from them (1.1 MB). **All eighteen are tracked** and `index.html` mounts one of each — §3.Z. `make_hero_video.py` regenerates both.
+`assets/video/` holds the nine generated hero loops (29 MB) and the nine stills cut from them (1.0 MB). **All eighteen are tracked** and `index.html` mounts one of each — §3.Z. `make_hero_video.py` regenerates both.
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
@@ -101,7 +101,7 @@ pokemon-algorithm/
 | `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
 | `build_team_moves.py` | `team_moves.json` — 1,025 four-method strings + 919 defs (`zh/en/type/class/power/accuracy/pp/generation/effect`), 607 KB / 151 KB gzip, for `team.html`. Type is capitalised to `type-chart.js` keys; `--dry-run` reports the split and the five species short of four (§3.AD) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
-| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 8.9 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
+| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 29 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
 
 Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
 
@@ -421,6 +421,7 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 **Guarded by:** `check_cry_game_similarity.mjs` (177, re-measures the ceiling every run) + its 31 cases; `check_cry_game.mjs` (134) + its 36 cases. **No browser checker.** · **Background:** [cry.md#y](docs/incidents/cry.md#y)
 
 ### Z. `index.html` Is A Clip, An Intro, And Two Demos
+- **THE SEEK COSTS ONE GOP, AND ONLY ONE IS IN FLIGHT.** Clips are encoded at `KEYFRAME_FRAMES = 10` (0.33s); the x264 default put one every 250 frames and made the scrub stutter. `home-hero.js`'s `pump()` parks the newest target until `seeked` — writing `currentTime` per rAF cancels the running seek. Measured on a 1.2s full-track flick: avg lag 0.47s → 0.20s, worst 1.67s → 0.42s. `make_hero_video.py`'s `verify()` measures the gap in the encoded file and FAILs above it.
 - **SCRUB AND PROGRESS ARE SEPARATE CONTRACTS.** Scrub writes `currentTime`, never `play()`; progress divides by `rect.height - innerHeight`.
 - **BOTH ENDS OF THE CLIP ARE BLANK; THE POSTER IS NOT A PRE-PLAY FLASH.** `POSTER_FRACTION` comes from `make_hero_video.py`; `hero-gen.js` imports `taipeiDateKey`.
 - **THE HERO IS A DARK BAND IN LIGHT THEME; THE PANEL IS A DARK TITLE CARD IN BOTH.** Scrim `#0b1020`; accent `#f5c542`; fill `rgba(6,9,20,0.7)`; blur ≤3px; counts are 1,025 / 9 / 6.

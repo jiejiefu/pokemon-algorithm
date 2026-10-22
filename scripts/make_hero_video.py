@@ -56,6 +56,19 @@ FPS = 30
 SECONDS = 10.0
 BG = (0x0B, 0x10, 0x20)  # --bg-primary, shared.css:30
 
+# How often the encoder emits a keyframe.  THE NUMBER IS A SCRUBBING CONTRACT,
+# not a compression preference: index.html writes video.currentTime on scroll,
+# and every seek decodes from the nearest keyframe forward.  x264's default
+# puts one every 250 frames (8.33s of a 30fps clip), so a seek to 4s decoded
+# 120 frames of 1080p before it could paint — measured as a visible stutter in
+# the hero.  10 frames = 0.33s is the compromise this repo ships.  Measured on
+# gen 1 against the long-GOP master: keyint=6/crf24 is 6.0MB, keyint=15/crf26
+# is 2.7MB, keyint=10/crf26 is 3.6MB at SSIM 0.995 and caps a seek at 9 frames
+# of decode.  The nine clips are 29MB total instead of 8.9MB, and a visit
+# fetches exactly one.  verify() measures the real gap in the encoded file and
+# rejects a clip above it, so this constant cannot drift from the bytes.
+KEYFRAME_FRAMES = 10
+
 # Timeline as fractions of the frame count, so --fps/--seconds cannot drift the
 # four phases apart.  The tail is dead time on purpose: it is what makes the
 # loop seamless, and the wave needs a held frame to land on.
@@ -313,7 +326,9 @@ def ffmpeg_writer(path: Path, total: int) -> subprocess.Popen:
         "-r", str(FPS), "-i", "-",
         "-frames:v", str(total),
         "-c:v", "libx264", "-preset", "slow", "-crf", "24",
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", str(path),
+        "-pix_fmt", "yuv420p",
+        "-x264-params", f"keyint={KEYFRAME_FRAMES}:min-keyint={KEYFRAME_FRAMES}:scenecut=0",
+        "-movflags", "+faststart", "-an", str(path),
     ]
     return subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
@@ -484,6 +499,23 @@ def layout_problems(spots, cols: int, rows: int, cell: int) -> list[str]:
     return problems
 
 
+def keyframe_times(path: Path) -> list[float]:
+    """Timestamps of the clip's keyframes, in seconds.
+
+    Read back out of the ENCODED file with `-skip_frame nokey` — the same index
+    a browser's seeker consults — rather than inferred from the encoder flags.
+    The number that decides whether the scrub stutters is the distance a seek
+    has to decode, and only the file knows that.
+    """
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-skip_frame", "nokey", "-show_entries", "frame=pts_time",
+         "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return sorted(float(line.split(",")[0]) for line in out.splitlines() if line.strip())
+
+
 def verify(path: Path, total: int, seam_diff: int, render_problems: list[str]) -> dict:
     """Decode-count and pixel-format probe, plus the loop-seam verdict.
 
@@ -518,6 +550,20 @@ def verify(path: Path, total: int, seam_diff: int, render_problems: list[str]) -
         problems.append(f"decoded {info['decoded_frames']} != {total} frames")
     if abs(info["duration"] - SECONDS) > 0.05:
         problems.append(f"duration {info['duration']:.3f}s")
+    # The scrub's precondition, measured on the encoded file rather than
+    # trusted from KEYFRAME_FRAMES: a seek decodes from the previous keyframe,
+    # so a long gap is a stutter no other check here can see.
+    kf = keyframe_times(path)
+    gaps = [b - a for a, b in zip(kf, kf[1:])]
+    want_gap = KEYFRAME_FRAMES / FPS
+    info["keyframes"] = len(kf)
+    info["keyframe_gap"] = max(gaps) if gaps else 0.0
+    if not kf or kf[0] > 0.01:
+        problems.append("clip does not start on a keyframe")
+    if len(kf) < total // KEYFRAME_FRAMES:
+        problems.append(f"only {len(kf)} keyframes (want >= {total // KEYFRAME_FRAMES})")
+    if gaps and max(gaps) > want_gap + 0.05:
+        problems.append(f"keyframe gap {max(gaps):.2f}s > {want_gap:.2f}s - the hero scrub will stutter")
     if seam_diff != 0:
         problems.append(f"loop seam differs in {seam_diff} bytes")
     problems.extend(render_problems)
@@ -618,6 +664,7 @@ def main() -> None:
               f"{info['codec']} {info['width']}x{info['height']} {info['pix_fmt']} "
               f"{info['decoded_frames']}f {info['duration']:.2f}s "
               f"{info['bytes'] / 1024:.0f}KB  seam {'OK' if stats['seam_diff'] == 0 else 'DIFF'}"
+              f"  {info['keyframes']} keyframes max gap {info['keyframe_gap']:.2f}s"
               f"  poster frame {poster_frame()} {poster_kb:.0f}KB")
         for problem in info["problems"]:
             print(f"         FAIL {problem}")

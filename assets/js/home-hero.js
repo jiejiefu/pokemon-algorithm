@@ -26,6 +26,23 @@
  * whole track, progress tops out at about 0.42, and the last three seconds of
  * the clip are unreachable while everything still looks correct.
  *
+ * THE CLIP'S KEYFRAME CADENCE IS PART OF THIS MODULE'S CONTRACT
+ * -------------------------------------------------------------
+ * A seek is not free: the decoder starts at the previous keyframe and paints
+ * forward, so the worst-case cost is one GOP.  The shipped clips originally
+ * carried x264's default (one keyframe every 250 frames), which made a seek to
+ * 4s decode 120 frames of 1080p and the hero visibly stutter; they are now
+ * encoded at `KEYFRAME_FRAMES = 10` (0.33s) in make_hero_video.py. Measured
+ * with a 1.2s full-track flick: average scrub lag fell from 0.47s to 0.20s and
+ * the worst sample from 1.67s to 0.42s.  Re-encoding the clips without that
+ * setting silently puts the stutter back, which is why the generator asserts
+ * the gap on its own output.
+ *
+ * AND ONLY ONE SEEK MAY BE IN FLIGHT.  Writing `currentTime` cancels the seek
+ * already running, so the scroll loop must park the newest target and wait for
+ * `seeked`; issuing one per rAF asks the decoder to restart from a keyframe
+ * over and over.  See `pump()`.
+ *
  * REDUCED MOTION
  * --------------
  * `prefers-reduced-motion: reduce` stops the scrub rather than slowing it, for
@@ -134,6 +151,20 @@ export function initHomeHero({ track, video, durationSeconds = 10 }) {
     return Math.min(1, Math.max(0, -rect.top / range));
   }
 
+  /**
+   * At most ONE seek in flight, and only the newest target survives.
+   *
+   * Writing `currentTime` cancels whatever seek is already running, so a rAF
+   * loop that writes on every scroll tick asks the decoder to restart from the
+   * nearest keyframe over and over.  With the long GOP the clips had (2
+   * keyframes in 10s) that was hundreds of frames of 1080p decode per request
+   * and the scrub stuttered; it is also what kept the short-GOP clips from
+   * being smooth, because the requests still piled up.  `video.seeking` is set
+   * true synchronously by the write, so the guard needs no extra flag: park the
+   * target and let `seeked` start the next one.
+   */
+  let pending = null;
+
   function seek(t) {
     if (!scrubbable()) {
       // Park the intent rather than dropping it.  This runs on every scroll
@@ -144,6 +175,14 @@ export function initHomeHero({ track, video, durationSeconds = 10 }) {
       return;
     }
     frozen = null;
+    pending = t;
+    pump();
+  }
+
+  function pump() {
+    if (pending === null || video.seeking) return;
+    const t = pending;
+    pending = null;
     if (Math.abs(video.currentTime - t) > MIN_SEEK_DELTA) video.currentTime = t;
   }
 
@@ -167,7 +206,7 @@ export function initHomeHero({ track, video, durationSeconds = 10 }) {
     if (frozen !== null) {
       const t = frozen;
       frozen = null;
-      video.currentTime = t;
+      seek(t);
     } else if (reducedMotion().matches) {
       freeze();
     } else {
@@ -177,10 +216,10 @@ export function initHomeHero({ track, video, durationSeconds = 10 }) {
 
   function freeze() {
     const t = POSTER_FRACTION * durationSeconds;
-    if (scrubbable()) video.currentTime = t;
-    else frozen = t;
+    seek(t);
   }
 
+  video.addEventListener('seeked', pump);
   video.addEventListener('loadedmetadata', settle, { once: true });
   video.addEventListener('error', () => {
     // Nothing to recover from and nothing to report: no src is removed and no
