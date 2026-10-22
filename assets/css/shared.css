@@ -1060,13 +1060,15 @@ summary:focus-visible,
 .feature-card.dex { --feature-accent: #f43f5e; }
 /* One value per card for both themes, as the three above already are. Picked by
    measuring the 40px glyph and the 4px rule against --bg-card (#21262d dark,
-   #ffffff light) rather than by eye: the accent is non-text, so 3:1 is the bar,
-   and these two are the only options that cleared the existing set's own 3.67
-   worst case. violet-600 (#7c3aed) is the tempting choice for 特殊分類 and it
-   fails — 3.04:1 on the dark card — as does every 400-level and 500-level hue
-   that is bright enough to look right in the light theme. */
-.feature-card.collections { --feature-accent: #a855f7; }
-.feature-card.gens { --feature-accent: #059669; }
+   #ffffff light) rather than by eye: the accent is non-text, so 3:1 is the bar.
+   These three clear it on both grounds — team 4.28 / 3.56, graph 4.13 / 3.68,
+   colors 3.23 / 4.71 — and are spread far enough apart in hue (orange, cyan,
+   magenta) that no two neighbouring cards read as one split in half. There is
+   no rule for the two cards the grid dropped (特殊分類, 世代指南): an accent with
+   no card is a colour waiting to be reused by mistake. */
+.feature-card.team { --feature-accent: #ea580c; }
+.feature-card.graph { --feature-accent: #0891b2; }
+.feature-card.colors { --feature-accent: #c026d3; }
 
 /* Was `font-size: 48px` to size an emoji glyph; the icon is now a fixed 40px
    SVG box, centred by `margin: auto`, and tinted with the card's own accent

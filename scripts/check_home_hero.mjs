@@ -282,7 +282,7 @@ ok(!/class="home-footer-grid"/.test(html) || true, 'footer rules are asserted in
 ok(/feature-grid/.test(htmlCode), 'the feature grid stayed on index.html — it is the argument for what this site IS');
 ok(!/feature-grid/.test(stripComments(today).replace(/<!--[\s\S]*?-->/g, '')) || !/<section class="feature-grid"/.test(today),
   'the feature grid is not on today.html as well',
-  'today.html carries the feature grid too, so the same five cards are on two pages that link to each other');
+  'today.html carries the feature grid too, so the same six cards are on two pages that link to each other');
 
 ok(/<h1[^>]*id="hero-title"/.test(htmlCode), 'index.html has exactly one h1, and the hero is it');
 eq((htmlCode.match(/<h1[\s>]/g) || []).length, 1, 'index.html has no second h1');
