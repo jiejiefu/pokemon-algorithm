@@ -56,6 +56,7 @@
 | `cries-gen1.html` | The 151 Gen-I cries re-synthesised by a Game Boy APU — §3.F |
 | `spectrum.html` | Mel spectrogram over every cry, revealed left to right — §3.G1 |
 | `cry-game.html` | 10-question, 4-option cry-guessing game; difficulty is a measured similarity ceiling — §3.Y |
+| `cry-studio.html` | 叫聲編曲室: a cry on a scale-degree × step grid, auto-tuned by YIN, with five Strudel drum lanes, effects, WAV / Strudel export and a `#s=` share link — §3.AF |
 | `types.html` | Type chart + per-type browser. The ONLY place the effectiveness matrix appears — §3.D, §3.H |
 | `moves.html` | All 919 moves, searchable + filterable, every filter in the URL — §3.AA |
 | `abilities.html`, `ability.html` | 314 abilities, searchable + filterable; `ability.html` gives the effect and the 常見/隱藏 holder split — §3.AC |
@@ -73,18 +74,18 @@
 
 ```
 pokemon-algorithm/
-├── assets/          css/ · js/ · data/ · cries/ · glbs/ · images/
+├── assets/          css/ · js/ · data/ · cries/ · drums/ · glbs/ · images/
 ├── docs/            incidents/ — the receipts behind §3, one file per area
 ├── scripts/         verification: check_*.mjs · test_check_*.mjs · lib/
 │                    data pipeline: *.py   (two layers, explained below)
 └── data-sources/    raw CSV/XLSX + per-id provenance (never fetched at runtime)
 ```
 
-`assets/video/` holds the nine generated hero loops (29 MB) and the nine stills cut from them (1.0 MB). **All eighteen are tracked** and `index.html` mounts one of each — §3.Z. `make_hero_video.py` regenerates both.
+`assets/video/` holds the nine generated hero loops (29 MB) and the nine stills cut from them (1.0 MB). **All eighteen are tracked** and `index.html` mounts one of each — §3.Z. `make_hero_video.py` regenerates both. `assets/drums/` holds 397 WAV samples (28 MB) and the `strudel.json` map `cry-studio.html` loads; it is third-party audio, tracked because the page is silent without it — §3.AF.
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
-**12,253 of the 12,656 tracked files are binary** (10,229 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
+**12,650 of the 13,058 tracked files are binary** (10,229 PNG, 2,000 OGG, 396 WAV, plus 5 SVG/GLB and 20 video files) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
 
 **The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
 
@@ -483,6 +484,18 @@ The slot's type statement is a **148px Poké Ball behind the art** (`.tm-slot-re
 - **No STAB, stats, abilities, items, HP, or damage:** `attackProfile()` reads `defensiveMultiplier`; `TYPELESS_MOVES` / `isDamaging` print `—` for status/fixed/OHKO moves. Each duel's best multiplier yields win/draw/loss, and the summary reports the record, total multiplier, verdict and S–D grade. **The battle scene draws the player's back sprite bottom-left and the opponent's front top-right in the same `--sd-battle-sprite-size` box;** `backSpriteUrl()` is the only back path, and `image-rendering: pixelated` is scoped to `.sd-battle-slot img` because the silhouette is 1:1. The full `back/` tree (3,167 PNG, including `shiny/` and `female/`) is tracked; only the 568 pool species are referenced.
 - **The reveal is a beat, not a flash:** `confirmPick()` holds `pendingRound` until `nextRound()`; the sixth analysis likewise stays until `finish()`. Every id `$()` reads must exist in the page — the first browser pass found `#sd-match-pick` missing, and `check_draft_page.mjs` derives the read-id set from the script.
 **Guarded by:** `check_draft_data.mjs` (14,258) + `check_draft_page.mjs` (425). Rendered claims were measured once by hand (dark/light silhouette, six reveals, both rosters, six analyses, battle sprites same size, score, summary, 390px no overflow); no browser entry is kept. **Background:** [pages.md#ae](docs/incidents/pages.md#ae)
+
+### AF. `cry-studio.html` — A Sequencer Whose Notes Are Scale Degrees
+
+- **Rows are SCALE DEGREES, not semitones.** A note stores `row`, so changing scale re-pitches every note instead of stranding it between cells of a grid that no longer has that row; `rowCount()` is `intervals.length × 2 + 1` (11 for pentatonic, 25 for chromatic). Time is 16th-note `steps` (16 / 32 / 64).
+- **The drum lanes are Strudel names on purpose** (`cp / oh / hh / sd / bd`), with velocity digits 0–3 (off / ghost / normal / accent). `assets/drums/strudel.json` keys its files by those same names, so `toStrudel()` writes a pattern that runs on strudel.cc; 791 references resolve to 397 files, and a missing sample falls back to `synthDrum()` rather than silence.
+- **Live and exported audio are ONE code path.** `scheduleStep()` is called by the look-ahead timer and by `renderWav()`'s `OfflineAudioContext`, so the WAV is the performance rather than a second renderer.
+- **Auto-tune is YIN (`analyseCry()`), and its limits are stated.** `rate = targetHz / f0` is clamped to [0.25, 4]; a gliding cry is tuned by its median, a noisy one uses `FALLBACK_F0 = 330`, and `tune: 'raw'` is the honest mode for both.
+- **Nothing sounds before a gesture, and the site-wide cry mute is deliberately not applied** — pressing ▶ on an editor is the opt-in that mute exists to protect. `unlock()` creates the context inside the click.
+- **The editor is canvas, but not opaque to assistive tech:** both canvases are focusable `role="application"` surfaces with a keyboard cursor, and every edit is announced through `#sq-live`.
+- **The share format is the whole song in `#s=`**, written and read only by `serialize()` / `deserialize()` in the pure-data pattern module (which imports in bare Node); localStorage autosave, JSON import/export and the Strudel textarea all reuse that string.
+
+**Guarded by:** `check_page_module_api.mjs` (bindings), `check_js_syntax.mjs` (document structure), `check_nav_pages.mjs` (nav mount) and `check_color_page.mjs`'s page count. **No dedicated checker and no browser entry** — the audio claims were measured by hand. **Background:** [pages.md#af](docs/incidents/pages.md#af)
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
@@ -514,6 +527,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 | `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `test_check_sorting_page.mjs --static`, then `--only=sort` | static 89 checks 0.3 s; `sort` boots Chrome |
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
+| `cry-studio.html`, `cry-seq-*.js`, `cry-seq.css`, `assets/drums/**` | `--only=nav` **plus** `--only=color` | no dedicated checker; nav registration, module bindings, document structure and the page count |
 | `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
 | `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 20 entries, no browser; the team pair is 230 + 32 |
 | `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |

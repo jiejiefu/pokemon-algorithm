@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>叫聲編曲室 - 寶可夢演算法</title>
+  <meta name="description" content="把寶可夢的叫聲放在音階與時間的格子上，自動調音、加效果器、配上鼓組，編成一段循環，並可分享連結、匯出 WAV 或 Strudel 程式碼。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Same blocking pre-paint theme resolver every page carries; see index.html's
+       copy for why it is inline, why it runs before the stylesheet, and why it is
+       the only place a theme is resolved. -->
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/cry-seq.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    main { flex: 1; }
+  </style>
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="sq-page">
+    <div>
+      <h1 class="sq-title">叫聲編曲室</h1>
+      <p class="sq-lede">選一隻寶可夢當筆刷，點下格子，叫聲就會被自動調到那個音高。縱軸是音階、橫軸是時間，再配上鼓組和效果器，編成一段循環。所有聲音要等你按下按鈕才會出聲。</p>
+    </div>
+
+    <!-- ===== transport ===== -->
+    <section class="sq-panel sq-transport" aria-label="播放與曲式">
+      <div class="sq-group">
+        <span class="sq-label">播放</span>
+        <button id="sq-play" class="btn sq-play" type="button" aria-pressed="false">▶ 播放</button>
+      </div>
+      <div class="sq-group">
+        <label for="sq-bpm">速度 BPM</label>
+        <div class="sq-row">
+          <button class="btn sq-btn-sm sq-btn-icon" type="button" id="sq-bpm-dn" aria-label="減少速度">−</button>
+          <input class="sq-input" id="sq-bpm" type="number" min="40" max="220" step="1" value="100" inputmode="numeric">
+          <button class="btn sq-btn-sm sq-btn-icon" type="button" id="sq-bpm-up" aria-label="增加速度">+</button>
+        </div>
+      </div>
+      <div class="sq-group">
+        <label for="sq-swing">搖擺 Swing</label>
+        <input class="sq-slider" id="sq-swing" type="range" min="0" max="0.5" step="0.01" value="0" style="width:110px">
+      </div>
+      <div class="sq-group">
+        <label for="sq-steps">循環長度</label>
+        <select class="sq-select" id="sq-steps">
+          <option value="16">16 步（1 小節）</option>
+          <option value="32">32 步（2 小節）</option>
+          <option value="64">64 步（4 小節）</option>
+        </select>
+      </div>
+      <div class="sq-group">
+        <label for="sq-scale">音階</label>
+        <select class="sq-select" id="sq-scale"></select>
+      </div>
+      <div class="sq-group">
+        <label for="sq-key">主音</label>
+        <select class="sq-select" id="sq-key"></select>
+      </div>
+      <div class="sq-group">
+        <label for="sq-octave">八度</label>
+        <select class="sq-select" id="sq-octave">
+          <option value="-2">−2</option><option value="-1">−1</option><option value="0" selected>0</option>
+          <option value="1">+1</option><option value="2">+2</option>
+        </select>
+      </div>
+      <div class="sq-group">
+        <label for="sq-tune">調音方式</label>
+        <select class="sq-select" id="sq-tune">
+          <option value="auto">自動調音（偵測叫聲音高）</option>
+          <option value="raw">原音高（只做相對移調）</option>
+        </select>
+      </div>
+      <div class="sq-group">
+        <label for="sq-gate">叫聲長度</label>
+        <select class="sq-select" id="sq-gate">
+          <option value="note">依音符長度截斷</option>
+          <option value="free">完整播完</option>
+        </select>
+      </div>
+      <div class="sq-group">
+        <span class="sq-label">頻譜</span>
+        <canvas id="sq-scope" class="sq-scope" width="150" height="40" aria-hidden="true"></canvas>
+      </div>
+    </section>
+
+    <!-- ===== brush ===== -->
+    <section class="sq-panel sq-brush" aria-label="筆刷（選擇寶可夢）">
+      <div class="sq-group">
+        <span class="sq-label" id="sq-brush-label">筆刷：點一格選用，再到下面的格子放置</span>
+        <div class="sq-slots" id="sq-slots" role="group" aria-labelledby="sq-brush-label"></div>
+      </div>
+      <div class="sq-group sq-search">
+        <label for="sq-search">換掉選中的筆刷（輸入名稱或編號）</label>
+        <div class="sq-row">
+          <input class="sq-text" id="sq-search" type="search" placeholder="例如 皮卡丘、Gengar、94" autocomplete="off" aria-controls="sq-results" aria-expanded="false">
+          <button class="btn sq-btn-sm" type="button" id="sq-brush-rand">隨機一隻</button>
+        </div>
+        <div class="sq-results" id="sq-results" hidden></div>
+      </div>
+      <div class="sq-group">
+        <span class="sq-label">曲子</span>
+        <div class="sq-row">
+          <select class="sq-select" id="sq-preset" aria-label="載入範例"></select>
+          <button class="btn sq-btn-sm" type="button" id="sq-random">隨機作曲</button>
+          <button class="btn sq-btn-sm" type="button" id="sq-clear">清空</button>
+          <button class="btn sq-btn-sm" type="button" id="sq-undo" aria-label="復原">↶ 復原</button>
+          <button class="btn sq-btn-sm" type="button" id="sq-redo" aria-label="重做">↷ 重做</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== roll + drums ===== -->
+    <section class="sq-panel sq-studio" id="sq-studio" aria-label="編曲格">
+      <div class="sq-studio-grid">
+        <div class="sq-labels" aria-hidden="false">
+          <div class="sq-pitch" id="sq-pitch" aria-hidden="true"></div>
+          <div class="sq-lanes" id="sq-lanes"></div>
+        </div>
+        <div class="sq-scroll" id="sq-scroll">
+          <canvas id="sq-roll" class="sq-canvas" tabindex="0" role="application"
+                  aria-label="叫聲音符格。方向鍵移動游標，Enter 放置或移除目前筆刷，Delete 刪除，中括號調整長度，V 切換力度。"></canvas>
+          <canvas id="sq-drums" class="sq-canvas" tabindex="0" role="application"
+                  aria-label="鼓組格。方向鍵移動游標，Enter 開關，Shift 加 Enter 切換輕重。"></canvas>
+        </div>
+      </div>
+      <div class="sq-selbar" id="sq-selbar"></div>
+      <p class="sq-hint">點空格放上筆刷（按住往右拖可拉長）・點音符選取、拖曳移動、拖右緣調長度・右鍵或 Delete 移除。鼓組：點一下開關、拖曳連續畫、Shift＋點切換輕／重音。把音檔拖到鼓軌名稱上可暫時換成你的取樣。</p>
+    </section>
+    <div id="sq-live" class="sr-only" role="status" aria-live="polite"></div>
+
+    <!-- ===== effects ===== -->
+    <section class="sq-panel" aria-labelledby="sq-fx-title">
+      <h2 class="sq-panel-title" id="sq-fx-title">音效器</h2>
+      <div class="sq-fx-grid" id="sq-fx"></div>
+      <p class="sq-hint">滑桿雙擊可還原預設值。「閃避」會在每一下大鼓時把叫聲壓低再回升，做出舞曲常見的呼吸感（殘響尾巴不受影響）。</p>
+    </section>
+
+    <!-- ===== drum bank ===== -->
+    <section class="sq-panel" aria-labelledby="sq-bank-title">
+      <h2 class="sq-panel-title" id="sq-bank-title">鼓聲取樣庫（Strudel 格式）</h2>
+      <div class="sq-share">
+        <div class="sq-group">
+          <label for="sq-manifest">strudel.json 位置（網址、<code>github:使用者/倉庫</code> 或站內路徑）</label>
+          <div class="sq-row">
+            <input class="sq-text" id="sq-manifest" type="text" value="assets/drums/strudel.json" spellcheck="false">
+            <button class="btn sq-btn-sm" type="button" id="sq-manifest-load">載入</button>
+          </div>
+        </div>
+        <div class="sq-group">
+          <label for="sq-bank">鼓機音色庫（bank）</label>
+          <select class="sq-select" id="sq-bank"><option value="">預設（無前綴）</option></select>
+        </div>
+        <p class="sq-status" id="sq-bank-status" role="status"></p>
+      </div>
+      <p class="sq-hint">把從 strudel.cc 取得的鼓聲檔放進 <code>assets/drums/</code>，並在同資料夾的 <code>strudel.json</code> 寫入 <code>{"_base": "assets/drums/", "bd": ["bd/a.wav"], "sd": ["sd/a.wav"], …}</code>。名稱沿用 Strudel 的 <code>bd / sd / hh / oh / cp</code>；同名多個檔案可用鼓軌旁的 ‹ › 切換（等同 <code>bd:1</code>）。沒有取樣的聲音會用內建合成鼓補上。</p>
+    </section>
+
+    <!-- ===== share ===== -->
+    <section class="sq-panel" aria-labelledby="sq-share-title">
+      <h2 class="sq-panel-title" id="sq-share-title">分享與匯出</h2>
+      <div class="sq-share">
+        <button class="btn" type="button" id="sq-copy">複製分享連結</button>
+        <div class="sq-row">
+          <label for="sq-loops" class="sq-label">WAV 重複</label>
+          <select class="sq-select" id="sq-loops"><option value="1">1 次</option><option value="2" selected>2 次</option><option value="4">4 次</option></select>
+          <button class="btn" type="button" id="sq-wav">下載 WAV</button>
+        </div>
+        <button class="btn" type="button" id="sq-export">匯出檔案</button>
+        <button class="btn" type="button" id="sq-import">匯入檔案</button>
+        <input type="file" id="sq-import-file" accept=".json,.txt,application/json,text/plain" hidden>
+        <input type="file" id="sq-lane-file" accept="audio/*" hidden>
+        <p class="sq-status" id="sq-status" role="status"></p>
+      </div>
+      <details class="sq-details" id="sq-strudel-details">
+        <summary>Strudel 程式碼</summary>
+        <textarea class="sq-code" id="sq-strudel" readonly spellcheck="false" aria-label="Strudel 程式碼"></textarea>
+        <button class="btn sq-btn-sm" type="button" id="sq-strudel-copy">複製程式碼</button>
+      </details>
+    </section>
+
+    <section class="sq-panel sq-help" aria-labelledby="sq-help-title">
+      <h2 class="sq-panel-title" id="sq-help-title">操作與限制</h2>
+      <ul>
+        <li>鍵盤：<kbd>Space</kbd> 播放／停止、<kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋<kbd>Z</kbd> 復原；在格子內用方向鍵移動、<kbd>Enter</kbd> 放置。</li>
+        <li>自動調音依叫聲「中段」的音高對準音階；會滑音或接近雜訊的叫聲只能大致對準，這時改用「原音高」。</li>
+        <li>手機上橫向滑動是捲動格子，單點放置；移動音符請先選取，再用下方按鈕。</li>
+        <li>分享連結把整首曲子（含音效器設定）編進網址 <code>#s=…</code>，不需要伺服器。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <div class="home-footer-grid" data-footer-nav></div>
+      <p class="home-footer-line">
+        <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • <span data-version></span></span>
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { loadPokemonData, initThemeToggle, initHeaderNav, initFooterNav, ASSETS, TYPE_COLORS } from './assets/js/shared.js';
+    import { CRY_IDS } from './assets/js/cry-index.js';
+    import * as P from './assets/js/cry-seq-pattern.js';
+    import { SeqEngine } from './assets/js/cry-seq-engine.js';
+    import { createRoll } from './assets/js/cry-seq-roll.js';
+
+    initThemeToggle();
+    initHeaderNav();
+    initFooterNav();
+
+    const $ = (id) => document.getElementById(id);
+    const STORE = 'pokemon-algorithm:cry-seq';
+    const BRUSH_STORE = 'pokemon-algorithm:cry-seq-brush';
+    const DEFAULT_BRUSH = [25, 39, 52, 94, 143, 150];
+    const live = $('sq-live');
+    const say = (msg) => { live.textContent = ''; requestAnimationFrame(() => { live.textContent = msg; }); };
+    const flash = (el, msg) => { el.textContent = msg; };
+
+    /* ---------------------------------------------------------- data */
+    const dex = new Map();
+    const nameOf = (id) => dex.get(id)?.names?.zh || dex.get(id)?.names?.en || `#${id}`;
+    const spriteUrl = (id) => `${ASSETS.sprites}${id}.png`;
+    const info = (id) => {
+      const rec = dex.get(id);
+      return { name: nameOf(id), color: TYPE_COLORS[rec?.types?.[0]] || '#a8a878' };
+    };
+    const ALL_IDS = [...CRY_IDS].filter((id) => id <= 1025);
+
+    /* ---------------------------------------------------------- state */
+    const loadSaved = () => {
+      const hash = /(?:^#|&)s=([^&]+)/.exec(location.hash);
+      if (hash) { const p = P.deserialize(hash[1]); if (p) return p; }
+      try { const s = localStorage.getItem(STORE); if (s) { const p = P.deserialize(s); if (p) return p; } } catch { /* storage blocked */ }
+      return P.PRESETS[0].build();
+    };
+    let pattern = loadSaved();
+    const engine = new SeqEngine(pattern);
+    let brush = DEFAULT_BRUSH.slice();
+    let hasSavedBrush = false;
+    try {
+      const b = JSON.parse(localStorage.getItem(BRUSH_STORE) || 'null');
+      if (Array.isArray(b) && b.length === 6 && b.every((n) => Number.isInteger(n) && n > 0 && n <= 1025)) {
+        brush = b;
+        hasSavedBrush = true;
+      }
+    } catch { /* default */ }
+    let activeSlot = 0;
+
+    /* -------------------------------------------------------- history */
+    const undo = { stack: [], i: -1 };
+    function snapshot() {
+      const s = P.serialize(pattern);
+      if (undo.stack[undo.i] === s) return;
+      undo.stack.length = undo.i + 1;
+      undo.stack.push(s);
+      if (undo.stack.length > 100) undo.stack.shift();
+      undo.i = undo.stack.length - 1;
+      $('sq-undo').disabled = undo.i <= 0;
+      $('sq-redo').disabled = true;
+    }
+    function restore(i) {
+      const p = P.deserialize(undo.stack[i]);
+      if (!p) return;
+      undo.i = i;
+      pattern = p;
+      engine.setPattern(pattern);
+      roll.clearSelection();
+      syncControls();
+      relayout();
+      afterChange(true); // the link and autosave must follow an undo, or a reload resurrects the undone state
+      $('sq-undo').disabled = undo.i <= 0;
+      $('sq-redo').disabled = undo.i >= undo.stack.length - 1;
+    }
+
+    /* ------------------------------------------------------ persistence */
+    let saveTimer = 0;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const s = P.serialize(pattern);
+        try { localStorage.setItem(STORE, s); } catch { /* storage blocked */ }
+        try { window.history.replaceState(null, '', `#s=${s}`); } catch { /* sandboxed */ }
+        $('sq-strudel').value = P.toStrudel(pattern);
+      }, 250);
+    }
+
+    /* ------------------------------------------------------------ roll */
+    const roll = createRoll({
+      rollCanvas: $('sq-roll'),
+      drumCanvas: $('sq-drums'),
+      getPattern: () => pattern,
+      getBrush: () => brush[activeSlot],
+      getInfo: info,
+      spriteUrl,
+      engine,
+      announce: say,
+      onEdit: (kind) => { snapshot(); afterChange(true, kind); },
+      onSelect: () => updateSelbar(),
+    });
+
+    async function ensureCries() {
+      const missing = [];
+      for (const id of new Set(pattern.notes.map((n) => n.id))) {
+        const e = await engine.prepare(id);
+        if (!e) missing.push(nameOf(id));
+      }
+      if (missing.length) flash($('sq-status'), `找不到這些叫聲檔：${missing.join('、')}`);
+    }
+
+    function afterChange(persist = true, kind) {
+      roll.redraw();
+      updateSelbar();
+      if (persist) scheduleSave();
+      if (kind !== 'drums') ensureCries();
+      if (kind === 'drums' || kind === undefined) engine.prepareDrums();
+    }
+
+    function relayout() {
+      const g = roll.layout($('sq-scroll').clientWidth || 800);
+      const studio = $('sq-studio');
+      studio.style.setProperty('--sq-row', `${g.rowH}px`);
+      studio.style.setProperty('--sq-lane', `${g.laneH}px`);
+      buildLabels();
+    }
+
+    function buildLabels() {
+      const rows = P.rowCount(pattern);
+      const pitch = $('sq-pitch');
+      pitch.textContent = '';
+      for (let r = rows - 1; r >= 0; r--) {
+        const d = document.createElement('div');
+        d.className = 'sq-pitch-label';
+        d.dataset.root = P.rowIsRoot(pattern, r);
+        d.textContent = P.midiName(P.rowToMidi(pattern, r));
+        pitch.append(d);
+      }
+      const lanes = $('sq-lanes');
+      lanes.textContent = '';
+      pattern.drums.forEach((lane, i) => {
+        const meta = P.DRUM_LANES.find((l) => l.name === lane.name);
+        const wrap = document.createElement('div');
+        wrap.className = 'sq-lane-label';
+        wrap.dataset.lane = i;
+        wrap.innerHTML = `
+          <button class="btn" type="button" data-act="mute" aria-pressed="${!lane.mute}" aria-label="${meta.label}（${lane.name}）開關" title="${lane.name}">${meta.label}</button>
+          <button class="btn sq-mini" type="button" data-act="prev" aria-label="${meta.label} 上一個音色">‹</button>
+          <span class="sq-n" aria-hidden="true">${lane.n}</span>
+          <button class="btn sq-mini" type="button" data-act="next" aria-label="${meta.label} 下一個音色">›</button>
+          <button class="btn sq-mini" type="button" data-act="file" aria-label="${meta.label} 載入自己的音檔" title="載入音檔">⤒</button>`;
+        lanes.append(wrap);
+      });
+    }
+
+    $('sq-lanes').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const i = Number(btn.closest('.sq-lane-label').dataset.lane);
+      const lane = pattern.drums[i];
+      const act = btn.dataset.act;
+      if (act === 'mute') {
+        lane.mute = !lane.mute;
+        btn.setAttribute('aria-pressed', String(!lane.mute));
+      } else if (act === 'prev' || act === 'next') {
+        lane.n = Math.max(0, Math.min(99, lane.n + (act === 'next' ? 1 : -1)));
+        btn.parentElement.querySelector('.sq-n').textContent = lane.n;
+        engine.auditionDrum(i);
+      } else if (act === 'file') {
+        laneForFile = i;
+        $('sq-lane-file').click();
+        return;
+      }
+      snapshot(); afterChange(true, 'drums');
+    });
+
+    let laneForFile = -1;
+    async function loadLaneFile(i, file) {
+      try {
+        await engine.kit.setCustom(pattern.drums[i].name, await file.arrayBuffer());
+        flash($('sq-status'), `${pattern.drums[i].name} 軌已換成「${file.name}」（只在這次瀏覽有效）`);
+        engine.auditionDrum(i);
+      } catch {
+        flash($('sq-status'), `無法解碼「${file.name}」，請換成 wav / mp3 / ogg`);
+      }
+    }
+    $('sq-lane-file').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (f && laneForFile >= 0) loadLaneFile(laneForFile, f);
+      e.target.value = '';
+    });
+    $('sq-lanes').addEventListener('dragover', (e) => {
+      const w = e.target.closest('.sq-lane-label');
+      if (!w) return;
+      e.preventDefault();
+      for (const x of $('sq-lanes').children) x.dataset.drop = String(x === w);
+    });
+    $('sq-lanes').addEventListener('dragleave', () => { for (const x of $('sq-lanes').children) x.dataset.drop = 'false'; });
+    $('sq-lanes').addEventListener('drop', (e) => {
+      const w = e.target.closest('.sq-lane-label');
+      for (const x of $('sq-lanes').children) x.dataset.drop = 'false';
+      const f = e.dataTransfer?.files?.[0];
+      if (!w || !f) return;
+      e.preventDefault();
+      loadLaneFile(Number(w.dataset.lane), f);
+    });
+
+    /* ------------------------------------------------------ brush tray */
+    function renderSlots() {
+      const host = $('sq-slots');
+      host.textContent = '';
+      brush.forEach((id, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-slot';
+        b.setAttribute('aria-pressed', String(i === activeSlot));
+        b.setAttribute('aria-label', `筆刷 ${i + 1}：${nameOf(id)}`);
+        b.innerHTML = `<img alt="" width="48" height="48" src="${spriteUrl(id)}"><span></span>`;
+        b.querySelector('span').textContent = nameOf(id);
+        b.addEventListener('click', () => {
+          activeSlot = i;
+          renderSlots();
+          engine.audition(brush[i], P.SCALES[pattern.scale].intervals.length);
+          say(`目前筆刷：${nameOf(brush[i])}`);
+        });
+        host.append(b);
+      });
+    }
+    function setSlot(id) {
+      brush[activeSlot] = id;
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      renderSlots();
+      engine.audition(id, P.SCALES[pattern.scale].intervals.length);
+      say(`筆刷換成 ${nameOf(id)}`);
+    }
+
+    function syncBrushWithPattern(p) {
+      if (!p || !Array.isArray(p.notes)) return;
+      const songIds = [];
+      const sortedNotes = [...p.notes].sort((a, b) => (a.step ?? 0) - (b.step ?? 0) || (a.row ?? 0) - (b.row ?? 0));
+      for (const n of sortedNotes) {
+        if (n && Number.isInteger(n.id) && n.id > 0 && n.id <= 1025 && !songIds.includes(n.id)) {
+          songIds.push(n.id);
+        }
+      }
+      if (!songIds.length) return;
+
+      const newBrush = [];
+      const used = new Set();
+      // 樂曲上有的寶可夢優先填入前側格子
+      for (let i = 0; i < Math.min(6, songIds.length); i++) {
+        newBrush.push(songIds[i]);
+        used.add(songIds[i]);
+      }
+      // 後面幾格保持上一次的筆刷（若與樂曲重複則從先前筆刷或預設中遞補）
+      for (let i = newBrush.length; i < 6; i++) {
+        const prev = brush[i];
+        if (prev && !used.has(prev)) {
+          newBrush.push(prev);
+          used.add(prev);
+        } else {
+          const fallback = brush.find((id) => !used.has(id)) || DEFAULT_BRUSH.find((id) => !used.has(id)) || 25;
+          newBrush.push(fallback);
+          used.add(fallback);
+        }
+      }
+
+      brush = newBrush;
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      activeSlot = 0;
+      renderSlots();
+    }
+
+    const results = $('sq-results');
+    const search = $('sq-search');
+    function showResults() {
+      const q = search.value.trim().toLowerCase();
+      results.textContent = '';
+      if (!q) { results.hidden = true; search.setAttribute('aria-expanded', 'false'); return; }
+      const hits = [];
+      for (const [id, rec] of dex) {
+        if (!CRY_IDS.has(id)) continue;
+        const n = rec.names;
+        if (String(id) === q || [n.zh, n.en, n.ja, n.zh_HK].some((s) => s && s.toLowerCase().includes(q))) hits.push(id);
+        if (hits.length >= 24) break;
+      }
+      if (!hits.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sq-results-empty';
+        empty.textContent = '沒有符合的寶可夢';
+        results.append(empty);
+      }
+      for (const id of hits) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-result';
+        b.innerHTML = `<img alt="" width="40" height="40" src="${spriteUrl(id)}"><span></span>`;
+        b.querySelector('span').textContent = nameOf(id);
+        b.addEventListener('click', () => { setSlot(id); search.value = ''; showResults(); });
+        results.append(b);
+      }
+      results.hidden = false;
+      search.setAttribute('aria-expanded', 'true');
+    }
+    search.addEventListener('input', showResults);
+    search.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { search.value = ''; showResults(); }
+      if (e.key === 'ArrowDown') { results.querySelector('button')?.focus(); e.preventDefault(); }
+      if (e.key === 'Enter') { results.querySelector('button')?.click(); e.preventDefault(); }
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.sq-search')) { results.hidden = true; search.setAttribute('aria-expanded', 'false'); } });
+    $('sq-brush-rand').addEventListener('click', () => setSlot(ALL_IDS[Math.floor(Math.random() * ALL_IDS.length)]));
+
+    /* ------------------------------------------------- selection bar */
+    function updateSelbar() {
+      const bar = $('sq-selbar');
+      const note = roll.selected;
+      if (!note || !pattern.notes.includes(note)) {
+        roll.clearSelection();
+        bar.innerHTML = '<span>尚未選取音符。點一下格子放上筆刷，或點選已放的音符。</span>';
+        return;
+      }
+      const midi = P.rowToMidi(pattern, note.row);
+      bar.innerHTML = `
+        <span>已選取：<strong>${info(note.id).name}</strong>・${P.midiName(midi)}・第 ${note.step + 1} 步・長度 ${note.len}・力度 ${['', '輕', '中', '重'][note.vel]}</span>
+        <span class="sq-row" role="group" aria-label="調整選取的音符">
+          <button class="btn sq-btn-sm" type="button" data-sel="up" aria-label="音高升一格">↑</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="down" aria-label="音高降一格">↓</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="left" aria-label="提早一步">←</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="right" aria-label="延後一步">→</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="shorter" aria-label="縮短">短</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="longer" aria-label="拉長">長</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="vel" aria-label="切換力度">力度</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="brush" aria-label="換成目前筆刷">換成筆刷</button>
+          <button class="btn sq-btn-sm" type="button" data-sel="delete" aria-label="刪除音符">刪除</button>
+        </span>`;
+    }
+    $('sq-selbar').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-sel]');
+      const note = roll.selected;
+      if (!btn || !note) return;
+      const rows = P.rowCount(pattern);
+      const free = (step, row) => !pattern.notes.some((n) => n !== note && n.step === step && n.row === row);
+      switch (btn.dataset.sel) {
+        case 'up': if (note.row < rows - 1 && free(note.step, note.row + 1)) note.row++; break;
+        case 'down': if (note.row > 0 && free(note.step, note.row - 1)) note.row--; break;
+        case 'left': if (note.step > 0 && free(note.step - 1, note.row)) note.step--; break;
+        case 'right': if (note.step + note.len < pattern.steps && free(note.step + 1, note.row)) note.step++; break;
+        case 'shorter': note.len = Math.max(1, note.len - 1); roll.lastLen = note.len; break;
+        case 'longer': note.len = Math.min(pattern.steps - note.step, note.len + 1); roll.lastLen = note.len; break;
+        case 'vel': note.vel = (note.vel % 3) + 1; break;
+        case 'brush': note.id = brush[activeSlot]; break;
+        case 'delete': P.removeNote(pattern, note); roll.clearSelection(); break;
+        default: return;
+      }
+      if (['up', 'down', 'brush'].includes(btn.dataset.sel) && pattern.notes.includes(note)) engine.audition(note.id, note.row, note.len);
+      snapshot();
+      afterChange(true, 'notes');
+      $('sq-selbar').querySelector(`[data-sel="${btn.dataset.sel}"]`)?.focus();
+    });
+
+    /* ------------------------------------------------------- controls */
+    const SCALE_SEL = $('sq-scale');
+    for (const [k, v] of Object.entries(P.SCALES)) SCALE_SEL.append(new Option(v.label, k));
+    for (let i = 0; i < 12; i++) $('sq-key').append(new Option(P.NOTE_NAMES[i], String(i)));
+    $('sq-preset').append(new Option('載入範例…', ''));
+    for (const pr of P.PRESETS) $('sq-preset').append(new Option(pr.label, pr.id));
+
+    function syncControls() {
+      $('sq-bpm').value = pattern.bpm;
+      $('sq-swing').value = pattern.swing;
+      $('sq-steps').value = pattern.steps;
+      SCALE_SEL.value = pattern.scale;
+      $('sq-key').value = pattern.key;
+      $('sq-octave').value = pattern.octave;
+      $('sq-tune').value = pattern.tune;
+      $('sq-gate').value = pattern.gate;
+      $('sq-bank').value = pattern.bank;
+      for (const [k, el] of fxEls) {
+        const v = pattern.fx[k];
+        if (el.type === 'range') { el.value = el.dataset.log ? toSlider(k, v) : v; el.dispatchEvent(new Event('sq-sync')); } else el.value = v;
+      }
+    }
+
+    function change(fn, { structural = false, kind = 'notes' } = {}) {
+      fn();
+      snapshot();
+      if (structural) { relayout(); }
+      engine.applyFx();
+      afterChange(true, kind);
+    }
+
+    const setBpm = (v) => change(() => { pattern.bpm = Math.max(40, Math.min(220, Math.round(v) || pattern.bpm)); $('sq-bpm').value = pattern.bpm; });
+    $('sq-bpm').addEventListener('change', (e) => setBpm(Number(e.target.value)));
+    $('sq-bpm-dn').addEventListener('click', () => setBpm(pattern.bpm - 1));
+    $('sq-bpm-up').addEventListener('click', () => setBpm(pattern.bpm + 1));
+    $('sq-swing').addEventListener('input', (e) => { pattern.swing = Number(e.target.value); scheduleSave(); });
+    $('sq-steps').addEventListener('change', (e) => change(() => P.resizeSteps(pattern, Number(e.target.value)), { structural: true }));
+    SCALE_SEL.addEventListener('change', (e) => change(() => { pattern.scale = e.target.value; P.clampRows(pattern); }, { structural: true }));
+    $('sq-key').addEventListener('change', (e) => change(() => { pattern.key = Number(e.target.value); }));
+    $('sq-octave').addEventListener('change', (e) => change(() => { pattern.octave = Number(e.target.value); }));
+    $('sq-tune').addEventListener('change', (e) => change(() => { pattern.tune = e.target.value; }));
+    $('sq-gate').addEventListener('change', (e) => change(() => { pattern.gate = e.target.value; }));
+    $('sq-bank').addEventListener('change', (e) => change(() => { pattern.bank = e.target.value; }, { kind: 'drums' }));
+
+    /* -------------------------------------------------- fx knobs */
+    const FX_UI = [
+      { title: '混音', items: [
+        { k: 'cryVol', label: '叫聲音量' }, { k: 'drumVol', label: '鼓音量' }, { k: 'master', label: '總音量' },
+        { k: 'duck', label: '閃避（大鼓壓低叫聲）' },
+      ] },
+      { title: '叫聲音色', items: [
+        { k: 'drive', label: '失真' }, { k: 'crush', label: '壓碎（Lo-fi）' },
+        { k: 'filterType', label: '濾波類型', select: [['lowpass', '低通'], ['highpass', '高通'], ['bandpass', '帶通']] },
+        { k: 'cutoff', label: '截止頻率', log: true, fmt: (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`) },
+        { k: 'reso', label: '共振', step: 0.1 },
+        { k: 'wahRate', label: '哇音速度（Hz）', step: 0.1 }, { k: 'wahDepth', label: '哇音深度' },
+      ] },
+      { title: '回聲 Delay', items: [
+        { k: 'delayDiv', label: '延遲時間', select: [[0, '1/16'], [1, '1/8'], [2, '附點 1/8'], [3, '1/4']], num: true },
+        { k: 'delayFb', label: '回授' }, { k: 'delayCry', label: '叫聲送出量' }, { k: 'delayDrum', label: '鼓送出量' },
+      ] },
+      { title: '殘響 Reverb', items: [
+        { k: 'reverbSize', label: '空間大小（秒）', step: 0.1 }, { k: 'reverbCry', label: '叫聲送出量' }, { k: 'reverbDrum', label: '鼓送出量' },
+      ] },
+    ];
+    const fxEls = new Map();
+    const logMap = (k) => P.FX_RANGES[k];
+    const fromSlider = (k, s) => { const [lo, hi] = logMap(k); return lo * (hi / lo) ** s; };
+    const toSlider = (k, v) => { const [lo, hi] = logMap(k); return Math.log(v / lo) / Math.log(hi / lo); };
+
+    const fxHost = $('sq-fx');
+    for (const group of FX_UI) {
+      const card = document.createElement('div');
+      card.className = 'sq-card';
+      card.innerHTML = `<h3>${group.title}</h3>`;
+      for (const it of group.items) {
+        const id = `sq-fx-${it.k}`;
+        if (it.select) {
+          const wrap = document.createElement('div');
+          wrap.className = 'sq-knob';
+          wrap.innerHTML = `<label for="${id}" style="grid-column:1/-1">${it.label}</label>`;
+          const sel = document.createElement('select');
+          sel.className = 'sq-select';
+          sel.id = id;
+          for (const [v, text] of it.select) sel.append(new Option(text, String(v)));
+          sel.addEventListener('change', () => { pattern.fx[it.k] = it.num ? Number(sel.value) : sel.value; engine.applyFx(); scheduleSave(); });
+          wrap.append(sel);
+          card.append(wrap);
+          fxEls.set(it.k, sel);
+          continue;
+        }
+        const [lo, hi] = P.FX_RANGES[it.k];
+        const wrap = document.createElement('label');
+        wrap.className = 'sq-knob';
+        wrap.innerHTML = `<span>${it.label}</span><input class="sq-slider" id="${id}" type="range" min="${it.log ? 0 : lo}" max="${it.log ? 1 : hi}" step="${it.log ? 0.001 : (it.step || 0.01)}"><output></output>`;
+        const input = wrap.querySelector('input');
+        const out = wrap.querySelector('output');
+        if (it.log) input.dataset.log = '1';
+        const value = () => (it.log ? fromSlider(it.k, Number(input.value)) : Number(input.value));
+        const show = () => { const v = value(); out.textContent = it.fmt ? it.fmt(v) : (hi > 5 ? v.toFixed(1) : v.toFixed(2)); };
+        input.addEventListener('input', () => { pattern.fx[it.k] = value(); show(); engine.applyFx(); scheduleSave(); });
+        input.addEventListener('sq-sync', show);
+        input.addEventListener('dblclick', () => {
+          pattern.fx[it.k] = P.DEFAULT_FX[it.k];
+          input.value = it.log ? toSlider(it.k, P.DEFAULT_FX[it.k]) : P.DEFAULT_FX[it.k];
+          show(); engine.applyFx(); scheduleSave();
+        });
+        card.append(wrap);
+        fxEls.set(it.k, input);
+      }
+      fxHost.append(card);
+    }
+
+    /* ------------------------------------------------------ transport */
+    const playBtn = $('sq-play');
+    async function togglePlay() {
+      if (engine.playing) {
+        engine.stop();
+        playBtn.setAttribute('aria-pressed', 'false');
+        playBtn.textContent = '▶ 播放';
+        say('已停止');
+        return;
+      }
+      playBtn.textContent = '載入中…';
+      try {
+        await engine.start();
+      } catch (e) {
+        playBtn.textContent = '▶ 播放';
+        flash($('sq-status'), '無法啟動音訊，請確認瀏覽器允許播放聲音');
+        return;
+      }
+      playBtn.setAttribute('aria-pressed', 'true');
+      playBtn.textContent = '■ 停止';
+      say('開始播放');
+    }
+    playBtn.addEventListener('click', togglePlay);
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest?.('input, select, textarea, button, a, summary')) return;
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) { if (undo.i < undo.stack.length - 1) restore(undo.i + 1); } else if (undo.i > 0) restore(undo.i - 1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        if (undo.i < undo.stack.length - 1) restore(undo.i + 1);
+      }
+    });
+    $('sq-undo').addEventListener('click', () => { if (undo.i > 0) restore(undo.i - 1); });
+    $('sq-redo').addEventListener('click', () => { if (undo.i < undo.stack.length - 1) restore(undo.i + 1); });
+
+    function loadPattern(p, label, syncBrush = true) {
+      // Keep the reader's chosen sound across songs: a new melody should not
+      // silently throw away the filter they just dialled in.
+      pattern = p;
+      engine.setPattern(pattern);
+      roll.clearSelection();
+      syncControls();
+      relayout();
+      snapshot();
+      afterChange(true);
+      if (syncBrush) syncBrushWithPattern(pattern);
+      say(label);
+      flash($('sq-status'), label);
+    }
+    $('sq-preset').addEventListener('change', (e) => {
+      const pr = P.PRESETS.find((x) => x.id === e.target.value);
+      e.target.value = '';
+      if (pr) loadPattern(pr.build(), `已載入範例：${pr.label}`, true);
+    });
+    $('sq-random').addEventListener('click', () => {
+      const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+      const np = P.randomPattern(seed, ALL_IDS, { steps: pattern.steps });
+      np.fx = { ...pattern.fx };
+      np.bank = pattern.bank;
+      np.tune = pattern.tune;
+      np.gate = pattern.gate;
+      loadPattern(np, `隨機作曲（種子 ${seed % 100000}）`, true);
+    });
+    $('sq-clear').addEventListener('click', () => {
+      const np = P.emptyPattern(pattern.steps);
+      Object.assign(np, { bpm: pattern.bpm, swing: pattern.swing, scale: pattern.scale, key: pattern.key, octave: pattern.octave, tune: pattern.tune, gate: pattern.gate, bank: pattern.bank });
+      np.fx = { ...pattern.fx };
+      loadPattern(np, '已清空', false);
+    });
+
+    /* scope */
+    const scope = $('sq-scope');
+    const scopeCtx = scope.getContext('2d');
+    const bins = new Uint8Array(128);
+    (function drawScope() {
+      requestAnimationFrame(drawScope);
+      if (!engine.playing) {
+        if (scope.dataset.idle !== '1') { scopeCtx.clearRect(0, 0, scope.width, scope.height); scope.dataset.idle = '1'; }
+        return;
+      }
+      scope.dataset.idle = '0';
+      engine.spectrum(bins);
+      scopeCtx.clearRect(0, 0, scope.width, scope.height);
+      scopeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-gold').trim() || '#f5c542';
+      const n = 30;
+      const w = scope.width / n;
+      for (let i = 0; i < n; i++) {
+        const v = bins[Math.floor((i / n) ** 1.6 * 100)] / 255;
+        const h = Math.max(1, v * scope.height);
+        scopeCtx.fillRect(i * w + 1, scope.height - h, w - 2, h);
+      }
+    })();
+
+    /* -------------------------------------------------- drum bank */
+    async function loadBank(src) {
+      const status = $('sq-bank-status');
+      status.textContent = '載入中…';
+      const count = await engine.kit.load(src);
+      const sel = $('sq-bank');
+      sel.textContent = '';
+      sel.append(new Option('預設（無前綴）', ''));
+      for (const b of engine.kit.banks()) sel.append(new Option(b, b));
+      sel.value = pattern.bank;
+      if (engine.kit.error) status.textContent = `讀不到 ${src}（${engine.kit.error.message}）；使用內建合成鼓。`;
+      else if (!count) status.textContent = '取樣庫是空的；使用內建合成鼓。把檔案放進 assets/drums/ 後按「載入」。';
+      else status.textContent = `已載入 ${count} 種聲音${engine.kit.banks().length ? `、${engine.kit.banks().length} 個音色庫` : ''}。`;
+      engine.prepareDrums();
+    }
+    $('sq-manifest-load').addEventListener('click', () => loadBank($('sq-manifest').value));
+    $('sq-manifest').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadBank(e.target.value); });
+
+    /* ------------------------------------------------ share / export */
+    const download = (blob, name) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    };
+    $('sq-copy').addEventListener('click', async () => {
+      clearTimeout(saveTimer);
+      const s = P.serialize(pattern);
+      try { window.history.replaceState(null, '', `#s=${s}`); } catch { /* ignore */ }
+      try {
+        await navigator.clipboard.writeText(location.href);
+        flash($('sq-status'), '已複製分享連結');
+      } catch {
+        flash($('sq-status'), '無法自動複製，請直接複製網址列的連結');
+      }
+    });
+    $('sq-wav').addEventListener('click', async () => {
+      const status = $('sq-status');
+      flash(status, '轉出中…');
+      try {
+        const { blob } = await engine.renderWav(Number($('sq-loops').value));
+        download(blob, `cry-studio-${pattern.bpm}bpm.wav`);
+        flash(status, `已下載 WAV（${(blob.size / 1048576).toFixed(1)} MB）`);
+      } catch (e) {
+        flash(status, `轉出失敗：${e.message}`);
+      }
+    });
+    $('sq-export').addEventListener('click', () => {
+      download(new Blob([JSON.stringify({ cryStudio: 1, data: P.serialize(pattern) })], { type: 'application/json' }), 'cry-studio.json');
+    });
+    $('sq-import').addEventListener('click', () => $('sq-import-file').click());
+    $('sq-import-file').addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      let text = await f.text();
+      try { const j = JSON.parse(text); if (j && typeof j.data === 'string') text = j.data; } catch { /* raw payload */ }
+      const m = /s=([A-Za-z0-9_-]+)/.exec(text);
+      const p = P.deserialize((m ? m[1] : text).trim());
+      if (p) loadPattern(p, `已匯入「${f.name}」`);
+      else flash($('sq-status'), '這個檔案不是叫聲編曲室的格式');
+    });
+    $('sq-strudel-copy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText($('sq-strudel').value); flash($('sq-status'), '已複製 Strudel 程式碼'); } catch { $('sq-strudel').select(); }
+    });
+    $('sq-strudel-details').addEventListener('toggle', () => { $('sq-strudel').value = P.toStrudel(pattern); });
+
+    /* ------------------------------------------------------- start */
+    new ResizeObserver(() => { relayout(); }).observe($('sq-scroll'));
+    if (!hasSavedBrush || /(?:^#|&)s=([^&]+)/.test(location.hash)) {
+      syncBrushWithPattern(pattern);
+    }
+    renderSlots();
+    syncControls();
+    relayout();
+    snapshot();
+    updateSelbar();
+    $('sq-strudel').value = P.toStrudel(pattern);
+    $('sq-undo').disabled = true;
+    $('sq-redo').disabled = true;
+
+    loadPokemonData().then((data) => {
+      for (const rec of data) dex.set(rec.id, rec);
+      renderSlots();
+      roll.redraw();
+      updateSelbar();
+    }).catch(() => flash($('sq-status'), '無法載入寶可夢資料'));
+    loadBank($('sq-manifest').value);
+    ensureCries(); // decode only — a decoded buffer makes no sound
+  </script>
+</body>
+</html>

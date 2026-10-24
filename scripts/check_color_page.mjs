@@ -188,7 +188,8 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // 23 -> 24 when team.html shipped. It has its own row and its own pages entry,
 // like abilities.html, because the planner is a destination rather than a
 // drill-in from a card.
-const EXPECTED_NAV_PAGES = 25;
+// 25 -> 26 when cry-studio.html shipped.
+const EXPECTED_NAV_PAGES = 26;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

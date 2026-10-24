@@ -42,6 +42,7 @@
 | `cries-gen1.html` | 第一世代 151 種叫聲透過 Game Boy APU 進行晶片音樂（Chiptune）重合成。 |
 | `spectrum.html` | 每種叫聲的 Mel 頻譜分析視覺化，支援由左至右動態揭示。 |
 | `cry-game.html` | 叫聲猜謎：10 題四選一的聽聲辨寶可夢遊戲；難度是實測的音色相似度上限。 |
+| `cry-studio.html` | 叫聲編曲室：把任一叫聲放上「音階 × 時間」格子，以 YIN 自動調到該音高，再疊上五條 Strudel 鼓軌、效果器、`#s=` 分享連結，並可匯出 WAV 或 Strudel 程式碼。 |
 | `moves.html` | 全部 919 個招式，可搜尋與篩選，所有篩選狀態都寫進 URL。 |
 | `move.html` | 單一招式：數值、效果說明，以及全 1,025 隻中學得會牠的名單。 |
 | `abilities.html` | 全部 314 種特性，可搜尋與篩選，並區分常見／隱藏持有者。 |
@@ -85,7 +86,7 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # css/、js/、data/（23 個 JSON 資料表）、cries/、glbs/、images/、video/
+├── assets/          # css/、js/、data/（23 個 JSON 資料表）、cries/、drums/、glbs/、images/、video/
 ├── docs/            # README.zh-TW.md 與 incidents/（技術約定的除錯紀錄）
 ├── scripts/         # 自動化檢查器 (check_*.mjs, test_check_*.mjs, lib/) 與資料處理腳本 (*.py)
 └── data-sources/    # 原始 CSV/XLSX 與溯源紀錄（執行階段不直接讀取）
@@ -94,7 +95,7 @@ pokemon-algorithm/
 
 * **無套件肥大問題**：專案無 `package.json`、無 `node_modules`、無複雜的打包編譯步驟。Node.js 僅在開發或執行驗證腳本時作為執行環境（`process.execPath`）。
 * **無 CI 流程**：專案刻意不設定 `.github/workflows/`，所有驗證與測試均由開發者手動執行。
-* **已納入版控的媒體**：`assets/video/` 收錄 9 段自動生成的 hero 循環影片與 9 張海報圖，全部納入版控並由 `index.html` 掛載。兩者都由 `make_hero_video.py` 重新生成，請勿手動編輯。
+* **已納入版控的媒體**：`assets/video/` 收錄 9 段自動生成的 hero 循環影片與 9 張海報圖，全部納入版控並由 `index.html` 掛載。兩者都由 `make_hero_video.py` 重新生成，請勿手動編輯。`assets/drums/` 收錄 `cry-studio.html` 載入的 397 個 WAV 取樣（28 MB）與 `strudel.json` 取樣對照表；對照表不存在時，頁面會改用內建合成鼓。
 
 ---
 

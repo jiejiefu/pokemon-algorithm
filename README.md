@@ -42,6 +42,7 @@
 | `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU. |
 | `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right. |
 | `cry-game.html` | 「叫聲猜謎」: a ten-question, four-choice cry-guessing game where difficulty is a measured similarity ceiling. |
+| `cry-studio.html` | 「叫聲編曲室」: place any cry on a scale-degree × step grid, auto-tuned to the pitch by YIN, then add five Strudel drum lanes, effects, a `#s=` share link and WAV / Strudel export. |
 | `moves.html` | All 919 moves, searchable and filterable, with every filter kept in the URL. |
 | `move.html` | One move: stats, effect text, and which of the 1,025 Pokémon learn it. |
 | `abilities.html` | All 314 abilities, searchable and filterable, with the 「常見」/「隱藏」 holder split. |
@@ -83,7 +84,7 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # css/, js/, data/ (23 JSON tables), cries/, glbs/, images/, video/
+├── assets/          # css/, js/, data/ (23 JSON tables), cries/, drums/, glbs/, images/, video/
 ├── docs/            # README.zh-TW.md; incidents/ — receipts for technical conventions
 ├── scripts/         # verification: check_*.mjs, test_check_*.mjs, lib/
 │                    # data pipeline: *.py (data processing scripts)
@@ -93,7 +94,7 @@ pokemon-algorithm/
 
 * **No `package.json`, no `node_modules`, no build step**: Zero npm dependencies is a deliberate architecture. Node is invoked purely as `process.execPath`, and helper modules reside in `scripts/lib/`.
 * **No CI pipeline**: There are no workflows under `.github/workflows/`; the test suite is executed manually.
-* **Tracked media**: `assets/video/` holds nine generated hero loops and nine poster stills, all tracked and mounted by `index.html`. Regenerate both with `make_hero_video.py`; never hand-edit them.
+* **Tracked media**: `assets/video/` holds nine generated hero loops and nine poster stills, all tracked and mounted by `index.html`. Regenerate both with `make_hero_video.py`; never hand-edit them. `assets/drums/` holds the 397 WAV samples (28 MB) and `strudel.json` sample map that `cry-studio.html` loads; the page falls back to synthesized drums when the map is absent.
 
 ---
 

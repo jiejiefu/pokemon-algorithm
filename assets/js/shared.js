@@ -882,7 +882,7 @@ export const NAV = [
     // MUST be in `pages` as well as in `items`: a child page whose header is
     // identical to its parent's cannot be told apart by href, and the one rule
     // is "aria-current goes on the exact row".
-    pages: ['cries.html', 'cries-gen1.html', 'spectrum.html', 'cry-game.html'],
+    pages: ['cries.html', 'cries-gen1.html', 'spectrum.html', 'cry-game.html', 'cry-studio.html'],
     groups: [
       {
         items: [
@@ -897,6 +897,7 @@ export const NAV = [
           // the part a third game page (or a rename of either one) breaks
           // silently: nothing renders wrong, the nav just stops reading as a set.
           { href: 'cry-game.html', label: '叫聲猜謎', desc: '聽叫聲猜是哪一隻' },
+          { href: 'cry-studio.html', label: '叫聲編曲室', desc: '把叫聲放上音階，編成循環與節拍' },
         ],
       },
     ],
