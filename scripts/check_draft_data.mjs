@@ -20,6 +20,7 @@ import { dirname, join } from 'node:path';
 
 import { TYPE_CHART_ORDER } from '../assets/js/type-chart.js';
 import { createChecker } from './lib/assert.mjs';
+import { readRgba } from './lib/png.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
@@ -56,9 +57,28 @@ ok(Object.keys(DATA.moves).length === 330,
   `found ${Object.keys(DATA.moves).length}`);
 ok(records.size === DATA.pokemon.length, 'no species id appears twice');
 ok(SPRITES_EXIST(), 'every pool species has a front sprite');
+const badBackSprites = BAD_BACK_SPRITES();
+ok(badBackSprites.length === 0, 'every pool species has a non-empty 96x96 back sprite',
+  badBackSprites.slice(0, 12).map(id => `#${id}`).join(', '));
 
 function SPRITES_EXIST() {
   return DATA.pokemon.every(row => existsSync(join(ROOT, 'assets/images/sprite', `${row[0]}.png`)));
+}
+
+function BAD_BACK_SPRITES() {
+  const bad = [];
+  for (const [id] of DATA.pokemon) {
+    const path = join(ROOT, 'assets/images/sprite/back', `${id}.png`);
+    if (!existsSync(path)) { bad.push(id); continue; }
+    try {
+      const png = readRgba(readFileSync(path), `back/${id}.png`);
+      const visible = png.data.some((value, index) => index % 4 === 3 && value > 0);
+      if (png.width !== 96 || png.height !== 96 || !visible) bad.push(id);
+    } catch {
+      bad.push(id);
+    }
+  }
+  return bad;
 }
 
 /* ===== the pool is the edge list, in both directions ===== */

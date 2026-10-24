@@ -90,10 +90,35 @@
       </div>
 
       <div class="sd-match" id="sd-match" hidden>
+        <section class="sd-battle" id="sd-battle" aria-label="對戰畫面">
+          <div class="sd-battle-slot sd-battle-slot--opponent">
+            <span class="sd-battle-platform" aria-hidden="true"></span>
+            <img class="sd-battle-sprite" id="sd-battle-opponent" alt="" width="96" height="96" decoding="async">
+          </div>
+          <div class="sd-battle-slot sd-battle-slot--player">
+            <span class="sd-battle-platform" aria-hidden="true"></span>
+            <img class="sd-battle-sprite" id="sd-battle-player" alt="" width="96" height="96" decoding="async" hidden>
+          </div>
+
+          <div class="sd-battle-plate sd-battle-plate--opponent">
+            <span class="sd-battle-role">對手</span>
+            <strong id="sd-battle-opponent-name">—</strong>
+            <div class="sd-battle-types" id="sd-battle-opponent-types"></div>
+          </div>
+
+          <div class="sd-battle-plate sd-battle-plate--player">
+            <span class="sd-battle-role">我方</span>
+            <strong id="sd-battle-player-name">選擇出戰</strong>
+            <div class="sd-battle-types" id="sd-battle-player-types"></div>
+          </div>
+
+          <p class="sd-battle-verdict" id="sd-battle-verdict" hidden></p>
+        </section>
+
         <p class="sd-score" id="sd-score" role="status" aria-live="polite">你 0 勝 0 平 0 敗</p>
         <div class="sd-opponent-wrap">
           <div class="sd-opponent-head">
-            <h3 id="sd-opponent-title">對手的這一隻</h3>
+            <h3 id="sd-opponent-title">對手招式</h3>
             <p class="sd-opponent-count" id="sd-opponent-count" role="status" aria-live="polite">第 1 / 6 組</p>
           </div>
           <div class="sd-opponent" id="sd-opponent"></div>

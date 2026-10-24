@@ -530,6 +530,153 @@
   display: none;
 }
 
+.sd-battle {
+  --sd-battle-sky-top: #8fd8e8;
+  --sd-battle-sky-bottom: #d8f3cf;
+  --sd-battle-ground: #6fbd55;
+  --sd-battle-ground-edge: #4b9a42;
+  --sd-battle-platform: rgba(255, 255, 255, 0.34);
+  --sd-battle-platform-edge: rgba(23, 72, 39, 0.28);
+  --sd-battle-plate-bg: rgba(255, 255, 255, 0.88);
+  --sd-battle-plate-border: rgba(19, 49, 36, 0.24);
+  --sd-battle-plate-text: #12251b;
+  --sd-battle-sprite-size: clamp(120px, 18vw, 192px);
+  position: relative;
+  grid-column: 1 / -1;
+  height: clamp(320px, 34vw, 440px);
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, transparent 0 54%, rgba(255, 255, 255, 0.14) 54% 55%, transparent 55%),
+    repeating-linear-gradient(180deg, transparent 0 38px, rgba(255, 255, 255, 0.08) 38px 40px),
+    linear-gradient(180deg, var(--sd-battle-sky-top) 0 54%, var(--sd-battle-ground) 54% 100%);
+  isolation: isolate;
+}
+
+[data-theme="dark"] .sd-battle {
+  --sd-battle-sky-top: #17354a;
+  --sd-battle-sky-bottom: #1d4b42;
+  --sd-battle-ground: #235b3a;
+  --sd-battle-ground-edge: #17432c;
+  --sd-battle-platform: rgba(255, 255, 255, 0.16);
+  --sd-battle-platform-edge: rgba(0, 0, 0, 0.38);
+  --sd-battle-plate-bg: rgba(10, 18, 26, 0.88);
+  --sd-battle-plate-border: rgba(255, 255, 255, 0.2);
+  --sd-battle-plate-text: #eef4ff;
+}
+
+.sd-battle-slot {
+  position: absolute;
+  z-index: 2;
+  width: var(--sd-battle-sprite-size);
+  height: var(--sd-battle-sprite-size);
+}
+
+.sd-battle-slot--opponent {
+  top: 8%;
+  right: 7%;
+}
+
+.sd-battle-slot--player {
+  bottom: 4%;
+  left: 6%;
+}
+
+.sd-battle-slot img {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: pixelated;
+}
+
+.sd-battle-slot img[hidden] {
+  display: none;
+}
+
+.sd-battle-platform {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  z-index: 1;
+  width: 92%;
+  height: 22%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--sd-battle-platform);
+  box-shadow: 0 6px 0 -2px var(--sd-battle-platform-edge);
+}
+
+.sd-battle-plate {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  padding: 8px 12px;
+  border: 1px solid var(--sd-battle-plate-border);
+  border-radius: 8px;
+  background: var(--sd-battle-plate-bg);
+  color: var(--sd-battle-plate-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(2px);
+}
+
+.sd-battle-plate--opponent {
+  top: 5%;
+  left: 4%;
+}
+
+.sd-battle-plate--player {
+  right: 4%;
+  bottom: 5%;
+}
+
+.sd-battle-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+}
+
+.sd-battle-plate strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.sd-battle-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sd-battle-verdict {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  margin: 0;
+  padding: 4px 18px;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  background: var(--sd-battle-plate-bg);
+  color: var(--text-primary);
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+}
+
+.sd-battle-verdict[hidden] {
+  display: none;
+}
+
 .sd-score {
   grid-column: 1 / -1;
   margin: 0;
@@ -567,25 +714,6 @@
   border: 1px solid var(--accent-gold-surface);
   border-radius: var(--radius-sm);
   background: var(--bg-card);
-}
-
-.sd-opponent-hero {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 10px;
-}
-
-.sd-opponent-hero img {
-  width: 112px;
-  height: 112px;
-  object-fit: contain;
-}
-
-.sd-opponent-name {
-  margin: 0 0 6px;
-  color: var(--text-primary);
-  font-size: 20px;
 }
 
 .sd-backs {
@@ -901,6 +1029,11 @@
     grid-template-columns: 1fr;
   }
 
+  .sd-battle {
+    --sd-battle-sprite-size: clamp(112px, 24vw, 168px);
+    height: clamp(300px, 46vw, 380px);
+  }
+
   .sd-analysis {
     grid-column: 1;
   }
@@ -913,6 +1046,40 @@
 @media (max-width: 600px) {
   .sd-candidates {
     grid-template-columns: 1fr;
+  }
+
+  .sd-battle {
+    --sd-battle-sprite-size: clamp(104px, 30vw, 136px);
+    height: 320px;
+  }
+
+  .sd-battle-slot--opponent {
+    top: 7%;
+    right: 5%;
+  }
+
+  .sd-battle-slot--player {
+    bottom: 3%;
+    left: 4%;
+  }
+
+  .sd-battle-plate {
+    min-width: 0;
+    padding: 6px 9px;
+  }
+
+  .sd-battle-plate--opponent {
+    top: 3%;
+    left: 3%;
+  }
+
+  .sd-battle-plate--player {
+    right: 3%;
+    bottom: 3%;
+  }
+
+  .sd-battle-plate strong {
+    font-size: 15px;
   }
 
   .sd-rosters {

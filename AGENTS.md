@@ -84,7 +84,7 @@ pokemon-algorithm/
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
-**9,086 of the 9,489 tracked files are binary** (7,062 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
+**12,253 of the 12,656 tracked files are binary** (10,229 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
 
 **The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
 
@@ -480,9 +480,9 @@ The slot's type statement is a **148px Poké Ball behind the art** (`.tm-slot-re
 
 ### AE. `silhouette-draft.html` — Blind Draft, Live Opponent, Six Type-Only Matchups
 - **The page loads only `draft_roster.json`** (47 KB / 19 KB gzip), never `pokemon_data.json` or `team_moves.json`; the pool is the evolution edge list — 568 final/single-stage species, 89 legendary/mythical, with #772/#789/#790/#808/#891 excluded because they still evolve. Move types are visible, but names and species types stay hidden until confirmation; **the computer immediately takes one of the five the player passed on**, so both sixes are disjoint by construction.
-- **No STAB, stats, abilities, items, HP, or damage:** `attackProfile()` reads `defensiveMultiplier`; `TYPELESS_MOVES` / `isDamaging` print `—` for status/fixed/OHKO moves. Each duel's best multiplier yields win/draw/loss, and the summary reports the record, total multiplier, verdict and S–D grade.
+- **No STAB, stats, abilities, items, HP, or damage:** `attackProfile()` reads `defensiveMultiplier`; `TYPELESS_MOVES` / `isDamaging` print `—` for status/fixed/OHKO moves. Each duel's best multiplier yields win/draw/loss, and the summary reports the record, total multiplier, verdict and S–D grade. **The battle scene draws the player's back sprite bottom-left and the opponent's front top-right in the same `--sd-battle-sprite-size` box;** `backSpriteUrl()` is the only back path, and `image-rendering: pixelated` is scoped to `.sd-battle-slot img` because the silhouette is 1:1. The full `back/` tree (3,167 PNG, including `shiny/` and `female/`) is tracked; only the 568 pool species are referenced.
 - **The reveal is a beat, not a flash:** `confirmPick()` holds `pendingRound` until `nextRound()`; the sixth analysis likewise stays until `finish()`. Every id `$()` reads must exist in the page — the first browser pass found `#sd-match-pick` missing, and `check_draft_page.mjs` derives the read-id set from the script.
-**Guarded by:** `check_draft_data.mjs` (14,257) + `check_draft_page.mjs` (393). Rendered claims were measured once by hand (dark/light silhouette, six reveals, both rosters, six analyses, score, summary, 390px no overflow); no browser entry is kept. **Background:** [pages.md#ae](docs/incidents/pages.md#ae)
+**Guarded by:** `check_draft_data.mjs` (14,258) + `check_draft_page.mjs` (425). Rendered claims were measured once by hand (dark/light silhouette, six reveals, both rosters, six analyses, battle sprites same size, score, summary, 390px no overflow); no browser entry is kept. **Background:** [pages.md#ae](docs/incidents/pages.md#ae)
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.

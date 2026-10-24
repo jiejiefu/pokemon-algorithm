@@ -993,11 +993,12 @@ const CHECKERS = [
   },
   {
     /* The draft page's static half: the DOM contract, the silhouette filters in
-     * both themes, and the seeded session's six rounds and six matchups. The
-     * rendered claims are deliberately not here; they were checked by hand once
-     * (light/dark silhouette, 390px confirm bar). */
+     * both themes, the shared battle-sprite box, and the seeded session's six
+     * rounds and six matchups. The rendered claims are deliberately not here;
+     * they were checked by hand once (light/dark silhouette, six duels, battle
+     * sprites the same rendered size, 390px confirm bar). */
     script: 'scripts/check_draft_page.mjs', group: 'nav',
-    note: '285 checks; no browser — page shape plus a deterministic six-round run',
+    note: '425 checks; no browser — page shape, battle scene, and a deterministic six-round run',
     inputs: [
       'silhouette-draft.html',
       'assets/css/silhouette-draft.css',
@@ -1373,13 +1374,14 @@ const CHECKERS = [
      * re-derived here from the edge list and the learnsets rather than trusted
      * from the file under test. */
     script: 'scripts/check_draft_data.mjs', group: 'data',
-    note: '568 final/single-stage, 89 legendary, three one-move species, every move learnable',
+    note: '568 final/single-stage, 89 legendary, three one-move species, every move learnable, every back sprite 96x96',
     inputs: [
       'assets/data/draft_roster.json',
       'assets/data/pokemon_data.json', 'assets/data/evolution_levels.json',
       'assets/data/learnsets.json',
       'assets/js/type-chart.js',
       'assets/images/sprite/*',
+      'assets/images/sprite/back/*',
     ],
   },
   {

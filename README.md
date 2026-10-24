@@ -37,7 +37,7 @@
 | `maze.html` | BFS / DFS pathfinding visualizer on a 40×40 grid with seedable RNG. |
 | `life.html` | Conway's Game of Life simulation mapped across generations using real in-game evolution levels. |
 | `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,794 relations across 14 types, featuring search, filters, and a dossier panel linked to `detail.html` / `color.html`. |
-| `silhouette-draft.html` | Silhouette draft: six blind picks against a live opponent who takes one of your five leftovers each round, then a 6v6 type-only matchup with win/draw/loss, a multiplier total and a verdict. No stats, STAB or HP. |
+| `silhouette-draft.html` | Silhouette draft: six blind picks against a live opponent who takes one of your five leftovers each round, then a 6v6 type-only matchup with win/draw/loss, a multiplier total and a verdict. Each duel plays out in a GBA-style battle scene with the player's back sprite bottom-left and the opponent's front sprite top-right. No stats, STAB or HP. |
 | `cries.html` | All 1,025 cry cards with measured timbre, 5 sorting axes, and real-time waveforms. |
 | `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU. |
 | `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right. |

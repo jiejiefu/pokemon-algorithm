@@ -9,7 +9,7 @@
  */
 
 import { typeBadgeSmHtml } from './shared.js';
-import { spriteUrl } from './color-palette.js';
+import { spriteUrl, backSpriteUrl } from './color-palette.js';
 import {
   createDraftSession,
   multiplierText,
@@ -166,13 +166,6 @@ export async function initSilhouetteDraft() {
 
   function renderOpponent(opponent) {
     $('sd-opponent').innerHTML = `
-      <div class="sd-opponent-hero">
-        <img src="${spriteUrl(opponent.id)}" alt="" width="112" height="112" decoding="async">
-        <div>
-          <p class="sd-opponent-name">${esc(opponent.zh)}</p>
-          <div class="sd-type-row">${typesHtml(opponent.types)}</div>
-        </div>
-      </div>
       <ul class="sd-opponent-moves">
         ${opponent.moves.map((move) => moveRow(move, undefined, true)).join('')}
       </ul>`;
@@ -255,11 +248,61 @@ export async function initSilhouetteDraft() {
     $('sd-score').textContent = `你 ${record.wins} 勝 ${record.draws} 平 ${record.losses} 敗 · 總倍率 ${fmtTotal(playerTotal)} : ${fmtTotal(computerTotal)}`;
   }
 
+  function renderBattle() {
+    const opponent = pending ? pending.opponent : session.currentOpponent;
+    const player = pending
+      ? pending.player
+      : (session.matchPlayerId === null ? null : byId.get(session.matchPlayerId));
+
+    const opponentImg = $('sd-battle-opponent');
+    const playerImg = $('sd-battle-player');
+    const verdict = $('sd-battle-verdict');
+
+    if (opponent) {
+      opponentImg.src = spriteUrl(opponent.id);
+      opponentImg.alt = `對手 ${opponent.zh}`;
+      opponentImg.hidden = false;
+      $('sd-battle-opponent-name').textContent = opponent.zh;
+      $('sd-battle-opponent-types').innerHTML = typesHtml(opponent.types);
+    } else {
+      opponentImg.hidden = true;
+      opponentImg.removeAttribute('src');
+      opponentImg.alt = '';
+      $('sd-battle-opponent-name').textContent = '—';
+      $('sd-battle-opponent-types').innerHTML = '';
+    }
+
+    if (player) {
+      playerImg.src = backSpriteUrl(player.id);
+      playerImg.alt = `我方 ${player.zh} 背面`;
+      playerImg.hidden = false;
+      $('sd-battle-player-name').textContent = player.zh;
+      $('sd-battle-player-types').innerHTML = typesHtml(player.types);
+    } else {
+      playerImg.hidden = true;
+      playerImg.removeAttribute('src');
+      playerImg.alt = '';
+      $('sd-battle-player-name').textContent = '選擇出戰';
+      $('sd-battle-player-types').innerHTML = '';
+    }
+
+    if (pending) {
+      verdict.hidden = false;
+      verdict.textContent = outcomeText(pending.outcome);
+      verdict.className = `sd-battle-verdict sd-outcome--${pending.outcome}`;
+    } else {
+      verdict.hidden = true;
+      verdict.textContent = '';
+      verdict.className = 'sd-battle-verdict';
+    }
+  }
+
   function renderMatch() {
     const opponent = pending ? pending.opponent : session.currentOpponent;
     if (!opponent) return;
 
     renderScore();
+    renderBattle();
     renderOpponent(opponent);
     $('sd-match-pick').hidden = Boolean(pending);
     renderMatchTeam();

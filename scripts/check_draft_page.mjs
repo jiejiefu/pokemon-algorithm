@@ -41,6 +41,7 @@ const HTML = read('silhouette-draft.html');
 const CSS = read('assets/css/silhouette-draft.css');
 const JS = read('assets/js/silhouette-draft.js');
 const GAME = read('assets/js/silhouette-draft-game.js');
+const PALETTE = read('assets/js/color-palette.js');
 const DATA = readData('draft_roster.json');
 
 const cssCode = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -68,7 +69,10 @@ for (const id of [
   'sd-status', 'sd-round', 'sd-phase', 'sd-progress',
   'sd-draft', 'sd-pick-area', 'sd-instruction', 'sd-candidates', 'sd-selected', 'sd-confirm',
   'sd-reveal', 'sd-reveal-head', 'sd-reveal-cols', 'sd-next-round',
-  'sd-match', 'sd-score', 'sd-opponent', 'sd-opponent-count', 'sd-opponent-backs',
+  'sd-match', 'sd-battle', 'sd-battle-player', 'sd-battle-opponent',
+  'sd-battle-player-name', 'sd-battle-player-types',
+  'sd-battle-opponent-name', 'sd-battle-opponent-types', 'sd-battle-verdict',
+  'sd-score', 'sd-opponent', 'sd-opponent-count', 'sd-opponent-backs',
   'sd-match-team', 'sd-match-selected', 'sd-match-confirm', 'sd-analysis',
   'sd-analysis-outcome', 'sd-analysis-cols', 'sd-next',
   'sd-team', 'sd-team-count', 'sd-opponent-team', 'sd-opponent-team-count',
@@ -89,6 +93,10 @@ ok(/id="sd-opponent-team"[^>]*data-slot-count="6"/.test(HTML), 'the opponent ros
 for (const id of ['sd-reveal', 'sd-match', 'sd-analysis', 'sd-summary']) {
   ok(new RegExp(`id="${id}"[^>]*hidden`).test(HTML), `#${id} starts hidden`);
 }
+ok(/id="sd-battle-player"[^>]*hidden/.test(HTML), 'the player battle sprite starts hidden');
+ok(HTML.indexOf('id="sd-battle"') < HTML.indexOf('id="sd-score"'),
+  'the battle scene precedes the score strip');
+ok(/id="sd-opponent-title">對手招式/.test(HTML), 'the opponent panel names the moves it lists');
 ok(/id="sd-confirm"[^>]*disabled/.test(HTML), 'the draft confirm starts disabled');
 ok(/id="sd-match-confirm"[^>]*disabled/.test(HTML), 'the match confirm starts disabled');
 
@@ -111,7 +119,40 @@ ok(/\.sd-silhouette img\s*\{[^}]*filter:\s*brightness\(0\)/.test(cssCode),
   'a light-theme silhouette is the sprite with its colour removed');
 ok(/\[data-theme="dark"\] \.sd-silhouette img\s*\{[^}]*filter:\s*brightness\(0\) invert\(1\)/.test(cssCode),
   'a dark-theme silhouette is inverted, so black on a dark card cannot vanish');
-ok(!/image-rendering/.test(cssCode), 'the 96px sprite is not given a crispness setting it does not need');
+ok(!/\.sd-silhouette[^{]*\{[^}]*image-rendering/.test(cssCode),
+  'the 96px silhouette is not given a crispness setting it does not need');
+ok(/\.sd-battle-slot img\s*\{[^}]*image-rendering:\s*pixelated/.test(cssCode),
+  'the scaled battle sprites are drawn pixelated');
+is((cssCode.match(/image-rendering/g) || []).length, 1,
+  'only the battle sprite gets a crispness setting');
+ok(/\.sd-battle\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/.test(cssCode),
+  'the battle scene spans both match columns');
+ok(/\.sd-battle\s*\{[^}]*height:\s*clamp\(320px,\s*34vw,\s*440px\)/.test(cssCode),
+  'the battle scene has a bounded height');
+ok(/\.sd-battle-slot\s*\{[^}]*width:\s*var\(--sd-battle-sprite-size\)[^}]*height:\s*var\(--sd-battle-sprite-size\)/.test(cssCode),
+  'both battle sprites share one box size');
+const slotRules = (side) => [...cssCode.matchAll(new RegExp(`\\.sd-battle-slot--${side}\\s*\\{([^}]*)\\}`, 'g'))]
+  .map(match => match[1]);
+for (const side of ['player', 'opponent']) {
+  const rules = slotRules(side);
+  ok(rules.length > 0, `the ${side} battle slot is positioned`);
+  ok(rules.every(rule => !/(?:^|;)\s*(?:width|height)\s*:/.test(rule)),
+    `the ${side} battle slot does not override the shared sprite size`);
+}
+ok(slotRules('player').some(rule => /left:/.test(rule) && /bottom:/.test(rule)),
+  'the player back sprite sits at the bottom-left');
+ok(slotRules('opponent').some(rule => /right:/.test(rule) && /top:/.test(rule)),
+  'the opponent front sprite sits at the top-right');
+ok(/\.sd-battle-plate--opponent\s*\{[^}]*top:/.test(cssCode)
+  && /\.sd-battle-plate--opponent\s*\{[^}]*left:/.test(cssCode),
+  'the opponent plate sits at the top-left');
+ok(/\.sd-battle-plate--player\s*\{[^}]*right:/.test(cssCode)
+  && /\.sd-battle-plate--player\s*\{[^}]*bottom:/.test(cssCode),
+  'the player plate sits at the bottom-right');
+ok(/\.sd-battle-verdict\[hidden\]\s*\{\s*display:\s*none/.test(cssCode),
+  'the battle verdict pairs [hidden] with its display');
+ok(/@media \(max-width: 600px\)[\s\S]*?\.sd-battle\s*\{[^}]*height:\s*320px/.test(cssCode),
+  'the battle scene has a phone height');
 ok(/\.sd-candidates\s*\{[^}]*grid-template-columns:\s*repeat\(3/.test(cssCode),
   'six candidates lay out three across on desktop');
 ok(/@media \(max-width: 900px\)[\s\S]*?\.sd-candidates\s*\{\s*grid-template-columns:\s*repeat\(2/.test(cssCode),
@@ -144,6 +185,13 @@ ok(/fetch\(DATA_URL\)/.test(JS) && /assets\/data\/draft_roster\.json/.test(JS),
   'the page fetches the compact roster');
 ok(!/pokemon_data\.json/.test(jsCode) && !/team_moves\.json/.test(jsCode),
   'the page never loads the 2.9 MB roster or the 607 KB move table');
+ok(/backSpriteUrl/.test(PALETTE) && /back\/\$\{id\}\.png/.test(PALETTE)
+  && /ASSETS\.sprites/.test(PALETTE) && /backSpriteUrl/.test(JS),
+  'the back sprite path comes from the shared palette module');
+ok(/backSpriteUrl\(player\.id\)/.test(jsCode), 'the battle scene draws the player from the back sprite');
+ok(/spriteUrl\(opponent\.id\)/.test(jsCode), 'the battle scene draws the opponent from the front sprite');
+ok(/function renderBattle/.test(jsCode) && /renderBattle\(\);/.test(jsCode),
+  'the battle scene is painted from the match state');
 
 const candidateFn = jsCode.slice(jsCode.indexOf('function renderCandidates'), jsCode.indexOf('function slotHtml'));
 ok(candidateFn.length > 0, 'renderCandidates is locatable');
@@ -157,6 +205,10 @@ ok(/typesHtml/.test(revealFn) && /moveRow\(move, undefined, true\)/.test(revealF
   'the round result prints both names and move types');
 ok(/pendingRound/.test(jsCode) && /session\.nextRound\(\)/.test(jsCode),
   'the DOM waits on the round result before advancing');
+const opponentFn = jsCode.slice(jsCode.indexOf('function renderOpponent'), jsCode.indexOf('function renderMatchTeam'));
+ok(opponentFn.length > 0, 'renderOpponent is locatable');
+ok(!/spriteUrl\(opponent\.id\)/.test(opponentFn),
+  'the opponent panel does not duplicate the battle artwork');
 ok(/sd-opponent-team/.test(JS), 'the opponent six is painted next to the player six');
 ok(/summary\.verdict/.test(jsCode) && /summary\.record/.test(jsCode),
   'the summary prints the verdict and the record');

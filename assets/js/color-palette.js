@@ -116,6 +116,11 @@ export function spriteUrl(id, shiny = false) {
   return `${ASSETS.sprites}${shiny ? 'shiny/' : ''}${id}.png`;
 }
 
+/** The 96x96 back sprite. Same id, its own `back/` subtree. */
+export function backSpriteUrl(id) {
+  return `${ASSETS.sprites}back/${id}.png`;
+}
+
 /** The 475x475 official artwork. `shiny` swaps the parent directory. */
 export function artworkUrl(id, shiny = false) {
   return `${shiny ? ASSETS.shiny : ASSETS.images}${id}.png`;
