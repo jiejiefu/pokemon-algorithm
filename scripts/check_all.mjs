@@ -991,6 +991,20 @@ const CHECKERS = [
       'assets/images/shiny/*',
     ],
   },
+  {
+    /* The draft page's static half: the DOM contract, the silhouette filters in
+     * both themes, and the seeded session's six rounds and six matchups. The
+     * rendered claims are deliberately not here; they were checked by hand once
+     * (light/dark silhouette, 390px confirm bar). */
+    script: 'scripts/check_draft_page.mjs', group: 'nav',
+    note: '285 checks; no browser — page shape plus a deterministic six-round run',
+    inputs: [
+      'silhouette-draft.html',
+      'assets/css/silhouette-draft.css',
+      'assets/data/draft_roster.json',
+      'assets/js/*',
+    ],
+  },
   /* ---- AGENTS.md itself ----
    *
    * AGENTS.md is context loaded every session, and its §3 had grown back into a
@@ -1351,6 +1365,21 @@ const CHECKERS = [
       'assets/data/move_learners.json', 'assets/data/move_learners_count.json',
       'assets/data/pokemon_data.json',
       'assets/js/moves.js',
+    ],
+  },
+  {
+    /* The silhouette draft's one table. The page never loads pokemon_data.json,
+     * so the pool's shape, the 568/89/3 counts and every learnable move are
+     * re-derived here from the edge list and the learnsets rather than trusted
+     * from the file under test. */
+    script: 'scripts/check_draft_data.mjs', group: 'data',
+    note: '568 final/single-stage, 89 legendary, three one-move species, every move learnable',
+    inputs: [
+      'assets/data/draft_roster.json',
+      'assets/data/pokemon_data.json', 'assets/data/evolution_levels.json',
+      'assets/data/learnsets.json',
+      'assets/js/type-chart.js',
+      'assets/images/sprite/*',
     ],
   },
   {

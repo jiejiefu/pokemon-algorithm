@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>剪影選秀 — 6 輪盲選與屬性對位</title>
+  <meta name="description" content="六輪剪影盲選，每輪從 6 隻看不出名字與本體屬性的寶可夢中選 1 隻；電腦立刻從剩下的 5 隻拿走 1 隻。六輪後雙方逐場比較招式屬性倍率，先比勝場，再比總倍率。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <script>
+    (function () {
+      var theme = 'dark';
+      try {
+        var stored = localStorage.getItem('pokemon-theme');
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/silhouette-draft.css">
+</head>
+<body>
+  <header class="header header-sort">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="sd-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <span aria-current="page">剪影選秀</span>
+    </nav>
+
+    <section class="sd-hero" aria-labelledby="sd-title">
+      <p class="sd-eyebrow">演算法 · 盲選與對位</p>
+      <h1 id="sd-title">剪影選秀</h1>
+      <p class="sd-hero-sub">
+        六輪，每輪 6 隻只看得到剪影與招式屬性的寶可夢，選 1 隻，選了就收不回。
+        你確認後，電腦會立刻從剩下的 5 隻拿走 1 隻；六輪後雙方各 6 隻，逐場比較招式的屬性倍率。
+        先比勝場，再比總倍率；不看種族值、特性、道具或 STAB。
+      </p>
+      <ul class="sd-stats">
+        <li><strong>568</strong><span>最終進化與單階</span></li>
+        <li><strong>6 × 6</strong><span>輪 × 候選</span></li>
+        <li><strong>6 v 6</strong><span>屬性對位</span></li>
+      </ul>
+    </section>
+
+    <p class="sd-status" id="sd-status" role="status" aria-live="polite">正在載入選秀池…</p>
+
+    <section class="sd-board" aria-labelledby="sd-board-title">
+      <div class="sd-board-head">
+        <h2 id="sd-board-title">選秀台</h2>
+        <div class="sd-board-meta">
+          <span id="sd-round">第 1 / 6 輪</span>
+          <span id="sd-phase">盲選</span>
+          <span id="sd-progress">0 / 6 隻</span>
+        </div>
+      </div>
+
+      <div class="sd-draft" id="sd-draft">
+        <div class="sd-pick-area" id="sd-pick-area">
+          <p class="sd-instruction" id="sd-instruction">點一隻剪影，再按確認。名字與本體屬性會在確認後揭曉；電腦會從剩下的五隻拿走一隻。</p>
+          <ul class="sd-candidates" id="sd-candidates" data-candidate-count="6"></ul>
+          <div class="sd-confirmbar">
+            <p class="sd-selected" id="sd-selected">尚未選擇</p>
+            <button class="sd-btn sd-btn-accent" type="button" id="sd-confirm" disabled>確認第 1 隻</button>
+          </div>
+        </div>
+        <div class="sd-reveal" id="sd-reveal" hidden>
+          <div class="sd-reveal-head" id="sd-reveal-head"></div>
+          <div class="sd-reveal-cols" id="sd-reveal-cols"></div>
+          <div class="sd-reveal-actions">
+            <button class="sd-btn sd-btn-accent" type="button" id="sd-next-round">下一輪</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sd-match" id="sd-match" hidden>
+        <p class="sd-score" id="sd-score" role="status" aria-live="polite">你 0 勝 0 平 0 敗</p>
+        <div class="sd-opponent-wrap">
+          <div class="sd-opponent-head">
+            <h3 id="sd-opponent-title">對手的這一隻</h3>
+            <p class="sd-opponent-count" id="sd-opponent-count" role="status" aria-live="polite">第 1 / 6 組</p>
+          </div>
+          <div class="sd-opponent" id="sd-opponent"></div>
+          <ol class="sd-backs" id="sd-opponent-backs" data-back-count="6" aria-label="對手的六隻寶可夢"></ol>
+        </div>
+
+        <div class="sd-match-pick" id="sd-match-pick">
+          <h3>派出一隻</h3>
+          <p class="sd-instruction" id="sd-match-instruction">選一隻還沒上場的隊員，再按派出。出場順序由你決定。</p>
+          <ul class="sd-match-team" id="sd-match-team" data-team-count="6"></ul>
+          <div class="sd-confirmbar">
+            <p class="sd-selected" id="sd-match-selected">尚未選擇</p>
+            <button class="sd-btn sd-btn-accent" type="button" id="sd-match-confirm" disabled>派出</button>
+          </div>
+        </div>
+
+        <section class="sd-analysis" id="sd-analysis" aria-labelledby="sd-analysis-title" hidden>
+          <div class="sd-analysis-head">
+            <h3 id="sd-analysis-title">這一組的屬性對位</h3>
+            <p class="sd-analysis-note">只計招式屬性 × 防守屬性；變化、固定傷害與一擊必殺招式顯示 —。</p>
+          </div>
+          <p class="sd-analysis-outcome" id="sd-analysis-outcome"></p>
+          <div class="sd-analysis-cols" id="sd-analysis-cols"></div>
+          <div class="sd-analysis-actions">
+            <button class="sd-btn sd-btn-accent" type="button" id="sd-next">下一組</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="sd-team" aria-labelledby="sd-team-title">
+      <div class="sd-team-head">
+        <h2 id="sd-team-title">雙方六隻</h2>
+        <p class="sd-team-count" id="sd-team-count" role="status" aria-live="polite">你 0 / 6</p>
+      </div>
+      <div class="sd-rosters">
+        <div class="sd-roster">
+          <div class="sd-roster-head">
+            <h3 class="sd-roster-title">你的六隻</h3>
+          </div>
+          <ol class="sd-team-slots" id="sd-team" data-slot-count="6"></ol>
+        </div>
+        <div class="sd-roster">
+          <div class="sd-roster-head">
+            <h3 class="sd-roster-title">對手的六隻</h3>
+            <p class="sd-team-count" id="sd-opponent-team-count" role="status" aria-live="polite">對手 0 / 6</p>
+          </div>
+          <ol class="sd-team-slots" id="sd-opponent-team" data-slot-count="6"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="sd-summary" id="sd-summary" aria-labelledby="sd-summary-title" hidden>
+      <div class="sd-summary-head">
+        <h2 id="sd-summary-title">六組對位總結</h2>
+        <p>先比勝場，再比總倍率；只計招式屬性，不計種族值、STAB 或 HP。</p>
+      </div>
+      <div class="sd-summary-result" id="sd-summary-result"></div>
+      <div class="sd-summary-table-wrap">
+        <table class="sd-summary-table">
+          <thead>
+            <tr><th scope="col">組</th><th scope="col">我方</th><th scope="col">對手</th><th scope="col">我方最佳</th><th scope="col">對手最佳</th><th scope="col">結果</th></tr>
+          </thead>
+          <tbody id="sd-summary-rows"></tbody>
+        </table>
+      </div>
+      <div class="sd-summary-tallies" id="sd-summary-tallies"></div>
+      <div class="sd-summary-actions">
+        <button class="sd-btn" type="button" id="sd-restart">再玩一次</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    import { initSilhouetteDraft } from './assets/js/silhouette-draft.js';
+
+    initThemeToggle();
+    initHeaderNav('silhouette-draft.html');
+
+    initSilhouetteDraft();
+  </script>
+</body>
+</html>

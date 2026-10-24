@@ -24,9 +24,10 @@
 
 | 頁面檔案 | 核心功能與說明 |
 | --- | --- |
-| `index.html` | 首頁：隨捲動播放的 hero 影片、站點簡介、兩個自動演示（排序與 A* 路徑尋找）、可遊玩的 A* 迷宮，以及 5 張功能卡 — §3.Z。 |
-| `today.html` | 今日推薦：每日抽選的寶可夢、熱門寶可夢、探索圖鑑、精選系列、遊戲、工具、快速連結與 FAQ — §3.Z。 |
+| `index.html` | 首頁：隨捲動播放的 hero 影片、站點簡介、兩個自動演示（排序與 A* 路徑尋找）、可遊玩的 A* 迷宮，以及 5 張功能卡。 |
+| `today.html` | 今日推薦：每日抽選的寶可夢、熱門寶可夢、探索圖鑑、精選系列、遊戲、工具、快速連結與 FAQ。 |
 | `pokedex.html` | 可進行模糊搜尋、世代、屬性與顏色過濾的高效能寶可夢圖鑑。 |
+| `team.html` | 組隊規劃：六個隊伍欄位、每隻成員的防禦統計、STAB 覆蓋率、地區／世代／屬性篩選，以及可分享的 `?team=`（每位成員四招，`?moves=`）。 |
 | `detail.html` | 物種詳情頁：三欄英雄區塊、Canvas 雷達圖、雙屬性矩陣、進化鏈及 4 個招式標籤頁。 |
 | `color.html` | 單種寶可夢的專屬配色：支援 `?slug=` 參數、色階尺度展示與主題導出功能。 |
 | `colors-generator.html` | 逆向色彩生成器：輸入任意 Hex 顏色，透過 OKLab 演算法找出最接近的寶可夢，並自動生成調色板。 |
@@ -35,15 +36,16 @@
 | `sorting.html` | 在 1,025 個 Sprite 畫布上展示 6 種排序演算法，並提供 2 至 6 車道競速模式。 |
 | `maze.html` | BFS / DFS 路徑尋找視覺化，具備 40×40 網格與種子可控（Seedable RNG）隨機地圖。 |
 | `life.html` | 結合康威生命遊戲（Conway's Game of Life）與真實遊戲內進化等級的生態模擬器。 |
-| `graph.html` | 3D 力導向知識圖譜：包含 1,346 個實體與 2,687 條關聯、13 種關聯類型，支援搜尋、過濾及與詳情頁聯動的面板。 |
+| `graph.html` | 3D 力導向知識圖譜：包含 1,346 個實體與 2,794 條關聯、14 種關聯類型，支援搜尋、過濾及與詳情頁聯動的面板。 |
+| `silhouette-draft.html` | 剪影選秀：6 輪盲選剪影組隊，每輪電腦立刻從你留下的 5 隻拿走 1 隻；接著進行 6 組雙向屬性對位，以勝／平／敗、總倍率與評價判定結果。不計 STAB、數值或 HP。 |
 | `cries.html` | 收錄全 1,025 種叫聲卡片，具備響應式音色測量、5 個排序軸與即時波形渲染。 |
 | `cries-gen1.html` | 第一世代 151 種叫聲透過 Game Boy APU 進行晶片音樂（Chiptune）重合成。 |
 | `spectrum.html` | 每種叫聲的 Mel 頻譜分析視覺化，支援由左至右動態揭示。 |
-| `cry-game.html` | 叫聲猜謎：10 題四選一的聽聲辨寶可夢遊戲；難度是實測的音色相似度上限 — §3.Y。 |
-| `moves.html` | 全部 919 個招式，可搜尋與篩選，所有篩選狀態都寫進 URL — §3.AA。 |
-| `move.html` | 單一招式：數值、效果說明，以及全 1,025 隻中學得會牠的名單 — §3.AA。 |
-| `abilities.html` | 全部 314 種特性，可搜尋與篩選，並區分常見／隱藏持有者 — §3.AC。 |
-| `ability.html` | 單一特性：效果說明與常見／隱藏持有者名單 — §3.AC。 |
+| `cry-game.html` | 叫聲猜謎：10 題四選一的聽聲辨寶可夢遊戲；難度是實測的音色相似度上限。 |
+| `moves.html` | 全部 919 個招式，可搜尋與篩選，所有篩選狀態都寫進 URL。 |
+| `move.html` | 單一招式：數值、效果說明，以及全 1,025 隻中學得會牠的名單。 |
+| `abilities.html` | 全部 314 種特性，可搜尋與篩選，並區分常見／隱藏持有者。 |
+| `ability.html` | 單一特性：效果說明與常見／隱藏持有者名單。 |
 | `types.html` | 屬性圖表與屬性瀏覽器。全站唯一顯示屬性相剋效果矩陣（Effectiveness Matrix）的地方。 |
 | `category.html` | 集合清單模板頁面（支援 `?cat=<slug>` 參數動態載入）。 |
 | `collections.html` | 集合中心：收錄 11 張主題卡片（分 4 個群組）及 2 個預告（upcoming）項目。 |
@@ -83,7 +85,7 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # css/、js/、data/（20 個 JSON 資料表）、cries/、glbs/、images/、video/
+├── assets/          # css/、js/、data/（23 個 JSON 資料表）、cries/、glbs/、images/、video/
 ├── docs/            # README.zh-TW.md 與 incidents/（技術約定的除錯紀錄）
 ├── scripts/         # 自動化檢查器 (check_*.mjs, test_check_*.mjs, lib/) 與資料處理腳本 (*.py)
 └── data-sources/    # 原始 CSV/XLSX 與溯源紀錄（執行階段不直接讀取）
@@ -126,7 +128,7 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs
 
 
 * **命令參數支援**：
-* `--only=<group>`：僅執行指定群組（前綴比對）。可用群組由便宜到貴依序為 `home`、`model`、`algo`、`types-browser`、`data`、`type`、`game-browser`、`cry-apu`、`outfit-browser`、`life-browser`、`nav`、`cry-data`、`color`、`sort`、`audio-browser`、`moves-browser`、`cry-page`、`graph-browser`。`--only=cry` 會涵蓋 `cry-apu`、`cry-data` 與 `cry-page`。
+* `--only=<group>`：僅執行指定群組（前綴比對）。可用群組由便宜到貴依序為 `home`、`model`、`algo`、`types-browser`、`data`、`life-browser`、`type`、`game-browser`、`cry-apu`、`outfit-browser`、`cry-data`、`nav`、`sort`、`audio-browser`、`color`、`moves-browser`、`cry-page`、`graph-browser`。`--only=cry` 會涵蓋 `cry-apu`、`cry-data` 與 `cry-page`。
 * `--skip=<group>`：跳過指定群組，前綴規則與 `--only` 相同。
 * `--force`：強制重新執行所有檢查而不理會快取狀態。
 * `--no-cache`：不讀也不寫快取，回報的秒數才是真實施測值。

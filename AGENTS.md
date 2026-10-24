@@ -50,7 +50,8 @@
 | `sorting.html` | 6 sorters on a 1,025-sprite Canvas, plus a 2–6 lane race — §3.G3 |
 | `maze.html` | BFS / DFS pathfinding, 40×40 grid, seedable RNG |
 | `life.html` | Conway's Life over one generation, with real in-game evolution levels — §3.K |
-| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,687 relations over 13 types (evolution, mega, mega-type, gmax, regional, form, pantheon, paradox-pair, paradox-clade, starter trio, pseudo-legendary, type resonance, dual-type), with search, filters and a dossier panel linking to `detail.html` / `color.html`. Data generated — §2, §3.V |
+| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,794 relations over 14 types (evolution, mega, mega-type, gmax, regional, form, pantheon, paradox-pair, paradox-clade, regional-clade, starter trio, pseudo-legendary, type resonance, dual-type), with search, filters and a dossier panel linking to `detail.html` / `color.html`. Data generated — §2, §3.V |
+| `silhouette-draft.html` | 剪影選秀: six blind picks against a live opponent, then a 6v6 type-only matchup with wins, draws and a verdict — no stats, STAB or HP |
 | `cries.html` | All 1,025 cry cards with measured timbre, 5 sort axes, waveform |
 | `cries-gen1.html` | The 151 Gen-I cries re-synthesised by a Game Boy APU — §3.F |
 | `spectrum.html` | Mel spectrogram over every cry, revealed left to right — §3.G1 |
@@ -83,7 +84,7 @@ pokemon-algorithm/
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
-**9,086 of the 9,471 tracked files are binary** (7,062 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 132 are code (100 `.mjs`, 32 `.py`). `assets/data/` holds 21 JSON tables and is the single source of truth for every page.
+**9,086 of the 9,489 tracked files are binary** (7,062 PNG, 2,000 OGG, plus 4 SVG/GLB and video stills) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
 
 **The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
 
@@ -100,7 +101,8 @@ pokemon-algorithm/
 | `build_home_roster.py` | `home_roster.json` — 1,025 compact records (`id`, `names.zh`, `stats.total`, `height_m`, `hue`), 90 KB raw / 19 KB gzip, for `index.html`'s two demos. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
 | `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
 | `build_team_moves.py` | `team_moves.json` — 1,025 four-method strings + 919 defs (`zh/en/type/class/power/accuracy/pp/generation/effect`), 607 KB / 151 KB gzip, for `team.html`. Type is capitalised to `type-chart.js` keys; `--dry-run` reports the split and the five species short of four (§3.AD) |
-| `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,687 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
+| `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,794 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
+| `build_draft_roster.py` | `draft_roster.json` — 568 final/single-stage species, 330 move definitions, 47 KB / 19 KB gzip, for `silhouette-draft.html`. Excludes the five legendary lines that still evolve; evolves and their real levels come from `evolution_levels.json` |
 | `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 29 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
 
 Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
@@ -476,7 +478,11 @@ The slot's type statement is a **148px Poké Ball behind the art** (`.tm-slot-re
 - **The picker is a native `<dialog>`** with four method tabs, a cross-method search, and effect/PP/generation per row; a move used in another slot is disabled and **focus returns to the row** after the swap, which the re-render detaches.
 **Guarded by:** `check_team_page.mjs` (229) + `test_check_team_page.mjs` (32) + `check_team_moves.mjs` (54) + `test_check_team_moves.mjs` (11). **No browser entry:** the rendered split and the 148px ball were measured by hand (slot, 390px, blocked-network fallback); a static PASS is not a rendered one. **Background:** [pages.md#ad](docs/incidents/pages.md#ad)
 
-
+### AE. `silhouette-draft.html` — Blind Draft, Live Opponent, Six Type-Only Matchups
+- **The page loads only `draft_roster.json`** (47 KB / 19 KB gzip), never `pokemon_data.json` or `team_moves.json`; the pool is the evolution edge list — 568 final/single-stage species, 89 legendary/mythical, with #772/#789/#790/#808/#891 excluded because they still evolve. Move types are visible, but names and species types stay hidden until confirmation; **the computer immediately takes one of the five the player passed on**, so both sixes are disjoint by construction.
+- **No STAB, stats, abilities, items, HP, or damage:** `attackProfile()` reads `defensiveMultiplier`; `TYPELESS_MOVES` / `isDamaging` print `—` for status/fixed/OHKO moves. Each duel's best multiplier yields win/draw/loss, and the summary reports the record, total multiplier, verdict and S–D grade.
+- **The reveal is a beat, not a flash:** `confirmPick()` holds `pendingRound` until `nextRound()`; the sixth analysis likewise stays until `finish()`. Every id `$()` reads must exist in the page — the first browser pass found `#sd-match-pick` missing, and `check_draft_page.mjs` derives the read-id set from the script.
+**Guarded by:** `check_draft_data.mjs` (14,257) + `check_draft_page.mjs` (393). Rendered claims were measured once by hand (dark/light silhouette, six reveals, both rosters, six analyses, score, summary, 390px no overflow); no browser entry is kept. **Background:** [pages.md#ae](docs/incidents/pages.md#ae)
 ## 4. Verification & Testing Commands
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
@@ -548,12 +554,12 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 | `color` | 21.4 | 16 | B | sixteen small entries, none above 5 s (the two CDP halves moved out) |
 | `life-browser` | 7.1 | 1 | B | `serial: true`, a 40×40 rAF page; one Chrome |
 | `cry-data` | 8.4 | 8 | A | `test_check_cry_index.mjs` 4.7 s, `test_check_spectrogram_port.mjs` 1.4 s |
-| `nav` | 9.3 | 18 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
+| `nav` | 9.3 | 21 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
 | `outfit-browser` | 6.8 | 1 | B | one Chrome |
 | `cry-apu` | 5.6 | **1** | A | `check_gen1_apu.mjs` alone, 4.5 s of it one pass over the 151-species corpus |
 | `game-browser` / `types-browser` | 4.3 / 5 | 1 each | B | one Chrome each |
 | `type` | 3.3 | 4 | A | `test_check_sv_index.mjs` 2.9 s; no browser |
-| `data` | 1.8 | 9 | A | `check_learnsets.mjs` 0.2 s |
+| `data` | 1.8 | 10 | A | `check_learnsets.mjs` 0.2 s |
 | `algo` / `model` / `home` | 0.8 | 7 | A | no browser; the life and graph browser pairs have their own groups |
 
 

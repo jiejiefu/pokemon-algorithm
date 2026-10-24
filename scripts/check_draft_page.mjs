@@ -1,0 +1,356 @@
+/**
+ * `silhouette-draft.html` static regression test.
+ *
+ *   node scripts/check_draft_page.mjs
+ *
+ * Two halves, both cheap:
+ *   1. the page's DOM/stylesheet contract, read off disk;
+ *   2. the pure session, driven through a seeded generator — six rounds, a
+ *      disjoint opponent, six pairings, the summary's counts.
+ *
+ * The rendered claims — that a silhouette actually paints, that a confirm bar
+ * sticks to a phone viewport — are NOT asserted here. A static PASS is not a
+ * rendered one (§3.G4).
+ */
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+import { NAV } from '../assets/js/shared.js';
+import { TYPELESS_MOVES } from '../assets/js/team-moves.js';
+import {
+  CANDIDATES,
+  MULTIPLIER_BANDS,
+  ROUNDS,
+  TEAM_SIZE,
+  attackProfile,
+  createDraftSession,
+  duelOutcome,
+  multiplierBand,
+  multiplierText,
+  prepareDraftRoster,
+} from '../assets/js/silhouette-draft-game.js';
+import { createChecker } from './lib/assert.mjs';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const read = rel => readFileSync(join(ROOT, rel), 'utf8');
+const readData = name => JSON.parse(read(`assets/data/${name}`));
+
+const HTML = read('silhouette-draft.html');
+const CSS = read('assets/css/silhouette-draft.css');
+const JS = read('assets/js/silhouette-draft.js');
+const GAME = read('assets/js/silhouette-draft-game.js');
+const DATA = readData('draft_roster.json');
+
+const cssCode = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+const jsCode = JS.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+const gameCode = GAME.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
+const { ok, is, eq } = C;
+
+const attrs = (id) => (HTML.match(new RegExp(`<[^>]*id="${id}"[^>]*>`)) || [''])[0];
+
+/* ===== the document ===== */
+
+ok(/<html lang="zh-TW">/.test(HTML), 'the page declares a zh-TW document');
+ok(/<title>[^<]*剪影選秀/.test(HTML), 'the title names the page');
+ok(/name="description"/.test(HTML), 'the page carries a meta description');
+ok((HTML.match(/assets\/css\/shared\.css/g) || []).length === 1, 'shared.css is mounted exactly once');
+ok((HTML.match(/assets\/css\/silhouette-draft\.css/g) || []).length === 1, 'the page stylesheet is mounted exactly once');
+ok(/<header class="header header-sort">/.test(HTML), 'the header is the algorithms row layout');
+ok(/data-nav/.test(HTML) && /data-nav-toggle/.test(HTML), 'the shared header mounts the nav and its toggles');
+ok(/<main class="sd-page">/.test(HTML), 'the page body is the sd- scoped main');
+ok(/class="breadcrumb"/.test(HTML), 'the page keeps a breadcrumb');
+
+for (const id of [
+  'sd-status', 'sd-round', 'sd-phase', 'sd-progress',
+  'sd-draft', 'sd-pick-area', 'sd-instruction', 'sd-candidates', 'sd-selected', 'sd-confirm',
+  'sd-reveal', 'sd-reveal-head', 'sd-reveal-cols', 'sd-next-round',
+  'sd-match', 'sd-score', 'sd-opponent', 'sd-opponent-count', 'sd-opponent-backs',
+  'sd-match-team', 'sd-match-selected', 'sd-match-confirm', 'sd-analysis',
+  'sd-analysis-outcome', 'sd-analysis-cols', 'sd-next',
+  'sd-team', 'sd-team-count', 'sd-opponent-team', 'sd-opponent-team-count',
+  'sd-summary', 'sd-summary-result', 'sd-summary-rows', 'sd-summary-tallies', 'sd-restart',
+  'sd-board-title',
+]) ok(attrs(id).length > 0, `the page carries #${id}`);
+
+const readIds = [...new Set([...JS.matchAll(/\$\('([a-z0-9-]+)'\)/g)].map(match => match[1]))];
+const missingReadIds = readIds.filter(id => attrs(id).length === 0);
+ok(missingReadIds.length === 0, 'every id the script reads exists in the page', missingReadIds.join(', '));
+
+ok(/id="sd-candidates"[^>]*data-candidate-count="6"/.test(HTML), 'the candidate list declares six cards');
+ok(/id="sd-team"[^>]*data-slot-count="6"/.test(HTML), 'the team rail declares six slots');
+ok(/id="sd-match-team"[^>]*data-team-count="6"/.test(HTML), 'the match picker declares six members');
+ok(/id="sd-opponent-backs"[^>]*data-back-count="6"/.test(HTML), 'the opponent rail declares six picks');
+ok(/id="sd-opponent-team"[^>]*data-slot-count="6"/.test(HTML), 'the opponent roster declares six slots');
+
+for (const id of ['sd-reveal', 'sd-match', 'sd-analysis', 'sd-summary']) {
+  ok(new RegExp(`id="${id}"[^>]*hidden`).test(HTML), `#${id} starts hidden`);
+}
+ok(/id="sd-confirm"[^>]*disabled/.test(HTML), 'the draft confirm starts disabled');
+ok(/id="sd-match-confirm"[^>]*disabled/.test(HTML), 'the match confirm starts disabled');
+
+for (const id of ['sd-status', 'sd-team-count', 'sd-opponent-count']) {
+  ok(/role="status"/.test(attrs(id)) && /aria-live="polite"/.test(attrs(id)),
+    `#${id} is a polite live region`);
+}
+ok(/只計招式屬性/.test(HTML), 'the page says the matchup is type-only');
+ok(/先比勝場/.test(HTML), 'the page says wins are compared before the multiplier total');
+ok(!/不判定勝負/.test(HTML), 'the page no longer denies a verdict');
+ok(/STAB/.test(HTML), 'the page names STAB as something it does not use');
+
+ok(/from '\.\/assets\/js\/silhouette-draft\.js'/.test(HTML), 'the page imports its DOM module');
+ok(/^\s*initSilhouetteDraft\(\);$/m.test(HTML), 'the page starts the draft');
+ok(/^\s*initHeaderNav\('silhouette-draft\.html'\);$/m.test(HTML), 'the page marks itself current in the nav');
+
+/* ===== the stylesheet ===== */
+
+ok(/\.sd-silhouette img\s*\{[^}]*filter:\s*brightness\(0\)/.test(cssCode),
+  'a light-theme silhouette is the sprite with its colour removed');
+ok(/\[data-theme="dark"\] \.sd-silhouette img\s*\{[^}]*filter:\s*brightness\(0\) invert\(1\)/.test(cssCode),
+  'a dark-theme silhouette is inverted, so black on a dark card cannot vanish');
+ok(!/image-rendering/.test(cssCode), 'the 96px sprite is not given a crispness setting it does not need');
+ok(/\.sd-candidates\s*\{[^}]*grid-template-columns:\s*repeat\(3/.test(cssCode),
+  'six candidates lay out three across on desktop');
+ok(/@media \(max-width: 900px\)[\s\S]*?\.sd-candidates\s*\{\s*grid-template-columns:\s*repeat\(2/.test(cssCode),
+  'the candidate grid drops to two on a tablet');
+ok(/@media \(max-width: 600px\)[\s\S]*?\.sd-candidates\s*\{\s*grid-template-columns:\s*1fr/.test(cssCode),
+  'the candidate grid drops to one on a phone');
+ok(/\.sd-rosters\s*\{[^}]*grid-template-columns:\s*repeat\(2/.test(cssCode),
+  'the two sixes sit side by side on desktop');
+ok(/@media \(max-width: 900px\)[\s\S]*?\.sd-team-slots\s*\{\s*grid-template-columns:\s*repeat\(3/.test(cssCode),
+  'the six team slots collapse to three');
+ok(/@media \(max-width: 600px\)[\s\S]*?\.sd-rosters\s*\{\s*grid-template-columns:\s*1fr/.test(cssCode),
+  'the two sixes stack on a phone');
+ok(/@media \(max-width: 600px\)[\s\S]*?\.sd-team-slots\s*\{\s*grid-template-columns:\s*repeat\(2/.test(cssCode),
+  'the six team slots collapse to two on a phone');
+ok(/@media \(max-width: 600px\)[\s\S]*?\.sd-confirmbar\s*\{[^}]*position:\s*sticky/.test(cssCode),
+  'the confirm bar sticks to the bottom on a phone');
+ok(/\.sd-match\[hidden\][\s\S]*?\.sd-match-pick\[hidden\][\s\S]*?\.sd-summary\[hidden\]\s*\{\s*display:\s*none/.test(cssCode),
+  'every author display has a [hidden] companion');
+ok(/\.sd-pick-area\[hidden\][\s\S]*?\.sd-reveal\[hidden\]\s*\{\s*display:\s*none/.test(cssCode)
+  && /\.sd-analysis\[hidden\]\s*\{\s*display:\s*none/.test(cssCode),
+  'the pick area, reveal and analysis panels pair [hidden] with their display');
+ok(/@media \(prefers-reduced-motion: reduce\)/.test(cssCode), 'reduced motion is honoured');
+ok(/\.sd-card-btn:focus-visible/.test(cssCode) && /\.sd-btn:focus-visible/.test(cssCode),
+  'the cards and the buttons have visible focus rings');
+
+/* ===== the page's own module ===== */
+
+ok(/createDraftSession/.test(JS), 'the DOM module uses the pure session');
+ok(/fetch\(DATA_URL\)/.test(JS) && /assets\/data\/draft_roster\.json/.test(JS),
+  'the page fetches the compact roster');
+ok(!/pokemon_data\.json/.test(jsCode) && !/team_moves\.json/.test(jsCode),
+  'the page never loads the 2.9 MB roster or the 607 KB move table');
+
+const candidateFn = jsCode.slice(jsCode.indexOf('function renderCandidates'), jsCode.indexOf('function slotHtml'));
+ok(candidateFn.length > 0, 'renderCandidates is locatable');
+ok(!/pokemon\.zh/.test(candidateFn), 'a draft card still does not print the name');
+ok(/moveRow\(move, undefined, true\)/.test(candidateFn), 'a draft card prints each move type badge');
+ok(/pokemon\.moves/.test(candidateFn), 'a draft card prints the move names it is allowed to show');
+ok(/pokemon\.short/.test(candidateFn), 'a short species is labelled rather than padded');
+
+const revealFn = jsCode.slice(jsCode.indexOf('function revealCard'), jsCode.indexOf('function renderCandidates'));
+ok(/typesHtml/.test(revealFn) && /moveRow\(move, undefined, true\)/.test(revealFn),
+  'the round result prints both names and move types');
+ok(/pendingRound/.test(jsCode) && /session\.nextRound\(\)/.test(jsCode),
+  'the DOM waits on the round result before advancing');
+ok(/sd-opponent-team/.test(JS), 'the opponent six is painted next to the player six');
+ok(/summary\.verdict/.test(jsCode) && /summary\.record/.test(jsCode),
+  'the summary prints the verdict and the record');
+
+ok(/defensiveMultiplier/.test(GAME), 'the game module reads the one type chart');
+ok(/TYPELESS_MOVES|isDamaging/.test(GAME), 'the game module reads the one damaging-move rule');
+ok(!/1\.5/.test(gameCode), 'the game module applies no STAB multiplier');
+ok(!/Math\.random\(/.test(gameCode), 'no rule calls Math.random directly; the generator is injected');
+
+/* ===== the session, driven deterministically ===== */
+
+const roster = prepareDraftRoster(DATA);
+const byId = new Map(roster.map((pokemon) => [pokemon.id, pokemon]));
+
+is(roster.length, 568, 'the session sees the 568-species pool');
+is(ROUNDS, 6, 'six rounds');
+is(CANDIDATES, 6, 'six candidates per round');
+is(TEAM_SIZE, 6, 'six team members');
+
+const shortSpecies = roster.filter((pokemon) => pokemon.short);
+eq(shortSpecies.map((pokemon) => pokemon.id).sort((a, b) => a - b), [132, 201, 235],
+  'the three short species are the ones the data checker names');
+for (const pokemon of shortSpecies) is(pokemon.moves.length, 1, `#${pokemon.id} keeps its one move`);
+
+let seed = 0x5eed;
+const rng = () => {
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  return seed / 2 ** 32;
+};
+
+const session = createDraftSession(DATA, rng);
+is(session.phase, 'draft', 'a run starts in the draft');
+is(session.round, 1, 'a run starts on round 1');
+is(session.candidates.length, 6, 'the first round offers six');
+is(new Set(session.candidates).size, 6, 'the first round has no duplicate candidate');
+ok(session.candidates.every((id) => byId.has(id)), 'every candidate resolves in the roster');
+ok(!session.canConfirmPick, 'a run cannot confirm before a selection');
+
+ok(!session.select(999999), 'an id outside the candidates cannot be selected');
+is(session.confirmPick(), null, 'confirming with no selection does nothing');
+
+const shown = new Set(session.candidates);
+for (let round = 1; round <= ROUNDS; round += 1) {
+  is(session.round, round, `round ${round} is current`);
+  is(session.candidates.length, 6, `round ${round} offers six`);
+  is(session.pendingRound, null, `round ${round} starts with no reveal waiting`);
+  for (const id of session.candidates) {
+    ok(!shown.has(id) || session.seen.has(id), `round ${round} candidate ${id} is tracked`);
+  }
+
+  const offered = [...session.candidates];
+  session.select(offered[round % offered.length]);
+  ok(session.canConfirmPick, `round ${round} accepts a selection`);
+  const picked = session.confirmPick();
+  ok(Boolean(picked), `round ${round} confirms a pick`);
+  is(picked.player.id, offered[round % offered.length], `round ${round}'s player pick is the selected id`);
+  ok(session.team.includes(picked.player.id), `round ${round}'s pick joins the team`);
+  ok(session.opponent.includes(picked.opponent.id), `round ${round}'s computer pick joins its team`);
+  ok(offered.includes(picked.opponent.id) && picked.opponent.id !== picked.player.id,
+    `round ${round}'s computer picks one of the five the player passed on`);
+  is(session.team.length, round, `the team grows to ${round}`);
+  is(session.opponent.length, round, `the computer team grows to ${round}`);
+  is(session.selectedId, null, `round ${round} clears the selection after confirming`);
+  is(session.pendingRound, picked, `round ${round} holds its reveal until nextRound()`);
+  ok(!session.canConfirmPick, `round ${round} cannot confirm twice`);
+  is(session.confirmPick(), null, `round ${round} rejects a second confirm`);
+  ok(!session.select(offered[0]), `round ${round} cannot change its pick after confirming`);
+
+  const advanced = session.nextRound();
+  ok(Boolean(advanced), `round ${round} advances explicitly`);
+  is(session.pendingRound, null, `round ${round} clears its reveal on advance`);
+  if (round < ROUNDS) {
+    is(session.phase, 'draft', `round ${round} stays in the draft`);
+    is(advanced.round, round + 1, `advance names round ${round + 1}`);
+    for (const id of session.candidates) {
+      ok(!shown.has(id), `round ${round + 1} never repeats a shown silhouette`);
+      shown.add(id);
+    }
+  } else {
+    is(session.phase, 'match', 'the sixth advance enters the match');
+    is(advanced.round, ROUNDS, 'the sixth advance reports six rounds');
+    is(session.candidates.length, 0, 'the candidate list is empty after the draft');
+    is(session.nextRound(), null, 'the match cannot be advanced as another round');
+  }
+}
+
+is(session.team.length, 6, 'six picks make a team');
+is(new Set(session.team).size, 6, 'the team has six distinct species');
+is(session.phase, 'match', 'the sixth advance enters the match');
+is(session.opponent.length, 6, 'the computer drafts six');
+is(new Set(session.opponent).size, 6, 'the computer team has no duplicate');
+ok(session.opponent.every((id) => !session.team.includes(id)),
+  'the computer team is disjoint from the player team');
+
+is(session.currentMatchNumber, 1, 'the first matchup is current');
+ok(Boolean(session.currentOpponent), 'the first opponent is revealed');
+ok(!session.canConfirmMatch, 'the match cannot confirm before a member is selected');
+is(session.confirmMatch(), null, 'confirming with no member does nothing');
+ok(!session.selectMatchMember(session.team[0] + 999999), 'a non-member cannot be sent out');
+
+for (let index = 0; index < TEAM_SIZE; index += 1) {
+  const member = session.team.find((id) => !session.isUsed(id));
+  ok(session.selectMatchMember(member), `match ${index + 1} selects an unused member`);
+  const matchup = session.confirmMatch();
+  ok(Boolean(matchup), `match ${index + 1} confirms`);
+  is(matchup.index, index + 1, `match ${index + 1} is numbered`);
+  eq(matchup.playerOffense.moves.length, byId.get(member).moves.length,
+    `match ${index + 1} scores every move the player has`);
+  eq(matchup.computerOffense.moves.length, byId.get(matchup.opponentId).moves.length,
+    `match ${index + 1} scores every move the opponent has`);
+  for (const move of [...matchup.playerOffense.moves, ...matchup.computerOffense.moves]) {
+    if (TYPELESS_MOVES.has(move.id)) is(move.multiplier, null, `move ${move.id} is not scored`);
+  }
+  ok(session.isUsed(member), `match ${index + 1}'s member is marked used`);
+  ok(!session.selectMatchMember(member), 'a used member cannot be sent out twice');
+}
+
+is(session.matchups.length, 6, 'six matchups complete');
+is(session.matchIndex, 6, 'the match index reaches six');
+is(session.phase, 'match', 'the sixth analysis stays on screen until finish()');
+ok(!session.canConfirmMatch, 'no seventh match exists');
+ok(session.finish(), 'finish() advances to the summary');
+is(session.phase, 'summary', 'the run ends in the summary');
+
+const summary = session.summary();
+is(summary.rows.length, 6, 'the summary has six rows');
+for (const side of [summary.player, summary.computer]) {
+  is(side.reduce((total, band) => total + band.count, 0), 6,
+    'each tally accounts for all six matchups');
+}
+eq(summary.player.map((band) => band.multiplier), [...MULTIPLIER_BANDS, null],
+  'a tally lists the canonical bands and then none');
+is(summary.player.at(-1).multiplier, null, 'the no-scoring bucket is separate from 0x');
+
+is(summary.record.wins + summary.record.draws + summary.record.losses, 6,
+  'the record accounts for all six matchups');
+ok(summary.rows.every((matchup) => ['win', 'draw', 'loss'].includes(matchup.outcome)),
+  'every matchup carries a verdict');
+const expectedWins = summary.rows.filter((matchup) => matchup.outcome === 'win').length;
+const expectedLosses = summary.rows.filter((matchup) => matchup.outcome === 'loss').length;
+is(summary.record.wins, expectedWins, 'the win count matches the rows');
+is(summary.record.losses, expectedLosses, 'the loss count matches the rows');
+const expectedVerdict = expectedWins > expectedLosses ? 'win'
+  : expectedWins < expectedLosses ? 'loss'
+    : summary.playerTotal > summary.computerTotal ? 'win'
+      : summary.playerTotal < summary.computerTotal ? 'loss' : 'draw';
+is(summary.verdict, expectedVerdict, 'wins decide the verdict before the multiplier total');
+const expectedGrade = expectedWins >= 6 ? 'S'
+  : expectedWins >= 5 ? 'A' : expectedWins >= 4 ? 'B' : expectedWins >= 3 ? 'C' : 'D';
+is(summary.grade, expectedGrade, 'the grade follows the win count');
+
+/* ===== the arithmetic itself ===== */
+
+const fire = {
+  id: 1,
+  types: ['Fire'],
+  moves: [{ id: 1, zh: '火焰', type: 'Fire', class: 'special', damaging: true }],
+};
+const grassSteel = { id: 2, types: ['Grass', 'Steel'], moves: [] };
+const fireVsGrassSteel = attackProfile(fire, grassSteel);
+is(fireVsGrassSteel.moves[0].multiplier, 4,
+  'dual-type defence multiplies both halves: Fire vs Grass/Steel is 4x');
+is(fireVsGrassSteel.best, 4, 'the best multiplier is the chart value, not 6x from STAB');
+
+const statusMove = {
+  id: 3,
+  types: ['Normal'],
+  moves: [{ id: 182, zh: '守住', type: 'Normal', class: 'status', damaging: false }],
+};
+const protectedProfile = attackProfile(statusMove, grassSteel);
+is(protectedProfile.moves[0].multiplier, null, 'a status move has no type multiplier');
+is(protectedProfile.best, null, 'a status-only side has no best multiplier');
+
+is(multiplierText(4), '4×', '4x prints as 4×');
+is(multiplierText(0.25), '0.25×', 'a quarter prints as 0.25×');
+is(multiplierText(0), '0×', 'an immunity prints as 0×, not blank');
+is(multiplierText(null), '—', 'an unscored move prints an em dash');
+is(multiplierBand(0.5), '0.5', 'the band is the exact multiplier');
+is(multiplierBand(null), 'none', 'an unscored move has its own band');
+
+is(duelOutcome(2, 1), 'win', 'a higher best multiplier wins');
+is(duelOutcome(1, 1), 'draw', 'equal best multipliers draw');
+is(duelOutcome(0.5, 2), 'loss', 'a lower best multiplier loses');
+is(duelOutcome(null, 0), 'draw', 'no scorable move counts as zero against an immunity');
+is(duelOutcome(0, null), 'draw', 'an immunity counts as zero against no scorable move');
+
+/* ===== the nav row ===== */
+
+const algo = NAV.find((item) => item.id === 'algo');
+ok(Boolean(algo), 'the nav keeps the 演算法 group');
+ok(algo.pages.includes('silhouette-draft.html'), '演算法 claims the new page');
+const row = algo.groups.flatMap((group) => group.items).find((item) => item.href === 'silhouette-draft.html');
+ok(Boolean(row), '演算法 has a row for the new page');
+is(row?.label, '剪影選秀', 'the row uses the page name');
+ok(/對位/.test(row?.desc || ''), 'the row says what the page does');
+
+C.report();

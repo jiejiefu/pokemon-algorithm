@@ -24,30 +24,32 @@
 
 | Page File | Description & Core Features |
 | --- | --- |
-| `index.html` | Landing page: scroll-scrubbed hero clip, site intro, two self-running algorithm demos (sorting and A* pathfinding), a playable A* maze, and five feature cards — §3.Z. |
-| `today.html` | 「今日推薦」: the seeded daily pick, 「熱門」, 「探索」, 「精選系列」, 「遊戲」, 「工具」, quick links and FAQ — §3.Z. |
+| `index.html` | Landing page: scroll-scrubbed hero clip, site intro, two self-running algorithm demos (sorting and A* pathfinding), a playable A* maze, and five feature cards. |
+| `today.html` | 「今日推薦」: the seeded daily pick, 「熱門」, 「探索」, 「精選系列」, 「遊戲」, 「工具」, quick links and FAQ. |
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation, type, and color filters. |
-| `detail.html` | Species Dossier: 3-column hero section, Canvas radar chart, dual-type matrix, evolution chain, and 4 move tabs (3-way footer pager — §3.A). |
+| `team.html` | Team planner: six slots with per-member defensive tallies, STAB coverage, region / generation / type filters, and a shareable `?team=` URL with four moves per member (`?moves=`). |
+| `detail.html` | Species Dossier: 3-column hero section, Canvas radar chart, dual-type matrix, evolution chain, and 4 move tabs (3-way footer pager). |
 | `color.html` | Single species color palette: supports `?slug=`, shade scales, and theme exporter. Bare URL loads the seeded daily pick. |
-| `colors-generator.html` | Reverse palette generator: any hex → closest Pokémon via OKLab, followed by a generated theme palette — §3.B1. |
-| `color-game.html` | Daily / unlimited palette guessing game over all 1,025 measured palettes. Three difficulties, three fixed hints, OKLab scoring — §3.W. |
+| `colors-generator.html` | Reverse palette generator: any hex → closest Pokémon via OKLab, followed by a generated theme palette. |
+| `color-game.html` | Daily / unlimited palette guessing game over all 1,025 measured palettes. Three difficulties, three fixed hints, OKLab scoring. |
 | `colors-explore.html` | Full collection of all 1,025 Pokémon palettes with infinite scroll and URL filters. |
-| `sorting.html` | 6 sorting algorithms running on a 1,025-sprite Canvas, plus a 2–6 lane race mode — §3.G3. |
+| `sorting.html` | 6 sorting algorithms running on a 1,025-sprite Canvas, plus a 2–6 lane race mode. |
 | `maze.html` | BFS / DFS pathfinding visualizer on a 40×40 grid with seedable RNG. |
-| `life.html` | Conway's Game of Life simulation mapped across generations using real in-game evolution levels — §3.K. |
-| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,687 relations across 13 types, featuring search, filters, and a dossier panel linked to `detail.html` / `color.html`. |
+| `life.html` | Conway's Game of Life simulation mapped across generations using real in-game evolution levels. |
+| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,794 relations across 14 types, featuring search, filters, and a dossier panel linked to `detail.html` / `color.html`. |
+| `silhouette-draft.html` | Silhouette draft: six blind picks against a live opponent who takes one of your five leftovers each round, then a 6v6 type-only matchup with win/draw/loss, a multiplier total and a verdict. No stats, STAB or HP. |
 | `cries.html` | All 1,025 cry cards with measured timbre, 5 sorting axes, and real-time waveforms. |
-| `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU — §3.F. |
-| `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right — §3.G1. |
-| `cry-game.html` | 「叫聲猜謎」: a ten-question, four-choice cry-guessing game where difficulty is a measured similarity ceiling — §3.Y. |
-| `moves.html` | All 919 moves, searchable and filterable, with every filter kept in the URL — §3.AA. |
-| `move.html` | One move: stats, effect text, and which of the 1,025 Pokémon learn it — §3.AA. |
-| `abilities.html` | All 314 abilities, searchable and filterable, with the 「常見」/「隱藏」 holder split — §3.AC. |
-| `ability.html` | One ability: its effect and the 「常見」/「隱藏」 holder lists — §3.AC. |
-| `types.html` | Type chart and per-type browser. The **only** place where the effectiveness matrix appears — §3.D, §3.H. |
-| `category.html` | Collection-list template (`?cat=<slug>`). Never links to `types.html` — §3.H. |
+| `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU. |
+| `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right. |
+| `cry-game.html` | 「叫聲猜謎」: a ten-question, four-choice cry-guessing game where difficulty is a measured similarity ceiling. |
+| `moves.html` | All 919 moves, searchable and filterable, with every filter kept in the URL. |
+| `move.html` | One move: stats, effect text, and which of the 1,025 Pokémon learn it. |
+| `abilities.html` | All 314 abilities, searchable and filterable, with the 「常見」/「隱藏」 holder split. |
+| `ability.html` | One ability: its effect and the 「常見」/「隱藏」 holder lists. |
+| `types.html` | Type chart and per-type browser. The **only** place where the effectiveness matrix appears. |
+| `category.html` | Collection-list template (`?cat=<slug>`). Never links to `types.html`. |
 | `collections.html` | Collections hub: 11 cards in 4 groups, plus 2 `upcoming` entries. |
-| `outfit.html` | Garment colour → MMCQ → OKLab color-matching against all 1,025 palettes — §3.L. |
+| `outfit.html` | Garment colour → MMCQ → OKLab color-matching against all 1,025 palettes. |
 | `generations.html` | Overview of 9 generations, 38 games, and 27 regional starter Pokémon. |
 | `model3d.html` | GLB 3D model viewer; roster automatically generated into `glb-index.js`. |
 | `404.html` | GitHub Pages fallback: redirects `/detail/<slug>` → `detail.html?slug=…&from404=1`. |
@@ -81,7 +83,7 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # css/, js/, data/ (20 JSON tables), cries/, glbs/, images/, video/
+├── assets/          # css/, js/, data/ (23 JSON tables), cries/, glbs/, images/, video/
 ├── docs/            # README.zh-TW.md; incidents/ — receipts for technical conventions
 ├── scripts/         # verification: check_*.mjs, test_check_*.mjs, lib/
 │                    # data pipeline: *.py (data processing scripts)
@@ -125,7 +127,7 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs
 
 
 * **Command Line Flags**:
-* `--only=<group>`: Run only these groups (prefix match). Available groups, cheapest first: `home`, `model`, `algo`, `types-browser`, `data`, `type`, `game-browser`, `cry-apu`, `outfit-browser`, `life-browser`, `nav`, `cry-data`, `color`, `sort`, `audio-browser`, `moves-browser`, `cry-page`, `graph-browser`. `--only=cry` covers `cry-apu`, `cry-data` and `cry-page`.
+* `--only=<group>`: Run only these groups (prefix match). Available groups, cheapest first: `home`, `model`, `algo`, `types-browser`, `data`, `life-browser`, `type`, `game-browser`, `cry-apu`, `outfit-browser`, `cry-data`, `nav`, `sort`, `audio-browser`, `color`, `moves-browser`, `cry-page`, `graph-browser`. `--only=cry` covers `cry-apu`, `cry-data` and `cry-page`.
 * `--skip=<group>`: Run everything except these groups. Takes the same prefixes.
 * `--force`: Force re-execution ignoring the cache.
 * `--no-cache`: Neither read nor write the cache, so the reported duration is real.

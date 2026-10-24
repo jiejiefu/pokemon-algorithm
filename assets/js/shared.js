@@ -806,7 +806,7 @@ export const NAV = [
     id: 'algo',
     label: '演算法',
     icon: 'sort',
-    pages: ['sorting.html', 'maze.html', 'life.html', 'graph.html'],
+    pages: ['sorting.html', 'maze.html', 'life.html', 'graph.html', 'silhouette-draft.html'],
     groups: [
       {
         items: [
@@ -814,6 +814,7 @@ export const NAV = [
           { href: 'maze.html', label: '像素迷宮 BFS / DFS', desc: '路徑尋找的探索差異' },
           { href: 'life.html', label: '進化生命遊戲', desc: '寶可夢世代生態演化' },
           { href: 'graph.html', label: '3D 力導向知識圖譜', desc: '1,346 隻神經網絡關係宇宙' },
+          { href: 'silhouette-draft.html', label: '剪影選秀', desc: '6 輪盲選 × 即時對手 × 6 v 6 屬性對位' },
         ],
       },
     ],
