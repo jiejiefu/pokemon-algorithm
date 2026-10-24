@@ -576,15 +576,10 @@ When rebuilding data files, always execute scripts in the correct order:
 # Activate environment
 source ../.venv/bin/activate  # /Users/jiejiefu/Documents/Visual_Studio_Code/.venv
 
-# 1. Base Data: Merge CSVs and extract master JSON
-    # !! DO NOT RUN WITHOUT READING THIS FIRST. !! As of 2026-10-19 this script
-    # produces 1,350 records against the committed 1,025 — one of its CSV inputs
-    # now carries the 325 formes too, so it does NOT reproduce the committed
-    # pokemon_data.json. A regeneration is a roster change, not a data refresh.
-    # The English names come from data-sources/International List of Pokémon
-    # Names.xlsx, which fix_pokemon_names.py below also WRITES TO, so a name
-    # correction is made there and applied to the roster as a guarded text edit
-    # rather than by re-running this. See §3.AC.
+# 1. Base data: DO NOT RUN BLINDLY. It now yields 1,350 records against the
+#    committed 1,025 (a CSV input includes 325 formes), so this is a roster
+#    change, not a refresh. Fix English names in the source XLSX, then apply a
+#    guarded roster edit; see §3.AC.
 python scripts/enhance_pokemon_data.py
 
 # 1b. Homepage roster: rebuild after pokemon_data.json changes; --dry-run first.
@@ -593,122 +588,76 @@ python scripts/build_home_roster.py --dry-run && python scripts/build_home_roste
 # 1c. Team roster: the slim 1,025-record table team.html reads; --dry-run first.
 python scripts/build_team_roster.py --dry-run && python scripts/build_team_roster.py && node scripts/check_team_page.mjs
 
-# 1d. Team moves: the four learn method pools + one def row per move.
-#     Run after learnsets.json or moves_zh.json changes. --dry-run reports
-#     bytes/gzip and the species that cannot reach four moves. The checker
-#     rebuilds every method string from learnsets.json, so a stale table fails.
+# 1d. Team moves: rebuild after learnsets.json or moves_zh.json changes;
+#     --dry-run reports bytes/gzip and species short of four moves.
 python scripts/build_team_moves.py --dry-run
 python scripts/build_team_moves.py
 node scripts/check_team_moves.mjs
 
-# 2. Chinese Names: Scrape official names from tw.portal-pokemon.com
+# 2. Chinese names: scrape official names from tw.portal-pokemon.com.
 python scripts/fix_pokemon_names.py
 
-# 3. Breeding Data: Fetch gender_rate & hatch_counter (run after Phase 1)
+# 3. Breeding data: fetch gender_rate and hatch_counter (after Phase 1).
 python scripts/fetch_breeding_data.py
 
-# 4. Regional Dex: Fetch regional dex numbers
+# 4. Regional dex: fetch regional dex numbers.
 python scripts/fetch_regional_dex.py
 
-# 5. Abilities: Fetch official Traditional Chinese ability names
-    #     Roster-scoped: 284 slugs, read from pokemon_data.json rather than
-    #     hardcoded. Still the source of the NAMES four pages consume.
-    python scripts/fetch_abilities.py
+# 5. Abilities: official zh-TW names for the 284 roster slugs, read from pokemon_data.json.
+python scripts/fetch_abilities.py
 
-# 5b. Ability detail: the effect sentence, the generation, and the holder map.
-#     Writes THREE files in one pass — assets/data/abilities.json (314 rows:
-#     nameEn/nameZh/effect/effectEn/generation/speciesCount/formCount),
-#     assets/data/ability_species.json (slug → holder rows, 379 KB), and
-#     assets/data/species_abilities.json (dex id → that Pokémon's names +
-#     ability slugs, 88 KB), the last two being inverses of each other. They
-#     cannot be out of step because one pass writes all three. 374 - 60 internal
-#     block; 267 rows of Chinese effect and 47 English-only fallbacks.
-#     --dry-run reports the provenance split and the excluded block's reason
-#     without writing. Needs the venv (httpx + OpenCC), same as step 7.
+# 5b. Ability detail: one pass writes abilities.json (314 rows), the forward
+#     holder map and its inverse; --dry-run reports the provenance split.
 python scripts/fetch_abilities_detail.py --dry-run
 python scripts/fetch_abilities_detail.py
 node scripts/check_abilities_data.mjs
 
-# 6. Form Names: Scrape official zh-TW names for Pokémon forms
+# 6. Form names: scrape official zh-TW names for Pokémon forms.
 python scripts/fetch_form_names.py
 
-# 7. Moves & Learnsets: Union move data across all generations.
-#    Writes FOUR files in one pass — moves_zh.json, learnsets.json,
-#    move_learners.json (move -> who learns it) and move_learners_count.json
-#    (the 54 KB counts-only companion moves.html loads). They cannot be out of
-#    step because one pass writes them; check_moves_data.mjs re-inverts
-#    learnsets.json and compares, so a divergence is caught rather than assumed.
-#
-#    The effect sentence has TWO provenances and the boundary is a generation
-#    line: 826 rows from PokeAPI's zh-hant flavour text, 93 (ids 827-919, all of
-#    Generation 9) from InfoPoke's Simplified run through OpenCC s2twp. InfoPoke
-#    is read for those two columns ONLY — its numbers and names are less
-#    trustworthy than PokeAPI's (§3.AA). Its response is cached at the gitignored
-#    data-sources/infopoke-moves.html, so delete that file to refetch.
-#
-#    Ships all 919 non-shadow moves, not only the ones our 1025 reference.
+# 7. Moves & learnsets: one pass writes moves_zh.json, learnsets.json and both
+#    learner indexes; 826 effects from PokeAPI zh-hant, 93 Gen-9 via InfoPoke/OpenCC.
 python scripts/fetch_moves.py
 node scripts/check_moves_data.mjs
 
-# 8. Chinese Descriptions: Fill descriptions.zh / zh_text2 from tw.portal-pokemon.com
-#    MUST run after step 1 — enhance_pokemon_data.py writes zh: "" for every
-#    record. Writes straight into pokemon_data.json; use --ids 899,901 to
-#    re-scrape a subset and --dry-run to parse without writing.
+# 8. Chinese descriptions: MUST run after step 1; --ids 899,901 re-scrapes a subset, --dry-run does not write.
 python scripts/scrape_zh_descriptions.py
 
-# 9. Color Palettes: Rebuild 2,050 MMCQ palettes from front sprites
+# 9. Color palettes: rebuild 2,050 MMCQ palettes from front sprites.
 python scripts/extract_color_palettes_mmcq.py
 
-# 10. Type Profiles: Re-scrape per-type prose, zh-TW effects, and trainers.
-#     Locates the InfoPoke `/types/[id]` Nuxt chunk by runtime resolution rather
-#     than a hardcoded filename, so a chunk hash bump does not break it.
+# 10. Type profiles: per-type prose, zh-TW effects and trainers; resolves the
+#     InfoPoke `/types/[id]` chunk at runtime.
 python scripts/fetch_type_profiles.py
 
-# 11. Scarlet/Violet Artwork: fetch only the missing roster entries, then
-#     rebuild assets/js/sv-index.js from what is actually on disk. PokeAPI is
-#     primary; InfoPoke is consulted only when PokeAPI yields no valid PNG, and
-#     every file's real host is recorded in data-sources/sv-sources.json (never
-#     shown in the browser). Re-running with a complete tree is a no-op.
+# 11. SV artwork: fetch only missing roster entries (PokeAPI first, InfoPoke
+#     fallback), then rebuild sv-index.js from disk; hosts live in data-sources/sv-sources.json.
 python scripts/fetch_sv_sprites.py --dry-run   # report coverage first
 python scripts/fetch_sv_sprites.py
 python scripts/extract_sv_index.py
 node scripts/check_sv_index.mjs
 
-# 12. Generation I cries: parse pokered's cry table and its 38 base cries.
-#     Nothing is vendored — the .asm files are fetched and turned into JSON.
-#     --dry-run parses and reports without writing. --source/--sfx-dir take
-#     local paths, which is how the mutation test shuffles the rows offline.
+# 12. Gen-I cries: parse pokered's cry table and 38 base cries into JSON;
+#     --source/--sfx-dir take local paths for offline tests.
 python scripts/fetch_gen1_cries.py --dry-run
 python scripts/fetch_gen1_cries.py
 node scripts/check_gen1_cries.mjs
 
-# 13. Real in-game evolution levels (life.html's evolution gate). 541 chain GETs,
-#     cached offline under data-sources/ so re-runs do not refetch; writes the
-#     {from_id: {to_id: min_level}} table plus the exact set of pairs with no level.
-#     Run AFTER anything that changes pokemon_data.json's ids.
+# 13. Evolution levels: 541 cached chain GETs write {from_id:{to_id:min_level}}
+#     and the unlevelled pairs; run after any pokemon_data.json id change.
 python scripts/fetch_evolution_levels.py --dry-run
 python scripts/fetch_evolution_levels.py
 node scripts/check_evolution_levels.mjs
 
-# 13b. Form stats & types for every battle form (graph.html's mega/gmax nodes).
-#      127 GETs -- 93 mega + 34 gmax -- ~30s. Caches to
-#      data-sources/pokeapi_form_stats.json, which is GITIGNORED (raw PokeAPI
-#      payload out, the generated assets/data/graph_data.json in), so a fresh
-#      clone needs this before re-running build_graph_data.py. Hits
-#      /pokemon/{id}, NOT /pokemon-form/{id}: the latter returns `types` but has
-#      no `stats` key at all. Reports (never silently skips) any form the upstream
-#      does not have -- today that is exactly Meowstic-Mega, which answers 200 as
-#      a DIFFERENT form. Then rebuild the graph, which is what actually applies it.
-#      --dry-run reports the roster without writing.
+# 13b. Form stats/types for graph.html's mega/gmax nodes: 127 GETs to
+#      /pokemon/{id}, cached to a gitignored file; --dry-run lists the roster.
 python scripts/fetch_form_stats.py --dry-run
 python scripts/fetch_form_stats.py
 python scripts/build_graph_data.py
 node scripts/check_graph_chip_network.mjs
 
-# 14. Cry features: one 34-number timbre row per roster cry, into
-#     assets/data/cry_features.json. Everything is resampled to 16 kHz first,
-#     because the corpus spans fifteen sample rates. No similarity matrix is
-#     stored. --dry-run computes and reports without writing.
+# 14. Cry features: one 34-number row per roster cry, resampled to 16 kHz
+#     because the corpus spans fifteen rates; --dry-run does not write.
 python scripts/analyze_cries.py --dry-run
 python scripts/analyze_cries.py
 node scripts/check_cry_features.mjs
