@@ -538,17 +538,19 @@ ok(/linear-gradient\(to right,\s*var\(--sp-0\), var\(--sp-1\), var\(--sp-2\), va
 ok(/getPropertyValue\(`--sp-\$\{i\}`\)/.test(page),
   'and the script reads those six rather than carrying its own copy');
 
-/* The allowlist is four colours and each has a reason. The first two are the
- * theme-color meta tag, which is set before first paint and cannot read a custom
- * property. The second two are the fallbacks the ramp reader uses when
- * getPropertyValue comes back empty, which it does under a stylesheet that has not
- * loaded — and a fallback of black would render a spectrogram, so it has to be a
- * colour. The next three are the plot's own ground, ink and muted label, used the
- * same way on the two canvases. Anything ELSE is a stop nobody declared. */
-const RAMP_FALLBACKS = ['#f4f6fa', '#0d1117', '#000000', '#fbe28d', '#07050e', '#f2f4f8', '#9aa3b2'];
+/* The allowlist is seven colours and each has a reason. The first two are the
+ * pre-paint theme block and the theme-color meta it rewrites: both are set before
+ * first paint, so neither can read a custom property, and the block is the
+ * canonical one scripts/lib/theme-init.mjs defines for every page. The next two
+ * are the fallbacks the ramp reader uses when getPropertyValue comes back empty,
+ * which it does under a stylesheet that has not loaded — and a fallback of black
+ * would render a spectrogram, so it has to be a colour. The last three are the
+ * plot's own ground, ink and muted label, used the same way on the two canvases.
+ * Anything ELSE is a stop nobody declared. */
+const RAMP_FALLBACKS = ['#f3f5fa', '#0b1020', '#000000', '#fbe28d', '#07050e', '#f2f4f8', '#9aa3b2'];
 eq((page.match(/#[0-9a-fA-F]{6}\b/g) ?? []).filter((h) => !RAMP_FALLBACKS.includes(h.toLowerCase())),
   [],
-  `the page carries no ramp colour outside the four with a stated reason (${RAMP_FALLBACKS.join(' ')})`);
+  `the page carries no ramp colour outside the seven with a stated reason (${RAMP_FALLBACKS.join(' ')})`);
 
 // ---------------------------------------------------------------------------
 // 5b. The live curve's ink — a real measurement, run over all 1,025 records.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-theme="dark">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +7,23 @@
   <meta name="description" content="1025 隻寶可夢叫聲的 mel 時頻圖，播放時由左往右揭開。最新錄音、舊錄音與第一世代合成叫聲可以在同一張圖上比較。">
   <link rel="icon" type="image/png" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Pre-paint theme resolver. Generated from scripts/lib/theme-init.mjs by
+       scripts/sync_theme_init.mjs; the rationale is AGENTS.md §3.C. -->
   <script>
     (function () {
-      var saved = null;
-      try { saved = localStorage.getItem('pokemon-theme'); } catch (e) { /* private mode */ }
-      var theme = saved
-        || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      var THEME_KEY = 'pokemon-theme';
+      var theme = null;
+      try {
+        theme = localStorage.getItem(THEME_KEY);
+      } catch (e) { /* private mode / storage disabled: resolve from the OS instead */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+        theme = mq && mq.matches ? 'light' : 'dark';
+      }
       document.documentElement.dataset.theme = theme;
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = theme === 'light' ? '#f4f6fa' : '#0d1117';
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
     })();
   </script>
   <link rel="stylesheet" href="assets/css/shared.css">

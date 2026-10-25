@@ -14,16 +14,16 @@
  * corruption existed only in the bytes Live Server sent, so a tree-only harness
  * would be attacking something the checker already answers correctly.
  *
- * FIVE of the six cases break the TREE (cases 1-4, 6) and ONE breaks the CHECKER
- * (case 5). That is the same split `test_check_tmp_prefixes.mjs` uses and for the
- * same reason: a checker only ever attacked through its input cannot distinguish
- * "the rule is enforced" from "the checker is currently green" — all five tree
- * cases would still pass with the guard's body deleted.
+ * TEN of the eleven cases break the TREE and ONE breaks the CHECKER (the
+ * case-insensitivity one). That is the same split `test_check_tmp_prefixes.mjs`
+ * uses and for the same reason: a checker only ever attacked through its input
+ * cannot distinguish "the rule is enforced" from "the checker is currently green"
+ * — every tree case would still pass with the guard's body deleted.
  *
- * Case 5 exists because the case-insensitivity is DELIBERATE and therefore the
- * most likely to be "simplified" by someone who does not know why it is there: it
- * mirrors Live Server's own `/<\/body>/i`, so dropping the `i` leaves a page
- * closing with `</BODY>` silently unprotected.
+ * The checker case exists because the case-insensitivity is DELIBERATE and
+ * therefore the most likely to be "simplified" by someone who does not know why it
+ * is there: it mirrors Live Server's own `/<\/body>/i`, so dropping the `i` leaves
+ * a page closing with `</BODY>` silently unprotected.
  *
  * The block after the cases is a PAIRING, and it is inverted on purpose: it
  * asserts that the checker exits 0 once the ordering comparison is deleted. That
@@ -47,6 +47,7 @@ import { fileURLToPath } from 'node:url';
 import { caughtBy } from './lib/negative.mjs';
 import { pool } from './lib/pool.mjs';
 import { trackTree, releaseTree } from './lib/tmp-trees.mjs';
+import { SITE_THEME, themeComment, themeMeta, themeScript } from './lib/theme-init.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = 'scripts/check_js_syntax.mjs';
@@ -70,6 +71,12 @@ const BASE_PAGE = [
   '<head>',
   '<meta charset="utf-8">',
   '<title>fixture</title>',
+  // The pre-paint theme block and its meta come from the SAME definition the
+  // checker reads, so the fixture cannot be canonical-in-the-test and drifted in
+  // the repo. The stylesheet after it is what the ordering assertion needs.
+  themeMeta(SITE_THEME),
+  themeScript(SITE_THEME),
+  '  <link rel="stylesheet" href="assets/css/shared.css">',
   '<script>var a = 1;</script>',
   '</head>',
   '<body>',
@@ -88,8 +95,9 @@ const BASE_PAGE = [
  */
 function makeTree(mutation) {
   const dir = trackTree(mkdtempSync(join(tmpdir(), 'jss-neg-')));
-  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  mkdirSync(join(dir, 'scripts', 'lib'), { recursive: true });
   cpSync(join(SCRIPTS, 'check_js_syntax.mjs'), join(dir, CHECKER));
+  cpSync(join(SCRIPTS, 'lib', 'theme-init.mjs'), join(dir, 'scripts', 'lib', 'theme-init.mjs'));
   writeFileSync(join(dir, 'fixture.html'), BASE_PAGE);
   if (mutation) mutation(dir);
   return dir;
@@ -160,6 +168,52 @@ const CASES = [
       editPage(dir, '</html>\n', '');
     },
     expect: '0 </html> (need exactly 1)',
+  },
+  {
+    /* The failure this guards has no symptom on disk: the page renders, the toggle
+     * works, and the only reader who sees it is the one navigating between this
+     * page and any other — a flash of the wrong palette on every load. */
+    name: 'the theme block deleted — the page repaints after first paint',
+    mutate: (dir) => {
+      editPage(dir, `${themeScript(SITE_THEME)}\n`, '');
+    },
+    expect: 'no <script> sets documentElement.dataset.theme',
+  },
+  {
+    name: 'the theme block moved after the stylesheet — canonical bytes, wrong order',
+    mutate: (dir) => {
+      const block = themeScript(SITE_THEME);
+      editPage(dir, `${block}\n  <link rel="stylesheet" href="assets/css/shared.css">`,
+        '  <link rel="stylesheet" href="assets/css/shared.css">\n' + block);
+    },
+    expect: 'runs after the first stylesheet',
+  },
+  {
+    name: 'one colour changed — the block still works, and the address bar now disagrees with every other page',
+    mutate: (dir) => {
+      editPage(dir, `'${SITE_THEME.light}'`, "'#f4f6fa'");
+    },
+    expect: 'the block is not the canonical one',
+  },
+  {
+    /* The comment is generated WITH the block, because the hand-written ones had
+     * already rotted: one said 「identical on all five themed pages」 when there were
+     * thirty, another pointed at index.html's copy when index.html had none. */
+    name: 'the generated comment deleted — canonical bytes, and the reason is gone',
+    mutate: (dir) => {
+      editPage(dir, `${themeComment()}\n`, '');
+    },
+    expect: 'the block is not the canonical one',
+  },
+  {
+    /* The structural cases above are unfixable by a rewrite, and so is this one:
+     * moving a static declaration out of the way would only hide that the page has
+     * two sources of truth. */
+    name: 'a static data-theme on <html> — a second declaration beside the script',
+    mutate: (dir) => {
+      editPage(dir, '<html lang="zh-Hant">', '<html lang="zh-Hant" data-theme="dark">');
+    },
+    expect: 'the <html> tag carries data-theme itself',
   },
   {
     name: 'one </body>, placed before a LATER </script> — the ordering term, isolated',

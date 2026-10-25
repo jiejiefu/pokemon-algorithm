@@ -8,21 +8,19 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
   <meta name="theme-color" content="#0b1020">
   <meta name="description" content="輸入任意色碼，以 OKLab 知覺距離比對 1,025 隻寶可夢的實測色盤，生成一組有量測基礎的主題色盤。">
-  <!-- Blocking, inline, and before the stylesheet on purpose: a theme applied
-       after the first paint is a visible flash, and a module cannot run early
-       because module scripts are deferred. Identical on all five themed pages
-       and kept in sync with THEME_COLORS in shared.js. -->
+  <!-- Pre-paint theme resolver. Generated from scripts/lib/theme-init.mjs by
+       scripts/sync_theme_init.mjs; the rationale is AGENTS.md §3.C. -->
   <script>
     (function () {
-      var theme = 'dark';
+      var THEME_KEY = 'pokemon-theme';
+      var theme = null;
       try {
-        var stored = localStorage.getItem('pokemon-theme');
-        if (stored === 'light' || stored === 'dark') {
-          theme = stored;
-        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-          theme = 'light';
-        }
-      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+        theme = localStorage.getItem(THEME_KEY);
+      } catch (e) { /* private mode / storage disabled: resolve from the OS instead */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+        theme = mq && mq.matches ? 'light' : 'dark';
+      }
       document.documentElement.dataset.theme = theme;
       var meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');

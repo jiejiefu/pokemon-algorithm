@@ -805,21 +805,26 @@ const CHECKERS = [
     inputs: ['*.html', 'assets/js/*.js'],
   },
   {
-    /* Every `<script>` on every page must parse. This is the only entry that
-     * looks at index.html, types.html and generations.html — three pages with
-     * innerHTML template literals that NO CDP checker boots, so a syntax error
-     * in any of them is invisible to the other 46 entries. The six pages that
-     * ARE booted fail loudly instead, which is how the backtick-in-a-comment
-     * defect kept announcing itself; these three would not.
+    /* Every `<script>` on every page must parse, and every page must carry the
+     * canonical pre-paint theme block. This is the only entry that looks at
+     * index.html, types.html and generations.html — three pages with innerHTML
+     * template literals that NO CDP checker boots, so a syntax error in any of
+     * them is invisible to the other 46 entries. The six pages that ARE booted
+     * fail loudly instead, which is how the backtick-in-a-comment defect kept
+     * announcing itself; these three would not.
      *
      * A parse rather than a grep for backticks, because nested template literals
      * are everywhere in this repo and are perfectly legal, so grepping buries the
-     * signal under the project's own idioms. See the script's header. */
+     * signal under the project's own idioms. See the script's header.
+     *
+     * The theme half reads `scripts/lib/theme-init.mjs`, which is in every cache
+     * key unconditionally, so `inputs` stays the page set. That module is the one
+     * definition; `scripts/sync_theme_init.mjs --write` is the only writer. */
     script: 'scripts/check_js_syntax.mjs', group: 'nav',
     inputs: ['*.html'],
   },
   {
-    /* The document-structure guard's own negative suite. Five cases break the TREE
+    /* The document-structure guard's own negative suite. Nine cases break the TREE
      * and one breaks the CHECKER (the case-insensitivity, which mirrors Live
      * Server's /<\/body>/i), plus a PAIRING that asserts the checker exits 0 once the
      * ordering comparison is deleted — which is what proves the too-early-</body>
@@ -833,7 +838,7 @@ const CHECKERS = [
      * never looks at. The checker it attacks is already in the cache key
      * unconditionally, so this list is documentation rather than mechanism. */
     script: 'scripts/test_check_js_syntax.mjs', checker: 'scripts/check_js_syntax.mjs', group: 'nav',
-    note: '6 cases in child trees — the shipped defect verbatim, three count shapes, the too-early </body>, the dropped case-insensitivity, an empty tree — plus one pairing',
+    note: '11 cases in child trees — the shipped defect verbatim, three count shapes, the too-early </body>, the dropped case-insensitivity, an empty tree, and five theme-block shapes (deleted, moved, recoloured, commentless, static data-theme) — plus one pairing',
     inputs: ['scripts/check_js_syntax.mjs'],
   },
   /* ---- index.html's hero ----

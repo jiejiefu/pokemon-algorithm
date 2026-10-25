@@ -181,11 +181,12 @@ console.log('\nthe shell matches every other page, and the mounts are in the HTM
   check(!/initThemeToggle/.test(jsCode), 'nor the theme toggle', () => 'the mount is in two places');
   check(/from '\.\/cry-game-similarity\.js'/.test(jsCode), 'and it imports the pure module it is drawn from');
 
-  /* WHAT IS LOAD-BEARING IS THAT IT IS INLINE AND IN THE HEAD, not that it
-   * precedes the stylesheet link: a `<link rel="stylesheet">` blocks the parser,
-   * so an inline script anywhere in `<head>` runs before the first paint. What
-   * would break the guarantee is an EXTERNAL script, which is deferred and runs
-   * after paint — so that is what is asserted. */
+  /* WHAT IS LOAD-BEARING FOR THIS PAGE IS THAT IT IS INLINE AND IN THE HEAD,
+   * because that is the property that makes the block safe on its own. What would
+   * break the guarantee is an EXTERNAL script, which is deferred and runs after
+   * paint — so that is what is asserted here, and the canonical BYTES and their
+   * position before the first stylesheet are guarded for every page by
+   * check_js_syntax.mjs + scripts/lib/theme-init.mjs. */
   const headEnd = htmlCode.indexOf('</head>');
   const themeAt = htmlCode.indexOf('pokemon-theme');
   check(themeAt > 0 && themeAt < headEnd,

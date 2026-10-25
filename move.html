@@ -8,17 +8,19 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
   <meta name="theme-color" content="#0b1020">
+  <!-- Pre-paint theme resolver. Generated from scripts/lib/theme-init.mjs by
+       scripts/sync_theme_init.mjs; the rationale is AGENTS.md §3.C. -->
   <script>
     (function () {
-      var theme = 'dark';
+      var THEME_KEY = 'pokemon-theme';
+      var theme = null;
       try {
-        var stored = localStorage.getItem('pokemon-theme');
-        if (stored === 'light' || stored === 'dark') {
-          theme = stored;
-        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-          theme = 'light';
-        }
-      } catch (e) { /* private mode / storage disabled: stay on the default */ }
+        theme = localStorage.getItem(THEME_KEY);
+      } catch (e) { /* private mode / storage disabled: resolve from the OS instead */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+        theme = mq && mq.matches ? 'light' : 'dark';
+      }
       document.documentElement.dataset.theme = theme;
       var meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');

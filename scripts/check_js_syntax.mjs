@@ -74,6 +74,8 @@ import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { EXEMPT_PAGES, normalizeThemeInit } from './lib/theme-init.mjs';
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 let failures = 0;
@@ -261,6 +263,58 @@ if (checked === 0) {
        + offenders.map((o) => `         ${o}`).join('\n'));
   } else {
     pass(`all ${pages.length} pages carry exactly one </body> and one </html>, each after the last </script>, so no inline script's extent is decided by the server`);
+  }
+}
+
+/* ------------------------------------------------- the pre-paint theme block
+ *
+ * Every content page resolves the reader's theme in a blocking inline script in
+ * `<head>`, before the first stylesheet. The PLACEMENT is forced (a module is
+ * deferred, so `shared.js` cannot do it without one frame in the wrong palette);
+ * the BYTES were the problem: thirty pages carried six variants, and the variants
+ * had already drifted — `spectrum.html` had rewritten the algorithm and shipped a
+ * different pair of colours, so its address bar tint disagreed with the other
+ * twenty-nine pages for the same theme.
+ *
+ * Nothing in the suite read any of it. A page could delete the block outright and
+ * every other checker stayed green, which is §3.G1a's shape: a green suite over a
+ * page that flashes. `scripts/lib/theme-init.mjs` is the one definition;
+ * `scripts/sync_theme_init.mjs` is the writer; this is the guard, and it asserts
+ * the PRECONDITION (in `<head>`, before the stylesheet) rather than the symptom.
+ *
+ * The COMMENT above the block is compared too, not treated as decoration. Ten
+ * hand-written variants had accumulated over the thirty pages — one said
+ * 「identical on all five themed pages」, one sent the reader to `index.html`'s copy
+ * when `index.html` had none — which is what prose left to each page does over time.
+ */
+{
+  const offenders = [];
+  const themed = [];
+  for (const page of pages) {
+    if (EXEMPT_PAGES.has(page)) continue;
+    themed.push(page);
+    const src = readFileSync(join(ROOT, page), 'utf8');
+    const { src: fixed, reasons, problems } = normalizeThemeInit(src, page);
+    offenders.push(...problems, ...reasons);
+    if (fixed !== src) {
+      // `reasons` is normally non-empty whenever `fixed` moved; this floor covers
+      // a future edit that makes the two disagree without saying why.
+      if (reasons.length === 0) offenders.push(`${page}: the theme block would be rewritten by scripts/sync_theme_init.mjs --write`);
+    }
+  }
+
+  // A stale exemption is the writer's business, and it asserts it there: this
+  // checker derives its page set from disk, so an exemption naming a file that is
+  // gone simply matches nothing and cannot hide a page. The harness's one-page
+  // fixture is the reason the distinction matters here — `404.html` is exempt in
+  // the repo and absent from the fixture.
+  if (offenders.length) {
+    fail(`${offenders.length} theme-init problem(s) — every page resolves the reader's theme in ONE canonical inline block before its stylesheet, and scripts/sync_theme_init.mjs --write is the only thing that should be writing it:\n`
+      + offenders.map((o) => `         ${o}`).join('\n'));
+  } else if (themed.length === 0) {
+    fail('no page was checked for the theme block — the exemption table covers every page, which is a guard measuring nothing');
+  } else {
+    pass(`all ${themed.length} themed page(s) carry the canonical pre-paint theme block inside <head> and before the first stylesheet (${EXEMPT_PAGES.size} exempt)`);
   }
 }
 

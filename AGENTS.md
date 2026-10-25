@@ -151,9 +151,11 @@ Shares components, not layout: one reports a measured palette, the other generat
 - **WCAG AA:** 4.5:1 standard text, 3:1 large text and UI components.
 - **Measure contrast from decoded screenshot pixels (Canvas/CDP), not `getComputedStyle()`** — which misses alpha blending, backdrop filters and radial gradients.
 - **Typography:** CJK-first `--font-sans` (`PingFang TC`, `Noto Sans TC`, `Microsoft JhengHei`).
-- **Theme switching** is handled inline in `<head>` before first paint; toggling fires `themechange` for Canvas redraws.
+- **Theme switching** resolves inline in `<head>`, above the first stylesheet, from `localStorage` else `matchMedia`; toggling fires `themechange` for Canvas redraws.
+- **That block is ONE canonical string, not thirty hand-copies.** `scripts/lib/theme-init.mjs` is the definition, `scripts/sync_theme_init.mjs --write` is the only writer, and the three exemptions (`graph.html`'s own palette, `cry-studio-pro.html` pinned dark, `404.html` no surface) carry their reasons in that module's tables. **The comment above the block is generated with it** — the ten hand-written variants had rotted (one claimed 「all five themed pages」), so the rationale lives in this section and in the module, never restated per page.
+- **It stays inline per page on purpose** — do not extract it to a shared `theme-init.js`, and do not replace it with a CSS media query: in a multi-document site only a blocking inline script can read `localStorage` before first paint, and the manual toggle is the feature that a media query would delete. The measured comparison is in the incident doc; a cheaper variant needs a number, not an opinion.
 - **Reduced motion** is honored across CSS and JS.
-**Guarded by:** nothing · **Background:** [page-defects.md#c](docs/incidents/page-defects.md#c)
+**Guarded by:** `check_js_syntax.mjs` (canonical bytes, inside `<head>`, before the first stylesheet, no static `data-theme` on `<html>`) + `test_check_js_syntax.mjs` (10 cases) · **Background:** [page-defects.md#c](docs/incidents/page-defects.md#c)
 
 ### D. Type Profiles & Scoped Translations
 `assets/data/type_profiles.json` (from `scripts/fetch_type_profiles.py`, InfoPoke `/types/[id]`) keeps three provenances in separate fields: `blurbEn`/`battleTipsEn`/`categoryNoteEn`/`entriesEn[].effect` are **English upstream** in a collapsed block; `entries[].effect` is **Simplified Chinese upstream** via OpenCC `s2twp` (the only zh-TW effect text); `trainers[].roleZh` is **this project's own** translation.

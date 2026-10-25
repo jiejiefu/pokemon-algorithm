@@ -9,11 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
   <meta name="theme-color" content="#0e0d0c">
-  <!-- Unlike every other page, this one does NOT resolve the reader's theme: the
-       studio is a dark instrument (see cry-seq.css's docblock), so it pins the
-       dark palette before first paint and leaves the stored choice alone — the
-       reader's other pages keep their light/dark setting. The theme toggle is
-       hidden by CSS for the same reason, and initThemeToggle() is not called. -->
+  <!-- Pinned dark: a dark instrument rather than a theme choice, so this writes the
+       dark palette and leaves the reader's stored choice alone. Generated from
+       scripts/lib/theme-init.mjs by scripts/sync_theme_init.mjs (AGENTS.md §3.C). -->
   <script>document.documentElement.dataset.theme = 'dark';</script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <link rel="stylesheet" href="assets/css/cry-seq-pro.css">
