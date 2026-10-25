@@ -159,6 +159,7 @@ ok(detailCode.includes('pokemonDetailUrl('), 'move.html should reach the species
 /* ===== the deep link types.html now sends ===== */
 
 const typesHtml = read('types.html');
+const typesCssSource = read('assets/css/types.css');
 
 ok(
   LIST.includes("params.get('type')"),
@@ -185,7 +186,7 @@ ok(
  * the modifier from `flex: 1` is invisible to the browser checker until the
  * mobile breakpoint, and the two halves fail independently.
  */
-const typesCss = typesHtml.replace(/\/\*[\s\S]*?\*\//g, '');
+const typesCss = typesCssSource.replace(/\/\*[\s\S]*?\*\//g, '');
 /*
  * Two of these eight were VACUOUS on arrival, which is why the harness is worth
  * the second it costs.
@@ -205,7 +206,7 @@ const typesCss = typesHtml.replace(/\/\*[\s\S]*?\*\//g, '');
 const rosterGridRule = typesCss.match(/\.chip-grid--roster\s*\{([^}]*)\}/);
 ok(
   rosterGridRule && /display\s*:\s*grid/.test(rosterGridRule[1]),
-  'types.html should scope the rule that turns the roster into a grid behind a --roster modifier',
+  'types.css should scope the rule that turns the roster into a grid behind a --roster modifier',
   rosterGridRule ? rosterGridRule[1].trim().replace(/\s+/g, ' ').slice(0, 70) : 'no .chip-grid--roster { … } rule found'
 );
 /*
@@ -543,7 +544,7 @@ ok(
   '.mv-tabpanel[hidden] must set display: none explicitly'
 );
 
-// types.html declares its chart tokens in its own inline <style>, so a var()
+// types.css declares its chart tokens, so a var()
 // naming one from here resolves to nothing. The token name is spelled out here in
 // prose and NOT in moves.css, because a grep cannot tell a declaration from the
 // sentence explaining why the declaration is a different one — §3.S.
@@ -553,7 +554,7 @@ ok(
 );
 ok(
   !/var\(--(?!error-text)[a-z-]*chart[a-z-]*\)/.test(cssCode),
-  'moves.css should not reference a chart token: those are declared in types.html, not shared.css'
+  'moves.css should not reference a chart token: those are declared in types.css, not shared.css'
 );
 ok(
   /\.mv-status\.is-error\s*\{[^}]*--error-text/.test(cssCode),
@@ -793,10 +794,10 @@ ok(
  * is not a check, and a number copied next to a checker goes stale in the one
  * direction a reader cannot see (§3.S).
  */
-const rosterLift = typesHtml.match(
+const rosterLift = typesCssSource.match(
   /\.chip-grid--roster\s+\.chip-thumb\.is-sv\s+img\s*\{[^}]*translateY\((-?[\d.]+)%\)/
 );
-ok(rosterLift, 'types.html should lift its roster artwork by a percentage of the box');
+ok(rosterLift, 'types.css should lift its roster artwork by a percentage of the box');
 ok(
   rosterLift && Math.abs(Number(rosterLift[1]) + 25) < 1,
   'and the percentage should be the measured 25% the SV subject sits low',

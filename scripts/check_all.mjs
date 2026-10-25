@@ -858,6 +858,7 @@ const CHECKERS = [
     script: 'scripts/check_home_hero.mjs', group: 'home',
     inputs: [
       'index.html', 'today.html',
+      'assets/css/home-hero.css',
       'scripts/make_hero_video.py',
       'assets/data/pokemon_data.json',
       'assets/js/daily-pick.js', 'assets/js/hero-gen.js',
@@ -873,13 +874,13 @@ const CHECKERS = [
      * home_roster.json (90 KB) instead of pokemon_data.json (2.8 MB), fetched
      * only when an IntersectionObserver says the reader is 400px away. Also
      * guards the reference's own `#game-subtitle` bug, the game's admissible
-     * 4-directional heuristic, and the below-fold stylesheet staying out of the
-     * hero's inline block. 0.1s, and it imports the modules for their exported
+     * 4-directional heuristic, and the below-fold stylesheet staying out of
+     * home-hero.css. 0.1s, and it imports the modules for their exported
      * key/algorithm ids rather than restating them. */
     script: 'scripts/check_home_sections.mjs', group: 'home',
     inputs: [
       'index.html',
-      'assets/css/home-sections.css',
+      'assets/css/home-sections.css', 'assets/css/home-hero.css',
       'assets/data/pokemon_data.json', 'assets/data/home_roster.json',
       'assets/js/home-sections.js', 'assets/js/home-showcase.js',
       'assets/js/home-maze-game.js', 'assets/js/home-sprite-grid.js',
@@ -983,7 +984,7 @@ const CHECKERS = [
     script: 'scripts/check_categories.mjs', group: 'nav',
     inputs: [
       'category.html', 'today.html',
-      'assets/css/shared.css',
+      'assets/css/category.css', 'assets/css/shared.css',
       'assets/data/evolution_chains.json',
       'assets/data/generations.json',
       'assets/data/pokemon_data.json',
@@ -1061,7 +1062,7 @@ const CHECKERS = [
     script: 'scripts/check_moves_page.mjs', group: 'nav',
     inputs: [
       'moves.html', 'move.html',
-      'assets/css/moves.css',
+      'assets/css/moves.css', 'assets/css/types.css',
       'assets/js/moves.js',
       'assets/js/shared.js',
       // Transitive through shared.js, found by --prove-inputs rather than by
@@ -1084,7 +1085,7 @@ const CHECKERS = [
     note: 'runs the above in child trees',
     inputs: [
       'moves.html', 'move.html',
-      'assets/css/moves.css',
+      'assets/css/moves.css', 'assets/css/types.css',
       'assets/js/moves.js',
       'assets/js/shared.js',
       // Transitive through shared.js, found by --prove-inputs rather than by
@@ -1713,7 +1714,7 @@ const CHECKERS = [
     browser: true, needsServer: true, manual: true,
     inputs: [
       'types.html',
-      'assets/css/moves.css',
+      'assets/css/types.css', 'assets/css/moves.css',
       'assets/js/shared.js',
       'assets/js/sv-index.js',
       'assets/data/pokemon_data.json',
@@ -1722,7 +1723,7 @@ const CHECKERS = [
   {
     script: 'scripts/check_sv_index.mjs', group: 'type',
     inputs: [
-      'types.html', 'assets/data/pokemon_data.json',
+      'types.html', 'assets/css/types.css', 'assets/data/pokemon_data.json',
       'assets/images/scarlet-violet/*', 'assets/images/sprite/*',
       'assets/js/sv-index.js', 'data-sources/sv-sources.json', 'scripts/fetch_sv_sprites.py',
       /* §3.E: the checker asserts this path does NOT exist. Keyed as a literal so that
@@ -1734,7 +1735,7 @@ const CHECKERS = [
     script: 'scripts/test_check_sv_index.mjs', checker: 'scripts/check_sv_index.mjs', group: 'type',
     note: 'runs the above in child trees',
     inputs: [
-      'types.html', 'assets/data/pokemon_data.json',
+      'types.html', 'assets/css/types.css', 'assets/data/pokemon_data.json',
       'assets/images/scarlet-violet/*', 'assets/images/sprite/*',
       'assets/js/sv-index.js', 'data-sources/sv-sources.json', 'scripts/fetch_sv_sprites.py',
     ],

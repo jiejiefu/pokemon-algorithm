@@ -1,0 +1,524 @@
+/**
+ * Today's picks — page-only styles.
+ *
+ * Extracted from today.html so the document is markup only. Mounted by
+ * that page and nothing else; every rule here is page-specific.
+ */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+main {
+  flex: 1;
+}
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--divider-glow), transparent);
+  margin: 0 40px;
+}
+
+.today-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 20px 0;
+}
+.today-section-title {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+.today-section-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 672px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+}
+
+/* 熱門寶可夢 — grid-cols-2 sm:3 md:4 lg:5, transcribed. The three
+   breakpoints were the comment's whole content and not the rule's: the base
+   alone rendered 2 columns at every width, so 10 cards stacked 5 rows deep
+   on a desktop that had room for two. Tailwind's stops are sm 640 / md 768
+   / lg 1024, and at lg the 10 ids divide exactly into 2 rows of 5.
+   Measured: 215px per card at the 1180px column and 184px at 1024px, against
+   an 80px sprite inside 32px of padding, so no track ever gets tight. */
+.today-pop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+@media (min-width: 640px) { .today-pop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 768px) { .today-pop-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .today-pop-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.today-pop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 2px solid var(--hairline);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.today-pop-card:hover {
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+.today-pop-card img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 8px; }
+.today-pop-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.today-pop-num { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
+.today-pop-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+
+/* 今日推薦 — the InfoPoke spotlight card: text column left, 320px artwork
+   right, a gradient panel. This block is OURS in the sense that the *section*
+   is: infopoke_net_home.html has no 今日 / 每日 / 推薦 section (0 matches for
+   each, and its only seven h2 are 熱門寶可夢 / 探索圖鑑 / 精選系列 /
+   寶可夢遊戲 / 對戰工具 & 指南 / 快速連結 / 常見問題). The *card* is the
+   source's, transposed from its Tailwind classes.
+
+   THE GRADIENT IS THE 700 STEP, NOT THE SOURCE'S 600, AND THE TILE SCrim IS
+   BLACK — both measured over 101 samples of the whole interpolation, never
+   just the endpoints. Transcribing purple-600→blue-600 with its
+   own white/10 tile verbatim fails 4 of 8 text layers: the 14px type pill
+   3.62:1, the 18px description 4.24:1, the 14px tile label 3.05:1 and the
+   14px hover CTA 3.64:1. purple-700 #7e22ce → blue-700 #1d4ed8 fixes the
+   description (5.49:1) and the CTA (4.72:1), and the pill is the last
+   binding layer: a white scrim LIGHTENS the fill and pushes white text
+   down, so the source's white/20 sits at 4.42:1 and fails. white/12 is the
+   point where it clears with margin (5.25:1) and still reads as a pill.
+
+   The tile is a 0.16 BLACK scrim with white/95 text, not the source's
+   white/10 with blue-200 — the same inversion as the other scrims, and
+   for the same reason: a white scrim lightens the fill. Measured on black/16
+   the label is 5.96:1 and the value 8.47:1, against 3.85 and 5.47 on the
+   source's own pairing. Blue-200/blue-100 as the *text* colours are kept
+   verbatim from the source and both pass on the 700 ramp (4.72 / 5.49). */
+.today-pick {
+  display: block;
+  padding: 24px;
+  border-radius: 24px;
+  text-decoration: none;
+  color: #ffffff;
+  background-image: linear-gradient(to right, #7e22ce, #1d4ed8);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+@media (min-width: 640px) { .today-pick { padding: 32px; } }
+/* The source's hover is a shadow plus a 1% scale. The scale is kept; the
+   shadow is a token because the card is no longer on --bg-card, and a
+   literal drop shadow on a saturated panel is the one thing here that would
+   read as a different component. */
+.today-pick:hover { transform: scale(1.01); box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55); }
+@media (prefers-reduced-motion: reduce) {
+  .today-pick, .today-pick:hover, .today-pick-art { transition: none; }
+  .today-pick:hover { transform: none; }
+}
+
+.today-pick-grid { display: grid; gap: 24px; align-items: center; }
+@media (min-width: 768px) { .today-pick-grid { grid-template-columns: 1fr 1fr; } }
+
+.today-pick-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.today-pick-title { font-size: 24px; font-weight: 700; margin: 0; }
+@media (min-width: 640px) { .today-pick-title { font-size: 30px; } }
+/* The source's chevron is `opacity-50 group-hover:opacity-100
+   group-hover:translate-x-1`. A transition on opacity must not run on a
+   hover-revealed element alone: the non-hover end is also the resting state,
+   so it animates on entry too. */
+.today-pick-chevron {
+  width: 24px; height: 24px; flex: 0 0 auto;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.today-pick:hover .today-pick-chevron { opacity: 1; transform: translateX(4px); }
+
+.today-pick-name { font-size: 36px; font-weight: 700; margin: 0 0 12px; }
+@media (min-width: 640px) { .today-pick-name { font-size: 48px; } }
+.today-pick-num { font-size: 30px; font-weight: 400; margin: 0 0 12px; opacity: 0.9; }
+
+.today-pick-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.today-pick-types .type-badge {
+  font-size: 14px; font-weight: 500; padding: 4px 12px; border-radius: var(--radius-pill);
+  /* The pill's own palette is the 10% white scrim + white text from the
+     measurement above. The type colour is deliberately NOT carried over from
+     .type-badge elsewhere on the site: a saturated type hue on a saturated
+     panel is unreadable, and the panel hue is what distinguishes the card. */
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: none;
+}
+.today-pick-desc {
+  font-size: 18px; line-height: 1.6; color: #dbeafe; margin: 0 0 24px;
+  /* Two lines is the cap. The zh descriptions in pokemon_data.json run
+     21–64 characters (median 32) so this clips the long tail rather than
+     reflowing the card; the full text is on the detail page. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+
+.today-pick-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.today-pick-tile {
+  padding: 12px; border-radius: 12px; min-width: 0;
+  /* 0.16 BLACK, the site's tile scrim, not the source's white/10. */
+  background: rgba(0, 0, 0, 0.16);
+}
+.today-pick-tile-label { font-size: 14px; color: #bfdbfe; margin: 0 0 4px; }
+.today-pick-tile-value { font-size: 24px; font-weight: 700; margin: 0; }
+/* 分類 is 4–5 CJK glyphs plus 寶可夢; at 24px in a third of a 526px column
+   that overflows, so only the value drops a step and only on the narrowest
+   of the three. 世代 is one digit and 屬性 at most 龍/飛行, so both keep 24px. */
+.today-pick-tile-genus { font-size: 18px; line-height: 1.35; }
+
+.today-pick-go {
+  font-size: 14px; color: #bfdbfe; margin: 24px 0 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.today-pick:hover .today-pick-go { opacity: 1; }
+/* The source hides the hover line entirely at rest. A line that is invisible
+   until hover is invisible to a keyboard user, who never hovers — so it is
+   shown on :focus-visible instead, where the outline makes it moot. */
+.today-pick:focus-visible .today-pick-go { opacity: 1; }
+
+.today-pick-art { display: flex; justify-content: center; position: relative; }
+.today-pick-glow {
+  position: absolute; inset: 0; border-radius: 50%;
+  background-image: linear-gradient(to right, #c084fc, #60a5fa);
+  filter: blur(64px); opacity: 0.3; pointer-events: none;
+}
+.today-pick-artwork { width: 288px; height: 288px; position: relative; }
+@media (min-width: 640px) { .today-pick-artwork { width: 320px; height: 320px; } }
+.today-pick-artwork img {
+  width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
+  transition: transform var(--transition-fast);
+}
+.today-pick:hover .today-pick-artwork img { transform: scale(1.1); }
+
+/* 熱門搜尋 — a grey panel in the source; on a dark page a raised surface
+   reads as the panel, so it is a surface token rather than a literal grey. */
+.today-tags-panel {
+  --today-accent: #60a5fa;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 24px;
+}
+[data-theme="light"] .today-tags-panel { --today-accent: #1d4ed8; }
+.today-tags-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px; }
+.today-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.today-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+a.today-tag:hover { border-color: var(--today-accent); color: var(--text-primary); }
+/* Every tag in this panel is a real destination, so there is no `.is-planned`
+   state left here and no rule for one — the eighth tag (龍屬性寶可夢) used to
+   be the last `<span class="today-tag is-planned">`, and it became
+   `category.html?cat=dragon`. The rule that governed it was: a planned tag
+   is a <span>, never an <a>, because a focusable control that goes nowhere
+   is worse than a non-focusable one. Same rule still governs the nav's
+   planned rows and the 遊戲 cards further down this page (`.today-link-card`,
+   which has its own `.is-planned` rule and keeps its badge).
+
+   `.today-tag-badge` below is NOT dead with them: it is shared with
+   `.today-link-card`, which still has planned cards. */
+.today-tag-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary, var(--surface-raised));
+  /* Same defect as the 12px 「已更新至…」 line on index.html, in the other direction: the badge
+     sits on --bg-tertiary, one step darker than the card behind it, so
+     light-theme --text-muted scores 4.35:1 there. 4.5:1 is the floor for
+     10px text, and --text-secondary clears it at 5.28:1. */
+  color: var(--text-secondary);
+}
+
+/* 探索圖鑑 — one accent per card, carried as an rgb triple so one rule can
+   build both the border and the number. The comma in `96, 165, 250` is
+   load-bearing: `rgb(96 165 250 / .35)` is invalid and the whole
+   declaration is dropped. Steps are chosen per theme, because
+   --bg-card flips: the 400 step is 8.73:1 on the dark card and 1.9:1 on
+   the white one. Worst case measured 5.50:1 dark / 5.02:1 light. */
+.today-explore-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+@media (min-width: 640px) { .today-explore-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .today-explore-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.today-explore-card {
+  display: block;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 2px solid rgb(var(--today-accent-rgb), 0.32);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+a.today-explore-card:hover { border-color: rgb(var(--today-accent-rgb), 0.75); box-shadow: var(--shadow-card); }
+.today-explore-card.is-blue   { --today-accent-rgb: 96, 165, 250; }
+.today-explore-card.is-purple { --today-accent-rgb: 192, 132, 252; }
+.today-explore-card.is-green  { --today-accent-rgb: 74, 222, 128; }
+.today-explore-card.is-amber  { --today-accent-rgb: 251, 191, 36; }
+.today-explore-card.is-red    { --today-accent-rgb: 248, 113, 113; }
+.today-explore-card.is-cyan   { --today-accent-rgb: 34, 211, 238; }
+[data-theme="light"] .today-explore-card.is-blue   { --today-accent-rgb: 29, 78, 216; }
+[data-theme="light"] .today-explore-card.is-purple { --today-accent-rgb: 126, 34, 206; }
+[data-theme="light"] .today-explore-card.is-green  { --today-accent-rgb: 21, 128, 61; }
+[data-theme="light"] .today-explore-card.is-amber  { --today-accent-rgb: 180, 83, 9; }
+[data-theme="light"] .today-explore-card.is-red    { --today-accent-rgb: 185, 28, 28; }
+[data-theme="light"] .today-explore-card.is-cyan   { --today-accent-rgb: 14, 116, 144; }
+.today-explore-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.today-explore-title { font-size: 20px; font-weight: bold; color: var(--text-primary); margin: 0; }
+.today-explore-num { font-size: 24px; font-weight: bold; color: rgb(var(--today-accent-rgb)); white-space: nowrap; }
+.today-explore-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+/* Print forces the light steps. Written with BOTH theme prefixes at equal
+   specificity so it wins on source order against either theme's base rule —
+   a bare `.today-explore-card.is-blue` here would lose to
+   `[data-theme="light"] .today-explore-card.is-blue` (0,2,0) and print the
+   dark 400 step on white paper. */
+@media print {
+  [data-theme="dark"] .today-explore-card.is-blue,
+  [data-theme="light"] .today-explore-card.is-blue   { --today-accent-rgb: 29, 78, 216; }
+  [data-theme="dark"] .today-explore-card.is-purple,
+  [data-theme="light"] .today-explore-card.is-purple { --today-accent-rgb: 126, 34, 206; }
+  [data-theme="dark"] .today-explore-card.is-green,
+  [data-theme="light"] .today-explore-card.is-green  { --today-accent-rgb: 21, 128, 61; }
+  [data-theme="dark"] .today-explore-card.is-amber,
+  [data-theme="light"] .today-explore-card.is-amber  { --today-accent-rgb: 180, 83, 9; }
+  [data-theme="dark"] .today-explore-card.is-red,
+  [data-theme="light"] .today-explore-card.is-red    { --today-accent-rgb: 185, 28, 28; }
+  [data-theme="dark"] .today-explore-card.is-cyan,
+  [data-theme="light"] .today-explore-card.is-cyan   { --today-accent-rgb: 14, 116, 144; }
+}
+
+/* ------------------------------------------------------------------
+   Blocks 5-8: the link-card family. 精選系列 (9 cards, 3 across),
+   寶可夢遊戲 and 對戰工具
+   are the same shape in the source — a title, a big number, a sentence —
+   so they share one rule and differ only in grid density and accent.
+   ------------------------------------------------------------------ */
+.today-link-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+@media (min-width: 640px) { .today-link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* The desktop column count is chosen so the row divides EVENLY, and that is
+   the only reason the two densities differ: 精選系列 has 9 cards → 3 across in
+   3 rows, 寶可夢遊戲 and 對戰工具 have 4 each → 4 across in a single row. At 2
+   across the nine rendered as 5 rows with a 1-card orphan, which read as a
+   layout fault rather than as a grid. So `.is-dense` is not "smaller
+   padding" or "tighter" — it is the 4-count variant, and a new section with a
+   5th or 7th card count wants its own stop, not this one.
+   精選系列 was 12 while the three colour cards lived here; removing them put
+   it back on 9, which is the count this comment was written for. */
+@media (min-width: 1024px) { .today-link-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .today-link-grid.is-dense { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.today-link-card {
+  position: relative;
+  display: block;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 2px solid var(--hairline);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+a.today-link-card:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+
+/* 精選系列 only: each card carries its category's own hue, read from
+   COLLECTION_TINTS (assets/js/categories.js) — the same table collections.html
+   uses, so the two pages cannot drift apart. The 8px inset keeps the 4px
+   rule clear of the card's rounded corner, which otherwise paints a square
+   over it.
+
+   InfoPoke's values are `from-{hue}-50 to-{hue}-50` with a `{hue}-200` edge,
+   transcribed verbatim for the light theme. InfoPoke is light-only and its
+   -50 stops are near-white, so the DARK theme substitutes the same hues at
+   -950 under alpha over --bg-card — copying the hexes would produce nine
+   glowing white tiles on a dark page. The inversion is forced by shared.css,
+   where :root is dark and [data-theme="light"] is the override.
+
+   The vars are stamped per card by the loop at the bottom of this file, so
+   all nine read from one table rather than nine hand-written gradients. */
+.today-link-card.is-tinted {
+  border-color: rgba(var(--link-tint-border-rgb, 148 163 184), var(--link-tint-border-a, 0.35));
+  background-image: linear-gradient(135deg,
+    rgba(var(--link-tint-from-rgb, 33 38 45), var(--link-tint-from-a, 0.55)),
+    rgba(var(--link-tint-to-rgb, 33 38 45), var(--link-tint-to-a, 0.4)));
+}
+[data-theme="light"] .today-link-card.is-tinted {
+  border-color: var(--link-tint-border, var(--hairline));
+  background-image: linear-gradient(135deg,
+    var(--link-tint-from, var(--bg-card)),
+    var(--link-tint-to, var(--bg-card)));
+}
+/* The category's own accent as a 4px top rule, from config.accent[0] — a
+   700-level shade, dark enough to read as a border on --bg-card in both
+   themes without carrying text. Kept alongside the tinted border on purpose:
+   the wash says "this hue", the rule says "this category". */
+.today-link-card.is-tinted::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--link-accent, var(--text-muted));
+}
+a.today-link-card.is-tinted:hover {
+  border-color: rgba(var(--link-tint-border-rgb, 148 163 184), var(--link-tint-border-hover-a, 0.7));
+}
+[data-theme="light"] a.today-link-card.is-tinted:hover {
+  border-color: var(--link-tint-border-hover, var(--border-input));
+}
+.today-link-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px; }
+.today-link-num { font-size: 28px; font-weight: 700; color: var(--accent-gold); margin: 0 0 8px; line-height: 1.1; }
+.today-link-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+/* A planned card states what it would have been, then says so. The badge
+   is the same .today-tag-badge as the tag panel — one "not built yet"
+   treatment site-wide, not one per section.
+   These five cards below (傳說 Z-A, 傷害計算器, 性格指南, 進化指南, 屬性相剋)
+   are the ones left, and they have no `.today-link-num` — a planned feature has
+   no member count to show. So the `is-planned` greying of the number is gone
+   with them, the same way the 熱門搜尋 panel lost `.today-tag.is-planned` when
+   龍屬性寶可夢 became a real tag. */
+.today-link-card .today-tag-badge { display: inline-block; margin-top: 12px; }
+
+/* ------------------------------------------------------------------
+   Block 8: 快速連結 — four panels, not a link list. The 招式 and 特性
+   panels are data-driven (8 rows each); the 最初的夥伴 panel is 8 rows
+   of region links; the fourth is a 2x2 button block.
+   ------------------------------------------------------------------ */
+.today-quick-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+@media (min-width: 768px) { .today-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1200px) { .today-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.today-quick-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.today-quick-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px; }
+.today-quick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.today-quick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline);
+}
+a.today-quick-row:hover { color: var(--text-primary); }
+.today-quick-row:last-child { border-bottom: 0; }
+.today-quick-more {
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+a.today-quick-more:hover { color: var(--text-primary); }
+.today-quick-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.today-quick-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.today-quick-btn .today-quick-btn-sub { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+/* The 熱門招式 and 熱門特性 rows were plain <li> for as long as moves.html and
+   abilities.html were registered planned pages, where an <a> would have been
+   a dead href. Both pages exist, so both rows are links now and no row here
+   carries `.is-static`; the rule stays because 性格 is the next page to
+   ship and the selector is what it would use until then. `.is-static` is
+   the same rule as `.today-quick-row` with no hover, so a non-link row and
+   a link row read identically — a muted one would make 8 of them look
+   broken. */
+.today-quick-row.is-static { color: var(--text-secondary); }
+
+/* ------------------------------------------------------------------
+   Block 9: FAQ. Real <details>/<summary>, which InfoPoke's is not — the
+   source uses div+onclick, which needs JS, is not keyboard-operable, and
+   announces nothing. The native element gives disclosure semantics and
+   Ctrl+F for free. open/closed markers are tokens, and hidden on <summary>
+   only via list-style so Safari's ::marker does not paint a stray triangle.
+   ------------------------------------------------------------------ */
+.today-faq { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.today-faq details {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.today-faq summary {
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.today-faq summary::-webkit-details-marker { display: none; }
+.today-faq summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+.today-faq details[open] summary::after { transform: rotate(-135deg); }
+.today-faq summary:hover { color: var(--accent-gold); }
+.today-faq summary:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: -2px; border-radius: var(--radius-sm); }
+.today-faq-answer { padding: 0 20px 18px; font-size: 15px; line-height: 1.8; color: var(--text-secondary); }
+.today-faq-answer a { color: var(--accent-gold); }
+
+/* The page's own heading block.  The h1 above is new to this page: index.html
+   had one and it lived in the hero, which stayed behind.  Centred, same
+   measure as .today-section-sub, and deliberately NOT a section — it labels
+   the page rather than one part of it, and a <section> for it would be a
+   region with no content of its own. */
+.today-head { max-width: 1180px; margin: 0 auto; padding: 48px 20px 0; text-align: center; }
+.today-head-title { font-size: 36px; font-weight: bold; color: var(--text-primary); margin: 0 0 10px; }
+.today-head-sub { font-size: 16px; color: var(--text-secondary); max-width: 672px; margin: 0 auto; line-height: 1.7; }

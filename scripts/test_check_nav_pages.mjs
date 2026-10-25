@@ -324,7 +324,7 @@ const cases = [
      * the day it does not. */
     name: 'today.html re-declares .home-footer-line, so two definitions exist and only the cascade decides',
     mutate: (f, s) => f === 'today.html'
-      ? s.replace('    .today-section {', '    .home-footer-line { text-align: left; }\n    .today-section {')
+      ? s.replace('</head>', '  <style>\n    .home-footer-line { text-align: left; }\n  </style>\n</head>')
       : undefined,
     expect: 'today.html does not re-declare .home-footer or .home-footer-line',
   },

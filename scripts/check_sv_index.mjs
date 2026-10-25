@@ -128,6 +128,7 @@ eq(noSprite.map((p) => p.id), [], 'species with no 96px sprite to fall back to')
    svUrl for real artwork, keep an onerror net, and hide the stand-in count when
    nothing is standing in. */
 const html = readFileSync(join(root, 'types.html'), 'utf8');
+const css = readFileSync(join(root, 'assets/css/types.css'), 'utf8');
 ok(/import\s*\{[^}]*\bhasSv\b[^}]*\}\s*from\s*['"][^'"]*sv-index\.js['"]/.test(html),
   'types.html imports hasSv from the generated module');
 ok(/import\s*\{[^}]*\bsvUrl\b[^}]*\}\s*from\s*['"][^'"]*sv-index\.js['"]/.test(html),
@@ -147,10 +148,10 @@ ok(/assets\/images\/sprite\/['"]\s*\+\s*p\.filename|ASSETS\.sprites/.test(html),
   'types.html builds the sprite fallback from the dataset filename');
 /* The badge has to read over both the chip surface and an unknown-coloured
    sprite, so it is two tones; a one-tone ring fails against half of them. */
-const markDark = /--chip-sub-mark:\s*#e8edf5/.test(html);
-const markLight = /--chip-sub-mark:\s*#3a4252/.test(html);
+const markDark = /--chip-sub-mark:\s*#e8edf5/.test(css);
+const markLight = /--chip-sub-mark:\s*#3a4252/.test(css);
 ok(markDark && markLight, 'badge mark colour is defined for both themes');
-ok(/--chip-sub-halo:/.test(html), 'badge halo colour is defined');
+ok(/--chip-sub-halo:/.test(css), 'badge halo colour is defined');
 
 console.log(`  species: ${knownIds.length}`);
 console.log(`  artwork on disk: ${[...SV_IDS].length} (${declaredSources.map((s) => {

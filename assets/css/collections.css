@@ -1,0 +1,398 @@
+/**
+ * Collections hub — page-only styles.
+ *
+ * Extracted from collections.html so the document is markup only. Mounted by
+ * that page and nothing else; every rule here is page-specific.
+ */
+/* ===== Collections hub =====
+   Page-specific geometry only. Every colour here comes from a token in
+   shared.css, so the hub has no palette of its own to keep in sync — the
+   one exception is the 4px card top border, which is set inline from each
+   category's own accent and is decorative (see .coll-card::before).
+
+   This page fetches NOTHING. It is pure navigation, and its numbers are
+   written down in categories.js rather than computed, because computing them
+   would mean pulling pokemon_data.json (614 KB) and evolution_chains.json
+   (291 KB) just to print "71". scripts/check_categories.mjs recomputes all
+   of them from the real selectors and fails if this page's table drifts. */
+
+.coll-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.breadcrumb [aria-current="page"] {
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+/* ===== Hero =====
+   A neutral gradient, not a category accent: this page has no single
+   category, and picking one of the nine would imply the hub belongs to it.
+   The Pokéballs are the only Pokéball imagery on the site outside the
+   favicon, they are pure CSS, and they are
+   decorative — hence aria-hidden, because the hero's text already says
+   everything they could say. */
+.coll-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  padding: 44px 24px;
+  margin-bottom: 36px;
+  text-align: center;
+  color: #fff;
+  background-image: linear-gradient(135deg, #1f2937 0%, #3f2d63 55%, #5b2a4a 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.coll-hero h1 {
+  font-size: 2.25rem;
+  margin: 0 0 10px;
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .coll-hero h1 { font-size: 3rem; }
+}
+
+.coll-hero-sub {
+  font-size: 1.125rem;
+  margin: 0 auto;
+  max-width: 46ch;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.7;
+}
+
+/* Four Pokéballs, drawn with two pseudo-elements each. Purely decorative;
+   `position: absolute` keeps them out of the text flow at every width. */
+.coll-pokeballs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.coll-pokeball {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #e11d48 0 50%, #f8fafc 50% 100%);
+  opacity: 0.16;
+}
+
+.coll-pokeball::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: #f8fafc;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.55);
+}
+
+.coll-pokeball:nth-child(1) { top: 18px;  left: 6%;  transform: rotate(-18deg); }
+.coll-pokeball:nth-child(2) { top: 64px;  left: 17%; transform: rotate(12deg) scale(0.8); }
+.coll-pokeball:nth-child(3) { top: 26px;  right: 8%; transform: rotate(20deg); }
+.coll-pokeball:nth-child(4) { top: 76px;  right: 19%; transform: rotate(-8deg) scale(0.72); }
+
+@media (max-width: 700px) {
+  /* Four balls behind 18px hero text is noise, not texture. */
+  .coll-pokeball:nth-child(2),
+  .coll-pokeball:nth-child(4) { display: none; }
+}
+
+.coll-stats {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 640px;
+  margin: 28px auto 0;
+}
+
+@media (min-width: 640px) {
+  .coll-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* BLACK scrim, not white. These are white numbers on a coloured fill, so a
+   white scrim lightens the fill and *reduces* their contrast; 0.16 black
+   darkens it instead. Over this page's lightest gradient stop (#3f2d63 /
+   #5b2a4a) the label measures 5.6:1. Same reasoning as .cat-stat. */
+.coll-stat {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: var(--radius-md);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.coll-stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.coll-stat-label {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ===== Groups ===== */
+.coll-group {
+  margin-bottom: 40px;
+}
+
+.coll-group h2 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.coll-group-desc {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.coll-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== Card =====
+   Deliberately NOT a `.card` from shared.css: that is the 140px Pokédex tile
+   with an image, and this is a wide text card. Sharing the class would
+   inherit its fixed image box and its hover glow for no benefit.
+
+   The fill is InfoPoke's, transcribed: `bg-gradient-to-br from-{hue}-50
+   to-{hue}-50` with a `border-{hue}-200` edge, so each of the nine cards
+   carries its category's own hue as a very light wash. InfoPoke is
+   light-only and its -50 stops are near-white, so the base rule here is the
+   DARK substitute (the same hues at -950 over --bg-card) and the
+   [data-theme="light"] block below restores the verbatim hexes. That
+   inversion is forced by shared.css, where :root is dark and
+   [data-theme="light"] is the override.
+
+   Every --coll-tint-* value is written inline by renderCard() from
+   COLLECTION_TINTS, so the nine read from one table. */
+.coll-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  padding: 18px 20px 16px;
+  border: 2px solid rgba(var(--coll-tint-border-rgb, 148 163 184), var(--coll-tint-border-a, 0.35));
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  background-image: linear-gradient(135deg,
+    rgba(var(--coll-tint-from-rgb, 33 38 45), var(--coll-tint-from-a, 0.55)),
+    rgba(var(--coll-tint-to-rgb, 33 38 45), var(--coll-tint-to-a, 0.4)));
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform var(--transition-fast), border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+[data-theme="light"] .coll-card {
+  border-color: var(--coll-tint-border, var(--hairline));
+  background-image: linear-gradient(135deg,
+    var(--coll-tint-from, var(--bg-card)),
+    var(--coll-tint-to, var(--bg-card)));
+}
+
+/* The category's own accent, as a 4px top rule. Inline from config.accent[0]
+   — a 700-level shade, so it is dark enough to read as a border on
+   --bg-card in both themes without carrying any text. This is deliberately
+   kept alongside the tinted border: the border says "this hue", the rule
+   says "this category", and collapsing them would cost the crisp key. */
+.coll-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--coll-accent, var(--text-muted));
+}
+
+a.coll-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--coll-tint-border-rgb, 148 163 184), var(--coll-tint-border-hover-a, 0.7));
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] a.coll-card:hover {
+  border-color: var(--coll-tint-border-hover, var(--border-input));
+}
+
+a.coll-card:focus-visible {
+  outline: 3px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Title and the big number share one row, per the card spec: the number is
+   the headline figure and belongs beside the name it counts, not below it
+   where it would be mistaken for a total for the whole grid. */
+.coll-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coll-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.coll-card-count {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.coll-card-desc {
+  margin: 0;
+  flex: 1;
+  font-size: 0.925rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.coll-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* InfoPoke's tag idiom verbatim: `bg-{hue}-100 text-{hue}-700 px-2 py-1
+   rounded`. It colours tags SEMANTICALLY — Alola orange, Galar purple,
+   Hisui cyan, Ancient amber, Future cyan, Event-Only pink — so the tone
+   travels with what the tag says, and one card carries three different
+   hues (see TAG_TONES). The hue is a per-tag custom property, so this rule
+   is written once for all 33.
+
+   No border: InfoPoke's chips have none, and a hairline ring on top of a
+   filled chip reads as a rendering fault at this size. Dark substitutes the
+   -900 fill with -300 text, as on the card. */
+.coll-tag {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--tag-bg-rgb, 107 114 128), var(--tag-bg-a, 0.55));
+  font-size: 0.75rem;
+  color: var(--tag-text-dark, var(--text-secondary));
+  white-space: nowrap;
+}
+
+[data-theme="light"] .coll-tag {
+  background: var(--tag-bg, var(--surface-raised));
+  color: var(--tag-text, var(--text-secondary));
+}
+
+/* The value and its label are one colour, as in InfoPoke, where the whole
+   chip is a single element. Bold carries the emphasis on its own. */
+.coll-tag b {
+  color: inherit;
+  font-weight: 700;
+}
+
+/* An upcoming card is a real card that is not a link. It is NOT given
+   tabindex="0" or a role that implies activation: a focusable element that
+   does nothing when activated is worse than a non-focusable one, because it
+   advertises an affordance the page does not have. The muted treatment and
+   the explicit "敬請期待" tag both say the same thing. */
+.coll-card.is-upcoming {
+  border-style: dashed;
+}
+
+.coll-card.is-upcoming::before {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* The neutral slate→gray tint carries the "not built yet" signal, so nothing
+   dims the tags. An earlier version dropped them to 0.75 opacity, which is
+   a contrast bug wearing a costume: the blend is invisible to a
+   stylesheet review and only shows up once check_categories.mjs composites
+   the text, so the tags stay at full strength. */
+
+.coll-card.is-upcoming .coll-card-count {
+  color: var(--text-muted);
+}
+
+.coll-upcoming-note {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media print {
+  .coll-pokeballs { display: none; }
+  .coll-hero {
+    background: none !important;
+    color: var(--text-primary);
+    border: 1px solid var(--hairline);
+    padding: 16px;
+  }
+  .coll-hero h1,
+  .coll-hero-sub,
+  .coll-stat-value,
+  .coll-stat-label { color: var(--text-primary); }
+  .coll-stat {
+    background: var(--bg-secondary);
+    border: 1px solid var(--hairline);
+  }
+  .coll-card { break-inside: avoid; }
+  /* Print forces the light tokens, so the dark tint/tag forms have to be
+     restated here or a dark-theme page prints near-black chips on white
+     paper. The values are InfoPoke's, which were designed for white. */
+  .coll-card {
+    border-color: var(--coll-tint-border, var(--hairline));
+    background-image: linear-gradient(135deg,
+      var(--coll-tint-from, var(--bg-card)),
+      var(--coll-tint-to, var(--bg-card)));
+  }
+  .coll-tag {
+    background: var(--tag-bg, var(--surface-raised));
+    color: var(--tag-text, var(--text-secondary));
+  }
+}

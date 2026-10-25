@@ -1058,3 +1058,22 @@
         scroll-behavior: auto;
     }
 }
+
+/* Extracted from cry-studio-pro.html — the page shell the inline block used to own. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+.sq-label small {
+  margin-left: 5px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: 0.85;
+}

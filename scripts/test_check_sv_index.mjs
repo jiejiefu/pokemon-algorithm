@@ -74,6 +74,7 @@ const SRC = [
   'scripts/fetch_sv_sprites.py',
   'scripts/check_sv_index.mjs',
   'types.html',
+  'assets/css/types.css',
 ];
 const SV_IMAGES = 'assets/images/scarlet-violet';
 const SPRITE_IMAGES = 'assets/images/sprite';
@@ -225,7 +226,7 @@ const cases = [
   },
   {
     name: 'the badge loses its light-theme tone, so it cannot read over a pale sprite',
-    mutate: (f, s) => f === 'types.html'
+    mutate: (f, s) => f === 'assets/css/types.css'
       ? s.replace('--chip-sub-mark: #3a4252;', '--chip-sub-mark: #8a93a5;')
       : undefined,
     expect: 'badge mark colour is defined for both themes',

@@ -1039,3 +1039,30 @@
   border-radius: var(--radius-xs);
   border: 1px solid var(--hairline);
 }
+
+/* Extracted from colors-generator.html — the page shell the inline block used to own. */
+/* Page shell only. The h1 lives here, not in the header, because this page
+   has an intro below it. A page with an h1 in BOTH the header and the body
+   gives a screen reader two top-level headings for one page. */
+.cp-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.cp-intro {
+  margin-bottom: 20px;
+}
+
+.cp-intro h1 {
+  font-size: 28px;
+  margin: 0 0 6px;
+}
+
+.cp-intro p {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}

@@ -94,6 +94,7 @@ const SRC = [
   'moves.html',
   'move.html',
   'types.html',
+  'assets/css/types.css',
   'assets/css/moves.css',
   'assets/data/moves_zh.json',
   'assets/data/move_learners_count.json',
@@ -303,7 +304,7 @@ const cases = [
     expect: 'mv- prefixed',
   },
   {
-    name: 'the error state names a token only types.html declares',
+    name: 'the error state names a chart token only types.css declares',
     mutate: (f, s) => f === 'assets/css/moves.css'
       ? s.replace('.mv-status.is-error { color: var(--error-text); }', '.mv-status.is-error { color: var(--chart-bad-text); }')
       : undefined,
@@ -341,21 +342,21 @@ const cases = [
   // new, so all eight get one.
   {
     name: 'the roster card stops filling its grid track — the 60px-in-96.7px defect',
-    mutate: (f, s) => f === 'types.html'
-      ? s.replace('.chip-grid--roster .chip-item {\n      flex: 1;\n', '.chip-grid--roster .chip-item {\n')
+    mutate: (f, s) => f === 'assets/css/types.css'
+      ? s.replace('.chip-grid--roster .chip-item {\n  flex: 1;\n', '.chip-grid--roster .chip-item {\n')
       : undefined,
     expect: 'fill the grid track it is placed in',
   },
   {
     name: 'the roster card puts the name back beside the image',
-    mutate: (f, s) => f === 'types.html'
-      ? s.replace('      flex: 1;\n      flex-direction: column;\n', '      flex: 1;\n')
+    mutate: (f, s) => f === 'assets/css/types.css'
+      ? s.replace('  flex: 1;\n  flex-direction: column;\n', '  flex: 1;\n')
       : undefined,
     expect: 'should stack its image above its name',
   },
   {
     name: 'the roster grid loses its modifier and starts styling all three blocks',
-    mutate: (f, s) => f === 'types.html'
+    mutate: (f, s) => f === 'assets/css/types.css'
       ? s.replace(/^(\s*)\.chip-grid--roster \{$/m, '$1.chip-grid {')
       : undefined,
     expect: 'should scope the rule that turns the roster into a grid behind a --roster modifier',
@@ -366,15 +367,15 @@ const cases = [
     // roster's own header would take `flex-direction: column` with it and trip a
     // different assertion — a caught mutation, but not proof that the shared-rule
     // guard is doing the catching.
-    mutate: (f, s) => f === 'types.html'
-      ? s.replace('    .chip-item {\n      display: inline-flex;\n',
-        '    .chip-item {\n      flex: 1;\n      flex-direction: column;\n      display: inline-flex;\n')
+    mutate: (f, s) => f === 'assets/css/types.css'
+      ? s.replace('.chip-item {\n  display: inline-flex;\n',
+        '.chip-item {\n  flex: 1;\n  flex-direction: column;\n  display: inline-flex;\n')
       : undefined,
     expect: 'must not carry flex or flex-direction',
   },
   {
     name: 'the roster image goes back to stretching the 120x112 art',
-    mutate: (f, s) => f === 'types.html'
+    mutate: (f, s) => f === 'assets/css/types.css'
       ? s.replace('.chip-grid--roster .chip-item img { object-fit: contain; }',
         '.chip-grid--roster .chip-item img { object-fit: fill; }')
       : undefined,
@@ -382,7 +383,7 @@ const cases = [
   },
   {
     name: 'the offset reverts to the single-sample -23% it was measured off',
-    mutate: (f, s) => f === 'types.html'
+    mutate: (f, s) => f === 'assets/css/types.css'
       ? s.replace('translateY(-25%)', 'translateY(-23%)')
       : undefined,
     expect: 'should be the measured 25%',

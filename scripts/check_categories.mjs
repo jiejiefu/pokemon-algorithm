@@ -826,6 +826,7 @@ ok(
 // string to it is the hole the token vocabulary closes, so the right-hand side
 // is checked rather than the mere presence of the property.
 const catHtml = readFileSync(join(ROOT, 'category.html'), 'utf8');
+const catCss = readFileSync(join(ROOT, 'assets/css/category.css'), 'utf8');
 const htmlAssignments = [...catHtml.matchAll(/\.(?:inner|outer)HTML\s*=\s*([^;]+);/g)].map((m) => m[1].trim());
 ok(htmlAssignments.length > 0, 'category.html does clear containers via innerHTML (sanity: the scan found something)');
 for (const rhs of htmlAssignments) {
@@ -834,7 +835,7 @@ for (const rhs of htmlAssignments) {
 ok(!/insertAdjacentHTML|\.html\(|dangerouslySetInnerHTML/.test(catHtml), 'category.html has no other HTML-injection path');
 ok(/appendRichText/.test(catHtml), 'category.html renders prose and notes through appendRichText');
 ok(/typeTextStyleSheet/.test(catHtml), 'category.html injects the generated type stylesheet');
-ok(catHtml.includes('.cat-type'), 'category.html styles the .cat-type token');
+ok(catCss.includes('.cat-type'), 'category.css styles the .cat-type token');
 
 console.log('\ntype text colours: 18 types × 2 themes, all clearing 4.5:1');
 

@@ -1,0 +1,330 @@
+/**
+ * Category page — page-only styles.
+ *
+ * Extracted from category.html so the document is markup only. Mounted by
+ * that page and nothing else; every rule here is page-specific.
+ */
+/* ===== Category page =====
+   Page-specific. The nine accent gradients live in assets/js/categories.js
+   (they are data, not a fixed palette), so what is left here is geometry and
+   the filter row. Markup is emitted by this file's module, not by shared.js,
+   so these rules sit beside the emitter — the same convention that moved the
+   evolution chain's CSS out of detail.html into detail.css. */
+
+.cat-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* ===== Breadcrumb =====
+   A real hierarchy: the last item is where you are, so it is not a link. */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.breadcrumb [aria-current="page"] {
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+/* ===== Hero =====
+   `background-image` is set inline from the category's three-stop accent, so
+   the gradient is data. All nine are Tailwind 700-level shades, which is the
+   600→700 correction explained in categories.js: white text needs 4.50:1 here
+   because the subtitle is 18–20px in normal weight, and six of the source's
+   600-level hues do not reach it. Worst case across the nine is 4.92:1. */
+.cat-hero {
+  border-radius: var(--radius-md);
+  padding: 48px 24px;
+  margin-bottom: 28px;
+  text-align: center;
+  color: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.cat-hero h1 {
+  font-size: 2.25rem;
+  margin: 0 0 10px;
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .cat-hero h1 { font-size: 3rem; }
+}
+
+.cat-hero-sub {
+  font-size: 1.125rem;
+  margin: 0 0 6px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (min-width: 640px) {
+  .cat-hero-sub { font-size: 1.25rem; }
+}
+
+.cat-hero-note {
+  font-size: 0.875rem;
+  margin: 0;
+  /* 0.95, not the 0.88 this started at. 14px is normal-weight text, so it
+     needs 4.50:1, and the lightest accent stop (starter's #1d4ed8) only
+     reaches 4.27:1 at 0.88. 0.92 clears by 0.01 — no margin for a rounding
+     difference — and 0.95 gives 4.70:1. Alpha buys a visual hierarchy here,
+     but not at the cost of the threshold, so the hierarchy is kept shallow
+     and the value is held high. Same 0.95 as .cat-hero-sub. */
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Stat tiles. The scrim is BLACK at 0.16, which is the opposite of what
+   looks like the obvious choice and is load-bearing. These are white
+   numbers on a coloured fill, so a *white* scrim lightens the fill and
+   *reduces* contrast: at rgba(255,255,255,0.16) the 12px label measured
+   3.67:1 on shiny, 4.00:1 on legendary and gigantamax, and 4.02:1 on
+   regional — four of nine categories below WCAG AA. Black at the same 0.16
+   darkens the fill instead, which lifts the worst case to 5.61:1 and the
+   best to 7.35:1 across all nine accents. */
+.cat-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 640px;
+  margin: 28px auto 0;
+}
+
+@media (min-width: 640px) {
+  .cat-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.cat-stat {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: var(--radius-md);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.cat-stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1.2;
+  /* Longest value is 「第 7 世代」/「皆為活動限定」-style CJK; wrapping beats
+     shrinking because the tile is a fixed 4-column track on desktop. */
+  overflow-wrap: anywhere;
+}
+
+.cat-stat-label {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ===== Prose ===== */
+.cat-intro {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+.cat-intro h2 {
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+
+.cat-intro p {
+  margin: 0;
+  line-height: 1.85;
+  color: var(--text-secondary);
+}
+
+/* An emphasised Pokémon name inside `prose` / `notes`. --text-primary, not
+   --text-secondary: the paragraph already sets the secondary tone at
+   5.28:1, and bolding a long name at that weight reads as smudged rather
+   than emphasised. The primary tone is the same one a heading would use, so
+   the name sits at the paragraph's own ceiling instead of introducing a
+   third level. */
+.cat-intro .cat-strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* A type name inside `prose` / `notes`, e.g. {{火}}. No `color` here on
+   purpose — the eighteen per-theme values are derived from shared.js's
+   TYPE_COLORS and injected as a stylesheet by initRichText() below, because
+   the fixed saturated swatches miss 4.5:1 on one theme or the other and each
+   type needs its own stepped value per theme. A `.cat-type` with no
+   `data-type` (a mistyped {{…}}) therefore inherits the paragraph colour,
+   which is the intended outcome: it should read as a typo, not as a colour
+   that means something. */
+
+/*
+ * `notes` is the optional per-category addendum to `prose`. The separation is
+ * a border + padding rather than another paragraph indent because these are
+ * corrections and extra facts, not a continuation of the definition — a reader
+ * should be able to tell at a glance which text is the category's definition
+ * and which is this page's extra material.
+ *
+ * The child selector is load-bearing: `#cat-notes` is a plain div, so without
+ * `:first-child` the FIRST note in a config would pick up a top border
+ * immediately after `#cat-prose` with no gap, and the two would read as one
+ * block with a rule through it. `:not(:last-child)` gives each note a bottom
+ * border and keeps the spacing between notes, so the first note never gets a
+ * top rule no matter how many there are.
+ */
+.cat-intro #cat-notes:not(:empty) {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.cat-intro #cat-notes p:not(:last-child) {
+  margin-bottom: 12px;
+}
+
+/* ===== Filter row =====
+   Real buttons, not links: they filter what is already on the page and do not
+   navigate, so they are not anchors. `aria-pressed` carries the state, and the
+   active chip is distinguished by fill AND border rather than colour alone. */
+.cat-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cat-filter {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--hairline);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.cat-filter:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.cat-filter[aria-pressed="true"] {
+  /* The active chip borrows the category's own mid-stop so it reads as part
+     of this page's identity; white on all nine mids is >= 4.98:1. */
+  background: var(--cat-accent-mid);
+  border-color: var(--cat-accent-mid);
+  color: #fff;
+}
+
+.cat-filter:focus-visible {
+  outline: 3px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ===== Result meta + grid ===== */
+.cat-result-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.cat-grid {
+  display: grid;
+  /* auto-fill + minmax, so the column count follows the 1180px content
+     column and the tracks never force a horizontal scrollbar on a 320px
+     viewport. The card's own image is capped at 140px by shared.css, so
+     tracks below that would only add gutters. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.cat-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+/* ===== Loading / error ===== */
+.cat-status {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-muted);
+}
+
+.cat-status.is-error {
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--error-text);
+  border-radius: var(--radius-md);
+  text-align: left;
+  line-height: 1.8;
+}
+
+.cat-status.is-error code {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ===== Print =====
+   The gradient and the white-on-gradient text cannot both survive paper, so
+   the hero prints as plain text on the page background. Print is not the
+   place to reproduce a colour ramp that will come out as a grey smear. */
+@media print {
+  .cat-hero {
+    background: none !important;
+    color: var(--text-primary);
+    box-shadow: none;
+    border: 1px solid var(--hairline);
+    padding: 16px;
+  }
+
+  .cat-hero h1,
+  .cat-hero-sub,
+  .cat-hero-note,
+  .cat-stat-value,
+  .cat-stat-label {
+    color: var(--text-primary);
+  }
+
+  .cat-stat {
+    background: var(--bg-secondary);
+    border: 1px solid var(--hairline);
+  }
+
+  .cat-filters,
+  .breadcrumb {
+    display: none;
+  }
+}

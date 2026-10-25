@@ -1,0 +1,28 @@
+/**
+ * Colour explorer — page-only styles.
+ *
+ * Extracted from colors-explore.html so the document is markup only. The
+ * shared `.cp-*` components stay in colors.css; this file is the shell.
+ */
+.cp-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.cp-intro {
+  margin-bottom: 24px;
+}
+
+.cp-intro h1 {
+  font-size: 28px;
+  margin: 0 0 6px;
+}
+
+.cp-intro p {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}

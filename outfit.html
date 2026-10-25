@@ -34,40 +34,7 @@
        this page needs cannot live among them. Never edit a `.cp-*` rule for a
        need this page alone has. See AGENTS.md §3.B1. -->
   <link rel="stylesheet" href="assets/css/outfit.css">
-  <style>
-    /* Page shell only, for the same reason colors-generator.html keeps its shell inline:
-       these are the two sizes this one page uses and they belong with the markup
-       they apply to. Components stay in outfit.css.
 
-       `.cp-page` is the load-bearing one and it used to be MISSING from this file:
-       colors-generator.html and colors-explore.html each define it in their own shell, so
-       the name looked like it came from a stylesheet and nothing caught its
-       absence here. The page rendered edge to edge at the full viewport width —
-       the lead paragraph at ~90 CJK characters a line and a 460px palette cell
-       wide. These four declarations are deliberately identical to colors-generator.html's,
-       because the three colour pages sharing a name should share a measure. */
-    .cp-page {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 24px 16px 64px;
-    }
-
-    .cp-intro {
-      margin-bottom: 28px;
-    }
-
-    .cp-intro h1 {
-      font-size: 28px;
-      margin: 0 0 6px;
-    }
-
-    :root { color-scheme: dark; }
-    :root[data-theme="light"] { color-scheme: light; }
-    body { overflow-x: hidden; }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-    }
-  </style>
 </head>
 <body>
   <header class="header header-colors">

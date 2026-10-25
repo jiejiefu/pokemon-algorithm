@@ -14,8 +14,8 @@
  *   - `[hidden]` losing to an author `display` on the action row (§3.M).
  *
  * The CSS lives in `assets/css/home-sections.css`, not inline: these sections
- * are below the fold, and the hero's inline block stays the only critical CSS.
- * This checker therefore reads both files.
+ * are below the fold, and the hero's own shell lives in `home-hero.css` instead.
+ * This checker therefore reads both stylesheets and the page that mounts them.
  */
 
 import { readFileSync } from 'node:fs';
@@ -46,8 +46,8 @@ const stripComments = (s) => s
 
 const html = read('index.html');
 const htmlCode = stripComments(html);
-const inlineCss = (html.match(/<style>([\s\S]*?)<\/style>/) || [null, ''])[1];
-const inlineNoComments = stripComments(inlineCss);
+const heroCss = read('assets/css/home-hero.css');
+const heroNoComments = stripComments(heroCss);
 const css = read('assets/css/home-sections.css');
 const cssNoComments = stripComments(css);
 
@@ -89,11 +89,11 @@ ok(roster.every((r) => Number.isFinite(r.height_m) && Number.isFinite(r.hue) && 
 console.log('\n--- the page mounts the two sections in the only order the hero allows ---');
 ok(/<link rel="stylesheet" href="assets\/css\/home-sections\.css">/.test(htmlCode),
   'index.html links the below-fold stylesheet');
-ok(at('home-sections.css') < at('<style>'),
-  'the linked stylesheet is not hidden behind the hero style block');
-ok(!/\.home-showcase|\.home-game/.test(inlineNoComments),
-  'the two demos\' rules are not back inline in index.html',
-  'a new rule was written into the hero block, where it is neither cacheable nor below the fold');
+ok(at('assets/css/home-sections.css') < at('assets/css/home-hero.css'),
+  'the below-fold stylesheet is mounted before the hero shell, so the hero still wins the cascade');
+ok(!/\.home-showcase|\.home-game/.test(heroNoComments),
+  'the two demos\' rules are not in the hero stylesheet',
+  'a new rule was written into home-hero.css, where it is neither cacheable nor below the fold');
 ok(/<section class="home-section" id="showcase" aria-labelledby="showcase-title">/.test(htmlCode),
   'the showcase section has its own id and points at its h2');
 ok(/<section class="home-section" id="game" aria-labelledby="game-title">/.test(htmlCode),

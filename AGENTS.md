@@ -429,10 +429,10 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 - **THE SEEK COSTS ONE GOP, AND ONLY ONE IS IN FLIGHT.** Clips are encoded at `KEYFRAME_FRAMES = 10` (0.33s); the x264 default put one every 250 frames and made the scrub stutter. `home-hero.js`'s `pump()` parks the newest target until `seeked` — writing `currentTime` per rAF cancels the running seek. Measured on a 1.2s full-track flick: avg lag 0.47s → 0.20s, worst 1.67s → 0.42s. `make_hero_video.py`'s `verify()` measures the gap in the encoded file and FAILs above it.
 - **SCRUB AND PROGRESS ARE SEPARATE CONTRACTS.** Scrub writes `currentTime`, never `play()`; progress divides by `rect.height - innerHeight`.
 - **BOTH ENDS OF THE CLIP ARE BLANK; THE POSTER IS NOT A PRE-PLAY FLASH.** `POSTER_FRACTION` comes from `make_hero_video.py`; `hero-gen.js` imports `taipeiDateKey`.
-- **THE HERO IS A DARK BAND IN LIGHT THEME; THE PANEL IS A DARK TITLE CARD IN BOTH.** Scrim `#0b1020`; accent `#f5c542`; fill `rgba(6,9,20,0.7)`; blur ≤3px; counts are 1,025 / 9 / 6.
+- **THE HERO IS A DARK BAND IN LIGHT THEME; THE PANEL IS A DARK TITLE CARD IN BOTH.** Scrim `#0b1020`; accent `#f5c542`; fill `rgba(6,9,20,0.7)`; blur ≤3px; counts are 1,025 / 9 / 6. Its rules live in `assets/css/home-hero.css`; `index.html` carries no `<style>` block.
 - **THE TWO DEMOS NEVER LOAD `pokemon_data.json`.** Fetch `home_roster.json` (90 KB, 19 KB gzip) within `400px`, draw 96 px sprites, CSS in `home-sections.css`.
 - **SORT IS PACED; THE GAME IS BEATABLE.** `SORT_STEP_MS = 40`; A* `AI_TICK_MS = 420`, `AI_PAUSE_CHANCE = 0.18`, 4-direction `manhattanHeuristic` (showcase: 8 + `octileHeuristic`). Each run re-rolls; `suspended` starts true; reduced motion skips countdown; win cry respects `cryPlayer.muted`; `--canvas-wall` is wrapped in `rgba()`.
-**Guarded by:** `check_home_hero.mjs` (98, 0.2 s, group `home`) + `check_home_sections.mjs` (55, 0.2 s, group `home`) + `test_check_home_hero.mjs` (25) · **Background:** [pages.md#z](docs/incidents/pages.md#z)
+**Guarded by:** `check_home_hero.mjs` (98, 0.2 s, group `home`) + `check_home_sections.mjs` (55, 0.2 s, group `home`) + `test_check_home_hero.mjs` (26) · **Background:** [pages.md#z](docs/incidents/pages.md#z)
 
 ### AA. `moves.html` / `move.html` — 919 Moves
 - **EFFECT TEXT HAS TWO PROVENANCES, boundary at a generation line:** 826 rows from PokeAPI zh-hant, 93 (ids 827–919) from InfoPoke Simplified via OpenCC `s2twp`. InfoPoke supplies only that text.
@@ -529,21 +529,21 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 | you edited | run this | why this and not that |
 | :--- | :--- | :--- |
-| `index.html`, `home-sections.css`, `home-*.js`, `hero-gen.js` | `--only=home` | §3.Z; 153 checks, 0.2 s, no Chrome |
+| `index.html`, `home-sections.css`, `home-hero.css`, `home-*.js`, `hero-gen.js` | `--only=home` | §3.Z; 153 checks, 0.2 s, no Chrome |
 | `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data`, then `check_spectrum_browser.mjs` | four-way split; `check_cry_mobile_layout.mjs` (§3.X) is the phone width |
 | `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | covers apu/data/page; add `audio-browser` for rendered halves |
 | `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `test_check_sorting_page.mjs --static`, then `--only=sort` | static 89 checks 0.3 s; `sort` boots Chrome |
 | `colors*.css`, `color-palette.js`, `color-match.js`, `colors-generator.html`, `mmcq.js` | `--only=color` | 16 entries, none >5 s, no browser |
 | `color-game.html`, `color-game.css`, `color-game.js`, `game-similarity.js`, `game-hints.js`, `game-tips.js` | `--only=color`, then `check_color_game_browser.mjs` | same static group; CDP half is `game-browser` |
 | `cry-studio.html`, `cry-seq-*.js`, `cry-seq.css`, `assets/drums/**` | `--only=nav` **plus** `--only=color` | no dedicated checker; nav registration, module bindings, document structure and the page count |
-| `today.html` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
+| `today.html`, `today.css` | `--only=nav` **plus** `--only=color` **plus** `--only=home` | daily/熱門/精選 counts live in `color` and `home`, not `nav` |
 | `team.html`, `team.css`, `team.js`, `team-analysis.js`, `team-state.js` | `--only=nav` | 20 entries, no browser; the team pair is 230 + 32 |
 | `moves.html`, `move.html`, `moves.js`, `moves.css` | `check_moves_data.mjs && check_moves_page.mjs` | name them; add `check_moves_page_browser.mjs` only for a rendered claim |
 | `moves_zh.json`, `learnsets.json`, `move_learners*.json` | `check_moves_data.mjs` | 127,868 checks, 0.1 s; one pass writes all four |
 | `abilities.html`, `ability.html`, `abilities.js`, `abilities.css` | `check_abilities_page.mjs` | 133 checks, 0.1 s; no browser entry |
 | `abilities.json`, `ability_species.json`, `species_abilities.json` | `check_abilities_data.mjs` | 18,849 checks, 0.1 s; one pass writes all three |
 | `pokemon_data.json` names, or the source XLSX | `check_pokemon_names.mjs` | 94 checks; do NOT regenerate the roster (1,350 vs 1,025) |
-| `types.html`, `types*`, `sv-index.js`, `sv-sources.json`, `assets/images/**` | `--only=type`, then `--only=types-browser` | four static at 3.3 s; browser is the rendered half |
+| `types.html`, `types.css`, `types*`, `sv-index.js`, `sv-sources.json`, `assets/images/**` | `--only=type`, then `--only=types-browser` | four static at 3.3 s; browser is the rendered half |
 | `maze.html`, `maze-pathfinding.js`, `algo.css` | `--only=algo`, then `--only=life-browser` | three static at 0.4 s; §3.P |
 | `graph_data.json`, `graph.js`, `graph.html`, `pokeapi_form_stats.json` | `--only=model`, then `--only=graph-browser` | §3.V; browser only for layout |
 | `shared.js`, `shared.css`, any `assets/js/*` | `--only=nav` **plus** `--only=color` | `shared.js` is read over every page; `assets/js/*` is a glob |

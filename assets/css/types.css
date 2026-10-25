@@ -1,0 +1,821 @@
+/**
+ * Type chart — page-only styles.
+ *
+ * Extracted from types.html so the document is markup only. Mounted by
+ * that page and nothing else; every rule here is page-specific.
+ */
+/* ===== Types page =====
+   Page-specific only, by the same convention detail.css follows: the
+   18×18 chart is the only component on the site with a cell per
+   type×type pair, so its geometry and the multiplier palette live here
+   rather than bloating shared.css for eleven pages that have no chart. */
+
+.types-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+.breadcrumb a:hover { color: var(--text-primary); text-decoration: underline; }
+.breadcrumb [aria-current] { color: var(--text-primary); font-weight: 600; }
+.breadcrumb .sep { color: var(--text-muted); }
+
+/* ===== Hero ===== */
+.types-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 40px 28px 32px;
+  margin-bottom: 36px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-card);
+}
+.types-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 220px;
+  /* One wash per page, tinted by the selected type through --hero-tint when
+     ?type= is present. Kept at low alpha so --text-primary keeps its
+     contrast; the chips below carry the colour, not the background. */
+  background: radial-gradient(60% 100% at 50% 0%, var(--hero-tint, var(--glow-1)) 0%, transparent 70%);
+  opacity: 0.22;
+  pointer-events: none;
+}
+.types-hero > * { position: relative; }
+.types-hero-kicker {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+}
+.types-hero-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.types-hero-lede {
+  max-width: 68ch;
+  margin: 0 0 24px;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.types-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.types-hero-stats li {
+  min-width: 104px;
+  padding: 12px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.types-hero-stats strong {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.types-hero-stats span {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+/* ===== Sections ===== */
+.types-section { margin-bottom: 48px; }
+.types-section-head { margin-bottom: 20px; }
+.types-section-head h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
+  color: var(--text-primary);
+}
+.types-section-head p {
+  max-width: 74ch;
+  margin: 0;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+.types-prose p {
+  max-width: 74ch;
+  margin: 0 0 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.types-prose p:last-child { margin-bottom: 0; }
+.types-prose strong { color: var(--text-primary); }
+
+/* ===== Type cards (overview grid) ===== */
+.type-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.type-card {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--type-color, var(--accent-gold));
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.type-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+.type-card[aria-current="page"] {
+  box-shadow: 0 0 0 2px var(--type-color, var(--accent-gold));
+}
+.type-card-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.type-card-en {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.type-card-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.type-card-counts b {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 18×18 chart ===== */
+/* Cell fills are literal measured values, not a color-mix() of the hue into
+   --bg-card: shared.css contains no color-mix() anywhere, every colour in
+   this codebase is a literal hex with its measured ratio in a comment, and
+   a tint baked against one card cannot follow the card if it ever moves.
+   14% green / 14% red over the card, number in --text-primary:
+   2x 10.99:1 dark / 16.21:1 light, 0.5x 12.29:1 / 15.08:1.
+   0x is the one cell whose fill is not the same recipe in both themes, and
+   the asymmetry is deliberate.
+   Dark: SOLID near-black. A 14% black tint over --bg-card #161e38 is
+   #131620, a difference nobody can see, so immunity has to be an actual
+   hole in the table. 18.38:1 against white ink.
+   Light: 14% black over the white card, #dbdbdb, 12.79:1 against
+   --text-primary. A solid near-black on a light table is the loudest thing
+   on the page -- it reads as a hole punched through the layout rather than
+   as a cell -- so light mode spends its budget on calm instead. What
+   "absent" looks like has to depend on what it is absent from. The grey is
+   neutral where 1x is white and desaturated where 0.5x is pink, so the two
+   never read as neighbours.
+   The two text hues are the same green and red at full strength, for labels
+   that sit on the card rather than on a tint: 8.61:1 / 7.13:1 and
+   5.29:1 / 6.57:1. */
+:root {
+  --chart-fill-2x: #24373f;
+  --chart-fill-half: #372640;
+  --chart-fill-immune: #11141e;
+  --chart-ink-immune: #ffffff;
+  --chart-good-text: #7bcf6b;
+  --chart-bad-text: #ff5470;
+  /* The stand-in badge is a ring that has to read over BOTH the chip surface
+     and a sprite of unknown colour, so it is two tones: `mark` inside,
+     `halo` outside. The halo is what separates the pair from whatever is
+     behind it, so neither tone has to win against the artwork alone. */
+  --chip-sub-mark: #e8edf5;
+  --chip-sub-halo: #0b0d12;
+}
+/* The page had no light-theme block of its own until here: every colour it
+   used came from shared.css, which flips with the theme. The chart's tints
+   are precomputed per theme, which is what makes this block necessary. */
+[data-theme="light"] {
+  --chart-fill-2x: #edf8ea;
+  --chart-fill-half: #ffe7eb;
+  --chart-good-text: #166534;
+  --chart-bad-text: #b42318;
+  --chart-fill-immune: #dbdbdb;
+  --chart-ink-immune: #0f1730;
+  --chip-sub-mark: #3a4252;
+  --chip-sub-halo: #ffffff;
+}
+.chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.chart-field { display: flex; flex-direction: column; gap: 4px; }
+.chart-field label { font-size: 0.8125rem; color: var(--text-muted); }
+.chart-field select {
+  min-width: 132px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--bg-controls);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+.chart-readout {
+  flex: 1 1 260px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.chart-readout b { color: var(--text-primary); }
+
+/* 18 columns plus the corner needs ~1000px before cells stop being legible,
+   so the scroller is the layout rather than a 18-row stack on phones. */
+.chart-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.chart-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  min-width: 940px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-table caption {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.chart-table th,
+.chart-table td {
+  padding: 0;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  text-align: center;
+  font-size: 0.8125rem;
+}
+.chart-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-raised);
+}
+.chart-table thead th:first-child,
+.chart-table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-raised);
+}
+.chart-table thead th:first-child { z-index: 3; }
+.chart-head-link {
+  display: block;
+  padding: 8px 4px;
+  background: var(--tf, transparent);
+  color: var(--ti, inherit);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+/* The corner labels both axes and belongs to no type, so it keeps the
+   neutral header surface rather than borrowing a type colour. */
+.chart-head-link.is-corner {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+}
+/* brightness(), not a background wash. The header fill IS the type's colour
+   and has to stay that colour on hover; the old rule also forced
+   color: var(--text-primary), which is not a 4.5:1 text colour over most of
+   the 18 type fills. */
+.chart-head-link:hover { filter: brightness(1.1); }
+.chart-cell {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 2px;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.chart-cell:hover { filter: brightness(1.12); }
+/* 1x stays unstyled: it is 204 of the 324 cells, and leaving it on the card
+   is what makes the other 120 read as exceptions at a glance. */
+.chart-cell[data-mult="4"]   { background: var(--chart-fill-2x); color: var(--text-primary); font-weight: 800; }
+.chart-cell[data-mult="2"]   { background: var(--chart-fill-2x); color: var(--text-primary); font-weight: 700; }
+.chart-cell[data-mult="0.5"] { background: var(--chart-fill-half); color: var(--text-primary); }
+.chart-cell[data-mult="0.25"]{ background: var(--chart-fill-half); color: var(--text-primary); }
+.chart-cell[data-mult="0"]   { background: var(--chart-fill-immune); color: var(--chart-ink-immune); font-weight: 700; }
+/* Selection is a ring, not a wash. It was a 6% background, which looked good
+   but is now the same channel the multiplier fills encode -- two meanings
+   fighting over one property. A 2px inset ring says "you are here" more
+   strongly than a 6% wash did, and leaves the cell's own colour visible. */
+.chart-cell.is-sel-col,
+.chart-cell.is-sel-row { box-shadow: inset 0 0 0 2px var(--focus-ring); }
+.chart-cell.is-sel { box-shadow: inset 0 0 0 3px var(--focus-ring); }
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+.chart-legend li { display: flex; align-items: center; gap: 6px; }
+.chart-legend b { font-variant-numeric: tabular-nums; }
+/* The swatch samples the cell it labels; the number is coloured by what the
+   multiplier means, which is why 0x shows a black swatch beside red text.
+   Both are shown so the legend explains the grid rather than the palette. */
+.chart-legend .lg-swatch {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--hairline);
+}
+.chart-legend .lg-4 .lg-swatch,
+.chart-legend .lg-2 .lg-swatch { background: var(--chart-fill-2x); }
+.chart-legend .lg-half .lg-swatch,
+.chart-legend .lg-qtr .lg-swatch { background: var(--chart-fill-half); }
+.chart-legend .lg-imm .lg-swatch { background: var(--chart-fill-immune); }
+.chart-legend .lg-1 .lg-swatch { background: var(--bg-card); }
+.chart-legend .lg-4 b,
+.chart-legend .lg-2 b   { color: var(--chart-good-text); }
+.chart-legend .lg-half b,
+.chart-legend .lg-qtr b,
+.chart-legend .lg-imm b  { color: var(--chart-bad-text); }
+
+.chart-source {
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.chart-source a { color: var(--text-secondary); }
+
+/* ===== History ===== */
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.history-card {
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.history-card h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+.history-card .history-span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.8125rem;
+  color: var(--accent-gold);
+}
+.history-card ul { margin: 0; padding-left: 20px; }
+.history-card li {
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.history-card li:last-child { margin-bottom: 0; }
+/* A 14% gold wash over the page, NOT --accent-gold-surface. That token is a
+   saturated fill -- #f5c542 dark, #b3122a light -- and pairing it with a
+   theme *text* token measured 1.01:1 in dark and 1.44:1 in light (2.56:1
+   for the bold 趣聞), i.e. invisible in both. These are washed over
+   --bg-primary, which is what .types-section actually leaves behind:
+   9.04:1 / 7.13:1 for the body text, 12.83:1 / 12.70:1 for the bold. */
+:root { --trivia-wash: #2c2925; }
+[data-theme="light"] { --trivia-wash: #ead5dd; }
+.types-trivia {
+  margin: 14px 0 0;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  background: var(--trivia-wash);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.types-trivia b { color: var(--text-primary); }
+
+/* ===== FAQ ===== */
+.faq-list { display: grid; gap: 10px; }
+.faq-item {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.faq-item summary {
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+";
+  flex: none;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.faq-item[open] summary::after { content: "−"; }
+.faq-item .faq-body {
+  padding: 0 18px 16px;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+/* ===== Resources ===== */
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.resource-card {
+  display: block;
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.resource-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+.resource-card h3 { margin: 0 0 6px; font-size: 1rem; color: var(--text-primary); }
+.resource-card p { margin: 0; font-size: 0.875rem; line-height: 1.65; color: var(--text-secondary); }
+
+/* ===== Per-type detail ===== */
+.type-detail-back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.type-detail-back:hover { color: var(--text-primary); text-decoration: underline; }
+
+.type-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.type-detail-head h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.2rem + 1.6vw, 2.1rem);
+  color: var(--text-primary);
+}
+.type-detail-head .type-detail-en {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Effectiveness chips reuse the chart's multiplier colours so the hero and
+   the grid below it cannot disagree about what 2x looks like. These are the
+   label hues (text on the card), not the cell washes. */
+.eff-groups { display: grid; gap: 12px; margin-bottom: 24px; }
+.eff-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.eff-group-label {
+  min-width: 76px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.eff-group[data-mult="4"] .eff-group-label,
+.eff-group[data-mult="2"] .eff-group-label    { color: var(--chart-good-text); }
+.eff-group[data-mult="0.5"] .eff-group-label,
+.eff-group[data-mult="0.25"] .eff-group-label,
+.eff-group[data-mult="0"] .eff-group-label    { color: var(--chart-bad-text); }
+
+.type-detail-block { margin-bottom: 28px; }
+.type-detail-block > h3 {
+  margin: 0 0 4px;
+  font-size: 1.0625rem;
+  color: var(--text-primary);
+}
+.type-detail-block > .type-detail-note {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+/* The one link inside a .type-detail-block. It sits in its own <p> rather
+   than inside chipRow()'s text because chipRow escapes its argument, and an
+   <a> handed to an escaper renders as the literal characters "&lt;a href".
+   That is the reason this is a separate paragraph and not a sentence with a
+   link at the end of it — the sentence is generated, the link is markup. */
+.type-detail-link {
+  display: inline-block;
+  margin: -6px 0 14px;
+  font-size: 0.8125rem;
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+.type-detail-link:hover { text-decoration: underline; }
+.type-detail-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+/* Sub-heading inside a block: the "here are the ones that have an effect
+   explanation" line. h4 so it stays under the block's h3 in the outline. */
+.type-detail-sub {
+  margin: 18px 0 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.type-detail-sub .fx-item-meta { font-weight: 400; }
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.chip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+a.chip-item { text-decoration: none; }
+a.chip-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+.chip-item img { width: 28px; height: 28px; }
+/* The thumbnail is a positioned wrapper, needed only so the stand-in ring
+   can sit in the corner without becoming a flex child of the pill. */
+.chip-thumb {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+/* ===== the Pokémon roster: the ONE block of these three that is a grid ====
+ *
+ * `.chip-grid` and `.chip-item` are shared by three blocks — the roster
+ * (links + a thumbnail), 招式 (a span + a power number) and 特性 (a span +
+ * a count) — and the other two are lists of short pills that want
+ * content-sized widths. Every rule below is scoped to `--roster` and
+ * `.chip-grid` itself is untouched: editing the shared pair would move two
+ * lists nobody asked to move, which is §3.B1's rule facing the other way —
+ * a shared class is a shared claim, and this page's other two blocks do not
+ * make this one.
+ *
+ * EQUAL-WIDTH COLUMNS, AND WHY THE IMAGE GOES ABOVE THE NAME RATHER THAN
+ * BESIDE IT. Beside the name, the track has to fit the widest chip, and the
+ * widest name in the corpus is 5 characters: 40px image + 6px gap + 70px of
+ * text + 16px of padding + 2px of border = 142px, which fits only 8 columns
+ * in the 1,248px this block measures at a 1280px viewport. That is 11 rows
+ * against the 8 it renders now — a 72% longer list bought with a 43% larger
+ * image.
+ *
+ * Above the name the track only has to fit the NAME: 70 + 16 + 2 = 88px, so
+ * `minmax(92px, 1fr)` fits 12 columns and 81 species come out in 7 rows —
+ * FEWER than today, with the image 43% larger. At 736px it is 7 columns × 12
+ * rows against 14, and at 390px the mobile rule below gives 4 × 21 against 27.
+ *
+ * The 92px is measured against the 5-character maximum in the corpus (46
+ * species carry one; 4 of them in 火's 81) rather than chosen for looks: at
+ * 88px the longest name fills its column to within 2px, and that margin is
+ * what a different font metric turns into a wrap.
+ */
+.chip-grid--roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+/* THE GRID ITEM IS THE <li>, NOT THE CHIP. Both are `.chip-item`'s siblings
+ * in the box model: the grid places the `<li>`, and the anchor inside it is
+ * `inline-flex`, which sizes to its CONTENT. Without this rule the 12 tracks
+ * came out 96.7px each while every chip shrank to 60px inside its own track,
+ * so the columns were equal and the chips were not — which is the half of
+ * "equal-width grid" that a screenshot catches and a measurement of the
+ * column count does not. */
+.chip-grid--roster > li { display: flex; }
+.chip-grid--roster .chip-item {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  /* --radius-sm, not the pill it would inherit: at 97×77 this card is
+   * 1.26× wider than tall, and a 20px radius on that reads as a lozenge
+   * rather than a chip. The two lists that keep the pill are still pills. */
+  border-radius: var(--radius-sm);
+  text-align: center;
+  line-height: 1.35;
+}
+.chip-grid--roster .chip-thumb,
+.chip-grid--roster .chip-item img {
+  width: 40px;
+  height: 40px;
+}
+/* `contain` is a correction, not a preference. The SV set is 120×112 and the
+ * rule it corrects set `width`/`height` on both the wrapper and the img, so
+ * `object-fit` computed to `fill` and the artwork was stretched 6%
+ * horizontally. move.html had the same defect and the same fix. */
+.chip-grid--roster .chip-item img { object-fit: contain; }
+/* THE VERTICAL OFFSET, and it is scoped with the rest of this block because
+ * `.chip-thumb` now exists in exactly one place on the page — the roster. A
+ * second rule at lower specificity covering the same selector is a rule
+ * nobody maintains (§3.N), so the measurement lives on the rule that wins.
+ *
+ * The two art sets do not agree on where the Pokémon sits. PokeAPI's
+ * Scarlet/Violet icons are BOTTOM-ANCHORED with the empty space above — the
+ * subject's bottom gap measures 0px against a 28px sprite's 11.5px — while
+ * the 96px sprite set is uniformly framed in every type. Left alone, an SV
+ * chip's Pokémon hangs low against its own name.
+ *
+ * -25% is measured, and measured at three box sizes because a percentage is
+ * only correct if the ratio holds across them: drawing each image to a
+ * 28 / 56 / 96px canvas and taking the alpha bounding box puts the SV subject
+ * 25.0 / 25.4 / 25.8% of the box below the sprite's, at three alpha
+ * thresholds. The rule previously said -23%, which came from a single 28px
+ * reading of one image and under-corrects by about 0.7px.
+ *
+ * Size needs no correction: median subject is 15×14px for SV against 16×14
+ * for the sprites, both 27% ink coverage. Only the vertical anchor is off.
+ *
+ * It is `transform` rather than `object-position` because this chip pairs a
+ * thumbnail with a NAME on one line and the goal is to centre the subject
+ * against that text. move.html deliberately does the opposite and carries no
+ * transform at all — §3.E. */
+.chip-grid--roster .chip-thumb.is-sv img { transform: translateY(-25%); }
+/* 10px rather than the inherited 8px: the ring marks a stand-in and has to
+ * stay visible in a box that grew from 28px to 40px. */
+.chip-grid--roster .chip-sub-mark { width: 10px; height: 10px; }
+
+/* The name is one line, always. `nowrap` alone would let a 5-character name
+   overflow its 92px track instead of wrapping, so the ellipsis is the backstop
+   that makes the track width a promise rather than a hope — and the corpus
+   maximum is 5 characters, so nothing currently reaches it. Asserted by
+   check_types_browser.mjs against the longest name on the page. */
+.chip-grid--roster .chip-name {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .chip-grid--roster { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }
+  .chip-grid--roster .chip-item {
+    gap: 3px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+  .chip-grid--roster .chip-thumb,
+  .chip-grid--roster .chip-item img { width: 32px; height: 32px; }
+  .chip-grid--roster .chip-sub-mark { width: 9px; height: 9px; }
+}
+.chip-sub-mark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--chip-sub-mark);
+  box-shadow: 0 0 0 1.5px var(--chip-sub-halo);
+  pointer-events: none;
+}
+.chip-item .chip-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Rows carry an effect line, so they get a definition list rather than a
+   chip — a chip cannot hold two lines of text without becoming a box. */
+.fx-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.fx-item {
+  padding: 10px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.fx-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.fx-item-name { font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); }
+.fx-item-meta { font-size: 0.75rem; color: var(--text-muted); }
+.fx-item-effect { margin: 0; font-size: 0.875rem; line-height: 1.65; color: var(--text-secondary); }
+
+/* InfoPoke ships no zh-TW catalogue for this route, so the per-type prose is
+   English upstream. It is shown in a collapsed block and labelled as such
+   rather than passed off as a translation of ours. */
+.type-detail-en {
+  margin: 0 0 24px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.type-detail-en summary {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.type-detail-en .type-detail-en-body {
+  padding: 0 16px 16px;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+.type-detail-en .type-detail-en-body p { margin: 0 0 10px; }
+.type-detail-en .type-detail-en-body p:last-child { margin-bottom: 0; }
+
+.type-empty {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.types-error {
+  padding: 16px 18px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  color: var(--error-text);
+}
+
+@media (max-width: 640px) {
+  .types-page { padding: 20px 12px 36px; }
+  .types-hero { padding: 28px 18px 24px; }
+  .types-hero-stats li { min-width: 92px; padding: 10px 12px; }
+  .types-hero-stats strong { font-size: 1.25rem; }
+  .chart-toolbar { flex-direction: column; align-items: stretch; }
+  .chart-field select { width: 100%; }
+}

@@ -48,6 +48,7 @@ const CHECKER = 'scripts/check_home_hero.mjs';
 const SRC = [
   CHECKER, 'scripts/make_hero_video.py',
   'index.html', 'today.html',
+  'assets/css/home-hero.css',
   'assets/data/pokemon_data.json',
   // The whole module DIRECTORY, not three files: hero-gen.js imports
   // daily-pick.js, which imports categories.js, and so on. Listing a subset
@@ -236,7 +237,7 @@ const CASES = [
      * The scrub stops at a fraction of the clip and only this assertion
      * notices. */
     name: 'the track is 200vh while the module divides against 240',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
       'height: 240vh;',
       'height: 200vh;')),
     expect: 'the CSS track is',
@@ -246,9 +247,9 @@ const CASES = [
     /* dvh to vh: on a phone browser 100vh sits under the address-bar chrome, so
      * the bottom of the hero is clipped. Invisible at every desktop width. */
     name: 'the sticky layer uses vh instead of dvh',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
-      'height: 100dvh;\n      overflow: hidden;',
-      'height: 100vh;\n      overflow: hidden;')),
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
+      'height: 100dvh;\n  overflow: hidden;',
+      'height: 100vh;\n  overflow: hidden;')),
     expect: 'the sticky layer is 100dvh, not 100vh',
   },
 
@@ -295,7 +296,7 @@ const CASES = [
      * counts that exist and are invisible, which no dark-theme screenshot can
      * answer. */
     name: 'the three counts go back to the panel\'s own white instead of a theme token',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
       'display: block; font-size: 26px; font-weight: bold; color: var(--text-primary);',
       'display: block; font-size: 26px; font-weight: bold; color: #ffffff;')),
     expect: 'the moved rules carry no panel literal',
@@ -305,9 +306,9 @@ const CASES = [
     /* The separator above the three counts. A literal white at 14% over a white
      * page is no border, and nothing else notices its absence. */
     name: 'the rule above the counts is a literal white 14% again',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
-      'border-top: 1px solid var(--hairline);\n      list-style: none;',
-      'border-top: 1px solid rgba(255, 255, 255, 0.14);\n      list-style: none;')),
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
+      'border-top: 1px solid var(--hairline);\n  list-style: none;',
+      'border-top: 1px solid rgba(255, 255, 255, 0.14);\n  list-style: none;')),
     expect: 'the rule above the three counts is --hairline',
   },
 
@@ -317,8 +318,8 @@ const CASES = [
      * paragraph sits left-aligned — invisible to every other assertion and
      * obvious on the page. */
     name: 'the intro block loses the centering it used to inherit from the sticky layer',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
-      'padding: 48px 20px 0;\n      text-align: center;',
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
+      'padding: 48px 20px 0;\n  text-align: center;',
       'padding: 48px 20px 0;')),
     expect: 'the intro block declares its own centering',
   },
@@ -333,7 +334,7 @@ const CASES = [
      * wash, so a dark-theme screenshot answers nothing. The assertion derives the
      * bound from the two declarations rather than restating a magic number. */
     name: 'the hero panel is made transparent enough to lose the title',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
       'background: rgba(6, 9, 20, 0.7);',
       'background: rgba(6, 9, 20, 0.4);')),
     expect: 'against the WORST frame the clip can show',
@@ -344,14 +345,14 @@ const CASES = [
      * panel", and unlike the alpha it costs no contrast — so no contrast
      * assertion can police it. */
     name: 'the hero panel\'s blur is restored to 10px, hiding every sprite behind it',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
-      'backdrop-filter: blur(3px);\n      -webkit-backdrop-filter: blur(3px);',
-      'backdrop-filter: blur(10px);\n      -webkit-backdrop-filter: blur(10px);')),
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
+      'backdrop-filter: blur(3px);\n  -webkit-backdrop-filter: blur(3px);',
+      'backdrop-filter: blur(10px);\n  -webkit-backdrop-filter: blur(10px);')),
     expect: 'the hero panel blurs at most 3px',
   },
 
   {
-    /* An extra closing delimiter in index.html's <style> ends the comment early,
+    /* An extra closing delimiter in home-hero.css ends the comment early,
      * the prose after it becomes live CSS, and the browser discards every rule to
      * the end of the block — so the hero renders unstyled while every other check
      * reads the text the browser already threw away.
@@ -359,7 +360,7 @@ const CASES = [
      * The assertion name deliberately avoids spelling the delimiters: a CSS
      * comment does not nest, so writing them here would end this comment too. */
     name: 'a comment in the hero stylesheet is closed one delimiter early',
-    mutate: (dir) => edit(dir, 'index.html', (s) => replaceOrThrow(s,
+    mutate: (dir) => edit(dir, 'assets/css/home-hero.css', (s) => replaceOrThrow(s,
       'levers and why both were pulled together.',
       'levers and why both were pulled together. */')),
     expect: 'has its closer',

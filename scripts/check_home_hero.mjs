@@ -47,7 +47,7 @@ const stripComments = (s) => s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\
 const html = read('index.html');
 const today = read('today.html');
 const htmlCode = stripComments(html);
-const cssCode = (html.match(/<style>([\s\S]*?)<\/style>/) || [null, ''])[1];
+const cssCode = read('assets/css/home-hero.css');
 const cssNoComments = stripComments(cssCode);
 const js = read('assets/js/home-hero.js');
 const jsCode = stripComments(js);
@@ -65,7 +65,7 @@ const rule = (sel) => {
 console.log('\n--- the hero\'s own three layers exist ---');
 /* THE STYLESHEET PARSES.
  *
- * Every rule-shaped assertion here is a REGEX over the `<style>` block's text,
+ * Every rule-shaped assertion here is a REGEX over `assets/css/home-hero.css`,
  * and a regex cannot tell valid CSS from a broken stylesheet. An unterminated
  * comment silently truncates every rule after it: the panel loses its fill, the
  * h1 loses its accent, and the hero renders unstyled while the checks stay
@@ -77,22 +77,24 @@ console.log('\n--- the hero\'s own three layers exist ---');
 const openComments = (cssCode.match(/\/\*/g) || []).length;
 const closeComments = (cssCode.match(/\*\//g) || []).length;
 eq(closeComments, openComments,
-  `every comment opener in index.html's <style> has its closer — the block opens ${openComments} and closes ${closeComments}, so nothing after an early close is being parsed as CSS`);
+  `every comment opener in home-hero.css has its closer — the file opens ${openComments} and closes ${closeComments}, so nothing after an early close is being parsed as CSS`);
 // Order matters: the scrim must paint over the media and under the text.
 // Three elements in the wrong order leave either an unreadable title or a
 // scrim that does nothing.
 for (const sel of ['.home-hero-media', '.home-hero-video', '.home-hero-scrim', '.home-hero-content', '.home-hero-sticky']) {
-  ok(cssNoComments.includes(sel), `${sel} is declared in index.html's <style>`);
-  ok(htmlCode.includes(sel), `${sel} is mounted in the markup`);
+  ok(cssNoComments.includes(sel), `${sel} is declared in home-hero.css`);
+  ok(new RegExp(`class="[^"]*\\b${sel.slice(1)}\\b`).test(htmlCode), `${sel} is mounted in the markup`);
 }
-/* Markup positions, NOT positions in the file.
+/* Markup positions, NOT positions in a string that might also contain CSS.
  *
- * `.home-hero-media`, `-scrim` and `-content` each appear twice: as a rule in
- * `<style>` and as an attribute in the markup. `at()` must therefore search
+ * `.home-hero-media`, `-scrim` and `-content` appear both as rules in
+ * `home-hero.css` and as attributes in the markup. `at()` must therefore search
  * only the markup, or the assertion proves the stylesheet's order while claiming
- * the markup's. A check that reports the right verdict about the wrong thing is
- * worse than no check, because a reader stops looking at it. */
-const body = htmlCode.slice(htmlCode.indexOf('</style>'));
+ * the markup's. Before the stylesheet moved out, both copies lived in this one
+ * string; the mistake was invisible because CSS came first. A check that reports
+ * the right verdict about the wrong thing is worse than no check, because a
+ * reader stops looking at it. */
+const body = htmlCode.slice(htmlCode.indexOf('</head>'));
 const at = (s) => body.indexOf(s);
 ok(at('home-hero-media') < at('home-hero-scrim') && at('home-hero-scrim') < at('home-hero-content'),
   'the markup order is media, then scrim, then content — the scrim darkens the clip and stays behind the text',
