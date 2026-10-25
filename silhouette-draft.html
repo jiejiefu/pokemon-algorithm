@@ -71,14 +71,30 @@
         </div>
       </div>
 
+      <ol class="sd-steps" id="sd-steps" aria-label="遊戲進度">
+        <li class="sd-step" data-step="draft" aria-current="step"><b>1</b><span>選秀</span></li>
+        <li class="sd-step" data-step="match"><b>2</b><span>對位</span></li>
+        <li class="sd-step" data-step="summary"><b>3</b><span>結算</span></li>
+      </ol>
+
       <div class="sd-draft" id="sd-draft">
         <div class="sd-pick-area" id="sd-pick-area">
-          <p class="sd-instruction" id="sd-instruction">點一隻剪影，再按確認。名字與本體屬性會在確認後揭曉；電腦會從剩下的五隻拿走一隻。</p>
+          <p class="sd-instruction" id="sd-instruction">點一隻剪影選取；再點同一隻（或再按一次 Enter）開啟確認。名字與本體屬性會在確認後揭曉。</p>
           <ul class="sd-candidates" id="sd-candidates" data-candidate-count="6"></ul>
           <div class="sd-confirmbar">
             <p class="sd-selected" id="sd-selected">尚未選擇</p>
             <button class="sd-btn sd-btn-accent" type="button" id="sd-confirm" disabled>確認第 1 隻</button>
           </div>
+          <dialog class="sd-pick-dialog" id="sd-pick-dialog"
+            aria-labelledby="sd-pick-dialog-title" aria-describedby="sd-pick-dialog-note">
+            <h2 id="sd-pick-dialog-title">確定選這隻剪影？</h2>
+            <div class="sd-pick-dialog-preview" id="sd-pick-dialog-preview"></div>
+            <p class="sd-pick-dialog-note" id="sd-pick-dialog-note">確認後才會揭曉名字與本體屬性，且無法更改。</p>
+            <div class="sd-pick-dialog-actions">
+              <button class="sd-btn" type="button" id="sd-pick-cancel">取消</button>
+              <button class="sd-btn sd-btn-accent" type="button" id="sd-pick-confirm">確認選擇</button>
+            </div>
+          </dialog>
         </div>
         <div class="sd-reveal" id="sd-reveal" hidden>
           <div class="sd-reveal-head" id="sd-reveal-head"></div>
@@ -102,14 +118,20 @@
 
           <div class="sd-battle-plate sd-battle-plate--opponent">
             <span class="sd-battle-role">對手</span>
-            <strong id="sd-battle-opponent-name">—</strong>
-            <div class="sd-battle-types" id="sd-battle-opponent-types"></div>
+            <div class="sd-battle-head">
+              <strong id="sd-battle-opponent-name">—</strong>
+              <div class="sd-battle-types" id="sd-battle-opponent-types"></div>
+            </div>
+            <div class="sd-battle-moves" id="sd-opponent"></div>
           </div>
 
           <div class="sd-battle-plate sd-battle-plate--player">
             <span class="sd-battle-role">我方</span>
-            <strong id="sd-battle-player-name">選擇出戰</strong>
-            <div class="sd-battle-types" id="sd-battle-player-types"></div>
+            <div class="sd-battle-head">
+              <strong id="sd-battle-player-name">選擇出戰</strong>
+              <div class="sd-battle-types" id="sd-battle-player-types"></div>
+            </div>
+            <div class="sd-battle-moves" id="sd-battle-player-moves"></div>
           </div>
 
           <p class="sd-battle-verdict" id="sd-battle-verdict" hidden></p>
@@ -118,10 +140,9 @@
         <p class="sd-score" id="sd-score" role="status" aria-live="polite">你 0 勝 0 平 0 敗</p>
         <div class="sd-opponent-wrap">
           <div class="sd-opponent-head">
-            <h3 id="sd-opponent-title">對手招式</h3>
+            <h3 id="sd-opponent-title">對手的六隻</h3>
             <p class="sd-opponent-count" id="sd-opponent-count" role="status" aria-live="polite">第 1 / 6 組</p>
           </div>
-          <div class="sd-opponent" id="sd-opponent"></div>
           <ol class="sd-backs" id="sd-opponent-backs" data-back-count="6" aria-label="對手的六隻寶可夢"></ol>
         </div>
 

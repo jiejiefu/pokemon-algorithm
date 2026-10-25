@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { TYPE_CHART_ORDER } from '../assets/js/type-chart.js';
+import { isDamaging } from '../assets/js/team-moves.js';
 import { createChecker } from './lib/assert.mjs';
 import { readRgba } from './lib/png.mjs';
 
@@ -30,6 +31,7 @@ const DATA = readData('draft_roster.json');
 const POKEMON = readData('pokemon_data.json');
 const EVOLUTION = readData('evolution_levels.json');
 const LEARNSETS = readData('learnsets.json');
+const MOVES = readData('moves_zh.json');
 
 const C = createChecker({ fail: (line) => console.error(`  FAIL  ${line}`) });
 const { ok, is, eq } = C;
@@ -40,20 +42,28 @@ const ROSTER_MAX = 1025;
 const ROUNDS = 6;
 const CANDIDATES = 6;
 
+/* The one definition of "this move can score", shared with the page. */
+const isDamagingMove = moveId => isDamaging({ id: moveId, class: MOVES[String(moveId)]?.class });
+
+/* Four species have no damaging level-up move at all — Ditto, Wobbuffet,
+ * Smeargle and Pyukumuku — so an all-blank row is their species, not a bug.
+ * The substitution below is what keeps this list from growing. */
+const DAMAGE_LESS = new Set([132, 202, 235, 771]);
+
 const byId = new Map(POKEMON.map(p => [p.id, p]));
 const records = new Map(DATA.pokemon.map(row => [row[0], row]));
 const rosterIds = new Set(POKEMON.filter(p => p.id <= ROSTER_MAX).map(p => p.id));
 
 /* ===== shape ===== */
 
-eq(DATA.fields, ['id', 'zh', 'en', 'types', 'level', 'other'],
+eq(DATA.fields, ['id', 'zh', 'en', 'types', 'pool', 'anchors', 'other'],
   'the compact column order is data, not a convention the page remembers');
 eq(DATA.moveFields, ['zh', 'type', 'class'],
   'a move row carries exactly the three fields the round prints');
 ok(Array.isArray(DATA.pokemon) && DATA.pokemon.length === 568,
   'the pool is 568 species', `found ${DATA.pokemon?.length}`);
-ok(Object.keys(DATA.moves).length === 330,
-  'the move table holds the 330 moves the pool references',
+ok(Object.keys(DATA.moves).length === 638,
+  'the move table holds the 638 moves the pool references',
   `found ${Object.keys(DATA.moves).length}`);
 ok(records.size === DATA.pokemon.length, 'no species id appears twice');
 ok(SPRITES_EXIST(), 'every pool species has a front sprite');
@@ -151,29 +161,68 @@ const otherOf = id => {
 };
 
 const short = [];
-for (const [id, , zh, , level, other] of DATA.pokemon) {
+const noStab = [];
+const twoAnchors = [];
+const deepAnchors = [];
+const pinned = [];
+for (const [id, , zh, types, pool, rawAnchors, other] of DATA.pokemon) {
   const shortRow = Array.isArray(other);
-  ok(level.length <= 4, `#${id} never carries more than four level moves`);
-  ok(new Set(level).size === level.length, `#${id} has no duplicate level move`);
-  eq(level, level.slice(0, 4), `#${id}'s level list is its first four, in learnset order`);
-  const total = level.length + (shortRow ? other.length : 0);
-  if (total < 4) short.push([id, zh, total]);
-  if (shortRow) {
-    ok(level.length < 4, `#${id} only writes an other pool when the level list is short`);
-    ok(new Set(other).size === other.length, `#${id} has no duplicate fallback move`);
-    ok(other.every(moveId => !level.includes(moveId)), `#${id}'s fallback does not repeat a level move`);
-  } else {
-    ok(level.length === 4, `#${id} needs no fallback because four level moves exist`);
+  const all = levelOf(id);
+  const anchors = rawAnchors || [];
+  ok(pool.length <= 8, `#${id} never carries more than eight level moves`);
+  ok(new Set(pool).size === pool.length, `#${id} has no duplicate pool move`);
+  eq(pool.length, Math.min(8, all.length),
+    `#${id} carries every level move it has, up to eight`);
+  eq(pool, all.slice(-8), `#${id}'s pool is the learnset tail`);
+
+  const typeOf = moveId => String(DATA.moves[String(moveId)]?.[1] || '');
+  ok(anchors.length <= types.length, `#${id} anchors at most one move per type`);
+  is(new Set(anchors).size, anchors.length, `#${id} has no duplicate anchor`);
+  const anchoredTypes = new Set();
+  for (const moveId of anchors) {
+    ok(all.includes(moveId), `#${id}'s anchor ${moveId} is a level-up move`);
+    ok(isDamagingMove(moveId), `#${id}'s anchor ${moveId} can score`);
+    const type = typeOf(moveId);
+    ok(types.includes(type), `#${id}'s anchor ${moveId} is one of its own types`);
+    ok(!anchoredTypes.has(type), `#${id} anchors ${type} only once`);
+    anchoredTypes.add(type);
+    const higher = all.slice(all.indexOf(moveId) + 1).find(
+      candidate => isDamagingMove(candidate) && typeOf(candidate) === type,
+    );
+    ok(higher === undefined, `#${id}'s ${type} anchor is the highest of its type`);
+  }
+  const neededTypes = types.filter(
+    type => all.some(moveId => isDamagingMove(moveId) && typeOf(moveId) === type),
+  );
+  eq(anchors.map(typeOf).sort(), [...neededTypes].sort(),
+    `#${id} anchors every type its level list can score with, and no other`);
+  if (anchors.length === 0) noStab.push(id);
+  if (anchors.length === 2) twoAnchors.push(id);
+  if (anchors.some(moveId => !pool.includes(moveId))) deepAnchors.push(id);
+  if (anchors.length === 2 && anchors.every(moveId => !pool.includes(moveId))) {
+    pinned.push(id);
   }
 
-  const learnable = new Set([...levelOf(id), ...otherOf(id)]);
-  for (const moveId of level) {
-    ok(levelOf(id).includes(moveId), `#${id}'s move ${moveId} is a level-up move`);
+  const total = new Set([...pool, ...(shortRow ? other : [])]).size;
+  if (total < 4) short.push([id, zh, total]);
+  if (shortRow) {
+    ok(pool.length < 4, `#${id} only writes an other pool when the level list is short`);
+    ok(other.length <= 4 - pool.length,
+      `#${id}'s fallback is only what four moves need`);
+    ok(new Set(other).size === other.length, `#${id} has no duplicate fallback move`);
+    ok(other.every(moveId => !pool.includes(moveId)),
+      `#${id}'s fallback does not repeat a level move`);
+    ok(other.every(moveId => otherOf(id).includes(moveId)),
+      `#${id}'s fallback is machine/tutor/egg`);
+  } else {
+    ok(pool.length >= 4, `#${id} needs no fallback because four level moves exist`);
   }
-  for (const moveId of shortRow ? other : []) {
-    ok(otherOf(id).includes(moveId), `#${id}'s fallback ${moveId} is machine/tutor/egg`);
+
+  const learnable = new Set([...all, ...otherOf(id)]);
+  for (const moveId of pool) {
+    ok(all.includes(moveId), `#${id}'s pool move ${moveId} is a level-up move`);
   }
-  for (const moveId of [...level, ...(shortRow ? other : [])]) {
+  for (const moveId of [...pool, ...(shortRow ? other : []), ...anchors]) {
     ok(learnable.has(moveId), `#${id} can learn move ${moveId}`);
   }
 }
@@ -181,10 +230,20 @@ for (const [id, , zh, , level, other] of DATA.pokemon) {
 eq(short.map(([id]) => id).sort((a, b) => a - b), [132, 201, 235],
   'exactly three species cannot reach four moves');
 for (const [id, , count] of short) is(count, 1, `#${id} can only ever offer one move`);
-const firstFour = id => levelOf(id).slice(0, 4);
-for (const [id, , , , level] of DATA.pokemon) {
-  eq(level, firstFour(id), `#${id}'s four moves are the first four level-up moves`);
+eq(noStab.sort((a, b) => a - b), [132, 201, 202, 235, 771],
+  'five species have no own-type damaging move');
+is(twoAnchors.length, 327, '327 dual-type species guard both of their types');
+is(deepAnchors.length, 61, '61 species need an anchor deeper than the pool');
+eq(pinned.sort((a, b) => a - b), [303, 334, 426, 791],
+  'four species pin both anchors outside the pool');
+
+/* The exemption is a fact about the species, not a place to park a bad tail. */
+for (const id of DAMAGE_LESS) {
+  ok(!levelOf(id).some(isDamagingMove), `#${id} has no damaging level-up move at all`);
+  is(records.get(id)[5].length, 0, `#${id} anchors no type`);
 }
+is(records.get(201)[5].length, 0,
+  '#201 anchors no type because Hidden Power is Normal, though it still scores');
 
 /* ===== defs ===== */
 
@@ -192,6 +251,7 @@ const referenced = new Set();
 for (const row of DATA.pokemon) {
   for (const moveId of row[4]) referenced.add(moveId);
   for (const moveId of row[5] || []) referenced.add(moveId);
+  for (const moveId of row[6] || []) referenced.add(moveId);
 }
 for (const moveId of referenced) {
   ok(Object.prototype.hasOwnProperty.call(DATA.moves, String(moveId)), `move ${moveId} has a def`);

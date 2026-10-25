@@ -96,10 +96,13 @@ export function typeBadgeHtml(typeSlug, zh) {
  * outside the detail page, so their size has to be inline; the move tables
  * reuse this compact size for the same reason.
  */
-export function typeBadgeSmHtml(typeSlug, zh) {
+export function typeBadgeSmHtml(typeSlug, zh, compact = false) {
   const key = capitalize(typeSlug);
   const label = zh || TYPE_EN_ZH[key] || key;
-  return `<span class="type-badge" style="${typeBadgeStyle(key)};font-size:10px;padding:2px 8px;border-radius:10px;">${label}</span>`;
+  const size = compact
+    ? 'font-size:9px;padding:1px 5px;border-radius:8px;'
+    : 'font-size:10px;padding:2px 8px;border-radius:10px;';
+  return `<span class="type-badge" style="${typeBadgeStyle(key)};${size}">${label}</span>`;
 }
 
 // BADGE_COLORS used to live here — nine hardcoded values keyed by the computed

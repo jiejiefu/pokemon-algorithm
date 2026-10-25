@@ -998,7 +998,7 @@ const CHECKERS = [
      * they were checked by hand once (light/dark silhouette, six duels, battle
      * sprites the same rendered size, 390px confirm bar). */
     script: 'scripts/check_draft_page.mjs', group: 'nav',
-    note: '425 checks; no browser — page shape, battle scene, and a deterministic six-round run',
+    note: '103,441 checks; no browser — page shape, battle plates, dialog, last-eight move pool, per-type anchors, and a deterministic six-round run',
     inputs: [
       'silhouette-draft.html',
       'assets/css/silhouette-draft.css',
@@ -1370,16 +1370,17 @@ const CHECKERS = [
   },
   {
     /* The silhouette draft's one table. The page never loads pokemon_data.json,
-     * so the pool's shape, the 568/89/3 counts and every learnable move are
-     * re-derived here from the edge list and the learnsets rather than trusted
-     * from the file under test. */
+     * so the pool's shape, the 568/89/3 counts, the tail-four move rule and every
+     * learnable move are re-derived here from the edge list and the learnsets
+     * rather than trusted from the file under test. moves_zh.json supplies the
+     * class of every candidate move; team-moves.js owns `isDamaging()`. */
     script: 'scripts/check_draft_data.mjs', group: 'data',
-    note: '568 final/single-stage, 89 legendary, three one-move species, every move learnable, every back sprite 96x96',
+    note: '568 final/single-stage, 89 legendary, three one-move species, last-eight move pools, one STAB anchor per own type (327 dual), every move learnable, every back sprite 96x96',
     inputs: [
       'assets/data/draft_roster.json',
       'assets/data/pokemon_data.json', 'assets/data/evolution_levels.json',
-      'assets/data/learnsets.json',
-      'assets/js/type-chart.js',
+      'assets/data/learnsets.json', 'assets/data/moves_zh.json',
+      'assets/js/*',
       'assets/images/sprite/*',
       'assets/images/sprite/back/*',
     ],

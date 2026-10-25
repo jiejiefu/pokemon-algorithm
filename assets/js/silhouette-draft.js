@@ -19,6 +19,9 @@ import {
 
 const DATA_URL = 'assets/data/draft_roster.json';
 
+/** The stepper's three macro stages, in order; `session.phase` names each one. */
+const PHASE_STEPS = ['draft', 'match', 'summary'];
+
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -36,10 +39,10 @@ const outcomeText = (outcome) => ({ win: '勝', draw: '平', loss: '敗' }[outco
 const verdictText = (verdict) => ({ win: '勝利', draw: '平手', loss: '敗北' }[verdict] || '—');
 
 /** A move row: name, optional type badge, optional multiplier chip. */
-function moveRow(move, multiplier, showType) {
+function moveRow(move, multiplier, showType, compact = false) {
   return `<li class="sd-move">
     <span class="sd-move-name">${esc(move.zh)}</span>
-    ${showType ? typeBadgeSmHtml(move.type) : ''}
+    ${showType ? typeBadgeSmHtml(move.type, undefined, compact) : ''}
     ${multiplier === undefined ? '' : `<span class="sd-mult ${multClass(multiplier)}">${multiplierText(multiplier)}</span>`}
   </li>`;
 }
@@ -47,6 +50,30 @@ function moveRow(move, multiplier, showType) {
 function focusFirst(selector) {
   const node = document.querySelector(selector);
   if (node) node.focus({ preventScroll: true });
+}
+
+/**
+ * A freshly revealed panel can sit above or below the viewport: the draft's pick
+ * area collapses on confirm, which shortens the page and leaves the scroll
+ * clamped past the reveal. Pull the panel into view when it is out of the upper
+ * 60% of the screen, and honour reduced motion.
+ *
+ * The panel is mid-entrance-animation here, and `scrollIntoView` measures its
+ * TRANSFORMED box: `sd-reveal-in` starts 8px low, so aligning that box to the top
+ * settled the panel 8px above it, with the card's top border clipped. Scroll by
+ * the layout offset instead — the live translate is the exact amount the
+ * measurement is off by, so this cannot drift from the keyframes.
+ */
+function revealIntoView(node) {
+  if (!node) return;
+  const transform = getComputedStyle(node).transform;
+  const shift = transform && transform !== 'none' ? new DOMMatrixReadOnly(transform).m42 : 0;
+  const top = node.getBoundingClientRect().top - shift;
+  if (top >= 0 && top < window.innerHeight * 0.6) return;
+  window.scrollBy({
+    top,
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
 }
 
 export async function initSilhouetteDraft() {
@@ -65,6 +92,8 @@ export async function initSilhouetteDraft() {
 
   let session = createDraftSession(data);
   let pending = null;
+  let dialogPickId = null;
+  let dialogRestoreFocus = false;
 
   const byId = new Map(session.roster.map((pokemon) => [pokemon.id, pokemon]));
   const fmtTotal = (value) => Number(value.toFixed(2));
@@ -124,12 +153,12 @@ export async function initSilhouetteDraft() {
     const selected = session.selectedId === null ? null : byId.get(session.selectedId);
     const selectedIndex = selected ? session.candidates.indexOf(selected.id) : -1;
     $('sd-selected').textContent = selected
-      ? `已選第 ${selectedIndex + 1} 個剪影，確認後才揭曉。`
+      ? `已選第 ${selectedIndex + 1} 個剪影；再點一次可快速確認。`
       : '尚未選擇';
     const confirm = $('sd-confirm');
     confirm.disabled = !session.canConfirmPick;
     confirm.textContent = `確認第 ${session.round} 隻`;
-    $('sd-instruction').textContent = `第 ${session.round} / ${ROUNDS} 輪：點一隻剪影，再按確認。電腦會從剩下的五隻拿走一隻；名字與本體屬性在確認後揭曉。`;
+    $('sd-instruction').textContent = `第 ${session.round} / ${ROUNDS} 輪：點一隻剪影選取，再點同一隻開啟確認。電腦會從剩下的五隻拿走一隻；名字與本體屬性在確認後揭曉。`;
   }
 
   function slotHtml(id, index, side) {
@@ -166,8 +195,8 @@ export async function initSilhouetteDraft() {
 
   function renderOpponent(opponent) {
     $('sd-opponent').innerHTML = `
-      <ul class="sd-opponent-moves">
-        ${opponent.moves.map((move) => moveRow(move, undefined, true)).join('')}
+      <ul class="sd-plate-moves" aria-label="對手招式">
+        ${opponent.moves.map((move) => moveRow(move, undefined, true, true)).join('')}
       </ul>`;
 
     $('sd-opponent-count').textContent = pending
@@ -234,6 +263,15 @@ export async function initSilhouetteDraft() {
     $('sd-next').textContent = session.matchIndex >= TEAM_SIZE ? '查看總結' : '下一組';
   }
 
+  function renderSteps(phase) {
+    const active = PHASE_STEPS.indexOf(phase);
+    $('sd-steps').querySelectorAll('.sd-step').forEach((step, index) => {
+      step.classList.toggle('sd-step--done', index < active);
+      if (index === active) step.setAttribute('aria-current', 'step');
+      else step.removeAttribute('aria-current');
+    });
+  }
+
   function renderScore() {
     const record = { wins: 0, draws: 0, losses: 0 };
     let playerTotal = 0;
@@ -256,6 +294,7 @@ export async function initSilhouetteDraft() {
 
     const opponentImg = $('sd-battle-opponent');
     const playerImg = $('sd-battle-player');
+    const playerMoves = $('sd-battle-player-moves');
     const verdict = $('sd-battle-verdict');
 
     if (opponent) {
@@ -278,12 +317,17 @@ export async function initSilhouetteDraft() {
       playerImg.hidden = false;
       $('sd-battle-player-name').textContent = player.zh;
       $('sd-battle-player-types').innerHTML = typesHtml(player.types);
+      playerMoves.innerHTML = `
+        <ul class="sd-plate-moves" aria-label="我方招式">
+          ${player.moves.map((move) => moveRow(move, undefined, true, true)).join('')}
+        </ul>`;
     } else {
       playerImg.hidden = true;
       playerImg.removeAttribute('src');
       playerImg.alt = '';
       $('sd-battle-player-name').textContent = '選擇出戰';
       $('sd-battle-player-types').innerHTML = '';
+      playerMoves.innerHTML = '';
     }
 
     if (pending) {
@@ -347,6 +391,7 @@ export async function initSilhouetteDraft() {
 
   function render() {
     const phase = session.phase;
+    renderSteps(phase);
     $('sd-draft').hidden = phase !== 'draft';
     $('sd-match').hidden = phase !== 'match';
     $('sd-summary').hidden = phase !== 'summary';
@@ -396,21 +441,103 @@ export async function initSilhouetteDraft() {
     status.textContent = `選秀與六組對位完成：${verdictText(summary.verdict)}，${summary.record.wins} 勝 ${summary.record.draws} 平 ${summary.record.losses} 敗。`;
   }
 
+  /**
+   * The second activation of an already-selected card.
+   *
+   * `dblclick` is deliberately not the trigger. Selecting re-renders
+   * `#sd-candidates`, so a fast second click lands on a NEW node and the
+   * browser's click count starts over; `detail` is no more reliable. Keying on
+   * the session's selection also covers a slow double click, a second tap and a
+   * second Enter, with no timer and no mouse-only path.
+   */
+  function openPickDialog(id) {
+    if (session.selectedId !== id || dialogPickId !== null) return;
+    const pokemon = byId.get(id);
+    const index = session.candidates.indexOf(id) + 1;
+    if (!pokemon || index === 0) return;
+    dialogPickId = id;
+    dialogRestoreFocus = false;
+    $('sd-pick-dialog-title').textContent = `確定選第 ${index} 個剪影？`;
+    $('sd-pick-dialog-preview').innerHTML = `
+      <span class="sd-silhouette" aria-hidden="true">
+        <img src="${spriteUrl(id)}" alt="" width="96" height="96" decoding="async">
+      </span>
+      <ul class="sd-card-moves">
+        ${pokemon.moves.map((move) => moveRow(move, undefined, true)).join('')}
+      </ul>`;
+    const dialog = $('sd-pick-dialog');
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    $('sd-pick-confirm').focus({ preventScroll: true });
+  }
+
+  /**
+   * Clear the dialog and put focus back on the card that opened it.
+   *
+   * Called synchronously by `closePickDialog()` as well as from the dialog's
+   * `close` event: `close` is queued as a task, so leaving the state to it meant
+   * a second Escape-then-click inside one tick hit `dialogPickId !== null` and
+   * did nothing. Resetting here first makes the event a no-op.
+   */
+  function finishPickDialog() {
+    const id = dialogPickId;
+    const restore = dialogRestoreFocus;
+    if (id === null) return;
+    dialogPickId = null;
+    dialogRestoreFocus = false;
+    if (restore) focusFirst(`#sd-candidates button[data-id="${id}"]`);
+  }
+
+  function closePickDialog() {
+    const dialog = $('sd-pick-dialog');
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
+    finishPickDialog();
+  }
+
+  function cancelPickDialog() {
+    if (dialogPickId === null) return;
+    dialogRestoreFocus = true;
+    closePickDialog();
+  }
+
+  /** One commit path for the bar, the dialog, and Enter on 確認. */
+  function commitPick() {
+    const result = session.confirmPick();
+    if (!result) return;
+    pending = null;
+    closePickDialog();
+    render();
+    revealIntoView($('sd-reveal'));
+    focusFirst('#sd-next-round');
+  }
+
   $('sd-candidates').addEventListener('click', (event) => {
     const button = event.target.closest('button[data-id]');
     if (!button) return;
-    if (session.select(Number(button.dataset.id))) {
+    const id = Number(button.dataset.id);
+    if (session.selectedId === id) {
+      openPickDialog(id);
+      return;
+    }
+    if (session.select(id)) {
       render();
       focusFirst('#sd-candidates button[aria-pressed="true"]');
     }
   });
 
-  $('sd-confirm').addEventListener('click', () => {
-    const result = session.confirmPick();
-    if (!result) return;
-    pending = null;
-    render();
-    focusFirst('#sd-next-round');
+  $('sd-confirm').addEventListener('click', commitPick);
+
+  const pickDialog = $('sd-pick-dialog');
+  $('sd-pick-cancel').addEventListener('click', cancelPickDialog);
+  $('sd-pick-confirm').addEventListener('click', commitPick);
+  pickDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    cancelPickDialog();
+  });
+  pickDialog.addEventListener('close', finishPickDialog);
+  pickDialog.addEventListener('click', (event) => {
+    if (event.target === pickDialog) cancelPickDialog();
   });
 
   $('sd-next-round').addEventListener('click', () => {
@@ -436,6 +563,7 @@ export async function initSilhouetteDraft() {
     if (!matchup) return;
     pending = matchup;
     render();
+    revealIntoView($('sd-analysis'));
     focusFirst('#sd-next');
   });
 
@@ -445,6 +573,7 @@ export async function initSilhouetteDraft() {
       session.finish();
       pending = null;
       render();
+      revealIntoView($('sd-summary'));
       focusFirst('#sd-restart');
       return;
     }
