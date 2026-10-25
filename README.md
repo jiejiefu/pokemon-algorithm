@@ -25,7 +25,7 @@
 | Page File | Description & Core Features |
 | --- | --- |
 | `index.html` | Landing page: scroll-scrubbed hero clip, site intro, two self-running algorithm demos (sorting and A* pathfinding), a playable A* maze, and five feature cards. |
-| `today.html` | 「今日推薦」: the seeded daily pick, 「熱門」, 「探索」, 「精選系列」, 「遊戲」, 「工具」, quick links and FAQ. |
+| `today.html` | Today's Picks: the seeded daily pick, Popular, Explore, Featured Collections, Games, Tools, quick links and FAQ. |
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation, type, and color filters. |
 | `team.html` | Team planner: six slots with per-member defensive tallies, STAB coverage, region / generation / type filters, and a shareable `?team=` URL with four moves per member (`?moves=`). |
 | `detail.html` | Species Dossier: 3-column hero section, Canvas radar chart, dual-type matrix, evolution chain, and 4 move tabs (3-way footer pager). |
@@ -41,12 +41,12 @@
 | `cries.html` | All 1,025 cry cards with measured timbre, 5 sorting axes, and real-time waveforms. |
 | `cries-gen1.html` | The 151 Generation I cries re-synthesised via a Game Boy APU. |
 | `spectrum.html` | Mel spectrogram analysis over every cry, revealed from left to right. |
-| `cry-game.html` | 「叫聲猜謎」: a ten-question, four-choice cry-guessing game where difficulty is a measured similarity ceiling. |
-| `cry-studio.html` | 「叫聲編曲室」: place any cry on a scale-degree × step grid, auto-tuned to the pitch by YIN, then add five Strudel drum lanes, effects, a `#s=` share link and WAV / Strudel export. |
+| `cry-game.html` | Cry Quiz: a ten-question, four-choice cry-guessing game where difficulty is a measured similarity ceiling. |
+| `cry-studio.html` | Cry Studio: place any cry on a scale-degree × step grid, auto-tuned to the pitch by YIN, then add five Strudel drum lanes, effects, a `#s=` share link and WAV / Strudel export. |
 | `moves.html` | All 919 moves, searchable and filterable, with every filter kept in the URL. |
 | `move.html` | One move: stats, effect text, and which of the 1,025 Pokémon learn it. |
-| `abilities.html` | All 314 abilities, searchable and filterable, with the 「常見」/「隱藏」 holder split. |
-| `ability.html` | One ability: its effect and the 「常見」/「隱藏」 holder lists. |
+| `abilities.html` | All 314 abilities, searchable and filterable, with the regular / hidden holder split. |
+| `ability.html` | One ability: its effect and the regular / hidden holder lists. |
 | `types.html` | Type chart and per-type browser. The **only** place where the effectiveness matrix appears. |
 | `category.html` | Collection-list template (`?cat=<slug>`). Never links to `types.html`. |
 | `collections.html` | Collections hub: 11 cards in 4 groups, plus 2 `upcoming` entries. |
