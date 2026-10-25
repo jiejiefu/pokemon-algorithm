@@ -27,6 +27,25 @@
 
 .sq-title { margin: 8px 0 0; font-size: 30px; color: var(--text-primary); letter-spacing: 1px; }
 .sq-lede { margin: 4px 0 0; color: var(--text-secondary); line-height: 1.7; max-width: 860px; }
+.sq-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 999px;
+  background: var(--accent-gold);
+  color: #1a1610;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+.sq-mode-pill:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
 
 .sq-panel {
   background: var(--bg-card);

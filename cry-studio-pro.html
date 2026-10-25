@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>叫聲編曲室 - 寶可夢演算法</title>
+  <meta name="description" content="把寶可夢的叫聲放在音階與時間的格子上：自動調音、和弦進行、風格與一鍵作曲，再配上鼓組與效果器，編成循環並分享、匯出 WAV 或 Strudel 程式碼。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#0e0d0c">
+  <!-- Unlike every other page, this one does NOT resolve the reader's theme: the
+       studio is a dark instrument (see cry-seq.css's docblock), so it pins the
+       dark palette before first paint and leaves the stored choice alone — the
+       reader's other pages keep their light/dark setting. The theme toggle is
+       hidden by CSS for the same reason, and initThemeToggle() is not called. -->
+  <script>document.documentElement.dataset.theme = 'dark';</script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/cry-seq-pro.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    main {
+      flex: 1;
+    }
+
+    .sq-label small {
+      margin-left: 5px;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+
+<body class="sq-body">
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題" hidden></button>
+    <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img
+          src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="sq-page">
+    <!-- ===== console ===== -->
+    <section class="sq-console" aria-label="控制台">
+      <div class="sq-bar">
+        <h1 class="sq-brand">CRY STUDIO<small>PRO 專業版</small></h1>
+        <a class="sq-btn" href="cry-studio.html" title="切換至簡易模式"
+          style="text-decoration:none;display:inline-flex;align-items:center;color:var(--sq-fg-sub);border-color:var(--sq-edge);font-size:11px;padding:3px 8px;">‹
+          LITE 簡易模式</a>
+        <button id="sq-play" class="sq-btn sq-btn-primary" type="button" aria-pressed="false">▶ PLAY</button>
+        <button id="sq-rewind" class="sq-btn" type="button" aria-label="停止並回到開頭">⏮ REWIND</button>
+        <div class="sq-field">
+          <span class="sq-label" id="sq-style-label">STYLE<small>風格</small></span>
+          <div class="sq-seg" id="sq-styles" role="radiogroup" aria-labelledby="sq-style-label"></div>
+        </div>
+        <div class="sq-field">
+          <span class="sq-label" id="sq-key-label">KEY<small>主音</small></span>
+          <span class="sq-value" id="sq-key-name">A</span>
+          <div class="sq-piano" id="sq-piano" role="radiogroup" aria-labelledby="sq-key-label"></div>
+        </div>
+        <span class="sq-spacer"></span>
+        <button class="sq-link" type="button" id="sq-help-btn">HELP</button>
+        <button class="sq-btn" type="button" id="sq-copy">SHARE</button>
+        <button class="sq-btn" type="button" id="sq-export">SAVE</button>
+        <button class="sq-btn" type="button" id="sq-import">LOAD</button>
+        <input type="file" id="sq-import-file" accept=".json,.txt,application/json,text/plain" hidden>
+        <input type="file" id="sq-lane-file" accept="audio/*" hidden>
+      </div>
+
+      <div class="sq-bar">
+        <button class="sq-btn sq-btn-primary" type="button" id="sq-generate" title="依目前風格與旋鈕作一首新曲">GENERATE</button>
+        <button class="sq-btn" type="button" id="sq-clear">CLEAR</button>
+        <div class="sq-field"><span class="sq-label" id="sq-density-label">DENSITY<small>密度</small></span><span
+            class="sq-value" id="sq-density-val">3</span>
+          <div class="sq-meter" id="sq-density" role="radiogroup" aria-labelledby="sq-density-label"></div>
+        </div>
+        <div class="sq-field"><span class="sq-label" id="sq-variation-label">VARIATION<small>變化</small></span><span
+            class="sq-value" id="sq-variation-val">3</span>
+          <div class="sq-meter" id="sq-variation" role="radiogroup" aria-labelledby="sq-variation-label"></div>
+        </div>
+        <div class="sq-field"><span class="sq-label" id="sq-emission-label">EMISSION<small>粒子</small></span><span
+            class="sq-value" id="sq-emission-val">3</span>
+          <div class="sq-meter" id="sq-emission" role="radiogroup" aria-labelledby="sq-emission-label"></div>
+        </div>
+        <div class="sq-field">
+          <label class="sq-label" for="sq-bpm">BPM</label>
+          <div class="sq-bpms" id="sq-bpms"></div>
+          <input class="sq-input" id="sq-bpm" type="number" min="40" max="220" step="1" value="100" inputmode="numeric"
+            aria-label="速度 BPM">
+        </div>
+        <div class="sq-field">
+          <label class="sq-label" for="sq-swing">SWING<small>搖擺</small></label>
+          <span class="sq-value" id="sq-swing-val">0</span>
+          <input class="sq-slider" id="sq-swing" type="range" min="0" max="0.5" step="0.01" value="0"
+            style="width:96px">
+        </div>
+      </div>
+
+      <div class="sq-bar">
+        <div class="sq-field">
+          <span class="sq-label" id="sq-brush-label">BRUSH<small>筆刷</small></span>
+          <div class="sq-slots" id="sq-slots" role="group" aria-labelledby="sq-brush-label"></div>
+        </div>
+        <div class="sq-field sq-search">
+          <label class="sq-label" for="sq-search">FIND<small>找寶可夢</small></label>
+          <input class="sq-text" id="sq-search" type="search" placeholder="名稱或編號，例：皮卡丘、94" autocomplete="off"
+            aria-controls="sq-results" aria-expanded="false">
+          <button class="sq-btn sq-btn-sm" type="button" id="sq-brush-rand">RANDOM</button>
+          <button class="sq-btn sq-btn-sm" type="button" id="sq-brush-reset" title="重設為預設筆刷" aria-label="重設為預設筆刷" style="display:inline-flex;align-items:center;gap:3px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>RESET</span>
+          </button>
+          <div class="sq-results" id="sq-results" hidden></div>
+        </div>
+        <div class="sq-field">
+          <span class="sq-label" id="sq-len-label">LENGTH<small>步數</small></span>
+          <div class="sq-seg" id="sq-steps" role="radiogroup" aria-labelledby="sq-len-label">
+            <button class="sq-btn" type="button" role="radio" data-steps="16">16</button>
+            <button class="sq-btn" type="button" role="radio" data-steps="32">32</button>
+            <button class="sq-btn" type="button" role="radio" data-steps="64">64</button>
+          </div>
+        </div>
+        <div class="sq-field"><label class="sq-label" for="sq-scale">SCALE<small>音階</small></label><select
+            class="sq-select" id="sq-scale"></select></div>
+        <div class="sq-field"><label class="sq-label" for="sq-octave">OCT<small>八度</small></label>
+          <select class="sq-select" id="sq-octave">
+            <option value="-2">−2</option>
+            <option value="-1">−1</option>
+            <option value="0" selected>0</option>
+            <option value="1">+1</option>
+            <option value="2">+2</option>
+          </select>
+        </div>
+        <div class="sq-field"><label class="sq-label" for="sq-tune">TUNE<small>調音</small></label>
+          <select class="sq-select" id="sq-tune">
+            <option value="auto">自動（偵測音高）</option>
+            <option value="raw">原音高</option>
+          </select>
+        </div>
+        <div class="sq-field"><label class="sq-label" for="sq-gate">GATE<small>長度</small></label>
+          <select class="sq-select" id="sq-gate">
+            <option value="note">依音符截斷</option>
+            <option value="free">完整播完</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sq-bar">
+        <div class="sq-field"><label class="sq-label" for="sq-prog">CHORDS<small>和弦進行</small></label><select
+            class="sq-select" id="sq-prog"></select></div>
+        <button class="sq-btn sq-btn-sm" type="button" id="sq-prog-rand">RANDOM CHORDS</button>
+        <div class="sq-field"><label class="sq-label" for="sq-fx-padVol-quick">PAD<small>和弦墊底</small></label>
+          <input class="sq-slider" id="sq-fx-padVol-quick" type="range" min="0" max="1" step="0.01" value="0"
+            style="width:96px">
+        </div>
+        <div class="sq-field"><label class="sq-label" for="sq-preset">SONGS<small>範例</small></label><select
+            class="sq-select" id="sq-preset" aria-label="載入範例"></select></div>
+        <span class="sq-spacer"></span>
+        <button class="sq-btn sq-btn-sm" type="button" id="sq-undo" aria-label="復原">↶ UNDO</button>
+        <button class="sq-btn sq-btn-sm" type="button" id="sq-redo" aria-label="重做">↷ REDO</button>
+      </div>
+    </section>
+
+    <!-- ===== board ===== -->
+    <section class="sq-board" id="sq-board" aria-label="編曲格">
+      <i class="sq-corner tl"></i><i class="sq-corner tr"></i><i class="sq-corner bl"></i><i class="sq-corner br"></i>
+      <div class="sq-board-grid">
+        <div class="sq-gutter">
+          <div class="sq-gutter-top" aria-hidden="true">CHORD</div>
+          <div class="sq-pitch" id="sq-pitch" aria-hidden="true"></div>
+          <div class="sq-lanes" id="sq-lanes"></div>
+        </div>
+        <div class="sq-scroll" id="sq-scroll">
+          <div class="sq-chords" id="sq-chords" role="group" aria-label="和弦進行（每半小節一個，點一下可更換）"></div>
+          <canvas id="sq-roll" class="sq-canvas" tabindex="0" role="application"
+            aria-label="叫聲音符格。方向鍵移動游標，Enter 放置或移除目前筆刷，Delete 刪除，中括號調整長度，V 切換力度。"></canvas>
+          <canvas id="sq-drums" class="sq-canvas" tabindex="0" role="application"
+            aria-label="鼓組格。方向鍵移動游標，Enter 開關，Shift 加 Enter 切換輕重。"></canvas>
+        </div>
+      </div>
+      <div class="sq-pop" id="sq-pop" role="dialog" aria-label="更換和弦" hidden></div>
+      <div class="sq-selbar"><span id="sq-selbar" class="sq-row"></span><span class="sq-readout" id="sq-readout"
+          aria-hidden="true"></span></div>
+      <p class="sq-hint">點空格放上筆刷（按住往右拖可拉長）・點方塊選取、拖曳移動、拖右緣調長度・右鍵或 Delete
+        移除。上方的和弦會改變整排音高：同一格在不同和弦下是不同的音。鼓組：點一下開關、拖曳連續畫、右鍵或 Shift＋點切換輕／重音；把音檔拖到鼓軌名稱上可暫時換成你的取樣。</p>
+    </section>
+    <div id="sq-live" class="sr-only" role="status" aria-live="polite"></div>
+
+    <!-- ===== effects ===== -->
+    <section class="sq-panel" aria-labelledby="sq-fx-title">
+      <h2 class="sq-panel-title" id="sq-fx-title">FX 音效器</h2>
+      <div class="sq-fx-grid" id="sq-fx"></div>
+      <p class="sq-hint">滑桿雙擊可還原預設值。「閃避」會在每一下大鼓時把叫聲和墊底壓低再回升，做出舞曲常見的呼吸感（殘響尾巴不受影響）。</p>
+    </section>
+
+    <!-- ===== drum bank ===== -->
+    <section class="sq-panel" aria-labelledby="sq-bank-title">
+      <h2 class="sq-panel-title" id="sq-bank-title">DRUM BANK 鼓聲取樣庫（Strudel 格式）</h2>
+      <div class="sq-share">
+        <div class="sq-group">
+          <label for="sq-manifest">strudel.json 位置（網址、<code>github:使用者/倉庫</code> 或站內路徑）</label>
+          <div class="sq-row">
+            <input class="sq-text" id="sq-manifest" type="text" value="assets/drums/strudel.json" spellcheck="false">
+            <button class="sq-btn sq-btn-sm" type="button" id="sq-manifest-load">LOAD</button>
+          </div>
+        </div>
+        <div class="sq-group">
+          <label for="sq-bank">鼓機音色庫（bank）</label>
+          <select class="sq-select" id="sq-bank">
+            <option value="">預設（無前綴）</option>
+          </select>
+        </div>
+        <p class="sq-status" id="sq-bank-status" role="status"></p>
+      </div>
+      <p class="sq-hint">把從 strudel.cc 取得的鼓聲檔放進 <code>assets/drums/</code>，並在同資料夾的 <code>strudel.json</code> 寫入
+        <code>{"_base": "assets/drums/", "bd": ["bd/a.wav"], "sd": ["sd/a.wav"], …}</code>。名稱沿用 Strudel 的
+        <code>bd / sd / hh / oh / cp</code>；同名多個檔案可用鼓軌旁的 ‹ › 切換（等同 <code>bd:1</code>）。沒有取樣的聲音會用內建合成鼓補上。</p>
+    </section>
+
+    <!-- ===== export ===== -->
+    <section class="sq-panel" aria-labelledby="sq-share-title">
+      <h2 class="sq-panel-title" id="sq-share-title">EXPORT 匯出</h2>
+      <div class="sq-share">
+        <div class="sq-row">
+          <label for="sq-loops" class="sq-label">WAV 重複</label>
+          <select class="sq-select" id="sq-loops">
+            <option value="1">1 次</option>
+            <option value="2" selected>2 次</option>
+            <option value="4">4 次</option>
+          </select>
+          <button class="sq-btn" type="button" id="sq-wav">下載 WAV</button>
+        </div>
+        <p class="sq-status" id="sq-status" role="status"></p>
+      </div>
+      <details class="sq-details" id="sq-strudel-details">
+        <summary>Strudel 程式碼</summary>
+        <textarea class="sq-code" id="sq-strudel" readonly spellcheck="false" aria-label="Strudel 程式碼"></textarea>
+        <button class="sq-btn sq-btn-sm" type="button" id="sq-strudel-copy">複製程式碼</button>
+      </details>
+    </section>
+
+    <section class="sq-panel sq-help" id="sq-help" aria-labelledby="sq-help-title">
+      <h2 class="sq-panel-title" id="sq-help-title">HELP 操作與限制</h2>
+      <ul>
+        <li>鍵盤：<kbd>Space</kbd> 播放／停止、<kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋<kbd>Z</kbd> 復原；在格子內用方向鍵移動、<kbd>Enter</kbd> 放置。</li>
+        <li><b>風格</b>是 GENERATE 的配方（音階、速度、和弦、鼓、由哪些屬性的寶可夢演出），選好後按 GENERATE
+          才會套用；作出來的每個音符都可以再拖曳修改。<b>密度</b>決定每小節音符數，<b>變化</b>決定每小節偏離第一小節旋律的程度。</li>
+        <li>和弦列每格是半小節；點一下可換和弦。五聲與自然音階會依和弦的大／小調切換成對應的音階，其他音階則整個移到和弦的根音上。</li>
+        <li>自動調音依叫聲「中段」的音高對準音階；會滑音或接近雜訊的叫聲只能大致對準，這時改用「原音高」。</li>
+        <li>手機上橫向滑動是捲動格子，單點放置；移動音符請先選取，再用下方按鈕。粒子與方塊跳動在系統設定為「減少動態效果」時會關閉。</li>
+        <li>分享連結把整首曲子（含和弦與音效器設定）編進網址 <code>#s=…</code>，不需要伺服器。</li>
+        <li><b>創作靈感來源</b>：介面視覺、和弦排版與風格生成配方靈感致敬 YouTube 影片 <a href="https://www.youtube.com/watch?v=WwiIJsEkcoE" target="_blank" rel="noopener noreferrer">I Built a Visual Music App</a>（by Designer In Japan @halfof8）。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <p class="home-footer-line">
+        <span>參考來源： <a href="https://seq.halfof8.com/" target="_blank" rel="noopener noreferrer">A/V exp by ½8</a> by halfof8 (SQNCR)</span>
+      </p>
+      <p class="home-footer-line" style="margin-top: 8px;">
+        <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/"
+            rel="noopener noreferrer" target="_blank">PokéAPI</a> • v0.0.1</span>
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { loadPokemonData, initHeaderNav, ASSETS } from './assets/js/shared.js';
+    import { CRY_IDS } from './assets/js/cry-index.js';
+    import * as P from './assets/js/cry-seq-pro-pattern.js';
+    import { SeqEngine } from './assets/js/cry-seq-pro-engine.js';
+    import { createRoll } from './assets/js/cry-seq-pro-roll.js';
+
+    initHeaderNav();
+
+    const $ = (id) => document.getElementById(id);
+    const STORE = 'pokemon-algorithm:cry-seq-pro';
+    const BRUSH_STORE = 'pokemon-algorithm:cry-seq-pro-brush';
+    const PREFS_STORE = 'pokemon-algorithm:cry-seq-pro-prefs';
+    const DEFAULT_BRUSH = [25, 39, 52, 94, 143, 150];
+    const live = $('sq-live');
+    const say = (msg) => { live.textContent = ''; requestAnimationFrame(() => { live.textContent = msg; }); };
+    const flash = (el, msg) => { el.textContent = msg; };
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+    /* ---------------------------------------------------------- data */
+    const dex = new Map();
+    const nameOf = (id) => dex.get(id)?.names?.zh || dex.get(id)?.names?.en || `#${id}`;
+    const spriteUrl = (id) => `${ASSETS.sprites}${id}.png`;
+    const info = (id) => ({ name: nameOf(id), type: dex.get(id)?.types?.[0] || 'Normal' });
+    const ALL_IDS = [...CRY_IDS].filter((id) => id <= 1025);
+
+    /* ---------------------------------------------------------- state */
+    const loadSaved = () => {
+      const hash = /(?:^#|&)s=([^&]+)/.exec(location.hash);
+      if (hash) { const p = P.deserialize(hash[1]); if (p) return p; }
+      try { const s = localStorage.getItem(STORE); if (s) { const p = P.deserialize(s); if (p) return p; } } catch { /* storage blocked */ }
+      return P.PRESETS[0].build();
+    };
+    let pattern = loadSaved();
+    const engine = new SeqEngine(pattern);
+    let brush = DEFAULT_BRUSH.slice();
+    let hasSavedBrush = false;
+    try {
+      const b = JSON.parse(localStorage.getItem(BRUSH_STORE) || 'null');
+      if (Array.isArray(b) && b.length === 6 && b.every((n) => Number.isInteger(n) && n > 0 && n <= 1025)) {
+        brush = b;
+        hasSavedBrush = true;
+      }
+    } catch { /* default */ }
+    let activeSlot = 0;
+
+    // Generation knobs and the particle level are the READER's preferences, not
+    // part of a song — a shared link should not change someone else's EMISSION.
+    const prefs = { density: 3, variation: 3, emission: 3, style: pattern.style || 'city' };
+    try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_STORE) || '{}')); } catch { /* defaults */ }
+    if (pattern.style) prefs.style = pattern.style;
+    const savePrefs = () => { try { localStorage.setItem(PREFS_STORE, JSON.stringify(prefs)); } catch { /* ignore */ } };
+
+    /* -------------------------------------------------------- history */
+    const undo = { stack: [], i: -1 };
+    function snapshot() {
+      const s = P.serialize(pattern);
+      if (undo.stack[undo.i] === s) return;
+      undo.stack.length = undo.i + 1;
+      undo.stack.push(s);
+      if (undo.stack.length > 100) undo.stack.shift();
+      undo.i = undo.stack.length - 1;
+      $('sq-undo').disabled = undo.i <= 0;
+      $('sq-redo').disabled = true;
+    }
+    function restore(i) {
+      const p = P.deserialize(undo.stack[i]);
+      if (!p) return;
+      undo.i = i;
+      pattern = p;
+      engine.setPattern(pattern);
+      roll.clearSelection();
+      syncControls();
+      relayout();
+      afterChange(true); // the link and autosave must follow an undo, or a reload resurrects the undone state
+      $('sq-undo').disabled = undo.i <= 0;
+      $('sq-redo').disabled = undo.i >= undo.stack.length - 1;
+    }
+
+    /* ------------------------------------------------------ persistence */
+    let saveTimer = 0;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const s = P.serialize(pattern);
+        try { localStorage.setItem(STORE, s); } catch { /* storage blocked */ }
+        try { window.history.replaceState(null, '', `#s=${s}`); } catch { /* sandboxed */ }
+        $('sq-strudel').value = P.toStrudel(pattern);
+      }, 250);
+    }
+
+    /* ------------------------------------------------------------ board */
+    const roll = createRoll({
+      rollCanvas: $('sq-roll'),
+      drumCanvas: $('sq-drums'),
+      getPattern: () => pattern,
+      getBrush: () => brush[activeSlot],
+      getInfo: info,
+      getEmission: () => prefs.emission,
+      spriteUrl,
+      engine,
+      announce: say,
+      onEdit: (kind) => { snapshot(); afterChange(true, kind); },
+      onSelect: () => updateSelbar(),
+      onHover: (h) => {
+        const el = $('sq-readout');
+        if (!h) { el.textContent = ''; return; }
+        el.textContent = h.zone === 'roll'
+          ? `${h.chord}　${h.pitch}　STEP ${h.step + 1}${h.note ? `　${nameOf(h.note.id)}` : ''}`
+          : `${h.chord}　${h.lane.toUpperCase()}　STEP ${h.step + 1}`;
+      },
+    });
+
+    async function ensureCries() {
+      const missing = [];
+      for (const id of new Set(pattern.notes.map((n) => n.id))) {
+        const e = await engine.prepare(id);
+        if (!e) missing.push(nameOf(id));
+      }
+      if (missing.length) flash($('sq-status'), `找不到這些叫聲檔：${missing.join('、')}`);
+    }
+
+    function afterChange(persist = true, kind) {
+      roll.redraw();
+      updateSelbar();
+      buildChords();
+      syncProgression();
+      if (persist) scheduleSave();
+      if (kind !== 'drums') ensureCries();
+      if (kind === 'drums' || kind === undefined) engine.prepareDrums();
+    }
+
+    function relayout() {
+      const g = roll.layout($('sq-scroll').clientWidth || 800);
+      const board = $('sq-board');
+      board.style.setProperty('--sq-row', `${g.rowH}px`);
+      board.style.setProperty('--sq-lane', `${g.laneH}px`);
+      board.style.setProperty('--sq-step', `${g.stepW}px`);
+      buildLabels();
+      buildChords();
+    }
+
+    function buildLabels() {
+      const rows = P.rowCount(pattern);
+      const pitch = $('sq-pitch');
+      pitch.textContent = '';
+      for (let r = rows - 1; r >= 0; r--) {
+        const d = document.createElement('div');
+        d.className = 'sq-pitch-label';
+        const root = P.rowIsRoot(pattern, r);
+        d.dataset.root = root;
+        d.textContent = root ? '●' : '·';
+        pitch.append(d);
+      }
+      const lanes = $('sq-lanes');
+      lanes.textContent = '';
+      pattern.drums.forEach((lane, i) => {
+        const meta = P.DRUM_LANES.find((l) => l.name === lane.name);
+        const wrap = document.createElement('div');
+        wrap.className = 'sq-lane-label';
+        wrap.dataset.lane = i;
+        wrap.innerHTML = `
+          <button class="sq-btn" type="button" data-act="mute" aria-pressed="${!lane.mute}" aria-label="${meta.label}（${lane.name}）開關" title="${meta.label}">${lane.name.toUpperCase()}</button>
+          <button class="sq-btn sq-mini" type="button" data-act="prev" aria-label="${meta.label} 上一個音色">‹</button>
+          <span class="sq-n" aria-hidden="true">${lane.n}</span>
+          <button class="sq-btn sq-mini" type="button" data-act="next" aria-label="${meta.label} 下一個音色">›</button>
+          <button class="sq-btn sq-mini" type="button" data-act="file" aria-label="${meta.label} 載入自己的音檔" title="載入音檔">⤒</button>`;
+        lanes.append(wrap);
+      });
+    }
+
+    $('sq-lanes').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const i = Number(btn.closest('.sq-lane-label').dataset.lane);
+      const lane = pattern.drums[i];
+      const act = btn.dataset.act;
+      if (act === 'mute') {
+        lane.mute = !lane.mute;
+        btn.setAttribute('aria-pressed', String(!lane.mute));
+      } else if (act === 'prev' || act === 'next') {
+        lane.n = Math.max(0, Math.min(99, lane.n + (act === 'next' ? 1 : -1)));
+        btn.parentElement.querySelector('.sq-n').textContent = lane.n;
+        engine.auditionDrum(i);
+      } else if (act === 'file') {
+        laneForFile = i;
+        $('sq-lane-file').click();
+        return;
+      }
+      snapshot(); afterChange(true, 'drums');
+    });
+
+    let laneForFile = -1;
+    async function loadLaneFile(i, file) {
+      try {
+        await engine.kit.setCustom(pattern.drums[i].name, await file.arrayBuffer());
+        flash($('sq-status'), `${pattern.drums[i].name} 軌已換成「${file.name}」（只在這次瀏覽有效）`);
+        engine.auditionDrum(i);
+      } catch {
+        flash($('sq-status'), `無法解碼「${file.name}」，請換成 wav / mp3 / ogg`);
+      }
+    }
+    $('sq-lane-file').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (f && laneForFile >= 0) loadLaneFile(laneForFile, f);
+      e.target.value = '';
+    });
+    $('sq-lanes').addEventListener('dragover', (e) => {
+      const w = e.target.closest('.sq-lane-label');
+      if (!w) return;
+      e.preventDefault();
+      for (const x of $('sq-lanes').children) x.dataset.drop = String(x === w);
+    });
+    $('sq-lanes').addEventListener('dragleave', () => { for (const x of $('sq-lanes').children) x.dataset.drop = 'false'; });
+    $('sq-lanes').addEventListener('drop', (e) => {
+      const w = e.target.closest('.sq-lane-label');
+      for (const x of $('sq-lanes').children) x.dataset.drop = 'false';
+      const f = e.dataTransfer?.files?.[0];
+      if (!w || !f) return;
+      e.preventDefault();
+      loadLaneFile(Number(w.dataset.lane), f);
+    });
+
+    /* --------------------------------------------------------- chords */
+    const pop = $('sq-pop');
+    let popFor = -1;
+
+    function buildChords() {
+      const host = $('sq-chords');
+      host.textContent = '';
+      pattern.chords.forEach((c, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-chord';
+        b.dataset.i = i;
+        b.setAttribute('aria-label', `第 ${i + 1} 個和弦：${P.chordName(pattern, i)}，點一下更換`);
+        b.innerHTML = `<span class="n">${i % 2 === 0 ? i / 2 + 1 : ''}</span><span>${P.chordName(pattern, i)}</span>`;
+        host.append(b);
+      });
+    }
+    $('sq-chords').addEventListener('click', (e) => {
+      const b = e.target.closest('.sq-chord');
+      if (!b) return;
+      openPop(Number(b.dataset.i), b);
+    });
+
+    function openPop(i, anchor) {
+      popFor = i;
+      const board = $('sq-board').getBoundingClientRect();
+      const r = anchor.getBoundingClientRect();
+      pop.hidden = false;
+      pop.style.left = `${Math.max(8, Math.min(board.width - 250, r.left - board.left))}px`;
+      pop.style.top = `${r.bottom - board.top + 4}px`;
+      renderPop();
+      pop.querySelector('[aria-checked="true"]')?.focus();
+      engine.auditionChord(i);
+    }
+    function renderPop() {
+      const c = pattern.chords[popFor];
+      const rootPc = (pattern.key + c.r) % 12;
+      pop.innerHTML = `<p class="sq-pop-title">CHORD ${popFor + 1}　${P.chordName(pattern, popFor)}</p>
+        <div class="sq-pop-grid" role="radiogroup" aria-label="根音">${P.NOTE_NAMES.map((n, pc) => `<button class="sq-btn" type="button" role="radio" data-pc="${pc}" aria-checked="${pc === rootPc}">${n}</button>`).join('')}</div>
+        <div class="sq-pop-row" role="radiogroup" aria-label="和弦性質">${[['maj', 'MAJ'], ['min', 'MIN'], ['', 'KEY']].map(([q, l]) => `<button class="sq-btn" type="button" role="radio" data-q="${q}" aria-checked="${c.q === q}" title="${q === '' ? '不指定，沿用所選音階' : ''}">${l}</button>`).join('')}</div>
+        <div class="sq-pop-row"><button class="sq-btn" type="button" data-pop="hear">▶ HEAR</button><button class="sq-btn" type="button" data-pop="close">CLOSE</button></div>`;
+    }
+    pop.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b || popFor < 0) return;
+      const c = pattern.chords[popFor];
+      if (b.dataset.pc !== undefined) c.r = (Number(b.dataset.pc) - pattern.key + 12) % 12;
+      else if (b.dataset.q !== undefined) c.q = b.dataset.q;
+      else if (b.dataset.pop === 'hear') { engine.auditionChord(popFor); return; }
+      else if (b.dataset.pop === 'close') { closePop(true); return; }
+      snapshot();
+      afterChange(true, 'notes');
+      renderPop();
+      pop.querySelector(`[aria-checked="true"]`)?.focus?.();
+      engine.auditionChord(popFor);
+    });
+    function closePop(refocus) {
+      if (pop.hidden) return;
+      pop.hidden = true;
+      if (refocus && popFor >= 0) $('sq-chords').querySelector(`[data-i="${popFor}"]`)?.focus();
+      popFor = -1;
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(true); });
+    document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !e.target.closest('#sq-pop, .sq-chord')) closePop(false); });
+
+    const progSel = $('sq-prog');
+    progSel.append(new Option('自訂', ''));
+    for (const pr of P.PROGRESSIONS) progSel.append(new Option(pr.label, pr.id));
+    const sameChords = (a, b, n) => a.length === n && a.every((c, i) => c.r === b[i % b.length].r && c.q === b[i % b.length].q);
+    function syncProgression() {
+      const hit = P.PROGRESSIONS.find((pr) => sameChords(pattern.chords, pr.chords, pattern.chords.length));
+      progSel.value = hit ? hit.id : '';
+    }
+    progSel.addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      P.applyProgression(pattern, e.target.value);
+      if (pattern.fx.padVol < 0.05) { pattern.fx.padVol = 0.3; syncControls(); engine.applyFx(); }
+      snapshot(); afterChange(true, 'notes');
+      engine.auditionChord(0);
+    });
+    $('sq-prog-rand').addEventListener('click', () => {
+      const pr = P.PROGRESSIONS[Math.floor(Math.random() * P.PROGRESSIONS.length)];
+      P.applyProgression(pattern, pr.id);
+      if (pattern.fx.padVol < 0.05) { pattern.fx.padVol = 0.3; syncControls(); engine.applyFx(); }
+      snapshot(); afterChange(true, 'notes');
+      say(`和弦進行：${pr.label}`);
+    });
+
+    // Highlight the chord under the playhead.
+    let nowChord = -1;
+    (function trackChord() {
+      requestAnimationFrame(trackChord);
+      const pos = engine.position();
+      const i = pos < 0 ? -1 : Math.min(pattern.chords.length - 1, Math.floor(pos / P.CHORD_STEPS));
+      if (i === nowChord) return;
+      nowChord = i;
+      for (const el of $('sq-chords').children) el.classList.toggle('is-now', Number(el.dataset.i) === i);
+    })();
+
+    /* ------------------------------------------------------ brush tray */
+    function renderSlots() {
+      const host = $('sq-slots');
+      host.textContent = '';
+      brush.forEach((id, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-slot';
+        b.setAttribute('aria-pressed', String(i === activeSlot));
+        b.setAttribute('aria-label', `筆刷 ${i + 1}：${nameOf(id)}`);
+        b.innerHTML = `<img alt="" width="36" height="36" src="${spriteUrl(id)}"><span></span>`;
+        b.querySelector('span').textContent = nameOf(id);
+        b.addEventListener('click', () => {
+          activeSlot = i;
+          renderSlots();
+          engine.audition(brush[i], P.SCALES[pattern.scale].intervals.length);
+          say(`目前筆刷：${nameOf(brush[i])}`);
+        });
+        host.append(b);
+      });
+    }
+    function setSlot(id) {
+      brush[activeSlot] = id;
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      renderSlots();
+      engine.audition(id, P.SCALES[pattern.scale].intervals.length);
+      say(`筆刷換成 ${nameOf(id)}`);
+    }
+
+    function syncBrushWithPattern(p) {
+      if (!p || !Array.isArray(p.notes)) return;
+      const songIds = [];
+      const sortedNotes = [...p.notes].sort((a, b) => (a.step ?? 0) - (b.step ?? 0) || (a.row ?? 0) - (b.row ?? 0));
+      for (const n of sortedNotes) {
+        if (n && Number.isInteger(n.id) && n.id > 0 && n.id <= 1025 && !songIds.includes(n.id)) {
+          songIds.push(n.id);
+        }
+      }
+      if (!songIds.length) return;
+
+      const newBrush = [];
+      const used = new Set();
+      // 樂曲上有的寶可夢優先填入前側格子
+      for (let i = 0; i < Math.min(6, songIds.length); i++) {
+        newBrush.push(songIds[i]);
+        used.add(songIds[i]);
+      }
+      // 後面幾格保持上一次的筆刷（若與樂曲重複則從先前筆刷或預設中遞補）
+      for (let i = newBrush.length; i < 6; i++) {
+        const prev = brush[i];
+        if (prev && !used.has(prev)) {
+          newBrush.push(prev);
+          used.add(prev);
+        } else {
+          const fallback = brush.find((id) => !used.has(id)) || DEFAULT_BRUSH.find((id) => !used.has(id)) || 25;
+          newBrush.push(fallback);
+          used.add(fallback);
+        }
+      }
+
+      brush = newBrush;
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      activeSlot = 0;
+      renderSlots();
+    }
+
+    const results = $('sq-results');
+    const search = $('sq-search');
+    function showResults() {
+      const q = search.value.trim().toLowerCase();
+      results.textContent = '';
+      if (!q) { results.hidden = true; search.setAttribute('aria-expanded', 'false'); return; }
+      const hits = [];
+      for (const [id, rec] of dex) {
+        if (!CRY_IDS.has(id)) continue;
+        const n = rec.names;
+        if (String(id) === q || [n.zh, n.en, n.ja, n.zh_HK].some((s) => s && s.toLowerCase().includes(q))) hits.push(id);
+        if (hits.length >= 24) break;
+      }
+      if (!hits.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sq-results-empty';
+        empty.textContent = '沒有符合的寶可夢';
+        results.append(empty);
+      }
+      for (const id of hits) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-result';
+        b.innerHTML = `<img alt="" width="40" height="40" src="${spriteUrl(id)}"><span></span>`;
+        b.querySelector('span').textContent = nameOf(id);
+        b.addEventListener('click', () => { setSlot(id); search.value = ''; showResults(); });
+        results.append(b);
+      }
+      results.hidden = false;
+      search.setAttribute('aria-expanded', 'true');
+    }
+    search.addEventListener('input', showResults);
+    search.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { search.value = ''; showResults(); }
+      if (e.key === 'ArrowDown') { results.querySelector('button')?.focus(); e.preventDefault(); }
+      if (e.key === 'Enter') { results.querySelector('button')?.click(); e.preventDefault(); }
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.sq-search')) { results.hidden = true; search.setAttribute('aria-expanded', 'false'); } });
+    $('sq-brush-rand').addEventListener('click', () => setSlot(ALL_IDS[Math.floor(Math.random() * ALL_IDS.length)]));
+    $('sq-brush-reset').addEventListener('click', () => {
+      brush = DEFAULT_BRUSH.slice();
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      activeSlot = 0;
+      renderSlots();
+      say('筆刷已重設為預設');
+      flash($('sq-status'), '筆刷已重設為預設');
+    });
+
+    /* ------------------------------------------------- selection bar */
+    function updateSelbar() {
+      const bar = $('sq-selbar');
+      const note = roll.selected;
+      if (!note || !pattern.notes.includes(note)) {
+        roll.clearSelection();
+        bar.innerHTML = '<span>尚未選取。點一下格子放上筆刷，或點選已放的方塊。</span>';
+        return;
+      }
+      const midi = P.rowToMidi(pattern, note.row, note.step);
+      bar.innerHTML = `
+        <span>已選取：<strong>${info(note.id).name}</strong>・${P.midiName(midi)}・第 ${note.step + 1} 步・長度 ${note.len}・力度 ${['', '輕', '中', '重'][note.vel]}</span>
+        <span class="sq-row" role="group" aria-label="調整選取的音符">
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="up" aria-label="音高升一格">↑</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="down" aria-label="音高降一格">↓</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="left" aria-label="提早一步">←</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="right" aria-label="延後一步">→</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="shorter" aria-label="縮短">短</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="longer" aria-label="拉長">長</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="vel" aria-label="切換力度">力度</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="brush" aria-label="換成目前筆刷">換成筆刷</button>
+          <button class="sq-btn sq-btn-sm" type="button" data-sel="delete" aria-label="刪除音符">刪除</button>
+        </span>`;
+    }
+    $('sq-selbar').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-sel]');
+      const note = roll.selected;
+      if (!btn || !note) return;
+      const rows = P.rowCount(pattern);
+      const free = (step, row) => !pattern.notes.some((n) => n !== note && n.step === step && n.row === row);
+      switch (btn.dataset.sel) {
+        case 'up': if (note.row < rows - 1 && free(note.step, note.row + 1)) note.row++; break;
+        case 'down': if (note.row > 0 && free(note.step, note.row - 1)) note.row--; break;
+        case 'left': if (note.step > 0 && free(note.step - 1, note.row)) note.step--; break;
+        case 'right': if (note.step + note.len < pattern.steps && free(note.step + 1, note.row)) note.step++; break;
+        case 'shorter': note.len = Math.max(1, note.len - 1); roll.lastLen = note.len; break;
+        case 'longer': note.len = Math.min(pattern.steps - note.step, note.len + 1); roll.lastLen = note.len; break;
+        case 'vel': note.vel = (note.vel % 3) + 1; break;
+        case 'brush': note.id = brush[activeSlot]; break;
+        case 'delete': P.removeNote(pattern, note); roll.clearSelection(); break;
+        default: return;
+      }
+      if (['up', 'down', 'left', 'right', 'brush'].includes(btn.dataset.sel) && pattern.notes.includes(note)) engine.audition(note.id, note.row, note.len, note.step);
+      snapshot();
+      afterChange(true, 'notes');
+      $('sq-selbar').querySelector(`[data-sel="${btn.dataset.sel}"]`)?.focus();
+    });
+
+    /* ------------------------------------------------------- controls */
+    const SCALE_SEL = $('sq-scale');
+    for (const [k, v] of Object.entries(P.SCALES)) SCALE_SEL.append(new Option(v.label, k));
+    $('sq-preset').append(new Option('載入範例…', ''));
+    for (const pr of P.PRESETS) $('sq-preset').append(new Option(pr.label, pr.id));
+
+    // key piano
+    const WHITE = [0, 2, 4, 5, 7, 9, 11];
+    const BLACK = [[1, 1], [3, 2], [6, 4], [8, 5], [10, 6]]; // [pitch class, white keys to its left]
+    const piano = $('sq-piano');
+    for (const pc of WHITE) piano.insertAdjacentHTML('beforeend', `<button class="w" type="button" role="radio" data-pc="${pc}" aria-label="${P.NOTE_NAMES[pc]}" aria-checked="false"></button>`);
+    for (const [pc, left] of BLACK) piano.insertAdjacentHTML('beforeend', `<button class="b" type="button" role="radio" data-pc="${pc}" aria-label="${P.NOTE_NAMES[pc]}" aria-checked="false" style="left:${left * 14}px"></button>`);
+    piano.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-pc]');
+      if (!b) return;
+      change(() => { pattern.key = Number(b.dataset.pc); });
+      engine.auditionChord(0);
+    });
+
+    // radio-ish groups: style, length
+    const styleHost = $('sq-styles');
+    for (const id of P.STYLE_IDS) {
+      const st = P.STYLES[id];
+      styleHost.insertAdjacentHTML('beforeend', `<button class="sq-btn" type="button" role="radio" data-style="${id}" aria-checked="false" title="${st.name}">${st.label}<span>${st.en}</span></button>`);
+    }
+    styleHost.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-style]');
+      if (!b) return;
+      prefs.style = b.dataset.style;
+      pattern.style = prefs.style;
+      savePrefs();
+      syncControls();
+      scheduleSave();
+      say(`風格：${P.STYLES[prefs.style].name}，按 GENERATE 套用`);
+    });
+    $('sq-steps').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-steps]');
+      if (b) change(() => P.resizeSteps(pattern, Number(b.dataset.steps)), { structural: true });
+    });
+
+    // meters
+    const METERS = { density: [1, 5], variation: [1, 5], emission: [0, 4] };
+    for (const [key, [lo, hi]] of Object.entries(METERS)) {
+      const host = $(`sq-${key}`);
+      const blocks = key === 'emission' ? 4 : 5;
+      for (let i = 1; i <= blocks; i++) host.insertAdjacentHTML('beforeend', `<button type="button" role="radio" data-v="${i}" aria-label="${i}" aria-checked="false" data-on="false"></button>`);
+      host.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-v]');
+        if (!b) return;
+        let v = Number(b.dataset.v);
+        if (key === 'emission' && v === 1 && prefs.emission === 1) v = 0;
+        prefs[key] = Math.max(lo, Math.min(hi, v));
+        savePrefs();
+        syncMeters();
+      });
+      host.addEventListener('keydown', (e) => {
+        const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+        if (!d) return;
+        prefs[key] = Math.max(lo, Math.min(hi, prefs[key] + d));
+        savePrefs();
+        syncMeters();
+        e.preventDefault();
+      });
+    }
+    function syncMeters() {
+      for (const key of Object.keys(METERS)) {
+        const v = prefs[key];
+        $(`sq-${key}-val`).textContent = v;
+        for (const b of $(`sq-${key}`).children) {
+          const on = Number(b.dataset.v) <= v;
+          b.dataset.on = on;
+          b.setAttribute('aria-checked', String(Number(b.dataset.v) === v));
+        }
+      }
+    }
+
+    // bpm quick picks
+    for (const v of [60, 80, 100, 120, 140]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = v;
+      b.dataset.bpm = v;
+      b.setAttribute('aria-label', `${v} BPM`);
+      $('sq-bpms').append(b);
+    }
+    $('sq-bpms').addEventListener('click', (e) => { const b = e.target.closest('[data-bpm]'); if (b) setBpm(Number(b.dataset.bpm)); });
+
+    function syncControls() {
+      $('sq-bpm').value = pattern.bpm;
+      for (const b of $('sq-bpms').children) b.setAttribute('aria-pressed', String(Number(b.dataset.bpm) === pattern.bpm));
+      $('sq-swing').value = pattern.swing;
+      $('sq-swing-val').textContent = Math.round(pattern.swing * 100);
+      for (const b of $('sq-steps').children) b.setAttribute('aria-checked', String(Number(b.dataset.steps) === pattern.steps));
+      SCALE_SEL.value = pattern.scale;
+      $('sq-octave').value = pattern.octave;
+      $('sq-tune').value = pattern.tune;
+      $('sq-gate').value = pattern.gate;
+      $('sq-bank').value = pattern.bank;
+      $('sq-key-name').textContent = P.NOTE_NAMES[pattern.key];
+      for (const b of piano.children) b.setAttribute('aria-checked', String(Number(b.dataset.pc) === pattern.key));
+      for (const b of styleHost.children) b.setAttribute('aria-checked', String(b.dataset.style === prefs.style));
+      $('sq-fx-padVol-quick').value = pattern.fx.padVol;
+      for (const [k, el] of fxEls) {
+        const v = pattern.fx[k];
+        if (el.type === 'range') { el.value = el.dataset.log ? toSlider(k, v) : v; el.dispatchEvent(new Event('sq-sync')); } else el.value = v;
+      }
+      syncMeters();
+    }
+
+    function change(fn, { structural = false, kind = 'notes' } = {}) {
+      fn();
+      snapshot();
+      if (structural) { relayout(); }
+      syncControls();
+      engine.applyFx();
+      afterChange(true, kind);
+    }
+
+    const setBpm = (v) => change(() => { pattern.bpm = Math.max(40, Math.min(220, Math.round(v) || pattern.bpm)); });
+    $('sq-bpm').addEventListener('change', (e) => setBpm(Number(e.target.value)));
+    $('sq-swing').addEventListener('input', (e) => { pattern.swing = Number(e.target.value); $('sq-swing-val').textContent = Math.round(pattern.swing * 100); scheduleSave(); });
+    SCALE_SEL.addEventListener('change', (e) => change(() => { pattern.scale = e.target.value; P.clampRows(pattern); }, { structural: true }));
+    $('sq-octave').addEventListener('change', (e) => change(() => { pattern.octave = Number(e.target.value); }));
+    $('sq-tune').addEventListener('change', (e) => change(() => { pattern.tune = e.target.value; }));
+    $('sq-gate').addEventListener('change', (e) => change(() => { pattern.gate = e.target.value; }));
+    $('sq-bank').addEventListener('change', (e) => change(() => { pattern.bank = e.target.value; }, { kind: 'drums' }));
+    $('sq-fx-padVol-quick').addEventListener('input', (e) => { pattern.fx.padVol = Number(e.target.value); fxEls.get('padVol') && (fxEls.get('padVol').value = pattern.fx.padVol, fxEls.get('padVol').dispatchEvent(new Event('sq-sync'))); engine.applyFx(); scheduleSave(); });
+
+    /* -------------------------------------------------- fx knobs */
+    const FX_UI = [
+      {
+        title: 'Mix 混音', items: [
+          { k: 'cryVol', label: '叫聲音量' }, { k: 'drumVol', label: '鼓音量' }, { k: 'padVol', label: '和弦墊底' }, { k: 'master', label: '總音量' },
+          { k: 'duck', label: '閃避（大鼓壓低叫聲）' },
+        ]
+      },
+      {
+        title: 'Voice 叫聲音色', items: [
+          { k: 'drive', label: '失真' }, { k: 'crush', label: '壓碎（Lo-fi）' },
+          { k: 'filterType', label: '濾波類型', select: [['lowpass', '低通'], ['highpass', '高通'], ['bandpass', '帶通']] },
+          { k: 'cutoff', label: '截止頻率', log: true, fmt: (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`) },
+          { k: 'reso', label: '共振', step: 0.1 },
+          { k: 'wahRate', label: '哇音速度（Hz）', step: 0.1 }, { k: 'wahDepth', label: '哇音深度' },
+        ]
+      },
+      {
+        title: 'Delay 回聲', items: [
+          { k: 'delayDiv', label: '延遲時間', select: [[0, '1/16'], [1, '1/8'], [2, '附點 1/8'], [3, '1/4']], num: true },
+          { k: 'delayFb', label: '回授' }, { k: 'delayCry', label: '叫聲送出量' }, { k: 'delayDrum', label: '鼓送出量' },
+        ]
+      },
+      {
+        title: 'Reverb 殘響', items: [
+          { k: 'reverbSize', label: '空間大小（秒）', step: 0.1 }, { k: 'reverbCry', label: '叫聲與墊底送出量' }, { k: 'reverbDrum', label: '鼓送出量' },
+        ]
+      },
+    ];
+    const fxEls = new Map();
+    const fromSlider = (k, s) => { const [lo, hi] = P.FX_RANGES[k]; return lo * (hi / lo) ** s; };
+    const toSlider = (k, v) => { const [lo, hi] = P.FX_RANGES[k]; return Math.log(v / lo) / Math.log(hi / lo); };
+
+    const fxHost = $('sq-fx');
+    for (const group of FX_UI) {
+      const card = document.createElement('div');
+      card.className = 'sq-card';
+      card.innerHTML = `<h3>${group.title}</h3>`;
+      for (const it of group.items) {
+        const id = `sq-fx-${it.k}`;
+        if (it.select) {
+          const wrap = document.createElement('div');
+          wrap.className = 'sq-knob';
+          wrap.innerHTML = `<label for="${id}" style="grid-column:1/-1">${it.label}</label>`;
+          const sel = document.createElement('select');
+          sel.className = 'sq-select';
+          sel.id = id;
+          for (const [v, text] of it.select) sel.append(new Option(text, String(v)));
+          sel.addEventListener('change', () => { pattern.fx[it.k] = it.num ? Number(sel.value) : sel.value; engine.applyFx(); scheduleSave(); });
+          wrap.append(sel);
+          card.append(wrap);
+          fxEls.set(it.k, sel);
+          continue;
+        }
+        const [lo, hi] = P.FX_RANGES[it.k];
+        const wrap = document.createElement('label');
+        wrap.className = 'sq-knob';
+        wrap.innerHTML = `<span>${it.label}</span><input class="sq-slider" id="${id}" type="range" min="${it.log ? 0 : lo}" max="${it.log ? 1 : hi}" step="${it.log ? 0.001 : (it.step || 0.01)}"><output></output>`;
+        const input = wrap.querySelector('input');
+        const out = wrap.querySelector('output');
+        if (it.log) input.dataset.log = '1';
+        const value = () => (it.log ? fromSlider(it.k, Number(input.value)) : Number(input.value));
+        const show = () => { const v = value(); out.textContent = it.fmt ? it.fmt(v) : (hi > 5 ? v.toFixed(1) : v.toFixed(2)); };
+        input.addEventListener('input', () => {
+          pattern.fx[it.k] = value(); show(); engine.applyFx(); scheduleSave();
+          if (it.k === 'padVol') $('sq-fx-padVol-quick').value = pattern.fx.padVol;
+        });
+        input.addEventListener('sq-sync', show);
+        input.addEventListener('dblclick', () => {
+          pattern.fx[it.k] = P.DEFAULT_FX[it.k];
+          input.value = it.log ? toSlider(it.k, P.DEFAULT_FX[it.k]) : P.DEFAULT_FX[it.k];
+          show(); engine.applyFx(); scheduleSave();
+          if (it.k === 'padVol') $('sq-fx-padVol-quick').value = pattern.fx.padVol;
+        });
+        card.append(wrap);
+        fxEls.set(it.k, input);
+      }
+      fxHost.append(card);
+    }
+
+    /* ------------------------------------------------------ transport */
+    const playBtn = $('sq-play');
+    async function togglePlay() {
+      if (engine.playing) {
+        engine.stop();
+        playBtn.setAttribute('aria-pressed', 'false');
+        playBtn.textContent = '▶ PLAY';
+        say('已停止');
+        return;
+      }
+      playBtn.textContent = 'LOADING…';
+      try {
+        await engine.start();
+      } catch (e) {
+        playBtn.textContent = '▶ PLAY';
+        flash($('sq-status'), '無法啟動音訊，請確認瀏覽器允許播放聲音');
+        return;
+      }
+      playBtn.setAttribute('aria-pressed', 'true');
+      playBtn.textContent = '■ STOP';
+      say('開始播放');
+    }
+    playBtn.addEventListener('click', togglePlay);
+    $('sq-rewind').addEventListener('click', async () => {
+      const was = engine.playing;
+      engine.stop();
+      playBtn.setAttribute('aria-pressed', 'false');
+      playBtn.textContent = '▶ PLAY';
+      roll.redraw();
+      if (was) togglePlay();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest?.('input, select, textarea, button, a, summary')) return;
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) { if (undo.i < undo.stack.length - 1) restore(undo.i + 1); } else if (undo.i > 0) restore(undo.i - 1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        if (undo.i < undo.stack.length - 1) restore(undo.i + 1);
+      }
+    });
+    $('sq-undo').addEventListener('click', () => { if (undo.i > 0) restore(undo.i - 1); });
+    $('sq-redo').addEventListener('click', () => { if (undo.i < undo.stack.length - 1) restore(undo.i + 1); });
+
+    function loadPattern(p, label, syncBrush = true) {
+      pattern = p;
+      if (pattern.style) prefs.style = pattern.style;
+      engine.setPattern(pattern);
+      roll.clearSelection();
+      syncControls();
+      syncProgression();
+      relayout();
+      snapshot();
+      afterChange(true);
+      if (syncBrush) syncBrushWithPattern(pattern);
+      say(label);
+      flash($('sq-status'), label);
+    }
+    $('sq-preset').addEventListener('change', (e) => {
+      const pr = P.PRESETS.find((x) => x.id === e.target.value);
+      e.target.value = '';
+      if (pr) loadPattern(pr.build(), `已載入範例：${pr.label}`, true);
+    });
+
+    /** GENERATE: a new song in the chosen style, from the current DENSITY and
+     *  VARIATION. The reader's mixer (volumes) and drum-sample choices carry
+     *  over; everything musical is new. */
+    $('sq-generate').addEventListener('click', () => {
+      const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+      const st = P.STYLES[prefs.style] || P.STYLES.city;
+      let pool = dex.size ? ALL_IDS.filter((id) => dex.get(id)?.types?.some((t) => st.types.includes(t))) : [];
+      if (pool.length < 8) pool = ALL_IDS;
+      const np = P.generatePattern(seed, pool, { style: prefs.style, density: prefs.density, variation: prefs.variation, steps: pattern.steps });
+      Object.assign(np.fx, { cryVol: pattern.fx.cryVol, drumVol: pattern.fx.drumVol, master: pattern.fx.master });
+      np.bank = pattern.bank;
+      np.tune = pattern.tune;
+      np.gate = pattern.gate;
+      loadPattern(np, `GENERATE：${st.name}・種子 ${seed % 100000}`, true);
+    });
+    $('sq-clear').addEventListener('click', () => {
+      const np = P.emptyPattern(pattern.steps);
+      Object.assign(np, { bpm: pattern.bpm, swing: pattern.swing, scale: pattern.scale, key: pattern.key, octave: pattern.octave, tune: pattern.tune, gate: pattern.gate, bank: pattern.bank, style: pattern.style });
+      np.chords = pattern.chords.map((c) => ({ ...c }));
+      np.fx = { ...pattern.fx };
+      loadPattern(np, '已清空（和弦與音效器保留）', false);
+    });
+
+    /* -------------------------------------------------- drum bank */
+    async function loadBank(src) {
+      const status = $('sq-bank-status');
+      status.textContent = '載入中…';
+      const count = await engine.kit.load(src);
+      const sel = $('sq-bank');
+      sel.textContent = '';
+      sel.append(new Option('預設（無前綴）', ''));
+      for (const b of engine.kit.banks()) sel.append(new Option(b, b));
+      sel.value = pattern.bank;
+      if (engine.kit.error) status.textContent = `讀不到 ${src}（${engine.kit.error.message}）；使用內建合成鼓。`;
+      else if (!count) status.textContent = '取樣庫是空的；使用內建合成鼓。把檔案放進 assets/drums/ 後按「LOAD」。';
+      else status.textContent = `已載入 ${count} 種聲音${engine.kit.banks().length ? `、${engine.kit.banks().length} 個音色庫` : ''}。`;
+      engine.prepareDrums();
+    }
+    $('sq-manifest-load').addEventListener('click', () => loadBank($('sq-manifest').value));
+    $('sq-manifest').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadBank(e.target.value); });
+
+    /* ------------------------------------------------ share / export */
+    const download = (blob, name) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    };
+    $('sq-copy').addEventListener('click', async () => {
+      clearTimeout(saveTimer);
+      const s = P.serialize(pattern);
+      try { window.history.replaceState(null, '', `#s=${s}`); } catch { /* ignore */ }
+      try {
+        await navigator.clipboard.writeText(location.href);
+        flash($('sq-status'), '已複製分享連結');
+        say('已複製分享連結');
+      } catch {
+        flash($('sq-status'), '無法自動複製，請直接複製網址列的連結');
+      }
+    });
+    $('sq-wav').addEventListener('click', async () => {
+      const status = $('sq-status');
+      flash(status, '轉出中…');
+      try {
+        const { blob } = await engine.renderWav(Number($('sq-loops').value));
+        download(blob, `cry-studio-${pattern.bpm}bpm.wav`);
+        flash(status, `已下載 WAV（${(blob.size / 1048576).toFixed(1)} MB）`);
+      } catch (e) {
+        flash(status, `轉出失敗：${e.message}`);
+      }
+    });
+    $('sq-export').addEventListener('click', () => {
+      download(new Blob([JSON.stringify({ cryStudio: 1, data: P.serialize(pattern) })], { type: 'application/json' }), 'cry-studio.json');
+    });
+    $('sq-import').addEventListener('click', () => $('sq-import-file').click());
+    $('sq-import-file').addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      let text = await f.text();
+      try { const j = JSON.parse(text); if (j && typeof j.data === 'string') text = j.data; } catch { /* raw payload */ }
+      const m = /s=([A-Za-z0-9_-]+)/.exec(text);
+      const p = P.deserialize((m ? m[1] : text).trim());
+      if (p) loadPattern(p, `已匯入「${f.name}」`, true);
+      else flash($('sq-status'), '這個檔案不是叫聲編曲室的格式');
+    });
+    $('sq-strudel-copy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText($('sq-strudel').value); flash($('sq-status'), '已複製 Strudel 程式碼'); } catch { $('sq-strudel').select(); }
+    });
+    $('sq-strudel-details').addEventListener('toggle', () => { $('sq-strudel').value = P.toStrudel(pattern); });
+    $('sq-help-btn').addEventListener('click', () => { $('sq-help').scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' }); $('sq-help').querySelector('h2').focus?.(); });
+
+    /* ------------------------------------------------------- start */
+    new ResizeObserver(() => { relayout(); }).observe($('sq-scroll'));
+    if (!hasSavedBrush || /(?:^#|&)s=([^&]+)/.test(location.hash)) {
+      syncBrushWithPattern(pattern);
+    }
+    renderSlots();
+    syncControls();
+    syncProgression();
+    relayout();
+    snapshot();
+    updateSelbar();
+    $('sq-strudel').value = P.toStrudel(pattern);
+    $('sq-undo').disabled = true;
+    $('sq-redo').disabled = true;
+
+    loadPokemonData().then((data) => {
+      for (const rec of data) dex.set(rec.id, rec);
+      renderSlots();
+      roll.redraw();
+      updateSelbar();
+    }).catch(() => flash($('sq-status'), '無法載入寶可夢資料'));
+    loadBank($('sq-manifest').value);
+    ensureCries(); // decode only — a decoded buffer makes no sound
+  </script>
+</body>
+
+</html>

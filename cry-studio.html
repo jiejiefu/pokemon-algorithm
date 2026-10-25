@@ -46,9 +46,16 @@
   </header>
 
   <main class="sq-page">
-    <div>
-      <h1 class="sq-title">叫聲編曲室</h1>
-      <p class="sq-lede">選一隻寶可夢當筆刷，點下格子，叫聲就會被自動調到那個音高。縱軸是音階、橫軸是時間，再配上鼓組和效果器，編成一段循環。所有聲音要等你按下按鈕才會出聲。</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h1 class="sq-title">叫聲編曲室</h1>
+        <p class="sq-lede">選一隻寶可夢當筆刷，點下格子，叫聲就會被自動調到那個音高。縱軸是音階、橫軸是時間，再配上鼓組和效果器，編成一段循環。所有聲音要等你按下按鈕才會出聲。</p>
+      </div>
+      <div style="padding-top:8px;">
+        <a class="sq-mode-pill" href="cry-studio-pro.html" title="切換至進階硬體編曲機（和弦進行、風格配方、合成器墊底音）">
+          <span>🎹</span> 專業模式 (Pro) ↗
+        </a>
+      </div>
     </div>
 
     <!-- ===== transport ===== -->
@@ -123,6 +130,10 @@
         <div class="sq-row">
           <input class="sq-text" id="sq-search" type="search" placeholder="例如 皮卡丘、Gengar、94" autocomplete="off" aria-controls="sq-results" aria-expanded="false">
           <button class="btn sq-btn-sm" type="button" id="sq-brush-rand">隨機一隻</button>
+          <button class="btn sq-btn-sm" type="button" id="sq-brush-reset" title="重設為預設筆刷" aria-label="重設為預設筆刷">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-right:2px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>重設</span>
+          </button>
         </div>
         <div class="sq-results" id="sq-results" hidden></div>
       </div>
@@ -538,6 +549,14 @@
     });
     document.addEventListener('click', (e) => { if (!e.target.closest('.sq-search')) { results.hidden = true; search.setAttribute('aria-expanded', 'false'); } });
     $('sq-brush-rand').addEventListener('click', () => setSlot(ALL_IDS[Math.floor(Math.random() * ALL_IDS.length)]));
+    $('sq-brush-reset').addEventListener('click', () => {
+      brush = DEFAULT_BRUSH.slice();
+      try { localStorage.setItem(BRUSH_STORE, JSON.stringify(brush)); } catch { /* ignore */ }
+      activeSlot = 0;
+      renderSlots();
+      say('筆刷已重設為預設');
+      flash($('sq-status'), '筆刷已重設為預設');
+    });
 
     /* ------------------------------------------------- selection bar */
     function updateSelbar() {

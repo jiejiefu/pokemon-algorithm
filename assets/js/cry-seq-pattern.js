@@ -313,6 +313,130 @@ export const PRESETS = [
       { bd: '1000000010000010', hh: '0010001000100010', sd: '0000100000001000' },
     ),
   },
+  /* ---- v3 additions. Melodies are written as scale degrees RELATIVE to the chord
+   *  (the row follows the chord root), so on a 7-note scale rows 0/2/4/6 are the
+   *  root/3rd/5th/7th and +7 is the next octave. Drum digits: 1 ghost, 2 normal, 3 accent. */
+  {
+    id: 'funk',
+    label: '噴火龍放克',
+    build: () => fromNotes(
+      { bpm: 104, steps: 32, scale: 'minor', key: 7, octave: -1, swing: 0.14, prog: 'i IV i bVII', style: 'city', fx: { padVol: 0.2, duck: 0.35, drive: 0.2, wahRate: 3, wahDepth: 0.4, cutoff: 9000, reverbCry: 0.12, delayCry: 0.1, drumVol: 0.85 } },
+      [
+        // bass (Snorlax) — syncopated 16ths on the root, fifth and third
+        [143, 0, 0, 1, 3], [143, 3, 0, 1], [143, 6, 4, 1], [143, 8, 0, 1, 3], [143, 11, 0, 1], [143, 14, 2, 1],
+        [143, 16, 0, 1, 3], [143, 19, 0, 1], [143, 22, 4, 1], [143, 24, 0, 1, 3], [143, 27, 2, 1], [143, 30, 4, 1],
+        // lead (Charizard) and skank stabs (Voltorb) on the backbeat
+        [6, 2, 7, 1], [6, 5, 9, 1], [6, 10, 11, 2, 3], [6, 13, 9, 1], [6, 18, 7, 1], [6, 21, 9, 1], [6, 26, 12, 2, 3], [6, 29, 11, 1],
+        [100, 4, 9, 1, 1], [100, 12, 9, 1, 1], [100, 20, 9, 1, 1], [100, 28, 9, 1, 1],
+      ],
+      { bd: '3000201020100000' + '3000201020102010', sd: '0000300100001000' + '0100300000001011', hh: '2121212121212122'.repeat(2), oh: '0000000200000002'.repeat(2) },
+    ),
+  },
+  {
+    id: 'lapras',
+    label: '拉普拉斯夜航',
+    build: () => fromNotes(
+      { bpm: 70, steps: 32, scale: 'major', key: 2, swing: 0, prog: 'I iii IV V', style: 'koto', fx: { padVol: 0.5, reverbSize: 3.6, reverbCry: 0.5, delayCry: 0.35, delayFb: 0.55, delayDiv: 3, cutoff: 7000, drumVol: 0.5 } },
+      [
+        // Lapras sings the tune; Gyarados is the sub-bass; Horsea are the bubbles
+        [131, 0, 4, 6, 3], [131, 6, 5, 2], [131, 8, 7, 4, 3], [131, 12, 6, 4], [131, 16, 4, 4, 3], [131, 20, 6, 2], [131, 22, 5, 2], [131, 24, 7, 8, 3],
+        [130, 0, 0, 8], [130, 8, 0, 8], [130, 16, 0, 8], [130, 24, 0, 8],
+        [116, 3, 11, 1, 1], [116, 7, 10, 1, 1], [116, 11, 12, 1, 1], [116, 15, 9, 1, 1], [116, 19, 11, 1, 1], [116, 23, 13, 1, 1], [116, 27, 12, 1, 1], [116, 31, 10, 1, 1],
+      ],
+      { bd: '2000000000000000' + '2000000020000000', hh: '0010001000100010'.repeat(2), cp: '0'.repeat(30) + '10' },
+    ),
+  },
+  {
+    id: 'gengar',
+    label: '耿鬼地下派對',
+    build: () => fromNotes(
+      { bpm: 132, steps: 32, scale: 'minor', key: 9, octave: -1, swing: 0, prog: 'i i bVI V', style: 'city', fx: { padVol: 0.3, drive: 0.3, cutoff: 6000, reso: 3, duck: 0.7, reverbCry: 0.35, reverbSize: 3, delayCry: 0.25, delayDiv: 2, crush: 0.1 } },
+      [
+        // Gastly: rolling 8th-note bass on the root
+        ...Array.from({ length: 16 }, (_, i) => [92, i * 2, 0, 1, i % 4 === 0 ? 3 : 2]),
+        // Gengar riff, Misdreavus wails
+        [94, 3, 7, 1, 3], [94, 6, 9, 1], [94, 10, 7, 1], [94, 13, 8, 1], [94, 19, 7, 1, 3], [94, 22, 9, 2], [94, 26, 11, 1], [94, 29, 10, 1],
+        [200, 12, 11, 2], [200, 28, 12, 2, 3],
+      ],
+      { bd: '2000200020002000'.repeat(2), oh: '0020002000200020'.repeat(2), hh: '1111111111111112'.repeat(2), cp: '0000200000002000'.repeat(2) },
+    ),
+  },
+  {
+    id: 'eevee',
+    label: '伊布午後爵士',
+    build: () => fromNotes(
+      { bpm: 92, steps: 32, scale: 'major', key: 5, swing: 0.3, prog: 'ii V I vi', style: 'city', fx: { padVol: 0.35, reverbSize: 2, reverbCry: 0.25, delayCry: 0.12, cutoff: 11000, drumVol: 0.6 } },
+      [
+        // Eevee's melody, Slowpoke walks the bass, Togepi sprinkles
+        [133, 0, 4, 2], [133, 3, 6, 1], [133, 4, 5, 2], [133, 7, 4, 1], [133, 8, 4, 1], [133, 10, 5, 1], [133, 11, 6, 2], [133, 14, 7, 1],
+        [133, 16, 7, 3, 3], [133, 19, 6, 1], [133, 20, 5, 2], [133, 23, 4, 1], [133, 24, 4, 2], [133, 27, 3, 1], [133, 28, 2, 3],
+        [79, 0, 0, 3, 3], [79, 4, 4, 3], [79, 8, 0, 3, 3], [79, 12, 2, 3], [79, 16, 0, 3, 3], [79, 20, 4, 3], [79, 24, 0, 3, 3], [79, 28, 4, 3],
+        [175, 6, 11, 1, 1], [175, 14, 12, 1, 1], [175, 22, 11, 1, 1], [175, 30, 13, 1, 1],
+      ],
+      { bd: '2000000000100000' + '2000000020000000', sd: '0000100000001000'.repeat(2), hh: '2020202020202020'.repeat(2) },
+    ),
+  },
+  {
+    id: 'magikarp',
+    label: '鯉魚王跳跳',
+    build: () => fromNotes(
+      { bpm: 150, steps: 32, scale: 'pent-major', key: 0, swing: 0, prog: 'I vi IV V', style: 'city', fx: { padVol: 0.15, crush: 0.35, cutoff: 14000, reverbCry: 0.1, delayCry: 0.15, delayDiv: 1, drumVol: 0.75 } },
+      [
+        // Magikarp hops up the scale; Pikachu bounces on root and fifth
+        [129, 0, 5, 1], [129, 2, 6, 1], [129, 4, 7, 1], [129, 6, 8, 2, 3], [129, 8, 5, 1], [129, 10, 7, 1], [129, 12, 6, 1], [129, 14, 5, 2],
+        [129, 16, 5, 1], [129, 18, 6, 1], [129, 20, 8, 1], [129, 22, 7, 2, 3], [129, 24, 7, 1], [129, 26, 8, 1], [129, 28, 9, 1], [129, 30, 10, 2, 3],
+        [25, 0, 0, 2, 3], [25, 4, 3, 1], [25, 8, 0, 2, 3], [25, 12, 3, 1], [25, 16, 0, 2, 3], [25, 20, 3, 1], [25, 24, 0, 2, 3], [25, 28, 3, 1],
+      ],
+      { bd: '2000200120002010', sd: '0000300000003000'.repeat(2), hh: '3212321232123212'.repeat(2) },
+    ),
+  },
+  {
+    id: 'dragonite',
+    label: '快龍・天空卡農',
+    build: () => fromNotes(
+      { bpm: 74, steps: 64, scale: 'major', key: 2, swing: 0, prog: 'I V vi iii IV I IV V', style: 'gagaku', fx: { padVol: 0.55, reverbSize: 3.4, reverbCry: 0.38, delayCry: 0.2, delayDiv: 2, cutoff: 10000, drumVol: 0.5 } },
+      [
+        // The descending canon line, one long note per chord (rows chosen so the pitches fall F#–E–D–C#–B–A–B–C#)
+        [149, 0, 9, 7, 3], [149, 8, 11, 7], [149, 16, 9, 7], [149, 24, 4, 7], [149, 32, 2, 7], [149, 40, 4, 7], [149, 48, 2, 7], [149, 56, 9, 4, 3],
+        // Onix holds the root of every chord
+        ...Array.from({ length: 8 }, (_, i) => [95, i * 8, 0, 8, 2]),
+        // Dratini arpeggiates each chord's own triad (root-3rd-5th, so it follows major/minor by itself)
+        ...Array.from({ length: 8 }, (_, i) => [[147, i * 8 + 2, 7, 1, 1], [147, i * 8 + 4, 9, 1, 1], [147, i * 8 + 6, 11, 1, 1]]).flat(),
+        [250, 60, 11, 4, 3],
+      ],
+      { bd: '2000000010000000'.repeat(4), hh: '0010001000100010'.repeat(4) },
+    ),
+  },
+  {
+    id: 'abra',
+    label: '凱西電音琶音',
+    build: () => fromNotes(
+      { bpm: 138, steps: 32, scale: 'minor', key: 4, swing: 0, prog: 'i bVI bIII bVII', style: 'city', fx: { padVol: 0.35, duck: 0.65, cutoff: 8000, reso: 2.5, delayCry: 0.25, delayDiv: 2, reverbCry: 0.2, drive: 0.15 } },
+      [
+        // 16th-note arpeggio on each chord's root-3rd-5th-octave, Abra and Kadabra taking turns
+        ...Array.from({ length: 32 }, (_, s) => [s % 2 ? 64 : 63, s, [0, 2, 4, 7, 9, 7, 4, 2][s % 8], 1, [3, 1, 2, 1][s % 4]]),
+        // Mew floats over the top; Voltorb pulses the root
+        [151, 0, 11, 6, 3], [151, 8, 9, 6], [151, 16, 14, 6, 3], [151, 24, 13, 6, 2],
+        ...Array.from({ length: 8 }, (_, i) => [100, i * 4, 0, 1, 3]),
+      ],
+      { bd: '2000200020002000'.repeat(2), oh: '0020002000200020'.repeat(2), hh: '1111111111111111'.repeat(2), cp: '0000200000002000'.repeat(2) },
+    ),
+  },
+  {
+    id: 'clefairy',
+    label: '皮皮月光音樂盒',
+    build: () => fromNotes(
+      { bpm: 66, steps: 32, scale: 'pent-major', key: 7, swing: 0, prog: 'I iii IV I', style: 'gagaku', fx: { padVol: 0.45, reverbSize: 3, reverbCry: 0.45, delayCry: 0.3, delayDiv: 2, cutoff: 12000 } },
+      [
+        // Clefairy's music-box arpeggio (root–5th–octave only, so it fits major and minor chords alike)
+        [35, 0, 5, 2], [35, 2, 8, 2], [35, 4, 10, 2], [35, 6, 8, 2], [35, 8, 5, 2], [35, 10, 8, 2], [35, 12, 10, 2], [35, 14, 8, 2],
+        [35, 16, 5, 2], [35, 18, 8, 2], [35, 20, 10, 2], [35, 22, 8, 2], [35, 24, 10, 2], [35, 26, 8, 2], [35, 28, 5, 4],
+        [39, 0, 0, 6], [39, 8, 0, 6], [39, 16, 0, 6], [39, 24, 0, 6],
+        [175, 7, 9, 1, 1], [175, 15, 9, 1, 1], [175, 23, 9, 1, 1], [175, 31, 10, 1, 1],
+      ],
+      {},
+    ),
+  },
 ];
 
 /* --------------------------------------------------------- serialisation */
