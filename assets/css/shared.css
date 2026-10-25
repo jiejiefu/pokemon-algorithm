@@ -1766,7 +1766,8 @@ a.site-nav-item:focus-visible,
 }
 
 /* ===== Footer / Bottom ===== */
-.footer-note {
+.footer-note,
+.site-footer {
   text-align: center;
   padding: 20px;
   color: var(--text-muted);

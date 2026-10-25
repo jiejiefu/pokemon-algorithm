@@ -225,17 +225,10 @@
     </section>
   </main>
 
-  <footer class="home-footer">
-    <div class="home-footer-inner">
-      <div class="home-footer-grid" data-footer-nav></div>
-      <p class="home-footer-line">
-        <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • <span data-version></span></span>
-      </p>
-    </div>
-  </footer>
+  <p class="footer-note">© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • <span data-version></span></p>
 
   <script type="module">
-    import { loadPokemonData, initThemeToggle, initHeaderNav, initFooterNav, ASSETS, TYPE_COLORS } from './assets/js/shared.js';
+    import { loadPokemonData, initThemeToggle, initHeaderNav, initVersion, ASSETS, TYPE_COLORS } from './assets/js/shared.js';
     import { CRY_IDS } from './assets/js/cry-index.js';
     import * as P from './assets/js/cry-seq-pattern.js';
     import { SeqEngine } from './assets/js/cry-seq-engine.js';
@@ -243,7 +236,7 @@
 
     initThemeToggle();
     initHeaderNav();
-    initFooterNav();
+    initVersion();
 
     const $ = (id) => document.getElementById(id);
     const STORE = 'pokemon-algorithm:cry-seq';

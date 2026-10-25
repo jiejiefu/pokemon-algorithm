@@ -504,12 +504,11 @@ const runtimeClasses = autoplayPrefix
  *
  *  The subject is the classes THIS PAGE owns. Auditing every class in the markup
  *  drags in the site's chrome — and the first thing it found was `.site-footer`,
- *  which is styled in NO stylesheet in the project and is used by `cries.html`
- *  too. That is a real orphan and a real fact, but it is pre-existing and
- *  site-wide, and asserting it here would make this file the owner of every page's
- *  footer while nothing anywhere fixes it. Naming it instead of allowlisting it is
- *  the honest form: a fact written down is one a reader can act on, and a fact in
- *  a Set is one they cannot see. */
+ *  which is shared chrome used by `cries.html` too and is styled by shared.css's
+ *  `.footer-note, .site-footer` rule rather than by any `sp-` selector. Asserting
+ *  it here would make this file the owner of every page's footer. Naming it
+ *  instead of allowlisting it is the honest form: a fact written down is one a
+ *  reader can act on, and a fact in a Set is one they cannot see. */
 ok(!/class="[^"]*\b(?:cy|cp|cg)-/.test(markup) && !/className = '(?:cy|cp|cg)-/.test(script),
   'the page uses no `cy-`, `cp-` or `cg-` class — those belong to cries.css and the colour pages, and borrowing one is a stylesheet-order collision waiting to happen');
 
