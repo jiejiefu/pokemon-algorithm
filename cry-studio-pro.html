@@ -717,11 +717,14 @@
     function updateSelbar() {
       const bar = $('sq-selbar');
       const note = roll.selected;
+      const wrap = bar.closest('.sq-selbar') || bar;
       if (!note || !pattern.notes.includes(note)) {
         roll.clearSelection();
+        wrap.dataset.hasNote = 'false';
         bar.innerHTML = '<span>尚未選取。點一下格子放上筆刷，或點選已放的方塊。</span>';
         return;
       }
+      wrap.dataset.hasNote = 'true';
       const midi = P.rowToMidi(pattern, note.row, note.step);
       bar.innerHTML = `
         <span>已選取：<strong>${info(note.id).name}</strong>・${P.midiName(midi)}・第 ${note.step + 1} 步・長度 ${note.len}・力度 ${['', '輕', '中', '重'][note.vel]}</span>
