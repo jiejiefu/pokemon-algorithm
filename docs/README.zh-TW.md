@@ -87,7 +87,7 @@ python -m http.server 5500
 ```text
 pokemon-algorithm/
 ├── assets/          # css/、js/、data/（23 個 JSON 資料表）、cries/、drums/、glbs/、images/、video/
-├── docs/            # README.zh-TW.md 與 incidents/（技術約定的除錯紀錄）
+├── docs/            # README.zh-TW.md、ARCHITECTURE.zh-TW.md 與 incidents/（技術約定的除錯紀錄）
 ├── scripts/         # 自動化檢查器 (check_*.mjs, test_check_*.mjs, lib/) 與資料處理腳本 (*.py)
 └── data-sources/    # 原始 CSV/XLSX 與溯源紀錄（執行階段不直接讀取）
 
@@ -96,6 +96,8 @@ pokemon-algorithm/
 * **無套件肥大問題**：專案無 `package.json`、無 `node_modules`、無複雜的打包編譯步驟。Node.js 僅在開發或執行驗證腳本時作為執行環境（`process.execPath`）。
 * **無 CI 流程**：專案刻意不設定 `.github/workflows/`，所有驗證與測試均由開發者手動執行。
 * **已納入版控的媒體**：`assets/video/` 收錄 9 段自動生成的 hero 循環影片與 9 張海報圖，全部納入版控並由 `index.html` 掛載。兩者都由 `make_hero_video.py` 重新生成，請勿手動編輯。`assets/drums/` 收錄 `cry-studio.html` 載入的 397 個 WAV 取樣（28 MB）與 `strudel.json` 取樣對照表；對照表不存在時，頁面會改用內建合成鼓。
+
+> 要改程式碼的話，先讀 **[`ARCHITECTURE.zh-TW.md`](./ARCHITECTURE.zh-TW.md)**：那是給開發者的分層、依賴圖、資料表流向與改動影響速查表。本文件只介紹產品與啟動方式。
 
 ---
 
