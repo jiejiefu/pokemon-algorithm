@@ -16,7 +16,97 @@ because 19 in-code comments and one runtime message point at `§3.<letter>`.
   - **Pixel Snapping**: Synthetic MMCQ centroids are snapped to the most frequent real pixel in each bounding box.
   - **Frequency Share**: Shares represent global pixel frequencies across the sprite (sum < 100%, median ~71.95%).
   - **Short Palettes**: Exactly 3 palettes have 5 colors instead of 6 (#201 Unown, #643 Kartana, Bulbasaur shiny) due to sprite pixel limitations. Never pad these artificially.
-- **Reference Project**: `pokemonpalette` is credited for color scales and UI concepts, while `color-thief` is credited for the palette algorithm.
+- **Reference Project**: `pokemonpalette` is credited for color scales and UI concepts, while `color-thief` is credited for the palette algorithm. **The reference's own stored data is not reproduced by ColorThief** — see [B0](#b0), which measures the two palettes the project actually ships.
+
+
+<a id="b0"></a>
+## B0. The Reference Project's Palette — One Formula And One Curated Set
+
+**Measured against `pokemonpalette` (MIT, Yassen Shopov), whose `public/data/pokemon/*.json` holds 1,350 records.** This is an investigation record, not a new AGENTS.md §3 rule; it sits before B1 because it is the provenance behind B's reference credit. Nothing here changes our generator.
+
+**In one line: the 3-slot palette is the frequency top-3; the 6-slot palette is curated and has no reproducible formula.**
+
+### The data is two different objects
+
+| stored palette | records | `locked` | what produced it |
+| :--- | ---: | :--- | :--- |
+| `colorPalette.highlights`, length 3 | 687 | never | the frequency extractor below |
+| `colorPalette.highlights`, length 6 | 663 | **all true** | an admin save; not reproducible, below |
+| `shinyColorPalette.highlights`, length 3 | 1,024 | never | the same frequency extractor |
+| `shinyColorPalette` absent | 326 | — | no shiny sprite / not extracted |
+
+`scripts/lock-extracted-palettes.js:3-16` states the rule: a 6-slot palette gets `locked: true`, and the comment calls it "either explicitly admin-curated or produced by the same extraction pipeline an admin would have used". `src/app/api/admin/pokemon-colors/route.ts:415-426` writes that flag on every admin save and keeps `primary` / `secondary` / `accent` in sync with the first three slots. The same file pads every save to `MAX_PALETTE_SIZE = 6` (`:25`, `:348-352`), so a 6-slot palette is by construction an admin object, not the legacy 3-slot one.
+
+### The deterministic half: the 3-slot palette
+
+`src/lib/color-extractor.ts:48-134` is the whole algorithm:
+
+1. draw the image to a canvas at its natural size (`:71-76`);
+2. walk the RGBA buffer with `i += 16` — **every 4th pixel** (`:95`);
+3. skip `a < 200` (`:104`);
+4. skip five exact near-blacks: `#000000 #101010 #121212 #010101 #0f0f0f` (`:87-93`);
+5. count **exact** `#rrggbb` strings (`:106-114`);
+6. sort by count descending and `slice(0, count)` (`:118-120`); `count` defaults to 3 (`:50`).
+
+**Ties keep first-seen order**, because `Map` preserves insertion order and V8's sort is stable (ES2019). Sorting by `(-count, hex)` instead reorders the tail; that is the only subtle part of the port, and it is worth 4 points of reproduction accuracy.
+
+Reproduction against the stored data:
+
+| set | exact sequences | note |
+| :--- | ---: | :--- |
+| normal, Gen I (1–151) | **53 / 53 = 100%** | sampled from `assets/images/sprite/{id}.png` |
+| normal, roster (1–1025) | **419 / 493 = 85.0%** | |
+| normal, all 3-slot records | 419 / 677 = 61.9% | all 184 alternate-form records fail; our form sprites are a different set |
+| shiny, 1,024 stored | **913 = 89.2%** | recorded in `scripts/extract_color_palettes.py:18-27`; first-seen tie-break. A numeric tie-break gives 870 = 85.2% |
+
+The residual is not a different algorithm. `scripts/extract_color_palettes.py:27` names the cause: hand-picked triplets of near-identical greys, or a sprite revision we do not have. A residue of hand-picked values is also why the reference can look "slightly different" even in its 3-slot mode.
+
+**The page's SEO copy is wrong about the source.** `src/components/seo-content.tsx:86` says "top three dominant colors from the official artwork", but the code, the admin UI and the stored 3-slot values are the **sprite** (`src/lib/sprite-utils.ts:34`, `/pokemon/sprites/{id}.png`). The 3-slot values reproduce from the 96px sprite, not the 475px artwork.
+
+### The curated half: the 6-slot palette
+
+The current batch tool would produce a frequency top-6: `src/components/admin-color-management-tab.tsx:282` calls `extractColorsFromImage(sprite, MAX_PALETTE_SIZE, true)` and saves the result; `sprite` is `artwork.front` (`src/app/api/admin/pokemon-colors/route.ts:179`), which is `/pokemon/sprites/{id}.png`. The third argument only changes the return shape — it does not change the ranking. **The stored 6-slot palettes are not that output.**
+
+Measured over the 662 six-slot palettes that have a sprite in our tree:
+
+- **0 / 662 equal the exact frequency top-6** of the 96px sprite.
+- **0 / 663 equal the frequency top-6** of the 475px official artwork, and **0 / 579** equal it from the 120×112 Scarlet/Violet render.
+- Only **92 / 662 (13.9%)** have their first three slots equal to the sprite's auto top-3.
+- The six colours are mostly **not in the sprite**: the average is **2.15 / 6 exact**, with a distribution of `0:119, 1:83, 2:148, 3:227, 4:69, 5:12, 6:4`.
+- For the roster alone (532 palettes) the average is **2.49 / 6**; 53 have **none** of their six colours in the sprite. For alternate forms (130) the average is **0.72 / 6**; 66 have none.
+- Across the 2,552 missing colour occurrences, **123** are in the 475px official artwork and **2,429 are in neither** the sprite nor the artwork. Their nearest sprite colour is a median **10 / 255** away (p90 36.2, max 117.3): near-misses, not a quantiser's centroids.
+
+Two concrete cases:
+
+| species | reference 6 | what is in the 96px sprite |
+| :--- | :--- | :--- |
+| Bulbasaur | `#399494 #62d5b4 #73ac31 #a4d541 #5cb7a1 #ee2039` | five of six; `#5cb7a1` is **0 pixels** in the sprite, shiny, 475px artwork and SCVI render |
+| Charmander | `#ff9441 #de5239 #fdd582 #e3ac62 #8b2900 #fdd437` | three of six (`#ff9441`, `#de5239`, `#8b2900`); the three tints are in none of the four images |
+
+`#5cb7a1` is not a compression artefact either: our `assets/images/sprite/1.png` is byte-identical to PokeAPI's raw `sprites/pokemon/1.png` (SHA-256 `7307265558511ea080add119ab7e86b9f87aaab4cedef76df2a13290ca5ad8c9`), and the colour is absent from the other three images too.
+
+We also checked the obvious alternative, ColorThief/MMCQ: its centroids are not the source (0 exact set matches on Gen I, average intersection **0.02 / 6**, because centroids are off-pixel), and the reference's 6-slot palettes contain exact sprite pixels (**2.15 / 6** on average), which an **unsnapped** centroid palette would not. The closest of the three is still the frequency extractor, but only at **2.63 / 6** on Gen I — consistent with "start from the extractor, then edit", not with a different quantiser.
+
+The upstream `main` tree has no other palette generator: `scripts/` contains only `dev-with-ngrok.js`, `download_pokemon_image.py`, `lock-extracted-palettes.js` and `test-webhook.js`. So there is **no formula in the repository** that produces the 6-slot values. The two mechanisms that write them are the admin PUT (`src/app/api/admin/pokemon-colors/route.ts:415-426`) and the admin batch re-extract (`src/components/admin-color-management-tab.tsx:282`), and the batch output does not match what is stored.
+
+**Conclusion:** the 3-slot palette is a deterministic frequency ranking; the 6-slot palette is an admin-curated object (hand-picked/edited, or produced from a source image not in this checkout). The "better tone" is human choice, not a better extractor.
+
+### How to tell which one you are looking at
+
+```js
+palette.locked === true            // 6-slot, admin-curated
+palette.highlights.length === 3    // legacy frequency top-3
+```
+
+A 3-slot palette should match the sprite's top-3; a 6-slot one is not expected to match any automatic ranking.
+
+### What this means here
+
+- Our `assets/data/color_palettes.json` is the MMCQ object described in §3.B; the reference's 3-slot and 6-slot sets answer a different question, so a mismatch is expected, not a defect.
+- If we ever want the reference's deterministic 3-slot values, `scripts/extract_color_palettes.py` is already the exact port; do not re-derive it.
+- Importing the 6-slot set would mean importing a curated dataset, not a formula. The reference is MIT (`LICENSE`, Yassen Shopov), so attribution is required, and the values cannot be regenerated.
+
+**Method.** Pillow reads over `assets/images/sprite`, `assets/images/pokemon` and `assets/images/scarlet-violet`; the 1,350 reference JSONs are read directly. No network is used. The reference checkout has no `public/pokemon/sprites/` directory, so the comparison is against our copies of the same PokeAPI sprite/artwork families — which is also why the 3-slot match is the thing that identifies the image family.
 
 
 <a id="b1"></a>
