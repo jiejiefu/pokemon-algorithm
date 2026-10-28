@@ -228,8 +228,16 @@ async function inkFraction(viewportClip) {
   })()`);
 }
 
-/** A band of the hero the content panel never covers. */
-const MEDIA_BAND = { x: 10, y: 120, width: 240, height: 600 };
+/** A band of the hero the content panel can never cover.
+ *
+ *  The panel is anchored BOTTOM-LEFT (§3.Z), so the safe band is the right side
+ *  of the sticky viewport at full height. The left band this replaced was sound
+ *  only while the panel was centred: once the panel moved to the corner, its
+ *  60px amber title sat inside the band's bottom rows and both blank ends read
+ *  3.49% ink — the panel, not the clip. `the ink band clears the content panel`
+ *  below asserts the clearance, so the next layout change fails loudly instead
+ *  of quietly measuring the wrong thing. */
+const MEDIA_BAND = { x: 900, y: 120, width: 240, height: 600 };
 /** Page coordinates for a VIEWPORT rect.
  *
  *  `Page.captureScreenshot`'s `clip` is in PAGE coordinates, which differ from
@@ -332,6 +340,16 @@ console.log('\n--- scrolling forward advances the clip, and the ink proves it --
 const marks = [];
 const ink = {};
 const MIDDLE_STOPS = [0.25, 0.5, 0.75];
+/* The band's premise, asserted rather than assumed: an opaque panel inside the
+ * crop answers every ink measurement with its own fill, which is a green run
+ * about the clip that measured the panel. */
+const panelRect = await ev(`(() => {
+  const r = document.querySelector('.home-hero-content').getBoundingClientRect();
+  return { right: r.right, top: r.top };
+})()`);
+ok(panelRect.right < MEDIA_BAND.x || panelRect.top > MEDIA_BAND.y + MEDIA_BAND.height,
+  `the ink band clears the content panel (panel right ${Math.round(panelRect.right)} vs band left ${MEDIA_BAND.x})`,
+  'the ink band overlaps the opaque panel, so every figure below measures the panel rather than the clip');
 for (const f of [0, 0.25, 0.5, 0.75, 1]) {
   const landed = await scrollTo(f);
   /* EVERY stop is asserted, including 0%. Exempting it and waiting for movement
@@ -344,7 +362,7 @@ for (const f of [0, 0.25, 0.5, 0.75, 1]) {
   ok(Math.abs(st.progress - f) < 0.06, `scrolled to ${Math.round(f * 100)}% of the track (measured ${Math.round(st.progress * 100)}%)`);
   const r = await inkFraction(MEDIA_BAND);
   ink[f] = r.ink;
-  ok(r.px > 10000, `the left band at ${Math.round(f * 100)}% sampled ${r.px} real pixels`,
+  ok(r.px > 10000, `the ink band at ${Math.round(f * 100)}% sampled ${r.px} real pixels`,
     'the band crop was empty, so the ink figure below is measuring nothing');
 }
 const endsInk = { 0: ink[0], 1: ink[1] };

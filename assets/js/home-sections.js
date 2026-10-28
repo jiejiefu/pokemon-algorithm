@@ -83,6 +83,9 @@ async function initOne(el) {
         {
           status: document.getElementById('game-status'),
           subtitle: document.getElementById('game-subtitle'),
+          score: document.getElementById('game-score'),
+          scoreYou: document.getElementById('game-score-you'),
+          scoreAi: document.getElementById('game-score-ai'),
           startBtn: document.getElementById('game-start'),
           againBtn: document.getElementById('game-again'),
           pad: document.getElementById('game-pad'),

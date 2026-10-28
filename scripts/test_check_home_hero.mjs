@@ -50,6 +50,10 @@ const SRC = [
   'index.html', 'today.html',
   'assets/css/home-hero.css',
   'assets/data/pokemon_data.json',
+  /* The two tables the counts are re-derived from. They are 1.1MB together and
+   * cannot be zero-byte stand-ins: the checker parses them, so a placeholder
+   * would fail in every tree on the parse rather than on the assertion. */
+  'assets/data/color_palettes.json', 'assets/data/moves_zh.json',
   // The whole module DIRECTORY, not three files: hero-gen.js imports
   // daily-pick.js, which imports categories.js, and so on. Listing a subset
   // produces ERR_MODULE_NOT_FOUND on the baseline. The directory is 2.4MB,

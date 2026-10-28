@@ -87,6 +87,9 @@ export function initMazeGame(host, roster, imageUrl, ui) {
   const subtitleEl = ui.subtitle;
   const startBtn = ui.startBtn;
   const againBtn = ui.againBtn;
+  const scoreEl = ui.score;
+  const scoreYou = ui.scoreYou;
+  const scoreAi = ui.scoreAi;
 
   let tokenCache = new Map();
   const token = (name) => {
@@ -117,6 +120,20 @@ export function initMazeGame(host, roster, imageUrl, ui) {
 
   function announce(text) {
     if (statusEl) statusEl.textContent = text;
+  }
+
+  /* The round's two numbers belong beside the result sentence, not as 12px of
+     ink on the canvas floor — that was drawn inside `draw()` at `h - 4`, under
+     the maze, and at 1x it sat on the darkest band where nobody looked.  The
+     panel is `hidden` until a round ends and `[hidden]` is paired with an
+     author `display` in home-sections.css (§3.M). */
+  function showScore() {
+    if (scoreYou) scoreYou.textContent = `${steps} 步`;
+    if (scoreAi) scoreAi.textContent = `${optimalSteps} 步`;
+    if (scoreEl) scoreEl.hidden = false;
+  }
+  function hideScore() {
+    if (scoreEl) scoreEl.hidden = true;
   }
 
   function draw() {
@@ -207,14 +224,6 @@ export function initMazeGame(host, roster, imageUrl, ui) {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-
-    if (phase === 'result') {
-      ctx.fillStyle = text;
-      ctx.font = '12px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(`你 ${steps} 步 · A* ${optimalSteps} 步`, w / 2, h - 4);
-    }
   }
 
   function clearTimers() {
@@ -237,6 +246,7 @@ export function initMazeGame(host, roster, imageUrl, ui) {
     } else {
       announce(`A* 先到了。牠走了 ${optimalSteps} 步，你走了 ${steps} 步。`);
     }
+    showScore();
     if (startBtn) startBtn.hidden = true;
     if (againBtn) againBtn.hidden = false;
   }
@@ -273,6 +283,7 @@ export function initMazeGame(host, roster, imageUrl, ui) {
     steps = 0;
     ai = 0;
     phase = 'countdown';
+    hideScore();
     if (startBtn) startBtn.hidden = true;
     if (againBtn) againBtn.hidden = true;
     draw();
@@ -333,6 +344,7 @@ export function initMazeGame(host, roster, imageUrl, ui) {
     sprite = null;
     if (startBtn) { startBtn.disabled = true; startBtn.hidden = true; }
     if (againBtn) againBtn.hidden = true;
+    hideScore();
     announce('正在挑選寶可夢並生成地形…');
     if (subtitleEl) subtitleEl.textContent = '正在挑選寶可夢…';
     draw();

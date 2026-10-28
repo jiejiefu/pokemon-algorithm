@@ -852,15 +852,17 @@ const CHECKERS = [
   {
     /* Static: the progress arithmetic, the day-to-generation mapping, the track
      * height read out of the module rather than restated, and the three numbers
-     * in the hero re-derived from pokemon_data.json and sorting-algorithms.js.
-     * 0.2s, and it imports both modules so it can RUN them — which is what makes
-     * the pre-epoch wrap and the period-9 ring measurements rather than claims. */
+     * in the hero re-derived from pokemon_data.json, color_palettes.json and
+     * moves_zh.json. 0.2s, and it imports both modules so it can RUN them —
+     * which is what makes the pre-epoch wrap and the period-9 ring
+     * measurements rather than claims. */
     script: 'scripts/check_home_hero.mjs', group: 'home',
     inputs: [
       'index.html', 'today.html',
       'assets/css/home-hero.css',
       'scripts/make_hero_video.py',
       'assets/data/pokemon_data.json',
+      'assets/data/color_palettes.json', 'assets/data/moves_zh.json',
       'assets/js/daily-pick.js', 'assets/js/hero-gen.js',
       'assets/js/home-hero.js', 'assets/js/sorting-algorithms.js',
       'assets/js/categories.js', 'assets/js/form-names.js',

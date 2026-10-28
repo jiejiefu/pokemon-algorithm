@@ -183,6 +183,23 @@ ok(/rgba\(\$\{token\('--canvas-wall'\)\}/.test(game),
   'the wall token is an RGB triplet wrapped in rgba() before it reaches fillStyle',
   'a raw triplet is not a colour; canvas silently keeps the previous fillStyle and the walls disappear');
 
+console.log('\n--- the round\'s numbers are text, not 12px of canvas ink ---');
+ok(/id="game-score"/.test(htmlCode)
+  && /id="game-score-you"/.test(htmlCode)
+  && /id="game-score-ai"/.test(htmlCode),
+  'index.html mounts the score panel and both of its numbers');
+ok(/id="game-score"[^>]*hidden/.test(htmlCode),
+  'the score panel starts hidden — a fresh load has no round to report');
+ok(!/fillText\(`你 \$\{steps\} 步/.test(game),
+  'the canvas no longer draws the result line under the maze',
+  'the result is still painted at h - 4, where the board is at its darkest');
+eq((game.match(/scoreYou\.textContent/g) || []).length, 1,
+  'the player\'s step count is written in exactly one place');
+eq((game.match(/scoreAi\.textContent/g) || []).length, 1,
+  'the A* step count is written in exactly one place');
+ok(/function hideScore\(/.test(game) && (game.match(/hideScore\(\)/g) || []).length >= 2,
+  'a new round clears the previous round\'s numbers, on both the setup and the start path');
+
 console.log('\n--- the shared grid derives walls from the same threshold as maze.html ---');
 ok(/TERRAIN_ALPHA_WALL_THRESHOLD/.test(grid),
   'the grid uses the full maze page\'s alpha threshold rather than a second constant');
@@ -201,6 +218,8 @@ ok(/:root\s*\{[^}]*--home-game-ai:\s*#4cc9f0/.test(cssNoComments)
   'the opponent token is declared for both themes');
 ok(/\.home-game-actions \.btn\[hidden\]\s*\{\s*display:\s*none/.test(cssNoComments),
   'an author display cannot beat [hidden] on the two action buttons (§3.M)');
+ok(/\.home-game-score\[hidden\]\s*\{\s*display:\s*none/.test(cssNoComments),
+  'an author display cannot beat [hidden] on the score panel (§3.M)');
 ok(/@media \(max-width: 860px\)\s*\{\s*\.home-game-stage\s*\{\s*max-width:\s*none/.test(cssNoComments),
   'the game stage drops its 520px cap before the single-column breakpoint');
 

@@ -681,7 +681,7 @@ summary:focus-visible,
    was homepage-only until today.html shipped; the `-github` rules were
    index.html-only until both pages carried the mark. */
 .home-footer { border-top: 1px solid var(--hairline); padding: 32px 0 8px; }
-.home-footer-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.home-footer-inner { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
 /* The columns are NOT hand-written. `.home-footer-grid` is an empty mount point
    and `initFooterNav()` fills it from NAV, for the reason the nav is rendered
    rather than transcribed: the previous hand-written grid listed three 演算法
@@ -691,9 +691,11 @@ summary:focus-visible,
    three 特殊分類 children that collections.html already lists, and 首頁 itself.
 
    The ladder is 1 → 3 → 5, because `footerColumns()` returns one column per NAV
-   group and there are five (圖鑑 / 演算法 / 色彩 / 叫聲 / 3D 模型). Five at the
-   1180px inner column is ~209px each, measured, and holds the longest label
-   (排序演算法視覺化, 8 chars at 14px) on one line. */
+   group and there are five (圖鑑 / 演算法 / 色彩 / 叫聲 / 3D 模型). It shares the
+   1000px cap the sections above it use, because a footer 180px wider than
+   every heading is a third measure on a page that has only two. Five at the
+   960px inner column is ~173px each with the 24px gaps, which still holds the
+   longest label (排序演算法視覺化, 8 chars at 14px = 112px) on one line. */
 .home-footer-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1014,89 +1016,95 @@ summary:focus-visible,
    answer, hasShiny() falling back to the normal artwork is the answer — a card
    grid cannot disable anything, so it degrades, it does not pretend. */
 
-/* ===== Feature Cards (Landing Page) ===== */
+/* ===== Feature Index (Landing Page) =====
+   A list of six rows, not six cards.  Icon + heading + paragraph on the same
+   surface, six times, is the shape every generated landing page reaches for,
+   and at that weight the section read as the page's structure rather than as
+   its index — it competed with the two demos above it, which are the page's
+   actual argument.  Rows on hairlines say the same thing in a third of the
+   height and give the page somewhere to end.
+
+   The 4px `::before` top rule went with the card surface.  The accent now
+   lives in the glyph and the hovered title; a colour on all six rows was a
+   colour too many on a section this quiet.
+
+   Each accent is measured against --bg-primary (#0b1020 dark, #f3f5fa
+   light), because a row has no --bg-card under it any more.  The glyph is
+   non-text, so 3:1 is the bar: sort 4.03/4.31, maze 5.15/3.37, dex
+   4.47/3.88, team 5.32/3.26, graph 5.14/3.38, colors 4.02/4.32.  sort and
+   dex were 1 degree apart in hue (#e11d48 at 349, #f43f5e at 350) and sat
+   in the same row of the three-column grid, so the pair read as one colour
+   split in half; dex is violet now, 241 degrees away.  A hue with no card
+   is a colour waiting to be reused by mistake, so the six are the whole
+   set. */
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  padding: 40px 20px;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 44px;
+  row-gap: 0;
+  padding: 48px 20px 72px;
   max-width: 1000px;
   margin: 0 auto;
   width: 100%;
 }
+@media (min-width: 860px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* The heading spans both columns, so it is the list's title and not its
+   first row. */
+.feature-head { grid-column: 1 / -1; margin-bottom: 4px; }
+.feature-head .home-section-sub { margin-bottom: 20px; }
 
 .feature-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 32px 24px;
-  text-align: center;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 14px;
+  padding: 18px 0;
+  border-top: 1px solid var(--hairline);
+  border-radius: 8px;
   text-decoration: none;
   color: var(--text-primary);
-  box-shadow: var(--shadow-card);
-  transition: transform var(--transition-med), box-shadow var(--transition-med), border-color var(--transition-fast);
-  border: 2px solid transparent;
-  position: relative;
-  overflow: hidden;
+  transition: border-color var(--transition-fast);
 }
-
-.feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: var(--accent-gold);
-}
-
-.feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--feature-accent);
+.feature-card:hover { border-top-color: var(--feature-accent); }
+.feature-card:hover .feature-title { color: var(--feature-accent); }
+.feature-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
 .feature-card.sort { --feature-accent: #e11d48; }
 .feature-card.maze { --feature-accent: #3b82f6; }
-.feature-card.dex { --feature-accent: #f43f5e; }
-/* One value per card for both themes, as the three above already are. Picked by
-   measuring the 40px glyph and the 4px rule against --bg-card (#21262d dark,
-   #ffffff light) rather than by eye: the accent is non-text, so 3:1 is the bar.
-   These three clear it on both grounds — team 4.28 / 3.56, graph 4.13 / 3.68,
-   colors 3.23 / 4.71 — and are spread far enough apart in hue (orange, cyan,
-   magenta) that no two neighbouring cards read as one split in half. There is
-   no rule for the two cards the grid dropped (特殊分類, 世代指南): an accent with
-   no card is a colour waiting to be reused by mistake. */
+.feature-card.dex { --feature-accent: #8b5cf6; }
 .feature-card.team { --feature-accent: #ea580c; }
 .feature-card.graph { --feature-accent: #0891b2; }
 .feature-card.colors { --feature-accent: #c026d3; }
 
-/* Was `font-size: 48px` to size an emoji glyph; the icon is now a fixed 40px
-   SVG box, centred by `margin: auto`, and tinted with the card's own accent
-   (the same --feature-accent that already drives the ::before top border). */
+/* The icon occupies the first column across both text rows, so the title and
+   the description share one left edge. */
 .feature-icon {
+  grid-row: 1 / span 2;
   display: block;
-  margin-bottom: 16px;
   line-height: 0;
+  padding-top: 1px;
 }
-
 .feature-icon .icon {
   display: block;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto;
-  vertical-align: middle;
+  width: 26px;
+  height: 26px;
   fill: var(--feature-accent);
 }
 
 .feature-title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
+  transition: color var(--transition-fast);
 }
 
 .feature-desc {
-  font-size: 14px;
+  margin-top: 3px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.6;
 }

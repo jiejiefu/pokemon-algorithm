@@ -14,9 +14,9 @@
  * in check_home_hero_browser.mjs.
  *
  * Values are read from the modules that own them: the track height from
- * `HOME_HERO_TRACK_VH`, the sorter count from sorting-algorithms.js, the roster
- * size from pokemon_data.json. A checker that restates a number cannot notice it
- * changing (§3.S).
+ * `HOME_HERO_TRACK_VH`, the roster size from pokemon_data.json, the palette
+ * count from color_palettes.json and the move count from moves_zh.json. A
+ * checker that restates a number cannot notice it changing (§3.S).
  */
 
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,6 @@ import {
   GENERATION_COUNT, GEN_ONE_DATE, heroGenFor, heroGenForKey, heroVideoUrl, heroPosterUrl,
 } from '../assets/js/hero-gen.js';
 import { HOME_HERO_TRACK_VH } from '../assets/js/home-hero.js';
-import { ALGO_IDS } from '../assets/js/sorting-algorithms.js';
 
 const BASE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(BASE, p), 'utf8');
@@ -272,9 +271,18 @@ const statNum = (label) => {
   return digits === '' ? NaN : Number(digits);
 };
 eq(roster.length, statNum('1,025'), 'the 1,025 in the counts is pokemon_data.json\'s own length');
-eq(GENERATION_COUNT, statNum('9'), 'the 9 generations in the counts is the number of clips there are');
-const sorters = ALGO_IDS.length;
-eq(sorters, statNum('6'), 'the 6 sorters in the counts is sorting-algorithms.js\'s own ALGO_IDS');
+/* The other two counts moved from "how many algorithms" to "how much is in the
+ * site", because a sorter count was the one number on the page that also
+ * appeared in a card below it. Each is still re-derived: a normal and a shiny
+ * palette per species, and one row per move (moves_zh.json's `_meta` key is
+ * not a move). */
+const palettes = JSON.parse(read('assets/data/color_palettes.json'));
+const paletteCount = Object.values(palettes)
+  .reduce((n, p) => n + (p.n ? 1 : 0) + (p.s ? 1 : 0), 0);
+eq(paletteCount, statNum('2,050'), 'the 2,050 in the counts is color_palettes.json\'s own normal + shiny palettes');
+const moves = JSON.parse(read('assets/data/moves_zh.json'));
+const moveCount = Object.keys(moves).filter((k) => /^\d+$/.test(k)).length;
+eq(moveCount, statNum('919'), 'the 919 in the counts is moves_zh.json\'s own move rows');
 
 console.log('\n--- the hero is the only thing the homepage kept ---');
 ok(!/today-link-card|popular-grid|daily-slot/.test(htmlCode),

@@ -42,10 +42,23 @@ main { flex: 1; }
      and clips the bottom of whatever is pinned to the viewport. */
   height: 100dvh;
   overflow: hidden;
+  /* The card is a caption, anchored to the bottom-left corner of the clip
+     rather than floated over its centre.  Centred, it covered the densest
+     part of the roster grid and read as a modal sitting on top of the
+     video; pinned to the corner it reads as the clip's own title card, and
+     the frame gets to be the subject.  The scrim's bottom band is also the
+     darkest part of the image, which is where a 0.7 fill has the most
+     headroom.
+
+     The bottom padding reads larger than the visible gap because the header
+     is in flow, not fixed, so this box starts 55px down the document and its
+     own bottom hangs 55px past the fold until the page scrolls. What is seen
+     at rest is therefore this number minus those 55px — 32px would be flush. */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 clamp(20px, 5vw, 64px) clamp(56px, 10vh, 96px);
+  text-align: left;
 }
 /* The clip is H.264 with no alpha channel and its background BAKED to the
    site's --bg-primary, so there is nothing to blend and the media layer
@@ -76,16 +89,12 @@ main { flex: 1; }
    check_home_hero_browser.mjs by sampling decoded pixels, not by reading
    this declaration — which is §3.C's rule.
 
-   IT IS A TITLE CARD AND NOTHING ELSE.  `max-width: 760px` was already not
-   the cap that decided this panel's width — the lede's own `max-width:
-   660px` was, which is what took it to 736 — and with the lede gone the
-   panel shrink-to-fits its widest child, the 42px h1 at 264px.  So the
-   760 binds only above ~300% browser zoom, where the title alone is 756px.
-   Measured before and after, through a live box at both widths:
-   736x436 at 1280x900 (27.9% of the viewport) and 350x421 at 390x844
-   (44.8%) became 340x238 (7.0%) and 262x207 (16.5%).  The phone was the
-   worse case in both states, which is why the second number is the one
-   that decided it.
+   IT IS A TITLE CARD AND NOTHING ELSE.  The 560px cap is a measure and not
+   a decoration: the title is the widest thing in here, and six CJK glyphs
+   at the 60px display size are 360px, so the cap leaves the line one line
+   at every width above the 640px breakpoint.  Where the panel SITS is
+   `.home-hero-sticky`'s flex line, not a margin here — the corner
+   placement is argued in that rule.
 
    THE FILL IS 0.7 AND NOT 0.8, and 0.7 IS A FLOOR RATHER THAN A TASTE.
    The title is #f5c542 on this panel, and a sprite can be any colour up to
@@ -120,21 +129,22 @@ main { flex: 1; }
 .home-hero-content {
   position: relative;
   z-index: 2;
-  max-width: 760px;
-  margin: 0 20px;
-  padding: 34px 38px 30px;
-  border-radius: 26px;
+  max-width: 560px;
+  margin: 0;
+  padding: 26px 30px 24px;
+  border-radius: 20px;
   --home-hero-accent: #f5c542;
   background: rgba(6, 9, 20, 0.7);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
 .home-hero-title {
-  font-size: 42px;
+  font-size: clamp(38px, 5.4vw, 60px);
   font-weight: bold;
+  line-height: 1.06;
   color: var(--home-hero-accent);
-  margin: 0 0 14px;
-  letter-spacing: 2px;
+  margin: 0 0 20px;
+  letter-spacing: 0.01em;
 }
 
 /* ===== Below the clip =====
@@ -190,7 +200,7 @@ main { flex: 1; }
    scrolling leaves a keyboard reader and anyone who has landed here from
    a search with no visible route to anything, and this page's whole job
    is to be a way in. */
-.home-hero-cta { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 26px 0 0; }
+.home-hero-cta { display: flex; justify-content: flex-start; gap: 14px; flex-wrap: wrap; margin: 0; }
 .home-hero-btn {
   display: inline-flex;
   align-items: center;
@@ -222,7 +232,7 @@ main { flex: 1; }
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin: 26px 0 0;
+  margin: 20px 0 0;
   font-size: 13px;
   color: #d7dbee;
   text-decoration: none;
@@ -242,8 +252,11 @@ main { flex: 1; }
 .home-hero-scroll-hint .icon { fill: currentColor; }
 
 @media (max-width: 640px) {
-  .home-hero-content { padding: 26px 22px 22px; border-radius: 20px; }
-  .home-hero-title { font-size: 31px; letter-spacing: 1px; }
+  /* Same 55px header offset as the desktop rule above: this box also starts
+     below the header, so the visible gap is the padding minus 55. */
+  .home-hero-sticky { padding: 0 20px clamp(64px, 11vh, 92px); }
+  .home-hero-content { padding: 22px 22px 20px; border-radius: 16px; }
+  .home-hero-title { font-size: clamp(32px, 9vw, 42px); margin-bottom: 16px; }
   .home-hero-lede { font-size: 16px; }
   .home-hero-stats { gap: 22px; }
   .home-hero-stat-num { font-size: 22px; }
