@@ -694,13 +694,30 @@
   animation: sd-reveal-in 220ms ease-out;
 }
 
+/* ---- the battle stadium ----
+
+   The scene is an arena floor whose terrain is keyed on the OPPONENT's primary
+   type (`data-terrain`, written by `renderBattle()`), so one scene has one
+   identity and the six groups read as six different arenas.
+
+   These palettes are hand-tuned per theme, not a raw TYPE_COLORS fill. Those
+   hex values are tuned for small badges; as a full field half of them fail —
+   Electric/Ice/Fairy out-light the sprites, Dark/Ghost/Dragon invert the
+   sky-over-ground ladder. Every terrain below keeps ONE ladder instead: sky at
+   the top, a bright horizon at 54%, ground several lightness steps below it.
+   That is what keeps the horizon and both sprites readable whatever hue the
+   type brings (a Grass ground is deliberately a darker, yellower green than a
+   Grass sprite). This block IS Normal's palette and every unknown type's
+   fallback, so the scene is never unstyled. */
 .sd-battle {
-  --sd-battle-sky-top: #8fd8e8;
-  --sd-battle-sky-bottom: #d8f3cf;
-  --sd-battle-ground: #6fbd55;
-  --sd-battle-ground-edge: #4b9a42;
-  --sd-battle-platform: rgba(255, 255, 255, 0.34);
-  --sd-battle-platform-edge: rgba(23, 72, 39, 0.28);
+  --terrain-sky-top: #dfe0cd;
+  --terrain-sky-bottom: #efeddc;
+  --terrain-horizon: #fbf7e8;
+  --terrain-ground: #bdb083;
+  --terrain-ground-deep: #9a8d61;
+  --terrain-beam: rgba(255, 255, 255, 0.28);
+  --terrain-vignette: rgba(8, 14, 24, 0.26);
+  --sd-battle-platform: rgba(255, 255, 255, 0.4);
   --sd-battle-plate-bg: rgba(255, 255, 255, 0.88);
   --sd-battle-plate-border: rgba(19, 49, 36, 0.24);
   --sd-battle-plate-text: #12251b;
@@ -712,22 +729,318 @@
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(180deg, transparent 0 54%, rgba(255, 255, 255, 0.14) 54% 55%, transparent 55%),
-    repeating-linear-gradient(180deg, transparent 0 38px, rgba(255, 255, 255, 0.08) 38px 40px),
-    linear-gradient(180deg, var(--sd-battle-sky-top) 0 54%, var(--sd-battle-ground) 54% 100%);
+    radial-gradient(140% 118% at 50% 46%, transparent 54%, var(--terrain-vignette) 100%),
+    radial-gradient(76% 44% at 50% 0%, var(--terrain-beam) 0%, transparent 78%),
+    linear-gradient(
+      180deg,
+      var(--terrain-sky-top) 0%,
+      var(--terrain-sky-bottom) 51%,
+      var(--terrain-horizon) 54%,
+      var(--terrain-ground) 56%,
+      var(--terrain-ground-deep) 100%
+    );
   isolation: isolate;
 }
 
+/* The mown-turf checkerboard belongs to the ground only. It is a pseudo
+   element clipped at the horizon rather than a fourth background layer,
+   because one background layer cannot be clipped to half the box. A 50%-alpha
+   pair of repeating stripes is what produces the four-tone turf. */
+.sd-battle::before {
+  content: "";
+  position: absolute;
+  inset: 54% 0 0;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255, 255, 255, 0.055) 46px 92px),
+    repeating-linear-gradient(0deg, transparent 0 30px, rgba(255, 255, 255, 0.045) 30px 60px);
+  pointer-events: none;
+}
+
+.sd-battle[data-terrain="Fire"] {
+  --terrain-sky-top: #f0b48c;
+  --terrain-sky-bottom: #f8d9b6;
+  --terrain-horizon: #ffe9c9;
+  --terrain-ground: #9e4f36;
+  --terrain-ground-deep: #76382a;
+}
+
+.sd-battle[data-terrain="Water"] {
+  --terrain-sky-top: #a9cfee;
+  --terrain-sky-bottom: #d4e9f5;
+  --terrain-horizon: #eaf6ff;
+  --terrain-ground: #2f7f96;
+  --terrain-ground-deep: #1f5c74;
+}
+
+.sd-battle[data-terrain="Electric"] {
+  --terrain-sky-top: #d8d3ae;
+  --terrain-sky-bottom: #f2edc4;
+  --terrain-horizon: #fff8cc;
+  --terrain-ground: #97893f;
+  --terrain-ground-deep: #746a2e;
+}
+
+.sd-battle[data-terrain="Grass"] {
+  --terrain-sky-top: #bcdcc0;
+  --terrain-sky-bottom: #e1f0d9;
+  --terrain-horizon: #f3fbe7;
+  --terrain-ground: #7d9a4e;
+  --terrain-ground-deep: #5c7838;
+}
+
+.sd-battle[data-terrain="Ice"] {
+  --terrain-sky-top: #c3e6ee;
+  --terrain-sky-bottom: #e4f6f8;
+  --terrain-horizon: #f4ffff;
+  --terrain-ground: #8ab8c9;
+  --terrain-ground-deep: #6fa1b5;
+}
+
+.sd-battle[data-terrain="Fighting"] {
+  --terrain-sky-top: #e5a894;
+  --terrain-sky-bottom: #f3d3c4;
+  --terrain-horizon: #ffe7db;
+  --terrain-ground: #a2564a;
+  --terrain-ground-deep: #7d3d34;
+}
+
+.sd-battle[data-terrain="Poison"] {
+  --terrain-sky-top: #cfb0d4;
+  --terrain-sky-bottom: #e8d8ea;
+  --terrain-horizon: #f6ecf7;
+  --terrain-ground: #7c5a83;
+  --terrain-ground-deep: #5f4266;
+}
+
+.sd-battle[data-terrain="Ground"] {
+  --terrain-sky-top: #ecd9a8;
+  --terrain-sky-bottom: #f7edd2;
+  --terrain-horizon: #fff8e4;
+  --terrain-ground: #c9a464;
+  --terrain-ground-deep: #a8834a;
+}
+
+.sd-battle[data-terrain="Flying"] {
+  --terrain-sky-top: #b3c8ea;
+  --terrain-sky-bottom: #dbe7f8;
+  --terrain-horizon: #edf4ff;
+  --terrain-ground: #a9b9d0;
+  --terrain-ground-deep: #8fa1bd;
+}
+
+.sd-battle[data-terrain="Psychic"] {
+  --terrain-sky-top: #e7b7cf;
+  --terrain-sky-bottom: #f6dce8;
+  --terrain-horizon: #ffeaf4;
+  --terrain-ground: #9c5f86;
+  --terrain-ground-deep: #7a4668;
+}
+
+.sd-battle[data-terrain="Bug"] {
+  --terrain-sky-top: #c9cf9a;
+  --terrain-sky-bottom: #e6e8c4;
+  --terrain-horizon: #f4f5d8;
+  --terrain-ground: #7f8a45;
+  --terrain-ground-deep: #5e6a30;
+}
+
+.sd-battle[data-terrain="Rock"] {
+  --terrain-sky-top: #cfc6b4;
+  --terrain-sky-bottom: #e6dfd0;
+  --terrain-horizon: #f7f2e6;
+  --terrain-ground: #94846b;
+  --terrain-ground-deep: #6f6250;
+}
+
+.sd-battle[data-terrain="Ghost"] {
+  --terrain-sky-top: #b9b3cc;
+  --terrain-sky-bottom: #d8d3e4;
+  --terrain-horizon: #ece8f5;
+  --terrain-ground: #6a6280;
+  --terrain-ground-deep: #504a63;
+}
+
+.sd-battle[data-terrain="Dragon"] {
+  --terrain-sky-top: #b6b5e0;
+  --terrain-sky-bottom: #dbd9f2;
+  --terrain-horizon: #efedff;
+  --terrain-ground: #5b5790;
+  --terrain-ground-deep: #444070;
+}
+
+.sd-battle[data-terrain="Dark"] {
+  --terrain-sky-top: #b3b0ab;
+  --terrain-sky-bottom: #d6d2cb;
+  --terrain-horizon: #ece8e1;
+  --terrain-ground: #5f5a50;
+  --terrain-ground-deep: #474239;
+}
+
+.sd-battle[data-terrain="Steel"] {
+  --terrain-sky-top: #c2ccd6;
+  --terrain-sky-bottom: #dde5ec;
+  --terrain-horizon: #f0f5f9;
+  --terrain-ground: #7f8d9c;
+  --terrain-ground-deep: #616e7b;
+}
+
+.sd-battle[data-terrain="Fairy"] {
+  --terrain-sky-top: #efc3d5;
+  --terrain-sky-bottom: #fbe3ec;
+  --terrain-horizon: #fff0f6;
+  --terrain-ground: #b07b93;
+  --terrain-ground-deep: #8f6076;
+}
+
 [data-theme="dark"] .sd-battle {
-  --sd-battle-sky-top: #17354a;
-  --sd-battle-sky-bottom: #1d4b42;
-  --sd-battle-ground: #235b3a;
-  --sd-battle-ground-edge: #17432c;
-  --sd-battle-platform: rgba(255, 255, 255, 0.16);
-  --sd-battle-platform-edge: rgba(0, 0, 0, 0.38);
+  --terrain-sky-top: #26261d;
+  --terrain-sky-bottom: #35352a;
+  --terrain-horizon: #5c5c42;
+  --terrain-ground: #3b3a2b;
+  --terrain-ground-deep: #2c2b1f;
+  --terrain-beam: rgba(255, 255, 255, 0.09);
+  --terrain-vignette: rgba(0, 0, 0, 0.42);
+  --sd-battle-platform: rgba(255, 255, 255, 0.18);
   --sd-battle-plate-bg: rgba(10, 18, 26, 0.88);
   --sd-battle-plate-border: rgba(255, 255, 255, 0.2);
   --sd-battle-plate-text: #eef4ff;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Fire"] {
+  --terrain-sky-top: #3a1a16;
+  --terrain-sky-bottom: #57251a;
+  --terrain-horizon: #8a3a20;
+  --terrain-ground: #3d1f18;
+  --terrain-ground-deep: #28120f;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Water"] {
+  --terrain-sky-top: #0f2534;
+  --terrain-sky-bottom: #14374a;
+  --terrain-horizon: #2a6b85;
+  --terrain-ground: #143a4a;
+  --terrain-ground-deep: #0c2836;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Electric"] {
+  --terrain-sky-top: #2b2a1c;
+  --terrain-sky-bottom: #3e3a22;
+  --terrain-horizon: #8a7a2a;
+  --terrain-ground: #37331c;
+  --terrain-ground-deep: #23200f;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Grass"] {
+  --terrain-sky-top: #17281c;
+  --terrain-sky-bottom: #1e3826;
+  --terrain-horizon: #3e6b3e;
+  --terrain-ground: #1f3a26;
+  --terrain-ground-deep: #142818;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Ice"] {
+  --terrain-sky-top: #142a30;
+  --terrain-sky-bottom: #1b3b45;
+  --terrain-horizon: #3d7889;
+  --terrain-ground: #1d3a44;
+  --terrain-ground-deep: #122831;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Fighting"] {
+  --terrain-sky-top: #2e1512;
+  --terrain-sky-bottom: #47211b;
+  --terrain-horizon: #7a3327;
+  --terrain-ground: #331a16;
+  --terrain-ground-deep: #210f0d;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Poison"] {
+  --terrain-sky-top: #241626;
+  --terrain-sky-bottom: #35203a;
+  --terrain-horizon: #5c3766;
+  --terrain-ground: #2c1c30;
+  --terrain-ground-deep: #1d1120;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Ground"] {
+  --terrain-sky-top: #2e2415;
+  --terrain-sky-bottom: #42351f;
+  --terrain-horizon: #6b5430;
+  --terrain-ground: #3d311c;
+  --terrain-ground-deep: #2a2113;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Flying"] {
+  --terrain-sky-top: #141d30;
+  --terrain-sky-bottom: #1e2c45;
+  --terrain-horizon: #3f5a80;
+  --terrain-ground: #1f2b3d;
+  --terrain-ground-deep: #141c28;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Psychic"] {
+  --terrain-sky-top: #2a1424;
+  --terrain-sky-bottom: #3d1c33;
+  --terrain-horizon: #6b2f57;
+  --terrain-ground: #33192b;
+  --terrain-ground-deep: #220f1d;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Bug"] {
+  --terrain-sky-top: #1f2413;
+  --terrain-sky-bottom: #2c331b;
+  --terrain-horizon: #4f5c28;
+  --terrain-ground: #2a3018;
+  --terrain-ground-deep: #1a1f0e;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Rock"] {
+  --terrain-sky-top: #26221c;
+  --terrain-sky-bottom: #37312a;
+  --terrain-horizon: #5c5347;
+  --terrain-ground: #332d26;
+  --terrain-ground-deep: #211d18;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Ghost"] {
+  --terrain-sky-top: #181425;
+  --terrain-sky-bottom: #241c38;
+  --terrain-horizon: #513f74;
+  --terrain-ground: #221b33;
+  --terrain-ground-deep: #150f22;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Dragon"] {
+  --terrain-sky-top: #161430;
+  --terrain-sky-bottom: #211d47;
+  --terrain-horizon: #403780;
+  --terrain-ground: #1f1b3c;
+  --terrain-ground-deep: #120f27;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Dark"] {
+  --terrain-sky-top: #161412;
+  --terrain-sky-bottom: #231f1b;
+  --terrain-horizon: #4f4538;
+  --terrain-ground: #211c18;
+  --terrain-ground-deep: #13100e;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Steel"] {
+  --terrain-sky-top: #191f26;
+  --terrain-sky-bottom: #242d36;
+  --terrain-horizon: #455360;
+  --terrain-ground: #212a33;
+  --terrain-ground-deep: #141a20;
+}
+
+[data-theme="dark"] .sd-battle[data-terrain="Fairy"] {
+  --terrain-sky-top: #2c1520;
+  --terrain-sky-bottom: #3f2030;
+  --terrain-horizon: #6e3a51;
+  --terrain-ground: #351a27;
+  --terrain-ground-deep: #230f19;
 }
 
 .sd-battle-slot {
@@ -755,6 +1068,11 @@
   object-fit: contain;
   object-position: center bottom;
   image-rendering: pixelated;
+  /* The contact shadow is what keeps a sprite separable from its terrain: a
+     Grass sprite on a Grass field is a hue match, and no palette can fix that
+     by colour alone. The shadow follows the alpha edge, so it works on any
+     silhouette. */
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.42));
 }
 
 .sd-battle-slot img[hidden] {
@@ -763,15 +1081,16 @@
 
 .sd-battle-platform {
   position: absolute;
-  bottom: -4%;
+  bottom: 0;
   left: 50%;
   z-index: 1;
-  width: 92%;
-  height: 22%;
+  width: 104%;
+  height: 28%;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: var(--sd-battle-platform);
-  box-shadow: 0 6px 0 -2px var(--sd-battle-platform-edge);
+  /* A soft pool of stage light instead of a solid disc: the disc's hard edge
+     read as a plate the sprite stood on, not as ground. */
+  background: radial-gradient(50% 58% at 50% 54%, var(--sd-battle-platform) 0%, transparent 78%);
 }
 
 .sd-battle-plate {
@@ -824,7 +1143,7 @@
 }
 
 .sd-battle-plate strong {
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.2;
 }
 
@@ -864,7 +1183,7 @@
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.46);
   color: var(--sd-battle-plate-text);
-  font-size: 11.5px;
+  font-size: 16px;
   line-height: 1.45;
 }
 

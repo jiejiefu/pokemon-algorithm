@@ -8,7 +8,7 @@
  * editing a card in place, so a stale slot cannot disagree with the state.
  */
 
-import { typeBadgeSmHtml } from './shared.js';
+import { typeBadgeSmHtml, TYPE_COLORS } from './shared.js';
 import { spriteUrl, backSpriteUrl } from './color-palette.js';
 import {
   createDraftSession,
@@ -28,6 +28,19 @@ const esc = (value) => String(value).replace(/[&<>"']/g, (char) => ({
 }[char]));
 
 const typesHtml = (types) => types.map((type) => typeBadgeSmHtml(type)).join('');
+
+/**
+ * The scene's terrain is the OPPONENT's primary type, written as
+ * `data-terrain` and spelled exactly as `TYPE_COLORS` keys it. `Normal` is the
+ * fallback, which is also the CSS fallback, so a missing or unknown type still
+ * paints a complete stadium instead of an unstyled box. The palette itself
+ * lives in `silhouette-draft.css`, one hand-tuned pair per theme, because the
+ * raw type hex is a badge colour and does not survive as a full field.
+ */
+const terrainOf = (pokemon) => {
+  const primary = pokemon?.types?.[0];
+  return primary && TYPE_COLORS[primary] ? primary : 'Normal';
+};
 
 const multClass = (multiplier) => (
   multiplier === null || multiplier === undefined
@@ -296,6 +309,8 @@ export async function initSilhouetteDraft() {
     const playerImg = $('sd-battle-player');
     const playerMoves = $('sd-battle-player-moves');
     const verdict = $('sd-battle-verdict');
+
+    $('sd-battle').dataset.terrain = terrainOf(opponent);
 
     if (opponent) {
       opponentImg.src = spriteUrl(opponent.id);

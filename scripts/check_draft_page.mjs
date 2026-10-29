@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { NAV } from '../assets/js/shared.js';
+import { NAV, TYPE_COLORS } from '../assets/js/shared.js';
 import { TYPELESS_MOVES } from '../assets/js/team-moves.js';
 import {
   CANDIDATES,
@@ -193,6 +193,76 @@ ok(/\.sd-battle\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/.test(cssCode),
   'the battle scene spans both match columns');
 ok(/\.sd-battle\s*\{[^}]*height:\s*clamp\(320px,\s*34vw,\s*440px\)/.test(cssCode),
   'the battle scene has a bounded height');
+
+/* The terrain table is hand-authored, so the guard is coverage: every type
+   `TYPE_COLORS` names needs both a light and a dark block, and both blocks need
+   all five stops. A type missing a theme would silently fall back to the
+   shared palette, which is the rot a hand-authored table invites. */
+const terrainBlock = (selector) => {
+  const at = cssCode.indexOf(selector);
+  if (at === -1) return '';
+  const open = cssCode.indexOf('{', at);
+  if (open === -1) return '';
+  const close = cssCode.indexOf('}', open);
+  return close === -1 ? '' : cssCode.slice(open + 1, close);
+};
+const TERRAIN_STOPS = ['sky-top', 'sky-bottom', 'horizon', 'ground', 'ground-deep'];
+
+/* A palette is not just five hexes: it has to keep the ladder that makes the
+   scene a stadium instead of one flat wash. Measured on WCAG relative
+   luminance — the same quantity the contrast checks use — so "the horizon is
+   the brightest band and the ground darkens toward the floor" is evidence, not
+   an intention. */
+const luminance = (hex) => {
+  const channel = (byte) => {
+    const v = byte / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+};
+const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+for (const type of Object.keys(TYPE_COLORS)) {
+  /* Normal has no block of its own: the shared rule is its palette, and it is
+     also what an unknown type falls back to. */
+  for (const [theme, selector] of [
+    ['light', type === 'Normal' ? '.sd-battle {' : `.sd-battle[data-terrain="${type}"]`],
+    ['dark', type === 'Normal' ? '[data-theme="dark"] .sd-battle {' : `[data-theme="dark"] .sd-battle[data-terrain="${type}"]`],
+  ]) {
+    const block = terrainBlock(selector);
+    ok(block.length > 0, `the ${type} terrain has a ${theme} palette`);
+    const stops = {};
+    for (const stop of TERRAIN_STOPS) {
+      const found = new RegExp(`--terrain-${stop}:\\s*(#[0-9a-fA-F]{6})`).exec(block);
+      if (found) stops[stop] = found[1];
+    }
+    ok(Object.keys(stops).length === TERRAIN_STOPS.length,
+      `the ${type} ${theme} palette defines all five terrain stops`);
+    if (Object.keys(stops).length !== TERRAIN_STOPS.length) continue;
+
+    const lum = Object.fromEntries(
+      Object.entries(stops).map(([stop, hex]) => [stop, luminance(hex)]),
+    );
+    ok(lum.horizon > lum['sky-bottom'] && lum.horizon > lum.ground,
+      `the ${type} ${theme} horizon is its brightest band`);
+    ok(lum['ground-deep'] < lum.ground,
+      `the ${type} ${theme} ground darkens toward the floor`);
+    ok(contrast(lum.horizon, lum.ground) >= 1.2,
+      `the ${type} ${theme} horizon separates from its ground`);
+    if (theme === 'light') {
+      ok(lum['sky-bottom'] - lum.ground >= 0.08,
+        `the ${type} light sky sits above its ground`);
+    }
+  }
+}
+ok(/\.sd-battle-slot img\s*\{[^}]*drop-shadow/.test(cssCode),
+  'each battle sprite carries a contact shadow on its own alpha edge');
+ok(/dataset\.terrain\s*=\s*terrainOf\(opponent\)/.test(jsCode),
+  'the terrain is keyed on the opponent the round faces');
+ok(/const primary = pokemon\?\.types\?\.\[0\]/.test(jsCode)
+  && /TYPE_COLORS\[primary\]/.test(jsCode),
+  'the terrain reads the primary type and falls back on an unknown one');
 ok(/\.sd-battle-slot\s*\{[^}]*width:\s*var\(--sd-battle-sprite-size\)[^}]*height:\s*var\(--sd-battle-sprite-size\)/.test(cssCode),
   'both battle sprites share one box size');
 const slotRules = (side) => [...cssCode.matchAll(new RegExp(`\\.sd-battle-slot--${side}\\s*\\{([^}]*)\\}`, 'g'))]
