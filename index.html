@@ -4,35 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>寶可夢演算法</title>
-  <meta name="description" content="以 1,025 隻寶可夢為教材的演算法視覺化 — 排序、路徑尋找、資料結構與完整圖鑑資料。">
+  <meta name="description" content="一邊玩演算法，一邊收集 1,025 隻寶可夢。排序、迷宮、圖鑑、叫聲，每個實驗都在幫你填滿圖鑑。">
   <link rel="icon" href="assets/images/favicon-32.png" sizes="32x32">
   <link rel="apple-touch-icon" href="assets/images/logo.png" sizes="180x180">
   <meta name="theme-color" content="#0b1020">
-  <!-- Pre-paint theme resolver. Generated from scripts/lib/theme-init.mjs by
-       scripts/sync_theme_init.mjs; the rationale is AGENTS.md §3.C. -->
-  <script>
-    (function () {
-      var THEME_KEY = 'pokemon-theme';
-      var theme = null;
-      try {
-        theme = localStorage.getItem(THEME_KEY);
-      } catch (e) { /* private mode / storage disabled: resolve from the OS instead */ }
-      if (theme !== 'light' && theme !== 'dark') {
-        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
-        theme = mq && mq.matches ? 'light' : 'dark';
-      }
-      document.documentElement.dataset.theme = theme;
-      var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
-    })();
-  </script>
+  <!-- Pinned dark: a dark instrument rather than a theme choice, so this writes the
+       dark palette and leaves the reader's stored choice alone. Generated from
+       scripts/lib/theme-init.mjs by scripts/sync_theme_init.mjs (AGENTS.md §3.C). -->
+  <script>document.documentElement.dataset.theme = 'dark';</script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <link rel="stylesheet" href="assets/css/home-sections.css">
-  <link rel="stylesheet" href="assets/css/home-hero.css">
+  <link rel="stylesheet" href="assets/css/home-lab.css">
 </head>
-<body>
+<body class="hx-page">
   <header class="header header-dex">
-    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題"></button>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="淺色主題" title="淺色主題" hidden></button>
     <a class="header-brand" href="index.html" aria-label="回到寶可夢演算法首頁"><span class="site-logo"><img src="assets/images/logo.png" alt="" width="180" height="180" decoding="async"></span>
       <div class="header-title header-title-large">寶可夢演算法</div>
     </a>
@@ -42,63 +28,71 @@
   </header>
 
   <main>
-    <section class="home-hero" aria-labelledby="hero-title">
-      <div class="home-hero-sticky">
-        <!-- `poster` and `src` are BOTH written by the inline module below, not
-             here, because both depend on which generation the day selects and a
-             hardcoded one would be a lie on eight days out of nine.  The gap
-             before that runs is one frame of `.home-hero-media`'s own #0b1020,
-             which is the colour baked into the clip — so nothing flashes, and
-             with JS off the reader gets the text on a dark band rather than a
-             broken element.  aria-hidden + tabindex because a scrubbed, muted,
-             decorative clip is not something to reach with a keyboard. -->
-        <div class="home-hero-media">
-          <video class="home-hero-video" id="home-hero-video" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
+    <!-- Hero: one generation's clip scrubbed by scroll (home-hero.js), with the
+         collection counter over it.  `poster` and `src` are written by
+         home-lab.js because both depend on which generation the day selects. -->
+    <section class="hx-hero" aria-labelledby="hero-title">
+      <div class="hx-hero-sticky">
+        <div class="hx-hero-media">
+          <video class="hx-hero-video" id="home-hero-video" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
         </div>
-        <div class="home-hero-scrim" aria-hidden="true"></div>
-        <div class="home-hero-content">
-          <h1 id="hero-title" class="home-hero-title">寶可夢演算法</h1>
-          <div class="home-hero-cta">
-            <a class="home-hero-btn is-primary" href="pokedex.html">開始探索</a>
-            <a class="home-hero-btn" href="today.html">今日推薦</a>
+        <div class="hx-hero-scrim" aria-hidden="true"></div>
+        <div class="hx-hero-body">
+          <h1 id="hero-title" class="hx-hero-title">收集全部 <b>1,025</b> 隻</h1>
+          <p class="hx-hero-lede">演算法是入口，圖鑑才是目的。排序、走迷宮、翻圖鑑，每個實驗都會讓你多抓幾隻。<span id="hx-intro-line" class="hx-sr"></span></p>
+          <div class="hx-hero-actions">
+            <a class="hx-btn is-primary" href="#dex">開始收集</a>
+            <div class="hx-counter" role="progressbar" aria-label="圖鑑完成度" aria-valuemin="0" aria-valuemax="1025" aria-valuenow="0" data-hx-total>
+              <div class="hx-counter-row"><span class="hx-counter-n" data-hx-count>0</span><span class="hx-counter-of">/ 1,025 已收集</span></div>
+              <div class="hx-bar" aria-hidden="true"><i data-hx-fill></i></div>
+              <p class="hx-mission" id="hx-mission" data-done="false"></p>
+            </div>
           </div>
-          <a class="home-hero-scroll-hint" href="#showcase-title">往下捲動，看演算法自己跑
-            <svg class="icon home-hero-scroll-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
-          </a>
+        </div>
+        <a class="hx-hero-scroll-hint" href="#showcase-title">往下看實驗 ↓</a>
+      </div>
+    </section>
+
+    <!-- The wall: every species, in dex order.  Empty cells are tinted with the
+         species' own colour; click to throw, and the sprite appears when it lands. -->
+    <section class="hx-section" id="dex" aria-labelledby="dex-title">
+      <div class="hx-wrap">
+        <div class="hx-section-head">
+          <h2 class="hx-h2" id="dex-title">圖鑑牆</h2>
+          <p class="hx-sub">每一格是一隻寶可夢。點一格丟精靈球，成功率看牠的真實捕獲率：傳說寶可夢比較難抓。手機上，點一下選取，再點一下丟球。</p>
+        </div>
+        <div class="hx-wall-stage" id="hx-wall-stage">
+          <canvas class="hx-wall" id="hx-wall" tabindex="0" role="application"
+            aria-label="寶可夢圖鑑牆，共 1,025 格。方向鍵移動，Enter 或空白鍵丟精靈球。"
+            aria-describedby="hx-info-name hx-info-meta"></canvas>
+          <div class="hx-tip" id="hx-tip" hidden></div>
+        </div>
+        <div class="hx-info" id="hx-info">
+          <div class="hx-info-main">
+            <div class="hx-info-line"><span class="hx-info-no" id="hx-info-no">—</span><span class="hx-info-name" id="hx-info-name">還沒選格子</span></div>
+            <p class="hx-info-meta" id="hx-info-meta"></p>
+            <p class="hx-info-result" id="hx-info-result"></p>
+          </div>
+          <button class="hx-btn is-primary" type="button" id="hx-throw" disabled>丟出精靈球</button>
+        </div>
+
+        <div class="hx-status">
+          <div class="hx-status-row">
+            <p class="hx-next" id="hx-next"></p>
+            <div class="hx-recent-wrap" id="hx-recent-wrap" hidden><span class="hx-recent-label">最近抓到</span><div class="hx-recent" id="hx-recent"></div></div>
+          </div>
+          <ul class="hx-region-list" id="hx-region-list" aria-label="各世代收集進度"></ul>
+          <div class="hx-status-row">
+            <p class="hx-note" id="hx-storage-note" hidden>這個瀏覽器不能存檔，關掉分頁後進度會消失。</p>
+            <button class="hx-linkbtn" type="button" id="hx-reset">清空圖鑑，重新開始</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- What the panel no longer carries.  It was 760x420 of `rgba(6,9,20,0.8)`
-         over a full-bleed roster grid — measured ~30% of a 1280x900 viewport, and
-         dead centre on the densest part of the frame.  This is a plain themed
-         text block instead, which is also why every colour in it is a token and
-         not one of the panel's dark-panel literals.
-
-         `text-align: center` is DECLARED here rather than inherited: the lede used
-         to centre itself off `.home-hero-sticky { text-align: center }`, and a
-         moved element that loses an inherited declaration does not throw — every
-         rule still exists, the paragraph is simply left-aligned.
-
-         It sits BELOW the 240vh track, so a reader sees it only after the whole
-         10s clip has scrubbed.  That is the two-act page and not an oversight:
-         h1 + the two ways out are above the fold, and the sentence saying what
-         the site IS comes after the thing it is about. -->
-    <section class="home-intro" aria-label="這個網站在做什麼">
-      <p class="home-hero-lede">
-        以 1,025 隻寶可夢為教材的演算法視覺化 — 排序、路徑尋找、資料結構，附完整圖鑑資料。
-      </p>
-      <p class="home-hero-updated">已更新至第 9 世代 帕底亞</p>
-      <ul class="home-hero-stats">
-        <li><span class="home-hero-stat-num">1,025</span><span class="home-hero-stat-label">隻寶可夢</span></li>
-        <li><span class="home-hero-stat-num">2,050</span><span class="home-hero-stat-label">組實測色盤</span></li>
-        <li><span class="home-hero-stat-num">919</span><span class="home-hero-stat-label">個招式</span></li>
-      </ul>
-    </section>
-
     <section class="home-section" id="showcase" aria-labelledby="showcase-title">
       <h2 id="showcase-title" class="home-section-title">演算法，自動上演</h2>
-      <p class="home-section-sub">兩種經典問題、兩種呈現方式 — 不用按任何按鈕，排序和路徑搜尋就自己跑給你看，用的是跟完整版一模一樣的演算法引擎。</p>
+      <p class="home-section-sub">排序和路徑搜尋自己跑給你看，用的是跟完整版一樣的演算法引擎。</p>
       <div class="home-showcase-grid">
         <div class="home-showcase-card">
           <div class="home-showcase-head">
@@ -120,13 +114,14 @@
     </section>
 
     <section class="home-section" id="game" aria-labelledby="game-title">
-      <h2 id="game-title" class="home-section-title">換你來挑戰 A*</h2>
-      <p class="home-section-sub">每次進來，寶可夢和地形都不一樣。用方向鍵或下面的按鈕，看你能不能比 A* 更快走到終點。</p>
+      <h2 id="game-title" class="home-section-title">贏過 A*，抓走地形上的寶可夢</h2>
+      <p class="home-section-sub">每次進來，寶可夢和地形都不一樣。比 A* 先走到終點，牠就是你的。</p>
       <div class="home-game-wrap">
         <div class="home-game-stage" id="game-stage"></div>
         <div class="home-game-side">
           <p class="home-game-terrain" id="game-subtitle">正在挑選寶可夢…</p>
           <p class="home-game-status" id="game-status" role="status" aria-live="polite">正在挑選寶可夢並生成地形…</p>
+          <p class="hx-game-reward" id="hx-game-reward"></p>
           <dl class="home-game-score" id="game-score" hidden>
             <div>
               <dt>你</dt>
@@ -154,87 +149,79 @@
       </div>
     </section>
 
-    <section class="feature-grid" id="features" aria-labelledby="features-title">
-      <div class="feature-head">
-        <h2 id="features-title" class="home-section-title">更多深度互動</h2>
-        <p class="home-section-sub">圖鑑、組隊、色盤、叫聲、3D 圖譜，再加上演算法與視覺化<br>——提供全功能的體驗，點進去就能馬上玩。</p>
+    <section class="hx-section" id="today" aria-labelledby="today-title">
+      <div class="hx-wrap">
+        <div class="hx-section-head">
+          <h2 class="hx-h2" id="today-title">今日野生寶可夢</h2>
+          <p class="hx-sub">每天固定出現一隻，這隻不用丟球，直接收服。</p>
+        </div>
+        <div class="hx-daily" id="hx-daily" hidden>
+          <div class="hx-daily-art"><img id="hx-daily-img" alt="" width="240" height="240" decoding="async"></div>
+          <div class="hx-daily-body">
+            <span class="hx-daily-no" id="hx-daily-no"></span>
+            <h3 class="hx-daily-name" id="hx-daily-name"></h3>
+            <p class="hx-daily-types" id="hx-daily-types"></p>
+            <p class="hx-daily-desc" id="hx-daily-desc"></p>
+            <div class="hx-daily-actions">
+              <button class="hx-btn is-primary" type="button" id="hx-daily-catch">收服今日寶可夢</button>
+              <a class="hx-btn" id="hx-daily-link" href="today.html">看完整資料</a>
+            </div>
+          </div>
+        </div>
+        <p class="hx-daily-loading" id="hx-daily-loading">往下捲動時才會載入今日寶可夢。</p>
       </div>
-      <a href="sorting.html" class="feature-card sort">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg></span>
-        <div class="feature-title">排序演算法視覺化</div>
-        <div class="feature-desc">氣泡、選擇、插入、快速、合併、堆積 — 6 種經典排序即時動畫演示，觀察 1,025 隻寶可夢依編號重新排列</div>
-      </a>
-      <a href="maze.html" class="feature-card maze">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg></span>
-        <div class="feature-title">像素迷宮 BFS / DFS</div>
-        <div class="feature-desc">隨機寶可夢圖片像素化為 40×40 迷宮，體驗廣度優先與深度優先搜尋的探索差異</div>
-      </a>
-      <a href="pokedex.html" class="feature-card dex">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0.25.25.5.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg></span>
-        <div class="feature-title">完整圖鑑搜尋</div>
-        <div class="feature-desc">支援編號搜尋、顏色分群篩選的完整 1,025 隻寶可夢圖鑑</div>
-      </a>
-      <a href="team.html" class="feature-card team">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
-        <div class="feature-title">組隊規劃</div>
-        <div class="feature-desc">六個位置、弱點與抗性統計、STAB 覆蓋 — 邊組邊算的隊伍分析器，每次選擇都即時重算</div>
-      </a>
-      <a href="graph.html" class="feature-card graph">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></span>
-        <div class="feature-title">3D 知識圖譜</div>
-        <div class="feature-desc">1,346 個節點、2,794 條關係 — 進化、地區型態、悖謬與屬性共鳴的力導向宇宙，可搜尋與聚焦</div>
-      </a>
-      <a href="colors-explore.html" class="feature-card colors">
-        <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.4-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-1.1.9-2 2-2h2.1A6 6 0 0 0 23 8.7C23 5.4 18 3 12 3zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3.5 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></span>
-        <div class="feature-title">探索色盤</div>
-        <div class="feature-desc">1,025 隻寶可夢的實測 6 色盤，一般與異色一次看完，附 11 階色階與主題匯出</div>
-      </a>
+    </section>
+
+    <section class="hx-section" id="lab" aria-labelledby="lab-title">
+      <div class="hx-wrap">
+        <div class="hx-section-head">
+          <h2 class="hx-h2" id="lab-title">更多實驗</h2>
+        </div>
+        <ul class="hx-lab-list">
+          <li><a href="sorting.html"><span class="hx-lab-name">排序視覺化</span><span class="hx-lab-desc">6 種排序，看 1,025 隻重新排列</span></a></li>
+          <li><a href="maze.html"><span class="hx-lab-name">像素迷宮</span><span class="hx-lab-desc">BFS / DFS / A*，精靈當地形</span></a></li>
+          <li><a href="pokedex.html"><span class="hx-lab-name">完整圖鑑</span><span class="hx-lab-desc">編號、屬性、世代、顏色篩選</span></a></li>
+          <li><a href="cry-studio.html"><span class="hx-lab-name">叫聲編曲室</span><span class="hx-lab-desc">把叫聲排成音階，做成一首曲子</span></a></li>
+          <li><a href="graph.html"><span class="hx-lab-name">3D 知識圖譜</span><span class="hx-lab-desc">進化、地區型態與屬性的關係網</span></a></li>
+          <li><a href="team.html"><span class="hx-lab-name">組隊規劃</span><span class="hx-lab-desc">六個位置，即時算弱點與覆蓋</span></a></li>
+          <li><a href="colors-explore.html"><span class="hx-lab-name">探索色盤</span><span class="hx-lab-desc">每隻寶可夢的實測 6 色</span></a></li>
+          <li><a href="cry-game.html"><span class="hx-lab-name">叫聲猜謎</span><span class="hx-lab-desc">聽叫聲，猜是哪一隻</span></a></li>
+          <li><a href="silhouette-draft.html"><span class="hx-lab-name">剪影選秀</span><span class="hx-lab-desc">盲選六隻，和對手比屬性</span></a></li>
+        </ul>
+      </div>
     </section>
   </main>
 
-  <footer class="home-footer">
-    <div class="home-footer-inner">
+  <!-- `home-footer` as well as `hx-foot`: the shared component's rules live in
+       shared.css and today.html mounts the same one, so the two footers cannot
+       drift into two designs (AGENTS.md §3.G2, one layer out). -->
+  <footer class="home-footer hx-foot">
+    <div class="hx-wrap hx-foot-inner">
+      <!-- Empty on purpose: initFooterNav() renders the columns from NAV in shared.js. -->
       <div class="home-footer-grid" data-footer-nav></div>
-      <p class="home-footer-line">
-        <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • <span data-version></span></span>
-        <a class="home-footer-github" href="https://github.com/jiejiefu/pokemon-algorithm" rel="noopener noreferrer" target="_blank" aria-label="在 GitHub 上查看原始碼">
-          <img class="gh-black" src="assets/images/github-invertocat-black.svg" alt="" width="24" height="24">
-          <img class="gh-white" src="assets/images/github-invertocat-white.svg" alt="" width="24" height="24">
-        </a>
-      </p>
+      <span>© 2026 PokeAlgo • Pokémon is a trademark of Nintendo • Data from <a href="https://pokeapi.co/" rel="noopener noreferrer" target="_blank">PokéAPI</a> • <span data-version></span></span>
+      <a class="home-footer-github" href="https://github.com/jiejiefu/pokemon-algorithm" rel="noopener noreferrer" target="_blank" aria-label="在 GitHub 上查看原始碼">
+        <img class="gh-black" src="assets/images/github-invertocat-black.svg" alt="" width="24" height="24">
+        <img class="gh-white" src="assets/images/github-invertocat-white.svg" alt="" width="24" height="24">
+      </a>
     </div>
   </footer>
 
-  <script type="module">
-    import { initThemeToggle, initHeaderNav, initFooterNav } from './assets/js/shared.js';
-    import { initHomeHero } from './assets/js/home-hero.js';
-    import { heroGenFor, heroVideoUrl, heroPosterUrl } from './assets/js/hero-gen.js';
-    import { initHomeSections } from './assets/js/home-sections.js';
+  <!-- Polite status for catches, misses and milestones, read by screen readers. -->
+  <div class="hx-sr" id="hx-live" role="status" aria-live="polite"></div>
+  <div class="hx-toast" id="hx-toast" role="status" hidden></div>
 
-    // Three mounts, in this order, and all three are here rather than in a
-    // module: nothing in shared.js can tell which pages mount the nav, and the
-    // theme toggle's icons are injected by initThemeToggle() — a page with the
-    // button in its markup but no call for it renders a 34x34 control that
-    // paints nothing, and every header check passes, because the checks read
-    // the markup.
-    initThemeToggle();
+  <script type="module">
+    import { initHeaderNav, initFooterNav } from './assets/js/shared.js';
+    import { initHomeLab } from './assets/js/home-lab.js';
+
+    // The nav and footer mounts stay on the page, not in home-lab.js: the nav
+    // checker reads this script for them. No initThemeToggle(): this page is
+    // pinned dark and the toggle is not offered, so a call would paint icons
+    // into a button the stylesheet hides.
     initHeaderNav();
     initFooterNav();
-
-    // The day's generation is resolved with no fetch and no await, so the
-    // video element has its real src and poster before anything can scroll.
-    // POSTER FIRST: it costs nothing to set and it is what paints until
-    // metadata arrives, whereas src starts a 1.2MB download.
-    const video = document.getElementById('home-hero-video');
-    const gen = heroGenFor();
-    video.poster = heroPosterUrl(gen);
-    video.src = heroVideoUrl(gen);
-    initHomeHero({ track: document.querySelector('.home-hero'), video });
-
-    // The two demos under the intro fetch their compact roster only when they
-    // come within 400px of the viewport, so this call is a registration, not a
-    // load. It also pauses them when they leave or the tab is hidden.
-    initHomeSections();
+    initHomeLab();
   </script>
 </body>
 </html>

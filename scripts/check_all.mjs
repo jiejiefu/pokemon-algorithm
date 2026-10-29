@@ -850,25 +850,32 @@ const CHECKERS = [
      putting a ~34s browser checker inside `nav` would make the cheapest group in
      the suite the most expensive one to reason about. */
   {
-    /* Static: the progress arithmetic, the day-to-generation mapping, the track
-     * height read out of the module rather than restated, and the three numbers
-     * in the hero re-derived from pokemon_data.json, color_palettes.json and
-     * moves_zh.json. 0.2s, and it imports both modules so it can RUN them —
-     * which is what makes the pre-epoch wrap and the period-9 ring
-     * measurements rather than claims. */
-    script: 'scripts/check_home_hero.mjs', group: 'home',
+    /* The homepage as a collection instrument: the 1,025-cell wall, the catch
+     * that persists, the daily card and the A* win. 0.1s, and it RUNS the daily
+     * draw in bare Node against today.html's picker over 400 days — the identity
+     * is the one claim that keeps the two pages naming the same species, and a
+     * restated formula could not notice it drifting. It also compares the CSS
+     * track height against HOME_HERO_TRACK_VH, so the scrub cannot stop at 0.7 of
+     * the clip while both files look correct. */
+    script: 'scripts/check_home_lab.mjs', group: 'home',
     inputs: [
-      'index.html', 'today.html',
+      'index.html',
+      /* Declared because the checker ASSERTS ITS ABSENCE (existsSync counts as a
+       * read): deleting the retired sheet must invalidate this entry, or the
+       * assertion would be cached green after the file came back. */
       'assets/css/home-hero.css',
-      'scripts/make_hero_video.py',
+      'assets/css/home-lab.css',
+      'assets/data/home_dex.json', 'assets/data/home_daily.json',
       'assets/data/pokemon_data.json',
-      'assets/data/color_palettes.json', 'assets/data/moves_zh.json',
-      'assets/js/daily-pick.js', 'assets/js/hero-gen.js',
-      'assets/js/home-hero.js', 'assets/js/sorting-algorithms.js',
+      'assets/js/home-lab.js', 'assets/js/home-dex-wall.js',
+      'assets/js/home-daily-draw.js', 'assets/js/dex-collection.js',
+      'assets/js/home-hero.js', 'assets/js/hero-gen.js',
+      'assets/js/daily-pick.js',
+      'assets/js/shared.js',
+      /* Transitive imports of daily-pick.js, proven by --prove-inputs rather
+       * than guessed. */
       'assets/js/categories.js', 'assets/js/form-names.js',
-      'assets/js/form-names-zh.js', 'assets/js/shared.js',
-      'assets/js/shiny-index.js',
-      'assets/video/*.mp4', 'assets/video/*.jpg',
+      'assets/js/form-names-zh.js', 'assets/js/shiny-index.js',
     ],
   },
   {
@@ -877,12 +884,12 @@ const CHECKERS = [
      * only when an IntersectionObserver says the reader is 400px away. Also
      * guards the reference's own `#game-subtitle` bug, the game's admissible
      * 4-directional heuristic, and the below-fold stylesheet staying out of
-     * home-hero.css. 0.1s, and it imports the modules for their exported
+     * home-lab.css. 0.1s, and it imports the modules for their exported
      * key/algorithm ids rather than restating them. */
     script: 'scripts/check_home_sections.mjs', group: 'home',
     inputs: [
       'index.html',
-      'assets/css/home-sections.css', 'assets/css/home-hero.css',
+      'assets/css/home-sections.css', 'assets/css/home-lab.css',
       'assets/data/pokemon_data.json', 'assets/data/home_roster.json',
       'assets/js/home-sections.js', 'assets/js/home-showcase.js',
       'assets/js/home-maze-game.js', 'assets/js/home-sprite-grid.js',
@@ -916,7 +923,7 @@ const CHECKERS = [
    * 6.97:1 worst-case contrast, and the blank end at 0.00% ink. What
    * is no longer ENFORCED is that they stay true: a future change to home-hero.js
    * that breaks the scrub, the freeze or the panel's opacity will be caught by
-   * check_home_hero.mjs's arithmetic and by nothing else, and the browser half
+   * check_home_lab.mjs's arithmetic and by nothing else, and the browser half
    * will have to be run by hand to notice.
    *
    * THAT IS A REAL GAP and it is the same one §3.P names — a page whose only
@@ -1764,7 +1771,7 @@ const RETIRED_HARNESSES = [
   /* Not in the manifest (it costs about as much as its checker and the browser
    * half it cannot reach is §3.Z's recorded trade), but edited all the same —
    * so its cases must stay pointed at the assertions they attack. */
-  { harness: 'scripts/test_check_home_hero.mjs', checker: 'scripts/check_home_hero.mjs' },
+  { harness: 'scripts/test_check_home_lab.mjs', checker: 'scripts/check_home_lab.mjs' },
 ];
 
 /* WHY ORPHANS ARE SLICED PER ASSERTION, AND WHY THAT IS NOT THE INTERESTING PART.
@@ -1808,7 +1815,7 @@ function auditRetiredHarnesses() {
     const descriptions = chunks.map((c) => c.replace(/\\'/g, "'"));
 
     const expectations = [...hs.matchAll(/^\s*expect:\s*(['"])([\s\S]*?)\1\s*,?\s*$/gm)].map((m) => m[2]);
-    /* A BASELINE CASE IS NOT A MUTATION CASE. `test_check_home_hero.mjs` keeps its
+    /* A BASELINE CASE IS NOT A MUTATION CASE. `test_check_home_lab.mjs` keeps its
      * baseline inside CASES with `expect: null`, because its pool carries `out` and
      * `code` on every result and the baseline needs the same shape — so it is named
      * but has no expectation to be caught by, and counting it here would report a

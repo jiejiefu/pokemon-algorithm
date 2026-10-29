@@ -14,8 +14,9 @@
  *   - `[hidden]` losing to an author `display` on the action row (§3.M).
  *
  * The CSS lives in `assets/css/home-sections.css`, not inline: these sections
- * are below the fold, and the hero's own shell lives in `home-hero.css` instead.
- * This checker therefore reads both stylesheets and the page that mounts them.
+ * are below the fold, and the collection shell they sit inside lives in
+ * `home-lab.css` instead (§3.Z).  This checker therefore reads both stylesheets
+ * and the page that mounts them.
  */
 
 import { readFileSync } from 'node:fs';
@@ -46,8 +47,8 @@ const stripComments = (s) => s
 
 const html = read('index.html');
 const htmlCode = stripComments(html);
-const heroCss = read('assets/css/home-hero.css');
-const heroNoComments = stripComments(heroCss);
+const labCss = read('assets/css/home-lab.css');
+const labNoComments = stripComments(labCss);
 const css = read('assets/css/home-sections.css');
 const cssNoComments = stripComments(css);
 
@@ -89,21 +90,29 @@ ok(roster.every((r) => Number.isFinite(r.height_m) && Number.isFinite(r.hue) && 
 console.log('\n--- the page mounts the two sections in the only order the hero allows ---');
 ok(/<link rel="stylesheet" href="assets\/css\/home-sections\.css">/.test(htmlCode),
   'index.html links the below-fold stylesheet');
-ok(at('assets/css/home-sections.css') < at('assets/css/home-hero.css'),
-  'the below-fold stylesheet is mounted before the hero shell, so the hero still wins the cascade');
-ok(!/\.home-showcase|\.home-game/.test(heroNoComments),
-  'the two demos\' rules are not in the hero stylesheet',
-  'a new rule was written into home-hero.css, where it is neither cacheable nor below the fold');
+ok(at('assets/css/home-sections.css') < at('assets/css/home-lab.css'),
+  'the below-fold stylesheet is mounted before the collection shell, so the demos keep the cascade they were written for');
+/* The collection stylesheet re-tints the two demos, and it is allowed to —
+ * but only through `.hx-page`, because `today.html` and every future page read
+ * `home-sections.css` and must not inherit the homepage's skin.  A bare
+ * `.home-game-*` rule here is the leak this assertion exists to catch. */
+const demoRules = (labNoComments.match(/(?:^|\})[^{}]*\{[^}]*\}/g) || [])
+  .map((b) => b.replace(/^\}/, '').split('{')[0].trim())
+  .filter((sel) => /\.home-showcase|\.home-game/.test(sel));
+ok(demoRules.every((sel) => sel.includes('.hx-page')),
+  'every demo rule in the collection stylesheet is scoped to .hx-page',
+  `unscoped: ${demoRules.filter((sel) => !sel.includes('.hx-page')).join(' | ') || 'none'}`);
 ok(/<section class="home-section" id="showcase" aria-labelledby="showcase-title">/.test(htmlCode),
   'the showcase section has its own id and points at its h2');
 ok(/<section class="home-section" id="game" aria-labelledby="game-title">/.test(htmlCode),
   'the game section has its own id and points at its h2');
 ok(at('id="showcase-title"') > 0 && at('id="showcase-title"') < at('id="game-title"')
-  && at('id="game-title"') < at('id="features"'),
-  'the order is showcase, game, then the feature grid',
-  'the two demos are not between the intro and the feature grid, so the hero stats ordering claim is no longer the only placement');
+  && at('id="game-title"') < at('id="today-title"')
+  && at('id="today-title"') < at('id="lab-title"'),
+  'the order is showcase, game, today, then the lab index',
+  'the demos are no longer above the daily card and the lab list, so the scroll hint introduces a section that is not the next one');
 eq((htmlCode.match(/<h1[\s>]/g) || []).length, 1, 'the page still has exactly one h1');
-ok(/<a class="home-hero-scroll-hint" href="#showcase-title">/.test(htmlCode),
+ok(/<a class="hx-hero-scroll-hint" href="#showcase-title">/.test(htmlCode),
   'the scroll hint points at the first section it now introduces');
 ok(/id="showcase-sort-stage" aria-hidden="true"><\/div>/.test(htmlCode)
   && /id="showcase-maze-stage" aria-hidden="true"><\/div>/.test(htmlCode),

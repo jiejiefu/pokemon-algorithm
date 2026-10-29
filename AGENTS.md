@@ -38,7 +38,7 @@
 ### Core Pages
 | Page | What it is |
 | :--- | :--- |
-| `index.html` | Hero clip scrubbed by scroll, the intro, two algorithm demos, then the five feature cards — §3.Z |
+| `index.html` | The lab: a scrubbed hero with the collection counter, the 1,025-cell Pokédex wall, two algorithm demos, the A* challenge, the daily catch and the lab index — §3.Z |
 | `today.html` | 今日推薦: the daily pick, 熱門, 探索, 精選系列, 遊戲, 工具, 快速連結, FAQ — §3.Z |
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation / type / colour filters |
 | `team.html` | 組隊規劃: six slots, per-member defensive tallies, STAB coverage, region / generation / type filters, shareable `?team=` — §3.AD |
@@ -85,7 +85,7 @@ pokemon-algorithm/
 
 **No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
 
-**12,650 of the 13,058 tracked files are binary** (10,229 PNG, 2,000 OGG, 396 WAV, plus 5 SVG/GLB and 20 video files) and 136 are code (102 `.mjs`, 34 `.py`). `assets/data/` holds 23 JSON tables and is the single source of truth for every page.
+**12,650 of the 13,186 tracked files are binary** (10,229 PNG, 2,000 OGG, 396 WAV, plus 5 SVG/GLB and 20 video files) and 143 are code (107 `.mjs`, 36 `.py`). `assets/data/` holds 25 JSON tables and is the single source of truth for every page.
 
 **The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
 
@@ -100,15 +100,17 @@ pokemon-algorithm/
 | `analyze_cries.py` | `cry_features.json` (§3.G1) |
 | `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
 | `build_home_roster.py` | `home_roster.json` — 1,025 compact records (`id`, `names.zh`, `stats.total`, `height_m`, `hue`), 90 KB raw / 19 KB gzip, for `index.html`'s two demos. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
+| `build_home_dex.py` | `home_dex.json` — 1,025 rows (`generation`, `colour`, two type indexes, capture rate, `names.zh`), 36 KB, for the wall. `--dry-run` reports the generation split. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
+| `build_home_daily.py` | `home_daily.json` — the four daily pools as id arrays plus a 5-field record per pooled id (`zh`, `en`, types, description, artwork filename), 18 KB / 110 species. `POPULAR_IDS` is parsed out of `daily-pick.js` rather than copied, `PSEUDO_EXCLUDED = {1018}`; pool ORDER is part of the draw, so it must match the live selector's (§3.Z) |
 | `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
 | `build_team_moves.py` | `team_moves.json` — 1,025 four-method strings + 919 defs (`zh/en/type/class/power/accuracy/pp/generation/effect`), 607 KB / 151 KB gzip, for `team.html`. Type is capitalised to `type-chart.js` keys; `--dry-run` reports the split and the five species short of four (§3.AD) |
 | `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,794 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
 | `build_draft_roster.py` | `draft_roster.json` — 568 final/single-stage species, 465 move definitions, 53 KB / 21 KB gzip, for `silhouette-draft.html`. Each species' four strongest level-up moves, and a row that cannot score has its lowest slot replaced by the highest damaging move. Excludes the five legendary lines that still evolve; evolves and their real levels come from `evolution_levels.json` |
-| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 29 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (31 `*.py`) already include it |
+| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 29 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (36 `*.py`) already include it |
 
 Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
 
-**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 97 files are verification — 60 `check_*.mjs`, 27 `test_check_*.mjs` mutation harnesses, 1 standalone test (`test_cry_overlap.mjs`, a manifest entry in `cry-page`) and 9 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 32 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
+**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 103 files are verification — 64 `check_*.mjs`, 28 `test_check_*.mjs` mutation harnesses, 1 standalone test (`test_cry_overlap.mjs`, a manifest entry in `cry-page`) and 10 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 36 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
 
 **`scripts/lib/` is shared and small on purpose** — `assert.mjs` is the one `ok`/`eq`/`near` scaffold: a checker whose helper shape matches constructs a `createChecker()` so its failure printer and its summary stay byte-identical while the counting lives in one place, `negative.mjs` is the one definition of what "caught by" means, `pool.mjs` the one worker pool (§3.G7), `cdp-port.mjs` the one place a Chrome path and debug port live, `png.mjs` builds its own test PNGs, `mute-tap.mjs` silences audio before any page script, `record-inputs.cjs` proves §4's input lists, `tmp-trees.mjs` is the one registry of temp trees so an interrupted run cannot leave one behind (§3.J), and `cdp-until.mjs` is the one poll-a-page-predicate loop both browser checkers wait with. Editing any of them invalidates every cache entry, which is why they are hashed into every key unconditionally.
 
@@ -152,7 +154,7 @@ Shares components, not layout: one reports a measured palette, the other generat
 - **Measure contrast from decoded screenshot pixels (Canvas/CDP), not `getComputedStyle()`** — which misses alpha blending, backdrop filters and radial gradients.
 - **Typography:** CJK-first `--font-sans` (`PingFang TC`, `Noto Sans TC`, `Microsoft JhengHei`).
 - **Theme switching** resolves inline in `<head>`, above the first stylesheet, from `localStorage` else `matchMedia`; toggling fires `themechange` for Canvas redraws.
-- **That block is ONE canonical string, not thirty hand-copies.** `scripts/lib/theme-init.mjs` is the definition, `scripts/sync_theme_init.mjs --write` is the only writer, and the three exemptions (`graph.html`'s own palette, `cry-studio-pro.html` pinned dark, `404.html` no surface) carry their reasons in that module's tables. **The comment above the block is generated with it** — the ten hand-written variants had rotted (one claimed 「all five themed pages」), so the rationale lives in this section and in the module, never restated per page.
+- **That block is ONE canonical string, not thirty hand-copies.** `scripts/lib/theme-init.mjs` is the definition, `scripts/sync_theme_init.mjs --write` is the only writer, and the four exemptions (`graph.html`'s own palette, `cry-studio-pro.html` and `index.html` pinned dark, `404.html` no surface) carry their reasons in that module's tables. **The comment above the block is generated with it** — the ten hand-written variants had rotted (one claimed 「all five themed pages」), so the rationale lives in this section and in the module, never restated per page.
 - **It stays inline per page on purpose** — do not extract it to a shared `theme-init.js`, and do not replace it with a CSS media query: in a multi-document site only a blocking inline script can read `localStorage` before first paint, and the manual toggle is the feature that a media query would delete. The measured comparison is in the incident doc; a cheaper variant needs a number, not an opinion.
 - **Reduced motion** is honored across CSS and JS.
 **Guarded by:** `check_js_syntax.mjs` (canonical bytes, inside `<head>`, before the first stylesheet, no static `data-theme` on `<html>`) + `test_check_js_syntax.mjs` (10 cases) · **Background:** [page-defects.md#c](docs/incidents/page-defects.md#c)
@@ -425,15 +427,24 @@ Ported from `pokemoncries.com`; ten questions, four sprites.
 - **THE RESULT PANEL LISTS ALL FORTY, every one plays itself** (not a `<details>`); `DEFAULT_GENERATION` is a default, not an override.
 **Guarded by:** `check_cry_game_similarity.mjs` (177, re-measures the ceiling every run) + its 31 cases; `check_cry_game.mjs` (134) + its 36 cases. **No browser checker.** · **Background:** [cry.md#y](docs/incidents/cry.md#y)
 
-### Z. `index.html` Is A Clip, An Intro, And Two Demos
-- **THE SEEK COSTS ONE GOP, AND ONLY ONE IS IN FLIGHT.** Clips are encoded at `KEYFRAME_FRAMES = 10` (0.33s); the x264 default put one every 250 frames and made the scrub stutter. `home-hero.js`'s `pump()` parks the newest target until `seeked` — writing `currentTime` per rAF cancels the running seek. Measured on a 1.2s full-track flick: avg lag 0.47s → 0.20s, worst 1.67s → 0.42s. `make_hero_video.py`'s `verify()` measures the gap in the encoded file and FAILs above it.
+### Z. `index.html` Is A Collection Instrument
+The page is one idea — **every experiment fills a 1,025-cell Pokédex** — and it is pinned dark, because the hero clip's background is baked to `#0b1020`.
+- **PINNED MEANS WRITTEN, NOT STORED.** The inline block sets `data-theme` and touches no `localStorage`, so the reader's choice still governs every other page; `initThemeToggle()` is never called and the button carries `hidden`. `--hx-bg` is `SITE_THEME.dark`.
+- **THE HERO IS A CLIP AND A COUNTER.** One generation's loop scrubbed by scroll, the live count over it; the day's generation comes from `heroGenFor()`, the poster is set before the `src`.
+- **THE TRACK IS 175vh IN CSS AND `HOME_HERO_TRACK_VH` IN THE MODULE.** `check_home_lab.mjs` compares the two; a mismatch stops the scrub at 0.73 of the clip and looks correct. Reduced motion collapses the track to `100dvh`.
+- **THE SEEK COSTS ONE GOP, AND ONLY ONE IS IN FLIGHT.** `KEYFRAME_FRAMES = 10`; `pump()` parks the newest target until `seeked` — writing `currentTime` per rAF cancels the running seek. Measured on a 1.2s flick: avg lag 0.47s → 0.20s; `make_hero_video.py`'s `verify()` measures the encoded gap.
 - **SCRUB AND PROGRESS ARE SEPARATE CONTRACTS.** Scrub writes `currentTime`, never `play()`; progress divides by `rect.height - innerHeight`.
 - **BOTH ENDS OF THE CLIP ARE BLANK; THE POSTER IS NOT A PRE-PLAY FLASH.** `POSTER_FRACTION` comes from `make_hero_video.py`; `hero-gen.js` imports `taipeiDateKey`.
-- **THE HERO IS A DARK BAND IN LIGHT THEME; THE PANEL IS A DARK TITLE CARD IN BOTH.** Scrim `#0b1020`; accent `#f5c542`; fill `rgba(6,9,20,0.7)`; blur ≤3px; counts are 1,025 / 2,050 / 919. Its rules live in `assets/css/home-hero.css`; `index.html` carries no `<style>` block.
-- **THE CARD IS A BOTTOM-LEFT CAPTION AND THE SIX TOOLS ARE AN INDEX LIST.** Card `max-width: 560px`, radius 20px, title `clamp(38px, 5.4vw, 60px)`. **The header is in flow**, so this box starts ~55px down the document and its resting bottom hangs 55px past the fold: the bottom padding is the gap you see PLUS that offset, which is why it reads as 56–96px (64–92px under 640). `.feature-card` is a `border-top` row in a 2-column `.feature-grid` (still `max-width: 1000px`), not a card — `createFeatureCard()` in `shared.js` has no other caller; `dex` ink is `#8b5cf6` (4.47:1 dark / 3.88:1 light on `--bg-primary`); `.home-footer-inner` is 1000px.
-- **THE TWO DEMOS NEVER LOAD `pokemon_data.json`.** Fetch `home_roster.json` (90 KB, 19 KB gzip) within `400px`, draw 96 px sprites, CSS in `home-sections.css`.
+- **THE WALL IS 1,025 CELLS FROM `home_dex.json` (36 KB), NOT `pokemon_data.json`.** Row N must name the species at index N. `MIN_CELL = 20` is applied **twice** (fit and refit); `GAP = 2` is why a 20px cell measures 18px of ink; `TINT 0.42` / `TINT_TODAY 0.58`.
+- **THE SCANNER SCHEDULES ITS NEXT ROW, NOT ITS NEXT FRAME.** `SCAN_ROW_MS = 90` via `scheduleIn()`, so an idle wall runs no frame loop.
+- **THE SELECTION IS STATE, NOT RENDERED TEXT.** `selectedId` is a variable; the throw must never be recovered from `info.no.textContent`.
+- **A CAPTURE RATE OF 0 IS A RATE, NOT AN ABSENCE.** `catchChance()` uses `Number.isFinite`, not `|| 45` (§3.AA's `power: 0` lesson).
+- **THE DAILY CARD IS THE SAME DRAW AS `today.html`'s.** `home-daily-draw.js` re-expresses only the two `mulberry32` calls over `home_daily.json`'s pools; seed, hash, generator and date key are imported from `daily-pick.js`. `check_home_lab.mjs` asserts the same id for 400 consecutive days, and **pool ORDER is part of the draw**.
+- **A MAZE WIN IS A CATCH, AND A LOSS IS NOT.** `maze:result` carries `{ won, id }`; `home-lab.js` ignores `!won` and a non-integer id.
+- **PROGRESS LIVES IN `dex-collection.js`** — one versioned `STORAGE_KEY`, `MILESTONES` ending at `DEX_SIZE`, and `onChange`.
+- **THE TWO DEMOS NEVER LOAD `pokemon_data.json`.** Fetch `home_roster.json` (90 KB) within `400px`, draw 96 px sprites; `home-lab.css` may re-tint them only under `.hx-page`.
 - **SORT IS PACED; THE GAME IS BEATABLE.** `SORT_STEP_MS = 40`; A* `AI_TICK_MS = 420`, `AI_PAUSE_CHANCE = 0.18`, 4-direction `manhattanHeuristic` (showcase: 8 + `octileHeuristic`). Each run re-rolls; `suspended` starts true; reduced motion skips countdown; win cry respects `cryPlayer.muted`; `--canvas-wall` is wrapped in `rgba()`.
-**Guarded by:** `check_home_hero.mjs` (98, 0.2 s, group `home`) + `check_home_sections.mjs` (62, 0.2 s, group `home`) + `test_check_home_hero.mjs` (26) · **Background:** [pages.md#z](docs/incidents/pages.md#z)
+**Guarded by:** `check_home_lab.mjs` (90, 0.1 s, group `home`) + `check_home_sections.mjs` (62, 0.2 s, group `home`) + `test_check_home_lab.mjs` (23 cases, unlisted) · **Background:** [pages.md#z](docs/incidents/pages.md#z)
 
 ### AA. `moves.html` / `move.html` — 919 Moves
 - **EFFECT TEXT HAS TWO PROVENANCES, boundary at a generation line:** 826 rows from PokeAPI zh-hant, 93 (ids 827–919) from InfoPoke Simplified via OpenCC `s2twp`. InfoPoke supplies only that text.
@@ -530,7 +541,7 @@ Run regression checks whenever modifying data structures, selectors, or color lo
 
 | you edited | run this | why this and not that |
 | :--- | :--- | :--- |
-| `index.html`, `home-sections.css`, `home-hero.css`, `home-*.js`, `hero-gen.js` | `--only=home` | §3.Z; 153 checks, 0.2 s, no Chrome |
+| `index.html`, `home-lab.css`, `home-sections.css`, `home-*.js`, `dex-collection.js`, `hero-gen.js`, `build_home_dex.py`, `build_home_daily.py` | `--only=home` | §3.Z; 152 checks, 0.2 s, no Chrome |
 | `spectrum.html`, `spectrum.css` | `--only=cry-page --only=cry-data`, then `check_spectrum_browser.mjs` | four-way split; `check_cry_mobile_layout.mjs` (§3.X) is the phone width |
 | `cries.html`, `cries-gen1.html`, `cry-player.js`, `gb-apu.js` | `--only=cry` | covers apu/data/page; add `audio-browser` for rendered halves |
 | `sorting.html`, `algo.css`, `sort-run.js`, `sorting-algorithms.js` | `test_check_sorting_page.mjs --static`, then `--only=sort` | static 89 checks 0.3 s; `sort` boots Chrome |

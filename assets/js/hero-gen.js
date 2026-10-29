@@ -44,7 +44,7 @@
  * changed.
  *
  * Pure module: no DOM, no fetch, no storage.  That is what lets
- * `check_home_hero.mjs` import it and run it over ten years of dates in bare
+ * `check_home_lab.mjs` import it and run it over an eleven-year window in bare
  * Node, which is the only way the wrap in BOTH directions is anything but a
  * claim.
  */

@@ -246,6 +246,12 @@ export function initMazeGame(host, roster, imageUrl, ui) {
     } else {
       announce(`A* 先到了。牠走了 ${optimalSteps} 步，你走了 ${steps} 步。`);
     }
+    // The reward is the page's business, not this module's: the terrain species
+    // becomes a Pokédex entry (home-lab.js listens). `bubbles` because the host
+    // is a section, not the document. Dispatched on a loss too — `won` is the
+    // whole payload, and a listener that had to infer the outcome from the
+    // absence of an event would be reading a silence as a result.
+    host.dispatchEvent(new CustomEvent('maze:result', { detail: { won: playerWon, id: picked.id }, bubbles: true }));
     showScore();
     if (startBtn) startBtn.hidden = true;
     if (againBtn) againBtn.hidden = false;

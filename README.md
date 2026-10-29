@@ -24,7 +24,7 @@
 
 | Page File | Description & Core Features |
 | --- | --- |
-| `index.html` | Landing page: scroll-scrubbed hero clip, site intro, two self-running algorithm demos (sorting and A* pathfinding), a playable A* maze, and five feature cards. |
+| `index.html` | The lab: a scroll-scrubbed hero clip with the live collection counter, a 1,025-cell Pokédex wall that fills as you play, two self-running algorithm demos (sorting and A* pathfinding), a playable A* maze, the seeded daily catch and the lab index. Pinned dark. |
 | `today.html` | Today's Picks: the seeded daily pick, Popular, Explore, Featured Collections, Games, Tools, quick links and FAQ. |
 | `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation, type, and color filters. |
 | `team.html` | Team planner: six slots with per-member defensive tallies, STAB coverage, region / generation / type filters, and a shareable `?team=` URL with four moves per member (`?moves=`). |

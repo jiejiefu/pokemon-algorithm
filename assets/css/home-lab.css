@@ -1,0 +1,482 @@
+/**
+ * home-lab.css — the homepage as a lab bench with a Pokédex on it
+ * ================================================================
+ * Mounted by index.html only, AFTER shared.css and home-sections.css. The
+ * latter still supplies the demos' base rules (`.home-showcase-*`, `.home-game-*`);
+ * everything here that restyles them is scoped under `.hx-page`, so no other page
+ * can feel it.
+ *
+ * THE PAGE IS PINNED DARK. The hero clip is H.264 with its background baked to
+ * #0b1020, so in a light theme the clip ended and a white page began: a hard seam
+ * the user named as the worst thing on the old page. The fix is not a better
+ * fade, it is removing the second colour: index.html sets data-theme="dark"
+ * without writing storage (the other pages keep the reader's choice), hides the
+ * toggle, and `--hx-bg` below is the same value as the clip ground, so the fade
+ * at the bottom of the hero ends on exactly the colour the page continues in.
+ *
+ * Every colour is a token. The type colours are the ONLY literals, because they
+ * are data (what colour is Fire?) rather than styling; each is measured against
+ * `--hx-cell`, the ground a caught cell is drawn on, at the 3:1 that
+ * WCAG 1.4.11 asks of a graphical object (see the table next to them).
+ *
+ * Motion follows three rules: transform and opacity only, nothing over 300 ms
+ * for UI, and hover effects are gated on (hover: hover) so a touch screen never
+ * gets a stuck hover state. The canvas wall has its own motion in JS and its own
+ * prefers-reduced-motion handling.
+ */
+
+.hx-page {
+  /* Ground. --hx-bg equals the clip's baked background and --bg-primary. */
+  --hx-bg: #0b1020;
+  --hx-bg-rgb: 11, 16, 32;
+  --hx-cell: #161e38;
+  --hx-raised: #1f2a4d;
+  --hx-ink: #eef1fb;
+  --hx-ink-2: #c5cce3;
+  --hx-ink-3: #94a1c6;      /* 6.9:1 on --hx-bg */
+  --hx-line: rgba(238, 241, 251, 0.12);
+  --hx-line-strong: rgba(238, 241, 251, 0.28);
+  --hx-gold: #f5c542;       /* 10.6:1 on --hx-bg */
+  --hx-on-gold: #14110a;    /* 11.6:1 on --hx-gold */
+  --hx-scan: #4cc9f0;
+  --hx-warn: #ff7a85;       /* 7.3:1 on --hx-bg */
+  --hx-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --hx-ease: cubic-bezier(0.23, 1, 0.32, 1);   /* strong ease-out: responsive, no lag */
+
+  /* Type colours: the bar on a caught cell. Measured against --hx-cell (#161e38):
+       normal 6.0  fire 5.9  water 4.6  electric 11  grass 7.2  ice 9.0
+       fighting 3.9  poison 3.6  ground 6.9  flying 6.4  psychic 5.2  bug 8.1
+       rock 6.6  ghost 3.4  dragon 4.4  dark 3.2  steel 6.8  fairy 6.4
+     all >= 3:1. Dark and Ghost are lifted on purpose: their canonical colours
+     are near-black and would disappear on a navy cell. */
+  --hx-t-normal: #b8b5a0;
+  --hx-t-fire: #ff8a4c;
+  --hx-t-water: #5b9dff;
+  --hx-t-electric: #f7d02c;
+  --hx-t-grass: #6fd16b;
+  --hx-t-ice: #8fe3e8;
+  --hx-t-fighting: #e0544a;
+  --hx-t-poison: #c26be0;
+  --hx-t-ground: #e0b060;
+  --hx-t-flying: #9db4ff;
+  --hx-t-psychic: #ff6fa8;
+  --hx-t-bug: #b4d43c;
+  --hx-t-rock: #c8b46c;
+  --hx-t-ghost: #8c7ad8;
+  --hx-t-dragon: #6f66ff;
+  --hx-t-dark: #9a8472;
+  --hx-t-steel: #a5b5cc;
+  --hx-t-fairy: #f5a3d4;
+
+  background: var(--hx-bg);
+  color: var(--hx-ink);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+.hx-page main { flex: 1; }
+/* The page cannot be switched, so the control is not offered. */
+.hx-page .theme-toggle { display: none; }
+
+.hx-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+/* ===================================================================
+   HERO — the scrubbed clip, with the collection counter laid over it
+   =================================================================== */
+.hx-hero {
+  position: relative;
+  /* 175vh of track = 0.75 viewport of scroll distance while the layer is pinned.
+     Was 240vh: a reader reached the real content after 1.4 screens of nothing.
+     home-hero.js reads this height from the DOM, so the two stay in step. */
+  height: 175vh;
+}
+@media (prefers-reduced-motion: reduce) { .hx-hero { height: 100dvh; } }
+
+.hx-hero-sticky {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.hx-hero-media { position: absolute; inset: 0; background: var(--hx-bg); }
+.hx-hero-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Two jobs in one layer. A left-to-right wash keeps the text readable whatever
+   sprite is on screen: at 0.6 alpha the lightest possible ground (a pure-white
+   sprite) still composites dark enough for 4.5:1 ink. And the bottom fade ends
+   on --hx-bg exactly, which is what removes the seam. */
+.hx-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, var(--hx-bg) 0%, rgba(var(--hx-bg-rgb), 0.0) 34%),
+    linear-gradient(90deg, rgba(var(--hx-bg-rgb), 0.82) 0%, rgba(var(--hx-bg-rgb), 0.62) 48%, rgba(var(--hx-bg-rgb), 0.0) 82%);
+}
+@media (max-width: 760px) {
+  .hx-hero-scrim {
+    background:
+      linear-gradient(0deg, var(--hx-bg) 0%, rgba(var(--hx-bg-rgb), 0.78) 52%, rgba(var(--hx-bg-rgb), 0.35) 100%);
+  }
+}
+
+.hx-hero-body {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px clamp(28px, 7vh, 72px);
+}
+.hx-hero-title {
+  margin: 0 0 14px;
+  font-size: clamp(38px, 7vw, 76px);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--hx-ink);
+  text-wrap: balance;
+}
+.hx-hero-title b { color: var(--hx-gold); font-weight: inherit; font-variant-numeric: tabular-nums; }
+.hx-hero-lede {
+  margin: 0 0 24px;
+  max-width: 34em;
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.7;
+  color: var(--hx-ink-2);
+}
+.hx-hero-actions { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; }
+
+/* The hint the old hero had, kept because 175vh of pinned clip still gives no
+   affordance that the page continues. Positioned against the sticky layer so it
+   rides the fold rather than the track. */
+.hx-hero-scroll-hint {
+  position: absolute;
+  right: 20px;
+  bottom: clamp(20px, 5vh, 48px);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 999px;
+  background: rgba(var(--hx-bg-rgb), 0.6);
+  color: var(--hx-ink-2);
+  font: 12.5px var(--hx-mono);
+  text-decoration: none;
+}
+.hx-hero-scroll-hint:focus-visible { outline: 2px solid var(--hx-gold); outline-offset: 3px; }
+@media (hover: hover) { .hx-hero-scroll-hint:hover { color: var(--hx-ink); border-color: var(--hx-ink-3); } }
+/* Below 760px the counter block already reaches the right edge; a pill there
+   would sit on top of it. The hero is one screen tall, so nothing is lost. */
+@media (max-width: 760px) { .hx-hero-scroll-hint { display: none; } }
+
+/* The counter: the number that is the whole game. */
+.hx-counter { display: grid; gap: 6px; min-width: min(280px, 100%); }
+.hx-counter-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--hx-mono);
+  font-variant-numeric: tabular-nums;
+}
+.hx-counter-n { font-size: 30px; font-weight: 700; color: var(--hx-ink); }
+.hx-counter-of { font-size: 14px; color: var(--hx-ink-3); }
+.hx-bar {
+  position: relative;
+  height: 6px;
+  background: var(--hx-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hx-bar > i {
+  position: absolute;
+  inset: 0;
+  background: var(--hx-gold);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 300ms var(--hx-ease);
+}
+.hx-mission { margin: 0; font-size: 13.5px; color: var(--hx-ink-2); }
+.hx-mission[data-done="true"] { color: var(--hx-gold); }
+
+/* Buttons */
+.hx-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--hx-ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 140ms var(--hx-ease), background-color 140ms var(--hx-ease);
+}
+.hx-btn:active:not(:disabled) { transform: scale(0.97); }
+.hx-btn:focus-visible { outline: 2px solid var(--hx-gold); outline-offset: 3px; }
+.hx-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.hx-btn.is-primary { background: var(--hx-gold); border-color: var(--hx-gold); color: var(--hx-on-gold); }
+@media (hover: hover) {
+  .hx-btn:hover:not(:disabled) { background: rgba(238, 241, 251, 0.08); }
+  .hx-btn.is-primary:hover:not(:disabled) { background: #ffd35c; }
+}
+
+/* ===================================================================
+   SECTIONS
+   =================================================================== */
+.hx-section { padding: clamp(48px, 9vh, 96px) 0 0; }
+.hx-section-head { display: grid; gap: 8px; margin-bottom: 24px; }
+.hx-h2 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.2; font-weight: 800; color: var(--hx-ink); }
+.hx-sub { margin: 0; max-width: 40em; font-size: 16px; line-height: 1.75; color: var(--hx-ink-2); }
+
+/* ---- the wall ---- */
+.hx-wall-stage {
+  position: relative;
+  background: var(--hx-bg);
+  border: 1px solid var(--hx-line);
+  border-radius: 8px;
+  overflow: hidden;
+  line-height: 0;
+}
+.hx-wall {
+  display: block;
+  /* The canvas reads its colours from these, so they live where it can reach. */
+  --hx-bg: #0b1020;
+  --hx-cell: #161e38;
+  margin: 0 auto;           /* the grid is a whole number of cells; centre the leftover */
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.hx-wall:focus-visible { outline: 2px solid var(--hx-gold); outline-offset: -2px; }
+.hx-tip {
+  position: absolute;
+  z-index: 3;
+  padding: 4px 8px;
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 4px;
+  background: var(--hx-cell);
+  color: var(--hx-ink);
+  font: 12.5px/1.4 var(--hx-mono);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hx-tip[hidden] { display: none; }
+
+/* The info strip sticks to the bottom of the viewport while the wall scrolls
+   behind it, so on a phone (where the wall is taller than the screen) the
+   selected cell's name and the throw button never scroll away. */
+.hx-info {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 12px 16px;
+  background: var(--hx-cell);
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 8px;
+}
+.hx-info-main { display: grid; gap: 2px; min-width: 0; }
+.hx-info-line { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.hx-info-no { font: 700 14px var(--hx-mono); color: var(--hx-gold); font-variant-numeric: tabular-nums; }
+.hx-info-name { font-size: 20px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hx-info-meta { margin: 0; font-size: 13.5px; color: var(--hx-ink-2); }
+.hx-info-result { margin: 0; min-height: 1.4em; font-size: 14px; font-weight: 700; color: var(--hx-ink-3); }
+.hx-info-result[data-state="caught"] { color: var(--hx-gold); }
+.hx-info-result[data-state="miss"] { color: var(--hx-warn); }
+@media (max-width: 560px) {
+  /* Keep the button beside the name on a phone: the strip is sticky, so every
+     pixel of its height is taken from the wall. */
+  .hx-info { padding: 10px 12px; gap: 2px 12px; }
+  .hx-info .hx-btn { padding: 0 14px; }
+  .hx-info-name { font-size: 18px; }
+}
+
+/* ---- below the wall: recent, next milestone, regions ---- */
+.hx-status { display: grid; gap: 14px; margin-top: 22px; }
+.hx-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; justify-content: space-between; }
+.hx-next { margin: 0; font-size: 14.5px; color: var(--hx-ink-2); }
+.hx-recent-wrap { display: flex; align-items: center; gap: 12px; }
+.hx-recent-wrap[hidden] { display: none; }
+.hx-recent-label { font-size: 13px; color: var(--hx-ink-3); }
+.hx-recent { display: flex; gap: 4px; }
+.hx-recent img { width: 36px; height: 36px; background: var(--hx-cell); border-radius: 4px; image-rendering: auto; }
+.hx-linkbtn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 8px 0;
+  color: var(--hx-ink-3);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.hx-linkbtn:focus-visible { outline: 2px solid var(--hx-gold); outline-offset: 2px; }
+@media (hover: hover) { .hx-linkbtn:hover { color: var(--hx-ink); } }
+.hx-note { margin: 0; font-size: 13px; color: var(--hx-warn); }
+.hx-note[hidden] { display: none; }
+
+.hx-region-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px 28px;
+}
+.hx-region {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: baseline;
+  padding-left: 10px;
+  border-left: 2px solid var(--hx-line);
+}
+.hx-region.is-today { border-left-color: var(--hx-gold); }
+.hx-region-name { font-size: 14.5px; color: var(--hx-ink); }
+.hx-region-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--hx-gold);
+  color: var(--hx-on-gold);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.hx-region-tag[hidden] { display: none; }
+.hx-region-n { font: 13px var(--hx-mono); color: var(--hx-ink-2); font-variant-numeric: tabular-nums; }
+.hx-region-bar { grid-column: 1 / -1; position: relative; height: 4px; background: var(--hx-line); border-radius: 2px; overflow: hidden; }
+.hx-region-bar > i {
+  position: absolute;
+  inset: 0;
+  background: var(--hx-ink-3);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 300ms var(--hx-ease);
+}
+.hx-region.is-today .hx-region-bar > i,
+.hx-region.is-done .hx-region-bar > i { background: var(--hx-gold); }
+
+/* ===================================================================
+   THE TWO DEMOS — home-sections.css supplies structure, this re-skins it
+   =================================================================== */
+.hx-page .home-section { max-width: 1200px; padding: clamp(48px, 9vh, 96px) 20px 0; }
+.hx-page .home-section-title { text-align: left; font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; margin: 0 0 8px; color: var(--hx-ink); }
+.hx-page .home-section-sub { text-align: left; margin: 0 0 24px; max-width: 40em; color: var(--hx-ink-2); }
+.hx-page .home-showcase-card,
+.hx-page .home-game-side {
+  background: var(--hx-cell);
+  border: 1px solid var(--hx-line);
+  border-radius: 8px;
+}
+.hx-page .home-showcase-stage,
+.hx-page .home-game-stage { border-radius: 6px; border-color: var(--hx-line); }
+.hx-page .home-showcase-caption,
+.hx-page .home-game-hint { color: var(--hx-ink-3); }
+.hx-page .home-showcase-link,
+.hx-page .home-game-terrain { color: var(--hx-gold); }
+.hx-page .home-game-status { color: var(--hx-ink-2); }
+.hx-page .home-game-pad-btn { border-radius: 6px; border-color: var(--hx-line-strong); background: transparent; color: var(--hx-ink); transition: transform 120ms var(--hx-ease); }
+.hx-page .home-game-pad-btn:active { transform: scale(0.95); }
+@media (hover: hover) { .hx-page .home-game-pad-btn:hover { background: rgba(238, 241, 251, 0.08); } }
+.hx-page .btn { border-radius: 6px; }
+.hx-game-reward { margin: 0; min-height: 1.5em; font-size: 14.5px; font-weight: 700; color: var(--hx-ink-3); }
+.hx-game-reward[data-state="caught"] { color: var(--hx-gold); }
+
+/* ===================================================================
+   TODAY'S ENCOUNTER
+   =================================================================== */
+.hx-daily {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  background: var(--hx-cell);
+  border: 1px solid var(--hx-line);
+  border-radius: 8px;
+}
+.hx-daily[hidden] { display: none; }
+@media (min-width: 760px) { .hx-daily { grid-template-columns: 240px minmax(0, 1fr); } }
+.hx-daily-art { display: grid; place-items: center; aspect-ratio: 1; background: var(--hx-bg); border-radius: 6px; max-width: 240px; width: 100%; margin: 0 auto; }
+.hx-daily-art img { width: 86%; height: 86%; object-fit: contain; }
+.hx-daily-body { display: grid; gap: 10px; justify-items: start; }
+.hx-daily-no { font: 700 14px var(--hx-mono); color: var(--hx-gold); }
+.hx-daily-name { margin: 0; font-size: 30px; font-weight: 800; }
+.hx-daily-types { margin: 0; font-size: 14px; color: var(--hx-ink-2); }
+.hx-daily-desc { margin: 0; max-width: 38em; line-height: 1.75; color: var(--hx-ink-2); }
+.hx-daily-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+.hx-daily-loading { margin: 0; color: var(--hx-ink-3); }
+.hx-daily:not([hidden]) ~ .hx-daily-loading { display: none; }
+
+/* ===================================================================
+   MORE EXPERIMENTS — a plain link list, no cards
+   =================================================================== */
+.hx-lab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  border-top: 1px solid var(--hx-line);
+}
+.hx-lab-list li { border-bottom: 1px solid var(--hx-line); }
+.hx-lab-list a {
+  display: grid;
+  gap: 2px;
+  padding: 16px 4px;
+  color: var(--hx-ink);
+  text-decoration: none;
+  transition: transform 160ms var(--hx-ease);
+}
+.hx-lab-list a:focus-visible { outline: 2px solid var(--hx-gold); outline-offset: -2px; }
+.hx-lab-name { font-size: 17px; font-weight: 700; }
+.hx-lab-desc { font-size: 13.5px; color: var(--hx-ink-3); }
+@media (hover: hover) {
+  .hx-lab-list a:hover { transform: translateX(4px); }
+  .hx-lab-list a:hover .hx-lab-name { color: var(--hx-gold); }
+}
+
+/* ===================================================================
+   FOOTER + TOAST
+   =================================================================== */
+.hx-foot { margin-top: clamp(56px, 10vh, 112px); padding: 28px 0 40px; border-top: 1px solid var(--hx-line); }
+.hx-foot-inner { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--hx-ink-3); }
+.hx-foot a { color: var(--hx-ink-2); }
+.hx-foot [data-footer-nav] { width: 100%; }
+
+.hx-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 200;
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px;
+  background: var(--hx-cell);
+  border: 1px solid var(--hx-gold);
+  border-radius: 8px;
+  color: var(--hx-ink);
+  font-weight: 700;
+  translate: -50% 0;
+  animation: hx-toast-in 220ms var(--hx-ease);
+}
+.hx-toast[hidden] { display: none; }
+@keyframes hx-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hx-toast { animation: none; }
+  .hx-bar > i, .hx-region-bar > i, .hx-btn, .hx-lab-list a { transition: none; }
+}
+
+.hx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

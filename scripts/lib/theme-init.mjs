@@ -90,6 +90,14 @@ export const PINNED_PAGES = new Map([
       + 'and initThemeToggle() is not called, so the stored choice is left alone for '
       + 'the reader\'s other pages',
   }],
+  ['index.html', {
+    dark: '#0b1020',
+    reason: 'the hero clip is H.264 with its background baked to #0b1020, so a light '
+      + 'page began where the clip ended — the seam the redesign removed. Pinning the '
+      + 'page to the clip\'s own ground is the fix; a better fade would not be. The '
+      + 'toggle is hidden and initThemeToggle() is not called, so the stored choice '
+      + 'still applies to every other page',
+  }],
 ]);
 
 /** Pages with no theme to resolve, each with its reason. */

@@ -80,12 +80,12 @@
  * otherwise DOM-only: no fetch, no storage, no import.
  */
 
-/** Height of `.home-hero` as a CSS vh value — the sticky layer inside it is one
- *  viewport, so the scrub range is this minus one.  2.4 viewports rather than
- *  2 because much shorter and the clip is over before a reader has registered
- *  that it moves at all; much longer and the hero becomes the thing a reader
- *  scrolls PAST instead of through. */
-const TRACK_VH = 240;
+/** Height of `.hx-hero` as a CSS vh value — the sticky layer inside it is one
+ *  viewport, so the scrub range is this minus one.  1.75 viewports: the redesign
+ *  cut it from 2.4 because a reader reached the real content only after 1.4
+ *  screens of pinned clip, and the collection wall below is now the point of the
+ *  page rather than a footnote to the hero. */
+const TRACK_VH = 175;
 
 /** A seek smaller than this is a no-op to the decoder, so writing it only wakes
  *  a throttled background tab's video pipeline for a frame it is already
@@ -246,7 +246,7 @@ export function initHomeHero({ track, video, durationSeconds = 10 }) {
   else onScroll();
 }
 
-/** The height the CSS gives `.home-hero`, as a number the module can assert its
- *  own progress() against.  Exported for check_home_hero.mjs, which compares it
- *  against the rule read out of index.html rather than restating it. */
+/** The height the CSS gives `.hx-hero`, as a number the module can assert its
+ *  own progress() against.  Exported for check_home_lab.mjs, which compares it
+ *  against the rule read out of home-lab.css rather than restating it. */
 export const HOME_HERO_TRACK_VH = TRACK_VH;
