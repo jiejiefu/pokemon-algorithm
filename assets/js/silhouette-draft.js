@@ -22,6 +22,55 @@ const DATA_URL = 'assets/data/draft_roster.json';
 /** The stepper's three macro stages, in order; `session.phase` names each one. */
 const PHASE_STEPS = ['draft', 'match', 'summary'];
 
+/**
+ * The battle scene's animated sprites, from PokeAPI's Showdown set.
+ *
+ * The local 96×96 PNG is the first paint and the fallback; a Showdown GIF only
+ * replaces it after the probe loads, so a 404 (#1010, #1017, #1024 and #1025
+ * are all inside this page's 568-species pool) or an offline reader keeps the
+ * sprite rather than a broken icon. One promise per species and side is
+ * cached, and the probe is an `Image()` rather than the visible node for that
+ * reason.
+ */
+const SHOWDOWN_GIF = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown';
+const showdownState = new Map();
+
+function showdownUrl(id, back) {
+  return `${SHOWDOWN_GIF}/${back ? 'back/' : ''}${id}.gif`;
+}
+
+function showdownReady(id, back) {
+  const key = `${id}:${back ? 'back' : 'front'}`;
+  let entry = showdownState.get(key);
+  if (!entry) {
+    entry = new Promise((resolve) => {
+      const probe = new Image();
+      probe.onload = () => resolve(true);
+      probe.onerror = () => resolve(false);
+      probe.src = showdownUrl(id, back);
+    });
+    showdownState.set(key, entry);
+  }
+  return entry;
+}
+
+/**
+ * The two battle `<img>` nodes are reused across matches, so a probe that lands
+ * after the next render must not repaint the wrong species. `data-species` and
+ * `data-side` are the identity check; reduced motion keeps the static PNG.
+ */
+function useShowdown(img, id, back) {
+  const side = back ? 'back' : 'front';
+  img.dataset.species = String(id);
+  img.dataset.side = side;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  showdownReady(id, back).then((ok) => {
+    if (!ok || !img.isConnected) return;
+    if (img.dataset.species !== String(id) || img.dataset.side !== side) return;
+    img.src = showdownUrl(id, back);
+  });
+}
+
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -314,6 +363,7 @@ export async function initSilhouetteDraft() {
 
     if (opponent) {
       opponentImg.src = spriteUrl(opponent.id);
+      useShowdown(opponentImg, opponent.id, false);
       opponentImg.alt = `對手 ${opponent.zh}`;
       opponentImg.hidden = false;
       $('sd-battle-opponent-name').textContent = opponent.zh;
@@ -321,6 +371,8 @@ export async function initSilhouetteDraft() {
     } else {
       opponentImg.hidden = true;
       opponentImg.removeAttribute('src');
+      delete opponentImg.dataset.species;
+      delete opponentImg.dataset.side;
       opponentImg.alt = '';
       $('sd-battle-opponent-name').textContent = '—';
       $('sd-battle-opponent-types').innerHTML = '';
@@ -328,6 +380,7 @@ export async function initSilhouetteDraft() {
 
     if (player) {
       playerImg.src = backSpriteUrl(player.id);
+      useShowdown(playerImg, player.id, true);
       playerImg.alt = `我方 ${player.zh} 背面`;
       playerImg.hidden = false;
       $('sd-battle-player-name').textContent = player.zh;
@@ -339,6 +392,8 @@ export async function initSilhouetteDraft() {
     } else {
       playerImg.hidden = true;
       playerImg.removeAttribute('src');
+      delete playerImg.dataset.species;
+      delete playerImg.dataset.side;
       playerImg.alt = '';
       $('sd-battle-player-name').textContent = '選擇出戰';
       $('sd-battle-player-types').innerHTML = '';

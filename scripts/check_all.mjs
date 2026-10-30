@@ -1013,7 +1013,7 @@ const CHECKERS = [
      * they were checked by hand once (light/dark silhouette, six duels, battle
      * sprites the same rendered size, 390px confirm bar). */
     script: 'scripts/check_draft_page.mjs', group: 'nav',
-    note: '103,642 checks; no browser — page shape, battle plates, dialog, the 18x2 terrain palettes and their luminance ladder, last-eight move pool, per-type anchors, and a deterministic six-round run',
+    note: '103,651 checks; no browser — page shape, battle plates, dialog, the 18x2 terrain palettes and their luminance ladder, last-eight move pool, per-type anchors, and a deterministic six-round run',
     inputs: [
       'silhouette-draft.html',
       'assets/css/silhouette-draft.css',

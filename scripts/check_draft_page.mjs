@@ -357,6 +357,38 @@ ok(/spriteUrl\(opponent\.id\)/.test(jsCode), 'the battle scene draws the opponen
 ok(/function renderBattle/.test(jsCode) && /renderBattle\(\);/.test(jsCode),
   'the battle scene is painted from the match state');
 
+/* ===== the Showdown GIF layer ===== */
+
+ok(/const SHOWDOWN_GIF = 'https:\/\/raw\.githubusercontent\.com\/PokeAPI\/sprites\/master\/sprites\/pokemon\/other\/showdown'/.test(JS),
+  'the battle GIFs come from PokeAPI\'s Showdown set');
+const showdownFn = jsCode.slice(jsCode.indexOf('function showdownUrl'), jsCode.indexOf('function showdownReady'));
+ok(showdownFn.length > 0, 'showdownUrl is locatable');
+ok(/\$\{SHOWDOWN_GIF\}\/\$\{back \? 'back\/' : ''\}\$\{id\}\.gif/.test(showdownFn),
+  'the opponent is the front GIF and the player the back GIF');
+ok(/const showdownState = new Map\(\)/.test(jsCode)
+  && /let entry = showdownState\.get\(key\)/.test(jsCode)
+  && /const key = `\$\{id\}:\$\{back \? 'back' : 'front'\}`/.test(jsCode),
+  'one promise per species and side is cached');
+ok(/const probe = new Image\(\)/.test(jsCode)
+  && /probe\.onload = \(\) => resolve\(true\)/.test(jsCode)
+  && /probe\.onerror = \(\) => resolve\(false\)/.test(jsCode),
+  'the probe never puts a broken icon on the visible node');
+ok(/if \(window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\) return;/.test(jsCode),
+  'reduced motion keeps the static PNG');
+ok(/if \(!ok \|\| !img\.isConnected\) return;/.test(jsCode)
+  && /img\.dataset\.species !== String\(id\) \|\| img\.dataset\.side !== side/.test(jsCode),
+  'a late probe cannot repaint a newer species');
+const battleFn = jsCode.slice(jsCode.indexOf('function renderBattle'), jsCode.indexOf('function renderMatch()'));
+const frontAt = battleFn.indexOf('opponentImg.src = spriteUrl(opponent.id)');
+const frontGifAt = battleFn.indexOf('useShowdown(opponentImg, opponent.id, false)');
+const backAt = battleFn.indexOf('playerImg.src = backSpriteUrl(player.id)');
+const backGifAt = battleFn.indexOf('useShowdown(playerImg, player.id, true)');
+ok(frontAt >= 0 && frontGifAt > frontAt && backAt >= 0 && backGifAt > backAt,
+  'the local PNG is the first paint before the GIF probe');
+ok(/delete opponentImg\.dataset\.species/.test(battleFn)
+  && /delete playerImg\.dataset\.species/.test(battleFn),
+  'an empty slot clears the identity the probe checks');
+
 const candidateFn = jsCode.slice(jsCode.indexOf('function renderCandidates'), jsCode.indexOf('function slotHtml'));
 ok(candidateFn.length > 0, 'renderCandidates is locatable');
 ok(!/pokemon\.zh/.test(candidateFn), 'a draft card still does not print the name');
