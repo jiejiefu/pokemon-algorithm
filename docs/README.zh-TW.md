@@ -78,6 +78,19 @@ python -m http.server 5500
 
 * 接著在瀏覽器打開 `http://localhost:5500` 即可訪問。
 
+**只有一台伺服器，埠號 5500。** 不要在別的埠再開一台：`http.server` 會被 launchd 收養，永遠佔著那個埠。
+`8000` 不是這個專案（那是另一個 repo 的 `uvicorn`）——用 `lsof -nP -iTCP:5500 -sTCP:LISTEN` 與
+`lsof -nP -iTCP:8000 -sTCP:LISTEN` 稽核。
+
+**跑完瀏覽器 checker 要掃 orphan。** 乾淨的一次執行留下 0 個 headless Chrome；orphan 是一個永遠在渲染頁面的
+瀏覽器，這先是正確性問題、才是散熱問題：
+
+```bash
+ps -Ao args | grep -c '[C]hrome --headless'   # 健康值：0（數到 0 時 grep 會回傳 1）
+```
+
+若開了 `set -e`／`pipefail`，上面那個非零離開碼是預期的，看數字就好。
+
 
 
 ---

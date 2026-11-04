@@ -76,6 +76,20 @@ python -m http.server 5500
 
 * Open `http://localhost:5500` in your browser.
 
+**One server, port 5500.** Do not start a second one on a fresh port: `http.server` reparents to
+launchd and keeps the port forever. Port `8000` is not this project (`uvicorn`, a different repo) —
+audit with `lsof -nP -iTCP:5500 -sTCP:LISTEN` and `lsof -nP -iTCP:8000 -sTCP:LISTEN`.
+
+**After a browser checker, sweep orphans.** A clean run leaves zero headless Chrome processes; an
+orphan is a browser rendering pages forever, which is a correctness defect before it is a thermal
+one:
+
+```bash
+ps -Ao args | grep -c '[C]hrome --headless'   # healthy: 0 (grep exits 1 when it counts 0)
+```
+
+Under `set -e`/`pipefail`, the non-zero exit above is expected and not a failure — read the number.
+
 
 
 ---
@@ -84,7 +98,7 @@ python -m http.server 5500
 
 ```text
 pokemon-algorithm/
-├── assets/          # css/, js/, data/ (23 JSON tables), cries/, drums/, glbs/, images/, video/
+├── assets/          # css/, js/, data/ (25 JSON tables), cries/, drums/, glbs/, images/, video/
 ├── docs/            # README.zh-TW.md; incidents/ — receipts for technical conventions
 ├── scripts/         # verification: check_*.mjs, test_check_*.mjs, lib/
 │                    # data pipeline: *.py (data processing scripts)

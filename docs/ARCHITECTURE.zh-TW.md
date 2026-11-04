@@ -44,7 +44,7 @@
 | 儲存位置 | `.gitnexus/`（本機，不進版控的索引產物）|
 | 目前狀態 | **已刪除**（2026-10-25，189 MiB／Finder 顯示 198.6 MB）。本文件保留的是當天的索引快照 |
 
-**索引新鮮度**：盤點當時工作樹只有 `AGENTS.md` 被修改，程式碼與索引一致。
+**索引新鮮度**：盤點當時工作樹只有 `AGENTS.md`、`README` 與 `docs/` 被修改，程式碼與索引一致。
 判斷方式：
 
 ```bash
@@ -294,9 +294,9 @@ CSS 沒有進入依賴圖，是這份索引最大的盲點；改 `shared.css` �
 
 ---
 
-## 7. 資料層：23 張表
+## 7. 資料層：25 張表
 
-產生的檔案**不要手改**（改了下一次重生就沒了）。欄位「產生者」取自 `AGENTS.md` §2 與 `scripts/` 實際輸出。
+產生的檔案**不要手改**（改了下一次重生就沒了）。欄位「產生者」取自本節與 `scripts/` 實際輸出。
 
 | 表 | KB | 產生者 | 執行期消費者 | 備註 |
 | :--- | ---: | :--- | :--- | :--- |
@@ -319,8 +319,10 @@ CSS 沒有進入依賴圖，是這份索引最大的盲點；改 `shared.css` �
 | `type_profiles.json` | 67 | `fetch_type_profiles.py` | `types.html`、`categories.js` | 三種來源分欄保存 |
 | `move_learners_count.json` | 54 | `fetch_moves.py` | `moves.js` | 列表頁用的輕量計數 |
 | `draft_roster.json` | 46 | `build_draft_roster.py` | `silhouette-draft.js` | 568 隻最終/單階 |
+| `home_dex.json` | 36 | `build_home_dex.py` | `home-lab.js`（首頁牆）| 1,025 列；`--dry-run` 報告世代分布 |
 | `evolution_levels.json` | 30 | `fetch_evolution_levels.py` | `life.js`、`life-engine.js`、`color-game.js` | 348 對有真實等級，141 對回退 Lv.30 |
 | `abilities_zh.json` | 19 | `fetch_abilities.py` | 3 處 | 官方繁中名 |
+| `home_daily.json` | 18 | `build_home_daily.py` | `home-daily-draw.js` | 4 個每日池 + 110 隻 5 欄記錄；池的**順序**是抽選的一部分 |
 | `gen1_cries.json` | 14 | `fetch_gen1_cries.py` | 2 處 | pokered 表 |
 | `generations.json` | 5 | `extract_generations.py` | 2 處 | 9 世代 / 38 遊戲 |
 
@@ -332,16 +334,42 @@ CSS 沒有進入依賴圖，是這份索引最大的盲點；改 `shared.css` �
 `pokemon_data.json` 是**沒人想要但大家都在用**的重表（2.8 MB）。新頁面請優先找替代的 slim 表
 （`team_roster`、`home_roster`、`draft_roster`），這三張就是為此存在的。
 
+### 7.1 生成的 JS / 索引檔（一樣不准手改）
+
+上表只涵蓋 `assets/data/`；`assets/js/` 的索引檔與九支 hero 影片有同樣的一次性壽命。完整清單：
+
+| 產生者 | 產物 |
+| :--- | :--- |
+| `extract_genus_zh.py` / `fetch_form_names.py` | `genus-zh.js`, `form-names-zh.js` |
+| `extract_glb_index.py` / `extract_sv_index.py` / `extract_cry_index.py` | `glb-index.js`, `sv-index.js`, `cry-index.js`（§3.E）|
+| `fetch_gen1_cries.py` | `gen1_cries.json`, `gen1_cry_sfx.json` |
+| `fetch_evolution_levels.py` | `evolution_levels.json`（§3.K）|
+| `fetch_moves.py` | `moves_zh.json`, `learnsets.json`, `move_learners.json`, `move_learners_count.json`（§3.AA）。兩個 learner index 寫成**緊湊格式**，另外兩個是 `indent=2`：兩者都不會手改，而格式化成本會讓索引膨脹到它想取代的 4.4 MB 檔的四分之一 |
+| `fetch_abilities_detail.py` | `abilities.json`, `ability_species.json`, `species_abilities.json`（§3.AC）。三個檔**一次寫完**，才不會對同一隻寶可夢或同一個欄位各說各話。`abilities.json` 是 `indent=2`，另外兩個緊湊（`separators=(",",":")`）。379 KB 的持有者索引是正向（slug → holders）；**88 KB 的 `species_abilities.json` 是它的反向**（dex id → 名字 + 特性 slug），存在的理由是 `abilities.html` 要回答「這隻有哪些特性」——載 `pokemon_data.json` 要 2.8 MB，載正向表要 388 KB |
+| `analyze_cries.py` | `cry_features.json`（§3.G1）|
+| `extract_color_palettes_mmcq.py` | `color_palettes.json`（§3.B）|
+| `build_home_roster.py` | `home_roster.json` — 1,025 筆精簡記錄（`id`、`names.zh`、`stats.total`、`height_m`、`hue`），90 KB / 19 KB gzip，給 `index.html` 的兩個 demo。衍生自 `pokemon_data.json`，名單重生時必須一起跑（§3.Z）|
+| `build_home_dex.py` | `home_dex.json` — 1,025 列（`generation`、`colour`、兩個屬性索引、捕獲率、`names.zh`），36 KB，給首頁牆。`--dry-run` 報告世代分布。衍生自 `pokemon_data.json`（§3.Z）|
+| `build_home_daily.py` | `home_daily.json` — 四個每日池的 id 陣列，加上每隻 5 欄記錄（`zh`、`en`、types、description、artwork filename），18 KB / 110 隻。`POPULAR_IDS` 是從 `daily-pick.js` 解析出來的，不是複製；`PSEUDO_EXCLUDED = {1018}`；**池的順序是抽選的一部分**，必須與線上選擇器一致（§3.Z）|
+| `build_team_roster.py` | `team_roster.json` — 1,025 筆精簡記錄（`id`、`names.zh/en`、`types`、`generation`、`regions`），145 KB / 22 KB gzip，給 `team.html`。衍生自 `pokemon_data.json`（§3.AD）|
+| `build_team_moves.py` | `team_moves.json` — 1,025 筆四招字串 + 919 筆 defs（`zh/en/type/class/power/accuracy/pp/generation/effect`），607 KB / 151 KB gzip，給 `team.html`。Type 會轉成 `type-chart.js` 的鍵；`--dry-run` 報告拆分與四招不足的五隻（§3.AD）|
+| `build_graph_data.py` | `graph_data.json` — `graph.html` 的 1,346 節點 / 2,794 邊。讀 `data-sources/pokeapi_form_stats.json`（`fetch_form_stats.py` 產生，gitignored），缺少時**點名警告**而不是靜默回退 |
+| `build_draft_roster.py` | `draft_roster.json` — 568 隻最終/單階寶可夢、465 筆招式定義，53 KB / 21 KB gzip，給 `silhouette-draft.html`。每隻取等級最高的四招；不能得分的列會把最低格換成最高傷害招。排除五條仍會進化的傳說線；進化與真實等級來自 `evolution_levels.json` |
+| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — 九支 1920×1080 / 10s / 30fps 無縫循環，共 29 MB，背景烤在 `--bg-primary`；加上 `poster-gen{1..9}.jpg`，每支在時間軸 `build_end` 那一格截圖（`--poster-only` 3 秒重切）。**兩者都進版控** |
+
+**檔案組成**：13,186 個版控檔案中 12,650 個是二進位（10,229 PNG、2,000 OGG、396 WAV、5 SVG/GLB、20 影片），
+143 個是程式（107 `.mjs`、36 `.py`）。`assets/data/` 是每一頁的唯一資料來源。
+
 ---
 
-## 8. 驗證層：64 + 28 + 9
+## 8. 驗證層：64 + 28 + 10
 
 | 類別 | 數量 | 位置 | 作用 |
 | :--- | ---: | :--- | :--- |
 | `check_*.mjs` | 64 | `scripts/` | 斷言（0.1 s – 40 s）|
 | `test_check_*.mjs` | 28 | `scripts/` | 變異測試：故意弄壞，確認 checker 會紅 |
-| `lib/` | 9 | `scripts/lib/` | `assert` `negative` `pool` `cdp-port` `cdp-until` `mute-tap` `png` `tmp-trees` `record-inputs` |
-| `*.py` | 34 | `scripts/` | 資料產生器（不屬驗證層，見 §9）|
+| `lib/` | 10 | `scripts/lib/` | `assert` `negative` `pool` `cdp-port` `cdp-until` `mute-tap` `png` `tmp-trees` `record-inputs` `theme-init` |
+| `*.py` | 36 | `scripts/` | 資料產生器（不屬驗證層，見 §9）|
 
 ### 18 個群組與成本（實測快照）
 
@@ -373,42 +401,132 @@ node scripts/check_all.mjs --only=home                                   # 0.2 s
 node scripts/check_all.mjs --only=cry-page                               # 39 s，純 Node 但很貴
 ```
 
-快取規則（`.cache/check-state.json`）：內容 hash 沒變就 SKIP，第二次全套 0.0 s；**FAIL 不會更新快取**；
-改過 checker 本身要用 `--force --only=<群組>`。
+### 執行語意
+
+- **快取**：`.cache/check-state.json` 對每個 checker 記一組內容 hash（涵蓋它宣告的 `inputs`）與上次綠燈耗時；hash 沒變就 SKIP，第二次全套 **0.0 s**。**FAIL 不會更新快取，也不是 SKIP**；下一次會重跑。`--force` 給「因為別的原因而綠」的情況（缺 Chrome、伺服器過期）——快取只信任本機上一次的綠燈。
+- **永遠在 key 裡**：checker 本身、任何被負向 harness 攻擊的 checker、`scripts/lib/` 的每個檔、`check_all.mjs`。
+- **Input 清單是證明的，不是審過的**：`--prove-inputs` 用 `scripts/lib/record-inputs.cjs`（CJS `-r` preload，不是 `--import`，因為 Node 在 link 時就快照了內建模組的 ESM exports）跑每個 checker，任一方向不一致就紅（`read but not declared` 是危險的那種）。三個項目列為不可驗證：`check_gen1_page.mjs`、`check_cries_browser.mjs`（HTTP 頁）、`test_check_js_syntax.mjs`（自帶 fixture）。
+- **`--only` 是可重複的前綴比對**（`group === f || group.startsWith(f + '-')`）：`--only=cry` 涵蓋 `cry-apu`/`cry-data`/`cry-page`；`--only=a,b` 等於 `--only=a --only=b`。`--help` 印出每個群組與上次成本。
+- **沒有任何 checker 有 `--quick`**——會跳過檢查的旗標，是一個終將失效的承諾。`test_check_gen1_apu.mjs` 已**從 manifest 移除**，仍可單跑，成本有記錄。
+- **兩個 tier，pool 上限 3；兩個 Tier B 是 `serial: true`**（`check_graph_browser.mjs`、`check_life_browser.mjs`）。看**牆鐘**不是總和：約 166 s 的 checker 時間在 ~88 s 內跑完，因為瀏覽器互相競爭。
+- **liveness probe 不能用 `fetch()`**（undici keep-alive 會把 socket 多握 ~6 s），**也不能讀 `res.ok`**（`IncomingMessage` 上是 undefined）。**12** 個項目需要 Runtime Server；**13** 個瀏覽器都是 `manual`（照樣執行，只有 `--prove-inputs` 會印警語）。
+- **沒有動態除錯埠**：每個瀏覽器都用 `--remote-debugging-port=0`，再讀 `<profile>/DevToolsActivePort`，所以 §3.J 的 orphan 事故是「到不了」而不是「不太可能」。
+
+### 一次就夠，重跑不是預設
+
+- **改完 checker 或頁面，跑一次就是證據。** 重跑量到的是**環境**（負載、競爭、殘留程序）；先過後敗代表「不穩」，不是「修好了」。加 timeout 只是把問題蓋住。
+- **只有在你說得出通過率時才迴圈**（`check_graph_browser.mjs`：「pooled 3/3 失敗、單跑 3/3 通過」，§3.G9）。
+- **紅了不要重跑看會不會綠。** 只在要判斷「回歸 vs 競爭」時用 `--force` 重跑，並說明是哪一種。
+- **hang 不是 flake。** watchdog 響了就修 checker；把 timeout 調高一定是錯的。
+- **變異案例的成本只等於它攻擊的東西**——`test_check_color_match.mjs` 因為兩個沒檢查的預設值從 42 s 降到 2.2 s。**checker 的名字是關於成本的宣稱，名字不是證據。**
 
 ---
 
 ## 9. 資料生產線
 
-34 支 Python 腳本，**手動、照順序跑**，順序寫在 `AGENTS.md` §5。這裡只列骨架：
+36 支 Python 腳本，**手動、照順序跑**，從 repo 根目錄、venv 已啟用。**Step 1 不是 refresh**：
+它產出 1,350 筆，而版控的是 1,025 筆，請當成名單變更處理（§3.AC）。
 
-```
-enhance_pokemon_data.py          # 1. 基礎表（會變 1,350 筆，勿盲跑）
- ├─ build_home_roster.py         # 1b. 首頁 slim 表
- ├─ build_team_roster.py         # 1c. 隊伍 slim 表
- └─ build_team_moves.py          # 1d. 招式表
-fix_pokemon_names.py             # 2. 繁中名
-fetch_breeding_data.py           # 3. 生蛋資料
-fetch_regional_dex.py            # 4. 地區圖鑑
-fetch_abilities.py               # 5. 特性名
-fetch_abilities_detail.py        # 5b. abilities.json + 正向 + 反向
-fetch_form_names.py              # 6. 形態名
-fetch_moves.py                   # 7. 招式 + 學習集 + 兩個索引（一次寫四檔）
-scrape_zh_descriptions.py        # 8. 描述
-extract_color_palettes_mmcq.py   # 9. 2,050 盤
-fetch_type_profiles.py           # 10. 屬性文案
-fetch_sv_sprites.py → extract_sv_index.py   # 11. SV 圖 + 索引
-fetch_gen1_cries.py              # 12. Gen-I 叫聲
-fetch_evolution_levels.py        # 13. 進化等級
-fetch_form_stats.py → build_graph_data.py   # 13b. 圖資料
-analyze_cries.py                 # 14. 叫聲特徵
+```bash
+# Activate environment
+source ../.venv/bin/activate  # /Users/jiejiefu/Documents/Visual_Studio_Code/.venv
+
+# 1. Base data: DO NOT RUN BLINDLY. It now yields 1,350 records against the
+#    committed 1,025 (a CSV input includes 325 formes), so this is a roster
+#    change, not a refresh. Fix English names in the source XLSX, then apply a
+#    guarded roster edit; see §3.AC.
+python scripts/enhance_pokemon_data.py
+
+# 1b. Homepage roster: rebuild after pokemon_data.json changes; --dry-run first.
+python scripts/build_home_roster.py --dry-run && python scripts/build_home_roster.py && node scripts/check_home_sections.mjs
+
+# 1c. Team roster: the slim 1,025-record table team.html reads; --dry-run first.
+python scripts/build_team_roster.py --dry-run && python scripts/build_team_roster.py && node scripts/check_team_page.mjs
+
+# 1d. Team moves: rebuild after learnsets.json or moves_zh.json changes;
+#     --dry-run reports bytes/gzip and species short of four moves.
+python scripts/build_team_moves.py --dry-run
+python scripts/build_team_moves.py
+node scripts/check_team_moves.mjs
+
+# 2. Chinese names: scrape official names from tw.portal-pokemon.com.
+python scripts/fix_pokemon_names.py
+
+# 3. Breeding data: fetch gender_rate and hatch_counter (after Phase 1).
+python scripts/fetch_breeding_data.py
+
+# 4. Regional dex: fetch regional dex numbers.
+python scripts/fetch_regional_dex.py
+
+# 5. Abilities: official zh-TW names for the 284 roster slugs, read from pokemon_data.json.
+python scripts/fetch_abilities.py
+
+# 5b. Ability detail: one pass writes abilities.json (314 rows), the forward
+#     holder map and its inverse; --dry-run reports the provenance split.
+python scripts/fetch_abilities_detail.py --dry-run
+python scripts/fetch_abilities_detail.py
+node scripts/check_abilities_data.mjs
+
+# 6. Form names: scrape official zh-TW names for Pokémon forms.
+python scripts/fetch_form_names.py
+
+# 7. Moves & learnsets: one pass writes moves_zh.json, learnsets.json and both
+#    learner indexes; 826 effects from PokeAPI zh-hant, 93 Gen-9 via InfoPoke/OpenCC.
+python scripts/fetch_moves.py
+node scripts/check_moves_data.mjs
+
+# 8. Chinese descriptions: MUST run after step 1; --ids 899,901 re-scrapes a subset, --dry-run does not write.
+python scripts/scrape_zh_descriptions.py
+
+# 9. Color palettes: rebuild 2,050 MMCQ palettes from front sprites.
+python scripts/extract_color_palettes_mmcq.py
+
+# 10. Type profiles: per-type prose, zh-TW effects and trainers; resolves the
+#     InfoPoke `/types/[id]` chunk at runtime.
+python scripts/fetch_type_profiles.py
+
+# 11. SV artwork: fetch only missing roster entries (PokeAPI first, InfoPoke
+#     fallback), then rebuild sv-index.js from disk; hosts live in data-sources/sv-sources.json.
+python scripts/fetch_sv_sprites.py --dry-run   # report coverage first
+python scripts/fetch_sv_sprites.py
+python scripts/extract_sv_index.py
+node scripts/check_sv_index.mjs
+
+# 12. Gen-I cries: parse pokered's cry table and 38 base cries into JSON;
+#     --source/--sfx-dir take local paths for offline tests.
+python scripts/fetch_gen1_cries.py --dry-run
+python scripts/fetch_gen1_cries.py
+node scripts/check_gen1_cries.mjs
+
+# 13. Evolution levels: 541 cached chain GETs write {from_id:{to_id:min_level}}
+#     and the unlevelled pairs; run after any pokemon_data.json id change.
+python scripts/fetch_evolution_levels.py --dry-run
+python scripts/fetch_evolution_levels.py
+node scripts/check_evolution_levels.mjs
+
+# 13b. Form stats/types for graph.html's mega/gmax nodes: 127 GETs to
+#      /pokemon/{id}, cached to a gitignored file; --dry-run lists the roster.
+python scripts/fetch_form_stats.py --dry-run
+python scripts/fetch_form_stats.py
+python scripts/build_graph_data.py
+node scripts/check_graph_chip_network.mjs
+
+# 14. Cry features: one 34-number row per roster cry, resampled to 16 kHz
+#     because the corpus spans fifteen rates; --dry-run does not write.
+python scripts/analyze_cries.py --dry-run
+python scripts/analyze_cries.py
+node scripts/check_cry_features.mjs
 ```
 
 **一次寫多檔的腳本**（不能只跑一半）：`fetch_moves.py`（4 檔）、`fetch_abilities_detail.py`（3 檔）、
 `fetch_gen1_cries.py`（2 檔）、`build_graph_data.py`（讀 `pokeapi_form_stats.json`，該檔 gitignored）。
 
+**來源變了就要重建衍生表**：`pokemon_data.json` 之後跑 `home_roster` / `home_dex` / `home_daily`；
+名單之後跑 `team_roster`；`learnsets.json` 或 `moves_zh.json` 之後跑 `team_moves`。
+
 **不准手改**的代表：`genus-zh.js`、`form-names-zh.js`、`glb-index.js`、`sv-index.js`、`cry-index.js`、
-`color_palettes.json`、`moves_zh.json`、`learnsets.json`、`abilities.json`、`graph_data.json`、九支 hero 影片。
+`color_palettes.json`、`moves_zh.json`、`learnsets.json`、`abilities.json`、`graph_data.json`、九支 hero 影片
+（完整清單見 §7.1）。
 
 ---
 

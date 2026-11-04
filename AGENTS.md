@@ -6,28 +6,14 @@
 >   - This project is developed with **opencode**. Every session must load the `i-have-adhd` skill before the first reply and keep its formatting for the whole session, without waiting to be asked again.
 >   - The trigger is the user naming the skill at all — e.g. typing `skill：i-have-adhd`, 「使用skill」, or just「使用skill」with no argument. Treat any mention of「使用skill」 as a request to load `i-have-adhd` specifically, since it is the only skill this project pins.
 >   - It turns off only when the user says「stop adhd mode」or「normal mode」, confirmed in one line. Nothing else — a topic change, a new task, a mode change in the harness — does not turn it off.
-> - **DO NOT RUN BROWSER CHECKERS UNLESS THE CHANGE DEMANDS THEM.** This machine cannot absorb them — they are the reason it gets hot enough to be noticed, and that was measured, not estimated. **A headless Chrome is a browser rendering pages forever; §3.J's incident was a machine running hot long before anything was wrong.**
->   - **What counts as a browser checker:** any entry with `browser: true` — 13 of them, plus `test_check_sorting_page.mjs`, which boots Chrome 25 times inside a `sort`-group harness. They now live in `audio-browser`, `game-browser`, `graph-browser`, `life-browser`, `moves-browser`, `outfit-browser`, `types-browser` and `sort`; the other ten groups no longer boot Chrome.
->   - **The default is therefore: run the affected checkers BY NAME, not a group.** `node scripts/check_moves_page.mjs`, `node scripts/check_learnsets.mjs` — a tier-A entry is 0.1–2 s of pure Node and costs nothing.
->   - **When the edit spans a group, filter `check_all.mjs` with `--only=<group>` rather than running it bare** — `--only` is a repeatable prefix match, runs one group and nothing else, and the §4 table is the price list. It is a time-and-heat lever, never a correctness claim: it does not excuse a browser the change genuinely needs (next bullet, and §4).
->   - **`node scripts/check_all.mjs` with no `--only` is NOT the way to verify a change on this machine.** Tier B is 10 pooled entries plus 2 serial, and `test_check_graph_browser.mjs` alone is 40 s of four sequential Chrome boots. This overrides every 「the suite is cheap because of the skip cache」 argument below — the cache makes the *second* run free, and the first run after an unrelated edit still boots thirteen browsers.
->   - **When a browser checker genuinely is the right tool** — the change is a rendered claim, or a browser half is the only half that can see it (§3.G4, §3.X, §3.AA) — **run it alone, never inside a group**: `node scripts/check_moves_page_browser.mjs`. One Chrome, one page pair, no pool contention.
->   - **§4's「ONE RUN CONFIRMS A FIX」 rule is unchanged and matters more here**: one run of the affected checker is the evidence, and a second run proves nothing about the change.
->   - **After a browser run, check for orphans — §3.J's sweep.** A killed run leaves headless Chrome alive, which is a *correctness* defect, not disk clutter: `check_gen1_page.mjs` once drove a stranger's 1246×87 window and failed 4 of its 74 checks on a perfect page.
->     ```bash
->     ps -Ao args | grep '[C]hrome --headless' | awk '{print $1}' | while read -r p; do
->       [[ "$(ps -p "$p" -o args=)" == *--headless* ]] && kill "$p" 2>/dev/null && echo "  TERM $p"
->     done
->     ```
->     Note the zsh trap §3.J records: an unquoted `for p in $(…)` hands the loop every PID as one argument and kills nothing while printing a confident `SKIP`.
-> - **Runtime Server**: Must be served via HTTP. Direct `file://` fails due to CORS on JSON and image fetching.
->   - **One server: port 5500, VS Code Live Server** (`ritwickdey.liveserver`). Start it from Live Server in the editor, or `python -m http.server 5500` from the repo root.
->   - **Do not start another `python -m http.server` on a fresh port.** `http.server` does not exit with its terminal — it reparents to launchd (PPID 1) and keeps the port forever, so each stray run leaves an orphan that only shows up as a duplicate in `lsof`. That is how five accumulated here (8123, 8731, 8811, and 8899 twice — one IPv6 wildcard, one IPv4-only, both live).
->   - Auditing before you start one:
->     ```bash
->     lsof -nP -iTCP -sTCP:LISTEN | rg ':(5500|8000|8123|8731|8811|8899)\s'
->     ```
->   - **Port 8000 is not this project** — it is a `uvicorn main:app` for `~/Documents/Opencode/tw_stocker`. Leave it alone.
+> - **DO NOT RUN BROWSER CHECKERS UNLESS THE CHANGE DEMANDS THEM.** This machine cannot absorb them; a headless Chrome is a browser rendering pages forever, and §3.J's incident was a machine running hot long before anything was wrong.
+>   - **Run the affected checkers BY NAME, not a group.** A tier-A entry is 0.1–2 s of pure Node. When the edit spans a group use `--only=<group>`; **never run `check_all.mjs` bare** — a cold run boots thirteen browsers. Costs: §4.
+>   - **When a browser checker is genuinely the right tool, run it alone**, never inside a group: one Chrome, one page pair, no pool contention.
+>   - **One run is the evidence** — a second run measures the environment, not the fix.
+>   - **After a browser run, sweep orphans** — a killed run leaves headless Chrome alive, which is a correctness defect, not disk clutter (§3.J). Command and the zsh trap: `README.md` §Installation.
+> - **Runtime Server**: HTTP only; `file://` fails on CORS for JSON and images.
+>   - **One server: port 5500** (VS Code Live Server or `python -m http.server 5500`). **Do not start a second one on a fresh port** — `http.server` reparents to launchd and keeps the port forever.
+>   - **Port 8000 is not this project** (`uvicorn` for `~/Documents/Opencode/tw_stocker`). Audit command: `README.md` §Installation.
 
 ---
 
@@ -36,37 +22,13 @@
 **寶可夢演算法** is a static, zero-build HTML/CSS/JavaScript web application (GitHub Pages compatible) visualizing computer science algorithms and design tools using 1,025 Pokémon.
 
 ### Core Pages
-| Page | What it is |
-| :--- | :--- |
-| `index.html` | The lab: a scrubbed hero with the collection counter, the 1,025-cell Pokédex wall, two algorithm demos, the A* challenge, the daily catch and the lab index — §3.Z |
-| `today.html` | 今日推薦: the daily pick, 熱門, 探索, 精選系列, 遊戲, 工具, 快速連結, FAQ — §3.Z |
-| `pokedex.html` | Searchable Pokédex: fuzzy autocomplete, generation / type / colour filters |
-| `team.html` | 組隊規劃: six slots, per-member defensive tallies, STAB coverage, region / generation / type filters, shareable `?team=` — §3.AD |
-| `detail.html` | Dossier: 3-col hero, Canvas radar, dual-type matrix, evolution chain, 4 move tabs. 3-way footer pager — §3.A |
-| `color.html` | One species' palette: `?slug=`, shade scales, theme exporter. Bare URL = the same seeded daily pick as the homepage, one draw two callers |
-| `colors-generator.html` | Reverse generator: any hex → closest Pokémon by OKLab, then a generated palette — §3.B1 |
-| `color-game.html` | Daily / unlimited palette guessing game over all 1,025 measured palettes — §3.W |
-| `colors-explore.html` | All 1,025 palettes, infinite scroll, URL filters |
-| `sorting.html` | 6 sorters on a 1,025-sprite Canvas, plus a 2–6 lane race — §3.G3 |
-| `maze.html` | BFS / DFS pathfinding, 40×40 grid, seedable RNG |
-| `life.html` | Conway's Life over one generation, with real in-game evolution levels — §3.K |
-| `graph.html` | 3D force-directed knowledge graph: 1,346 entities and 2,794 relations over 14 types (evolution, mega, mega-type, gmax, regional, form, pantheon, paradox-pair, paradox-clade, regional-clade, starter trio, pseudo-legendary, type resonance, dual-type), with search, filters and a dossier panel linking to `detail.html` / `color.html`. Data generated — §2, §3.V |
-| `silhouette-draft.html` | 剪影選秀: six blind picks against a live opponent, then a 6v6 type-only matchup with wins, draws and a verdict — no stats, STAB or HP |
-| `cries.html` | All 1,025 cry cards with measured timbre, 5 sort axes, waveform |
-| `cries-gen1.html` | The 151 Gen-I cries re-synthesised by a Game Boy APU — §3.F |
-| `spectrum.html` | Mel spectrogram over every cry, revealed left to right — §3.G1 |
-| `cry-game.html` | 10-question, 4-option cry-guessing game; difficulty is a measured similarity ceiling — §3.Y |
-| `cry-studio.html` | 叫聲編曲室: a cry on a scale-degree × step grid, auto-tuned by YIN, with five Strudel drum lanes, effects, WAV / Strudel export and a `#s=` share link — §3.AF |
-| `types.html` | Type chart + per-type browser. The ONLY place the effectiveness matrix appears — §3.D, §3.H |
-| `moves.html` | All 919 moves, searchable + filterable, every filter in the URL — §3.AA |
-| `abilities.html`, `ability.html` | 314 abilities, searchable + filterable; `ability.html` gives the effect and the 常見/隱藏 holder split — §3.AC |
-| `move.html` | One move: stats, effect text, and which of the 1,025 learn it — §3.AA |
-| `category.html` | Collection-list template, `?cat=<slug>`. Never links to `types.html` — §3.H |
-| `collections.html` | Collections hub: 11 cards in 4 groups, 2 `upcoming` |
-| `outfit.html` | Garment colour → MMCQ → OKLab against all 1,025 palettes — §3.L |
-| `generations.html` | 9 generations, 38 games, 27 regional starters |
-| `model3d.html` | GLB viewer; roster generated into `glb-index.js` |
-| `404.html` | GitHub Pages fallback: `/detail/<slug>` → `detail.html?slug=…&from404=1` |
+
+**28 pages, one rule per page in §3.** `moves.html` → §3.AA, `team.html` → §3.AD, `index.html` → §3.Z, and so on; a page with no §3 letter has no page-specific invariant.
+
+The page inventory lives in two places already, so it is not repeated here:
+
+- **What each page is:** `README.md` §Core Pages & Modules / `docs/README.zh-TW.md` §主要頁面說明.
+- **Page → module → stylesheet, all 31 HTML files:** `docs/ARCHITECTURE.zh-TW.md` §5.
 
 ---
 
@@ -81,38 +43,15 @@ pokemon-algorithm/
 └── data-sources/    raw CSV/XLSX + per-id provenance (never fetched at runtime)
 ```
 
-`assets/video/` holds the nine generated hero loops (29 MB) and the nine stills cut from them (1.0 MB). **All eighteen are tracked** and `index.html` mounts one of each — §3.Z. `make_hero_video.py` regenerates both. `assets/drums/` holds 397 WAV samples (28 MB) and the `strudel.json` map `cry-studio.html` loads; it is third-party audio, tracked because the page is silent without it — §3.AF.
+`assets/video/` holds the nine generated hero loops (29 MB) and the nine stills cut from them (1.0 MB), all tracked and mounted by `index.html` (§3.Z); `make_hero_video.py` regenerates both. `assets/drums/` holds 397 WAV samples (28 MB) and the `strudel.json` map `cry-studio.html` loads — third-party audio, tracked because the page is silent without it (§3.AF).
 
-**No `package.json`, no `node_modules`, no build step.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`. **There is also no CI** — nothing under `.github/workflows/`; the suite is run by hand.
+**No `package.json`, no `node_modules`, no build step, and no CI.** Zero npm dependencies is a property, not an oversight: Node is invoked only as `process.execPath` and every helper lives in `scripts/lib/`.
 
-**12,650 of the 13,186 tracked files are binary** (10,229 PNG, 2,000 OGG, 396 WAV, plus 5 SVG/GLB and 20 video files) and 143 are code (107 `.mjs`, 36 `.py`). `assets/data/` holds 25 JSON tables and is the single source of truth for every page.
+**Never hand-edit a generated file.** `assets/js/` and `assets/data/` outputs, plus the nine videos, have a one-regeneration lifetime — a key added by hand is gone at the next run. The generator → artifact table and the file-count breakdown live in `docs/ARCHITECTURE.zh-TW.md` §7.
 
-**The generated files under `assets/js/` and `assets/data/`, plus the nine videos under `assets/video/`, must never be hand-edited** — a key added by hand has a lifetime of one regeneration, and two of the three life.html data defects were exactly that:
+**`scripts/` is two unrelated toolsets**, separated only by filename prefix: 103 verification files (64 `check_*.mjs`, 28 `test_check_*.mjs`, 1 standalone, 10 in `lib/`) and 36 `*.py` generators, run by hand in §5's order and never by the suite. `docs/ARCHITECTURE.zh-TW.md` §8 carries the inventory and why a subdirectory each is not free. **Every file in `scripts/lib/` is hashed into every cache key unconditionally**, so editing one invalidates the whole cache.
 
-| generated by | produces |
-| :--- | :--- |
-| `extract_genus_zh.py` / `fetch_form_names.py` | `genus-zh.js`, `form-names-zh.js` |
-| `extract_glb_index.py` / `extract_sv_index.py` / `extract_cry_index.py` | `glb-index.js`, `sv-index.js`, `cry-index.js` (§3.E) |
-| `fetch_gen1_cries.py` | `gen1_cries.json`, `gen1_cry_sfx.json` |
-| `fetch_evolution_levels.py` | `evolution_levels.json` (§3.K) |
-| `fetch_moves.py` | `moves_zh.json`, `learnsets.json`, `move_learners.json`, `move_learners_count.json` (§3.AA). The two learner indexes are written **compactly** while the other two are `indent=2`, for the reason the script's own comment gives: neither is ever hand-edited, and the formatting tax would make the index a quarter the size of the 4.4 MB file it exists to avoid fetching |
-| `fetch_abilities_detail.py` | `abilities.json`, `ability_species.json`, `species_abilities.json` (§3.AC). All three written in ONE pass so they cannot disagree about a species or a slot. `abilities.json` is `indent=2`; the other two are compact (`separators=(",",":")`) because neither is ever hand-edited and the formatting tax would double the holder index. The 379 KB holder index is forward (slug → holders); the **88 KB `species_abilities.json` is its INVERSE** (dex id → that Pokémon's names + ability slugs) and exists because `abilities.html` answers 「這隻有哪些特性」 — loading `pokemon_data.json` to do it would be 2.8 MB and loading the forward table would be 388 KB |
-| `analyze_cries.py` | `cry_features.json` (§3.G1) |
-| `extract_color_palettes_mmcq.py` | `color_palettes.json` (§3.B) |
-| `build_home_roster.py` | `home_roster.json` — 1,025 compact records (`id`, `names.zh`, `stats.total`, `height_m`, `hue`), 90 KB raw / 19 KB gzip, for `index.html`'s two demos. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
-| `build_home_dex.py` | `home_dex.json` — 1,025 rows (`generation`, `colour`, two type indexes, capture rate, `names.zh`), 36 KB, for the wall. `--dry-run` reports the generation split. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.Z) |
-| `build_home_daily.py` | `home_daily.json` — the four daily pools as id arrays plus a 5-field record per pooled id (`zh`, `en`, types, description, artwork filename), 18 KB / 110 species. `POPULAR_IDS` is parsed out of `daily-pick.js` rather than copied, `PSEUDO_EXCLUDED = {1018}`; pool ORDER is part of the draw, so it must match the live selector's (§3.Z) |
-| `build_team_roster.py` | `team_roster.json` — 1,025 slim records (`id`, `names.zh/en`, `types`, `generation`, `regions`), 145 KB / 22 KB gzip, for `team.html`. Derived from `pokemon_data.json`, so a roster regeneration must run this too (§3.AD) |
-| `build_team_moves.py` | `team_moves.json` — 1,025 four-method strings + 919 defs (`zh/en/type/class/power/accuracy/pp/generation/effect`), 607 KB / 151 KB gzip, for `team.html`. Type is capitalised to `type-chart.js` keys; `--dry-run` reports the split and the five species short of four (§3.AD) |
-| `build_graph_data.py` | `graph_data.json` — 1,346 nodes / 2,794 links for `graph.html`. Reads `data-sources/pokeapi_form_stats.json` (produced by `fetch_form_stats.py`, gitignored), and **warns by name** rather than falling back silently |
-| `build_draft_roster.py` | `draft_roster.json` — 568 final/single-stage species, 465 move definitions, 53 KB / 21 KB gzip, for `silhouette-draft.html`. Each species' four strongest level-up moves, and a row that cannot score has its lowest slot replaced by the highest damaging move. Excludes the five legendary lines that still evolve; evolves and their real levels come from `evolution_levels.json` |
-| `make_hero_video.py` | `assets/video/hero-gen{1..9}.mp4` — nine 1920×1080 / 10s / 30fps seamless-loop hero videos, 29 MB total, baked on `--bg-primary`; plus `assets/video/poster-gen{1..9}.jpg`, one still per clip cut at the frame the timeline calls `build_end` (`--poster-only` re-cuts them in 3 s). **Both tracked.** §2's script counts below (36 `*.py`) already include it |
-
-Two directories are outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG actually came from and is deliberately never served (§3.E), and `docs/incidents/` holds §3's receipts so AGENTS.md can stay small.
-
-**`scripts/` is TWO unrelated toolsets, and the filename prefixes are the only thing separating them.** 103 files are verification — 64 `check_*.mjs`, 28 `test_check_*.mjs` mutation harnesses, 1 standalone test (`test_cry_overlap.mjs`, a manifest entry in `cry-page`) and 10 in `lib/` — driven by `check_all.mjs` and the §4 cache. The other 36 are `*.py` generators and scrapers, run **by hand in the order §5 gives** and never by the suite. They share one directory because nothing couples them but the files they generate, and **splitting them is not free**: a subdirectory each means editing ~100 path strings, 24 of them functional and 14 of those the manifest's own `inputs`, plus one harness that copies a `.py` into a fixture at a fixed relative path. A checker and its harness have to stay put regardless — every harness names its checker by path and imports `./lib/` relatively — which is the same reason `checks/` and `harnesses/` would be the wrong split despite being the obvious one.
-
-**`scripts/lib/` is shared and small on purpose** — `assert.mjs` is the one `ok`/`eq`/`near` scaffold: a checker whose helper shape matches constructs a `createChecker()` so its failure printer and its summary stay byte-identical while the counting lives in one place, `negative.mjs` is the one definition of what "caught by" means, `pool.mjs` the one worker pool (§3.G7), `cdp-port.mjs` the one place a Chrome path and debug port live, `png.mjs` builds its own test PNGs, `mute-tap.mjs` silences audio before any page script, `record-inputs.cjs` proves §4's input lists, `tmp-trees.mjs` is the one registry of temp trees so an interrupted run cannot leave one behind (§3.J), and `cdp-until.mjs` is the one poll-a-page-predicate loop both browser checkers wait with. Editing any of them invalidates every cache entry, which is why they are hashed into every key unconditionally.
+Two paths sit outside `assets/` on purpose: `data-sources/sv-sources.json` records which host each SV PNG came from and is never served (§3.E), and `docs/incidents/` holds §3's receipts.
 
 ---
 
@@ -521,18 +460,9 @@ The slot's type statement is a **148px Poké Ball behind the art** (`.tm-slot-re
 
 Run regression checks whenever modifying data structures, selectors, or color logic.
 
-**`node scripts/check_all.mjs` runs the suite and skips whatever cannot have changed.** `.cache/check-state.json` holds one content hash per checker over its declared `inputs` plus the last green run's duration, so a second full run is **0.0 s** rather than 87 s. Three ways it can be green and wrong:
-- **A FAIL never refreshes an entry** — `last 6.0s` is always a green run's measurement — **and a FAIL is not a skip**; the next run re-runs it.
-- **`--force`** exists for a checker that passed for a reason other than its inputs (missing Chrome, stale server). The cache trusts the last green result on this machine only.
-- **Always in the key, whatever a checker declares:** the checker, any checker a negative harness attacks, every file in `scripts/lib/`, and `check_all.mjs`.
+**`node scripts/check_all.mjs` skips whatever cannot have changed** (`.cache/check-state.json`: one content hash per checker over its declared `inputs`). A FAIL never refreshes an entry and is not a skip; `--force` exists for a pass that happened for another reason; the checker, any checker a harness attacks, every `scripts/lib/` file and `check_all.mjs` are always in the key. **Input lists are proven, not reviewed:** `--prove-inputs` fails on a disagreement in either direction, and `read but not declared` is the dangerous one. **No `--quick` flag on any checker** — a flag that skips a check is a promise that stops being kept.
 
-- **Input lists are PROVEN, not reviewed.** `--prove-inputs` runs each checker under `scripts/lib/record-inputs.cjs` (a CJS `-r` preload, not `--import`, because Node snapshots a builtin's ESM exports at link time) and fails on a disagreement in EITHER direction (`read but not declared` is the dangerous one). Three entries print as unverifiable: `check_gen1_page.mjs`, `check_cries_browser.mjs` (HTTP pages), `test_check_js_syntax.mjs` (own fixture).
-- **`--only` is a REPEATABLE PREFIX MATCH** (`group === f || group.startsWith(f + '-')`), so `--only=cry` covers `cry-apu`/`cry-data`/`cry-page`; `--only=a,b` and `--only=a --only=b` are the same. `--help` prints every group with its last cost.
-- **No `--quick` flag on any checker** — a flag that skips a check is a promise that stops being kept. `test_check_gen1_apu.mjs` was **removed from the manifest**, left runnable and its cost written down.
-- **Groups:** `algo`, `audio-browser`, `color`, `cry-apu`, `cry-data`, `cry-page`, `data`, `game-browser`, `graph-browser`, `home`, `life-browser`, `model`, `moves-browser`, `nav`, `outfit-browser`, `sort`, `type`, `types-browser` — eighteen. The seven `*-browser` groups keep a static filter cheap; `sort` has both entries because both boot Chrome.
-- **Two tiers, pooled at three; two Tier B entries are `serial: true`** (`check_graph_browser.mjs`, `check_life_browser.mjs`). Read **wall-clock**, not total: ~166 s of checker time finishes in ~88 s because browsers contend.
-- **The liveness probe must not be `fetch()`** (undici keep-alive holds the socket ~6 s) **nor read `res.ok`** (undefined on an `IncomingMessage`). **Twelve** entries need the Runtime Server; all **thirteen** browsers are `manual` (execution still happens; only `--prove-inputs` prints the caveat).
-- **No computed debug port.** Every browser launches with `--remote-debugging-port=0` and reads `<profile>/DevToolsActivePort`, so §3.J's orphan incident is unreachable rather than merely unlikely.
+**`--only` is a repeatable prefix match** (`--only=cry` covers `cry-apu`/`cry-data`/`cry-page`; `--only=a,b` is `--only=a --only=b`). `--help` prints every group with its last cost.
 
 ### RUN THE CHECK YOUR CHANGE NEEDS, NOT THE SUITE
 
@@ -577,126 +507,20 @@ node scripts/check_moves_data.mjs && node scripts/check_moves_page.mjs   # 0.1s 
 - **IF IT FAILED, DO NOT RE-RUN TO SEE IF IT PASSES.** Re-run **only** with `--force`, **only** to conclude regression vs contention, and say which.
 - **A HANG IS NOT A FLAKE.** If a watchdog fires, fix the checker — raising the timeout is certainly wrong.
 
-**Know what a group costs before choosing a filter.** `tier` does not predict wall clock — three entries of a tier are in flight at once. `entries` is read from the manifest (`node scripts/check_all.mjs --help`); `secs` is the last measured snapshot, so re-read it rather than trust it. `check_spectrogram_port.mjs` prints `SKIP` and **exits 0** when `../.venv` is absent — read the line, not the exit code.
-
-| group | secs | entries | tier | where its time goes |
-| :--- | ---: | ---: | :---: | :--- |
-| `graph-browser` | 52.6 | 2 | B | `test_check_graph_browser.mjs` 40 s — four sequential Chrome boots; `check_graph_browser.mjs` ~9 s, **`serial: true`** |
-| `cry-page` | 39 | 9 | B | `test_check_cry_game_similarity.mjs` 28.8 s (no browser); the page checkers are small |
-| `moves-browser` | 27.9 | 1 | B | one Chrome, 919 rows |
-| `sort` | 22 | 2 | B | `test_check_sorting_page.mjs` + `check_sorting_page.mjs` — **both boot Chrome, 25 boots in the harness** |
-| `audio-browser` | 25.8 | 4 | B | `check_spectrum_browser.mjs` 9.8, **`check_cry_mobile_layout.mjs` 6.9 (§3.X, the only phone-width measurement)**, `check_cries_browser.mjs` 5.0, `check_gen1_page.mjs` 4.6 |
-| `color` | 21.4 | 16 | B | sixteen small entries, none above 5 s (the two CDP halves moved out) |
-| `life-browser` | 7.1 | 1 | B | `serial: true`, a 40×40 rAF page; one Chrome |
-| `cry-data` | 8.4 | 8 | A | `test_check_cry_index.mjs` 4.7 s, `test_check_spectrogram_port.mjs` 1.4 s |
-| `nav` | 9.3 | 21 | A | `check_js_syntax.mjs` 2.7 s, `test_check_nav_pages.mjs` 1.4 s, `check_team_page.mjs` 0.1 s; no browser |
-| `outfit-browser` | 6.8 | 1 | B | one Chrome |
-| `cry-apu` | 5.6 | **1** | A | `check_gen1_apu.mjs` alone, 4.5 s of it one pass over the 151-species corpus |
-| `game-browser` / `types-browser` | 4.3 / 5 | 1 each | B | one Chrome each |
-| `type` | 3.3 | 4 | A | `test_check_sv_index.mjs` 2.9 s; no browser |
-| `data` | 1.8 | 10 | A | `check_learnsets.mjs` 0.2 s |
-| `algo` / `model` / `home` | 0.8 | 7 | A | no browser; the life and graph browser pairs have their own groups |
+**Know what a group costs before choosing a filter.** The group table, tier/pool layout, `serial` entries, the liveness probe and the debug-port rule live in `docs/ARCHITECTURE.zh-TW.md` §8 — read it before widening a run. `check_spectrogram_port.mjs` prints `SKIP` and **exits 0** when `../.venv` is absent — read the line, not the exit code.
 
 
 **DO NOT USE `--only` AS A WAY TO AVOID A BROWSER.** Every browser sits in a `*-browser` group, or in `sort`; the other ten groups never boot Chrome. **`--only=cry-page` is still 39 s of pure Node** (`test_check_cry_game_similarity.mjs`), so read the table, not the group name. **Anything you can name directly is cheaper than its group.**
 
-**A mutation case is only as expensive as the thing it attacks** — `test_check_color_match.mjs` went 42 s → 2.2 s on two unexamined defaults. **A check's name is a claim about its cost, and the name is not evidence.**
----
+**A mutation case is only as expensive as the thing it attacks** — `test_check_color_match.mjs` went 42 s → 2.2 s on two unexamined defaults. **A check's name is a claim about its cost, and the name is not evidence.**---
 
 ## 5. Data Pipeline & Regeneration Workflow
 
-When rebuilding data files, always execute scripts in the correct order:
+Run the generators by hand, in order, from the repo root with the venv active. **The full command block and each step's `--dry-run`/checker pair live in `docs/ARCHITECTURE.zh-TW.md` §9.**
 
-```bash
-# Activate environment
-source ../.venv/bin/activate  # /Users/jiejiefu/Documents/Visual_Studio_Code/.venv
-
-# 1. Base data: DO NOT RUN BLINDLY. It now yields 1,350 records against the
-#    committed 1,025 (a CSV input includes 325 formes), so this is a roster
-#    change, not a refresh. Fix English names in the source XLSX, then apply a
-#    guarded roster edit; see §3.AC.
-python scripts/enhance_pokemon_data.py
-
-# 1b. Homepage roster: rebuild after pokemon_data.json changes; --dry-run first.
-python scripts/build_home_roster.py --dry-run && python scripts/build_home_roster.py && node scripts/check_home_sections.mjs
-
-# 1c. Team roster: the slim 1,025-record table team.html reads; --dry-run first.
-python scripts/build_team_roster.py --dry-run && python scripts/build_team_roster.py && node scripts/check_team_page.mjs
-
-# 1d. Team moves: rebuild after learnsets.json or moves_zh.json changes;
-#     --dry-run reports bytes/gzip and species short of four moves.
-python scripts/build_team_moves.py --dry-run
-python scripts/build_team_moves.py
-node scripts/check_team_moves.mjs
-
-# 2. Chinese names: scrape official names from tw.portal-pokemon.com.
-python scripts/fix_pokemon_names.py
-
-# 3. Breeding data: fetch gender_rate and hatch_counter (after Phase 1).
-python scripts/fetch_breeding_data.py
-
-# 4. Regional dex: fetch regional dex numbers.
-python scripts/fetch_regional_dex.py
-
-# 5. Abilities: official zh-TW names for the 284 roster slugs, read from pokemon_data.json.
-python scripts/fetch_abilities.py
-
-# 5b. Ability detail: one pass writes abilities.json (314 rows), the forward
-#     holder map and its inverse; --dry-run reports the provenance split.
-python scripts/fetch_abilities_detail.py --dry-run
-python scripts/fetch_abilities_detail.py
-node scripts/check_abilities_data.mjs
-
-# 6. Form names: scrape official zh-TW names for Pokémon forms.
-python scripts/fetch_form_names.py
-
-# 7. Moves & learnsets: one pass writes moves_zh.json, learnsets.json and both
-#    learner indexes; 826 effects from PokeAPI zh-hant, 93 Gen-9 via InfoPoke/OpenCC.
-python scripts/fetch_moves.py
-node scripts/check_moves_data.mjs
-
-# 8. Chinese descriptions: MUST run after step 1; --ids 899,901 re-scrapes a subset, --dry-run does not write.
-python scripts/scrape_zh_descriptions.py
-
-# 9. Color palettes: rebuild 2,050 MMCQ palettes from front sprites.
-python scripts/extract_color_palettes_mmcq.py
-
-# 10. Type profiles: per-type prose, zh-TW effects and trainers; resolves the
-#     InfoPoke `/types/[id]` chunk at runtime.
-python scripts/fetch_type_profiles.py
-
-# 11. SV artwork: fetch only missing roster entries (PokeAPI first, InfoPoke
-#     fallback), then rebuild sv-index.js from disk; hosts live in data-sources/sv-sources.json.
-python scripts/fetch_sv_sprites.py --dry-run   # report coverage first
-python scripts/fetch_sv_sprites.py
-python scripts/extract_sv_index.py
-node scripts/check_sv_index.mjs
-
-# 12. Gen-I cries: parse pokered's cry table and 38 base cries into JSON;
-#     --source/--sfx-dir take local paths for offline tests.
-python scripts/fetch_gen1_cries.py --dry-run
-python scripts/fetch_gen1_cries.py
-node scripts/check_gen1_cries.mjs
-
-# 13. Evolution levels: 541 cached chain GETs write {from_id:{to_id:min_level}}
-#     and the unlevelled pairs; run after any pokemon_data.json id change.
-python scripts/fetch_evolution_levels.py --dry-run
-python scripts/fetch_evolution_levels.py
-node scripts/check_evolution_levels.mjs
-
-# 13b. Form stats/types for graph.html's mega/gmax nodes: 127 GETs to
-#      /pokemon/{id}, cached to a gitignored file; --dry-run lists the roster.
-python scripts/fetch_form_stats.py --dry-run
-python scripts/fetch_form_stats.py
-python scripts/build_graph_data.py
-node scripts/check_graph_chip_network.mjs
-
-# 14. Cry features: one 34-number row per roster cry, resampled to 16 kHz
-#     because the corpus spans fifteen rates; --dry-run does not write.
-python scripts/analyze_cries.py --dry-run
-python scripts/analyze_cries.py
-node scripts/check_cry_features.mjs
-```
+- **Step 1 (`enhance_pokemon_data.py`) is not a refresh.** It yields 1,350 records against the committed 1,025; treat it as a roster change, not a data refresh (§3.AC).
+- **One pass can write several files** (`fetch_moves.py` 4, `fetch_abilities_detail.py` 3, `fetch_gen1_cries.py` 2, `build_graph_data.py` reads a gitignored cache). Never run half of one.
+- **Rebuild derived tables after their source changes:** `home_roster` / `home_dex` / `home_daily` after `pokemon_data.json`; `team_roster` after the roster; `team_moves` after `learnsets.json` or `moves_zh.json`.
 
 ---
 
@@ -704,8 +528,7 @@ node scripts/check_cry_features.mjs
 
 - **No Push Without Explicit Permission**: Commit freely, but **never run `git push`** — not for a first push, not for a branch, not for a fix, not because CI is red. The remote is only pushed when the user says so in their own words, and a request to commit is not a request to push. When it is unclear whether more work is coming, assume it is and stay local. Check what is pending with `git log --oneline origin/<branch>..HEAD`.
 - **Coherent Commits**: Commit at the end of every coherent unit of work (e.g. one bug fix, one component layout, one page enhancement). "Atomic" means one revertable direction, not one small edit or one file; a large feature, its assets, its checkers and its docs are one commit when reverting them together leaves the repo coherent.
-- **Batch by direction, not by file**: One commit per *direction of change*, and a direction may legitimately touch several files — a fix plus the test that proves it, a refactor plus the docs that describe it, or one invariant tightened across every checker that enforces it. Splitting those apart produces a history where no commit is independently verifiable, which is the thing atomicity is for. Do not split work that only makes sense together, and do not merge work that could be reverted separately.
-- **The line is unrelatedness, not file count.** Lumping genuinely unrelated modifications together is still wrong — a colour-palette fix and a nav fix are two directions even if they land the same afternoon. But "one commit per file" and "one commit per hunk" are both wrong in the other direction: they bury each commit's intent in bookkeeping. When in doubt, ask whether reverting this commit alone would leave the repo coherent; if yes, it is its own commit, and if no, it belonged with whatever it is entangled with.
+- **Batch by direction, not by file.** One commit per *direction of change*; a direction may touch several files (a fix plus its test, a refactor plus its docs). The line is **unrelatedness, not file count**: a colour-palette fix and a nav fix are two directions even on the same afternoon, while "one commit per file" and "one commit per hunk" bury the intent in bookkeeping. Ask whether reverting this commit alone leaves the repo coherent; if yes it is its own commit, if no it belonged with what it is entangled with.
 - **Targeted Staging**: Stage only the specific files touched by the unit (`git add path/to/file`). Never use `git add -A` or `git add .` to avoid capturing untracked scratch files.
 
 ### Commit Messages
