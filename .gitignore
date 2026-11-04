@@ -122,3 +122,9 @@ data-sources/pokeapi_form_stats.json
 # asserts the 826/93 split rather than only asserting that the text is non-empty:
 # a restructured table reads as "26 fewer effects", not as a crash.
 data-sources/infopoke-moves.html
+
+# Raw third-party audio packs: the 45 Red/Blue .m4a (51 MB) and the full Gen 1-7
+# SFX collection (142 MB) with its album art, READMEs and YouTube link. Only the
+# derived, served files in assets/audio/ are tracked; prepare_pokefarm_audio.py
+# rebuilds those from this directory. See assets/audio/README.md.
+data-sources/audio-sources/

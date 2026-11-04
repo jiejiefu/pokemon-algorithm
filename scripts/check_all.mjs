@@ -1602,6 +1602,32 @@ const CHECKERS = [
       'assets/css/algo.css', 'assets/css/shared.css',
     ],
   },
+  {
+    /* PokéFarm's pure simulation: deterministic under a seed, never stalls over
+     * several days, jobs do what the design says (burn skips tilling, scorch
+     * risk, cooking margin), and the four scheduling strategies all run. Node
+     * only, well under a second. */
+    script: 'scripts/check_pokefarm_engine.mjs', group: 'algo',
+    inputs: [
+      'assets/js/pokefarm-engine.js', 'assets/js/pokefarm-data.js',
+      'assets/data/home_roster.json', 'assets/data/home_dex.json',
+      'assets/data/species_abilities.json',
+    ],
+  },
+  {
+    /* PokéFarm's audio: all 45 music tracks (.m4a) and all 328 Gen 1 SFX
+     * (.ogg) are on disk, listed in the two manifests, and reachable through
+     * the foley tables. Music is deliberately the original .m4a, not a
+     * re-encode, so the checker reads .m4a there and .ogg for SFX. The globs
+     * are in the key because both folders are the assertion: a deleted or
+     * replaced sound must invalidate this entry. */
+    script: 'scripts/check_pokefarm_audio.mjs', group: 'algo',
+    inputs: [
+      'assets/js/pokefarm-audio.js',
+      'assets/audio/music/manifest.json', 'assets/audio/music/*.m4a',
+      'assets/audio/sfx/manifest.json', 'assets/audio/sfx/*.ogg',
+    ],
+  },
 
   /* ---- models ---- */
   /* The chip-network check is the static half of graph.html's coverage, and it is

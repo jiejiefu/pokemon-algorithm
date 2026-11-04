@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>寶可夢農場 PokéFarm — 指派工人經營農場，再對照排程演算法</title>
+  <meta name="description" content="經營一座 Gen III 風格的樹果農場：指派寶可夢澆水、採收、搬運、砍材、放火燒田與製作樹果料理，每天時間與資源有限；日終用先進先出、最近優先、貪婪與最早到期四種排程演算法重播同一天，看看你贏不贏得過演算法。">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+  <meta name="theme-color" content="#0b1020">
+  <!-- Pre-paint theme resolver. Generated from scripts/lib/theme-init.mjs by
+       scripts/sync_theme_init.mjs; the rationale is AGENTS.md §3.C. -->
+  <script>
+    (function () {
+      var THEME_KEY = 'pokemon-theme';
+      var theme = null;
+      try {
+        theme = localStorage.getItem(THEME_KEY);
+      } catch (e) { /* private mode / storage disabled: resolve from the OS instead */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+        theme = mq && mq.matches ? 'light' : 'dark';
+      }
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b1020');
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="assets/css/pokefarm.css">
+</head>
+<body>
+  <header class="header header-dex">
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切換淺色主題" title="切換淺色主題"></button>
+    <a class="header-brand" href="index.html">
+      <span class="site-logo" aria-hidden="true"></span>
+      <div class="header-title header-title-large">寶可夢演算法</div>
+    </a>
+    <nav class="site-nav" data-nav aria-label="主選單"></nav>
+    <button class="site-nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="開啟選單"></button>
+    <div class="site-nav-drawer" data-nav data-nav-drawer hidden></div>
+  </header>
+
+  <main class="pf-page">
+    <nav class="breadcrumb" aria-label="麵包屑">
+      <a href="index.html">首頁</a> / <a href="sorting.html">演算法</a> / <span aria-current="page">寶可夢農場</span>
+    </nav>
+
+    <h1 class="pf-title" id="pf-title">寶可夢農場 PokéFarm</h1>
+    <p class="pf-sub">
+      每天只有 2 分鐘。點一隻工人、再點農場上的一格，就是「指派」；沒指派的工人會照你選的排程演算法自己找事做。
+      日終會用同一個早晨的狀態重播四種演算法，看你的淨資產贏不贏。
+    </p>
+
+    <section class="pf-hud" aria-label="農場狀態">
+      <div class="pf-day">
+        <div class="pf-day-top"><span class="pf-day-n" id="pf-day">第 1 天</span><span class="pf-clock" id="pf-clock">準備中</span></div>
+        <div class="pf-meter" id="pf-time-meter"><i></i></div>
+      </div>
+      <div class="pf-stat"><span class="pf-stat-k">金幣</span><span class="pf-stat-v" id="pf-coins">0</span></div>
+      <div class="pf-tank">
+        <span class="pf-stat-k">水槽 <span id="pf-water">0/0</span></span>
+        <div class="pf-meter is-water" id="pf-water-meter"><i></i></div>
+      </div>
+      <div class="pf-stat"><span class="pf-stat-k">木材</span><span class="pf-stat-v" id="pf-wood">0</span></div>
+      <div class="pf-stat"><span class="pf-stat-k">樹果 / 料理</span><span class="pf-stat-v" id="pf-stock">0 / 0</span></div>
+      <div class="pf-market" title="今天某種味道的料理賣 1.5 倍">熱銷味道 <b id="pf-flavor">—</b></div>
+      <div class="pf-market" id="pf-weather-chip" title=""><span id="pf-weather">—</span><small id="pf-forecast"></small></div>
+      <div class="pf-market" id="pf-season-chip" title=""><span id="pf-season">—</span><small id="pf-season-day"></small></div>
+      <button class="pf-market pf-orders-chip" type="button" id="pf-orders-chip" aria-label="開啟訂單分頁"><span>訂單 <b id="pf-orders-n">0</b></span><small id="pf-rep"></small></button>
+      <div class="pf-controls">
+        <label class="pf-sr" for="pf-strategy">排程方式</label>
+        <select class="pf-select" id="pf-strategy" aria-label="沒被指派的工人如何找事做"></select>
+        <div class="pf-speed" role="group" aria-label="速度">
+          <button type="button" data-speed="1" aria-pressed="true">1×</button>
+          <button type="button" data-speed="2" aria-pressed="false">2×</button>
+          <button type="button" data-speed="4" aria-pressed="false">4×</button>
+        </div>
+        <button class="pf-btn" type="button" id="pf-soundbtn" aria-haspopup="dialog" aria-label="音樂與音效設定" title="音樂與音效">🔊</button>
+        <button class="pf-btn" type="button" id="pf-helpbtn" aria-haspopup="dialog" title="怎麼玩">?</button>
+        <button class="pf-btn" type="button" id="pf-pause" disabled>暫停</button>
+        <button class="pf-btn is-primary" type="button" id="pf-start">開始今天</button>
+      </div>
+    </section>
+
+    <div class="pf-layout">
+      <section aria-labelledby="pf-title">
+        <div class="pf-stage" id="pf-stage">
+          <canvas class="pf-board" id="pf-board" width="224" height="144" tabindex="0"
+                  role="application" aria-label="農場棋盤。方向鍵移動游標，Enter 指派選取的工人到該格，Esc 取消選取"></canvas>
+          <div class="pf-layer" id="pf-workers"></div>
+          <div class="pf-layer" id="pf-pops"></div>
+          <div class="pf-weather" id="pf-weather-fx" aria-hidden="true"></div>
+          <div class="pf-dusk" id="pf-dusk"></div>
+          <div class="pf-flash" id="pf-flash" aria-hidden="true"></div>
+          <div class="pf-alert" id="pf-alert" hidden></div>
+          <div class="pf-ring" id="pf-ring" hidden></div>
+          <div class="pf-tip" id="pf-tip" hidden></div>
+        </div>
+        <p class="pf-hint" id="pf-hint" aria-live="polite"></p>
+      </section>
+
+      <aside class="pf-side" aria-label="農場面板">
+        <div class="pf-tabs" role="tablist" aria-label="面板">
+          <button class="pf-tab" role="tab" id="pf-tab-workers" aria-controls="pf-panel-workers" aria-selected="true" data-tab="workers">工人</button>
+          <button class="pf-tab" role="tab" id="pf-tab-orders" aria-controls="pf-panel-orders" aria-selected="false" data-tab="orders" tabindex="-1">訂單<span class="pf-badge" id="pf-ordercount">0</span></button>
+          <button class="pf-tab" role="tab" id="pf-tab-jobs" aria-controls="pf-panel-jobs" aria-selected="false" data-tab="jobs" tabindex="-1">工作<span class="pf-badge" id="pf-jobcount">0</span></button>
+          <button class="pf-tab" role="tab" id="pf-tab-shop" aria-controls="pf-panel-shop" aria-selected="false" data-tab="shop" tabindex="-1">商店</button>
+          <button class="pf-tab" role="tab" id="pf-tab-log" aria-controls="pf-panel-log" aria-selected="false" data-tab="log" tabindex="-1">紀錄</button>
+        </div>
+        <div class="pf-panel" role="tabpanel" id="pf-panel-workers" aria-labelledby="pf-tab-workers"></div>
+        <div class="pf-panel" role="tabpanel" id="pf-panel-orders" aria-labelledby="pf-tab-orders" hidden></div>
+        <div class="pf-panel" role="tabpanel" id="pf-panel-jobs" aria-labelledby="pf-tab-jobs" hidden></div>
+        <div class="pf-panel" role="tabpanel" id="pf-panel-shop" aria-labelledby="pf-tab-shop" hidden></div>
+        <div class="pf-panel" role="tabpanel" id="pf-panel-log" aria-labelledby="pf-tab-log" hidden></div>
+      </aside>
+    </div>
+  </main>
+
+  <dialog class="pf-dialog" id="pf-dusk-dialog" aria-labelledby="pf-dusk-title">
+    <h2 id="pf-dusk-title">黃昏結算</h2>
+    <div id="pf-dusk-body"></div>
+    <div class="pf-dialog-actions">
+      <button class="pf-btn" type="button" id="pf-reset">重新開始農場</button>
+      <button class="pf-btn is-primary" type="button" id="pf-next">進入下一天</button>
+    </div>
+  </dialog>
+
+  <dialog class="pf-dialog" id="pf-start-dialog" aria-labelledby="pf-start-title">
+    <h2 id="pf-start-title">新的一年開始了</h2>
+    <p class="pf-note">一年 28 天，四個季節各 7 天。每個季節有自己的規則、天氣和天災，並需要一隻特定屬性的工人（沒有的話會借你一隻）。從哪個季節開始？</p>
+    <label class="pf-opt"><input type="checkbox" id="pf-opt-strict"> <b>挑戰模式（嚴格）</b>：第一週大家都能上工，之後每季只有該季屬性群組的工人能上工，其他人休眠但照領工資；目標與評級門檻是普通的 70%，另計個人最佳。</label>
+    <div class="pf-season-pick" id="pf-season-pick"></div>
+    <button type="button" class="pf-btn pf-daily-btn" id="pf-daily" data-start="daily"></button>
+    <p class="pf-note" id="pf-daily-note"></p>
+    <p class="pf-note" id="pf-best" hidden></p>
+    <div class="pf-dialog-actions"><button class="pf-btn" type="button" id="pf-start-cancel" hidden>取消</button></div>
+  </dialog>
+
+  <dialog class="pf-dialog" id="pf-run-dialog" aria-labelledby="pf-run-title">
+    <h2 id="pf-run-title">一年結束</h2>
+    <div id="pf-run-body"></div>
+    <div class="pf-dialog-actions">
+      <button class="pf-btn" type="button" id="pf-run-endless">繼續經營（無盡模式）</button>
+      <button class="pf-btn" type="button" id="pf-run-share" hidden>複製成績</button>
+      <button class="pf-btn is-primary" type="button" id="pf-run-again">再來一年</button>
+    </div>
+  </dialog>
+
+  <dialog class="pf-dialog" id="pf-sound-dialog" aria-labelledby="pf-sound-title">
+    <h2 id="pf-sound-title">音樂與音效</h2>
+    <div class="pf-sound-row"><label><input type="checkbox" id="pf-mute"> 靜音</label><span class="pf-note" id="pf-nowplaying"></span></div>
+    <div class="pf-sound-row"><label for="pf-vol-music">音樂</label><input type="range" id="pf-vol-music" min="0" max="100" step="5"></div>
+    <div class="pf-sound-row"><label for="pf-vol-sfx">音效</label><input type="range" id="pf-vol-sfx" min="0" max="100" step="5"></div>
+    <h3 class="pf-h">音效室（點一下試聽）</h3>
+    <p class="pf-note">初代的 328 個招式音效，依招式分組；同一招的分段與「直接版」會在遊戲裡隨機混用。</p>
+    <div class="pf-soundtest" id="pf-soundtest"></div>
+    <p class="pf-note">音樂：寶可夢 紅／藍 原聲帶 45 首（原始 .m4a），依季節、天氣與災害切換。音源為官方釋出的個人使用素材，詳見 assets/audio/README.md。</p>
+    <div class="pf-dialog-actions"><button class="pf-btn is-primary" type="button" id="pf-sound-close">完成</button></div>
+  </dialog>
+
+  <dialog class="pf-dialog" id="pf-help" aria-labelledby="pf-help-title">
+    <h2 id="pf-help-title">怎麼玩</h2>
+    <ol class="pf-steps">
+      <li><b>早上準備</b>：到「商店」選今天種哪種樹果、擴建、升級、雇人。看一眼天氣和「訂單」分頁，決定今天要種什麼、做什麼料理。</li>
+      <li><b>開始今天</b>：只有 2 分鐘。沒被指派的工人會照右上角的「排程方式」自己找事做；點一隻工人再點農場的一格（或「工作」分頁的一項）就能親自指揮。</li>
+      <li><b>特性與工作</b>：每隻寶可夢的真實「特性」就是牠的專長（葉綠素晴天快、威嚇驅蟲強、引火放火不延燒…），看工人卡片就知道。除了種田，還能「搖樹」拿野生樹果、「挖渠道」讓旁邊的田自動吸水（乾旱時會乾涸）。</li>
+      <li><b>留意事件</b>：下雨不用澆水、乾旱水很少、強風讓熟果更快掉；害蟲出現要在 22 秒內「驅趕」。</li>
+      <li><b>訂單</b>：客人要樹果、指定味道的料理或木材，在截止日前備齊，日終會自動交貨拿獎勵；做到會累積信譽，信譽越高訂單越多越大，逾期則扣信譽。</li>
+      <li><b>四季與天災</b>：一年 28 天，春夏秋冬各 7 天。每季有自己的規則和天氣；打雷、洪水、颱風、寒流會在天氣日發生，蝗災在夏秋偶爾出現。落雷前 4 秒棋盤上會閃黃框；超能力系（或預知夢、危險預知特性）的工人能在早上看到整天的災害時刻。電系／避雷針引雷、渠道和水系排水防洪、火系暖身防霜。每季需要該季屬性的工人，沒有就借你一隻；同屬性群組的工人快 15%。</li>
+      <li><b>挑戰與每日</b>：開新的一年時可勾「挑戰模式」——每季只有該季屬性群組的工人能上工，其他人休眠但照領工資。「今日挑戰」每天一個固定種子：今天玩的人天氣、災害和訂單都一樣，結算後可複製成績和朋友比。</li>
+      <li><b>黃昏結算</b>：同一個早晨會用四種排程演算法各重播一次，看你的指揮贏不贏。</li>
+    </ol>
+    <p class="pf-note">鍵盤：數字鍵 1–9 選工人，方向鍵在棋盤移動游標，Enter 指派，Esc 取消選取。</p>
+    <div class="pf-dialog-actions"><button class="pf-btn is-primary" type="button" id="pf-help-close">開始經營</button></div>
+  </dialog>
+
+  <div class="pf-toast" id="pf-toast" role="status" hidden></div>
+  <div class="pf-sr" id="pf-live" aria-live="polite"></div>
+
+  <script type="module">
+    import { initThemeToggle, initHeaderNav } from './assets/js/shared.js';
+    initThemeToggle();
+    initHeaderNav('pokefarm.html');
+  </script>
+  <script type="module" src="assets/js/pokefarm.js"></script>
+</body>
+</html>

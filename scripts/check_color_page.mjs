@@ -189,7 +189,8 @@ const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
 // like abilities.html, because the planner is a destination rather than a
 // drill-in from a card.
 // 25 -> 26 when cry-studio.html shipped.
-const EXPECTED_NAV_PAGES = 26;
+// 26 -> 27 when pokefarm.html shipped (filed under 演算法: its point is scheduling).
+const EXPECTED_NAV_PAGES = 27;
 const rowTargets = [];
 for (const item of NAV) {
   const label = item.label;

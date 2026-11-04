@@ -809,7 +809,7 @@ export const NAV = [
     id: 'algo',
     label: '演算法',
     icon: 'sort',
-    pages: ['sorting.html', 'maze.html', 'life.html', 'graph.html', 'silhouette-draft.html'],
+    pages: ['sorting.html', 'maze.html', 'life.html', 'graph.html', 'silhouette-draft.html', 'pokefarm.html'],
     groups: [
       {
         items: [
@@ -818,6 +818,7 @@ export const NAV = [
           { href: 'life.html', label: '進化生命遊戲', desc: '寶可夢世代生態演化' },
           { href: 'graph.html', label: '3D 力導向知識圖譜', desc: '1,346 隻神經網絡關係宇宙' },
           { href: 'silhouette-draft.html', label: '剪影選秀', desc: '6 輪盲選 × 即時對手 × 6 v 6 屬性對位' },
+          { href: 'pokefarm.html', label: '寶可夢農場', desc: '指派工人澆水、採收、料理，再對照排程演算法' },
         ],
       },
     ],
