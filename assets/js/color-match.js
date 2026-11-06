@@ -244,6 +244,75 @@ export function paletteOf(id) {
 // ---------------------------------------------------------------------------
 
 /**
+ * How many species share `hex` as their own primary.
+ *
+ * The pinned grid needs this because a pinned species is often NOT the matcher's
+ * rank-1, and when it isn't, the reader deserves the reason rather than a
+ * number that looks wrong. #FFFFFF is 29 species' primary, so clicking
+ * Reshiram legitimately lands on rank 29 — and "why is it showing a bird" is
+ * only answerable by saying the colour is not unique. Counting is over primaries
+ * only, because that is the quantity the ranking uses.
+ */
+export function primaryShareCount(hex) {
+  const target = typeof hex === 'string' ? hex.toLowerCase() : null;
+  if (!target) return 0;
+  if (!groups) {
+    if (!index) return 0;
+    buildGroups();
+  }
+  let n = 0;
+  for (const g of groups.values()) {
+    if (g.primary.hex.toLowerCase() === target) n++;
+  }
+  return n;
+}
+
+/**
+ * One species' record for one input colour — the same shape `matchPokemon`
+ * returns, without the ranking.
+ *
+ * WHY THIS EXISTS, AND IT IS NOT A CONVENIENCE
+ *
+ * The page's 24-cell legendary grid is a NAMED entry point: the reader clicks
+ * 「萊希拉姆」, and the expectation is unmistakable — show me *that* one. But
+ * loading only its primary colour and re-running the matcher answers a different
+ * question, and for a white primary it answers it wrong: #FFFFFF is the primary
+ * of **29** species, so the rank-1 result is #0278 (a bird), and clicking
+ * Reshiram would present a Wingull's palette under a card that says Reshiram.
+ *
+ * A tie is not the same as an absence. The matcher was right — #0278 really is
+ * tied at distance 0 — and the answer is still wrong, because "closest" was never
+ * the question that was asked. So the caller pins the species and this builds the
+ * record for it. `distance` is still measured against the same input, so the ΔE
+ * on screen keeps meaning what it means everywhere else: 0.0000 here says "your
+ * colour is this species' primary", not "this species won a competition".
+ *
+ * Returns null for an id that is not in the index, so a missing species is
+ * visible to the caller rather than rendering as an empty record.
+ */
+export function matchOf(id, hex) {
+  const lab = hexToOklab(hex);
+  if (!lab) return null;
+  if (!groups) {
+    if (!index) return null;
+    buildGroups();
+  }
+  const g = groups.get(id);
+  if (!g) return null;
+  return {
+    rank: -1,
+    id: g.id,
+    primaryHex: g.primary.hex,
+    primaryShare: g.primary.share,
+    secondaryHex: g.secondary ? g.secondary.hex : g.primary.hex,
+    secondaryShare: g.secondary ? g.secondary.share : g.primary.share,
+    colorCount: 1 + (g.secondary ? 1 : 0) + g.rest.length,
+    distance: deltaEOk(lab, g.primary.lab),
+    secondaryDistance: g.secondary ? deltaEOk(lab, g.secondary.lab) : Infinity,
+  };
+}
+
+/**
  * 找出離 `hex` 最近的 n 隻寶可夢。
  *
  * 排序規則是三層的，每一層都回答一個具體問題：
@@ -272,75 +341,6 @@ export function paletteOf(id) {
  * 是把 ΔE 數字本身顯示出來 —— 頁面上那幾個 tile 有一格就是它。距離大就是大，
  * 那是一個事實而不是一個失敗。
  */
-/**
- * One species' record for one input colour — the same shape `matchPokemon`
- * returns, without the ranking.
- *
- * WHY THIS EXISTS, AND IT IS NOT A CONVENIENCE
- *
- * The page's 24-cell legendary grid is a NAMED entry point: the reader clicks
- * 「萊希拉姆」, and the expectation is unmistakable — show me *that* one. But
- * loading only its primary colour and re-running the matcher answers a different
- * question, and for a white primary it answers it wrong: #FFFFFF is the primary
- * of **29** species, so the rank-1 result is #0278 (a bird), and clicking
- * Reshiram would present a Wingull's palette under a card that says Reshiram.
- *
- * A tie is not the same as an absence. The matcher was right — #0278 really is
- * tied at distance 0 — and the answer is still wrong, because "closest" was never
- * the question that was asked. So the caller pins the species and this builds the
- * record for it. `distance` is still measured against the same input, so the ΔE
- * on screen keeps meaning what it means everywhere else: 0.0000 here says "your
- * colour is this species' primary", not "this species won a competition".
- *
- * Returns null for an id that is not in the index, so a missing species is
- * visible to the caller rather than rendering as an empty record.
- */
-/**
- * How many species share `hex` as their own primary.
- *
- * The pinned grid needs this because a pinned species is often NOT the matcher's
- * rank-1, and when it isn't, the reader deserves the reason rather than a
- * number that looks wrong. #FFFFFF is 29 species' primary, so clicking
- * Reshiram legitimately lands on rank 29 — and "why is it showing a bird" is
- * only answerable by saying the colour is not unique. Counting is over primaries
- * only, because that is the quantity the ranking uses.
- */
-export function primaryShareCount(hex) {
-  const target = typeof hex === 'string' ? hex.toLowerCase() : null;
-  if (!target) return 0;
-  if (!groups) {
-    if (!index) return 0;
-    buildGroups();
-  }
-  let n = 0;
-  for (const g of groups.values()) {
-    if (g.primary.hex.toLowerCase() === target) n++;
-  }
-  return n;
-}
-
-export function matchOf(id, hex) {
-  const lab = hexToOklab(hex);
-  if (!lab) return null;
-  if (!groups) {
-    if (!index) return null;
-    buildGroups();
-  }
-  const g = groups.get(id);
-  if (!g) return null;
-  return {
-    rank: -1,
-    id: g.id,
-    primaryHex: g.primary.hex,
-    primaryShare: g.primary.share,
-    secondaryHex: g.secondary ? g.secondary.hex : g.primary.hex,
-    secondaryShare: g.secondary ? g.secondary.share : g.primary.share,
-    colorCount: 1 + (g.secondary ? 1 : 0) + g.rest.length,
-    distance: deltaEOk(lab, g.primary.lab),
-    secondaryDistance: g.secondary ? deltaEOk(lab, g.secondary.lab) : Infinity,
-  };
-}
-
 export function matchPokemon(hex, n = 5) {
   const lab = hexToOklab(hex);
   if (!lab) return [];

@@ -151,45 +151,21 @@ console.log('NAV integrity');
 // Every href a NAV row can send the user to must resolve, or be registered as
 // planned. A typo'd href is a dead link that renders identically to a good one.
 const plannedSlugs = new Set(PLANNED.map((p) => p.slug));
-// The site pages that reach the nav. A NUMBER, not a list on purpose — a list here
-// would be a fourth copy of NAV that could be edited to agree with a broken NAV,
-// whereas a count can only be changed by someone deciding the site's page set
+// The site pages that reach the nav. A NUMBER, not a list on purpose — a list
+// here would be a fourth copy of NAV that could be edited to agree with a broken
+// NAV, whereas a count can only be moved by someone deciding the site's page set
 // changed, and a stale one is a red line rather than a silently smaller table.
 //
-// Derived once, measured, rather than described in prose that goes stale: TWO
-// top-level hrefs (index.html, model3d.html) plus 18 pages under the five groups,
-// whose union is 20 — the groups' `pages[]` and their rows name 18 each, and the
-// two sets overlap in everything except model3d.html, which is top-level only.
-// Three planned rows (abilities.html, moves.html, natures.html) are NOT counted,
-// because a `planned` entry is a badge promising a page nothing links to yet.
+// One count, one meaning: every page named by a top-level href or a group row.
+// Drill-in pages (detail.html, move.html, ability.html) have no row and are NOT
+// counted — the rule is about HOW a page is reached, so a new drill-in does not
+// move this. Planned rows are not counted either: a `planned` badge promises a
+// page nothing links to yet.
 //
-// It went 15 -> 16 when spectrum.html joined the 叫聲 (cries) group, 16 -> 17
-// when life.html joined 演算法 (algorithms), 17 -> 18 when graph.html joined
-// 演算法, 18 -> 19 when color-game.html replaced its `planned: 'color-game.html'`
-// placeholder in the 色彩 group with a real row — which is what the `planned`
-// branch of `navRowHtml` exists for — and 19 -> 20 when cry-game.html joined
-// 叫聲 as a real row. **That last bump was missed**, so this assertion has been
-// red since: the row landed in commit 16fe543 and the count did not move. It is
-// recorded here rather than left to the commit log because the message below now
-// names WHICH pages are in the table, so the diagnosis is one line of output
-// instead of a re-derivation.
-// 20 -> 21 when today.html became the first row of 圖鑑 (Pokédex), the day
-// index.html gave its content sections away. The bump being VISIBLE is the
-// point: this pin is what turns "a page quietly stopped being mentioned by NAV"
-// into a red line instead of a table of claims that quietly stopped covering it.
-// 21 -> 22 when moves.html shipped. `move.html` did NOT move it: that page is
-// reached by drilling in from a row, exactly as detail.html is, and neither
-// carries an aria-current claim for a reason — adding one would have been the
-// only page in the site marked 「current」 while it had no nav row to mark.
-// 22 -> 23 when abilities.html shipped, and `ability.html` did NOT move it for
-// the same reason `move.html` did not. The pair is deliberate rather than
-// convenient: two drill-in pages with no row means the rule is about HOW a page
-// is reached, not about there being two of them.
-// 23 -> 24 when team.html shipped. It has its own row and its own pages entry,
-// like abilities.html, because the planner is a destination rather than a
-// drill-in from a card.
-// 25 -> 26 when cry-studio.html shipped.
-// 26 -> 27 when pokefarm.html shipped (filed under 演算法: its point is scheduling).
+// The running history of every bump lives in git. What matters here is only that
+// the number may not go DOWN: `everyPage` is derived from what NAV mentions, so a
+// page that stops being mentioned leaves the table and turns every claim check
+// below green while marking nothing current.
 const EXPECTED_NAV_PAGES = 27;
 const rowTargets = [];
 for (const item of NAV) {
@@ -246,13 +222,8 @@ const everyPage = [...new Set(rowTargets.map((t) => t.href))].sort();
 // notice. Pinning the size is the blunt instrument that turns that silence into a
 // failure, and the count only moves when a page is genuinely added to or removed
 // from the site.
-/* The message NAMES THE PAGES, sorted, because a bare count difference is a
- * re-derivation rather than a diagnosis. This assertion went red on a real
- * omission — cry-game.html had been a 叫聲 (cries) row for a commit — and the
- * report was "everyPage has 20 entries, expected 19", which says that something
- * changed and nothing about what. The next person to bump this has to answer one
- * question ("which page?") and the answer should be in the output they already
- * have. */
+/* The failure names the pages, sorted: a bare count difference says that
+ * something changed and nothing about what. */
 check(
   everyPage.length === EXPECTED_NAV_PAGES,
   `the claim table holds all ${EXPECTED_NAV_PAGES} site pages`,
