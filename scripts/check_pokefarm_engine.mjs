@@ -30,7 +30,7 @@ import {
   canDo, seasonInfo, seasonGate, addLoaner, keepLoaner, ratingOf, ensureSeason, seedCost, isActive, hashStr, seasonGoal,
 } from '../assets/js/pokefarm-engine.js';
 import {
-  buildWorker, visitorIds, BERRIES, DAY_SECONDS, FIELD_START, JOB_IDS, STARTERS, SIGNATURES,
+  buildWorker, visitorIds, isVisitorSpecies, VISITOR_IDS, BERRIES, DAY_SECONDS, FIELD_START, JOB_IDS, STARTERS, SIGNATURES,
   ABILITY_PERKS, PERK_RATE_CAP, SHAKE_POOL, dishMultiplier, UPGRADES, WEATHER, PEST_TIME, PEST_FROM_DAY, SALE_FREE_BERRY, UPKEEP_DIV,
   SEASONS, SEASON_DAYS, RUN_DAYS, HAZARD_PLAN, RATINGS,
 } from '../assets/js/pokefarm-data.js';
@@ -73,10 +73,39 @@ const playDay = (w) => { for (let i = 0; i < DAY_SECONDS * 10 && !w.over; i++) s
 
 /* ------------------------------------------------------------ visitors */
 {
+  // The pool is a snapshot of "first non-baby stage, non-legendary". Re-derive
+  // it from the two source tables so a stale range string cannot pass.
+  const evolution = JSON.parse(readFileSync(join(BASE, 'assets/data/evolution_levels.json'), 'utf8'));
+  const species = JSON.parse(readFileSync(join(BASE, 'assets/data/pokemon_data.json'), 'utf8'));
+  const baby = new Set(species.filter((p) => p.is_baby).map((p) => p.id));
+  const incoming = new Set();
+  const addEdges = (fromKey, toId) => {
+    const from = Number(fromKey); const to = Number(toId);
+    if (!baby.has(from) && !baby.has(to)) incoming.add(to);
+  };
+  for (const [from, children] of Object.entries(evolution.levels || {})) for (const to of Object.keys(children)) addEdges(from, to);
+  for (const [from, steps] of Object.entries(evolution.unlevelled || {})) for (const step of steps) addEdges(from, step.to);
+  const expected = species
+    .filter((p) => !baby.has(p.id) && !incoming.has(p.id) && !p.is_legendary && !p.is_mythical)
+    .map((p) => p.id);
+  eq(VISITOR_IDS, expected, 'the visitor pool is the first non-baby stage, minus legendaries/mythicals');
+  eq(VISITOR_IDS.length, 455, 'the visitor pool has 455 species');
+  ok(isVisitorSpecies(25) && !isVisitorSpecies(172), 'Pikachu is in the pool and Pichu is not');
+  ok([173, 174, 175, 236, 238, 239, 240, 298, 360, 406, 433, 438, 439, 440, 446, 447, 458, 848].every((id) => !isVisitorSpecies(id)), 'no baby species is in the pool');
+  ok([249, 250, 382, 383, 384, 493, 643, 716, 717, 890].every((id) => !isVisitorSpecies(id)), 'no legendary or mythical is in the pool');
+  ok(isVisitorSpecies(1) && isVisitorSpecies(25) && isVisitorSpecies(246) && !isVisitorSpecies(2) && !isVisitorSpecies(248), 'base stages are in the pool and their evolutions are not');
+
   const a = visitorIds('2026-10-30'); const b = visitorIds('2026-10-30'); const c = visitorIds('2026-10-31');
   eq(a, b, 'visitors are a pure function of the date');
   ok(JSON.stringify(a) !== JSON.stringify(c), 'a different day brings different visitors');
-  ok(new Set(a).size === a.length && a.every((n) => n >= 1 && n <= 1025), 'visitors are distinct, real species');
+  eq(a.length, 4, 'four visitors a day');
+  ok(new Set(a).size === a.length && a.every((n) => isVisitorSpecies(n)), 'visitors are distinct species from the visitor pool');
+  let bad = 0;
+  for (let day = 0; day < 400; day++) {
+    const ids = visitorIds(`seed:${day}`);
+    if (ids.length !== 4 || new Set(ids).size !== 4 || !ids.every((id) => isVisitorSpecies(id))) bad++;
+  }
+  eq(bad, 0, '400 consecutive days each bring four distinct, eligible visitors');
 }
 
 /* ------------------------------------------------------------ determinism */

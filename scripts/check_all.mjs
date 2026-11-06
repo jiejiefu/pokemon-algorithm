@@ -1611,7 +1611,8 @@ const CHECKERS = [
     inputs: [
       'assets/js/pokefarm-engine.js', 'assets/js/pokefarm-data.js',
       'assets/data/home_roster.json', 'assets/data/home_dex.json',
-      'assets/data/species_abilities.json',
+      'assets/data/species_abilities.json', 'assets/data/evolution_levels.json',
+      'assets/data/pokemon_data.json',
     ],
   },
   {

@@ -573,9 +573,8 @@ function renderLog() {
 
 let recruitQuery = '';
 function recruitPool() {
-  const visitors = visitorIds(`${world.seed}:${world.day}`, 4).map((id) => ({ id, visitor: true }));
-  const owned = dex.ids().slice().reverse().filter((id) => !visitors.some((v) => v.id === id)).map((id) => ({ id, visitor: false }));
-  let list = [...visitors, ...owned].filter((c) => !world.workers.some((w) => w.id === c.id));
+  let list = visitorIds(`${world.seed}:${world.day}`, 4).map((id) => ({ id, visitor: true }))
+    .filter((c) => !world.workers.some((w) => w.id === c.id));
   const q = recruitQuery.trim().toLowerCase();
   if (q) {
     list = list.filter((c) => {
@@ -614,7 +613,7 @@ function renderShop() {
       return `<div class="pf-shop-row"><span>${u.zh} Lv ${lv}/${u.max}<br><small class="pf-note">${u.desc}</small></span><button type="button" class="pf-btn is-small" data-key="u${k}" data-up="${k}" ${morning && c != null && world.coins >= c ? '' : 'disabled'}>${c == null ? '已滿級' : '$' + c}</button></div>`; }).join('')}
     <p class="pf-note">每天日終要付工資：每位工人約 工資 ÷ ${UPKEEP_DIV}。同一種樹果賣超過 10 顆、同一天料理超過 4 道會開始降價，輪著種、多做料理比較賺。</p>
     <h3 class="pf-h" style="margin-top:14px">招募（${world.workers.length}/${MAX_WORKERS}）</h3>
-    <p class="pf-note">圖鑑裡收服過的寶可夢隨時能雇；每天另有 4 位訪客，雇用訪客會把牠收進你的圖鑑。</p>
+    <p class="pf-note">每天有 4 位今日訪客可以雇用；雇用訪客會把牠收進你的圖鑑。已收服的寶可夢不會另外列在招募清單。</p>
     <input class="pf-select pf-search" data-key="q" type="search" placeholder="搜尋名稱或編號" value="${esc(recruitQuery)}" aria-label="搜尋可招募的寶可夢">
     <div>${pool || '<p class="pf-note">沒有符合的寶可夢。</p>'}</div>`);
 }

@@ -536,15 +536,43 @@ export function topJobs(worker, n = 2) {
 }
 export const JOB_NAME = { ...Object.fromEntries(JOB_IDS.map((j) => [j, JOBS[j].zh])), burn: '放火' };
 
+/* ------------------------------------------------------------ visitor pool */
+
+/**
+ * Today's visitors are the farm's only hires. They must look like they belong
+ * in a field: no babies (a baby should not be put to work), no legendaries or
+ * mythicals (their Showdown canvases dwarf a starter's), and no evolved form.
+ * That is "the first non-baby stage of every chain": drop the 19 `is_baby`
+ * species from `evolution_levels.json`, then keep the survivors with no
+ * incoming evolution edge.
+ *
+ * 455 ids, written as ranges because the literal array is 455 lines of noise.
+ * `check_pokefarm_engine.mjs` re-derives the set from the two JSON tables and
+ * fails on any disagreement, so this is a snapshot, not a second source.
+ */
+const VISITOR_RANGES = '1,4,7,10,13,16,19,21,23,25,27,29,32,35,37,39,41,43,46,48,50,52,54,56,58,60,63,66,69,72,74,77,79,81,83-84,86,88,90,92,95-96,98,100,102,104,106-109,111,113-116,118,120,122-129,131-133,137-138,140,142-143,147,152,155,158,161,163,165,167,170,176-177,179,183,185,187,190-191,193-194,198,200-204,206-207,209,211,213-216,218,220,222-223,225-228,231,234-235,237,241,246,252,255,258,261,263,265,270,273,276,278,280,283,285,287,290,293,296,299-300,302-304,307,309,311-316,318,320,322,324-325,327-328,331,333,335-339,341,343,345,347,349,351-353,355,357-359,361,363,366,369-371,374,387,390,393,396,399,401,403,408,410,412,415,417-418,420,422,425,427,431,434,436,441-443,448-449,451,453,455-456,459,479,495,498,501,504,506,509,511,513,515,517,519,522,524,527,529,531-532,535,538-540,543,546,548,550-551,554,556-557,559,561-562,564,566,568,570,572,574,577,580,582,585,587-588,590,592,594-595,597,599,602,605,607,610,613,615-616,618-619,621-622,624,626-627,629,631-633,636,650,653,656,659,661,664,667,669,672,674,676-677,679,682,684,686,688,690,692,694,696,698,701-704,707-708,710,712,714,722,725,728,731,734,736,739,741-742,744,746-747,749,751,753,755,757,759,761,764-767,769,771,774-782,793-799,803,805-806,810,813,816,819,821,824,827,829,831,833,835,837,840,843,845-846,849-850,852,854,856,859,868,870-872,874-878,880-885,906,909,912,915,917,919,921,924,926,928,931-932,935,938,940,942,944,946,948,950-951,953,955,957,960,962-963,965,967-969,971,973-974,976-978,984-996,999,1005-1006,1009-1010,1012,1020-1023';
+
+export const VISITOR_IDS = (() => {
+  const out = [];
+  for (const part of VISITOR_RANGES.split(',')) {
+    const [lo, hi = lo] = part.split('-').map(Number);
+    for (let id = lo; id <= hi; id++) out.push(id);
+  }
+  return out;
+})();
+
+const VISITOR_SET = new Set(VISITOR_IDS);
+export const isVisitorSpecies = (id) => VISITOR_SET.has(id);
+
 /** Today's visitors: a few species seeded by the date, the same for everyone. */
-export function visitorIds(dateKey, count = 4, size = 1025) {
+export function visitorIds(dateKey, count = 4, pool = VISITOR_IDS) {
   let h = 2166136261;
   for (const ch of String(dateKey)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
   const out = [];
   let s = h >>> 0;
   while (out.length < count) {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
-    const id = 1 + (s % size);
+    const id = pool[s % pool.length];
     if (!out.includes(id)) out.push(id);
   }
   return out;
