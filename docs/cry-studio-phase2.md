@@ -42,6 +42,7 @@ Only `assets/js/cry-seq-pattern.js`, only `randomPattern()`:
 - `node scripts/check_all.mjs --only=nav --only=color`
 - A/B by ear against `9d986e1`. Revert that commit to hear the Phase 1 baseline.
 
-Known unrelated reds in the color group: palette #1025 is missing from
-`color_palettes.json`, and `AGENTS.md` is over its size ceiling. Neither is caused
-by this page.
+Known unrelated reds: palette #1025 is missing from `color_palettes.json`, and
+`test_check_agents_size.mjs` fails on its synthetic over-ceiling case (the real
+`AGENTS.md` is 68,372 chars against a 90,000 ceiling). Neither is caused by this
+page.
