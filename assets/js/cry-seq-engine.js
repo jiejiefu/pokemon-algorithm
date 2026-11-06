@@ -223,7 +223,7 @@ function crushCurve(amount) {
  * Build the whole signal path on `ctx` and return handles to it.
  *
  *   cries → drive → crush → filter(+wah) → cryVol ─┬─ duck ──────────────┐
- *   drums ───────────────────────────────→ drumVol ─┼─ (dry) ─────────────┤→ master → limiter → out
+ *   drums ───────────────────────────────→ drumVol ─┼─ (dry) ─────────────┤→ master → shelf → glue → limiter → out
  *                                  both ──send──→ delay ──────────────────┤
  *                                  both ──send──→ reverb ─────────────────┘
  *
@@ -259,6 +259,9 @@ export function createGraph(ctx) {
   g.reverbOut = node('createGain');
 
   g.master = node('createGain');
+  g.shelf = node('createBiquadFilter');
+  g.glue = node('createDynamicsCompressor');
+  g.glueOut = node('createGain');
   g.limiter = node('createDynamicsCompressor');
   g.analyser = node('createAnalyser');
 
@@ -298,12 +301,26 @@ export function createGraph(ctx) {
   g.reverbOut.connect(g.master);
   g.reverbOut.gain.value = 0.9;
 
+  // A gentle high shelf and a 2:1 bus glue sit before the limiter so the mix
+  // reads as one sound rather than N cries stacked on top of a beat.
+  g.shelf.type = 'highshelf';
+  g.shelf.frequency.value = 7000;
+  g.shelf.gain.value = -2.5;
+  g.glue.threshold.value = -16;
+  g.glue.knee.value = 10;
+  g.glue.ratio.value = 2;
+  g.glue.attack.value = 0.02;
+  g.glue.release.value = 0.22;
+  g.glueOut.gain.value = 1.25;
   g.limiter.threshold.value = -8;
   g.limiter.knee.value = 8;
   g.limiter.ratio.value = 10;
   g.limiter.attack.value = 0.003;
   g.limiter.release.value = 0.18;
-  g.master.connect(g.limiter);
+  g.master.connect(g.shelf);
+  g.shelf.connect(g.glue);
+  g.glue.connect(g.glueOut);
+  g.glueOut.connect(g.limiter);
   g.limiter.connect(g.analyser);
   g.analyser.connect(ctx.destination);
   g.analyser.fftSize = 256;
@@ -570,6 +587,14 @@ export function synthDrum(ctx, dest, name, when, vel, variant = 0) {
 
 /* ------------------------------------------------------------- scheduling */
 
+/** One tone ceiling for a voice: darker low, and darker still when the cry is
+ *  stretched up, because a raised playbackRate drags its formants up too. */
+function voiceCutoff(midi, rate) {
+  const base = 1000 + Math.max(0, midi - 36) * 90;
+  const stretch = rate > 1.2 ? 1 / (1 + (rate - 1.2) * 0.6) : 1;
+  return clamp(base * stretch, 900, 6500);
+}
+
 /** Play one cry note. `env.cries` is a Map id → analysed entry (see `prepare`). */
 export function scheduleCry(env, note, when, stepDur) {
   const entry = env.cries.get(note.id);
@@ -591,19 +616,33 @@ export function scheduleCry(env, note, when, stepDur) {
   const avail = (entry.buffer.duration - entry.onset) / rate;
   const held = note.len * stepDur;
   const play = pattern.gate === 'free' ? avail : Math.min(avail, held);
-  const release = Math.min(0.04, play * 0.5);
+  const attack = 0.01;
+  const release = Math.min(0.12, play * 0.45);
 
+  // 10 ms in and up to 120 ms out: long enough to erase the click of a hard
+  // buffer edge, short enough that the note still lands on the grid.
   amp.gain.setValueAtTime(0, when);
-  amp.gain.linearRampToValueAtTime(level, when + 0.003);
-  if (play < avail) {
-    amp.gain.setValueAtTime(level, when + play - release);
-    amp.gain.linearRampToValueAtTime(0, when + play);
+  amp.gain.linearRampToValueAtTime(level, when + attack);
+  amp.gain.setValueAtTime(level, Math.max(when + attack, when + play - release));
+  amp.gain.linearRampToValueAtTime(0, when + play);
+
+  let tone = null;
+  if (pattern.fx.filterType === 'lowpass') {
+    tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.Q.value = 0.6;
+    const cutoff = voiceCutoff(midi, rate);
+    tone.frequency.setValueAtTime(Math.min(12000, cutoff * 1.5), when);
+    tone.frequency.exponentialRampToValueAtTime(cutoff, when + 0.05);
+    src.connect(tone);
+    tone.connect(amp);
+  } else {
+    src.connect(amp);
   }
-  src.connect(amp);
   amp.connect(env.graph.cryBus);
   src.start(when, entry.onset);
   src.stop(when + play + 0.02);
-  src.onended = () => { src.disconnect(); amp.disconnect(); };
+  src.onended = () => { src.disconnect(); tone?.disconnect(); amp.disconnect(); };
 
   if (env.voices) {
     const now = ctx.currentTime;

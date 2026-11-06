@@ -63,11 +63,11 @@ export const DRUM_LANES = [
 export const BASE_MIDI = 60;
 
 export const DEFAULT_FX = Object.freeze({
-  cryVol: 0.8, drumVol: 0.8, master: 0.8, duck: 0,
-  drive: 0, crush: 0, filterType: 'lowpass', cutoff: 18000, reso: 0.7,
+  cryVol: 0.8, drumVol: 0.8, master: 0.8, duck: 0.22,
+  drive: 0, crush: 0, filterType: 'lowpass', cutoff: 8000, reso: 0.7,
   wahRate: 0, wahDepth: 0,
-  delayDiv: 3, delayFb: 0.35, delayCry: 0, delayDrum: 0,
-  reverbSize: 1.6, reverbCry: 0, reverbDrum: 0,
+  delayDiv: 3, delayFb: 0.35, delayCry: 0.12, delayDrum: 0.06,
+  reverbSize: 2.4, reverbCry: 0.22, reverbDrum: 0.1,
 });
 
 /** Slider ranges — one table, so the UI, the clamp on import and the tests agree. */
